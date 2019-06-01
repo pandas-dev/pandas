@@ -9,7 +9,6 @@ import pytest
 import pytz
 from pytz import timezone
 
-import pandas.compat as compat
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -24,7 +23,7 @@ from pandas.tseries.offsets import (
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-class TestTimestampEquivDateRange(object):
+class TestTimestampEquivDateRange:
     # Older tests in TestTimeSeries constructed their `stamp` objects
     # using `date_range` instead of the `Timestamp` constructor.
     # TestTimestampEquivDateRange checks that these are equivalent in the
@@ -335,12 +334,11 @@ class TestDateRanges(TestData):
         with pytest.raises(ValueError, match=msg):
             date_range()
 
-    @pytest.mark.parametrize('f', [compat.long, int])
-    def test_compat_replace(self, f):
+    def test_compat_replace(self):
         # https://github.com/statsmodels/statsmodels/issues/3349
         # replace should take ints/longs for compat
         result = date_range(Timestamp('1960-04-01 00:00:00', freq='QS-JAN'),
-                            periods=f(76), freq='QS-JAN')
+                            periods=76, freq='QS-JAN')
         assert len(result) == 76
 
     def test_catch_infinite_loop(self):
@@ -600,7 +598,7 @@ class TestDateRanges(TestData):
         tm.assert_index_equal(result, expected)
 
 
-class TestGenRangeGeneration(object):
+class TestGenRangeGeneration:
 
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=BDay()))
@@ -668,7 +666,7 @@ class TestGenRangeGeneration(object):
             pd.date_range(start, end, freq=BDay())
 
 
-class TestBusinessDateRange(object):
+class TestBusinessDateRange:
 
     def test_constructor(self):
         bdate_range(START, END, freq=BDay())
@@ -743,7 +741,7 @@ class TestBusinessDateRange(object):
         tm.assert_index_equal(result, expected)
 
 
-class TestCustomDateRange(object):
+class TestCustomDateRange:
 
     def test_constructor(self):
         bdate_range(START, END, freq=CDay())

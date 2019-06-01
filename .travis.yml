@@ -41,7 +41,7 @@ matrix:
 
     - dist: trusty
       env:
-        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36.yaml" PATTERN="((not slow and not network) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
+        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
 
     # In allow_failures
     - dist: trusty
@@ -51,14 +51,14 @@ matrix:
     # In allow_failures
     - dist: trusty
       env:
-        - JOB="3.6, doc" ENV_FILE="ci/deps/travis-36-doc.yaml" DOC=true
+        - JOB="3.6, doc" ENV_FILE="environment.yml" DOC=true
     allow_failures:
       - dist: trusty
         env:
           - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow"
       - dist: trusty
         env:
-          - JOB="3.6, doc" ENV_FILE="ci/deps/travis-36-doc.yaml" DOC=true
+          - JOB="3.6, doc" ENV_FILE="environment.yml" DOC=true
 
 before_install:
   - echo "before_install"
@@ -82,14 +82,17 @@ before_install:
 install:
   - echo "install start"
   - ci/prep_cython_cache.sh
-  - ci/install_travis.sh
+  - ci/setup_env.sh
   - ci/submit_cython_cache.sh
   - echo "install done"
 
 before_script:
-  - ci/install_db_travis.sh
+  # display server (for clipboard functionality) needs to be started here,
+  # does not work if done in install:setup_env.sh (GH-26103)
   - export DISPLAY=":99.0"
-  - ci/before_script_travis.sh
+  - echo "sh -e /etc/init.d/xvfb start"
+  - sh -e /etc/init.d/xvfb start
+  - sleep 3
 
 script:
   - echo "script start"

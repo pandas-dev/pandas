@@ -1,5 +1,3 @@
-# pylint: disable-msg=E1101,W0612
-
 import numpy as np
 import pytest
 
@@ -8,7 +6,8 @@ from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
-class TestSparseSeriesIndexing(object):
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+class TestSparseSeriesIndexing:
 
     def setup_method(self, method):
         self.orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
@@ -456,6 +455,7 @@ class TestSparseSeriesIndexing(object):
             s.iloc[indexer]
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
 
     def setup_method(self, method):
@@ -601,7 +601,8 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         assert sparse is not res
 
 
-class TestSparseDataFrameIndexing(object):
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+class TestSparseDataFrameIndexing:
 
     def test_getitem(self):
         orig = pd.DataFrame([[1, np.nan, np.nan],
@@ -978,7 +979,8 @@ class TestSparseDataFrameIndexing(object):
         tm.assert_sp_frame_equal(res, exp)
 
 
-class TestMultitype(object):
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+class TestMultitype:
 
     def setup_method(self, method):
         self.cols = ['string', 'int', 'float', 'object']

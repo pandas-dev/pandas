@@ -14,8 +14,8 @@
 Merge, join, and concatenate
 ****************************
 
-pandas provides various facilities for easily combining together Series,
-DataFrame, and Panel objects with various kinds of set logic for the indexes
+pandas provides various facilities for easily combining together Series or
+DataFrame with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
 
@@ -74,7 +74,7 @@ some configurable handling of "what to do with the other axes":
               keys=None, levels=None, names=None, verify_integrity=False,
               copy=True)
 
-* ``objs`` : a sequence or mapping of Series, DataFrame, or Panel objects. If a
+* ``objs`` : a sequence or mapping of Series or DataFrame objects. If a
   dict is passed, the sorted keys will be used as the `keys` argument, unless
   it is passed, in which case the values will be selected (see below). Any None
   objects will be dropped silently unless they are all None in which case a
@@ -1284,8 +1284,8 @@ similarly.
 
 .. _merging.multiple_join:
 
-Joining multiple DataFrame or Panel objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Joining multiple DataFrames
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A list or tuple of ``DataFrames`` can also be passed to :meth:`~DataFrame.join`
 to join them together on their indexes.

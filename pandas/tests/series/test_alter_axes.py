@@ -1,18 +1,13 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime
 
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, range, zip
-
 from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
 import pandas.util.testing as tm
 
 
-class TestSeriesAlterAxes(object):
+class TestSeriesAlterAxes:
 
     def test_setindex(self, string_series):
         # wrong type
@@ -91,7 +86,7 @@ class TestSeriesAlterAxes(object):
     def test_set_name_attribute(self):
         s = Series([1, 2, 3])
         s2 = Series([1, 2, 3], name='bar')
-        for name in [7, 7., 'name', datetime(2001, 1, 1), (1,), u"\u05D0"]:
+        for name in [7, 7., 'name', datetime(2001, 1, 1), (1,), "\u05D0"]:
             s.name = name
             assert s.name == name
             s2.name = name
@@ -114,7 +109,7 @@ class TestSeriesAlterAxes(object):
     def test_set_index_makes_timeseries(self):
         idx = tm.makeDateIndex(10)
 
-        s = Series(lrange(10))
+        s = Series(range(10))
         s.index = idx
         assert s.index.is_all_dates
 

@@ -797,7 +797,7 @@ values **not** in the categories, similarly to how you can reindex **any** panda
     In [11]: df3 = df3.set_index('B')
 
     In [11]: df3.index
-    Out[11]: CategoricalIndex([u'a', u'a', u'b', u'b', u'c', u'a'], categories=[u'a', u'b', u'c'], ordered=False, name=u'B', dtype='category')
+    Out[11]: CategoricalIndex(['a', 'a', 'b', 'b', 'c', 'a'], categories=['a', 'b', 'c'], ordered=False, name='B', dtype='category')
 
     In [12]: pd.concat([df2, df3])
     TypeError: categories must match existing categories when appending

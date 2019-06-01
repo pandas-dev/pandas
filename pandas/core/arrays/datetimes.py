@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, time, timedelta
 import textwrap
 from typing import Union
@@ -10,7 +9,7 @@ from pytz import utc
 from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT, Timestamp, ccalendar, conversion, fields, iNaT, normalize_date,
-    resolution as libresolution, timezones)
+    resolution as libresolution, timezones, tzconversion)
 import pandas.compat as compat
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender
@@ -137,7 +136,7 @@ def _dt_array_cmp(cls, op):
 
         other = lib.item_from_zerodim(other)
 
-        if isinstance(other, (datetime, np.datetime64, compat.string_types)):
+        if isinstance(other, (datetime, np.datetime64, str)):
             if isinstance(other, (datetime, np.datetime64)):
                 # GH#18435 strings get a pass from tzawareness compat
                 self._assert_tzawareness_compat(other)
@@ -197,9 +196,6 @@ def _dt_array_cmp(cls, op):
 
             result = com.values_from_object(result)
 
-            # Make sure to pass an array to result[...]; indexing with
-            # Series breaks with older version of numpy
-            o_mask = np.array(o_mask)
             if o_mask.any():
                 result[o_mask] = nat_result
 
@@ -260,10 +256,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                              'tz_convert',
                              'normalize', 'strftime', 'round', 'floor',
                              'ceil', 'month_name', 'day_name']
-
-    # dummy attribute so that datetime.__eq__(DatetimeArray) defers
-    # by returning NotImplemented
-    timetuple = None
 
     # Needed so that Timestamp.__richcmp__(DateTimeArray) operates pointwise
     ndim = 1
@@ -514,8 +506,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         return lambda x: Timestamp(x, freq=self.freq, tz=self.tz)
 
     @property
-    def dtype(self):
-        # type: () -> Union[np.dtype, DatetimeTZDtype]
+    def dtype(self) -> Union[np.dtype, DatetimeTZDtype]:
         """
         The dtype for the DatetimeArray.
 
@@ -588,14 +579,14 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
             # The default for tz-aware is object, to preserve tz info
             dtype = object
 
-        return super(DatetimeArray, self).__array__(dtype=dtype)
+        return super().__array__(dtype=dtype)
 
     def __iter__(self):
         """
         Return an iterator over the boxed values
 
         Yields
-        -------
+        ------
         tstamp : Timestamp
         """
 
@@ -779,7 +770,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         -------
         result : DatetimeArray
         """
-        new_values = super(DatetimeArray, self)._add_delta(delta)
+        new_values = super()._add_delta(delta)
         return type(self)._from_sequence(new_values, tz=self.tz, freq='infer')
 
     # -----------------------------------------------------------------
@@ -792,7 +783,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         This is used to calculate time-of-day information as if the timestamps
         were timezone-naive.
         """
-        return conversion.tz_convert(self.asi8, utc, self.tz)
+        return tzconversion.tz_convert(self.asi8, utc, self.tz)
 
     def tz_convert(self, tz):
         """
@@ -903,8 +894,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
@@ -1040,8 +1031,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         if self.tz is not None:
             if tz is None:
-                new_dates = conversion.tz_convert(self.asi8, timezones.UTC,
-                                                  self.tz)
+                new_dates = tzconversion.tz_convert(self.asi8, timezones.UTC,
+                                                    self.tz)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
@@ -2034,7 +2025,7 @@ def validate_tz_from_dtype(dtype, tz):
     ValueError : on tzinfo mismatch
     """
     if dtype is not None:
-        if isinstance(dtype, compat.string_types):
+        if isinstance(dtype, str):
             try:
                 dtype = DatetimeTZDtype.construct_from_string(dtype)
             except TypeError:

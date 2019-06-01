@@ -1,12 +1,8 @@
-# pylint: disable=E1103
-
 import numpy as np
 from numpy.random import randn
 import pytest
 
 from pandas._libs import join as libjoin
-import pandas.compat as compat
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
@@ -17,7 +13,7 @@ from pandas.util.testing import assert_frame_equal
 a_ = np.array
 
 
-class TestJoin(object):
+class TestJoin:
 
     def setup_method(self, method):
         # aggregate multiple columns
@@ -541,7 +537,7 @@ class TestJoin(object):
 
         # smoke test
         joined = left.join(right, on='key', sort=False)
-        tm.assert_index_equal(joined.index, pd.Index(lrange(4)))
+        tm.assert_index_equal(joined.index, pd.Index(list(range(4))))
 
     def test_join_mixed_non_unique_index(self):
         # GH 12814, unorderable types in py3 with a non-unique index
@@ -682,7 +678,7 @@ class TestJoin(object):
             right.join(left, on=['abc', 'xy'], how=join_type)
 
     def test_join_on_tz_aware_datetimeindex(self):
-        # GH 23931
+        # GH 23931, 26335
         df1 = pd.DataFrame(
             {
                 'date': pd.date_range(start='2018-01-01', periods=5,
@@ -700,7 +696,8 @@ class TestJoin(object):
         )
         result = df1.join(df2.set_index('date'), on='date')
         expected = df1.copy()
-        expected['vals_2'] = pd.Series([np.nan] * len(expected), dtype=object)
+        expected['vals_2'] = pd.Series([np.nan] * 2 + list('tuv'),
+                                       dtype=object)
         assert_frame_equal(result, expected)
 
 
@@ -783,6 +780,6 @@ def _join_by_hand(a, b, how='left'):
 
     result_columns = a.columns.append(b.columns)
 
-    for col, s in compat.iteritems(b_re):
+    for col, s in b_re.items():
         a_re[col] = s
     return a_re.reindex(columns=result_columns)

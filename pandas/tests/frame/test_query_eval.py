@@ -1,13 +1,9 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
+from io import StringIO
 import operator
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange, range, zip
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -36,7 +32,7 @@ def skip_if_no_pandas_parser(parser):
         pytest.skip("cannot evaluate with parser {0!r}".format(parser))
 
 
-class TestCompat(object):
+class TestCompat:
 
     def setup_method(self, method):
         self.df = DataFrame({'A': [1, 2, 3]})
@@ -160,7 +156,7 @@ class TestDataFrameEval(TestData):
                 dict1['a'] + dict2['b'])
 
 
-class TestDataFrameQueryWithMultiIndex(object):
+class TestDataFrameQueryWithMultiIndex:
 
     def test_query_with_named_multiindex(self, parser, engine):
         skip_if_no_pandas_parser(parser)
@@ -356,7 +352,7 @@ class TestDataFrameQueryWithMultiIndex(object):
 
 
 @td.skip_if_no_ne
-class TestDataFrameQueryNumExprPandas(object):
+class TestDataFrameQueryNumExprPandas:
 
     @classmethod
     def setup_class(cls):
@@ -463,8 +459,8 @@ class TestDataFrameQueryNumExprPandas(object):
 
     def test_query_syntax_error(self):
         engine, parser = self.engine, self.parser
-        df = DataFrame({"i": lrange(10), "+": lrange(3, 13),
-                        "r": lrange(4, 14)})
+        df = DataFrame({"i": range(10), "+": range(3, 13),
+                        "r": range(4, 14)})
         with pytest.raises(SyntaxError):
             df.query('i - +', engine=engine, parser=parser)
 
@@ -696,7 +692,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
     @classmethod
     def setup_class(cls):
-        super(TestDataFrameQueryNumExprPython, cls).setup_class()
+        super().setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
         cls.frame = TestData().frame
@@ -796,7 +792,7 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
 
     @classmethod
     def setup_class(cls):
-        super(TestDataFrameQueryPythonPandas, cls).setup_class()
+        super().setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
         cls.frame = TestData().frame
@@ -817,7 +813,7 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestDataFrameQueryPythonPython, cls).setup_class()
+        super().setup_class()
         cls.engine = cls.parser = 'python'
         cls.frame = TestData().frame
 
@@ -833,7 +829,7 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
         assert_frame_equal(expected, result)
 
 
-class TestDataFrameQueryStrings(object):
+class TestDataFrameQueryStrings:
 
     def test_str_query_method(self, parser, engine):
         df = DataFrame(np.random.randn(10, 1), columns=['b'])
@@ -1006,7 +1002,7 @@ class TestDataFrameQueryStrings(object):
         assert_frame_equal(e, r)
 
 
-class TestDataFrameEvalWithFrame(object):
+class TestDataFrameEvalWithFrame:
 
     def setup_method(self, method):
         self.frame = DataFrame(np.random.randn(10, 3), columns=list('abc'))
@@ -1031,3 +1027,54 @@ class TestDataFrameEvalWithFrame(object):
 
         with pytest.raises(TypeError, match=msg):
             df.eval('a {0} b'.format(op), engine=engine, parser=parser)
+
+
+class TestDataFrameQueryBacktickQuoting:
+
+    @pytest.fixture(scope='class')
+    def df(self):
+        yield DataFrame({'A': [1, 2, 3],
+                         'B B': [3, 2, 1],
+                         'C C': [4, 5, 6],
+                         'C_C': [8, 9, 10],
+                         'D_D D': [11, 1, 101]})
+
+    def test_single_backtick_variable_query(self, df):
+        res = df.query('1 < `B B`')
+        expect = df[1 < df['B B']]
+        assert_frame_equal(res, expect)
+
+    def test_two_backtick_variables_query(self, df):
+        res = df.query('1 < `B B` and 4 < `C C`')
+        expect = df[(1 < df['B B']) & (4 < df['C C'])]
+        assert_frame_equal(res, expect)
+
+    def test_single_backtick_variable_expr(self, df):
+        res = df.eval('A + `B B`')
+        expect = df['A'] + df['B B']
+        assert_series_equal(res, expect)
+
+    def test_two_backtick_variables_expr(self, df):
+        res = df.eval('`B B` + `C C`')
+        expect = df['B B'] + df['C C']
+        assert_series_equal(res, expect)
+
+    def test_already_underscore_variable(self, df):
+        res = df.eval('`C_C` + A')
+        expect = df['C_C'] + df['A']
+        assert_series_equal(res, expect)
+
+    def test_same_name_but_underscores(self, df):
+        res = df.eval('C_C + `C C`')
+        expect = df['C_C'] + df['C C']
+        assert_series_equal(res, expect)
+
+    def test_mixed_underscores_and_spaces(self, df):
+        res = df.eval('A + `D_D D`')
+        expect = df['A'] + df['D_D D']
+        assert_series_equal(res, expect)
+
+    def backtick_quote_name_with_no_spaces(self, df):
+        res = df.eval('A + `C_C`')
+        expect = df['A'] + df['C_C']
+        assert_series_equal(res, expect)

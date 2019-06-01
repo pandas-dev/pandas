@@ -14,8 +14,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeArray, ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex,
     ABCRangeIndex, ABCSparseDataFrame, ABCTimedeltaIndex)
 
-from pandas import compat
-
 
 def get_dtype_kinds(l):
     """
@@ -69,7 +67,7 @@ def _get_series_result_type(result, objs=None):
     if isinstance(result, dict):
         # concat Series with axis 1
         if all(isinstance(c, (SparseSeries, SparseDataFrame))
-               for c in compat.itervalues(result)):
+               for c in result.values()):
             return SparseDataFrame
         else:
             return DataFrame
@@ -246,7 +244,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     -----
 
     To learn more about categories, see `link
-    <http://pandas.pydata.org/pandas-docs/stable/categorical.html#unioning>`__
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html#unioning>`__
 
     Examples
     --------

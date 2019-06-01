@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import pytest
 
 from pandas import DataFrame
@@ -142,8 +140,8 @@ def test_frame_equal_index_mismatch():
     msg = """DataFrame\\.index are different
 
 DataFrame\\.index values are different \\(33\\.33333 %\\)
-\\[left\\]:  Index\\(\\[u?'a', u?'b', u?'c'\\], dtype='object'\\)
-\\[right\\]: Index\\(\\[u?'a', u?'b', u?'d'\\], dtype='object'\\)"""
+\\[left\\]:  Index\\(\\['a', 'b', 'c'\\], dtype='object'\\)
+\\[right\\]: Index\\(\\['a', 'b', 'd'\\], dtype='object'\\)"""
 
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]},
                     index=["a", "b", "c"])
@@ -158,8 +156,8 @@ def test_frame_equal_columns_mismatch():
     msg = """DataFrame\\.columns are different
 
 DataFrame\\.columns values are different \\(50\\.0 %\\)
-\\[left\\]:  Index\\(\\[u?'A', u?'B'\\], dtype='object'\\)
-\\[right\\]: Index\\(\\[u?'A', u?'b'\\], dtype='object'\\)"""
+\\[left\\]:  Index\\(\\['A', 'B'\\], dtype='object'\\)
+\\[right\\]: Index\\(\\['A', 'b'\\], dtype='object'\\)"""
 
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]},
                     index=["a", "b", "c"])
@@ -185,14 +183,14 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
 
 
 @pytest.mark.parametrize("df1,df2,msg", [
-    (DataFrame({"A": [u"á", u"à", u"ä"], "E": [u"é", u"è", u"ë"]}),
-     DataFrame({"A": [u"á", u"à", u"ä"], "E": [u"é", u"è", u"e̊"]}),
+    (DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]}),
+     DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "e̊"]}),
      """DataFrame\\.iloc\\[:, 1\\] are different
 
 DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[é, è, ë\\]
 \\[right\\]: \\[é, è, e̊\\]"""),
-    (DataFrame({"A": [u"á", u"à", u"ä"], "E": [u"é", u"è", u"ë"]}),
+    (DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]}),
      DataFrame({"A": ["a", "a", "a"], "E": ["e", "e", "e"]}),
      """DataFrame\\.iloc\\[:, 0\\] are different
 
