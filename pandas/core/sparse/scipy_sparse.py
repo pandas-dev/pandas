@@ -132,7 +132,7 @@ def _coo_to_sparse_series(A, dense_index: bool = False,
     Series or SparseSeries
 
     Raises
-    -------
+    ------
     TypeError if A is not a coo_matrix
 
     """
@@ -158,4 +158,3 @@ def _coo_to_sparse_series(A, dense_index: bool = False,
         ind = MultiIndex.from_product([i, j])
         s = s.reindex(ind)
     return s
-
