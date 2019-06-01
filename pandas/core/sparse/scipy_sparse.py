@@ -130,6 +130,7 @@ def _coo_to_sparse_series(A, dense_index: bool = False,
     Returns
     -------
     Series or SparseSeries on success
+    TypeError if A is not a coo_matrix
 
     """
     from pandas import SparseDtype
