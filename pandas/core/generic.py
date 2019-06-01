@@ -9920,6 +9920,12 @@ class NDFrame(PandasObject, SelectionMixin):
                     names += ['top', 'freq']
                     result += [top, freq]
 
+            # If the DataFrame is empty, set 'top' and 'freq' to None
+            # to maintain output shape consistency
+            else:
+                names += ['top', 'freq']
+                result += [None, None]
+
             return pd.Series(result, index=names, name=data.name)
 
         def describe_1d(data):
