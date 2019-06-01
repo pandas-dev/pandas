@@ -334,6 +334,14 @@ class RangeIndex(Int64Index):
     def has_duplicates(self):
         return False
 
+    def __contains__(self, key):
+        hash(key)
+        try:
+            key = com.ensure_python_int(key)
+        except TypeError:
+            return False
+        return key in self._range
+
     @Appender(_index_shared_docs['get_loc'])
     def get_loc(self, key, method=None, tolerance=None):
         if is_integer(key) and method is None and tolerance is None:
@@ -640,6 +648,14 @@ class RangeIndex(Int64Index):
                 return self._simple_new(start, start + 1, 1, name=self.name)
         return self._int64index // other
 
+    def all(self) -> bool:
+        if 0 in self._range:
+            return False
+        return True
+
+    def any(self) -> bool:
+        return any(self._range)
+
     @classmethod
     def _add_numeric_methods_binary(cls):
         """ add in numeric methods, specialized to RangeIndex """
@@ -725,4 +741,3 @@ class RangeIndex(Int64Index):
 
 
 RangeIndex._add_numeric_methods()
-RangeIndex._add_logical_methods()

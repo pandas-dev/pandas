@@ -490,3 +490,13 @@ def _get_rename_function(mapper):
         f = mapper
 
     return f
+
+
+def ensure_python_int(value: Union[int, Any]) -> int:
+    msg = "Wrong type {} for value {}"
+    try:
+        new_value = int(value)
+        assert (new_value == value)
+    except (TypeError, ValueError, AssertionError):
+        raise TypeError(msg.format(type(value), value))
+    return new_value
