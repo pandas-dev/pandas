@@ -150,6 +150,9 @@ def any_allowed_skipna_inferred_dtype(request):
     ...     inferred_dtype, values = any_allowed_skipna_inferred_dtype
     ...     # will pass
     ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
+    ...
+    ...     # constructor for .str-accessor will also pass
+    ...     pd.Series(values).str
     """
     inferred_dtype, values = request.param
     values = np.array(values, dtype=object)  # object dtype to avoid casting
@@ -179,20 +182,6 @@ class TestStringMethods:
             pytest.xfail(reason='Conversion to numpy array fails because '
                          'the ._values-attribute is not a numpy array for '
                          'PeriodArray/IntervalArray; see GH 23553')
-        if box == Index and inferred_dtype in ['empty', 'bytes']:
-            pytest.xfail(reason='Raising too restrictively; '
-                         'solved by GH 23167')
-        if (box == Index and dtype == object
-                and inferred_dtype in ['boolean', 'date', 'time']):
-            pytest.xfail(reason='Inferring incorrectly because of NaNs; '
-                         'solved by GH 23167')
-        if (box == Series
-                and (dtype == object and inferred_dtype not in [
-                    'string', 'unicode', 'empty',
-                    'bytes', 'mixed', 'mixed-integer'])
-                or (dtype == 'category'
-                    and inferred_dtype in ['decimal', 'boolean', 'time'])):
-            pytest.xfail(reason='Not raising correctly; solved by GH 23167')
 
         types_passing_constructor = ['string', 'unicode', 'empty',
                                      'bytes', 'mixed', 'mixed-integer']
@@ -220,27 +209,21 @@ class TestStringMethods:
         method_name, args, kwargs = any_string_method
 
         # TODO: get rid of these xfails
-        if (method_name not in ['encode', 'decode', 'len']
-                and inferred_dtype == 'bytes'):
-            pytest.xfail(reason='Not raising for "bytes", see GH 23011;'
-                         'Also: malformed method names, see GH 23551; '
-                         'solved by GH 23167')
-        if (method_name == 'cat'
-                and inferred_dtype in ['mixed', 'mixed-integer']):
-            pytest.xfail(reason='Bad error message; should raise better; '
-                         'solved by GH 23167')
-        if box == Index and inferred_dtype in ['empty', 'bytes']:
-            pytest.xfail(reason='Raising too restrictively; '
-                         'solved by GH 23167')
-        if (box == Index and dtype == object
-                and inferred_dtype in ['boolean', 'date', 'time']):
-            pytest.xfail(reason='Inferring incorrectly because of NaNs; '
-                         'solved by GH 23167')
+        if (method_name in ['partition', 'rpartition'] and box == Index
+                and inferred_dtype == 'empty'):
+            pytest.xfail(reason='Method cannot deal with empty Index')
+        if (method_name == 'split' and box == Index and values.size == 0
+                and kwargs.get('expand', None) is not None):
+            pytest.xfail(reason='Split fails on empty Series when expand=True')
+        if (method_name == 'get_dummies' and box == Index
+                and inferred_dtype == 'empty' and (dtype == object
+                                                   or values.size == 0)):
+            pytest.xfail(reason='Need to fortify get_dummies corner cases')
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
         method = getattr(t.str, method_name)
 
-        bytes_allowed = method_name in ['encode', 'decode', 'len']
+        bytes_allowed = method_name in ['decode', 'get', 'len', 'slice']
         # as of v0.23.4, all methods except 'cat' are very lenient with the
         # allowed data types, just returning NaN for entries that error.
         # This could be changed with an 'errors'-kwarg to the `str`-accessor,
@@ -3167,7 +3150,8 @@ class TestStringMethods:
     def test_method_on_bytes(self):
         lhs = Series(np.array(list('abc'), 'S1').astype(object))
         rhs = Series(np.array(list('def'), 'S1').astype(object))
-        with pytest.raises(TypeError, match="can't concat str to bytes"):
+        with pytest.raises(TypeError,
+                           match="Cannot use .str.cat with values of.*"):
             lhs.str.cat(rhs)
 
     def test_casefold(self):
