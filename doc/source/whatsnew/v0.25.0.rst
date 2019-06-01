@@ -231,6 +231,43 @@ returned if all the columns were dummy encoded, and a :class:`DataFrame` otherwi
 Providing any ``SparseSeries`` or ``SparseDataFrame`` to :func:`concat` will
 cause a ``SparseSeries`` or ``SparseDataFrame`` to be returned, as before.
 
+The ``.str``-accessor performs stricter type checks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Due to the lack of more fine-grained dtypes, :attr:`Series.str` so far only checked whether the data was
+of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* the Series; in particular,
+``'bytes'``-only data will raise an exception (except for :meth:`Series.str.decode`, :meth:`Series.str.get`,
+:meth:`Series.str.len`, :meth:`Series.str.slice`), see :issue:`23163`, :issue:`23011`, :issue:`23551`.
+
+*Previous Behaviour*:
+
+.. code-block:: python
+
+    In [1]: s = pd.Series(np.array(['a', 'ba', 'cba'], 'S'), dtype=object)
+
+    In [2]: s
+    Out[2]:
+    0      b'a'
+    1     b'ba'
+    2    b'cba'
+    dtype: object
+
+    In [3]: s.str.startswith(b'a')
+    Out[3]:
+    0     True
+    1    False
+    2    False
+    dtype: bool
+
+*New Behaviour*:
+
+.. ipython:: python
+    :okexcept:
+
+    s = pd.Series(np.array(['a', 'ba', 'cba'], 'S'), dtype=object)
+    s
+    s.str.startswith(b'a')
+
 .. _whatsnew_0250.api_breaking.incompatible_index_unions
 
 Incompatible Index Type Unions
@@ -330,7 +367,6 @@ the ``__repr__``, if a specific ``__str__`` method doesn't exist, as is standard
 This change is backward compatible for direct usage of Pandas, but if you subclass
 Pandas objects *and* give your subclasses specific ``__str__``/``__repr__`` methods,
 you may have to adjust your ``__str__``/``__repr__`` methods (:issue:`26495`).
-
 
 .. _whatsnew_0250.api_breaking.deps:
 
@@ -537,7 +573,7 @@ Conversion
 Strings
 ^^^^^^^
 
--
+- Bug in the ``__name__`` attribute of several methods of :class:`Series.str`, which were set incorrectly (:issue:`23551`)
 -
 -
 
