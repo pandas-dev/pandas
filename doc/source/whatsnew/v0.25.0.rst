@@ -119,6 +119,42 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
 
     df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
 
+
+.. _whatsnew_0250.api_breaking.multi_indexing:
+
+
+MultiIndex constructed from levels and codes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Constructing a :class:`MultiIndex` with NaN levels or codes value < -1 was allowed previously.
+Now, construction with codes value < -1 is not allowed and NaN levels' corresponding codes
+would be reassigned as -1. (:issue:`19387`)
+
+.. ipython:: python
+
+    mi1 = pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+                        codes=[[0, -1, 1, 2, 3, 4]])
+    mi2 = pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
+
+*Previous Behavior*:
+
+.. code-block:: ipython
+
+    In [1]: mi1
+    Out[1]: MultiIndex(levels=[[nan, None, NaT, 128, 2]],
+                       codes=[[0, -1, 1, 2, 3, 4]])
+    In [2]: mi2
+    Out[2]: MultiIndex(levels=[[1, 2]],
+                       codes=[[0, -2]])
+
+*New Behavior*:
+
+.. ipython:: python
+
+    mi1
+    mi2
+
+
 .. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
 
 GroupBy.apply on ``DataFrame`` evaluates first group only once
@@ -535,7 +571,6 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in which incorrect exception raised by :class:`Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
--
 -
 
 I/O
