@@ -70,6 +70,16 @@ and replacing any remaining whitespaces with underscores:
     ``.str`` methods which operate on elements of type ``list`` are not available on such a
     ``Series``.
 
+.. _text.warn_types:
+
+.. warning::
+
+    Before v.0.25.0, the ``.str``-accessor did only the most rudimentary type checks. Starting with
+    v.0.25.0, the type of the Series is inferred and the allowed types (i.e. strings) are enforced more rigorously.
+
+    Generally speaking, the ``.str`` accessor is intended to work only on strings. With very few
+    exceptions, other uses are not supported, and may be disabled at a later point.
+
 
 Splitting and Replacing Strings
 -------------------------------
