@@ -242,12 +242,6 @@ class SparseDataFrame(DataFrame):
     def to_coo(self):
         return SparseFrameAccessor(self).to_coo()
 
-    def __array_wrap__(self, result):
-        return self._constructor(
-            result, index=self.index, columns=self.columns,
-            default_kind=self._default_kind,
-            default_fill_value=self._default_fill_value).__finalize__(self)
-
     def __getstate__(self):
         # pickling
         return dict(_typ=self._typ, _subtyp=self._subtyp, _data=self._data,
