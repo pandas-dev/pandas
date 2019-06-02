@@ -3175,6 +3175,13 @@ class MultiIndex(Index):
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):
         if level is None:
+            # validate value length
+            levcount = len(self.levels)
+            for val in values:
+                if len(val) != levcount:
+                    raise ValueError('Value length must be equal to count of '
+                                     'levels. len(%s) != %d' % (val, levcount))
+
             values = MultiIndex.from_tuples(values,
                                             names=self.names).values
             return algos.isin(self.values, values)
