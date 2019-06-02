@@ -312,11 +312,13 @@ class NaTType(_NaT):
     nanosecond = property(fget=lambda self: np.nan)
 
     week = property(fget=lambda self: np.nan)
+    dayofyear = property(fget=lambda self: np.nan)
     day_of_year = property(fget=lambda self: np.nan)
     weekofyear = property(fget=lambda self: np.nan)
     days_in_month = property(fget=lambda self: np.nan)
     daysinmonth = property(fget=lambda self: np.nan)
     dayofweek = property(fget=lambda self: np.nan)
+    day_of_week = property(fget=lambda self: np.nan)
     weekday_name = property(fget=lambda self: np.nan)
 
     # inject Timedelta properties
