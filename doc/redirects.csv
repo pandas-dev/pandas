@@ -528,6 +528,8 @@ generated/pandas.DatetimeIndex.date,../reference/api/pandas.DatetimeIndex.date
 generated/pandas.DatetimeIndex.day,../reference/api/pandas.DatetimeIndex.day
 generated/pandas.DatetimeIndex.day_name,../reference/api/pandas.DatetimeIndex.day_name
 generated/pandas.DatetimeIndex.dayofweek,../reference/api/pandas.DatetimeIndex.dayofweek
+generated/pandas.DatetimeIndex.day_of_week,../reference/api/pandas.DatetimeIndex.day_of_week
+generated/pandas.DatetimeIndex.dayofyear,../reference/api/pandas.DatetimeIndex.dayofyear
 generated/pandas.DatetimeIndex.day_of_year,../reference/api/pandas.DatetimeIndex.day_of_year
 generated/pandas.DatetimeIndex.floor,../reference/api/pandas.DatetimeIndex.floor
 generated/pandas.DatetimeIndex.freq,../reference/api/pandas.DatetimeIndex.freq
