@@ -4,7 +4,7 @@ import dateutil
 import pytz
 
 from pandas import Timestamp
-
+from pandas.util._decorators import deprecate
 
 class TimestampConstruction:
 
@@ -37,6 +37,9 @@ class TimestampProperties:
     params = [_tzs, _freqs]
     param_names = ['tz', 'freq']
 
+    deprecate('time_dayofweek', 'time_day_of_week', '0.21.0')
+    deprecate('time_dayofyear', 'time_day_of_year', '0.21.0')
+
     def setup(self, tz, freq):
         self.ts = Timestamp('2017-08-25 08:16:14', tzinfo=tz, freq=freq)
 
@@ -45,11 +48,17 @@ class TimestampProperties:
 
     def time_dayofweek(self, tz, freq):
         self.ts.dayofweek
+    
+    def time_day_of_week(self, tz, freq):
+        self.ts.day_of_week
 
     def time_weekday_name(self, tz, freq):
         self.ts.day_name
 
     def time_dayofyear(self, tz, freq):
+        self.ts.dayofyear
+
+    def time_day_of_year(self, tz, freq):
         self.ts.day_of_year
 
     def time_week(self, tz, freq):
