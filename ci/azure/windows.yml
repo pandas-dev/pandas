@@ -25,6 +25,7 @@ jobs:
       displayName: Create anaconda environment
     - script: |
         call activate pandas-dev
+        call pip install pytest-azurepipelines
         call conda list
         ci\\incremental\\build.cmd
       displayName: 'Build'
