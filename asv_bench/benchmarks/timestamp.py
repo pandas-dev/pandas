@@ -37,8 +37,8 @@ class TimestampProperties:
     params = [_tzs, _freqs]
     param_names = ['tz', 'freq']
 
-    deprecate('time_dayofweek', 'time_day_of_week', '0.21.0')
-    deprecate('time_dayofyear', 'time_day_of_year', '0.21.0')
+    deprecate('time_dayofweek', 'time_day_of_week', '0.25.0')
+    deprecate('time_dayofyear', 'time_day_of_year', '0.25.0')
 
     def setup(self, tz, freq):
         self.ts = Timestamp('2017-08-25 08:16:14', tzinfo=tz, freq=freq)
