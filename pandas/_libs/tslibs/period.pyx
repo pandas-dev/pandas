@@ -1748,9 +1748,11 @@ cdef class _Period:
         See Also
         --------
         Period.end_time : Return the end Timestamp.
+        Period.dayofyear : Return the day of year.
         Period.day_of_year : Return the day of year.
         Period.daysinmonth : Return the days in that month.
         Period.dayofweek : Return the day of the week.
+        Period.day_of_week : Return the day of the week.
 
         Examples
         --------
@@ -1832,6 +1834,8 @@ cdef class _Period:
         See Also
         --------
         Period.dayofweek : Get the day of the week.
+        Period.day_of_week : Get the day of the week.
+        Period.dayofyear : Get the day of the year.
         Period.day_of_year : Get the day of the year.
 
         Examples
@@ -1976,8 +1980,10 @@ cdef class _Period:
         See Also
         --------
         Period.dayofweek : Day of the week the period lies in.
+        Period.day_of_week : Day of the week the period lies in.
         Period.weekday : Alias of Period.dayofweek.
         Period.day : Day of the month.
+        Period.dayofyear : Day of the year.
         Period.day_of_year : Day of the year.
 
         Examples
@@ -2027,8 +2033,10 @@ cdef class _Period:
         See Also
         --------
         Period.dayofweek : Day of the week the period lies in.
+        Period.day_of_week : Day of the week the period lies in.
         Period.weekday : Alias of Period.dayofweek.
         Period.day : Day of the month.
+        Period.dayofyear : Day of the year.
         Period.day_of_year : Day of the year.
 
         Examples
