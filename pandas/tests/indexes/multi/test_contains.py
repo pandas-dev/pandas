@@ -1,10 +1,12 @@
+import re
+
 import numpy as np
 import pytest
-import re
+
+from pandas.compat import PYPY
 
 import pandas as pd
 from pandas import MultiIndex
-from pandas.compat import PYPY
 import pandas.util.testing as tm
 
 
