@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import re
 
 from pandas.compat import PYPY
 
@@ -57,6 +58,22 @@ def test_isin():
     assert len(result) == 0
     assert result.dtype == np.bool_
 
+    msg_tmpl = 'Value length must be equal to count of levels. len(%s) != %d'
+    levcnt = len(idx.levels)
+
+    # some values too short
+    vals_short = [('foo',), ('bar', 3), ('quux',)]
+    msg = re.escape(msg_tmpl % (vals_short[0], levcnt))
+
+    with pytest.raises(ValueError, match=msg):
+        idx.isin(vals_short)
+
+    # some values too long
+    vals_long = [('foo', 2), ('bar', 3, 2), ('quux', 4)]
+    msg = re.escape(msg_tmpl % (vals_long[1], levcnt))
+
+    with pytest.raises(ValueError, match=msg):
+        idx.isin(vals_long)
 
 @pytest.mark.skipif(PYPY, reason="tuples cmp recursively on PyPy")
 def test_isin_nan_not_pypy():
