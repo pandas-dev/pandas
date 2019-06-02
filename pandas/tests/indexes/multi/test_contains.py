@@ -58,19 +58,19 @@ def test_isin():
     assert len(result) == 0
     assert result.dtype == np.bool_
 
-    msg_tmpl = 'Value length must be equal to count of levels. len(%s) != %d'
-    levcnt = len(idx.levels)
+    msg_tmpl = 'Value length must be equal to count of levels. len({}) != {}'
+    nlvl = len(idx.levels)
 
     # some values too short
     vals_short = [('foo',), ('bar', 3), ('quux',)]
-    msg = re.escape(msg_tmpl % (vals_short[0], levcnt))
+    msg = re.escape(msg_tmpl.format(vals_short[0], nlvl))
 
     with pytest.raises(ValueError, match=msg):
         idx.isin(vals_short)
 
     # some values too long
     vals_long = [('foo', 2), ('bar', 3, 2), ('quux', 4)]
-    msg = re.escape(msg_tmpl % (vals_long[1], levcnt))
+    msg = re.escape(msg_tmpl.format(vals_long[1], nlvl))
 
     with pytest.raises(ValueError, match=msg):
         idx.isin(vals_long)

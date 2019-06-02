@@ -3176,11 +3176,11 @@ class MultiIndex(Index):
     def isin(self, values, level=None):
         if level is None:
             # validate value length
-            levcnt = len(self.levels)
+            nlvl = len(self.levels)
             for val in values:
-                if len(val) != levcnt:
+                if len(val) != nlvl:
                     raise ValueError('Value length must be equal to count of '
-                                     'levels. len(%s) != %d' % (val, levcnt))
+                                     'levels. len({}) != {}'.format(val, nlvl))
 
             values = MultiIndex.from_tuples(values,
                                             names=self.names).values

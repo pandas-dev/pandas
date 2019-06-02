@@ -82,7 +82,6 @@ Other Enhancements
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
 - :func:`merge_asof` now gives a more clear error message when merge keys are categoricals that are not equal (:issue:`26136`)
 - :meth:`pandas.core.window.Rolling` supports exponential (or Poisson) window type (:issue:`21303`)
-- :meth:`MultiIndex.isin` now fails when args are too short (:issue:`26622`)
 -
 
 .. _whatsnew_0250.api_breaking:
@@ -609,6 +608,7 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in which incorrect exception raised by :class:`Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
+- :meth:`MultiIndex.isin` now raises ``ValueError`` when args are too short (:issue:`26622`)
 -
 
 I/O
