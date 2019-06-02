@@ -94,6 +94,12 @@ class Range:
     def time_min_trivial(self):
         self.idx_inc.min()
 
+    def time_get_loc_inc(self):
+        self.idx_inc.get_loc(900000)
+
+    def time_get_loc_dec(self):
+        self.idx_dec.get_loc(100000)
+
 
 class IndexAppend:
 
