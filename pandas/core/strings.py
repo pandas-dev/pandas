@@ -2280,6 +2280,23 @@ class StringMethods(NoNewAttributesMixin):
                                  'must all be of the same length as the '
                                  'calling Series/Index.')
 
+        # data has already been checked by _validate to be of correct dtype,
+        # but others could still have Series of dtypes (e.g. integers) which
+        # will necessarily fail in concatenation. To avoid deep and confusing
+        # traces, we raise here for anything that's not object or all-NA float.
+        def _legal_dtype(series):
+            # unify dtype handling between categorical/non-categorical
+            dtype = (series.dtype if not is_categorical_dtype(series)
+                     else series.cat.categories.dtype)
+            legal = dtype == 'O' or (dtype == 'float' and series.isna().all())
+            return legal
+        err_wrong_dtype = ('Can only concatenate list-likes containing only '
+                           'strings (or missing values).')
+        if any(not _legal_dtype(x) for x in others):
+            raise TypeError(err_wrong_dtype + ' Received list-like of dtype: '
+                            '{}'.format([x.dtype for x in others
+                                         if not _legal_dtype(x)][0]))
+
         if join is None and warn:
             warnings.warn("A future version of pandas will perform index "
                           "alignment when `others` is a Series/Index/"
@@ -2307,23 +2324,28 @@ class StringMethods(NoNewAttributesMixin):
         na_masks = np.array([isna(x) for x in all_cols])
         union_mask = np.logical_or.reduce(na_masks, axis=0)
 
-        if na_rep is None and union_mask.any():
-            # no na_rep means NaNs for all rows where any column has a NaN
-            # only necessary if there are actually any NaNs
-            result = np.empty(len(data), dtype=object)
-            np.putmask(result, union_mask, np.nan)
+        # if there are any non-string, non-null values hidden within an object
+        # dtype, cat_core will fail; catch error and return with better message
+        try:
+            if na_rep is None and union_mask.any():
+                # no na_rep means NaNs for all rows where any column has a NaN
+                # only necessary if there are actually any NaNs
+                result = np.empty(len(data), dtype=object)
+                np.putmask(result, union_mask, np.nan)
 
-            not_masked = ~union_mask
-            result[not_masked] = cat_core([x[not_masked] for x in all_cols],
-                                          sep)
-        elif na_rep is not None and union_mask.any():
-            # fill NaNs with na_rep in case there are actually any NaNs
-            all_cols = [np.where(nm, na_rep, col)
-                        for nm, col in zip(na_masks, all_cols)]
-            result = cat_core(all_cols, sep)
-        else:
-            # no NaNs - can just concatenate
-            result = cat_core(all_cols, sep)
+                not_masked = ~union_mask
+                result[not_masked] = cat_core([x[not_masked]
+                                               for x in all_cols], sep)
+            elif na_rep is not None and union_mask.any():
+                # fill NaNs with na_rep in case there are actually any NaNs
+                all_cols = [np.where(nm, na_rep, col)
+                            for nm, col in zip(na_masks, all_cols)]
+                result = cat_core(all_cols, sep)
+            else:
+                # no NaNs - can just concatenate
+                result = cat_core(all_cols, sep)
+        except TypeError:
+            raise TypeError(err_wrong_dtype)
 
         if isinstance(self._orig, Index):
             # add dtype for case that result is all-NA
