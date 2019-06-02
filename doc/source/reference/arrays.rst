@@ -230,6 +230,8 @@ Properties
 
    Period.day
    Period.dayofweek
+   Period.day_of_week
+   Period.dayofyear
    Period.day_of_year
    Period.days_in_month
    Period.daysinmonth
