@@ -75,6 +75,7 @@ def test_isin():
     with pytest.raises(ValueError, match=msg):
         idx.isin(vals_long)
 
+
 @pytest.mark.skipif(PYPY, reason="tuples cmp recursively on PyPy")
 def test_isin_nan_not_pypy():
     idx = MultiIndex.from_arrays([['foo', 'bar'], [1.0, np.nan]])
