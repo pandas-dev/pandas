@@ -119,6 +119,42 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
 
     df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
 
+
+.. _whatsnew_0250.api_breaking.multi_indexing:
+
+
+MultiIndex constructed from levels and codes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Constructing a :class:`MultiIndex` with NaN levels or codes value < -1 was allowed previously.
+Now, construction with codes value < -1 is not allowed and NaN levels' corresponding codes
+would be reassigned as -1. (:issue:`19387`)
+
+.. ipython:: python
+
+    mi1 = pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+                        codes=[[0, -1, 1, 2, 3, 4]])
+    mi2 = pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
+
+*Previous Behavior*:
+
+.. code-block:: ipython
+
+    In [1]: mi1
+    Out[1]: MultiIndex(levels=[[nan, None, NaT, 128, 2]],
+                       codes=[[0, -1, 1, 2, 3, 4]])
+    In [2]: mi2
+    Out[2]: MultiIndex(levels=[[1, 2]],
+                       codes=[[0, -2]])
+
+*New Behavior*:
+
+.. ipython:: python
+
+    mi1
+    mi2
+
+
 .. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
 
 GroupBy.apply on ``DataFrame`` evaluates first group only once
@@ -195,6 +231,43 @@ returned if all the columns were dummy encoded, and a :class:`DataFrame` otherwi
 Providing any ``SparseSeries`` or ``SparseDataFrame`` to :func:`concat` will
 cause a ``SparseSeries`` or ``SparseDataFrame`` to be returned, as before.
 
+The ``.str``-accessor performs stricter type checks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Due to the lack of more fine-grained dtypes, :attr:`Series.str` so far only checked whether the data was
+of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* the Series; in particular,
+``'bytes'``-only data will raise an exception (except for :meth:`Series.str.decode`, :meth:`Series.str.get`,
+:meth:`Series.str.len`, :meth:`Series.str.slice`), see :issue:`23163`, :issue:`23011`, :issue:`23551`.
+
+*Previous Behaviour*:
+
+.. code-block:: python
+
+    In [1]: s = pd.Series(np.array(['a', 'ba', 'cba'], 'S'), dtype=object)
+
+    In [2]: s
+    Out[2]:
+    0      b'a'
+    1     b'ba'
+    2    b'cba'
+    dtype: object
+
+    In [3]: s.str.startswith(b'a')
+    Out[3]:
+    0     True
+    1    False
+    2    False
+    dtype: bool
+
+*New Behaviour*:
+
+.. ipython:: python
+    :okexcept:
+
+    s = pd.Series(np.array(['a', 'ba', 'cba'], 'S'), dtype=object)
+    s
+    s.str.startswith(b'a')
+
 .. _whatsnew_0250.api_breaking.incompatible_index_unions
 
 Incompatible Index Type Unions
@@ -253,6 +326,34 @@ are returned. (:issue:`21521`)
 
     df.groupby("a").ffill()
 
+``DataFrame`` describe on an empty categorical / object column will return top and freq
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When calling :meth:`DataFrame.describe` with an empty categorical / object
+column, the 'top' and 'freq' columns were previously omitted, which was inconsistent with
+the output for non-empty columns. Now the 'top' and 'freq' columns will always be included,
+with :attr:`numpy.nan` in the case of an empty :class:`DataFrame` (:issue:`26397`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({"empty_col": pd.Categorical([])})
+   df
+
+*Previous Behavior*:
+
+.. code-block:: python
+
+   In [3]: df.describe()
+   Out[3]:
+           empty_col
+   count           0
+   unique          0
+
+*New Behavior*:
+
+.. ipython:: python
+
+    df.describe()
 
 ``__str__`` methods now call ``__repr__`` rather than vica-versa
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -266,7 +367,6 @@ the ``__repr__``, if a specific ``__str__`` method doesn't exist, as is standard
 This change is backward compatible for direct usage of Pandas, but if you subclass
 Pandas objects *and* give your subclasses specific ``__str__``/``__repr__`` methods,
 you may have to adjust your ``__str__``/``__repr__`` methods (:issue:`26495`).
-
 
 .. _whatsnew_0250.api_breaking.deps:
 
@@ -393,6 +493,7 @@ Performance Improvements
 - Improved performance of :meth:`Series.searchsorted`. The speedup is especially large when the dtype is
   int8/int16/int32 and the searched key is within the integer bounds for the dtype (:issue:`22034`)
 - Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
+- Improved performance when slicing :class:`RangeIndex` (:issue:`26565`)
 - Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
 - Improved performance of :meth:`read_csv` by faster parsing of N/A and boolean values (:issue:`25804`)
 - Improved performance of :meth:`IntervalIndex.is_monotonic`, :meth:`IntervalIndex.is_monotonic_increasing` and :meth:`IntervalIndex.is_monotonic_decreasing` by removing conversion to :class:`MultiIndex` (:issue:`24813`)
@@ -414,7 +515,7 @@ Categorical
 ^^^^^^^^^^^
 
 - Bug in :func:`DataFrame.at` and :func:`Series.at` that would raise exception if the index was a :class:`CategoricalIndex` (:issue:`20629`)
--
+- Fixed bug in comparison of ordered :class:`Categorical` that contained missing values with a scalar which sometimes incorrectly resulted in True (:issue:`26504`)
 -
 
 Datetimelike
@@ -427,6 +528,7 @@ Datetimelike
 - Bug in :class:`Series` and :class:`DataFrame` repr where ``np.datetime64('NaT')`` and ``np.timedelta64('NaT')`` with ``dtype=object`` would be represented as ``NaN`` (:issue:`25445`)
 - Bug in :func:`to_datetime` which does not replace the invalid argument with ``NaT`` when error is set to coerce (:issue:`26122`)
 - Bug in adding :class:`DateOffset` with nonzero month to :class:`DatetimeIndex` would raise ``ValueError`` (:issue:`26258`)
+- Bug in :func:`to_datetime` which raises unhandled ``OverflowError`` when called with mix of invalid dates and ``NaN`` values with ``format='%Y%m%d'`` and ``error='coerce'`` (:issue:`25512`)
 
 Timedelta
 ^^^^^^^^^
@@ -472,7 +574,7 @@ Conversion
 Strings
 ^^^^^^^
 
--
+- Bug in the ``__name__`` attribute of several methods of :class:`Series.str`, which were set incorrectly (:issue:`23551`)
 -
 -
 
@@ -507,7 +609,6 @@ MultiIndex
 
 - Bug in which incorrect exception raised by :class:`Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
 -
--
 
 I/O
 ^^^
@@ -533,6 +634,7 @@ I/O
 - Fixed memory leak in :meth:`DataFrame.to_json` when dealing with numeric data (:issue:`24889`)
 - Bug in :func:`read_json` where date strings with ``Z`` were not converted to a UTC timezone (:issue:`26168`)
 - Added ``cache_dates=True`` parameter to :meth:`read_csv`, which allows to cache unique dates when they are parsed (:issue:`25990`)
+- :meth:`DataFrame.to_excel` now raises a ``ValueError`` when the caller's dimensions exceed the limitations of Excel (:issue:`26051`)
 
 Plotting
 ^^^^^^^^
