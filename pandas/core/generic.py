@@ -2679,7 +2679,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -----
         Requirements for your platform.
 
-          - Linux : `xclip`, or `xsel` (with `gtk` or `PyQt4` modules)
+          - Linux : `xclip`, or `xsel` (with `PyQt4` modules)
           - Windows : none
           - OS X : none
 

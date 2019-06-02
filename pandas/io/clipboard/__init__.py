@@ -18,21 +18,19 @@ On Mac, the module uses pbcopy and pbpaste, which should come with the os.
 On Linux, install xclip or xsel via package manager. For example, in Debian:
 sudo apt-get install xclip
 
-Otherwise on Linux, you will need the gtk, qtpy or PyQt modules installed.
+Otherwise on Linux, you will need the qtpy or PyQt modules installed.
 qtpy also requires a python-qt-bindings module: PyQt4, PyQt5, PySide, PySide2
 
-gtk and PyQt4 modules are not available for Python 3,
-and this module does not work with PyGObject yet.
+This module does not work with PyGObject yet.
 """
 __version__ = '1.5.27'
 
 import platform
 import os
 import subprocess
-from .clipboards import (init_osx_clipboard,
-                         init_gtk_clipboard, init_qt_clipboard,
-                         init_xclip_clipboard, init_xsel_clipboard,
-                         init_klipper_clipboard, init_no_clipboard)
+from .clipboards import (
+    init_osx_clipboard, init_qt_clipboard, init_xclip_clipboard,
+    init_xsel_clipboard, init_klipper_clipboard, init_no_clipboard)
 from .windows import init_windows_clipboard
 
 # `import qtpy` sys.exit()s if DISPLAY is not in the environment.
@@ -60,14 +58,6 @@ def determine_clipboard():
         return init_osx_clipboard()
     if HAS_DISPLAY:
         # Determine which command/module is installed, if any.
-        try:
-            # Check if gtk is installed
-            import gtk  # noqa
-        except ImportError:
-            pass
-        else:
-            return init_gtk_clipboard()
-
         try:
             # qtpy is a small abstraction layer that lets you write
             # applications using a single api call to either PyQt or PySide
@@ -104,7 +94,6 @@ def set_clipboard(clipboard):
     global copy, paste
 
     clipboard_types = {'osx': init_osx_clipboard,
-                       'gtk': init_gtk_clipboard,
                        'qt': init_qt_clipboard,
                        'xclip': init_xclip_clipboard,
                        'xsel': init_xsel_clipboard,

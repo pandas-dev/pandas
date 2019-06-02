@@ -281,7 +281,6 @@ Optional Dependencies
   `qtpy  <https://github.com/spyder-ide/qtpy>`__ (requires PyQt or PySide),
   `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/download5>`__,
   `PyQt4 <http://www.riverbankcomputing.com/software/pyqt/download>`__,
-  `pygtk <http://www.pygtk.org/>`__,
   `xsel <http://www.vergenet.net/~conrad/software/xsel/>`__, or
   `xclip <https://github.com/astrand/xclip/>`__: necessary to use
   :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.

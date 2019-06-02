@@ -91,7 +91,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
     Notes
     -----
     Requirements for your platform
-      - Linux: xclip, or xsel (with gtk or PyQt4 modules)
+      - Linux: xclip, or xsel (with PyQt4 modules)
       - Windows:
       - OS X:
     """
