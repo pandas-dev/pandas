@@ -1,6 +1,7 @@
 """ routings for casting """
 
 from datetime import datetime, timedelta
+from typing import Any, Union
 
 import numpy as np
 
@@ -1333,3 +1334,13 @@ def maybe_cast_to_integer_array(arr, dtype, copy=False):
     if is_integer_dtype(dtype) and (is_float_dtype(arr) or
                                     is_object_dtype(arr)):
         raise ValueError("Trying to coerce float values to integers")
+
+
+def ensure_python_int(value: Union[int, Any]) -> int:
+    msg = "Wrong type {} for value {}"
+    try:
+        new_value = int(value)
+        assert (new_value == value)
+    except (TypeError, ValueError, AssertionError):
+        raise TypeError(msg.format(type(value), value))
+    return new_value
