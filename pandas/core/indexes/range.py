@@ -10,7 +10,7 @@ import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
-from pandas.core.dtypes import cast, concat as _concat
+from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.common import (
     ensure_python_int, is_int64_dtype, is_integer, is_scalar,
     is_timedelta64_dtype)
@@ -337,7 +337,7 @@ class RangeIndex(Int64Index):
     def __contains__(self, key):
         hash(key)
         try:
-            key = cast.ensure_python_int(key)
+            key = ensure_python_int(key)
         except TypeError:
             return False
         return key in self._range
@@ -649,9 +649,7 @@ class RangeIndex(Int64Index):
         return self._int64index // other
 
     def all(self):
-        if 0 in self._range:
-            return False
-        return True
+        return 0 not in self._range
 
     def any(self):
         return any(self._range)
