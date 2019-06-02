@@ -1007,6 +1007,8 @@ generated/pandas.Panel.xs,../reference/api/pandas.Panel.xs
 generated/pandas.Period.asfreq,../reference/api/pandas.Period.asfreq
 generated/pandas.Period.day,../reference/api/pandas.Period.day
 generated/pandas.Period.dayofweek,../reference/api/pandas.Period.dayofweek
+generated/pandas.Period.day_of_week,../reference/api/pandas.Period.day_of_week
+generated/pandas.Period.dayofyear,../reference/api/pandas.Period.dayofyear
 generated/pandas.Period.day_of_year,../reference/api/pandas.Period.day_of_year
 generated/pandas.Period.days_in_month,../reference/api/pandas.Period.days_in_month
 generated/pandas.Period.daysinmonth,../reference/api/pandas.Period.daysinmonth
@@ -1018,6 +1020,8 @@ generated/pandas.Period,../reference/api/pandas.Period
 generated/pandas.PeriodIndex.asfreq,../reference/api/pandas.PeriodIndex.asfreq
 generated/pandas.PeriodIndex.day,../reference/api/pandas.PeriodIndex.day
 generated/pandas.PeriodIndex.dayofweek,../reference/api/pandas.PeriodIndex.dayofweek
+generated/pandas.PeriodIndex.day_of_week,../reference/api/pandas.PeriodIndex.day_of_week
+generated/pandas.PeriodIndex.dayofyear,../reference/api/pandas.PeriodIndex.dayofyear
 generated/pandas.PeriodIndex.day_of_year,../reference/api/pandas.PeriodIndex.day_of_year
 generated/pandas.PeriodIndex.days_in_month,../reference/api/pandas.PeriodIndex.days_in_month
 generated/pandas.PeriodIndex.daysinmonth,../reference/api/pandas.PeriodIndex.daysinmonth
@@ -1164,6 +1168,8 @@ generated/pandas.Series.dt.date,../reference/api/pandas.Series.dt.date
 generated/pandas.Series.dt.day,../reference/api/pandas.Series.dt.day
 generated/pandas.Series.dt.day_name,../reference/api/pandas.Series.dt.day_name
 generated/pandas.Series.dt.dayofweek,../reference/api/pandas.Series.dt.dayofweek
+generated/pandas.Series.dt.day_of_week,../reference/api/pandas.Series.dt.day_of_week
+generated/pandas.Series.dt.dayofyear,../reference/api/pandas.Series.dt.dayofyear
 generated/pandas.Series.dt.day_of_year,../reference/api/pandas.Series.dt.day_of_year
 generated/pandas.Series.dt.days,../reference/api/pandas.Series.dt.days
 generated/pandas.Series.dt.days_in_month,../reference/api/pandas.Series.dt.days_in_month
@@ -1509,6 +1515,8 @@ generated/pandas.Timestamp.date,../reference/api/pandas.Timestamp.date
 generated/pandas.Timestamp.day,../reference/api/pandas.Timestamp.day
 generated/pandas.Timestamp.day_name,../reference/api/pandas.Timestamp.day_name
 generated/pandas.Timestamp.dayofweek,../reference/api/pandas.Timestamp.dayofweek
+generated/pandas.Timestamp.day_of_week,../reference/api/pandas.Timestamp.day_of_week
+generated/pandas.Timestamp.dayofyear,../reference/api/pandas.Timestamp.dayofyear
 generated/pandas.Timestamp.day_of_year,../reference/api/pandas.Timestamp.day_of_year
 generated/pandas.Timestamp.days_in_month,../reference/api/pandas.Timestamp.days_in_month
 generated/pandas.Timestamp.daysinmonth,../reference/api/pandas.Timestamp.daysinmonth
