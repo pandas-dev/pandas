@@ -1,10 +1,6 @@
-# -*- coding: utf-8 -*-
-
 """
 test all other .agg behavior
 """
-
-from __future__ import print_function
 
 from collections import OrderedDict
 import datetime as dt
@@ -221,6 +217,7 @@ def test_agg_dict_renaming_deprecation():
         df.groupby('A').agg({'B': {'foo': ['sum', 'max']},
                              'C': {'bar': ['count', 'min']}})
         assert "using a dict with renaming" in str(w[0].message)
+        assert "named aggregation" in str(w[0].message)
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.groupby('A')[['B', 'C']].agg({'ma': 'max'})
@@ -363,7 +360,7 @@ def test_agg_callables():
     # GH 7929
     df = DataFrame({'foo': [1, 2], 'bar': [3, 4]}).astype(np.int64)
 
-    class fn_class(object):
+    class fn_class:
 
         def __call__(self, x):
             return sum(x)

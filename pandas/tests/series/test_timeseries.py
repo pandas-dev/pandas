@@ -1,14 +1,12 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime, time, timedelta
+from io import StringIO
+from itertools import product
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas.compat import StringIO, lrange, product
 from pandas.errors import NullFrequencyError
 import pandas.util._test_decorators as td
 
@@ -876,7 +874,8 @@ class TestTimeSeries(TestData):
 
         assert len(ts.between_time(stime, etime)) == expected_length
         assert len(ts.between_time(stime, etime, axis=0)) == expected_length
-        msg = r"No axis named 1 for object type <(class|type) 'type'>"
+        msg = ("No axis named 1 for object type"
+               " <class 'pandas.core.series.Series'>")
         with pytest.raises(ValueError, match=msg):
             ts.between_time(stime, etime, axis=1)
 
@@ -919,11 +918,11 @@ class TestTimeSeries(TestData):
         dr = date_range(start='1/1/2012', freq='5min', periods=10)
 
         # BAD Example, datetimes first
-        s = Series(np.arange(10), index=[dr, lrange(10)])
+        s = Series(np.arange(10), index=[dr, np.arange(10)])
         grouped = s.groupby(lambda x: x[1] % 2 == 0)
         result = grouped.count()
 
-        s = Series(np.arange(10), index=[lrange(10), dr])
+        s = Series(np.arange(10), index=[np.arange(10), dr])
         grouped = s.groupby(lambda x: x[0] % 2 == 0)
         expected = grouped.count()
 

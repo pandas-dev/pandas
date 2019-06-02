@@ -4,11 +4,11 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import Timedelta, Timestamp
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
-from pandas.compat import add_metaclass
-from pandas.util._decorators import Appender, cache_readonly
-from pandas.util._doctools import _WritableDoc
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
@@ -21,7 +21,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
-from pandas.core.config import get_option
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index, _index_shared_docs, default_pprint, ensure_index)
@@ -125,7 +124,6 @@ def _new_IntervalIndex(cls, d):
     """),
 
 ))
-@add_metaclass(_WritableDoc)
 class IntervalIndex(IntervalMixin, Index):
     _typ = 'intervalindex'
     _comparables = ['name']
@@ -408,7 +406,7 @@ class IntervalIndex(IntervalMixin, Index):
             new_values = self.values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values):
             return self._shallow_copy(new_values.left, new_values.right)
-        return super(IntervalIndex, self).astype(dtype, copy=copy)
+        return super().astype(dtype, copy=copy)
 
     @cache_readonly
     def dtype(self):
@@ -440,7 +438,7 @@ class IntervalIndex(IntervalMixin, Index):
         Return True if the IntervalIndex is monotonic increasing (only equal or
         increasing values), else False
         """
-        return self._multiindex.is_monotonic
+        return self.is_monotonic_increasing
 
     @cache_readonly
     def is_monotonic_increasing(self):
@@ -448,7 +446,7 @@ class IntervalIndex(IntervalMixin, Index):
         Return True if the IntervalIndex is monotonic increasing (only equal or
         increasing values), else False
         """
-        return self._multiindex.is_monotonic_increasing
+        return self._engine.is_monotonic_increasing
 
     @cache_readonly
     def is_monotonic_decreasing(self):
@@ -456,14 +454,31 @@ class IntervalIndex(IntervalMixin, Index):
         Return True if the IntervalIndex is monotonic decreasing (only equal or
         decreasing values), else False
         """
-        return self._multiindex.is_monotonic_decreasing
+        return self[::-1].is_monotonic_increasing
 
     @cache_readonly
     def is_unique(self):
         """
         Return True if the IntervalIndex contains unique elements, else False
         """
-        return self._multiindex.is_unique
+        left = self.left
+        right = self.right
+
+        if self.isna().sum() > 1:
+            return False
+
+        if left.is_unique or right.is_unique:
+            return True
+
+        seen_pairs = set()
+        check_idx = np.where(left.duplicated(keep=False))[0]
+        for idx in check_idx:
+            pair = (left[idx], right[idx])
+            if pair in seen_pairs:
+                return False
+            seen_pairs.add(pair)
+
+        return True
 
     @cache_readonly
     @Appender(_interval_shared_docs['is_non_overlapping_monotonic']
@@ -529,8 +544,7 @@ class IntervalIndex(IntervalMixin, Index):
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
         if kind == 'iloc':
-            return super(IntervalIndex, self)._convert_scalar_indexer(
-                key, kind=kind)
+            return super()._convert_scalar_indexer(key, kind=kind)
         return key
 
     def _maybe_cast_slice_bound(self, label, side, kind):
@@ -732,7 +746,7 @@ class IntervalIndex(IntervalMixin, Index):
         loc : int if unique index, slice if monotonic index, else mask
 
         Examples
-        ---------
+        --------
         >>> i1, i2 = pd.Interval(0, 1), pd.Interval(1, 2)
         >>> index = pd.IntervalIndex([i1, i2])
         >>> index.get_loc(1)
@@ -808,7 +822,15 @@ class IntervalIndex(IntervalMixin, Index):
             loc = self.get_loc(key)
         return series.iloc[loc]
 
-    @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
+    @Substitution(**dict(_index_doc_kwargs,
+                         **{'raises_section': textwrap.dedent("""
+        Raises
+        ------
+        NotImplementedError
+            If any method argument other than the default of
+            None is specified as these are not yet implemented.
+        """)}))
+    @Appender(_index_shared_docs['get_indexer'])
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
 
         self._check_method(method)
@@ -914,7 +936,7 @@ class IntervalIndex(IntervalMixin, Index):
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = self._maybe_cast_indexed(ensure_index(target))
-        return super(IntervalIndex, self).get_indexer_non_unique(target)
+        return super().get_indexer_non_unique(target)
 
     @Appender(_index_shared_docs['where'])
     def where(self, cond, other=None):
@@ -967,19 +989,6 @@ class IntervalIndex(IntervalMixin, Index):
         new_right = self.right.insert(loc, right_insert)
         return self._shallow_copy(new_left, new_right)
 
-    def _as_like_interval_index(self, other):
-        self._assert_can_do_setop(other)
-        other = ensure_index(other)
-        if not isinstance(other, IntervalIndex):
-            msg = ('the other index needs to be an IntervalIndex too, but '
-                   'was type {}').format(other.__class__.__name__)
-            raise TypeError(msg)
-        elif self.closed != other.closed:
-            msg = ('can only do set operations between two IntervalIndex '
-                   'objects that are closed on the same side')
-            raise ValueError(msg)
-        return other
-
     def _concat_same_dtype(self, to_concat, name):
         """
         assert that we all have the same .closed
@@ -989,7 +998,7 @@ class IntervalIndex(IntervalMixin, Index):
             msg = ('can only append two IntervalIndex objects '
                    'that are closed on the same side')
             raise ValueError(msg)
-        return super(IntervalIndex, self)._concat_same_dtype(to_concat, name)
+        return super()._concat_same_dtype(to_concat, name)
 
     @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
@@ -1014,7 +1023,7 @@ class IntervalIndex(IntervalMixin, Index):
     def _format_with_header(self, header, **kwargs):
         return header + list(self._format_native_types(**kwargs))
 
-    def _format_native_types(self, na_rep='', quoting=None, **kwargs):
+    def _format_native_types(self, na_rep='NaN', quoting=None, **kwargs):
         """ actually format my specific types """
         from pandas.io.formats.format import ExtensionArrayFormatter
         return ExtensionArrayFormatter(values=self,
@@ -1095,7 +1104,17 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _setop(op_name, sort=None):
         def func(self, other, sort=sort):
-            other = self._as_like_interval_index(other)
+            self._assert_can_do_setop(other)
+            other = ensure_index(other)
+            if not isinstance(other, IntervalIndex):
+                result = getattr(self.astype(object), op_name)(other)
+                if op_name in ('difference',):
+                    result = result.astype(self.dtype)
+                return result
+            elif self.closed != other.closed:
+                msg = ('can only do set operations between two IntervalIndex '
+                       'objects that are closed on the same side')
+                raise ValueError(msg)
 
             # GH 19016: ensure set op will not return a prohibited dtype
             subtypes = [self.dtype.subtype, other.dtype.subtype]
@@ -1117,6 +1136,7 @@ class IntervalIndex(IntervalMixin, Index):
 
             return type(self).from_tuples(result, closed=self.closed,
                                           name=result_name)
+
         return func
 
     @property
@@ -1195,7 +1215,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     ``start`` and ``end``, inclusively.
 
     To learn more about datetime-like frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------

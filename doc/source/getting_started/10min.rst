@@ -103,7 +103,7 @@ Display the index, columns:
    df.columns
 
 :meth:`DataFrame.to_numpy` gives a NumPy representation of the underlying data.
-Note that his can be an expensive operation when your :class:`DataFrame` has
+Note that this can be an expensive operation when your :class:`DataFrame` has
 columns with different data types, which comes down to a fundamental difference
 between pandas and NumPy: **NumPy arrays have one dtype for the entire array,
 while pandas DataFrames have one dtype per column**. When you call
@@ -449,8 +449,8 @@ Merge
 Concat
 ~~~~~~
 
-pandas provides various facilities for easily combining together Series,
-DataFrame, and Panel objects with various kinds of set logic for the indexes
+pandas provides various facilities for easily combining together Series and
+DataFrame objects with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
 

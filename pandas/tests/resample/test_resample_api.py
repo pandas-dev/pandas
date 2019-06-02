@@ -1,12 +1,8 @@
-# pylint: disable=E1101
-
 from collections import OrderedDict
 from datetime import datetime
 
 import numpy as np
 import pytest
-
-from pandas.compat import range
 
 import pandas as pd
 from pandas import DataFrame, Series

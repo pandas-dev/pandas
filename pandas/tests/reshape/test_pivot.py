@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
-
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
+from itertools import product
 
 import numpy as np
 import pytest
-
-from pandas.compat import product, range
 
 import pandas as pd
 from pandas import (
@@ -22,7 +19,7 @@ def dropna(request):
     return request.param
 
 
-class TestPivotTable(object):
+class TestPivotTable:
 
     def setup_method(self, method):
         self.data = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
@@ -38,18 +35,18 @@ class TestPivotTable(object):
                                'E': np.random.randn(11),
                                'F': np.random.randn(11)})
 
-    def test_pivot_table(self):
+    def test_pivot_table(self, observed):
         index = ['A', 'B']
         columns = 'C'
         table = pivot_table(self.data, values='D',
-                            index=index, columns=columns)
+                            index=index, columns=columns, observed=observed)
 
         table2 = self.data.pivot_table(
-            values='D', index=index, columns=columns)
+            values='D', index=index, columns=columns, observed=observed)
         tm.assert_frame_equal(table, table2)
 
         # this works
-        pivot_table(self.data, values='D', index=index)
+        pivot_table(self.data, values='D', index=index, observed=observed)
 
         if len(index) > 1:
             assert table.index.names == tuple(index)
@@ -64,6 +61,28 @@ class TestPivotTable(object):
         expected = self.data.groupby(
             index + [columns])['D'].agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
+
+    def test_pivot_table_categorical_observed_equal(self, observed):
+        # issue #24923
+        df = pd.DataFrame({'col1': list('abcde'),
+                           'col2': list('fghij'),
+                           'col3': [1, 2, 3, 4, 5]})
+
+        expected = df.pivot_table(index='col1', values='col3',
+                                  columns='col2', aggfunc=np.sum,
+                                  fill_value=0)
+
+        expected.index = expected.index.astype('category')
+        expected.columns = expected.columns.astype('category')
+
+        df.col1 = df.col1.astype('category')
+        df.col2 = df.col2.astype('category')
+
+        result = df.pivot_table(index='col1', values='col3',
+                                columns='col2', aggfunc=np.sum,
+                                fill_value=0, observed=observed)
+
+        tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_nocols(self):
         df = DataFrame({'rows': ['a', 'b', 'c'],
@@ -1224,7 +1243,7 @@ class TestPivotTable(object):
 
     def test_pivot_margins_name_unicode(self):
         # issue #13292
-        greek = u'\u0394\u03bf\u03ba\u03b9\u03bc\u03ae'
+        greek = '\u0394\u03bf\u03ba\u03b9\u03bc\u03ae'
         frame = pd.DataFrame({'foo': [1, 2, 3]})
         table = pd.pivot_table(frame, index=['foo'], aggfunc=len, margins=True,
                                margins_name=greek)
@@ -1289,8 +1308,57 @@ class TestPivotTable(object):
             df.pivot_table(index='ind1', columns='ind2',
                            values='count', aggfunc='count')
 
+    def test_pivot_table_aggfunc_dropna(self, dropna):
+        # GH 22159
+        df = pd.DataFrame({'fruit': ['apple', 'peach', 'apple'],
+                           'size': [1, 1, 2],
+                           'taste': [7, 6, 6]})
 
-class TestCrosstab(object):
+        def ret_one(x):
+            return 1
+
+        def ret_sum(x):
+            return sum(x)
+
+        def ret_none(x):
+            return np.nan
+
+        result = pd.pivot_table(df, columns='fruit',
+                                aggfunc=[ret_sum, ret_none, ret_one],
+                                dropna=dropna)
+
+        data = [[3, 1, np.nan, np.nan, 1, 1], [13, 6, np.nan, np.nan, 1, 1]]
+        col = pd.MultiIndex.from_product([['ret_sum', 'ret_none', 'ret_one'],
+                                         ['apple', 'peach']],
+                                         names=[None, 'fruit'])
+        expected = pd.DataFrame(data, index=['size', 'taste'], columns=col)
+
+        if dropna:
+            expected = expected.dropna(axis='columns')
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_aggfunc_scalar_dropna(self, dropna):
+        # GH 22159
+        df = pd.DataFrame({'A': ['one', 'two', 'one'],
+                           'x': [3, np.nan, 2],
+                           'y': [1, np.nan, np.nan]})
+
+        result = pd.pivot_table(df, columns='A',
+                                aggfunc=np.mean,
+                                dropna=dropna)
+
+        data = [[2.5, np.nan], [1, np.nan]]
+        col = pd.Index(['one', 'two'], name='A')
+        expected = pd.DataFrame(data, index=['x', 'y'], columns=col)
+
+        if dropna:
+            expected = expected.dropna(axis='columns')
+
+        tm.assert_frame_equal(result, expected)
+
+
+class TestCrosstab:
 
     def setup_method(self, method):
         df = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',

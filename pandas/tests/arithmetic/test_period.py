@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Arithmetc tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for Period dtype
@@ -21,7 +20,7 @@ from pandas.tseries.frequencies import to_offset
 # Comparisons
 
 
-class TestPeriodIndexComparisons(object):
+class TestPeriodIndexComparisons:
 
     @pytest.mark.parametrize("other", ["2017", 2017])
     def test_eq(self, other):
@@ -260,7 +259,7 @@ class TestPeriodIndexComparisons(object):
         tm.assert_numpy_array_equal(pd.NaT > left, expected)
 
 
-class TestPeriodSeriesComparisons(object):
+class TestPeriodSeriesComparisons:
     def test_cmp_series_period_series_mixed_freq(self):
         # GH#13200
         base = Series([Period('2011', freq='A'),
@@ -292,7 +291,7 @@ class TestPeriodSeriesComparisons(object):
         tm.assert_series_equal(base <= ser, exp)
 
 
-class TestPeriodIndexSeriesComparisonConsistency(object):
+class TestPeriodIndexSeriesComparisonConsistency:
     """ Test PeriodIndex and Period Series Ops consistency """
     # TODO: needs parametrization+de-duplication
 
@@ -388,7 +387,7 @@ class TestPeriodIndexSeriesComparisonConsistency(object):
 # ------------------------------------------------------------------
 # Arithmetic
 
-class TestPeriodFrameArithmetic(object):
+class TestPeriodFrameArithmetic:
 
     def test_ops_frame_period(self):
         # GH#13043
@@ -420,7 +419,7 @@ class TestPeriodFrameArithmetic(object):
         tm.assert_frame_equal(df - df2, -1 * exp)
 
 
-class TestPeriodIndexArithmetic(object):
+class TestPeriodIndexArithmetic:
     # ---------------------------------------------------------------
     # __add__/__sub__ with PeriodIndex
     # PeriodIndex + other is defined for integers and timedelta-like others
@@ -674,7 +673,7 @@ class TestPeriodIndexArithmetic(object):
     def test_pi_sub_isub_int(self, one):
         """
         PeriodIndex.__sub__ and __isub__ with several representations of
-        the integer 1, e.g. int, long, np.int64, np.uint8, ...
+        the integer 1, e.g. int, np.int64, np.uint8, ...
         """
         rng = pd.period_range('2000-01-01 09:00', freq='H', periods=10)
         result = rng - one
@@ -967,7 +966,7 @@ class TestPeriodIndexArithmetic(object):
             other - obj
 
 
-class TestPeriodSeriesArithmetic(object):
+class TestPeriodSeriesArithmetic:
     def test_ops_series_timedelta(self):
         # GH#13043
         ser = pd.Series([pd.Period('2015-01-01', freq='D'),
@@ -1011,7 +1010,7 @@ class TestPeriodSeriesArithmetic(object):
         tm.assert_series_equal(ser - s2, -1 * expected)
 
 
-class TestPeriodIndexSeriesMethods(object):
+class TestPeriodIndexSeriesMethods:
     """ Test PeriodIndex and Period Series Ops consistency """
 
     def _check(self, values, func, expected):
@@ -1046,34 +1045,26 @@ class TestPeriodIndexSeriesMethods(object):
         exp = pd.Index([0 * off, -1 * off, -2 * off, -3 * off], name='idx')
         tm.assert_index_equal(result, exp)
 
-    @pytest.mark.parametrize('ng', ["str", 1.5])
-    def test_parr_ops_errors(self, ng, box_with_array):
-        idx = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
-                          freq='M', name='idx')
+    @pytest.mark.parametrize("ng", ["str", 1.5])
+    @pytest.mark.parametrize("func", [
+        lambda obj, ng: obj + ng,
+        lambda obj, ng: ng + obj,
+        lambda obj, ng: obj - ng,
+        lambda obj, ng: ng - obj,
+        lambda obj, ng: np.add(obj, ng),
+        lambda obj, ng: np.add(ng, obj),
+        lambda obj, ng: np.subtract(obj, ng),
+        lambda obj, ng: np.subtract(ng, obj),
+    ])
+    def test_parr_ops_errors(self, ng, func, box_with_array):
+        idx = PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"],
+                          freq="M", name="idx")
         obj = tm.box_expected(idx, box_with_array)
-
-        msg = r"unsupported operand type\(s\)"
-        with pytest.raises(TypeError, match=msg):
-            obj + ng
-
-        with pytest.raises(TypeError):
-            # error message differs between PY2 and 3
-            ng + obj
+        msg = (r"unsupported operand type\(s\)|can only concatenate|"
+               r"must be str|object to str implicitly")
 
         with pytest.raises(TypeError, match=msg):
-            obj - ng
-
-        with pytest.raises(TypeError):
-            np.add(obj, ng)
-
-        with pytest.raises(TypeError):
-            np.add(ng, obj)
-
-        with pytest.raises(TypeError):
-            np.subtract(obj, ng)
-
-        with pytest.raises(TypeError):
-            np.subtract(ng, obj)
+            func(obj, ng)
 
     def test_pi_ops_nat(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-04'],

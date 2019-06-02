@@ -1,10 +1,6 @@
-# pylint: disable=E1101
-
 from textwrap import dedent
 
 import numpy as np
-
-from pandas.compat import range
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp

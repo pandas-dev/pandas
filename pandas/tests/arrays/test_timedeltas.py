@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
@@ -8,7 +6,7 @@ from pandas.core.arrays import TimedeltaArray
 import pandas.util.testing as tm
 
 
-class TestTimedeltaArrayConstructor(object):
+class TestTimedeltaArrayConstructor:
     def test_only_1dim_accepted(self):
         # GH#25282
         arr = np.array([0, 1, 2, 3], dtype='m8[h]').astype('m8[ns]')
@@ -62,7 +60,7 @@ class TestTimedeltaArrayConstructor(object):
         assert arr._data.base is not data
 
 
-class TestTimedeltaArray(object):
+class TestTimedeltaArray:
     def test_np_sum(self):
         # GH#25282
         vals = np.arange(5, dtype=np.int64).view('m8[h]').astype('m8[ns]')
@@ -130,7 +128,7 @@ class TestTimedeltaArray(object):
         assert a.freq is None
 
 
-class TestReductions(object):
+class TestReductions:
 
     def test_min_max(self):
         arr = TimedeltaArray._from_sequence([

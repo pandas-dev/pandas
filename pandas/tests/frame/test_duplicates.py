@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 import numpy as np
 import pytest
-
-from pandas.compat import lrange, string_types
 
 from pandas import DataFrame, Series
 import pandas.util.testing as tm
@@ -76,7 +70,7 @@ def test_duplicated_subset(subset, keep):
 
     if subset is None:
         subset = list(df.columns)
-    elif isinstance(subset, string_types):
+    elif isinstance(subset, str):
         # need to have a DataFrame, not a Series
         # -> select columns with singleton list, not string
         subset = [subset]
@@ -92,8 +86,8 @@ def test_drop_duplicates():
                     'B': ['one', 'one', 'two', 'two',
                           'two', 'two', 'one', 'two'],
                     'C': [1, 1, 2, 2, 2, 2, 1, 2],
-                    'D': lrange(8)})
-
+                    'D': range(8),
+                    })
     # single column
     result = df.drop_duplicates('AAA')
     expected = df[:2]
@@ -215,8 +209,8 @@ def test_drop_duplicates_for_take_all():
                     'B': ['one', 'one', 'two', 'two',
                           'two', 'two', 'one', 'two'],
                     'C': [1, 1, 2, 2, 2, 2, 1, 2],
-                    'D': lrange(8)})
-
+                    'D': range(8),
+                    })
     # single column
     result = df.drop_duplicates('AAA')
     expected = df.iloc[[0, 1, 2, 6]]
@@ -250,8 +244,8 @@ def test_drop_duplicates_tuple():
                     'B': ['one', 'one', 'two', 'two',
                           'two', 'two', 'one', 'two'],
                     'C': [1, 1, 2, 2, 2, 2, 1, 2],
-                    'D': lrange(8)})
-
+                    'D': range(8),
+                    })
     # single column
     result = df.drop_duplicates(('AA', 'AB'))
     expected = df[:2]
@@ -296,8 +290,8 @@ def test_drop_duplicates_NA():
                     'B': ['one', 'one', 'two', 'two',
                           'two', 'two', 'one', 'two'],
                     'C': [1.0, np.nan, np.nan, np.nan, 1., 1., 1, 1.],
-                    'D': lrange(8)})
-
+                    'D': range(8),
+                    })
     # single column
     result = df.drop_duplicates('A')
     expected = df.loc[[0, 2, 3]]
@@ -331,8 +325,8 @@ def test_drop_duplicates_NA():
                     'B': ['one', 'one', 'two', 'two',
                           'two', 'two', 'one', 'two'],
                     'C': [1.0, np.nan, np.nan, np.nan, 1., 1., 1, 1.],
-                    'D': lrange(8)})
-
+                    'D': range(8),
+                    })
     # single column
     result = df.drop_duplicates('C')
     expected = df[:2]
@@ -402,8 +396,8 @@ def test_drop_duplicates_inplace():
                       'B': ['one', 'one', 'two', 'two',
                             'two', 'two', 'one', 'two'],
                       'C': [1, 1, 2, 2, 2, 2, 1, 2],
-                      'D': lrange(8)})
-
+                      'D': range(8),
+                      })
     # single column
     df = orig.copy()
     df.drop_duplicates('A', inplace=True)

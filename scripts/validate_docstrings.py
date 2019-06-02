@@ -26,6 +26,8 @@ import inspect
 import importlib
 import doctest
 import tempfile
+import ast
+import textwrap
 
 import flake8.main.application
 
@@ -48,7 +50,6 @@ BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.insert(0, os.path.join(BASE_PATH))
 import pandas
-from pandas.compat import signature
 
 sys.path.insert(1, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
 from numpydoc.docscrape import NumpyDocString
@@ -222,7 +223,7 @@ def get_api_items(api_doc_fd):
         previous_line = line
 
 
-class Docstring(object):
+class Docstring:
     def __init__(self, name):
         self.name = name
         obj = self._load_obj(name)
@@ -418,7 +419,7 @@ class Docstring(object):
                 # accessor classes have a signature but don't want to show this
                 return tuple()
         try:
-            sig = signature(self.obj)
+            sig = inspect.getfullargspec(self.obj)
         except (TypeError, ValueError):
             # Some objects, mainly in C extensions do not support introspection
             # of the signature
@@ -426,8 +427,8 @@ class Docstring(object):
         params = sig.args
         if sig.varargs:
             params.append("*" + sig.varargs)
-        if sig.keywords:
-            params.append("**" + sig.keywords)
+        if sig.varkw:
+            params.append("**" + sig.varkw)
         params = tuple(params)
         if params and params[0] in ('self', 'cls'):
             return params[1:]
@@ -471,9 +472,12 @@ class Docstring(object):
 
     @property
     def see_also(self):
-        return collections.OrderedDict((name, ''.join(desc))
-                                       for name, desc, _
-                                       in self.doc['See Also'])
+        result = collections.OrderedDict()
+        for funcs, desc in self.doc['See Also']:
+            for func, _ in funcs:
+                result[func] = ''.join(desc)
+
+        return result
 
     @property
     def examples(self):
@@ -490,9 +494,45 @@ class Docstring(object):
     @property
     def method_source(self):
         try:
-            return inspect.getsource(self.obj)
+            source = inspect.getsource(self.obj)
         except TypeError:
             return ''
+        return textwrap.dedent(source)
+
+    @property
+    def method_returns_something(self):
+        '''
+        Check if the docstrings method can return something.
+
+        Bare returns, returns valued None and returns from nested functions are
+        disconsidered.
+
+        Returns
+        -------
+        bool
+            Whether the docstrings method can return something.
+        '''
+
+        def get_returns_not_on_nested_functions(node):
+            returns = [node] if isinstance(node, ast.Return) else []
+            for child in ast.iter_child_nodes(node):
+                # Ignore nested functions and its subtrees.
+                if not isinstance(child, ast.FunctionDef):
+                    child_returns = get_returns_not_on_nested_functions(child)
+                    returns.extend(child_returns)
+            return returns
+
+        tree = ast.parse(self.method_source).body
+        if tree:
+            returns = get_returns_not_on_nested_functions(tree[0])
+            return_values = [r.value for r in returns]
+            # Replace NameConstant nodes valued None for None.
+            for i, v in enumerate(return_values):
+                if isinstance(v, ast.NameConstant) and v.value is None:
+                    return_values[i] = None
+            return any(return_values)
+        else:
+            return False
 
     @property
     def first_line_ends_in_dot(self):
@@ -543,7 +583,7 @@ class Docstring(object):
         application = flake8.main.application.Application()
         application.initialize(["--quiet"])
 
-        with tempfile.NamedTemporaryFile(mode='w') as file:
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8') as file:
             file.write(content)
             file.flush()
             application.run_checks([file.name])
@@ -691,10 +731,10 @@ def get_validation_data(doc):
 
     if doc.is_function_or_method:
         if not doc.returns:
-            if 'return' in doc.method_source:
+            if doc.method_returns_something:
                 errs.append(error('RT01'))
         else:
-            if len(doc.returns) == 1 and doc.returns[0][1]:
+            if len(doc.returns) == 1 and doc.returns[0].name:
                 errs.append(error('RT02'))
             for name_or_type, type_, desc in doc.returns:
                 if not desc:
