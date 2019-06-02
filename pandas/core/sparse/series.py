@@ -124,26 +124,6 @@ class SparseSeries(Series):
                                  fill_value=result.fill_value,
                                  copy=False).__finalize__(self)
 
-    def __array_wrap__(self, result, context=None):
-        """
-        Gets called prior to a ufunc (and after)
-
-        See SparseArray.__array_wrap__ for detail.
-        """
-        result = self.values.__array_wrap__(result, context=context)
-        return self._constructor(result, index=self.index,
-                                 sparse_index=self.sp_index,
-                                 fill_value=result.fill_value,
-                                 copy=False).__finalize__(self)
-
-    def __array_finalize__(self, obj):
-        """
-        Gets called after any ufunc or other array operations, necessary
-        to pass on the index.
-        """
-        self.name = getattr(obj, 'name', None)
-        self.fill_value = getattr(obj, 'fill_value', None)
-
     # unary ops
     # TODO: See if this can be shared
     def __pos__(self):
