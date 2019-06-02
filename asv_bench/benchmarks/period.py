@@ -7,8 +7,9 @@ class PeriodProperties:
 
     params = (['M', 'min'],
               ['year', 'month', 'day', 'hour', 'minute', 'second',
-               'is_leap_year', 'quarter', 'qyear', 'week', 'daysinmonth', 'days_in_month',
-               'dayofweek', 'day_of_week', 'dayofyear', 'day_of_year', 'start_time', 'end_time'])
+               'is_leap_year', 'quarter', 'qyear', 'week', 'daysinmonth',
+               'days_in_month', 'dayofweek', 'day_of_week', 'dayofyear',
+               'day_of_year', 'start_time', 'end_time'])
     param_names = ['freq', 'attr']
 
     def setup(self, freq, attr):
