@@ -694,7 +694,7 @@ Sparse
 - Significant speedup in :class:`SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
 - Bug in :class:`SparseFrame` constructor where passing ``None`` as the data would cause ``default_fill_value`` to be ignored (:issue:`16807`)
 - Bug in :class:`SparseDataFrame` when adding a column in which the length of values does not match length of index, ``AssertionError`` is raised instead of raising ``ValueError`` (:issue:`25484`)
-
+- Introduce a better error message in :meth:`Series.sparse.from_coo` so it returns a ``TypeError`` for inputs that are not coo matrices (:issue:`26554`)
 
 Other
 ^^^^^
