@@ -15,7 +15,7 @@ jobs:
     name: Windows
     vmImage: vs2017-win2016
 
-- job: 'Checks'
+- job: 'Checks_and_doc'
   pool:
     vmImage: ubuntu-16.04
   timeoutInMinutes: 90
