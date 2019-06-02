@@ -70,7 +70,8 @@ def test_isin_values_raises(values, expected_badix):
     ])
 
     nlvl = len(idx.levels)
-    msg = re.escape('Value length must be equal to count of levels. '
+    msg = re.escape('Length of each element in values must '
+                    'match number of levels in MultiIndex. '
                     'len({}) != {}'.format(values[expected_badix], nlvl))
 
     with pytest.raises(ValueError, match=msg):

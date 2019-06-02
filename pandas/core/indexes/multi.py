@@ -3179,8 +3179,9 @@ class MultiIndex(Index):
             nlvl = len(self.levels)
             for val in values:
                 if len(val) != nlvl:
-                    raise ValueError('Value length must be equal to count of '
-                                     'levels. len({}) != {}'.format(val, nlvl))
+                    raise ValueError('Length of each element in values must '
+                                     'match number of levels in MultiIndex. '
+                                     'len({}) != {}'.format(val, nlvl))
 
             values = MultiIndex.from_tuples(values,
                                             names=self.names).values
