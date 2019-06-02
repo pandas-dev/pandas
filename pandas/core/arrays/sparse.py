@@ -1927,18 +1927,17 @@ def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
     index = _make_index(length, indices, kind)
     sparsified_values = arr[mask]
 
-    # careful about casting here
-    # as we could easily specify a type that cannot hold the resulting values
-    # e.g. integer when we have floats
+    # careful about casting here as we could easily specify a type that
+    # cannot hold the resulting values, e.g. integer when we have floats
+    # if we don't have an object specified then use this as the cast
     if dtype is not None:
-        try:
-            sparsified_values = astype_nansafe(
-                sparsified_values, dtype=dtype, casting='same_kind')
-        except TypeError:
-            dtype = 'float64'
-            sparsified_values = astype_nansafe(
-                sparsified_values, dtype=dtype, casting='unsafe')
 
+        ok_to_cast = all(not (is_object_dtype(t) or is_bool_dtype(t))
+                         for t in (dtype, sparsified_values.dtype))
+        if ok_to_cast:
+            dtype = find_common_type([dtype, sparsified_values.dtype])
+        sparsified_values = astype_nansafe(
+            sparsified_values, dtype=dtype)
 
     # TODO: copy
     return sparsified_values, index, fill_value

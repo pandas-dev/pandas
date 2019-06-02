@@ -16,5 +16,5 @@ def test_ufunc(data, dtype, func):
     s = Series(data, dtype=dtype)
     result = func(s)
     expected = Series(func(data),
-                      dtype=dtype)
+                      dtype=SparseDtype('float64', dtype.fill_value))
     tm.assert_series_equal(result, expected)

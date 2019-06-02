@@ -284,20 +284,26 @@ class SparseDataFrame(DataFrame):
     def to_dense(self):
         return SparseFrameAccessor(self).to_dense()
 
-    def _apply_columns(self, func):
+    def _apply_columns(self, func, *args, **kwargs):
         """
         Get new SparseDataFrame applying func to each columns
         """
 
-        new_data = {col: func(series)
+        new_data = {col: func(series, *args, **kwargs)
                     for col, series in self.items()}
 
         return self._constructor(
             data=new_data, index=self.index, columns=self.columns,
             default_fill_value=self.default_fill_value).__finalize__(self)
 
-    def astype(self, dtype):
-        return self._apply_columns(lambda x: x.astype(dtype))
+    def astype(self, dtype, **kwargs):
+
+        def f(x, dtype, **kwargs):
+            if isinstance(dtype, (dict, Series)):
+                dtype = dtype[x.name]
+            return x.astype(dtype, **kwargs)
+
+        return self._apply_columns(f, dtype=dtype, **kwargs)
 
     def copy(self, deep=True):
         """

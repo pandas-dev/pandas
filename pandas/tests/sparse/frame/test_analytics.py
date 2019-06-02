@@ -55,5 +55,5 @@ def test_ufunc(data, dtype, func):
     result = func(df)
     expected = DataFrame(
         {'A': Series(func(data),
-                     dtype=dtype)})
+                     dtype=SparseDtype('float64', dtype.fill_value))})
     tm.assert_frame_equal(result, expected)
