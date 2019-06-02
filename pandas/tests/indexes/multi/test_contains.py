@@ -2,10 +2,9 @@ import numpy as np
 import pytest
 import re
 
-from pandas.compat import PYPY
-
 import pandas as pd
 from pandas import MultiIndex
+from pandas.compat import PYPY
 import pandas.util.testing as tm
 
 
@@ -58,22 +57,24 @@ def test_isin():
     assert len(result) == 0
     assert result.dtype == np.bool_
 
-    msg_tmpl = 'Value length must be equal to count of levels. len({}) != {}'
+
+@pytest.mark.parametrize(['values', 'badix'],
+                         [([('foo',), ('bar', 3), ('quux',)], 0),
+                          ([('foo', 2), ('bar', 3, 2), ('quux', 4)], 1)])
+def test_isin_values_raises(values, badix):
+    print(values)
+    print(badix)
+    idx = MultiIndex.from_arrays([
+        ['qux', 'baz', 'foo', 'bar'],
+        np.arange(4)
+    ])
+
     nlvl = len(idx.levels)
-
-    # some values too short
-    vals_short = [('foo',), ('bar', 3), ('quux',)]
-    msg = re.escape(msg_tmpl.format(vals_short[0], nlvl))
+    msg = re.escape('Value length must be equal to count of levels. '
+                    'len({}) != {}'.format(values[badix], nlvl))
 
     with pytest.raises(ValueError, match=msg):
-        idx.isin(vals_short)
-
-    # some values too long
-    vals_long = [('foo', 2), ('bar', 3, 2), ('quux', 4)]
-    msg = re.escape(msg_tmpl.format(vals_long[1], nlvl))
-
-    with pytest.raises(ValueError, match=msg):
-        idx.isin(vals_long)
+        idx.isin(values)
 
 
 @pytest.mark.skipif(PYPY, reason="tuples cmp recursively on PyPy")
