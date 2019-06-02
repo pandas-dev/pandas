@@ -5,8 +5,8 @@ from collections import OrderedDict
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
-import warnings
 from typing import Optional, Tuple
+import warnings
 
 import numpy as np
 

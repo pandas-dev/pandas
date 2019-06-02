@@ -323,7 +323,7 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
 ufuncs on Extension Dtype
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Operations with ``numpy`` ufuncs on Extension Arrays, including Sparse Dtypes will now coerce the
+Operations with ``numpy`` ufuncs on Extension Arrays, including Sparse Dtypes will now preserve the
 resulting dtypes to same as the input dtype; previously this would coerce to a dense dtype. (:issue:`23743`)
 
 .. ipython:: python

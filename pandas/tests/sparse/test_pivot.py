@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import _np_version_under1p17
 import pandas.util.testing as tm
 
 
@@ -53,7 +54,8 @@ class TestPivotTable:
          'std',
          'var',
          'sem',
-         'median',
+         pytest.param('median', marks=pytest.mark.xfail(
+             not _np_version_under1p17, reason="fails on numpy > 1.16")),
          'first',
          'last'])
     @pytest.mark.parametrize('dropna', [True, False])
