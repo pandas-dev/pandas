@@ -782,10 +782,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # we try to cast extension array types back to the original
         if is_extension_array_dtype(self):
-            result = result.astype(self.dtype,
-                                   copy=False,
-                                   errors='ignore',
-                                   casting='same_kind')
+            result = result.astype(self.dtype, copy=False)
 
         return result.__finalize__(self)
 

@@ -42,14 +42,18 @@ def test_quantile_multi():
     tm.assert_sp_frame_equal(result, sparse_expected)
 
 
+@pytest.mark.parametrize(
+    'data, dtype',
+    [([1, np.nan, 3], SparseDtype('float64', np.nan)),
+     ([1, 2, 3], SparseDtype('int'))])
 @pytest.mark.parametrize('func', [np.exp, np.sqrt], ids=str)
-def test_ufunc(func):
+def test_ufunc(data, dtype, func):
     # GH 23743
     # assert we preserve the incoming dtype on ufunc operation
     df = DataFrame(
-        {'A': Series([1, np.nan, 3], dtype=SparseDtype('float64', np.nan))})
+        {'A': Series(data, dtype=dtype)})
     result = func(df)
     expected = DataFrame(
-        {'A': Series(func([1, np.nan, 3]),
-                     dtype=SparseDtype('float64', np.nan))})
+        {'A': Series(func(data),
+                     dtype=dtype)})
     tm.assert_frame_equal(result, expected)
