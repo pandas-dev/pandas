@@ -573,7 +573,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         Whether to explicitly copy the incoming `data` array.
     """
 
-    __array_priority__ = 15
     _pandas_ftype = 'sparse'
     _subtyp = 'sparse_array'  # register ABCSparseArray
 
@@ -1638,14 +1637,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ------------------------------------------------------------------------
     # Ufuncs
     # ------------------------------------------------------------------------
-
-    def __array_wrap__(self, array, context=None):
-        from pandas.core.dtypes.generic import ABCSparseSeries
-
-        ufunc, inputs, _ = context
-        inputs = tuple(x.to_dense() if isinstance(x, ABCSparseSeries) else x
-                       for x in inputs)
-        return self.__array_ufunc__(ufunc, '__call__', *inputs)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
