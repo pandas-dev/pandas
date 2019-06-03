@@ -21,7 +21,7 @@ from numpy.random import rand, randn
 from pandas._config.localization import (  # noqa:F401
     can_set_locale, get_locales, set_locale)
 
-from pandas._libs import testing as _testing
+import pandas._libs.testing as _testing
 from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.common import (
@@ -1403,7 +1403,7 @@ def assert_sp_array_equal(left, right, check_dtype=True, check_kind=True,
         assert_attr_equal('fill_value', left, right)
     if check_dtype:
         assert_attr_equal('dtype', left, right)
-    assert_numpy_array_equal(left.values, right.values,
+    assert_numpy_array_equal(left.to_dense(), right.to_dense(),
                              check_dtype=check_dtype)
 
 

@@ -21,11 +21,10 @@ from pandas.errors import PerformanceWarning
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     astype_nansafe, construct_1d_arraylike_from_scalar, find_common_type,
-    infer_dtype_from_scalar, maybe_convert_platform)
+    infer_dtype_from_scalar)
 from pandas.core.dtypes.common import (
     is_array_like, is_bool_dtype, is_datetime64_any_dtype, is_dtype_equal,
-    is_integer, is_list_like, is_object_dtype, is_scalar, is_string_dtype,
-    pandas_dtype)
+    is_integer, is_object_dtype, is_scalar, is_string_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
@@ -574,7 +573,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         Whether to explicitly copy the incoming `data` array.
     """
 
-    __array_priority__ = 15
     _pandas_ftype = 'sparse'
     _subtyp = 'sparse_array'  # register ABCSparseArray
 
@@ -890,7 +888,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def values(self):
         """
         Dense values
+
+        .. deprecated:: 0.25.0
+
+            Use ``np.asarray(...)`` or the ``.to_dense()`` method instead.
         """
+        msg = (
+            "The SparseArray.values attribute is deprecated and will be "
+            "removed in a future version. You can use `np.asarray(...)` or "
+            "the `.to_dense()` method instead.")
+        warnings.warn(msg, FutureWarning, stacklevel=2)
         return self.to_dense()
 
     def isna(self):
@@ -1076,7 +1083,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if is_integer(key):
             return self._get_val_at(key)
         elif isinstance(key, tuple):
-            data_slice = self.values[key]
+            data_slice = self.to_dense()[key]
         elif isinstance(key, slice):
             # special case to preserve dtypes
             if key == slice(None):
@@ -1631,14 +1638,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # Ufuncs
     # ------------------------------------------------------------------------
 
-    def __array_wrap__(self, array, context=None):
-        from pandas.core.dtypes.generic import ABCSparseSeries
-
-        ufunc, inputs, _ = context
-        inputs = tuple(x.values if isinstance(x, ABCSparseSeries) else x
-                       for x in inputs)
-        return self.__array_ufunc__(ufunc, '__call__', *inputs)
-
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
@@ -1823,7 +1822,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ----------
     # Formatting
     # -----------
-    def __unicode__(self):
+    def __repr__(self):
         return '{self}\nFill: {fill}\n{index}'.format(
             self=printing.pprint_thing(self),
             fill=printing.pprint_thing(self.fill_value),
@@ -1854,35 +1853,8 @@ def _maybe_to_sparse(array):
     array must be SparseSeries or SparseArray
     """
     if isinstance(array, ABCSparseSeries):
-        array = array.values.copy()
+        array = array.array.copy()
     return array
-
-
-def _sanitize_values(arr):
-    """
-    return an ndarray for our input,
-    in a platform independent manner
-    """
-
-    if hasattr(arr, 'values'):
-        arr = arr.values
-    else:
-
-        # scalar
-        if is_scalar(arr):
-            arr = [arr]
-
-        # ndarray
-        if isinstance(arr, np.ndarray):
-            pass
-
-        elif is_list_like(arr) and len(arr) > 0:
-            arr = maybe_convert_platform(arr)
-
-        else:
-            arr = np.asarray(arr)
-
-    return arr
 
 
 def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
@@ -1902,7 +1874,7 @@ def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
     (sparse_values, index, fill_value) : (ndarray, SparseIndex, Scalar)
     """
 
-    arr = _sanitize_values(arr)
+    arr = com.values_from_object(arr)
 
     if arr.ndim > 1:
         raise TypeError("expected dimension <= 1 data")
@@ -2033,9 +2005,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         from pandas.core.sparse.scipy_sparse import _coo_to_sparse_series
         from pandas import Series
 
-        result = _coo_to_sparse_series(A, dense_index=dense_index)
-        # SparseSeries -> Series[sparse]
-        result = Series(result.values, index=result.index, copy=False)
+        result = _coo_to_sparse_series(A, dense_index=dense_index,
+                                       sparse_series=False)
+        result = Series(result.array, index=result.index, copy=False)
 
         return result
 

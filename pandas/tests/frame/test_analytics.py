@@ -588,6 +588,16 @@ class TestDataFrameAnalytics:
         result = df3.describe()
         tm.assert_numpy_array_equal(result["cat"].values, result["s"].values)
 
+    def test_describe_empty_categorical_column(self):
+        # GH 26397
+        # Ensure the index of an an empty categoric DataFrame column
+        # also contains (count, unique, top, freq)
+        df = pd.DataFrame({"empty_col": Categorical([])})
+        result = df.describe()
+        expected = DataFrame({'empty_col': [0, 0, None, None]},
+                             index=['count', 'unique', 'top', 'freq'])
+        tm.assert_frame_equal(result, expected)
+
     def test_describe_categorical_columns(self):
         # GH 11558
         columns = pd.CategoricalIndex(['int1', 'int2', 'obj'],
@@ -608,6 +618,7 @@ class TestDataFrameAnalytics:
                              index=['count', 'mean', 'std', 'min', '25%',
                                     '50%', '75%', 'max'],
                              columns=exp_columns)
+
         tm.assert_frame_equal(result, expected)
         tm.assert_categorical_equal(result.columns.values,
                                     expected.columns.values)

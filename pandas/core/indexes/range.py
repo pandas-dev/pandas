@@ -22,6 +22,8 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
 
+from pandas.io.formats.printing import pprint_thing
+
 
 class RangeIndex(Int64Index):
     """
@@ -64,6 +66,8 @@ class RangeIndex(Int64Index):
     _typ = 'rangeindex'
     _engine_type = libindex.Int64Engine
 
+    # check whether self._data has benn called
+    _cached_data = None  # type: np.ndarray
     # --------------------------------------------------------------------
     # Constructors
 
@@ -164,6 +168,8 @@ class RangeIndex(Int64Index):
         for k, v in kwargs.items():
             setattr(result, k, v)
 
+        result._range = range(result._start, result._stop, result._step)
+
         result._reset_identity()
         return result
 
@@ -180,9 +186,19 @@ class RangeIndex(Int64Index):
         """ return the class to use for construction """
         return Int64Index
 
-    @cache_readonly
+    @property
     def _data(self):
-        return np.arange(self._start, self._stop, self._step, dtype=np.int64)
+        """
+        An int array that for performance reasons is created only when needed.
+
+        The constructed array is saved in ``_cached_data``. This allows us to
+        check if the array has been created without accessing ``_data`` and
+        triggering the construction.
+        """
+        if self._cached_data is None:
+            self._cached_data = np.arange(self._start, self._stop, self._step,
+                                          dtype=np.int64)
+        return self._cached_data
 
     @cache_readonly
     def _int64index(self):
@@ -214,6 +230,9 @@ class RangeIndex(Int64Index):
     def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
+
+    def _format_with_header(self, header, na_rep='NaN', **kwargs):
+        return header + list(map(pprint_thing, self._range))
 
     # --------------------------------------------------------------------
     @property
@@ -295,6 +314,15 @@ class RangeIndex(Int64Index):
     @property
     def has_duplicates(self):
         return False
+
+    @Appender(_index_shared_docs['get_loc'])
+    def get_loc(self, key, method=None, tolerance=None):
+        if is_integer(key) and method is None and tolerance is None:
+            try:
+                return self._range.index(key)
+            except ValueError:
+                raise KeyError(key)
+        return super().get_loc(key, method=method, tolerance=tolerance)
 
     def tolist(self):
         return list(range(self._start, self._stop, self._step))
@@ -470,7 +498,7 @@ class RangeIndex(Int64Index):
             old_t, t = t, old_t - quotient * t
         return old_r, old_s, old_t
 
-    def union(self, other, sort=None):
+    def _union(self, other, sort):
         """
         Form the union of two Index objects and sorts if possible
 
@@ -490,9 +518,8 @@ class RangeIndex(Int64Index):
         -------
         union : Index
         """
-        self._assert_can_do_setop(other)
-        if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super().union(other, sort=sort)
+        if not len(other) or self.equals(other) or not len(self):
+            return super()._union(other, sort=sort)
 
         if isinstance(other, RangeIndex) and sort is None:
             start_s, step_s = self._start, self._step
@@ -530,8 +557,7 @@ class RangeIndex(Int64Index):
                         (start_s + step_o >= start_o) and
                         (end_s - step_o <= end_o)):
                     return RangeIndex(start_r, end_r + step_o, step_o)
-
-        return self._int64index.union(other, sort=sort)
+        return self._int64index._union(other, sort=sort)
 
     @Appender(_index_shared_docs['join'])
     def join(self, other, how='left', level=None, return_indexers=False,

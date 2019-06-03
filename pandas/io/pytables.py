@@ -10,6 +10,7 @@ import itertools
 import os
 import re
 import time
+from typing import List, Optional, Type, Union
 import warnings
 
 import numpy as np
@@ -31,7 +32,6 @@ from pandas import (
     to_datetime)
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
-from pandas.core.base import StringMixin
 import pandas.core.common as com
 from pandas.core.computation.pytables import Expr, maybe_expression
 from pandas.core.index import ensure_index
@@ -397,7 +397,7 @@ def _is_metadata_of(group, parent_group):
     return False
 
 
-class HDFStore(StringMixin):
+class HDFStore:
 
     """
     Dict-like IO interface for storing pandas objects in PyTables
@@ -519,7 +519,7 @@ class HDFStore(StringMixin):
     def __len__(self):
         return len(self.groups())
 
-    def __unicode__(self):
+    def __repr__(self):
         return '{type}\nFile path: {path}\n'.format(
             type=type(self), path=pprint_thing(self._path))
 
@@ -867,8 +867,8 @@ class HDFStore(StringMixin):
             This will force Table format, append the input data to the
             existing.
         data_columns : list of columns to create as data columns, or True to
-            use all columns. See
-            `here <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__ # noqa
+            use all columns. See `here
+            <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         encoding : default None, provide an encoding for strings
         dropna   : boolean, default False, do not write an ALL nan row to
             the store settable by the option 'io.hdf.dropna_table'
@@ -949,7 +949,7 @@ class HDFStore(StringMixin):
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See `here
-            <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__.
+            <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         min_itemsize : dict of columns that specify minimum string sizes
         nan_rep      : string to use as string nan represenation
         chunksize    : size to chunk the writing
@@ -1518,7 +1518,7 @@ class TableIterator:
         return results
 
 
-class IndexCol(StringMixin):
+class IndexCol:
 
     """ an index column description class
 
@@ -1586,7 +1586,7 @@ class IndexCol(StringMixin):
         self.table = table
         return self
 
-    def __unicode__(self):
+    def __repr__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -1880,7 +1880,7 @@ class DataCol(IndexCol):
         self.set_data(data)
         self.set_metadata(metadata)
 
-    def __unicode__(self):
+    def __repr__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -2285,7 +2285,7 @@ class GenericDataIndexableCol(DataIndexableCol):
         pass
 
 
-class Fixed(StringMixin):
+class Fixed:
 
     """ represent an object in my store
         facilitate read/write of various types of objects
@@ -2297,9 +2297,9 @@ class Fixed(StringMixin):
         parent : my parent HDFStore
         group  : the group node where the table resides
         """
-    pandas_kind = None
-    obj_type = None
-    ndim = None
+    pandas_kind = None  # type: str
+    obj_type = None  # type: Type[Union[DataFrame, Series]]
+    ndim = None  # type: int
     is_table = False
 
     def __init__(self, parent, group, encoding=None, errors='strict',
@@ -2335,7 +2335,7 @@ class Fixed(StringMixin):
     def format_type(self):
         return 'fixed'
 
-    def __unicode__(self):
+    def __repr__(self):
         """ return a pretty representation of myself """
         self.infer_axes()
         s = self.shape
@@ -2459,7 +2459,7 @@ class GenericFixed(Fixed):
     """ a generified fixed version """
     _index_type_map = {DatetimeIndex: 'datetime', PeriodIndex: 'period'}
     _reverse_index_map = {v: k for k, v in _index_type_map.items()}
-    attributes = []
+    attributes = []  # type: List[str]
 
     # indexer helpders
     def _class_to_alias(self, cls):
@@ -3052,7 +3052,7 @@ class Table(Fixed):
 
         """
     pandas_kind = 'wide_table'
-    table_type = None
+    table_type = None  # type: str
     levels = 1
     is_table = True
     is_shape_reversed = False
@@ -3076,8 +3076,8 @@ class Table(Fixed):
     def format_type(self):
         return 'table'
 
-    def __unicode__(self):
-        """ return a pretty representatgion of myself """
+    def __repr__(self):
+        """ return a pretty representation of myself """
         self.infer_axes()
         dc = ",dc->[{columns}]".format(columns=(','.join(
             self.data_columns) if len(self.data_columns) else ''))
@@ -3873,7 +3873,7 @@ class LegacyTable(Table):
         IndexCol(name='index', axis=1, pos=0),
         IndexCol(name='column', axis=2, pos=1, index_kind='columns_kind'),
         DataCol(name='fields', cname='values', kind_attr='fields', pos=2)
-    ]
+    ]  # type: Optional[List[IndexCol]]
     table_type = 'legacy'
     ndim = 3
 
@@ -4126,7 +4126,7 @@ class AppendableFrameTable(AppendableTable):
     pandas_kind = 'frame_table'
     table_type = 'appendable_frame'
     ndim = 2
-    obj_type = DataFrame
+    obj_type = DataFrame  # type: Type[Union[DataFrame, Series]]
 
     @property
     def is_transposed(self):

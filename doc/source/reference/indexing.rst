@@ -2,9 +2,9 @@
 
 .. _api.indexing:
 
-========
-Indexing
-========
+=============
+Index Objects
+=============
 
 Index
 -----
