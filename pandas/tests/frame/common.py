@@ -5,11 +5,12 @@ from pandas.util._decorators import cache_readonly
 import pandas as pd
 import pandas.util.testing as tm
 
+_seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 
-_frame = pd.DataFrame(seriesd)
-_frame2 = pd.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
-_intframe = pd.DataFrame({k: v.astype(int) for k, v in seriesd.items()})
+_frame = pd.DataFrame(_seriesd)
+_frame2 = pd.DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])
+_intframe = pd.DataFrame({k: v.astype(int) for k, v in _seriesd.items()})
 
 _tsframe = pd.DataFrame(_tsd)
 
