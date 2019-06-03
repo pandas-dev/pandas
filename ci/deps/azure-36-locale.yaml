@@ -28,3 +28,4 @@ dependencies:
   - pip
   - pip:
     - html5lib==1.0b2
+    - pytest-azurepipelines

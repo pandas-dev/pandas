@@ -34,3 +34,4 @@ dependencies:
   - pip
   - pip:
     - hypothesis>=3.58.0
+    - pytest-azurepipelines
