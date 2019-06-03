@@ -1161,6 +1161,7 @@ class TestExcelWriter(_WriterBase):
             tm.assert_frame_equal(found_df2, frame2)
 
     def test_roundtrip(self, merge_cells, engine, ext, frame):
+        frame = frame.copy()
         frame['A'][:5] = nan
 
         frame.to_excel(self.path, 'test1')
@@ -1228,6 +1229,7 @@ class TestExcelWriter(_WriterBase):
         tm.assert_frame_equal(df, recons)
 
     def test_basics_with_nan(self, merge_cells, engine, ext, frame):
+        frame = frame.copy()
         frame['A'][:5] = nan
         frame.to_excel(self.path, 'test1')
         frame.to_excel(self.path, 'test1', columns=['A', 'B'])
@@ -1293,6 +1295,7 @@ class TestExcelWriter(_WriterBase):
         tm.assert_frame_equal(df, recons)
 
     def test_sheets(self, merge_cells, engine, ext, frame, tsframe):
+        frame = frame.copy()
         frame['A'][:5] = nan
 
         frame.to_excel(self.path, 'test1')
@@ -1315,6 +1318,7 @@ class TestExcelWriter(_WriterBase):
         assert 'test2' == reader.sheet_names[1]
 
     def test_colaliases(self, merge_cells, engine, ext, frame, frame2):
+        frame = frame.copy()
         frame['A'][:5] = nan
 
         frame.to_excel(self.path, 'test1')
@@ -1332,6 +1336,7 @@ class TestExcelWriter(_WriterBase):
         tm.assert_frame_equal(xp, rs)
 
     def test_roundtrip_indexlabels(self, merge_cells, engine, ext, frame):
+        frame = frame.copy()
         frame['A'][:5] = nan
 
         frame.to_excel(self.path, 'test1')
@@ -1453,9 +1458,9 @@ class TestExcelWriter(_WriterBase):
         # Test writing Interval without labels.
         df = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
                        dtype=np.int64)
-        expected = frame.copy()
+        expected = df.copy()
 
-        df["new"] = pd.cut(frame[0], 10)
+        df["new"] = pd.cut(df[0], 10)
         expected["new"] = pd.cut(expected[0], 10).astype(str)
 
         df.to_excel(self.path, "test1")
@@ -1471,7 +1476,7 @@ class TestExcelWriter(_WriterBase):
         df = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
                        dtype=np.int64)
         expected = df.copy()
-        intervals = pd.cut(frame[0], 10, labels=["A", "B", "C", "D", "E",
+        intervals = pd.cut(df[0], 10, labels=["A", "B", "C", "D", "E",
                                                  "F", "G", "H", "I", "J"])
         df["new"] = intervals
         expected["new"] = pd.Series(list(intervals))
