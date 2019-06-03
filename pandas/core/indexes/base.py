@@ -4649,7 +4649,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Index(new_values, **attributes)
 
-    def isin(self, values, level=None):
+    def isin(self, values):
         """
         Return a boolean array where the index values are in `values`.
 
@@ -4674,6 +4674,11 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         is_contained : ndarray
             NumPy array of boolean values.
+
+        Raises
+        ------
+        TypeError
+            If `level` is passed and the index is not a `MultiIndex`.
 
         See Also
         --------
@@ -4733,8 +4738,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> dti.isin(['2000-03-11'])
         array([ True, False, False])
         """
-        if level is not None:
-            self._validate_index_level(level)
         return algos.isin(self, values)
 
     def _get_string_slice(self, key, use_lhs=True, use_rhs=True):

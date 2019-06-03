@@ -1776,36 +1776,25 @@ class TestIndex(Base):
         tm.assert_numpy_array_equal(Float64Index([1.0, nulls_fixture]).isin(
             [pd.NaT]), np.array([False, False]))
 
-    @pytest.mark.parametrize("level", [0, -1])
     @pytest.mark.parametrize("index", [
         Index(['qux', 'baz', 'foo', 'bar']),
         # Float64Index overrides isin, so must be checked separately
         Float64Index([1.0, 2.0, 3.0, 4.0])])
-    def test_isin_level_kwarg(self, level, index):
+    def test_isin_nonexisting(self, index):
         values = index.tolist()[-2:] + ['nonexisting']
 
         expected = np.array([False, False, True, True])
-        tm.assert_numpy_array_equal(expected, index.isin(values, level=level))
+        tm.assert_numpy_array_equal(expected, index.isin(values))
 
-        index.name = 'foobar'
-        tm.assert_numpy_array_equal(expected,
-                                    index.isin(values, level='foobar'))
-
-    @pytest.mark.parametrize("level", [1, 10, -2])
+    @pytest.mark.parametrize("level", [
+        1, 10, -2, 1.0, 'foobar', 'xyzzy', np.nan])
     @pytest.mark.parametrize("index", [
         Index(['qux', 'baz', 'foo', 'bar']),
         # Float64Index overrides isin, so must be checked separately
         Float64Index([1.0, 2.0, 3.0, 4.0])])
-    def test_isin_level_kwarg_raises_bad_index(self, level, index):
-        with pytest.raises(IndexError, match='Too many levels'):
-            index.isin([], level=level)
-
-    @pytest.mark.parametrize("level", [1.0, 'foobar', 'xyzzy', np.nan])
-    @pytest.mark.parametrize("index", [
-        Index(['qux', 'baz', 'foo', 'bar']),
-        Float64Index([1.0, 2.0, 3.0, 4.0])])
-    def test_isin_level_kwarg_raises_key(self, level, index):
-        with pytest.raises(KeyError, match='must be same as name'):
+    def test_isin_level_kwarg_raises(self, level, index):
+        msg = r"isin\(\) got an unexpected keyword argument 'level'"
+        with pytest.raises(TypeError, match=msg):
             index.isin([], level=level)
 
     @pytest.mark.parametrize("empty", [[], Series(), np.array([])])

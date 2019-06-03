@@ -442,9 +442,7 @@ class Float64Index(NumericIndex):
         return super().is_unique and self._nan_idxs.size < 2
 
     @Appender(Index.isin.__doc__)
-    def isin(self, values, level=None):
-        if level is not None:
-            self._validate_index_level(level)
+    def isin(self, values):
         return algorithms.isin(np.array(self), values)
 
 

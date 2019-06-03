@@ -509,19 +509,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         cls.__rsub__ = __rsub__
 
-    def isin(self, values, level=None):
-        """
-        Compute boolean array of whether each index value is found in the
-        passed set of values.
-
-        Parameters
-        ----------
-        values : set or sequence of values
-
-        Returns
-        -------
-        is_contained : ndarray (boolean dtype)
-        """
+    @Appender(Index.isin.__doc__)
+    def isin(self, values):
         if not isinstance(values, type(self)):
             try:
                 values = type(self)(values)
