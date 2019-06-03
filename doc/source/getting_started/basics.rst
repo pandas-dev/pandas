@@ -1525,7 +1525,7 @@ To iterate over the rows of a DataFrame, you can use the following methods:
     df
 
 items
-~~~~~~~~~
+~~~~~
 
 Consistent with the dict-like interface, :meth:`~DataFrame.items` iterates
 through key-value pairs:
