@@ -12,7 +12,7 @@ from shutil import rmtree
 import string
 import tempfile
 import traceback
-from typing import Union
+from typing import cast, Union, Optional
 import warnings
 import zipfile
 
@@ -523,7 +523,7 @@ def assert_index_equal(left: Index,
                        check_less_precise: Union[bool, int] = False,
                        check_exact: bool = True,
                        check_categorical: bool = True,
-                       obj: str = 'Index') -> None:
+                       obj: str = 'Index') -> Optional[None]:
     """Check that left and right Index are equal.
 
     Parameters
@@ -593,20 +593,21 @@ def assert_index_equal(left: Index,
         raise_assert_detail(obj, msg1, msg2, msg3)
 
     # MultiIndex special comparison for little-friendly error messages
-    if isinstance(left, MultiIndex) and isinstance(right, MultiIndex):
-        if left.nlevels > 1:
-            for level in range(left.nlevels):
-                # cannot use get_level_values here because it can change dtype
-                llevel = _get_ilevel_values(left, level)
-                rlevel = _get_ilevel_values(right, level)
+    if left.nlevels > 1:
+        for level in range(left.nlevels):
+            # cannot use get_level_values here because it can change dtype
+            llevel = _get_ilevel_values(left, level)
+            rlevel = _get_ilevel_values(right, level)
 
-                lobj = 'MultiIndex level [{level}]'.format(level=level)
-                assert_index_equal(llevel, rlevel,
-                                   exact=exact, check_names=check_names,
-                                   check_less_precise=check_less_precise,
-                                   check_exact=check_exact, obj=lobj)
-                # get_level_values may change dtype
-                _check_types(left.levels[level], right.levels[level], obj=obj)
+            lobj = 'MultiIndex level [{level}]'.format(level=level)
+            assert_index_equal(llevel, rlevel,
+                               exact=exact, check_names=check_names,
+                               check_less_precise=check_less_precise,
+                               check_exact=check_exact, obj=lobj)
+            # get_level_values may change dtype
+            left = cast(MultiIndex, left)
+            right = cast(MultiIndex, right)
+            _check_types(left.levels[level], right.levels[level], obj=obj)
 
     # skip exact index checking when `check_categorical` is False
     if check_exact and check_categorical:
