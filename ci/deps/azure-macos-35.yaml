@@ -15,7 +15,6 @@ dependencies:
   - numpy=1.13.3
   - openpyxl
   - pyarrow
-  - pyreadstat
   - pytables
   - python=3.5.*
   - python-dateutil==2.6.1
@@ -25,6 +24,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   - pip:
+    - pyreadstat
     # universal
     - pytest==4.5.0
     - pytest-xdist
