@@ -159,12 +159,6 @@ class TestDataFrameQuantile:
         q = df.quantile(0.1)
         assert q['A'] == np.percentile(df['A'], 10)
 
-        # test with and without interpolation keyword
-        # TODO: q1 is not different from q
-        q1 = df.quantile(0.1)
-        assert q1['A'] == np.percentile(df['A'], 10)
-        tm.assert_series_equal(q, q1)
-
     def test_quantile_multi(self):
         df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]],
                        columns=['a', 'b', 'c'])
