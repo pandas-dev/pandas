@@ -626,11 +626,26 @@ def to_datetime(
         - If True, require an exact format match.
         - If False, allow the format to match anywhere in the target string.
 
-    unit : string, default 'ns'
-        unit of the arg (D,s,ms,us,ns) denote the unit, which is an
-        integer or float number. This will be based off the origin.
-        Example, with unit='ms' and origin='unix' (the default), this
-        would calculate the number of milliseconds to the unix epoch start.
+    unit : string, default is 'N'
+        The unit of the arg. Uses a subset of the pandas offset aliases.
+
+        - 'Y', 'A' for yearly (long term average of 365.2425 days)
+        - 'M' for monthly (long term average of 30.436875 days)
+        - 'W' for weekly
+        - 'D' for daily
+        - 'H' for hourly
+        - 'T', 'min' for minutely
+        - 'S' for seconds
+        - 'L', 'ms' for milliseconds
+        - 'U', 'us' for microseconds
+        - 'N' for nanoseconds
+
+        This will be based off the origin.  Example, with unit='L' and
+        origin='unix' (the default), this would calculate the number of
+        milliseconds to the unix epoch start.
+
+        The offset alias can be prefixed with a stride. For example, results
+        would be equivalent between unit='7D' and unit='W'.
     infer_datetime_format : boolean, default False
         If True and no `format` is given, attempt to infer the format of the
         datetime strings, and if it can be inferred, switch to a faster

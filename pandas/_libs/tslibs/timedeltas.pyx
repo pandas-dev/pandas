@@ -26,6 +26,8 @@ from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
 
+from pandas._libs.tslibs.frequencies import _base_and_stride
+
 from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar, reverse_ops, td64_to_tdstruct, pandas_timedeltastruct)
 
@@ -252,35 +254,54 @@ cpdef inline object precision_from_unit(object unit):
         int64_t m
         int p
 
-    if unit == 'Y':
-        m = 1000000000L * 31556952
+    if unit is None:
+        m = 1L
+        p = 0
+        return m, p
+
+    unit, stride = _base_and_stride(unit)
+
+    # Normalize old or lowercase codes to standard offset aliases.
+    if unit in ['min', 'm']:
+        unit = 'T'
+    elif unit == 'ns':
+        unit = 'N'
+    elif unit == 'ms':
+        unit = 'L'
+    elif unit == 'us':
+        unit = 'U'
+
+    unit = unit.upper()
+
+    if unit in ['Y', 'A']:
+        m = stride * 1000000000L * 31556952
         p = 9
     elif unit == 'M':
-        m = 1000000000L * 2629746
+        m = stride * 1000000000L * 2629746
         p = 9
     elif unit == 'W':
-        m = 1000000000L * DAY_SECONDS * 7
+        m = stride * 1000000000L * DAY_SECONDS * 7
         p = 9
-    elif unit == 'D' or unit == 'd':
-        m = 1000000000L * DAY_SECONDS
+    elif unit == 'D':
+        m = stride * 1000000000L * DAY_SECONDS
         p = 9
-    elif unit == 'h':
-        m = 1000000000L * 3600
+    elif unit == 'H':
+        m = stride * 1000000000L * 3600
         p = 9
-    elif unit == 'm':
-        m = 1000000000L * 60
+    elif unit == 'T':
+        m = stride * 1000000000L * 60
         p = 9
-    elif unit == 's':
-        m = 1000000000L
+    elif unit == 'S':
+        m = stride * 1000000000L
         p = 9
-    elif unit == 'ms':
-        m = 1000000L
+    elif unit == 'L':
+        m = stride * 1000000L
         p = 6
-    elif unit == 'us':
-        m = 1000L
+    elif unit == 'U':
+        m = stride * 1000L
         p = 3
-    elif unit == 'ns' or unit is None:
-        m = 1L
+    elif unit == 'N':
+        m = stride * 1L
         p = 0
     else:
         raise ValueError("cannot cast unit {unit}".format(unit=unit))
@@ -300,7 +321,7 @@ cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     if ts is None:
         return m
 
-    # cast the unit, multiply base/frace separately
+    # cast the unit, multiply base/frac separately
     # to avoid precision issues from float -> int
     base = <int64_t>ts
     frac = ts - base
