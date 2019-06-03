@@ -60,19 +60,20 @@ def test_isin():
     assert result.dtype == np.bool_
 
 
-@pytest.mark.parametrize('values, expected_badix',
-                         [([('foo',), ('bar', 3), ('quux',)], 0),
-                          ([('foo', 2), ('bar', 3, 2), ('quux', 4)], 1)])
-def test_isin_values_raises(values, expected_badix):
+@pytest.mark.parametrize('values, expected_msg',
+                         [([('foo',), ('bar', 3), ('quux',)],
+                           "len(('foo',)) != 2"),
+                          ([('foo', 2), ('bar', 3, 2), ('quux', 4)],
+                           "len(('bar', 3, 2)) != 2")])
+def test_isin_bad_values_raises(values, expected_msg):
     idx = MultiIndex.from_arrays([
         ['qux', 'baz', 'foo', 'bar'],
         np.arange(4)
     ])
 
-    nlvl = len(idx.levels)
     msg = re.escape('Length of each element in values must '
                     'match number of levels in MultiIndex. '
-                    'len({}) != {}'.format(values[expected_badix], nlvl))
+                    + expected_msg)
 
     with pytest.raises(ValueError, match=msg):
         idx.isin(values)

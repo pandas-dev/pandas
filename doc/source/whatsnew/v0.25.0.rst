@@ -608,7 +608,7 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in which incorrect exception raised by :class:`Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
-- :meth:`MultiIndex.isin` now raises ``ValueError`` when args are too short (:issue:`26622`)
+- :meth:`MultiIndex.isin` now raises ``ValueError`` when items in values are not the same length as the number of levels in the MultiIndex (:issue:`26622`)
 -
 
 I/O
