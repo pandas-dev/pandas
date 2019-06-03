@@ -10,7 +10,6 @@ import pytest
 from pytz import FixedOffset, utc
 
 import pandas.util._test_decorators as td
-import pandas.util.testing as tm
 
 import pandas as pd
 from pandas import DataFrame

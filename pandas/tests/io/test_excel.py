@@ -28,17 +28,18 @@ from pandas.io.parsers import read_csv
 
 
 @pytest.fixture
-def frame(seriesd):
-    return DataFrame(seriesd)[:10]
+def frame(float_frame):
+    return float_frame[:10]
 
 
 @pytest.fixture
-def frame2(seriesd):
-    return DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])[:10]
+def frame2(float_frame):
+    float_frame.columns = ['D', 'C', 'B', 'A']
+    return float_frame[:10]
 
 
 @pytest.fixture
-def tsframe(tdf):
+def tsframe():
     return tm.makeTimeDataFrame()[:5]
 
 
