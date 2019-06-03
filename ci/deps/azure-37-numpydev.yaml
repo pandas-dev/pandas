@@ -18,4 +18,4 @@ dependencies:
     - "--pre"
     - "numpy"
     - "scipy"
-    - "pytest-azurepipelines"
+    - pytest-azurepipelines
