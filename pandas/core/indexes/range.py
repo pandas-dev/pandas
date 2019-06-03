@@ -233,6 +233,10 @@ class RangeIndex(Int64Index):
         return header + list(map(pprint_thing, self._range))
 
     # --------------------------------------------------------------------
+    _deprecation_message = ("RangeIndex.{} is deprecated and will be "
+                            "removed in a future version. Use RangeIndex.{} "
+                            "instead")
+
     @cache_readonly
     def start(self):
         """
@@ -249,6 +253,8 @@ class RangeIndex(Int64Index):
          .. deprecated:: 0.25.0
             Use ``start`` instead.
         """
+        warnings.warn(self._deprecation_message.format("_start", "start"),
+                      DeprecationWarning, stacklevel=2)
         return self.start
 
     @cache_readonly
@@ -267,6 +273,8 @@ class RangeIndex(Int64Index):
             Use ``stop`` instead.
         """
         # GH 25710
+        warnings.warn(self._deprecation_message.format("_stop", "stop"),
+                      DeprecationWarning, stacklevel=2)
         return self.stop
 
     @cache_readonly
@@ -286,6 +294,8 @@ class RangeIndex(Int64Index):
             Use ``step`` instead.
         """
         # GH 25710
+        warnings.warn(self._deprecation_message.format("_step", "step"),
+                      DeprecationWarning, stacklevel=2)
         return self.step
 
     @cache_readonly
