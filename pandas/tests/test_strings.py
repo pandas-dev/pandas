@@ -169,6 +169,14 @@ class TestStringMethods:
         assert Series.str is strings.StringMethods
         assert isinstance(Series(['']).str, strings.StringMethods)
 
+    def test_api_mi_raises(self):
+        # GH 23679
+        mi = MultiIndex.from_arrays([['a', 'b', 'c']])
+        with pytest.raises(AttributeError, match='Can only use .str accessor '
+                           'with Index, not MultiIndex'):
+            mi.str
+        assert not hasattr(mi, 'str')
+
     @pytest.mark.parametrize('dtype', [object, 'category'])
     @pytest.mark.parametrize('box', [Series, Index])
     def test_api_per_dtype(self, box, dtype, any_skipna_inferred_dtype):
