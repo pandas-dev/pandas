@@ -1219,8 +1219,8 @@ class TestExcelWriter(_WriterBase):
         recons = pd.read_excel(reader, 'test1', index_col=0)
         tm.assert_frame_equal(mixed_frame, recons)
 
-    def test_ts_frame(self, *_):
-        df = tm.makeTimeDataFrame()[:5]
+    def test_ts_frame(self, tsframe, *_):
+        df = tsframe
 
         df.to_excel(self.path, "test1")
         reader = ExcelFile(self.path)
