@@ -1455,9 +1455,8 @@ Iteration
 
 The behavior of basic iteration over pandas objects depends on the type.
 When iterating over a Series, it is regarded as array-like, and basic iteration
-produces the values. Other data structures, like DataFrame,
-follow the dict-like convention of iterating over the "keys" of the
-objects.
+produces the values. DataFrames follow the dict-like convention of iterating
+over the "keys" of the objects.
 
 In short, basic iteration (``for i in object``) produces:
 
@@ -1537,9 +1536,9 @@ For example:
 
 .. ipython:: python
 
-   for item, frame in df.iteritems():
-       print(item)
-       print(frame)
+   for label, ser in df.iteritems():
+       print(label)
+       print(ser)
 
 .. _basics.iterrows:
 
