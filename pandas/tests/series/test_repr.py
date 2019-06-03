@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import (
@@ -152,9 +153,12 @@ class TestSeriesRepr(TestData):
         df = Series(["\u05d0"], name="\u05d1")
         str(df)
 
-    def test_bytestring_with_unicode(self):
-        df = Series(["\u05d0"], name="\u05d1")
-        bytes(df)
+    def test_str_to_bytes_raises(self):
+        # GH 26447
+        df = Series(["abc"], name="abc")
+        msg = "^'str' object cannot be interpreted as an integer$"
+        with pytest.raises(TypeError, match=msg):
+            bytes(df)
 
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)

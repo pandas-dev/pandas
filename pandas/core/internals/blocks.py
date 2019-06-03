@@ -233,8 +233,7 @@ class Block(PandasObject):
         return make_block(values, placement=placement, ndim=ndim,
                           klass=self.__class__, dtype=dtype)
 
-    def __str__(self):
-
+    def __repr__(self):
         # don't want to print out all of the items here
         name = pprint_thing(self.__class__.__name__)
         if self._is_single_block:
@@ -3039,6 +3038,9 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):
         values = values.to_numpy()
+        if ndim and ndim > 1:
+            values = np.atleast_2d(values)
+
     if isinstance(dtype, PandasDtype):
         dtype = dtype.numpy_dtype
 

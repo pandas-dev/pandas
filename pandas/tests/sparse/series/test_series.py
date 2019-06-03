@@ -21,6 +21,11 @@ import pandas.util.testing as tm
 from pandas.tseries.offsets import BDay
 
 
+def test_deprecated():
+    with tm.assert_produces_warning(FutureWarning):
+        pd.SparseSeries([0, 1])
+
+
 def _test_data1():
     # nan-based
     arr = np.arange(20, dtype=float)
@@ -55,6 +60,7 @@ def _test_data2_zero():
     return arr, index
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseSeries(SharedWithSparse):
 
     series_klass = SparseSeries
@@ -255,7 +261,7 @@ class TestSparseSeries(SharedWithSparse):
         assert isinstance(self.iseries.sp_index, IntIndex)
 
         assert self.zbseries.fill_value == 0
-        tm.assert_numpy_array_equal(self.zbseries.values.values,
+        tm.assert_numpy_array_equal(self.zbseries.values.to_dense(),
                                     self.bseries.to_dense().fillna(0).values)
 
         # pass SparseSeries
@@ -322,7 +328,7 @@ class TestSparseSeries(SharedWithSparse):
     def test_constructor_nonnan(self):
         arr = [0, 0, 0, nan, nan]
         sp_series = SparseSeries(arr, fill_value=0)
-        tm.assert_numpy_array_equal(sp_series.values.values, np.array(arr))
+        tm.assert_numpy_array_equal(sp_series.values.to_dense(), np.array(arr))
         assert len(sp_series) == 5
         assert sp_series.shape == (5, )
 
@@ -514,7 +520,7 @@ class TestSparseSeries(SharedWithSparse):
                 sparse_result = sp.take(idx)
                 assert isinstance(sparse_result, SparseSeries)
                 tm.assert_almost_equal(dense_result,
-                                       sparse_result.values.values)
+                                       sparse_result.values.to_dense())
 
             _compare([1., 2., 3., 4., 5., 0.])
             _compare([7, 2, 9, 0, 4])
@@ -532,10 +538,13 @@ class TestSparseSeries(SharedWithSparse):
         exp = pd.Series(np.repeat(nan, 5))
         tm.assert_series_equal(sp.take([0, 1, 2, 3, 4]), exp.to_sparse())
 
-        with tm.assert_produces_warning(FutureWarning):
+        # multiple FutureWarnings, can't check stacklevel
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
             sp.take([1, 5], convert=True)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
             sp.take([1, 5], convert=False)
 
     def test_numpy_take(self):
@@ -1032,6 +1041,7 @@ class TestSparseSeries(SharedWithSparse):
         assert sparse_usage < dense_usage
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseHandlingMultiIndexes:
 
     def setup_method(self, method):
@@ -1062,6 +1072,7 @@ class TestSparseHandlingMultiIndexes:
 @pytest.mark.filterwarnings(
     "ignore:the matrix subclass:PendingDeprecationWarning"
 )
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseSeriesScipyInteraction:
     # Issue 8048: add SparseSeries coo methods
 
@@ -1253,13 +1264,15 @@ class TestSparseSeriesScipyInteraction:
             sparse1 = pd.SparseSeries(val1, name='x', kind=kind)
             sparse2 = pd.SparseSeries(val2, name='y', kind=kind, fill_value=0)
 
-            with tm.assert_produces_warning(PerformanceWarning):
+            with tm.assert_produces_warning(PerformanceWarning,
+                                            raise_on_extra_warnings=False):
                 res = pd.concat([sparse1, sparse2])
             exp = pd.concat([pd.Series(val1), pd.Series(val2)])
             exp = pd.SparseSeries(exp, kind=kind)
             tm.assert_sp_series_equal(res, exp)
 
-            with tm.assert_produces_warning(PerformanceWarning):
+            with tm.assert_produces_warning(PerformanceWarning,
+                                            raise_on_extra_warnings=False):
                 res = pd.concat([sparse2, sparse1])
             exp = pd.concat([pd.Series(val2), pd.Series(val1)])
             exp = pd.SparseSeries(exp, kind=kind, fill_value=0)
@@ -1285,13 +1298,15 @@ class TestSparseSeriesScipyInteraction:
         sparse1 = pd.SparseSeries(val1, name='x', kind='integer')
         sparse2 = pd.SparseSeries(val2, name='y', kind='block', fill_value=0)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             res = pd.concat([sparse1, sparse2])
         exp = pd.concat([pd.Series(val1), pd.Series(val2)])
         exp = pd.SparseSeries(exp, kind='integer')
         tm.assert_sp_series_equal(res, exp)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             res = pd.concat([sparse2, sparse1])
         exp = pd.concat([pd.Series(val2), pd.Series(val1)])
         exp = pd.SparseSeries(exp, kind='block', fill_value=0)
@@ -1425,6 +1440,7 @@ def _dense_series_compare(s, f):
     tm.assert_series_equal(result.to_dense(), dense_result)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseSeriesAnalytics:
 
     def setup_method(self, method):
@@ -1484,16 +1500,20 @@ class TestSparseSeriesAnalytics:
         for func in funcs:
             for series in ('bseries', 'zbseries'):
                 with tm.assert_produces_warning(FutureWarning,
-                                                check_stacklevel=False):
+                                                check_stacklevel=False,
+                                                raise_on_extra_warnings=False):
                     getattr(np, func)(getattr(self, series))
 
                 with tm.assert_produces_warning(FutureWarning,
-                                                check_stacklevel=False):
+                                                check_stacklevel=False,
+                                                raise_on_extra_warnings=False):
                     getattr(getattr(self, series), func)()
 
     def test_deprecated_reindex_axis(self):
         # https://github.com/pandas-dev/pandas/issues/17833
-        with tm.assert_produces_warning(FutureWarning) as m:
+        # Multiple FutureWarnings, can't check stacklevel
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False) as m:
             self.bseries.reindex_axis([0, 1, 2])
         assert 'reindex' in str(m[0].message)
 
@@ -1502,6 +1522,7 @@ class TestSparseSeriesAnalytics:
     'datetime_type', (np.datetime64,
                       pd.Timestamp,
                       lambda x: datetime.strptime(x, '%Y-%m-%d')))
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_constructor_dict_datetime64_index(datetime_type):
     # GH 9456
     dates = ['1984-02-19', '1988-11-06', '1989-12-03', '1990-03-15']
@@ -1513,6 +1534,7 @@ def test_constructor_dict_datetime64_index(datetime_type):
     tm.assert_sp_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_to_sparse():
     # https://github.com/pandas-dev/pandas/issues/22389
     arr = pd.SparseArray([1, 2, None, 3])
@@ -1521,12 +1543,14 @@ def test_to_sparse():
     tm.assert_sp_array_equal(result.values, arr, check_kind=False)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_constructor_mismatched_raises():
     msg = "Length of passed values is 2, index implies 3"
     with pytest.raises(ValueError, match=msg):
         SparseSeries([1, 2], index=[1, 2, 3])
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_block_deprecated():
     s = SparseSeries([1])
     with tm.assert_produces_warning(FutureWarning):

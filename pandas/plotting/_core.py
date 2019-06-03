@@ -2426,6 +2426,10 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     data = data._get_numeric_data()
     naxes = len(data.columns)
 
+    if naxes == 0:
+        raise ValueError("hist method requires numerical columns, "
+                         "nothing to plot.")
+
     fig, axes = _subplots(naxes=naxes, ax=ax, squeeze=False,
                           sharex=sharex, sharey=sharey, figsize=figsize,
                           layout=layout)
@@ -2473,8 +2477,6 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    bins : integer, default 10
-        Number of histogram bins to be used
     `**kwds` : keywords
         To be passed to the actual plotting function
 

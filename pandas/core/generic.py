@@ -113,7 +113,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _internal_names_set = set(_internal_names)  # type: Set[str]
     _accessors = set()  # type: Set[str]
     _deprecations = frozenset([
-        'as_blocks', 'blocks', 'convert_objects', 'is_copy'
+        'as_blocks', 'blocks', 'is_copy'
     ])  # type: FrozenSet[str]
     _metadata = []  # type: List[str]
     _is_copy = None
@@ -926,7 +926,7 @@ class NDFrame(PandasObject, SelectionMixin):
         a    1
         Name: 0, dtype: int64
 
-        Squeezing all axes wil project directly into a scalar:
+        Squeezing all axes will project directly into a scalar:
 
         >>> df_0a.squeeze()
         1
@@ -2022,7 +2022,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def __str__(self):
+    def __repr__(self):
         # string representation based upon iterating over self
         # (since, by definition, `PandasContainers` are iterable)
         prepr = '[%s]' % ','.join(map(pprint_thing, self))
@@ -2679,7 +2679,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -----
         Requirements for your platform.
 
-          - Linux : `xclip`, or `xsel` (with `gtk` or `PyQt4` modules)
+          - Linux : `xclip`, or `xsel` (with `PyQt4` modules)
           - Windows : none
           - OS X : none
 
@@ -3328,8 +3328,8 @@ class NDFrame(PandasObject, SelectionMixin):
                      "A value is trying to be set on a copy of a slice from a "
                      "DataFrame\n\n"
                      "See the caveats in the documentation: "
-                     "http://pandas.pydata.org/pandas-docs/stable/"
-                     "indexing.html#indexing-view-versus-copy"
+                     "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                     "indexing.html#returning-a-view-versus-a-copy"
                      )
 
             else:
@@ -3338,8 +3338,8 @@ class NDFrame(PandasObject, SelectionMixin):
                      "DataFrame.\n"
                      "Try using .loc[row_indexer,col_indexer] = value "
                      "instead\n\nSee the caveats in the documentation: "
-                     "http://pandas.pydata.org/pandas-docs/stable/"
-                     "indexing.html#indexing-view-versus-copy"
+                     "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                     "indexing.html#returning-a-view-versus-a-copy"
                      )
 
             if value == 'raise':
@@ -5589,7 +5589,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3    float64:dense
         dtype: object
 
-        >>> pd.SparseDataFrame(arr).ftypes
+        >>> pd.SparseDataFrame(arr).ftypes  # doctest: +SKIP
         0    float64:sparse
         1    float64:sparse
         2    float64:sparse
@@ -5911,52 +5911,6 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._constructor(
             self._data.convert(datetime=datetime, numeric=numeric,
                                timedelta=timedelta, coerce=coerce,
-                               copy=copy)).__finalize__(self)
-
-    def convert_objects(self, convert_dates=True, convert_numeric=False,
-                        convert_timedeltas=True, copy=True):
-        """
-        Attempt to infer better dtype for object columns.
-
-        .. deprecated:: 0.21.0
-
-        Parameters
-        ----------
-        convert_dates : boolean, default True
-            If True, convert to date where possible. If 'coerce', force
-            conversion, with unconvertible values becoming NaT.
-        convert_numeric : boolean, default False
-            If True, attempt to coerce to numbers (including strings), with
-            unconvertible values becoming NaN.
-        convert_timedeltas : boolean, default True
-            If True, convert to timedelta where possible. If 'coerce', force
-            conversion, with unconvertible values becoming NaT.
-        copy : boolean, default True
-            If True, return a copy even if no copy is necessary (e.g. no
-            conversion was done). Note: This is meant for internal use, and
-            should not be confused with inplace.
-
-        Returns
-        -------
-        converted : same as input object
-
-        See Also
-        --------
-        to_datetime : Convert argument to datetime.
-        to_timedelta : Convert argument to timedelta.
-        to_numeric : Convert argument to numeric type.
-        """
-        msg = ("convert_objects is deprecated.  To re-infer data dtypes for "
-               "object columns, use {klass}.infer_objects()\nFor all "
-               "other conversions use the data-type specific converters "
-               "pd.to_datetime, pd.to_timedelta and pd.to_numeric."
-               ).format(klass=self.__class__.__name__)
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-
-        return self._constructor(
-            self._data.convert(convert_dates=convert_dates,
-                               convert_numeric=convert_numeric,
-                               convert_timedeltas=convert_timedeltas,
                                copy=copy)).__finalize__(self)
 
     def infer_objects(self):
@@ -7762,7 +7716,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Notes
         -----
         To learn more about the frequency strings, please see `this link
-        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
         Examples
         --------
@@ -9919,6 +9873,12 @@ class NDFrame(PandasObject, SelectionMixin):
                 else:
                     names += ['top', 'freq']
                     result += [top, freq]
+
+            # If the DataFrame is empty, set 'top' and 'freq' to None
+            # to maintain output shape consistency
+            else:
+                names += ['top', 'freq']
+                result += [None, None]
 
             return pd.Series(result, index=names, name=data.name)
 

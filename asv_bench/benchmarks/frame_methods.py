@@ -96,6 +96,8 @@ class Rename:
 
 
 class Iteration:
+    # mem_itertuples_* benchmarks are slow
+    timeout = 120
 
     def setup(self):
         N = 1000
