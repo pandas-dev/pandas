@@ -435,6 +435,7 @@ Other API Changes
 - The ``arg`` argument in :meth:`pandas.core.window._Window.aggregate` has been renamed to ``func`` (:issue:`26372`)
 - Most Pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
 - The `.str`-accessor has been disabled for 1-level :class:`MultiIndex`, use :meth:`MultiIndex.to_flat_index` if necessary (:issue:`23679`)
+- Removed support of gtk package for clipboards (:issue:`26563`)
 
 .. _whatsnew_0250.deprecations:
 
@@ -483,6 +484,7 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``TimeGrouper`` (:issue:`16942`)
 - Removed the previously deprecated ``parse_cols`` keyword in :func:`read_excel` (:issue:`16488`)
 - Removed the previously deprecated ``pd.options.html.border`` (:issue:`16970`)
+- Removed the previously deprecated ``convert_objects`` (:issue:`11221`)
 
 .. _whatsnew_0250.performance:
 
@@ -693,7 +695,7 @@ Sparse
 - Significant speedup in :class:`SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
 - Bug in :class:`SparseFrame` constructor where passing ``None`` as the data would cause ``default_fill_value`` to be ignored (:issue:`16807`)
 - Bug in :class:`SparseDataFrame` when adding a column in which the length of values does not match length of index, ``AssertionError`` is raised instead of raising ``ValueError`` (:issue:`25484`)
-
+- Introduce a better error message in :meth:`Series.sparse.from_coo` so it returns a ``TypeError`` for inputs that are not coo matrices (:issue:`26554`)
 
 Other
 ^^^^^
