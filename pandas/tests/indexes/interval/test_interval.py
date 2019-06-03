@@ -4,8 +4,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import lzip
-
 import pandas as pd
 from pandas import (
     Index, Interval, IntervalIndex, Timedelta, Timestamp, date_range,
@@ -566,12 +564,12 @@ class TestIntervalIndex(Base):
         value = index[0].mid + Timedelta('12 hours')
         result = np.sort(index.get_loc(value))
         expected = np.array([0, 1], dtype='intp')
-        assert tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         interval = Interval(index[0].left, index[1].right)
         result = np.sort(index.get_loc(interval))
         expected = np.array([0, 1, 2], dtype='intp')
-        assert tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_indexer(self):
@@ -903,15 +901,18 @@ class TestIntervalIndex(Base):
     @pytest.mark.parametrize('op_name', [
         'union', 'intersection', 'difference', 'symmetric_difference'])
     @pytest.mark.parametrize("sort", [None, False])
-    def test_set_operation_errors(self, closed, op_name, sort):
+    def test_set_incompatible_types(self, closed, op_name, sort):
         index = self.create_index(closed=closed)
         set_op = getattr(index, op_name)
 
+        # TODO: standardize return type of non-union setops type(self vs other)
         # non-IntervalIndex
-        msg = ('the other index needs to be an IntervalIndex too, but '
-               'was type Int64Index')
-        with pytest.raises(TypeError, match=msg):
-            set_op(Index([1, 2, 3]), sort=sort)
+        if op_name == 'difference':
+            expected = index
+        else:
+            expected = getattr(index.astype('O'), op_name)(Index([1, 2, 3]))
+        result = set_op(Index([1, 2, 3]), sort=sort)
+        tm.assert_index_equal(result, expected)
 
         # mixed closed
         msg = ('can only do set operations between two IntervalIndex objects '
@@ -1192,11 +1193,11 @@ class TestIntervalIndex(Base):
         assert result is expected
 
     @pytest.mark.parametrize('tuples', [
-        lzip(range(10), range(1, 11)),
-        lzip(date_range('20170101', periods=10),
-             date_range('20170101', periods=10)),
-        lzip(timedelta_range('0 days', periods=10),
-             timedelta_range('1 day', periods=10))])
+        list(zip(range(10), range(1, 11))),
+        list(zip(date_range('20170101', periods=10),
+             date_range('20170101', periods=10))),
+        list(zip(timedelta_range('0 days', periods=10),
+             timedelta_range('1 day', periods=10)))])
     def test_to_tuples(self, tuples):
         # GH 18756
         idx = IntervalIndex.from_tuples(tuples)
@@ -1205,11 +1206,11 @@ class TestIntervalIndex(Base):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tuples', [
-        lzip(range(10), range(1, 11)) + [np.nan],
-        lzip(date_range('20170101', periods=10),
-             date_range('20170101', periods=10)) + [np.nan],
-        lzip(timedelta_range('0 days', periods=10),
-             timedelta_range('1 day', periods=10)) + [np.nan]])
+        list(zip(range(10), range(1, 11))) + [np.nan],
+        list(zip(date_range('20170101', periods=10),
+             date_range('20170101', periods=10))) + [np.nan],
+        list(zip(timedelta_range('0 days', periods=10),
+             timedelta_range('1 day', periods=10))) + [np.nan]])
     @pytest.mark.parametrize('na_tuple', [True, False])
     def test_to_tuples_na(self, tuples, na_tuple):
         # GH 18756

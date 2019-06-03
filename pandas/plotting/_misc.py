@@ -1,7 +1,6 @@
 # being a bit too dynamic
 import numpy as np
 
-from pandas.compat import lmap, lrange
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.missing import notna
@@ -44,6 +43,11 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     kwds : other plotting keyword arguments
         To be passed to scatter function
 
+    Returns
+    -------
+    numpy.ndarray
+        A matrix of scatter plots.
+
     Examples
     --------
     >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
@@ -76,8 +80,8 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
         rdelta_ext = (rmax_ - rmin_) * range_padding / 2.
         boundaries_list.append((rmin_ - rdelta_ext, rmax_ + rdelta_ext))
 
-    for i, a in zip(lrange(n), df.columns):
-        for j, b in zip(lrange(n), df.columns):
+    for i, a in enumerate(df.columns):
+        for j, b in enumerate(df.columns):
             ax = axes[i, j]
 
             if i == j:
@@ -415,7 +419,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
                           for sampling in samplings])
     if fig is None:
         fig = plt.figure()
-    x = lrange(samples)
+    x = list(range(samples))
     axes = []
     ax1 = fig.add_subplot(2, 3, 1)
     ax1.set_xlabel("Sample")
@@ -527,7 +531,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
             raise ValueError('Length of xticks must match number of columns')
         x = xticks
     else:
-        x = lrange(ncols)
+        x = list(range(ncols))
 
     if ax is None:
         ax = plt.gca()
@@ -597,15 +601,15 @@ def autocorrelation_plot(series, ax=None, **kwds):
     """
     Autocorrelation plot for time series.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     series: Time series
     ax: Matplotlib axis object, optional
     kwds : keywords
         Options to pass to matplotlib plotting method
 
-    Returns:
-    -----------
+    Returns
+    -------
     class:`matplotlib.axis.Axes`
     """
     import matplotlib.pyplot as plt
@@ -620,7 +624,7 @@ def autocorrelation_plot(series, ax=None, **kwds):
         return ((data[:n - h] - mean) *
                 (data[h:] - mean)).sum() / float(n) / c0
     x = np.arange(n) + 1
-    y = lmap(r, x)
+    y = [r(loc) for loc in x]
     z95 = 1.959963984540054
     z99 = 2.5758293035489004
     ax.axhline(y=z99 / np.sqrt(n), linestyle='--', color='grey')

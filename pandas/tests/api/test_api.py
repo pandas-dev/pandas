@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pandas as pd
 from pandas import api
 from pandas.util import testing as tm
@@ -48,10 +47,11 @@ class TestPDApi(Base):
                'DatetimeTZDtype',
                'Int8Dtype', 'Int16Dtype', 'Int32Dtype', 'Int64Dtype',
                'UInt8Dtype', 'UInt16Dtype', 'UInt32Dtype', 'UInt64Dtype',
+               'NamedAgg',
                ]
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['TimeGrouper', 'Panel']
+    deprecated_classes = ['Panel']
 
     # these should be deprecated in the future
     deprecated_classes_in_future = []
@@ -131,17 +131,6 @@ class TestTesting(Base):
 
         from pandas import testing
         self.check(testing, self.funcs)
-
-
-class TestTopLevelDeprecations:
-
-    # top-level API deprecations
-    # GH 13790
-
-    def test_TimeGrouper(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.TimeGrouper(freq='D')
 
 
 class TestCDateRange:

@@ -56,7 +56,6 @@ Conversion
 
    Series.astype
    Series.infer_objects
-   Series.convert_objects
    Series.copy
    Series.bool
    Series.to_numpy

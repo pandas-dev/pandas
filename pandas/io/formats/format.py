@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
@@ -16,7 +15,6 @@ from pandas._config.config import get_option, set_option
 from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
-from pandas.compat import lzip
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_complex_dtype, is_datetime64_dtype,
@@ -42,8 +40,8 @@ common_docstring = """
             Buffer to write to.
         columns : sequence, optional, default None
             The subset of columns to write. Writes all columns by default.
-        col_space : int, optional
-            The minimum width of each column.
+        col_space : %(col_space_type)s, optional
+            %(col_space)s.
         header : bool, optional
             %(header)s.
         index : bool, optional, default True
@@ -731,7 +729,7 @@ class DataFrameFormatter(TableFormatter):
             Whether the generated HTML is for IPython Notebook.
         border : int
             A ``border=border`` attribute is included in the opening
-            ``<table>`` tag. Default ``pd.options.html.border``.
+            ``<table>`` tag. Default ``pd.options.display.html.border``.
 
             .. versionadded:: 0.19.0
          """
@@ -754,7 +752,7 @@ class DataFrameFormatter(TableFormatter):
 
         if isinstance(columns, ABCMultiIndex):
             fmt_columns = columns.format(sparsify=False, adjoin=False)
-            fmt_columns = lzip(*fmt_columns)
+            fmt_columns = list(zip(*fmt_columns))
             dtypes = self.frame.dtypes._values
 
             # if we have a Float level, they don't use leading space at all
@@ -1612,7 +1610,7 @@ def get_level_lengths(levels, sentinel=''):
         Value which states that no new index starts on there.
 
     Returns
-    ----------
+    -------
     Returns list of maps. For each level returns map of indexes (key is index
     in row and value is length of index).
     """

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests column conversion functionality during parsing
 for all of the parsers defined in parsers.py
@@ -9,8 +7,6 @@ from io import StringIO
 from dateutil.parser import parse
 import numpy as np
 import pytest
-
-from pandas.compat import lmap
 
 import pandas as pd
 from pandas import DataFrame, Index
@@ -128,7 +124,7 @@ def test_converters_corner_with_nans(all_parsers):
             return np.nan
 
         if x.find("-") > 0:
-            val_min, val_max = lmap(int, x.split("-"))
+            val_min, val_max = map(int, x.split("-"))
             val = 0.5 * (val_min + val_max)
         else:
             val = float(x)

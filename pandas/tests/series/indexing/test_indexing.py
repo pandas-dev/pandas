@@ -5,8 +5,6 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -53,7 +51,7 @@ def test_basic_getitem_with_labels(test_data):
     assert_series_equal(result, expected)
 
     # integer indexes, be careful
-    s = Series(np.random.randn(10), index=lrange(0, 20, 2))
+    s = Series(np.random.randn(10), index=list(range(0, 20, 2)))
     inds = [0, 2, 5, 7, 8]
     arr_inds = np.array([0, 2, 5, 7, 8])
     with tm.assert_produces_warning(FutureWarning,
@@ -255,15 +253,15 @@ def test_series_box_timestamp():
 
 
 def test_getitem_ambiguous_keyerror():
-    s = Series(lrange(10), index=lrange(0, 20, 2))
-    with pytest.raises(KeyError, match=r"^1L?$"):
+    s = Series(range(10), index=list(range(0, 20, 2)))
+    with pytest.raises(KeyError, match=r"^1$"):
         s[1]
-    with pytest.raises(KeyError, match=r"^1L?$"):
+    with pytest.raises(KeyError, match=r"^1$"):
         s.loc[1]
 
 
 def test_getitem_unordered_dup():
-    obj = Series(lrange(5), index=['c', 'a', 'a', 'b', 'b'])
+    obj = Series(range(5), index=['c', 'a', 'a', 'b', 'b'])
     assert is_scalar(obj['c'])
     assert obj['c'] == 0
 
@@ -290,7 +288,7 @@ def test_getitem_dups():
 
 
 def test_setitem_ambiguous_keyerror():
-    s = Series(lrange(10), index=lrange(0, 20, 2))
+    s = Series(range(10), index=list(range(0, 20, 2)))
 
     # equivalent of an append
     s2 = s.copy()
@@ -576,7 +574,7 @@ def test_slice_can_reorder_not_uniquely_indexed():
     s[::-1]  # it works!
 
 
-def test_ix_setitem(test_data):
+def test_loc_setitem(test_data):
     inds = test_data.series.index[[3, 4, 7]]
 
     result = test_data.series.copy()

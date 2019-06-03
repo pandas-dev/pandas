@@ -4,8 +4,6 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import Categorical, Series, date_range, isna
 import pandas.util.testing as tm
@@ -206,7 +204,7 @@ def test_reindex_series_add_nat():
     rng = date_range('1/1/2000 00:00:00', periods=10, freq='10s')
     series = Series(rng)
 
-    result = series.reindex(lrange(15))
+    result = series.reindex(range(15))
     assert np.issubdtype(result.dtype, np.dtype('M8[ns]'))
 
     mask = result.isna()
@@ -280,9 +278,9 @@ def test_reindex_pad():
     assert_series_equal(result, expected)
 
     # GH4618 shifted series downcasting
-    s = Series(False, index=lrange(0, 5))
+    s = Series(False, index=range(0, 5))
     result = s.shift(1).fillna(method='bfill')
-    expected = Series(False, index=lrange(0, 5))
+    expected = Series(False, index=range(0, 5))
     assert_series_equal(result, expected)
 
 

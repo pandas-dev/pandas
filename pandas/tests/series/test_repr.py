@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta
 
 import numpy as np
-
-from pandas.compat import lrange
+import pytest
 
 import pandas as pd
 from pandas import (
@@ -23,7 +22,7 @@ class TestSeriesRepr(TestData):
                            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
-        s = Series(lrange(0, len(index)), index=index, name='sth')
+        s = Series(range(len(index)), index=index, name='sth')
         expected = ["first  second", "foo    one       0",
                     "       two       1", "       three     2",
                     "bar    one       3", "       two       4",
@@ -44,7 +43,7 @@ class TestSeriesRepr(TestData):
         assert "Name:" not in repr(s)
 
         # Test big Series (diff code path).
-        s = Series(lrange(0, 1000))
+        s = Series(range(1000))
 
         s.name = "test"
         assert "Name: test" in repr(s)
@@ -154,9 +153,12 @@ class TestSeriesRepr(TestData):
         df = Series(["\u05d0"], name="\u05d1")
         str(df)
 
-    def test_bytestring_with_unicode(self):
-        df = Series(["\u05d0"], name="\u05d1")
-        bytes(df)
+    def test_str_to_bytes_raises(self):
+        # GH 26447
+        df = Series(["abc"], name="abc")
+        msg = "^'str' object cannot be interpreted as an integer$"
+        with pytest.raises(TypeError, match=msg):
+            bytes(df)
 
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
@@ -206,7 +208,7 @@ class TestCategoricalRepr:
             name = 'San Sebastián'
             state = 'PR'
 
-            def __unicode__(self):
+            def __str__(self):
                 return self.name + ', ' + self.state
 
         cat = pd.Categorical([County() for _ in range(61)])
@@ -221,7 +223,7 @@ class TestCategoricalRepr:
         exp = ("0    1\n1    2\n2    3\n3    4\n" +
                "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
 
-        assert exp == a.__unicode__()
+        assert exp == a.__str__()
 
         a = Series(Categorical(["a", "b"] * 25))
         exp = ("0     a\n1     b\n" + "     ..\n" + "48    a\n49    b\n" +
@@ -233,7 +235,7 @@ class TestCategoricalRepr:
         a = Series(Categorical(["a", "b"], categories=levs, ordered=True))
         exp = ("0    a\n1    b\n" + "dtype: category\n"
                "Categories (26, object): [a < b < c < d ... w < x < y < z]")
-        assert exp == a.__unicode__()
+        assert exp == a.__str__()
 
     def test_categorical_series_repr(self):
         s = Series(Categorical([1, 2, 3]))

@@ -5,11 +5,10 @@ from numpy import nan
 import pytest
 
 from pandas._libs.sparse import BlockIndex, IntIndex
-from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Panel, Series, bdate_range, compat
+from pandas import DataFrame, Series, bdate_range, compat
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.sparse import frame as spf
 from pandas.core.sparse.api import (
@@ -20,6 +19,12 @@ from pandas.util import testing as tm
 from pandas.tseries.offsets import BDay
 
 
+def test_deprecated():
+    with tm.assert_produces_warning(FutureWarning):
+        pd.SparseDataFrame({"A": [1, 2]})
+
+
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseDataFrame(SharedWithSparse):
     klass = SparseDataFrame
 
@@ -168,7 +173,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_constructor_convert_index_once(self):
         arr = np.array([1.5, 2.5, 3.5])
-        sdf = SparseDataFrame(columns=lrange(4), index=arr)
+        sdf = SparseDataFrame(columns=range(4), index=arr)
         assert sdf[0].index is sdf[1].index
 
     def test_constructor_from_series(self):
@@ -669,7 +674,8 @@ class TestSparseDataFrame(SharedWithSparse):
 
         a = float_frame.iloc[:5, :3]
         b = float_frame.iloc[5:]
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False,
+                                        raise_on_extra_warnings=False):
             # Stacklevel is set for pd.concat, not append
             appended = a.append(b)
         tm.assert_sp_frame_equal(appended.iloc[:, :3], float_frame.iloc[:, :3],
@@ -684,12 +690,12 @@ class TestSparseDataFrame(SharedWithSparse):
             "A": [None, None, 2, 3],
             "D": [None, None, 5, None],
         }, index=a.index | b.index, columns=['B', 'C', 'A', 'D'])
-        with tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
             appended = a.append(b, sort=False)
 
         tm.assert_frame_equal(appended, expected)
 
-        with tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
             appended = a.append(b, sort=True)
 
         tm.assert_sp_frame_equal(appended, expected[['A', 'B', 'C', 'D']],
@@ -766,8 +772,8 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(result, expected)
 
     def test_fillna(self, float_frame_fill0, float_frame_fill0_dense):
-        df = float_frame_fill0.reindex(lrange(5))
-        dense = float_frame_fill0_dense.reindex(lrange(5))
+        df = float_frame_fill0.reindex(list(range(5)))
+        dense = float_frame_fill0_dense.reindex(list(range(5)))
 
         result = df.fillna(0)
         expected = dense.fillna(0)
@@ -810,7 +816,8 @@ class TestSparseDataFrame(SharedWithSparse):
 
         result = sdf[:2].reindex(index, method='pad', limit=5)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             expected = sdf[:2].reindex(index).fillna(method='pad')
         expected = expected.to_dense()
         expected.values[-3:] = np.nan
@@ -819,7 +826,8 @@ class TestSparseDataFrame(SharedWithSparse):
 
         result = sdf[-2:].reindex(index, method='backfill', limit=5)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             expected = sdf[-2:].reindex(index).fillna(method='backfill')
         expected = expected.to_dense()
         expected.values[:3] = np.nan
@@ -832,10 +840,12 @@ class TestSparseDataFrame(SharedWithSparse):
         sdf = df.to_sparse()
 
         result = sdf[:2].reindex(index)
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             result = result.fillna(method='pad', limit=5)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             expected = sdf[:2].reindex(index).fillna(method='pad')
         expected = expected.to_dense()
         expected.values[-3:] = np.nan
@@ -843,10 +853,12 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(result, expected)
 
         result = sdf[-2:].reindex(index)
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             result = result.fillna(method='backfill', limit=5)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             expected = sdf[-2:].reindex(index).fillna(method='backfill')
         expected = expected.to_dense()
         expected.values[:3] = np.nan
@@ -1053,14 +1065,12 @@ class TestSparseDataFrame(SharedWithSparse):
         _check(float_frame_fill0, float_frame_fill0_dense)
         _check(float_frame_fill2, float_frame_fill2_dense)
 
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_stack_sparse_frame(self, float_frame, float_frame_int_kind,
                                 float_frame_fill0, float_frame_fill2):
         def _check(frame):
             dense_frame = frame.to_dense()  # noqa
 
-            wp = Panel.from_dict({'foo': frame})
-            from_dense_lp = wp.to_frame()
+            from_dense_lp = frame.stack().to_frame()
 
             from_sparse_lp = spf.stack_sparse_frame(frame)
 
@@ -1283,6 +1293,7 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(expected, result)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseDataFrameArithmetic:
 
     def test_numeric_op_scalar(self):
@@ -1312,6 +1323,7 @@ class TestSparseDataFrameArithmetic:
         tm.assert_frame_equal(res.to_dense(), df != 0)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseDataFrameAnalytics:
 
     def test_cumsum(self, float_frame):

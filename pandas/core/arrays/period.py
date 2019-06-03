@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 from datetime import timedelta
 import operator
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, List, Optional, Sequence, Union
 
 import numpy as np
 
@@ -24,7 +23,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray, datetimelike as dtl
+from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
@@ -95,7 +94,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     Parameters
     ----------
-    values : Union[PeriodArray, Series[period], ndarary[int], PeriodIndex]
+    values : Union[PeriodArray, Series[period], ndarray[int], PeriodIndex]
         The data to store. These should be arrays that can be directly
         converted to ordinals without inference or copy (PeriodArray,
         ndarray[int64]), or a box around such an array (Series[period],
@@ -136,7 +135,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     _scalar_type = Period
 
     # Names others delegate to us
-    _other_ops = []
+    _other_ops = []  # type: List[str]
     _bool_ops = ['is_leap_year']
     _object_ops = ['start_time', 'end_time', 'freq']
     _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
@@ -277,7 +276,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def dtype(self):
         return self._dtype
 
-    @property
+    # read-only property overwriting read/write
+    @property  # type: ignore
     def freq(self):
         """
         Return the frequency object for this PeriodArray.
@@ -539,7 +539,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     @Appender(dtl.DatetimeLikeArrayMixin._addsub_int_array.__doc__)
     def _addsub_int_array(
             self,
-            other: Union[ExtensionArray, np.ndarray, ABCIndexClass],
+            other: Union[ABCPeriodArray, ABCSeries,
+                         ABCPeriodIndex, np.ndarray],
             op: Callable[[Any], Any]
     ) -> ABCPeriodArray:
         assert op in [operator.add, operator.sub]
@@ -779,7 +780,8 @@ def period_array(
     data = np.asarray(data)
 
     if freq:
-        dtype = PeriodDtype(freq)
+        # typed Optional here because the else block below assigns None
+        dtype = PeriodDtype(freq)  # type: Optional[PeriodDtype]
     else:
         dtype = None
 

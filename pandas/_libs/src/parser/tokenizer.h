@@ -12,14 +12,8 @@ See LICENSE for the license
 #ifndef PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
 #define PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include "Python.h"
-
-#include <ctype.h>
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
 
 #define ERROR_OK 0
 #define ERROR_NO_DIGITS 1
@@ -31,9 +25,6 @@ See LICENSE for the license
 
 #include "khash.h"
 
-#define CHUNKSIZE 1024 * 256
-#define KB 1024
-#define MB 1024 * KB
 #define STREAM_INIT_SIZE 32
 
 #define REACHED_EOF 1
@@ -50,25 +41,10 @@ See LICENSE for the license
 
  */
 
-#define FALSE 0
-#define TRUE 1
-
-// Maximum number of columns in a file.
-#define MAX_NUM_COLUMNS 2000
-
-// Maximum number of characters in single field.
-#define FIELD_BUFFER_SIZE 2000
-
 /*
  *  Common set of error types for the read_rows() and tokenize()
  *  functions.
  */
-#define ERROR_OUT_OF_MEMORY 1
-#define ERROR_INVALID_COLUMN_INDEX 10
-#define ERROR_CHANGED_NUMBER_OF_FIELDS 12
-#define ERROR_TOO_MANY_CHARS 21
-#define ERROR_TOO_MANY_FIELDS 22
-#define ERROR_NO_DATA 23
 
 // #define VERBOSE
 #if defined(VERBOSE)
@@ -83,12 +59,6 @@ See LICENSE for the license
  *  XXX Might want to couple count_rows() with read_rows() to avoid duplication
  *      of some file I/O.
  */
-
-/*
- *  WORD_BUFFER_SIZE determines the maximum amount of non-delimiter
- *  text in a row.
- */
-#define WORD_BUFFER_SIZE 4000
 
 typedef enum {
     START_RECORD,
@@ -164,9 +134,6 @@ typedef struct parser_t {
     int skipinitialspace; /* ignore spaces following delimiter? */
     int quoting;          /* style of quoting to write */
 
-    // krufty, hmm =/
-    int numeric_field;
-
     char commentchar;
     int allow_embedded_newline;
     int strict; /* raise exception on bad CSV */
@@ -191,7 +158,7 @@ typedef struct parser_t {
     void *skipset;
     PyObject *skipfunc;
     int64_t skip_first_N_rows;
-    int skip_footer;
+    int64_t skip_footer;
     // pick one, depending on whether the converter requires GIL
     double (*double_converter_nogil)(const char *, char **,
                                      char, char, char, int);
@@ -208,11 +175,11 @@ typedef struct parser_t {
 typedef struct coliter_t {
     char **words;
     int64_t *line_start;
-    int col;
+    int64_t col;
 } coliter_t;
 
 void coliter_setup(coliter_t *self, parser_t *parser, int i, int start);
-coliter_t *coliter_new(register parser_t *self, int i);
+coliter_t *coliter_new(parser_t *self, int i);
 
 #define COLITER_NEXT(iter, word)                           \
     do {                                                   \
@@ -222,25 +189,25 @@ coliter_t *coliter_new(register parser_t *self, int i);
 
 parser_t *parser_new(void);
 
-int parser_init(register parser_t *self);
+int parser_init(parser_t *self);
 
-int parser_consume_rows(register parser_t *self, size_t nrows);
+int parser_consume_rows(parser_t *self, size_t nrows);
 
-int parser_trim_buffers(register parser_t *self);
+int parser_trim_buffers(parser_t *self);
 
-int parser_add_skiprow(register parser_t *self, int64_t row);
+int parser_add_skiprow(parser_t *self, int64_t row);
 
-int parser_set_skipfirstnrows(register parser_t *self, int64_t nrows);
+int parser_set_skipfirstnrows(parser_t *self, int64_t nrows);
 
-void parser_free(register parser_t *self);
+void parser_free(parser_t *self);
 
-void parser_del(register parser_t *self);
+void parser_del(parser_t *self);
 
-void parser_set_default_options(register parser_t *self);
+void parser_set_default_options(parser_t *self);
 
-int tokenize_nrows(register parser_t *self, size_t nrows);
+int tokenize_nrows(parser_t *self, size_t nrows);
 
-int tokenize_all_rows(register parser_t *self);
+int tokenize_all_rows(parser_t *self);
 
 // Have parsed / type-converted a chunk of data
 // and want to free memory from the token stream

@@ -1,6 +1,7 @@
 import copy
 from datetime import timedelta
 from textwrap import dedent
+from typing import Dict, no_type_check
 import warnings
 
 import numpy as np
@@ -31,7 +32,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
-_shared_docs_kwargs = dict()
+_shared_docs_kwargs = dict()  # type: Dict[str, str]
 
 
 class Resampler(_GroupBy):
@@ -78,7 +79,7 @@ class Resampler(_GroupBy):
         if self.groupby is not None:
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
 
-    def __unicode__(self):
+    def __str__(self):
         """
         Provide a nice str repr of our rolling object.
         """
@@ -780,6 +781,11 @@ class Resampler(_GroupBy):
 
             .. versionadded:: 0.20.0
 
+        Returns
+        -------
+        DataFrame or Series
+            Values at the specified freq.
+
         See Also
         --------
         Series.asfreq
@@ -795,6 +801,11 @@ class Resampler(_GroupBy):
         ----------
         ddof : integer, default 1
             Degrees of freedom.
+
+        Returns
+        -------
+        DataFrame or Series
+            Standard deviation of values within each group.
         """
         nv.validate_resampler_func('std', args, kwargs)
         return self._downsample('std', ddof=ddof)
@@ -807,6 +818,11 @@ class Resampler(_GroupBy):
         ----------
         ddof : integer, default 1
             degrees of freedom
+
+        Returns
+        -------
+        DataFrame or Series
+            Variance of values within each group.
         """
         nv.validate_resampler_func('var', args, kwargs)
         return self._downsample('var', ddof=ddof)
@@ -829,6 +845,11 @@ class Resampler(_GroupBy):
         Parameters
         ----------
         q : float or array-like, default 0.5 (50% quantile)
+
+        Returns
+        -------
+        DataFrame or Series
+            Quantile of values within each group.
 
         See Also
         --------
@@ -853,25 +874,25 @@ for method in ['sum', 'prod']:
 for method in ['min', 'max', 'first', 'last', 'mean', 'sem',
                'median', 'ohlc']:
 
-    def f(self, _method=method, *args, **kwargs):
+    def g(self, _method=method, *args, **kwargs):
         nv.validate_resampler_func(_method, args, kwargs)
         return self._downsample(_method)
-    f.__doc__ = getattr(GroupBy, method).__doc__
-    setattr(Resampler, method, f)
+    g.__doc__ = getattr(GroupBy, method).__doc__
+    setattr(Resampler, method, g)
 
 # groupby & aggregate methods
 for method in ['count']:
-    def f(self, _method=method):
+    def h(self, _method=method):
         return self._downsample(_method)
-    f.__doc__ = getattr(GroupBy, method).__doc__
-    setattr(Resampler, method, f)
+    h.__doc__ = getattr(GroupBy, method).__doc__
+    setattr(Resampler, method, h)
 
 # series only methods
 for method in ['nunique']:
-    def f(self, _method=method):
+    def h(self, _method=method):
         return self._downsample(_method)
-    f.__doc__ = getattr(SeriesGroupBy, method).__doc__
-    setattr(Resampler, method, f)
+    h.__doc__ = getattr(SeriesGroupBy, method).__doc__
+    setattr(Resampler, method, h)
 
 
 def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
@@ -944,6 +965,7 @@ class _GroupByMixin(GroupByMixin):
         self._groupby.grouper.mutated = True
         self.groupby = copy.copy(parent.groupby)
 
+    @no_type_check
     def _apply(self, f, grouper=None, *args, **kwargs):
         """
         Dispatch to _upsample; we are stripping all of the _upsample kwargs and

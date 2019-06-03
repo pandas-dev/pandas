@@ -4,33 +4,16 @@ compat
 
 Cross-compatible functions for different versions of Python.
 
-Key items to import for compatible code:
-* lists: lrange(), lmap(), lzip()
-
 Other items:
 * platform checker
 """
 import platform
-import re
 import struct
 import sys
 
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
 PYPY = platform.python_implementation() == 'PyPy'
-
-
-# list-producing versions of the major Python iterating functions
-def lrange(*args, **kwargs):
-    return list(range(*args, **kwargs))
-
-
-def lzip(*args, **kwargs):
-    return list(zip(*args, **kwargs))
-
-
-def lmap(*args, **kwargs):
-    return list(map(*args, **kwargs))
 
 
 # ----------------------------------------------------------------------------
@@ -72,15 +55,6 @@ def raise_with_traceback(exc, traceback=Ellipsis):
     if traceback == Ellipsis:
         _, _, traceback = sys.exc_info()
     raise exc.with_traceback(traceback)
-
-
-# In Python 3.7, the private re._pattern_type is removed.
-# Python 3.5+ have typing.re.Pattern
-if PY36:
-    import typing
-    re_type = typing.re.Pattern
-else:
-    re_type = type(re.compile(''))
 
 
 # https://github.com/pandas-dev/pandas/pull/9123

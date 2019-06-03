@@ -6,8 +6,8 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    algos as libalgos, index as libindex, join as libjoin, lib)
+from pandas._libs import algos as libalgos, index as libindex, lib
+import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
@@ -20,11 +20,10 @@ from pandas.core.dtypes.common import (
     ensure_categorical, ensure_int64, ensure_object, ensure_platform_int,
     is_bool, is_bool_dtype, is_categorical, is_categorical_dtype,
     is_datetime64_any_dtype, is_datetime64tz_dtype, is_dtype_equal,
-    is_dtype_union_equal, is_extension_array_dtype, is_float, is_float_dtype,
-    is_hashable, is_integer, is_integer_dtype, is_interval_dtype, is_iterator,
-    is_list_like, is_object_dtype, is_period_dtype, is_scalar,
-    is_signed_integer_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype,
-    pandas_dtype)
+    is_extension_array_dtype, is_float, is_float_dtype, is_hashable,
+    is_integer, is_integer_dtype, is_interval_dtype, is_iterator, is_list_like,
+    is_object_dtype, is_period_dtype, is_scalar, is_signed_integer_dtype,
+    is_timedelta64_dtype, is_unsigned_integer_dtype, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDateOffset, ABCDatetimeArray, ABCIndexClass,
@@ -53,6 +52,7 @@ _unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
 _index_doc_kwargs = dict(klass='Index', inplace='',
                          target_klass='Index',
+                         raises_section='',
                          unique='Index', duplicated='np.ndarray')
 _index_shared_docs = dict()
 
@@ -183,7 +183,7 @@ class Index(IndexOpsMixin, PandasObject):
         When True, attempt to create a MultiIndex if possible
 
     See Also
-    ---------
+    --------
     RangeIndex : Index implementing a monotonic integer range.
     CategoricalIndex : Index of :class:`Categorical` s.
     MultiIndex : A multi-level, or hierarchical, Index.
@@ -692,6 +692,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return an ndarray of the flattened values of the underlying data.
 
+        Returns
+        -------
+        numpy.ndarray
+            Flattened array.
+
         See Also
         --------
         numpy.ndarray.ravel
@@ -728,6 +733,11 @@ class Index(IndexOpsMixin, PandasObject):
             or the original Index is returned.
 
             .. versionadded:: 0.19.0
+
+        Returns
+        -------
+        Index
+            Index with values cast to specified dtype.
         """
 
     @Appender(_index_shared_docs['astype'])
@@ -776,6 +786,11 @@ class Index(IndexOpsMixin, PandasObject):
         fill_value : bool, default None
             If allow_fill=True and fill_value is not None, indices specified by
             -1 is regarded as NA. If Index doesn't hold NA, raise ValueError
+
+        Returns
+        -------
+        numpy.ndarray
+            Elements of given indices.
 
         See Also
         --------
@@ -918,9 +933,9 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def __unicode__(self):
+    def __repr__(self):
         """
-        Return a unicode string representation for this object.
+        Return a string representation for this object.
         """
         klass = self.__class__.__name__
         data = self._format_data()
@@ -1038,6 +1053,11 @@ class Index(IndexOpsMixin, PandasObject):
                 Whether or not there are quoted values in `self`
             3) date_format : str
                 The format used to represent date-like values
+
+        Returns
+        -------
+        numpy.ndarray
+            Formatted values.
         """
 
         values = self
@@ -2242,6 +2262,47 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(name=name)
         return self
 
+    def _union_incompatible_dtypes(self, other, sort):
+        """
+        Casts this and other index to object dtype to allow the formation
+        of a union between incompatible types.
+
+        Parameters
+        ----------
+        other : Index or array-like
+        sort : False or None, default False
+            Whether to sort the resulting index.
+
+            * False : do not sort the result.
+            * None : sort the result, except when `self` and `other` are equal
+              or when the values cannot be compared.
+
+        Returns
+        -------
+        Index
+        """
+        this = self.astype(object, copy=False)
+        # cast to Index for when `other` is list-like
+        other = Index(other).astype(object, copy=False)
+        return Index.union(this, other, sort=sort).astype(object, copy=False)
+
+    def _is_compatible_with_other(self, other):
+        """
+        Check whether this and the other dtype are compatible with each other.
+        Meaning a union can be formed between them without needing to be cast
+        to dtype object.
+
+        Parameters
+        ----------
+        other : Index or array-like
+
+        Returns
+        -------
+        bool
+        """
+        return (type(self) is type(other)
+                and is_dtype_equal(self.dtype, other.dtype))
+
     def _validate_sort_keyword(self, sort):
         if sort not in [None, False]:
             raise ValueError("The 'sort' keyword only takes the values of "
@@ -2250,6 +2311,11 @@ class Index(IndexOpsMixin, PandasObject):
     def union(self, other, sort=None):
         """
         Form the union of two Index objects.
+
+        If the Index objects are incompatible, both Index objects will be
+        cast to dtype('object') first.
+
+            .. versionchanged:: 0.25.0
 
         Parameters
         ----------
@@ -2280,29 +2346,53 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
 
+        Union matching dtypes
+
         >>> idx1 = pd.Index([1, 2, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.union(idx2)
         Int64Index([1, 2, 3, 4, 5, 6], dtype='int64')
+
+        Union mismatched dtypes
+
+        >>> idx1 = pd.Index(['a', 'b', 'c', 'd'])
+        >>> idx2 = pd.Index([1, 2, 3, 4])
+        >>> idx1.union(idx2)
+        Index(['a', 'b', 'c', 'd', 1, 2, 3, 4], dtype='object')
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
 
-        if len(other) == 0 or self.equals(other):
+        if not self._is_compatible_with_other(other):
+            return self._union_incompatible_dtypes(other, sort=sort)
+
+        return self._union(other, sort=sort)
+
+    def _union(self, other, sort):
+        """
+        Specific union logic should go here. In subclasses, union behavior
+        should be overwritten here rather than in `self.union`.
+
+        Parameters
+        ----------
+        other : Index or array-like
+        sort : False or None, default False
+            Whether to sort the resulting index.
+
+            * False : do not sort the result.
+            * None : sort the result, except when `self` and `other` are equal
+              or when the values cannot be compared.
+
+        Returns
+        -------
+        Index
+        """
+
+        if not len(other) or self.equals(other):
             return self._get_reconciled_name_object(other)
 
-        if len(self) == 0:
+        if not len(self):
             return other._get_reconciled_name_object(self)
-
-        # TODO: is_dtype_union_equal is a hack around
-        # 1. buggy set ops with duplicates (GH #13432)
-        # 2. CategoricalIndex lacking setops (GH #10186)
-        # Once those are fixed, this workaround can be removed
-        if not is_dtype_union_equal(self.dtype, other.dtype):
-            this = self.astype('O')
-            other = other.astype('O')
-            return this.union(other, sort=sort)
 
         # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self) or is_datetime64tz_dtype(self):
@@ -2350,6 +2440,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _wrap_setop_result(self, other, result):
         return self._constructor(result, name=get_op_result_name(self, other))
 
+    # TODO: standardize return type of non-union setops type(self vs other)
     def intersection(self, other, sort=False):
         """
         Form the intersection of two Index objects.
@@ -2629,7 +2720,7 @@ class Index(IndexOpsMixin, PandasObject):
         loc : int if unique index, slice if monotonic index, else mask
 
         Examples
-        ---------
+        --------
         >>> unique_index = pd.Index(list('abc'))
         >>> unique_index.get_loc('b')
         1
@@ -2697,7 +2788,7 @@ class Index(IndexOpsMixin, PandasObject):
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
-
+        %(raises_section)s
         Examples
         --------
         >>> index = pd.Index(['c', 'a', 'b'])
@@ -3716,6 +3807,10 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         cond : boolean array-like with the same length as self
         other : scalar, or array-like
+
+        Returns
+        -------
+        Index
         """
 
     @Appender(_index_shared_docs['where'])
@@ -4026,6 +4121,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a new Index of the values set with the mask.
 
+        Returns
+        -------
+        Index
+
         See Also
         --------
         numpy.ndarray.putmask
@@ -4044,6 +4143,11 @@ class Index(IndexOpsMixin, PandasObject):
     def equals(self, other):
         """
         Determine if two Index objects contain the same elements.
+
+        Returns
+        -------
+        bool
+            If two Index objects have equal elements True, otherwise False.
         """
         if self.is_(other):
             return True
@@ -4065,6 +4169,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Similar to equals, but check that other comparable attributes are
         also equal.
+
+        Returns
+        -------
+        bool
+            If two Index objects have equal elements and same type True,
+            otherwise False.
         """
         return (self.equals(other) and
                 all((getattr(self, c, None) == getattr(other, c, None)
@@ -4336,6 +4446,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing.
+
+        Returns
+        -------
+        scalar
+            A value in the Series with the index of the key value in self.
         """
 
         # if we have something that is Index-like, then
@@ -4443,6 +4558,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         This dispatches to get_indexer or get_indexer_nonunique
         as appropriate.
+
+        Returns
+        -------
+        numpy.ndarray
+            List of indices.
         """
         if self.is_unique:
             return self.get_indexer(target, **kwargs)
@@ -4650,7 +4770,7 @@ class Index(IndexOpsMixin, PandasObject):
         This function assumes that the data is sorted, so use at your own peril
 
         Examples
-        ---------
+        --------
         This is a method on all index types. For example you can do:
 
         >>> idx = pd.Index(list('abcd'))
@@ -4775,6 +4895,11 @@ class Index(IndexOpsMixin, PandasObject):
         label : object
         side : {'left', 'right'}
         kind : {'ix', 'loc', 'getitem'}
+
+        Returns
+        -------
+        int
+            Index of label.
         """
         assert kind in ['ix', 'loc', 'getitem', None]
 
@@ -4848,7 +4973,7 @@ class Index(IndexOpsMixin, PandasObject):
         This method only works if the index is monotonic or unique.
 
         Examples
-        ---------
+        --------
         >>> idx = pd.Index(list('abcd'))
         >>> idx.slice_locs(start='b', end='c')
         (1, 3)

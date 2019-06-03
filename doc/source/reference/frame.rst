@@ -48,7 +48,6 @@ Conversion
    :toctree: api/
 
    DataFrame.astype
-   DataFrame.convert_objects
    DataFrame.infer_objects
    DataFrame.copy
    DataFrame.isna
@@ -243,7 +242,6 @@ Reshaping, sorting, transposing
    DataFrame.swapaxes
    DataFrame.melt
    DataFrame.squeeze
-   DataFrame.to_panel
    DataFrame.to_xarray
    DataFrame.T
    DataFrame.transpose
@@ -311,6 +309,29 @@ specific plotting methods of the form ``DataFrame.plot.<kind>``.
 
    DataFrame.boxplot
    DataFrame.hist
+
+
+.. _api.frame.sparse:
+
+Sparse Accessor
+~~~~~~~~~~~~~~~
+
+Sparse-dtype specific methods and attributes are provided under the
+``DataFrame.sparse`` accessor.
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_attribute.rst
+
+   DataFrame.sparse.density
+
+.. autosummary::
+   :toctree: api/
+
+   DataFrame.sparse.from_spmatrix
+   DataFrame.sparse.to_coo
+   DataFrame.sparse.to_dense
+
 
 Serialization / IO / Conversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

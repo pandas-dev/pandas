@@ -93,9 +93,9 @@ cut : Bin values into discrete Intervals.
 qcut : Bin values into equal-sized Intervals based on rank or sample quantiles.
 
 Notes
-------
+-----
 See the `user guide
-<http://pandas.pydata.org/pandas-docs/stable/advanced.html#intervalindex>`_
+<http://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`_
 for more.
 
 %(examples)s\
@@ -238,6 +238,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         If None, dtype will be inferred
 
         .. versionadded:: 0.23.0
+
+    Returns
+    -------
+    %(klass)s
 
     See Also
     --------
@@ -382,6 +386,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         If None, dtype will be inferred
 
         ..versionadded:: 0.23.0
+
+    Returns
+    -------
+    %(klass)s
 
     See Also
     --------
@@ -939,8 +947,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         points) and is either monotonic increasing or monotonic decreasing,
         else False
         """
-
-    @property
+    # https://github.com/python/mypy/issues/1362
+    # Mypy does not support decorated properties
+    @property  # type: ignore
     @Appender(_interval_shared_docs['is_non_overlapping_monotonic']
               % _shared_docs_kwargs)
     def is_non_overlapping_monotonic(self):

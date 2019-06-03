@@ -14,7 +14,6 @@ import pytz
 
 from pandas._libs import tslib
 from pandas._libs.tslibs import iNaT, parsing
-from pandas.compat import lmap
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -97,6 +96,25 @@ class TestTimeConversionFormats:
         result = pd.to_datetime(s, format='%Y%m%d', errors='coerce',
                                 cache=cache)
         expected = Series(['20121231', '20141231', 'NaT'], dtype='M8[ns]')
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("input_s, expected", [
+        # NaN before strings with invalid date values
+        [Series(['19801222', np.nan, '20010012', '10019999']),
+         Series([Timestamp('19801222'), np.nan, np.nan, np.nan])],
+        # NaN after strings with invalid date values
+        [Series(['19801222', '20010012', '10019999', np.nan]),
+         Series([Timestamp('19801222'), np.nan, np.nan, np.nan])],
+        # NaN before integers with invalid date values
+        [Series([20190813, np.nan, 20010012, 20019999]),
+         Series([Timestamp('20190813'), np.nan, np.nan, np.nan])],
+        # NaN after integers with invalid date values
+        [Series([20190813, 20010012, np.nan, 20019999]),
+         Series([Timestamp('20190813'), np.nan, np.nan, np.nan])]])
+    def test_to_datetime_format_YYYYMMDD_overflow(self, input_s, expected):
+        # GH 25512
+        # format='%Y%m%d', errors='coerce'
+        result = pd.to_datetime(input_s, format='%Y%m%d', errors='coerce')
         assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('cache', [True, False])
@@ -712,6 +730,19 @@ class TestToDatetime:
         with pytest.raises(ValueError, match=msg):
             pd.to_datetime(date, format=format)
 
+    def test_to_datetime_coerce(self):
+        # GH 26122
+        ts_strings = ['March 1, 2018 12:00:00+0400',
+                      'March 1, 2018 12:00:00+0500',
+                      '20100240']
+        result = to_datetime(ts_strings, errors='coerce')
+        expected = Index([datetime(2018, 3, 1, 12, 0,
+                                   tzinfo=tzoffset(None, 14400)),
+                          datetime(2018, 3, 1, 12, 0,
+                                   tzinfo=tzoffset(None, 18000)),
+                          NaT])
+        tm.assert_index_equal(result, expected)
+
     def test_iso_8601_strings_with_same_offset(self):
         # GH 17697, 11736
         ts_str = "2015-11-18 15:30:00+05:30"
@@ -1191,7 +1222,7 @@ class TestToDatetimeMisc:
     def test_to_datetime_with_space_in_series(self, cache):
         # GH 6428
         s = Series(['10/18/2006', '10/18/2008', ' '])
-        msg = r"(\(u?')?String does not contain a date(:', ' '\))?"
+        msg = r"(\(')?String does not contain a date(:', ' '\))?"
         with pytest.raises(ValueError, match=msg):
             to_datetime(s, errors='raise', cache=cache)
         result_coerce = to_datetime(s, errors='coerce', cache=cache)
@@ -1251,7 +1282,7 @@ class TestToDatetimeMisc:
         # array = ['2012','20120101','20120101 12:01:01']
         array = ['20120101', '20120101 12:01:01']
         expected = list(to_datetime(array, cache=cache))
-        result = lmap(Timestamp, array)
+        result = [Timestamp(date_str) for date_str in array]
         tm.assert_almost_equal(result, expected)
 
         # currently fails ###
@@ -1967,3 +1998,16 @@ class TestOrigin:
         result = pd.to_datetime(300 * 365, unit='D', origin='1870-01-01')
         expected = Timestamp('2169-10-20 00:00:00')
         assert result == expected
+
+    @pytest.mark.parametrize('offset,utc,exp', [
+        ["Z", True, "2019-01-01T00:00:00.000Z"],
+        ["Z", None, "2019-01-01T00:00:00.000Z"],
+        ["-01:00", True, "2019-01-01T01:00:00.000Z"],
+        ["-01:00", None, "2019-01-01T00:00:00.000-01:00"],
+    ])
+    def test_arg_tz_ns_unit(self, offset, utc, exp):
+        # GH 25546
+        arg = "2019-01-01T00:00:00.000" + offset
+        result = to_datetime([arg], unit='ns', utc=utc)
+        expected = to_datetime([exp])
+        tm.assert_index_equal(result, expected)

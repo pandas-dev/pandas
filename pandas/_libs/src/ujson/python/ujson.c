@@ -46,12 +46,6 @@ void initObjToJSON(void);
 /* JSONToObj */
 PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs);
 
-/* objToJSONFile */
-PyObject *objToJSONFile(PyObject *self, PyObject *args, PyObject *kwargs);
-
-/* JSONFileToObj */
-PyObject *JSONFileToObj(PyObject *self, PyObject *args, PyObject *kwargs);
-
 #define ENCODER_HELP_TEXT                                                  \
     "Use ensure_ascii=false to output UTF-8. Pass in double_precision to " \
     "alter the maximum digit precision of doubles. Set "                   \
@@ -67,12 +61,6 @@ static PyMethodDef ujsonMethods[] = {
      "Converts arbitrary object recursively into JSON. " ENCODER_HELP_TEXT},
     {"loads", (PyCFunction)JSONToObj, METH_VARARGS | METH_KEYWORDS,
      "Converts JSON as string to dict object structure. Use precise_float=True "
-     "to use high precision float decoder."},
-    {"dump", (PyCFunction)objToJSONFile, METH_VARARGS | METH_KEYWORDS,
-     "Converts arbitrary object recursively into JSON "
-     "file. " ENCODER_HELP_TEXT},
-    {"load", (PyCFunction)JSONFileToObj, METH_VARARGS | METH_KEYWORDS,
-     "Converts JSON as file to dict object structure. Use precise_float=True "
      "to use high precision float decoder."},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };

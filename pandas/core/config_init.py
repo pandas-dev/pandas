@@ -185,11 +185,6 @@ pc_html_border_doc = """
     for the DataFrame HTML repr.
 """
 
-pc_html_border_deprecation_warning = """\
-html.border has been deprecated, use display.html.border instead
-(currently both are identical)
-"""
-
 pc_html_use_mathjax_doc = """\
 : boolean
     When True, Jupyter notebook will process table contents using MathJax,
@@ -277,8 +272,6 @@ pc_latex_multirow = """
     Valid values: False,True
 """
 
-style_backup = dict()
-
 
 def table_schema_cb(key):
     from pandas.io.formats.printing import _enable_data_resource_formatter
@@ -364,14 +357,6 @@ with cf.config_prefix('display'):
                        validator=is_int)
     cf.register_option('html.use_mathjax', True, pc_html_use_mathjax_doc,
                        validator=is_bool)
-
-with cf.config_prefix('html'):
-    cf.register_option('border', 1, pc_html_border_doc,
-                       validator=is_int)
-
-cf.deprecate_option('html.border', msg=pc_html_border_deprecation_warning,
-                    rkey='display.html.border')
-
 
 tc_sim_interactive_doc = """
 : boolean

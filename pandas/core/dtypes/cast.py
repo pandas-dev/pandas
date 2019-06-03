@@ -18,8 +18,7 @@ from .common import (
     is_integer, is_integer_dtype, is_object_dtype, is_scalar, is_string_dtype,
     is_timedelta64_dtype, is_timedelta64_ns_dtype, is_unsigned_integer_dtype,
     pandas_dtype)
-from .dtypes import (
-    DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype, PeriodDtype)
+from .dtypes import DatetimeTZDtype, ExtensionDtype, PeriodDtype
 from .generic import (
     ABCDatetimeArray, ABCDatetimeIndex, ABCPeriodArray, ABCPeriodIndex,
     ABCSeries)
@@ -35,8 +34,8 @@ _int64_max = np.iinfo(np.int64).max
 def maybe_convert_platform(values):
     """ try to do platform conversion, allow ndarray or list here """
 
-    if isinstance(values, (list, tuple)):
-        values = construct_1d_object_array_from_listlike(list(values))
+    if isinstance(values, (list, tuple, range)):
+        values = construct_1d_object_array_from_listlike(values)
     if getattr(values, 'dtype', None) == np.object_:
         if hasattr(values, '_values'):
             values = values._values
@@ -1108,8 +1107,7 @@ def find_common_type(types):
     if all(is_dtype_equal(first, t) for t in types[1:]):
         return first
 
-    if any(isinstance(t, (PandasExtensionDtype, ExtensionDtype))
-           for t in types):
+    if any(isinstance(t, ExtensionDtype) for t in types):
         return np.object
 
     # take lowest unit
