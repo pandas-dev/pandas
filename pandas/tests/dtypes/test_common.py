@@ -15,6 +15,10 @@ from pandas.conftest import (
 from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
+ignore_sparse_warning = pytest.mark.filterwarnings(
+    "ignore:Sparse:FutureWarning"
+)
+
 
 # EA & Actual Dtypes
 def to_ea_dtypes(dtypes):
@@ -146,6 +150,7 @@ def test_is_object():
 @pytest.mark.parametrize("check_scipy", [
     False, pytest.param(True, marks=td.skip_if_no_scipy)
 ])
+@ignore_sparse_warning
 def test_is_sparse(check_scipy):
     assert com.is_sparse(pd.SparseArray([1, 2, 3]))
     assert com.is_sparse(pd.SparseSeries([1, 2, 3]))
@@ -158,6 +163,7 @@ def test_is_sparse(check_scipy):
 
 
 @td.skip_if_no_scipy
+@ignore_sparse_warning
 def test_is_scipy_sparse():
     from scipy.sparse import bsr_matrix
     assert com.is_scipy_sparse(bsr_matrix([1, 2, 3]))
@@ -529,6 +535,7 @@ def test_is_bool_dtype():
 @pytest.mark.parametrize("check_scipy", [
     False, pytest.param(True, marks=td.skip_if_no_scipy)
 ])
+@ignore_sparse_warning
 def test_is_extension_type(check_scipy):
     assert not com.is_extension_type([1, 2, 3])
     assert not com.is_extension_type(np.array([1, 2, 3]))
@@ -595,14 +602,20 @@ def test_is_offsetlike():
     (pd.DatetimeIndex([1, 2]).dtype, np.dtype('=M8[ns]')),
     ('<M8[ns]', np.dtype('<M8[ns]')),
     ('datetime64[ns, Europe/London]', DatetimeTZDtype('ns', 'Europe/London')),
-    (pd.SparseSeries([1, 2], dtype='int32'), SparseDtype('int32')),
-    (pd.SparseSeries([1, 2], dtype='int32').dtype, SparseDtype('int32')),
     (PeriodDtype(freq='D'), PeriodDtype(freq='D')),
     ('period[D]', PeriodDtype(freq='D')),
     (IntervalDtype(), IntervalDtype()),
 ])
 def test__get_dtype(input_param, result):
     assert com._get_dtype(input_param) == result
+
+
+@ignore_sparse_warning
+def test__get_dtype_sparse():
+    ser = pd.SparseSeries([1, 2], dtype='int32')
+    expected = SparseDtype('int32')
+    assert com._get_dtype(ser) == expected
+    assert com._get_dtype(ser.dtype) == expected
 
 
 @pytest.mark.parametrize('input_param,expected_error_message', [
@@ -640,8 +653,7 @@ def test__get_dtype_fails(input_param, expected_error_message):
     (pd.DatetimeIndex(['2000'], tz='Europe/London').dtype,
      pd.Timestamp),
     ('datetime64[ns, Europe/London]', pd.Timestamp),
-    (pd.SparseSeries([1, 2], dtype='int32'), np.int32),
-    (pd.SparseSeries([1, 2], dtype='int32').dtype, np.int32),
+
     (PeriodDtype(freq='D'), pd.Period),
     ('period[D]', pd.Period),
     (IntervalDtype(), pd.Interval),
@@ -652,3 +664,11 @@ def test__get_dtype_fails(input_param, expected_error_message):
 ])
 def test__is_dtype_type(input_param, result):
     assert com._is_dtype_type(input_param, lambda tipo: tipo == result)
+
+
+@ignore_sparse_warning
+def test__is_dtype_type_sparse():
+    ser = pd.SparseSeries([1, 2], dtype='int32')
+    result = np.dtype('int32')
+    assert com._is_dtype_type(ser, lambda tipo: tipo == result)
+    assert com._is_dtype_type(ser.dtype, lambda tipo: tipo == result)

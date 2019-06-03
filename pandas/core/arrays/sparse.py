@@ -573,7 +573,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         Whether to explicitly copy the incoming `data` array.
     """
 
-    __array_priority__ = 15
     _pandas_ftype = 'sparse'
     _subtyp = 'sparse_array'  # register ABCSparseArray
 
@@ -1639,14 +1638,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # Ufuncs
     # ------------------------------------------------------------------------
 
-    def __array_wrap__(self, array, context=None):
-        from pandas.core.dtypes.generic import ABCSparseSeries
-
-        ufunc, inputs, _ = context
-        inputs = tuple(x.to_dense() if isinstance(x, ABCSparseSeries) else x
-                       for x in inputs)
-        return self.__array_ufunc__(ufunc, '__call__', *inputs)
-
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
@@ -1831,7 +1822,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ----------
     # Formatting
     # -----------
-    def __str__(self):
+    def __repr__(self):
         return '{self}\nFill: {fill}\n{index}'.format(
             self=printing.pprint_thing(self),
             fill=printing.pprint_thing(self.fill_value),
@@ -2014,9 +2005,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         from pandas.core.sparse.scipy_sparse import _coo_to_sparse_series
         from pandas import Series
 
-        result = _coo_to_sparse_series(A, dense_index=dense_index)
-        # SparseSeries -> Series[sparse]
-        result = Series(result.values, index=result.index, copy=False)
+        result = _coo_to_sparse_series(A, dense_index=dense_index,
+                                       sparse_series=False)
+        result = Series(result.array, index=result.index, copy=False)
 
         return result
 

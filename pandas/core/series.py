@@ -1384,7 +1384,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def __str__(self):
+    def __repr__(self):
         """
         Return a string representation for a particular Series.
         """
@@ -1586,7 +1586,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         SparseSeries
             Sparse representation of the Series.
         """
-        # TODO: deprecate
         from pandas.core.sparse.series import SparseSeries
 
         values = SparseArray(self, kind=kind, fill_value=fill_value)
