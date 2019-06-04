@@ -523,7 +523,7 @@ def assert_index_equal(left: Index,
                        check_less_precise: Union[bool, int] = False,
                        check_exact: bool = True,
                        check_categorical: bool = True,
-                       obj: str = 'Index') -> Optional[None]:
+                       obj: str = 'Index') -> None:
     """Check that left and right Index are equal.
 
     Parameters
