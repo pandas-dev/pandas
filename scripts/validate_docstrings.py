@@ -540,13 +540,8 @@ class Docstring:
             return self.doc.split('\n')[0][-1] == '.'
 
     @property
-    def deprecated_with_directive(self):
-        return '.. deprecated:: ' in (self.summary + self.extended_summary)
-
-    @property
     def deprecated(self):
-        return (self.name.startswith('pandas.Panel')
-                or self.deprecated_with_directive)
+        return '.. deprecated:: ' in (self.summary + self.extended_summary)
 
     @property
     def mentioned_private_classes(self):
@@ -674,7 +669,7 @@ def get_validation_data(doc):
         errs.append(error('GL07',
                           correct_sections=', '.join(correct_order)))
 
-    if (doc.deprecated_with_directive
+    if (doc.deprecated
             and not doc.extended_summary.startswith('.. deprecated:: ')):
         errs.append(error('GL09'))
 
@@ -859,9 +854,9 @@ def validate_all(prefix, ignore_deprecated=False):
 
         seen[shared_code_key] = func_name
 
-    # functions from introspecting Series, DataFrame and Panel
+    # functions from introspecting Series and DataFrame
     api_item_names = set(list(zip(*api_items))[0])
-    for class_ in (pandas.Series, pandas.DataFrame, pandas.Panel):
+    for class_ in (pandas.Series, pandas.DataFrame):
         for member in inspect.getmembers(class_):
             func_name = 'pandas.{}.{}'.format(class_.__name__, member[0])
             if (not member[0].startswith('_')
