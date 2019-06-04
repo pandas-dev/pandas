@@ -101,7 +101,7 @@ from pandas.io.formats import console
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
-import pandas.plotting._core as gfx
+import pandas.plotting
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -8041,9 +8041,9 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = CachedAccessor("plot", gfx.FramePlotMethods)
-    hist = gfx.hist_frame
-    boxplot = gfx.boxplot_frame
+    plot = CachedAccessor("plot", pandas.plotting.FramePlotMethods)
+    hist = pandas.plotting.hist_frame
+    boxplot = pandas.plotting.boxplot_frame
     sparse = CachedAccessor("sparse", SparseFrameAccessor)
 
 
