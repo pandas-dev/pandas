@@ -57,7 +57,7 @@ def in_interactive_session():
 
     def check_main():
         try:
-            import __main__ as main
+            import __main__ as main  # type: ignore
         except ModuleNotFoundError:
             return get_option('mode.sim_interactive')
         return (not hasattr(main, '__file__') or
