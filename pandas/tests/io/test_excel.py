@@ -34,6 +34,7 @@ def frame(float_frame):
 
 @pytest.fixture
 def frame2(float_frame):
+    float_frame = float_frame.copy()
     float_frame.columns = ['D', 'C', 'B', 'A']
     return float_frame[:10]
 
