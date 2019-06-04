@@ -12,7 +12,7 @@ from shutil import rmtree
 import string
 import tempfile
 import traceback
-from typing import Optional, Union, cast
+from typing import Union, cast
 import warnings
 import zipfile
 
