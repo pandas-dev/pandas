@@ -26,5 +26,5 @@ dependencies:
   - pip
   - pip:
     # for python 3.5, pytest>=4.0.2 is not available in conda
-    - pytest>=4.0.2
+    - pytest==4.5.0
     - html5lib==1.0b2

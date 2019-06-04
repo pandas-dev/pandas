@@ -130,10 +130,19 @@ def _coo_to_sparse_series(A, dense_index: bool = False,
     Returns
     -------
     Series or SparseSeries
+
+    Raises
+    ------
+    TypeError if A is not a coo_matrix
+
     """
     from pandas import SparseDtype
 
-    s = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
+    try:
+        s = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
+    except AttributeError:
+        raise TypeError('Expected coo_matrix. Got {} instead.'
+                        .format(type(A).__name__))
     s = s.sort_index()
     if sparse_series:
         # TODO(SparseSeries): remove this and the sparse_series keyword.

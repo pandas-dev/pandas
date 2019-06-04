@@ -3,24 +3,24 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
-from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestDataFrameQuantile(TestData):
+class TestDataFrameQuantile:
 
-    def test_quantile(self):
+    def test_quantile(self, datetime_frame):
         from numpy import percentile
 
-        q = self.tsframe.quantile(0.1, axis=0)
-        assert q['A'] == percentile(self.tsframe['A'], 10)
-        tm.assert_index_equal(q.index, self.tsframe.columns)
+        df = datetime_frame
+        q = df.quantile(0.1, axis=0)
+        assert q['A'] == percentile(df['A'], 10)
+        tm.assert_index_equal(q.index, df.columns)
 
-        q = self.tsframe.quantile(0.9, axis=1)
+        q = df.quantile(0.9, axis=1)
         assert (q['2000-01-17'] ==
-                percentile(self.tsframe.loc['2000-01-17'], 90))
-        tm.assert_index_equal(q.index, self.tsframe.index)
+                percentile(df.loc['2000-01-17'], 90))
+        tm.assert_index_equal(q.index, df.index)
 
         # test degenerate case
         q = DataFrame({'x': [], 'y': []}).quantile(0.1, axis=0)
@@ -99,18 +99,6 @@ class TestDataFrameQuantile(TestData):
 
     def test_quantile_interpolation(self):
         # see gh-10174
-        from numpy import percentile
-
-        # interpolation = linear (default case)
-        q = self.tsframe.quantile(0.1, axis=0, interpolation='linear')
-        assert q['A'] == percentile(self.tsframe['A'], 10)
-        q = self.intframe.quantile(0.1)
-        assert q['A'] == percentile(self.intframe['A'], 10)
-
-        # test with and without interpolation keyword
-        q1 = self.intframe.quantile(0.1)
-        assert q1['A'] == np.percentile(self.intframe['A'], 10)
-        tm.assert_series_equal(q, q1)
 
         # interpolation method other than default linear
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
@@ -154,6 +142,28 @@ class TestDataFrameQuantile(TestData):
         expected = DataFrame([[1.5, 1.5, 1.5], [2.0, 2.0, 2.0]],
                              index=[.25, .5], columns=['a', 'b', 'c'])
         assert_frame_equal(result, expected)
+
+    def test_quantile_interpolation_datetime(self, datetime_frame):
+        # see gh-10174
+
+        # interpolation = linear (default case)
+        df = datetime_frame
+        q = df.quantile(0.1, axis=0, interpolation='linear')
+        assert q['A'] == np.percentile(df['A'], 10)
+
+    def test_quantile_interpolation_int(self, int_frame):
+        # see gh-10174
+
+        df = int_frame
+        # interpolation = linear (default case)
+        q = df.quantile(0.1)
+        assert q['A'] == np.percentile(df['A'], 10)
+
+        # test with and without interpolation keyword
+        # TODO: q1 is not different from q
+        q1 = df.quantile(0.1)
+        assert q1['A'] == np.percentile(df['A'], 10)
+        tm.assert_series_equal(q, q1)
 
     def test_quantile_multi(self):
         df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]],
@@ -214,11 +224,11 @@ class TestDataFrameQuantile(TestData):
         # result = df[['a', 'c']].quantile(.5)
         # result = df[['a', 'c']].quantile([.5])
 
-    def test_quantile_invalid(self):
+    def test_quantile_invalid(self, datetime_frame):
         msg = 'percentiles should all be in the interval \\[0, 1\\]'
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
             with pytest.raises(ValueError, match=msg):
-                self.tsframe.quantile(invalid)
+                datetime_frame.quantile(invalid)
 
     def test_quantile_box(self):
         df = DataFrame({'A': [pd.Timestamp('2011-01-01'),
