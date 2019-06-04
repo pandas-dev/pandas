@@ -2467,6 +2467,11 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
         while cur <= end:
             yield cur
 
+            if cur == end:
+                # GH#24252 avoid overflows by not performing the addition
+                # in offset.apply unless we have to
+                break
+
             # faster than cur + offset
             next_date = offset.apply(cur)
             if next_date <= cur:
@@ -2476,6 +2481,11 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
     else:
         while cur >= end:
             yield cur
+
+            if cur == end:
+                # GH#24252 avoid overflows by not performing the addition
+                # in offset.apply unless we have to
+                break
 
             # faster than cur + offset
             next_date = offset.apply(cur)

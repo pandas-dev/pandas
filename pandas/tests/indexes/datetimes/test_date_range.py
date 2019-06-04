@@ -740,6 +740,13 @@ class TestBusinessDateRange:
         expected = pd.date_range(bday_start, bday_end, freq='D')
         tm.assert_index_equal(result, expected)
 
+    def test_bday_near_overflow(self):
+        # GH#24252 avoid doing unnecessary addition that _would_ overflow
+        start = pd.Timestamp.max.floor("D").to_pydatetime()
+        rng = pd.date_range(start, end=None, periods=1, freq='B')
+        expected = pd.DatetimeIndex([start], freq='B')
+        tm.assert_index_equal(rng, expected)
+
 
 class TestCustomDateRange:
 
