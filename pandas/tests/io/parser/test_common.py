@@ -1929,15 +1929,11 @@ def test_read_table_deprecated(all_parsers):
         tm.assert_frame_equal(result, expected)
 
 
-def test_first_row_bom_python(all_parsers):
+def test_first_row_bom(all_parsers):
+    # see gh-26545
     parser = all_parsers
-    data = """
-    \ufeff"Head1"	"Head2"	"Head3"
-    """
+    data = '''\ufeff"Head1"	"Head2"	"Head3"'''
 
-    assert parser.read_csv(StringIO(data),
-                           delimiter='\t',
-                           engine='python').shape == (0, 3)
-
-    assert parser.read_csv(StringIO(data),
-                           delimiter='\t').shape == (0, 3)
+    result = parser.read_csv(StringIO(data), delimiter='\t')
+    expected = DataFrame(columns=["Head1", "Head2", "Head3"])
+    tm.assert_frame_equal(result, expected)
