@@ -189,6 +189,9 @@ def json_normalize(data, record_path=None, meta=None,
             result = result[spec]
 
         return result
+    
+    if data is iter(data):
+        raise ValueError("Argument data should be a dict or list of dicts, not an iterator")
 
     if isinstance(data, list) and not data:
         return DataFrame()
