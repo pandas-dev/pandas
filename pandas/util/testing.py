@@ -594,6 +594,9 @@ def assert_index_equal(left: Index,
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
+        left = cast(MultiIndex, left)
+        right = cast(MultiIndex, right)
+
         for level in range(left.nlevels):
             # cannot use get_level_values here because it can change dtype
             llevel = _get_ilevel_values(left, level)
@@ -605,8 +608,6 @@ def assert_index_equal(left: Index,
                                check_less_precise=check_less_precise,
                                check_exact=check_exact, obj=lobj)
             # get_level_values may change dtype
-            left = cast(MultiIndex, left)
-            right = cast(MultiIndex, right)
             _check_types(left.levels[level], right.levels[level], obj=obj)
 
     # skip exact index checking when `check_categorical` is False
