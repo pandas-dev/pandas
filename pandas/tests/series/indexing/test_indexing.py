@@ -772,20 +772,6 @@ miscellaneous methods
 """
 
 
-def test_select(test_data):
-    # deprecated: gh-12410
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        n = len(test_data.ts)
-        result = test_data.ts.select(lambda x: x >= test_data.ts.index[n // 2])
-        expected = test_data.ts.reindex(test_data.ts.index[n // 2:])
-        assert_series_equal(result, expected)
-
-        result = test_data.ts.select(lambda x: x.weekday() == 2)
-        expected = test_data.ts[test_data.ts.index.weekday == 2]
-        assert_series_equal(result, expected)
-
-
 def test_pop():
     # GH 6600
     df = DataFrame({'A': 0, 'B': np.arange(5, dtype='int64'), 'C': 0, })

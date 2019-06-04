@@ -895,41 +895,6 @@ class TestDataFrameSelectReindex(TestData):
         result = empty.filter(like='foo')
         assert_frame_equal(result, empty)
 
-    def test_select(self):
-
-        # deprecated: gh-12410
-        f = lambda x: x.weekday() == 2
-        index = self.tsframe.index[[f(x) for x in self.tsframe.index]]
-        expected_weekdays = self.tsframe.reindex(index=index)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = self.tsframe.select(f, axis=0)
-            assert_frame_equal(result, expected_weekdays)
-
-            result = self.frame.select(lambda x: x in ('B', 'D'), axis=1)
-            expected = self.frame.reindex(columns=['B', 'D'])
-            assert_frame_equal(result, expected, check_names=False)
-
-        # replacement
-        f = lambda x: x.weekday == 2
-        result = self.tsframe.loc(axis=0)[f(self.tsframe.index)]
-        assert_frame_equal(result, expected_weekdays)
-
-        crit = lambda x: x in ['B', 'D']
-        result = self.frame.loc(axis=1)[(self.frame.columns.map(crit))]
-        expected = self.frame.reindex(columns=['B', 'D'])
-        assert_frame_equal(result, expected, check_names=False)
-
-        # doc example
-        df = DataFrame({'A': [1, 2, 3]}, index=['foo', 'bar', 'baz'])
-
-        crit = lambda x: x in ['bar', 'baz']
-        with tm.assert_produces_warning(FutureWarning):
-            expected = df.select(crit)
-        result = df.loc[df.index.map(crit)]
-        assert_frame_equal(result, expected, check_names=False)
-
     def test_take(self):
         # homogeneous
         order = [3, 1, 2, 0]
