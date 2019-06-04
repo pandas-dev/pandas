@@ -12,7 +12,8 @@ from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.common import (
-    is_int64_dtype, is_integer, is_scalar, is_timedelta64_dtype)
+    ensure_python_int, is_int64_dtype, is_integer, is_scalar,
+    is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCSeries, ABCTimedeltaIndex)
 
@@ -92,39 +93,19 @@ class RangeIndex(Int64Index):
                                    **dict(start._get_data_as_items()))
 
         # validate the arguments
-        def ensure_int(value, field):
-            msg = ("RangeIndex(...) must be called with integers,"
-                   " {value} was passed for {field}")
-            if not is_scalar(value):
-                raise TypeError(msg.format(value=type(value).__name__,
-                                           field=field))
-            try:
-                new_value = int(value)
-                assert(new_value == value)
-            except (TypeError, ValueError, AssertionError):
-                raise TypeError(msg.format(value=type(value).__name__,
-                                           field=field))
-
-            return new_value
-
         if com._all_none(start, stop, step):
-            msg = "RangeIndex(...) must be called with integers"
-            raise TypeError(msg)
-        elif start is None:
-            start = 0
-        else:
-            start = ensure_int(start, 'start')
+            raise TypeError("RangeIndex(...) must be called with integers")
+
+        start = ensure_python_int(start) if start is not None else 0
+
         if stop is None:
-            stop = start
-            start = 0
+            start, stop = 0, start
         else:
-            stop = ensure_int(stop, 'stop')
-        if step is None:
-            step = 1
-        elif step == 0:
+            stop = ensure_python_int(stop)
+
+        step = ensure_python_int(step) if step is not None else 1
+        if step == 0:
             raise ValueError("Step must not be zero")
-        else:
-            step = ensure_int(step, 'step')
 
         return cls._simple_new(start, stop, step, name)
 
@@ -161,7 +142,7 @@ class RangeIndex(Int64Index):
             except TypeError:
                 return Index(start, stop, step, name=name, **kwargs)
 
-        result._range = range(start, stop or 0, step or 1)  # type: range
+        result._range = range(start, stop or 0, step or 1)
 
         result.name = name
         for k, v in kwargs.items():
