@@ -11,7 +11,7 @@ for dependency in hard_dependencies:
         __import__(dependency)
     except ImportError as e:
         missing_dependencies.append(
-          "\n{0}: {1}".format(dependency, str(e))
+            "\n{0}: {1}".format(dependency, str(e))
         )
 
 if missing_dependencies:
