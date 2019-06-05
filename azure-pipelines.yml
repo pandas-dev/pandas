@@ -124,7 +124,7 @@ jobs:
   steps:
   - script: |
       echo '##vso[task.setvariable variable=CONDA_ENV]pandas-dev'
-      echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
+      echo '##vso[task.setvariable variable=ENV_FILE]ci/deps/travis-36-doc.yaml'
     displayName: 'Setting environment variables'
 
   - script: |
