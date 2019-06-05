@@ -106,7 +106,6 @@ Conversion
 Mixed Conversion
 
 .. ipython:: python
-   :okwarning:
    :okexcept:
 
    df3['D'] = '1.'
