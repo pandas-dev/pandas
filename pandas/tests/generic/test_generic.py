@@ -431,7 +431,7 @@ class Generic:
 
     def test_split_compat(self):
         # xref GH8846
-        o = self._construct(shape=10)
+        o = self._construct(shape=10).values
         assert len(np.array_split(o, 5)) == 5
         assert len(np.array_split(o, 2)) == 2
 
