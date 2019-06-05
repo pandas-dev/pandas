@@ -153,12 +153,13 @@ jobs:
       and(not(eq(variables['Build.Reason'], 'PullRequest')),
           eq(variables['Build.SourceBranch'], 'refs/heads/master'))
 
-  # This task to work requires next steps:
-  # 1. Got to "Library > Secure files" in the azure-pipelines dashboard: https://dev.azure.com/pandas-dev/pandas/_library?itemType=SecureFiles
-  # 2. Click on "+ Secure file"
-  # 3. Upload the private key (the name of the file must match with the specified in "sshKeySecureFile" input below, "pandas_docs_key")
-  # 4. Click on file name after it is created, tick the box "Authorize for use in all pipelines" and save
-  # 5. The public key specified in "sshPublicKey" is the pair of the uploaded private key, and needs to be specified as a deploy key of the repo where the docs will be pushed: https://github.com/pandas-dev/pandas-dev.github.io/settings/keys
+  # For `InstallSSHKey@0` to work, next steps are required:
+  # 1. Generate a pair of private/public keys (i.e. `ssh-keygen -t rsa -b 4096 -C "your_email@example.com"`
+  # 2. Go to "Library > Secure files" in the Azure Pipelines dashboard: https://dev.azure.com/pandas-dev/pandas/_library?itemType=SecureFiles
+  # 3. Click on "+ Secure file"
+  # 4. Upload the private key (the name of the file must match with the specified in "sshKeySecureFile" input below, "pandas_docs_key")
+  # 5. Click on file name after it is created, tick the box "Authorize for use in all pipelines" and save
+  # 6. The public key specified in "sshPublicKey" is the pair of the uploaded private key, and needs to be set as a deploy key of the repo where the docs will be pushed (with write access): https://github.com/pandas-dev/pandas-dev.github.io/settings/keys
   - task: InstallSSHKey@0
     inputs:
       hostName: 'github.com,192.30.252.128 ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ=='
