@@ -541,36 +541,37 @@ def _concat_rangeindex_same_dtype(indexes):
     """
     from pandas import Int64Index, RangeIndex
 
-    start = step = next = None
+    start = step = next_ = None
 
     # Filter the empty indexes
     non_empty_indexes = [obj for obj in indexes if len(obj)]
 
     for obj in non_empty_indexes:
+        rng = obj._range  # type: range
 
         if start is None:
             # This is set by the first non-empty index
-            start = obj._start
-            if step is None and len(obj) > 1:
-                step = obj._step
+            start = rng.start
+            if step is None and len(rng) > 1:
+                step = rng.step
         elif step is None:
             # First non-empty index had only one element
-            if obj._start == start:
+            if rng.start == start:
                 return _concat_index_same_dtype(indexes, klass=Int64Index)
-            step = obj._start - start
+            step = rng.start - start
 
-        non_consecutive = ((step != obj._step and len(obj) > 1) or
-                           (next is not None and obj._start != next))
+        non_consecutive = ((step != rng.step and len(rng) > 1) or
+                           (next_ is not None and rng.start != next_))
         if non_consecutive:
             return _concat_index_same_dtype(indexes, klass=Int64Index)
 
         if step is not None:
-            next = obj[-1] + step
+            next_ = rng[-1] + step
 
     if non_empty_indexes:
         # Get the stop value from "next" or alternatively
         # from the last non-empty index
-        stop = non_empty_indexes[-1]._stop if next is None else next
+        stop = non_empty_indexes[-1].stop if next_ is None else next_
         return RangeIndex(start, stop, step)
 
     # Here all "indexes" had 0 length, i.e. were empty.
