@@ -24,6 +24,7 @@ from pandas._libs.tslibs.conversion cimport (
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, npy_datetimestruct, dt64_to_dtstruct)
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timezones cimport (
@@ -409,7 +410,12 @@ class Timestamp(_Timestamp):
                           " tz parameter will raise in the future. Use"
                           " tz_convert instead.", FutureWarning)
 
-        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
+        try:
+            ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
+        except OverflowError:
+            # GH#26651 re-raise as OutOfBoundsDatetime
+            raise OutOfBoundsDatetime("Cannot convert {ts_input} to Timestamp"
+                                      .format(ts_input=ts_input))
 
         if ts.value == NPY_NAT:
             return NaT

@@ -5,7 +5,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas.errors import (
+    NullFrequencyError, OutOfBoundsDatetime, PerformanceWarning)
 
 import pandas as pd
 from pandas import (
@@ -466,10 +467,10 @@ class TestAddSubNaTMasking:
 
     def test_tdi_add_overflow(self):
         # See GH#14068
-        msg = "too (big|large) to convert"
-        with pytest.raises(OverflowError, match=msg):
+        msg = "Cannot convert"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.to_timedelta(106580, 'D') + Timestamp('2000')
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp('2000') + pd.to_timedelta(106580, 'D')
 
         _NaT = int(pd.NaT) + 1

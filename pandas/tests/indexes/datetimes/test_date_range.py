@@ -747,6 +747,12 @@ class TestBusinessDateRange:
         expected = pd.DatetimeIndex([start], freq='B')
         tm.assert_index_equal(rng, expected)
 
+    def test_bday_overflow_error(self):
+        # GH#24252 check that we get OutOfBoundsDatetime and not OverflowError
+        start = pd.Timestamp.max.floor("D").to_pydatetime()
+        with pytest.raises(OutOfBoundsDatetime):
+            pd.date_range(start, periods=2, freq='B')
+
 
 class TestCustomDateRange:
 

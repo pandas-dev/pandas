@@ -97,6 +97,8 @@ def apply_wraps(func):
             if tz is not None and result.tzinfo is None:
                 result = conversion.localize_pydatetime(result, tz)
 
+            result = Timestamp(result)
+
         return result
     return wrapper
 
@@ -2330,7 +2332,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             # an exception, when we call using the + operator,
             # we directly call the known method
             result = other.__add__(self)
-            if result == NotImplemented:
+            if result is NotImplemented:
                 raise OverflowError
             return result
         elif isinstance(other, (datetime, np.datetime64, date)):
