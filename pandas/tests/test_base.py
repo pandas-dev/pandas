@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
+from importlib import reload
 from io import StringIO
 import re
 import sys
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -1341,3 +1343,28 @@ def test_to_numpy_dtype(as_series):
     expected = np.array(['2000-01-01T05', '2001-01-01T05'],
                         dtype='M8[ns]')
     tm.assert_numpy_array_equal(result, expected)
+
+
+@patch("builtins.__import__")
+def test_missing_required_dependency(mock_import):
+    def mock_import_fail(name, *args, **kwargs):
+        if name == "numpy":
+            raise ImportError("cannot import name numpy")
+        elif name == "pytz":
+            raise ImportError("cannot import name some_dependency")
+        elif name == "dateutil":
+            raise ImportError("cannot import name some_other_dependency")
+        else:
+            return __import__(name, *args, **kwargs)
+
+    mock_import.side_effect = mock_import_fail
+
+    expected_msg = (
+        "Unable to import required dependencies:"
+        "\nnumpy: cannot import name numpy"
+        "\npytz: cannot import name some_dependency"
+        "\ndateutil: cannot import name some_other_dependency"
+    )
+
+    with pytest.raises(ImportError, match=expected_msg):
+        reload(pd)
