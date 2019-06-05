@@ -51,12 +51,16 @@ def ignore_xlrd_time_clock_warning():
         yield
 
 
-@td.skip_if_no('xlrd')
 @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
 class TestReaders:
-    # This is based on ExcelWriterBase
 
-    @pytest.fixture(autouse=True, params=['xlrd', None])
+    @pytest.fixture(autouse=True, params=[
+        # Add any engines to test here
+        pytest.param('xlrd', marks=pytest.mark.skipif(
+            not td.safe_import("xlrd"), reason="no xlrd")),
+        pytest.param(None, marks=pytest.mark.skipif(
+            not td.safe_import("xlrd"), reason="no xlrd")),
+    ])
     def cd_and_set_engine(self, request, datapath, monkeypatch):
         """
         Change directory and set engine for read_excel calls.
@@ -74,7 +78,6 @@ class TestReaders:
                           parse_dates=True, engine='python')
         return df_ref
 
-    @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
     def test_usecols_int(self, ext, df_ref):
         df_ref = df_ref.reindex(columns=["A", "B", "C"])
 
@@ -96,7 +99,6 @@ class TestReaders:
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
-    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_usecols_list(self, ext, df_ref):
 
         df_ref = df_ref.reindex(columns=['B', 'C'])
@@ -109,7 +111,6 @@ class TestReaders:
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
-    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_usecols_str(self, ext, df_ref):
 
         df1 = df_ref.reindex(columns=['A', 'B', 'C'])
@@ -264,7 +265,6 @@ class TestReaders:
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
-    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     @pytest.mark.parametrize('arg', ['sheet', 'sheetname', 'parse_cols'])
     def test_unexpected_kwargs_raises(self, ext, arg):
         # gh-17964
@@ -275,7 +275,6 @@ class TestReaders:
         with pytest.raises(TypeError, match=msg):
             pd.read_excel(excel, **kwarg)
 
-    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_excel_table_sheet_by_index(self, ext, df_ref):
 
         excel = ExcelFile('test1' + ext)
@@ -493,7 +492,6 @@ class TestReaders:
         result = pd.read_excel('testdateoverflow' + ext)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
     def test_sheet_name_and_sheetname(self, ext, df_ref):
         # gh-10559: Minor improvement: Change "sheet_name" to "sheetname"
         # gh-10969: DOC: Consistent var names (sheetname vs sheet_name)
