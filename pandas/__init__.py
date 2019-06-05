@@ -17,7 +17,7 @@ if missing_dependencies:
     for dependency, e in missing_dependencies:
         msg += "\n{0}: {1}".format(dependency, str(e))
     raise ImportError(msg)
-del hard_dependencies, dependency, missing_dependencies
+del hard_dependencies, dependency, e, missing_dependencies, msg
 
 # numpy compat
 from pandas.compat.numpy import (
