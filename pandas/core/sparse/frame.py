@@ -282,7 +282,8 @@ class SparseDataFrame(DataFrame):
         Use Dataframe.sparse.to_dense() instead
         """
 
-        warning_message = """to_dense is deprecated and will be removed in a future version
+        warning_message = """\
+            to_dense is deprecated and will be removed in a future version
 
             Use Dataframe.sparse.to_dense() instead
 

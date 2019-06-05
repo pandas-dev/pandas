@@ -1587,9 +1587,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         SparseSeries
             Sparse representation of the Series.
         """
-        warning_message = """to_sparse is deprecated and
-            will be removed in a future version"""
-        warnings.warn(warning_message, FutureWarning, stacklevel=2)
+
+        warnings.warn("to_sparse is deprecated and will be removed"
+                      "in a future version", FutureWarning, stacklevel=2)
         from pandas.core.sparse.series import SparseSeries
 
         values = SparseArray(self, kind=kind, fill_value=fill_value)

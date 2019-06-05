@@ -1941,8 +1941,9 @@ class DataFrame(NDFrame):
         >>> type(sdf)  # doctest: +SKIP
         <class 'pandas.core.sparse.frame.SparseDataFrame'>
         """
-        warning_message = """to_sparse is deprecated and will be
-            removed in a future version"""
+        warning_message = """\
+            to_sparse is deprecated and will be removed in a future version
+        """
         warnings.warn(warning_message, FutureWarning, stacklevel=2)
 
         from pandas.core.sparse.api import SparseDataFrame
