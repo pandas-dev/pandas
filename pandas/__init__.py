@@ -70,8 +70,8 @@ from pandas.io.api import (
 
 try:
     from pandas._libs import (hashtable as _hashtable,
-                             lib as _lib,
-                             tslib as _tslib)
+                              lib as _lib,
+                              tslib as _tslib)
 except ImportError as e:  # pragma: no cover
     # hack but overkill to use re
     module = str(e).replace('cannot import name ', '')
