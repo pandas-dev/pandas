@@ -1,6 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
+from typing import Union
 import warnings
 
 import numpy as np
@@ -334,7 +335,7 @@ class RangeIndex(Int64Index):
     def has_duplicates(self):
         return False
 
-    def __contains__(self, key):
+    def __contains__(self, key: Union[int, np.integer]) -> bool:
         hash(key)
         try:
             key = ensure_python_int(key)
@@ -648,10 +649,10 @@ class RangeIndex(Int64Index):
                 return self._simple_new(start, start + 1, 1, name=self.name)
         return self._int64index // other
 
-    def all(self):
+    def all(self) -> bool:
         return 0 not in self._range
 
-    def any(self):
+    def any(self) -> bool:
         return any(self._range)
 
     @classmethod
