@@ -4,7 +4,6 @@ import numpy as np
 
 class Methods:
 
-    sample_time = 0.2
     params = (['DataFrame', 'Series'],
               [10, 1000],
               ['int', 'float'],
@@ -23,7 +22,6 @@ class Methods:
 
 class ExpandingMethods:
 
-    sample_time = 0.2
     params = (['DataFrame', 'Series'],
               ['int', 'float'],
               ['median', 'mean', 'max', 'min', 'std', 'count', 'skew', 'kurt',
@@ -41,7 +39,6 @@ class ExpandingMethods:
 
 class EWMMethods:
 
-    sample_time = 0.2
     params = (['DataFrame', 'Series'],
               [10, 1000],
               ['int', 'float'],
@@ -58,7 +55,6 @@ class EWMMethods:
 
 
 class VariableWindowMethods(Methods):
-    sample_time = 0.2
     params = (['DataFrame', 'Series'],
               ['50s', '1h', '1d'],
               ['int', 'float'],
@@ -75,7 +71,6 @@ class VariableWindowMethods(Methods):
 
 class Pairwise:
 
-    sample_time = 0.2
     params = ([10, 1000, None],
               ['corr', 'cov'],
               [True, False])
@@ -95,7 +90,6 @@ class Pairwise:
 
 
 class Quantile:
-    sample_time = 0.2
     params = (['DataFrame', 'Series'],
               [10, 1000],
               ['int', 'float'],
