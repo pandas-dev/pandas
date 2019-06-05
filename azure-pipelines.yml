@@ -154,7 +154,7 @@ jobs:
           eq(variables['Build.SourceBranch'], 'refs/heads/master'))
 
   # For `InstallSSHKey@0` to work, next steps are required:
-  # 1. Generate a pair of private/public keys (i.e. `ssh-keygen -t rsa -b 4096 -C "your_email@example.com"`
+  # 1. Generate a pair of private/public keys (i.e. `ssh-keygen -t rsa -b 4096 -C "your_email@example.com"`)
   # 2. Go to "Library > Secure files" in the Azure Pipelines dashboard: https://dev.azure.com/pandas-dev/pandas/_library?itemType=SecureFiles
   # 3. Click on "+ Secure file"
   # 4. Upload the private key (the name of the file must match with the specified in "sshKeySecureFile" input below, "pandas_docs_key")
