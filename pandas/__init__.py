@@ -47,7 +47,8 @@ from pandas.tseries.api import infer_freq
 # use the closest tagged version if possible
 from ._version import get_versions
 
-from pandas.core.api import (  # dtype; missing; indexes; tseries; conversion; misc
+from pandas.core.api import (
+    # dtype; missing; indexes; tseries; conversion; misc
     Categorical, CategoricalDtype, CategoricalIndex, DataFrame, DateOffset,
     DatetimeIndex, DatetimeTZDtype, Float64Index, Grouper, Index, IndexSlice,
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, Int64Index, Interval,
@@ -58,7 +59,8 @@ from pandas.core.api import (  # dtype; missing; indexes; tseries; conversion; m
     notna, notnull, np, period_range, set_eng_float_format, timedelta_range,
     to_datetime, to_numeric, to_timedelta, unique, value_counts)
 
-from pandas.io.api import (  # excel; packers; parsers; pickle; pytables; sql; misc
+from pandas.io.api import (
+    # excel; packers; parsers; pickle; pytables; sql; misc
     ExcelFile, ExcelWriter, HDFStore, read_clipboard, read_csv, read_excel,
     read_feather, read_fwf, read_gbq, read_hdf, read_html, read_json,
     read_msgpack, read_parquet, read_pickle, read_sas, read_sql,
@@ -77,17 +79,6 @@ except ImportError as e:  # pragma: no cover
                       "pandas from the source directory, you may need to run "
                       "'python setup.py build_ext --inplace --force' to build "
                       "the C extensions first.".format(module))
-
-
-
-
-
-
-
-
-
-
-
 
 v = get_versions()
 __version__ = v.get('closest-tag', v['version'])
