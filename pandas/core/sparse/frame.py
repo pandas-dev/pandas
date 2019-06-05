@@ -281,17 +281,16 @@ class SparseDataFrame(DataFrame):
         ..deprecated:: 0.25.0
         Use Dataframe.sparse.to_dense() instead
         """
-        
-        
-        warning_message ="""to_dense is deprecated and will be removed in a future version
-            
+
+        warning_message = """to_dense is deprecated and will be removed in a future version
+
             Use Dataframe.sparse.to_dense() instead
-            
+
             >>> df = pd.DataFrame({"A": pd.SparseArray([0, 1, 0])})
             >>> df.sparse.to_dense()
             """
         warnings.warn(warning_message, FutureWarning, stacklevel=2)
-        
+
         return SparseFrameAccessor(self).to_dense()
 
     def _apply_columns(self, func):
