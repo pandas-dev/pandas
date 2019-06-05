@@ -133,6 +133,25 @@ class TestTimeConversionFormats:
         result = to_datetime(s, format='%Y%m', cache=cache)
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('int_date, expected', [
+        # valid date, length == 8
+        [20121030, datetime(2012, 10, 30)],
+        # short valid date, length == 6
+        [199934, datetime(1999, 3, 4)],
+        # long integer date partially parsed to datetime(2012,1,1), length > 8
+        [2012010101, 2012010101],
+        # invalid date partially parsed to datetime(2012,9,9), length == 8
+        [20129930, 20129930],
+        # short integer date partially parsed to datetime(2012,9,9), length < 8
+        [2012993, 2012993],
+        # short invalid date, length == 4
+        [2121, 2121]])
+    def test_int_to_datetime_format_YYYYMMDD_typeerror(self, int_date,
+                                                       expected):
+        # GH 26583
+        result = to_datetime(int_date, format='%Y%m%d', errors='ignore')
+        assert result == expected
+
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_format_microsecond(self, cache):
 

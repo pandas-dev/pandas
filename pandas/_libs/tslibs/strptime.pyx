@@ -140,13 +140,13 @@ def array_strptime(object[:] values, object fmt,
                     iresult[i] = NPY_NAT
                     continue
                 raise ValueError("time data %r does not match "
-                                 "format %r (match)" % (values[i], fmt))
+                                 "format %r (match)" % (val, fmt))
             if len(val) != found.end():
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
                 raise ValueError("unconverted data remains: %s" %
-                                 values[i][found.end():])
+                                 val[found.end():])
 
         # search
         else:
@@ -156,7 +156,7 @@ def array_strptime(object[:] values, object fmt,
                     iresult[i] = NPY_NAT
                     continue
                 raise ValueError("time data %r does not match format "
-                                 "%r (search)" % (values[i], fmt))
+                                 "%r (search)" % (val, fmt))
 
         iso_year = -1
         year = 1900
