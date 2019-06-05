@@ -18,7 +18,6 @@ if missing_dependencies:
     msg = "Unable to import required dependencies:"
     msg += "".join(missing_dependencies)
     raise ImportError(msg)
-    del msg
 del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
