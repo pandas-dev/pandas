@@ -51,36 +51,6 @@ class Base:
         assert result == self.dtype
 
 
-class TestBaseDtype:
-    def setup_method(self):
-        class DummyDtype(pd.core.dtypes.base.ExtensionDtype):
-            name = 'dummy'
-        self.dtype = DummyDtype()
-
-    def test_str(self):
-        assert str(self.dtype) == self.dtype.name
-
-    def test_eq(self):
-        assert self.dtype == 'dummy'
-        assert self.dtype != 'anonther_type'
-
-    def test_default_kind(self):
-        assert self.dtype.kind == 'O'
-
-    def test_construct_from_string(self):
-        dtype_instance = self.dtype.__class__.construct_from_string('dummy')
-        assert isinstance(dtype_instance, self.dtype.__class__)
-        with pytest.raises(TypeError, match="Cannot construct a 'DummyDtype' "
-                                            "from 'another_type'"):
-            self.dtype.__class__.construct_from_string('another_type')
-
-    def test_default_is_numeric(self):
-        assert not self.dtype._is_numeric
-
-    def test_default_is_boolean(self):
-        assert not self.dtype._is_numeric
-
-
 class TestCategoricalDtype(Base):
 
     def create(self):
