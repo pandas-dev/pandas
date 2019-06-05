@@ -1667,6 +1667,11 @@ def _arith_method_SERIES(cls, op, special):
             raise
 
     def wrapper(left, right):
+        if hasattr(right, '__pandas_ufunc__'):
+            result = right.__pandas_ufunc__(op, '__call__', left, right)
+            if result is not NotImplemented:
+                return result
+
         if isinstance(right, ABCDataFrame):
             return NotImplemented
 
@@ -1791,6 +1796,11 @@ def _comp_method_SERIES(cls, op, special):
         return result
 
     def wrapper(self, other, axis=None):
+        if hasattr(other, '__pandas_ufunc__'):
+            result = other.__pandas_ufunc__(op, '__call__', self, other)
+            if result is not NotImplemented:
+                return result
+
         # Validate the axis parameter
         if axis is not None:
             self._get_axis_number(axis)
@@ -1948,6 +1958,11 @@ def _bool_method_SERIES(cls, op, special):
     fill_bool = lambda x: x.fillna(False).astype(bool)
 
     def wrapper(self, other):
+        if hasattr(other, '__pandas_ufunc__'):
+            result = other.__pandas_ufunc__(op, '__call__', self, other)
+            if result is not NotImplemented:
+                return result
+
         is_self_int_dtype = is_integer_dtype(self.dtype)
 
         self, other = _align_method_SERIES(self, other, align_asobject=True)
@@ -1996,6 +2011,11 @@ def _flex_method_SERIES(cls, op, special):
 
     @Appender(doc)
     def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
+        if hasattr(other, '__pandas_ufunc__'):
+            result = other.__pandas_ufunc__(op, '__call__', self, other)
+            if result is not NotImplemented:
+                return result
+
         # validate axis
         if axis is not None:
             self._get_axis_number(axis)
@@ -2147,6 +2167,10 @@ def _arith_method_FRAME(cls, op, special):
 
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
+        if hasattr(other, '__pandas_ufunc__'):
+            result = other.__pandas_ufunc__(op, '__call__', self, other)
+            if result is not NotImplemented:
+                return result
 
         other = _align_method_FRAME(self, other, axis)
 
@@ -2191,6 +2215,10 @@ def _flex_comp_method_FRAME(cls, op, special):
 
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None):
+        if hasattr(other, '__pandas_ufunc__'):
+            result = other.__pandas_ufunc__(op, '__call__', self, other)
+            if result is not NotImplemented:
+                return result
 
         other = _align_method_FRAME(self, other, axis)
 
@@ -2220,6 +2248,10 @@ def _comp_method_FRAME(cls, func, special):
 
     @Appender('Wrapper for comparison method {name}'.format(name=op_name))
     def f(self, other):
+        if hasattr(other, '__pandas_ufunc__'):
+            result = other.__pandas_ufunc__(op, '__call__', self, other)
+            if result is not NotImplemented:
+                return result
 
         other = _align_method_FRAME(self, other, axis=None)
 
@@ -2290,6 +2322,11 @@ def _arith_method_SPARSE_SERIES(cls, op, special):
     op_name = _get_op_name(op, special)
 
     def wrapper(self, other):
+        if hasattr(other, '__pandas_ufunc__'):
+            result = other.__pandas_ufunc__(op, '__call__', self, other)
+            if result is not NotImplemented:
+                return result
+
         if isinstance(other, ABCDataFrame):
             return NotImplemented
         elif isinstance(other, ABCSeries):
@@ -2331,6 +2368,11 @@ def _arith_method_SPARSE_ARRAY(cls, op, special):
     def wrapper(self, other):
         from pandas.core.arrays.sparse.array import (
             SparseArray, _sparse_array_op, _wrap_result, _get_fill)
+        if hasattr(other, '__pandas_ufunc__'):
+            result = other.__pandas_ufunc__(op, '__call__', self, other)
+            if result is not NotImplemented:
+                return result
+
         if isinstance(other, np.ndarray):
             if len(self) != len(other):
                 raise AssertionError("length mismatch: {self} vs. {other}"
