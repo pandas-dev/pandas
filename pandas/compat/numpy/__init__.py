@@ -1,9 +1,9 @@
 """ support numpy compatiblitiy across versions """
 
-import re
-import numpy as np
 from distutils.version import LooseVersion
+import re
 
+import numpy as np
 
 # numpy versioning
 _np_version = np.__version__
