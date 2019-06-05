@@ -363,15 +363,13 @@ class SharedWithSparse:
         for col, s in mixed_T.items():
             assert s.dtype == np.object_
 
-    def test_swapaxes(self):
+    def test_swapaxes_deprecated(self):
         df = self.klass(np.random.randn(10, 5))
-        self._assert_frame_equal(df.T, df.swapaxes(0, 1))
-        self._assert_frame_equal(df.T, df.swapaxes(1, 0))
-        self._assert_frame_equal(df, df.swapaxes(0, 0))
-        msg = ("No axis named 2 for object type"
-               r" <class 'pandas.core(.sparse)?.frame.(Sparse)?DataFrame'>")
-        with pytest.raises(ValueError, match=msg):
-            df.swapaxes(2, 5)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            swapped = df.swapaxes(0, 1)
+
+        tm.assert_frame_equal(swapped, df.T)
 
     def test_axis_aliases(self, float_frame):
         f = float_frame

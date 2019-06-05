@@ -695,10 +695,17 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Interchange axes and swap values axes appropriately.
 
+        .. deprecated:: 0.25.0
+            Use ``.T`` or ``.transpose()`` instead.
+
         Returns
         -------
         y : same as input
         """
+        warnings.warn("{obj}.swapaxes is deprecated and will be removed "
+                      "in a future version. Use {obj}.T or {obj}.transpose() "
+                      "instead".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
         i = self._get_axis_number(axis1)
         j = self._get_axis_number(axis2)
 

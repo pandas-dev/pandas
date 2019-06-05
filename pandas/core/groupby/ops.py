@@ -468,14 +468,14 @@ class BaseGrouper:
         arity = self._cython_arity.get(how, 1)
 
         vdim = values.ndim
-        swapped = False
+        transposed = False
         if vdim == 1:
             values = values[:, None]
             out_shape = (self.ngroups, arity)
         else:
             if axis > 0:
-                swapped = True
-                values = values.swapaxes(0, axis)
+                transposed = True
+                values = values.transpose()
             if arity > 1:
                 raise NotImplementedError("arity of more than 1 is not "
                                           "supported for the 'how' argument")
@@ -567,8 +567,8 @@ class BaseGrouper:
         else:
             names = None
 
-        if swapped:
-            result = result.swapaxes(0, axis)
+        if transposed:
+            result = result.transpose()
 
         return result, names
 
