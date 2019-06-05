@@ -476,6 +476,9 @@ Other Deprecations
   the :meth:`SparseArray.to_dense` method instead (:issue:`26421`).
 - The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64` or :meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
 - The :meth:`DataFrame.compound` and :meth:`Series.compound` methods are deprecated and will be removed in a future version (:issue:`26405`).
+- The internal attributes ``_start``, ``_stop`` and ``_step`` attributes of :class:`RangeIndex` have been deprecated.
+  Use the public attributes :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop` and :attr:`~RangeIndex.step` instead (:issue:`26581`).
+
 
 .. _whatsnew_0250.prior_deprecations:
 

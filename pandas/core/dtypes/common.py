@@ -1,4 +1,5 @@
 """ common type operations """
+from typing import Union
 import warnings
 
 import numpy as np
@@ -123,6 +124,34 @@ def ensure_int_or_float(arr: ArrayLike, copy=False) -> np.array:
         return arr.astype('uint64', copy=copy, casting='safe')
     except TypeError:
         return arr.astype('float64', copy=copy)
+
+
+def ensure_python_int(value: Union[int, np.integer]) -> int:
+    """
+    Ensure that a value is a python int.
+
+    Parameters
+    ----------
+    value: int or numpy.integer
+
+    Returns
+    -------
+    int
+
+    Raises
+    ------
+    TypeError: if the value isn't an int or can't be converted to one.
+    """
+    if not is_scalar(value):
+        raise TypeError("Value needs to be a scalar value, was type {}"
+                        .format(type(value)))
+    msg = "Wrong type {} for value {}"
+    try:
+        new_value = int(value)
+        assert (new_value == value)
+    except (TypeError, ValueError, AssertionError):
+        raise TypeError(msg.format(type(value), value))
+    return new_value
 
 
 def classes(*klasses):

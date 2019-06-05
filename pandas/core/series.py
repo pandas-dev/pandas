@@ -4010,7 +4010,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         >>> s = pd.Series(range(3))
         >>> s.memory_usage()
-        104
+        152
 
         Not including the index gives the size of the rest of the data, which
         is necessarily smaller:
@@ -4024,9 +4024,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.values
         array(['a', 'b'], dtype=object)
         >>> s.memory_usage()
-        96
+        144
         >>> s.memory_usage(deep=True)
-        212
+        260
         """
         v = super().memory_usage(deep=deep)
         if index:
