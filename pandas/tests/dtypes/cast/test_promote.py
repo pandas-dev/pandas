@@ -45,6 +45,19 @@ def box(request):
     return request.param
 
 
+def _safe_dtype_assert(left_dtype, right_dtype):
+    """
+    Compare two dtypes without raising TypeError.
+    """
+    if isinstance(right_dtype, PandasExtensionDtype):
+        # switch order of equality check because numpy dtypes (e.g. if
+        # left_dtype is np.object_) do not know some expected dtypes (e.g.
+        # DatetimeTZDtype) and would raise a TypeError in their __eq__-method.
+        assert right_dtype == left_dtype
+    else:
+        assert left_dtype == right_dtype
+
+
 def _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
                    exp_val_for_scalar=None, exp_val_for_array=None):
     """
@@ -89,13 +102,7 @@ def _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
         result_dtype, result_fill_value = maybe_promote(dtype, fill_value)
         expected_fill_value = exp_val_for_scalar
 
-    if isinstance(expected_dtype, PandasExtensionDtype):
-        # switch order of equality check because numpy dtypes (e.g. if
-        # result_dtype is np.object_) do not know some expected dtypes (e.g.
-        # DatetimeTZDtype) and would raise a TypeError in their __eq__-method.
-        assert expected_dtype == result_dtype
-    else:
-        assert result_dtype == expected_dtype
+    _safe_dtype_assert(result_dtype, expected_dtype)
 
     # for equal values, also check type (relevant e.g. for int vs float, resp.
     # for different datetimes and timedeltas)
