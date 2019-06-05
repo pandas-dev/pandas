@@ -62,7 +62,7 @@ all_indexes = [index for index in ([Index] + list(set(_get_subclasses(Index))))
 @pytest.fixture(params=all_indexes)
 def all_index_types(request):
     """
-    A Fixture for all indexes types. Index and subclasses (includes ABCs).
+    A Fixture for all indexes types. Index and subclasses in pandas namespace.
     """
     return request.param
 
@@ -70,7 +70,7 @@ def all_index_types(request):
 @pytest.fixture
 def all_index_empty(all_index_types):
     """
-    A Fixture for empty instances of all indexes types (except ABCs).
+    A Fixture for empty instances of all indexes types in pandas namespace.
     """
     cls = all_index_types
     if issubclass(cls, RangeIndex):
@@ -80,7 +80,4 @@ def all_index_empty(all_index_types):
     elif issubclass(cls, PeriodIndex):
         return cls([], freq='M', name='foo')
     else:
-        try:
-            return cls([], name='foo')
-        except AttributeError:
-            pytest.skip("{} is an ABC.".format(cls.__name__))
+        return cls([], name='foo')
