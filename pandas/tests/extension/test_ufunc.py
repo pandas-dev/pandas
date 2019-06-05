@@ -16,4 +16,4 @@ def test_ufunc_implemented():
 
 def test_ufunc_not_implemented():
     with pytest.raises(AssertionError):
-        pd.DataFrame() + CustomOperatorOverload()
+        pd.DataFrame() * CustomOperatorOverload()
