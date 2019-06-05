@@ -22,4 +22,4 @@ def test_ufunc_implemented():
 def test_ufunc_not_implemented():
     df = pd.DataFrame({'x': [1, 2]})
     with pytest.raises(AssertionError):
-        result = df * Pipe(lambda x: x + 1)
+        df * Pipe(lambda x: x + 1)

@@ -2249,7 +2249,7 @@ def _comp_method_FRAME(cls, func, special):
     @Appender('Wrapper for comparison method {name}'.format(name=op_name))
     def f(self, other):
         if hasattr(other, '__pandas_ufunc__'):
-            result = other.__pandas_ufunc__(op, '__call__', self, other)
+            result = other.__pandas_ufunc__(func, '__call__', self, other)
             if result is not NotImplemented:
                 return result
 
