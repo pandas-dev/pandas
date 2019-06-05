@@ -51,10 +51,8 @@ class TestRangeIndex(Numeric):
         expected = Index(np.arange(start, stop, step, dtype=np.int64),
                          name=name)
         assert isinstance(result, RangeIndex)
-        assert result._start == start
-        assert result._stop == stop
-        assert result._step == step
         assert result.name is name
+        assert result._range == range(start, stop, step)
         tm.assert_index_equal(result, expected)
 
     def test_constructor_invalid_args(self):
@@ -169,14 +167,19 @@ class TestRangeIndex(Numeric):
         assert index.stop == stop
         assert index.step == step
 
+    def test_deprecated_start_stop_step_attrs(self):
+        # GH 26581
+        idx = self.create_index()
+        for attr_name in ['_start', '_stop', '_step']:
+            with tm.assert_produces_warning(DeprecationWarning):
+                getattr(idx, attr_name)
+
     def test_copy(self):
         i = RangeIndex(5, name='Foo')
         i_copy = i.copy()
         assert i_copy is not i
         assert i_copy.identical(i)
-        assert i_copy._start == 0
-        assert i_copy._stop == 5
-        assert i_copy._step == 1
+        assert i_copy._range == range(0, 5, 1)
         assert i_copy.name == 'Foo'
 
     def test_repr(self):
@@ -243,8 +246,9 @@ class TestRangeIndex(Numeric):
 
     def test_cached_data(self):
         # GH 26565
-        # Calling RangeIndex._data caches an int64 array of the same length at
-        # self._cached_data. This tests whether _cached_data has been set.
+        # Calling RangeIndex._data caches an int64 array of the same length as
+        # self at self._cached_data.
+        # This tests whether _cached_data is being set by various operations.
         idx = RangeIndex(0, 100, 10)
 
         assert idx._cached_data is None
@@ -273,7 +277,7 @@ class TestRangeIndex(Numeric):
         df.iloc[5:10]
         assert idx._cached_data is None
 
-        # actually calling data._data
+        # actually calling idx._data
         assert isinstance(idx._data, np.ndarray)
         assert isinstance(idx._cached_data, np.ndarray)
 
