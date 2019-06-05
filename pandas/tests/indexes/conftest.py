@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import Index, MultiIndex, RangeIndex, PeriodIndex
 import pandas.util.testing as tm
 
 indices_list = [tm.makeUnicodeIndex(100),
@@ -47,3 +47,40 @@ def zero(request):
     # For testing division by (or of) zero for Index with length 5, this
     # gives several scalar-zeros and length-5 vector-zeros
     return request.param
+
+
+def _get_subclasses(cls):
+    for subclass in cls.__subclasses__():
+        yield from _get_subclasses(subclass)
+        yield subclass
+
+
+all_indexes = [index for index in ([Index] + list(set(_get_subclasses(Index))))
+               if getattr(pd, index.__name__, None) is not None]
+
+
+@pytest.fixture(params=all_indexes)
+def all_index_types(request):
+    """
+    A Fixture for all indexes types. Index and subclasses (includes ABCs).
+    """
+    return request.param
+
+
+@pytest.fixture
+def all_index_empty(all_index_types):
+    """
+    A Fixture for empty instances of all indexes types (except ABCs).
+    """
+    cls = all_index_types
+    if issubclass(cls, RangeIndex):
+        return cls(0, name='foo')
+    elif issubclass(cls, MultiIndex):
+        return cls.from_arrays([[], []], names=['foo', 'bar'])
+    elif issubclass(cls, PeriodIndex):
+        return cls([], freq='M', name='foo')
+    else:
+        try:
+            return cls([], name='foo')
+        except AttributeError:
+            pytest.skip("{} is an ABC.".format(cls.__name__))
