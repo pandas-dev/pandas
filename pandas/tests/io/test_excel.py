@@ -51,8 +51,9 @@ def ignore_xlrd_time_clock_warning():
         yield
 
 
-@td.skip_if_no('xlrd', '1.0.0')
-class ReadingTestsBase:
+@td.skip_if_no('xlrd')
+@pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
+class TestReaders:
     # This is based on ExcelWriterBase
 
     @pytest.fixture(autouse=True, params=['xlrd', None])
@@ -837,7 +838,7 @@ class ReadingTestsBase:
         tm.assert_series_equal(actual, expected)
 
 
-@td.skip_if_no('xlrd', '1.0.0')
+@td.skip_if_no('xlrd')
 @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
 class TestRoundTrip:
 
@@ -1038,9 +1039,9 @@ class TestRoundTrip:
             tm.assert_frame_equal(df, res)
 
 
-@td.skip_if_no('xlrd', '1.0.0')
+@td.skip_if_no('xlrd')
 @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
-class TestXlrdReader(ReadingTestsBase):
+class TestXlrdReader:
     """
     This is the base class for the xlrd tests, and 3 different file formats
     are supported: xls, xlsx, xlsm
