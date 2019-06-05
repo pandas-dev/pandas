@@ -1,6 +1,8 @@
-import pandas as pd
-import pytest
 import operator
+
+import pytest
+
+import pandas as pd
 
 
 class Pipe:
