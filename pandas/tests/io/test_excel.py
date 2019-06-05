@@ -33,13 +33,6 @@ def frame(float_frame):
 
 
 @pytest.fixture
-def frame2(float_frame):
-    float_frame = float_frame.copy()
-    float_frame.columns = ['D', 'C', 'B', 'A']
-    return float_frame[:10]
-
-
-@pytest.fixture
 def tsframe():
     return tm.makeTimeDataFrame()[:5]
 
@@ -1149,9 +1142,11 @@ class TestExcelWriter(_WriterBase):
         with pytest.raises(xlrd.XLRDError):
             pd.read_excel(xl, "0")
 
-    def test_excel_writer_context_manager(self, frame, frame2, *_):
+    def test_excel_writer_context_manager(self, frame, *_):
         with ExcelWriter(self.path) as writer:
             frame.to_excel(writer, "Data1")
+            frame2 = frame.copy()
+            frame2.columns = frame.columns[::-1]
             frame2.to_excel(writer, "Data2")
 
         with ExcelFile(self.path) as reader:
@@ -1318,7 +1313,7 @@ class TestExcelWriter(_WriterBase):
         assert 'test1' == reader.sheet_names[0]
         assert 'test2' == reader.sheet_names[1]
 
-    def test_colaliases(self, merge_cells, engine, ext, frame, frame2):
+    def test_colaliases(self, merge_cells, engine, ext, frame):
         frame = frame.copy()
         frame['A'][:5] = nan
 
@@ -1329,10 +1324,10 @@ class TestExcelWriter(_WriterBase):
 
         # column aliases
         col_aliases = Index(['AA', 'X', 'Y', 'Z'])
-        frame2.to_excel(self.path, 'test1', header=col_aliases)
+        frame.to_excel(self.path, 'test1', header=col_aliases)
         reader = ExcelFile(self.path)
         rs = pd.read_excel(reader, 'test1', index_col=0)
-        xp = frame2.copy()
+        xp = frame.copy()
         xp.columns = col_aliases
         tm.assert_frame_equal(xp, rs)
 
