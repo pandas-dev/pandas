@@ -82,7 +82,7 @@ Other Enhancements
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
 - :func:`merge_asof` now gives a more clear error message when merge keys are categoricals that are not equal (:issue:`26136`)
 - :meth:`pandas.core.window.Rolling` supports exponential (or Poisson) window type (:issue:`21303`)
--
+- Error message for missing required imports now includes the original ImportError's text (:issue:`23868`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -476,6 +476,9 @@ Other Deprecations
   the :meth:`SparseArray.to_dense` method instead (:issue:`26421`).
 - The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64` or :meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
 - The :meth:`DataFrame.compound` and :meth:`Series.compound` methods are deprecated and will be removed in a future version (:issue:`26405`).
+- The internal attributes ``_start``, ``_stop`` and ``_step`` attributes of :class:`RangeIndex` have been deprecated.
+  Use the public attributes :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop` and :attr:`~RangeIndex.step` instead (:issue:`26581`).
+
 
 .. _whatsnew_0250.prior_deprecations:
 
@@ -487,6 +490,7 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``parse_cols`` keyword in :func:`read_excel` (:issue:`16488`)
 - Removed the previously deprecated ``pd.options.html.border`` (:issue:`16970`)
 - Removed the previously deprecated ``convert_objects`` (:issue:`11221`)
+- Removed the previously deprecated ``select`` method of ``DataFrame`` and ``Series`` (:issue:`17633`)
 
 .. _whatsnew_0250.performance:
 
@@ -534,6 +538,7 @@ Datetimelike
 - Bug in adding :class:`DateOffset` with nonzero month to :class:`DatetimeIndex` would raise ``ValueError`` (:issue:`26258`)
 - Bug in :func:`to_datetime` which raises unhandled ``OverflowError`` when called with mix of invalid dates and ``NaN`` values with ``format='%Y%m%d'`` and ``error='coerce'`` (:issue:`25512`)
 - Bug in :meth:`isin` for datetimelike indexes; :class:`DatetimeIndex`, :class:`TimedeltaIndex` and :class:`PeriodIndex` where the ``levels`` parmeter was ignored. (:issue:`26675`) 
+- Bug in :func:`to_datetime` which raises ``TypeError`` for ``format='%Y%m%d'`` when called for invalid integer dates with length >= 6 digits with ``errors='ignore'``
 
 Timedelta
 ^^^^^^^^^
