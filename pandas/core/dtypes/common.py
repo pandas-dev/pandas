@@ -1901,7 +1901,7 @@ def _is_dtype_type(arr_or_dtype, condition):
         return condition(np.dtype(arr_or_dtype).type)
     elif arr_or_dtype is None:
         return condition(type(None))
-    
+
     # if we have an array-like
     if hasattr(arr_or_dtype, 'dtype'):
         arr_or_dtype = arr_or_dtype.dtype
