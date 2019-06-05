@@ -17,61 +17,15 @@ if missing_dependencies:
         "Missing required dependencies {0}".format(missing_dependencies))
 del hard_dependencies, dependency, missing_dependencies
 
-from datetime import datetime
-
-from pandas._config import (
-    describe_option, get_option, option_context, options, reset_option,
-    set_option)
-
 # numpy compat
 from pandas.compat.numpy import (
     _np_version_under1p14, _np_version_under1p15, _np_version_under1p16,
     _np_version_under1p17)
-from pandas.util._print_versions import show_versions
-from pandas.util._tester import test
-
-# let init-time option registration happen
-import pandas.arrays
-from pandas.core.computation.api import eval
-import pandas.core.config_init
-from pandas.core.reshape.api import (
-    concat, crosstab, cut, get_dummies, lreshape, melt, merge, merge_asof,
-    merge_ordered, pivot, pivot_table, qcut, wide_to_long)
-from pandas.core.sparse.api import (
-    SparseArray, SparseDataFrame, SparseDtype, SparseSeries)
-import pandas.testing
-
-from pandas.tseries import offsets
-from pandas.tseries.api import infer_freq
-
-# use the closest tagged version if possible
-from ._version import get_versions
-
-from pandas.core.api import (
-    # dtype; missing; indexes; tseries; conversion; misc
-    Categorical, CategoricalDtype, CategoricalIndex, DataFrame, DateOffset,
-    DatetimeIndex, DatetimeTZDtype, Float64Index, Grouper, Index, IndexSlice,
-    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, Int64Index, Interval,
-    IntervalDtype, IntervalIndex, MultiIndex, NamedAgg, NaT, Panel, Period,
-    PeriodDtype, PeriodIndex, RangeIndex, Series, Timedelta, TimedeltaIndex,
-    Timestamp, UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype, UInt64Index,
-    array, bdate_range, date_range, factorize, interval_range, isna, isnull,
-    notna, notnull, np, period_range, set_eng_float_format, timedelta_range,
-    to_datetime, to_numeric, to_timedelta, unique, value_counts)
-
-from pandas.io.api import (
-    # excel; packers; parsers; pickle; pytables; sql; misc
-    ExcelFile, ExcelWriter, HDFStore, read_clipboard, read_csv, read_excel,
-    read_feather, read_fwf, read_gbq, read_hdf, read_html, read_json,
-    read_msgpack, read_parquet, read_pickle, read_sas, read_sql,
-    read_sql_query, read_sql_table, read_stata, read_table, to_msgpack,
-    to_pickle)
-
 
 try:
     from pandas._libs import (hashtable as _hashtable,
-                              lib as _lib,
-                              tslib as _tslib)
+                             lib as _lib,
+                             tslib as _tslib)
 except ImportError as e:  # pragma: no cover
     # hack but overkill to use re
     module = str(e).replace('cannot import name ', '')
@@ -80,6 +34,86 @@ except ImportError as e:  # pragma: no cover
                       "'python setup.py build_ext --inplace --force' to build "
                       "the C extensions first.".format(module))
 
+from datetime import datetime
+
+from pandas._config import (get_option, set_option, reset_option,
+                            describe_option, option_context, options)
+
+# let init-time option registration happen
+import pandas.core.config_init
+
+from pandas.core.api import (
+    # dtype
+    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype,
+    UInt16Dtype, UInt32Dtype, UInt64Dtype, CategoricalDtype,
+    PeriodDtype, IntervalDtype, DatetimeTZDtype,
+
+    # missing
+    isna, isnull, notna, notnull,
+
+    # indexes
+    Index, CategoricalIndex, Int64Index, UInt64Index, RangeIndex,
+    Float64Index, MultiIndex, IntervalIndex, TimedeltaIndex,
+    DatetimeIndex, PeriodIndex, IndexSlice,
+
+    # tseries
+    NaT, Period, period_range, Timedelta, timedelta_range,
+    Timestamp, date_range, bdate_range, Interval, interval_range,
+    DateOffset,
+
+    # conversion
+    to_numeric, to_datetime, to_timedelta,
+
+    # misc
+    np, Grouper, factorize, unique, value_counts, NamedAgg,
+    array, Categorical, set_eng_float_format, Series, DataFrame,
+    Panel)
+
+from pandas.core.sparse.api import (
+    SparseArray, SparseDataFrame, SparseSeries, SparseDtype)
+
+from pandas.tseries.api import infer_freq
+from pandas.tseries import offsets
+
+from pandas.core.computation.api import eval
+
+from pandas.core.reshape.api import (
+    concat, lreshape, melt, wide_to_long, merge, merge_asof,
+    merge_ordered, crosstab, pivot, pivot_table, get_dummies,
+    cut, qcut)
+
+from pandas.util._print_versions import show_versions
+
+from pandas.io.api import (
+    # excel
+    ExcelFile, ExcelWriter, read_excel,
+
+    # packers
+    read_msgpack, to_msgpack,
+
+    # parsers
+    read_csv, read_fwf, read_table,
+
+    # pickle
+    read_pickle, to_pickle,
+
+    # pytables
+    HDFStore, read_hdf,
+
+    # sql
+    read_sql, read_sql_query,
+    read_sql_table,
+
+    # misc
+    read_clipboard, read_parquet, read_feather, read_gbq,
+    read_html, read_json, read_stata, read_sas)
+
+from pandas.util._tester import test
+import pandas.testing
+import pandas.arrays
+
+# use the closest tagged version if possible
+from ._version import get_versions
 v = get_versions()
 __version__ = v.get('closest-tag', v['version'])
 __git_version__ = v.get('full-revisionid')

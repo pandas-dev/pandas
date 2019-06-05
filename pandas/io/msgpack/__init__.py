@@ -1,12 +1,9 @@
 # coding: utf-8
 
 from collections import namedtuple
-import os  # noqa
 
-from pandas.io.msgpack._packer import Packer  # noqa
-from pandas.io.msgpack._unpacker import Unpacker, unpack, unpackb  # noqa
-from pandas.io.msgpack._version import version  # noqa
 from pandas.io.msgpack.exceptions import *  # noqa
+from pandas.io.msgpack._version import version  # noqa
 
 
 class ExtType(namedtuple('ExtType', 'code data')):
@@ -20,7 +17,10 @@ class ExtType(namedtuple('ExtType', 'code data')):
             raise ValueError("code must be 0~127")
         return super().__new__(cls, code, data)
 
+import os  # noqa
 
+from pandas.io.msgpack._packer import Packer  # noqa
+from pandas.io.msgpack._unpacker import unpack, unpackb, Unpacker  # noqa
 
 
 def pack(o, stream, **kwargs):
