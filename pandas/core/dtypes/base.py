@@ -216,7 +216,7 @@ class ExtensionDtype:
         """
         if string != cls.name:
             raise TypeError("Cannot construct a '{}' from '{}'".format(
-                cls, string))
+                cls.__name__, string))
         return cls()
 
     @classmethod
