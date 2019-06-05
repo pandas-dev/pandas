@@ -1892,6 +1892,9 @@ def _is_dtype_type(arr_or_dtype, condition):
     bool : if the condition is satisifed for the arr_or_dtype
     """
 
+    if arr_or_dtype is None:
+        return condition(type(None))
+
     # fastpath
     if isinstance(arr_or_dtype, np.dtype):
         return condition(arr_or_dtype.type)
@@ -1899,8 +1902,6 @@ def _is_dtype_type(arr_or_dtype, condition):
         if issubclass(arr_or_dtype, ExtensionDtype):
             arr_or_dtype = arr_or_dtype.type
         return condition(np.dtype(arr_or_dtype).type)
-    elif arr_or_dtype is None:
-        return condition(type(None))
 
     # if we have an array-like
     if hasattr(arr_or_dtype, 'dtype'):
