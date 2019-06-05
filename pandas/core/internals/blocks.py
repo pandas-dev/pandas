@@ -1350,6 +1350,7 @@ class Block(PandasObject):
         # might need to separate out blocks
         axis = cond.ndim - 1
         cond = cond.swapaxes(axis, 0)
+
         mask = np.array([cond[i].all() for i in range(cond.shape[0])],
                         dtype=bool)
 
