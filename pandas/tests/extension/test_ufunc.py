@@ -11,9 +11,9 @@ class CustomOperatorOverload(object):
 
 
 def test_ufunc_implemented():
-    assert pd.DataFrame() + CustomOperatorOverload() == 5
+    assert pd.DataFrame({'x': [1]}) + CustomOperatorOverload() == 5
 
 
 def test_ufunc_not_implemented():
     with pytest.raises(AssertionError):
-        pd.DataFrame() * CustomOperatorOverload()
+        pd.DataFrame({'x': [1]}) * CustomOperatorOverload()
