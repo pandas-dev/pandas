@@ -1887,6 +1887,8 @@ class DataFrame(NDFrame):
 
     def to_sparse(self, fill_value=None, kind='block'):
         """
+        ..deprecated:: 0.25.0
+        
         Convert to SparseDataFrame.
 
         Implement the sparse version of the DataFrame meaning that any data
@@ -1939,6 +1941,9 @@ class DataFrame(NDFrame):
         >>> type(sdf)  # doctest: +SKIP
         <class 'pandas.core.sparse.frame.SparseDataFrame'>
         """
+        warning_message ="""to_sparse is deprecated and will be removed in a future version"""
+        warnings.warn(warning_message, FutureWarning, stacklevel=2)
+        
         from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns, default_kind=kind,

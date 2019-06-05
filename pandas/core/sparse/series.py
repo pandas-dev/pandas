@@ -428,12 +428,15 @@ class SparseSeries(Series):
 
     def to_dense(self):
         """
+        ..deprecated:: 0.25.0
         Convert SparseSeries to a Series.
-
         Returns
         -------
         s : Series
         """
+        warning_message ="""to_dense is deprecated and will be removed in a future version"""
+        warnings.warn(warning_message, FutureWarning, stacklevel=2)
+                
         return Series(self.values.to_dense(), index=self.index,
                       name=self.name)
 
