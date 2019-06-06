@@ -198,6 +198,17 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_with_interval_index(self, dropna):
+        df = pd.DataFrame(
+            {'A': pd.Categorical([pd.Interval(0, 1)] * 4),
+             'B': [1] * 4})
+        result = df.pivot_table(index='A', values='B', dropna=dropna)
+        expected = pd.DataFrame(
+            {'B': [1]},
+            index=pd.Index(pd.Categorical([pd.Interval(0, 1)]),
+                           name='A'))
+        tm.assert_frame_equal(result, expected)
+
     def test_pass_array(self):
         result = self.data.pivot_table(
             'D', index=self.data.A, columns=self.data.C)
