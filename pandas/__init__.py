@@ -5,8 +5,6 @@ __docformat__ = 'restructuredtext'
 # Let users know if they're missing any of our hard dependencies
 hard_dependencies = ("numpy", "pytz", "dateutil")
 missing_dependencies = []
-msg = None
-e = None
 
 for dependency in hard_dependencies:
     try:
@@ -14,12 +12,14 @@ for dependency in hard_dependencies:
     except ImportError as e:
         missing_dependencies.append((dependency, e))
 
+msg = None
+ex = None
 if missing_dependencies:
     msg = "Unable to import required dependencies:"
-    for dependency, e in missing_dependencies:
-        msg += "\n{0}: {1}".format(dependency, str(e))
+    for dependency, ex in missing_dependencies:
+        msg += "\n{0}: {1}".format(dependency, str(ex))
     raise ImportError(msg)
-del hard_dependencies, dependency, missing_dependencies, e, msg
+del hard_dependencies, dependency, missing_dependencies, ex, msg
 
 # numpy compat
 from pandas.compat.numpy import (
