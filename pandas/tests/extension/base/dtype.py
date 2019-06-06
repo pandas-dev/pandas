@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+import pytest
 
 import pandas as pd
 
@@ -89,3 +90,16 @@ class BaseDtypeTests(BaseExtensionTests):
 
     def test_hashable(self, dtype):
         hash(dtype)  # no error
+
+    def test_str(self, dtype):
+        assert str(dtype) == dtype.name
+
+    def test_eq(self, dtype):
+        assert dtype == dtype.name
+        assert dtype != 'anonther_type'
+
+    def test_construct_from_string(self, dtype):
+        dtype_instance = dtype.__class__.construct_from_string(dtype.name)
+        assert isinstance(dtype_instance, dtype.__class__)
+        with pytest.raises(TypeError):
+            dtype.__class__.construct_from_string('another_type')
