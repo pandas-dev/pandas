@@ -1347,6 +1347,8 @@ def test_to_numpy_dtype(as_series):
 
 @patch("builtins.__import__")
 def test_missing_required_dependency(mock_import):
+    original_import = __import__
+
     def mock_import_fail(name, *args, **kwargs):
         if name == "numpy":
             raise ImportError("cannot import name numpy")
@@ -1355,9 +1357,7 @@ def test_missing_required_dependency(mock_import):
         elif name == "dateutil":
             raise ImportError("cannot import name some_other_dependency")
         else:
-            return __import__(name, *args, **kwargs)
-
-    mock_import.side_effect = mock_import_fail
+            return original_import(name, *args, **kwargs)
 
     expected_msg = (
         "Unable to import required dependencies:"
@@ -1366,5 +1366,7 @@ def test_missing_required_dependency(mock_import):
         "\ndateutil: cannot import name some_other_dependency"
     )
 
-    with pytest.raises(ImportError, match=expected_msg):
-        reload(pd)
+    with patch("builtins.__import__") as mock_import:
+        mock_import.side_effect = mock_import_fail
+        with pytest.raises(ImportError, match=expected_msg):
+            reload(pd)
