@@ -97,6 +97,42 @@ def _new_IntervalIndex(cls, d):
     return cls.from_arrays(**d)
 
 
+class SetopCheck:
+    """
+    This is called to decorate the set operations of IntervalIndex
+    to perform the type check in advance.
+    """
+    def __init__(self, op_name):
+        self.op_name = op_name
+
+    def __call__(self, setop):
+        def func(intvidx_self, other, sort=False):
+            intvidx_self._assert_can_do_setop(other)
+            other = ensure_index(other)
+
+            if not isinstance(other, IntervalIndex):
+                result = getattr(intvidx_self.astype(object),
+                                 self.op_name)(other)
+                if self.op_name in ('difference',):
+                    result = result.astype(intvidx_self.dtype)
+                return result
+            elif intvidx_self.closed != other.closed:
+                msg = ('can only do set operations between two IntervalIndex '
+                       'objects that are closed on the same side')
+                raise ValueError(msg)
+
+            # GH 19016: ensure set op will not return a prohibited dtype
+            subtypes = [intvidx_self.dtype.subtype, other.dtype.subtype]
+            common_subtype = find_common_type(subtypes)
+            if is_object_dtype(common_subtype):
+                msg = ('can only do {op} between two IntervalIndex '
+                       'objects that have compatible dtypes')
+                raise TypeError(msg.format(op=self.op_name))
+
+            return setop(intvidx_self, other, sort)
+        return func
+
+
 @Appender(_interval_shared_docs['class'] % dict(
     klass="IntervalIndex",
     summary="Immutable index of intervals that are closed on the same side.",
@@ -1102,28 +1138,78 @@ class IntervalIndex(IntervalMixin, Index):
     def overlaps(self, other):
         return self._data.overlaps(other)
 
+    @Appender(_index_shared_docs['intersection'])
+    @SetopCheck(op_name='intersection')
+    def intersection(self, other, sort=False):
+        if self.left.is_unique and self.right.is_unique:
+            taken = self._intersection_unique(other)
+        else:
+            # duplicates
+            taken = self._intersection_non_unique(other)
+
+        if sort is None:
+            taken = taken.sort_values()
+
+        return taken
+
+    def _intersection_unique(self, other):
+        """
+        Used when the IntervalIndex does not have any common endpoint,
+        no mater left or right.
+        Return the intersection with another IntervalIndex.
+
+        Parameters
+        ----------
+        other : IntervalIndex
+
+        Returns
+        -------
+        taken : IntervalIndex
+        """
+        lindexer = self.left.get_indexer(other.left)
+        rindexer = self.right.get_indexer(other.right)
+
+        match = (lindexer == rindexer) & (lindexer != -1)
+        indexer = lindexer.take(match.nonzero()[0])
+
+        return self.take(indexer)
+
+    def _intersection_non_unique(self, other):
+        """
+        Used when the IntervalIndex does have some common endpoints,
+        on either sides.
+        Return the intersection with another IntervalIndex.
+
+        Parameters
+        ----------
+        other : IntervalIndex
+
+        Returns
+        -------
+        taken : IntervalIndex
+        """
+        mask = np.zeros(len(self), dtype=bool)
+
+        if self.hasnans and other.hasnans:
+            first_nan_loc = np.arange(len(self))[self.isna()][0]
+            mask[first_nan_loc] = True
+
+        lmiss = other.left.get_indexer_non_unique(self.left)[1]
+        lmatch = np.setdiff1d(np.arange(len(self)), lmiss)
+
+        for i in lmatch:
+            potential = other.left.get_loc(self.left[i])
+            if is_scalar(potential):
+                if self.right[i] == other.right[potential]:
+                    mask[i] = True
+            elif self.right[i] in other.right[potential]:
+                mask[i] = True
+
+        return self[mask]
+
     def _setop(op_name, sort=None):
+        @SetopCheck(op_name=op_name)
         def func(self, other, sort=sort):
-            self._assert_can_do_setop(other)
-            other = ensure_index(other)
-            if not isinstance(other, IntervalIndex):
-                result = getattr(self.astype(object), op_name)(other)
-                if op_name in ('difference',):
-                    result = result.astype(self.dtype)
-                return result
-            elif self.closed != other.closed:
-                msg = ('can only do set operations between two IntervalIndex '
-                       'objects that are closed on the same side')
-                raise ValueError(msg)
-
-            # GH 19016: ensure set op will not return a prohibited dtype
-            subtypes = [self.dtype.subtype, other.dtype.subtype]
-            common_subtype = find_common_type(subtypes)
-            if is_object_dtype(common_subtype):
-                msg = ('can only do {op} between two IntervalIndex '
-                       'objects that have compatible dtypes')
-                raise TypeError(msg.format(op=op_name))
-
             result = getattr(self._multiindex, op_name)(other._multiindex,
                                                         sort=sort)
             result_name = get_op_result_name(self, other)
@@ -1148,7 +1234,6 @@ class IntervalIndex(IntervalMixin, Index):
         return False
 
     union = _setop('union')
-    intersection = _setop('intersection', sort=False)
     difference = _setop('difference')
     symmetric_difference = _setop('symmetric_difference')
 
