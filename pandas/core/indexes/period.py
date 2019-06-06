@@ -80,7 +80,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     Parameters
     ----------
-    data : array-like (1-dimensional), optional
+    data : array-like (1d integer np.ndarray or PeriodArray), optional
         Optional period-like data to construct index with
     copy : bool
         Make a copy of input ndarray
@@ -168,7 +168,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
-    _data = None  # type: PeriodArray
+    _data = None
 
     _engine_type = libindex.PeriodEngine
 
@@ -939,7 +939,7 @@ def period_range(start=None, end=None, periods=None, freq=None, name=None):
     must be specified.
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
