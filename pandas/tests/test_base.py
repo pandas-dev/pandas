@@ -1369,3 +1369,6 @@ def test_missing_required_dependency():
         mock_import.side_effect = mock_import_fail
         with pytest.raises(ImportError, match=expected_msg):
             reload(pd)
+
+    # Final reload to ensure normal state of pandas
+    reload(pd)
