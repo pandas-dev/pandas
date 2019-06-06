@@ -5,7 +5,7 @@ from pandas.core.api import DataFrame
 
 
 def read_spss(path: Union[str, Path],
-              usecols: Optional[Union[str, Sequence[str]]] = None,
+              usecols: Optional[Sequence[str]] = None,
               categorical: bool = True) -> DataFrame:
     """
     Load an SPSS file from the file path, returning a DataFrame.
@@ -16,7 +16,7 @@ def read_spss(path: Union[str, Path],
     ----------
     path : string or Path
         File path
-    usecols : str or list-like or None
+    usecols : list-like or None
         Return a subset of the columns. If None, return all columns.
     categorical : bool
         Convert categorical columns into pd.Categorical.
