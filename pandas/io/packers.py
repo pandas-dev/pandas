@@ -367,9 +367,10 @@ def encode(obj):
             return {'typ': 'range_index',
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
-                    'start': getattr(obj, '_start', None),
-                    'stop': getattr(obj, '_stop', None),
-                    'step': getattr(obj, '_step', None)}
+                    'start': obj._range.start,
+                    'stop': obj._range.stop,
+                    'step': obj._range.step,
+                    }
         elif isinstance(obj, PeriodIndex):
             return {'typ': 'period_index',
                     'klass': obj.__class__.__name__,
