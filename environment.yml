@@ -22,8 +22,7 @@ dependencies:
   - isort  # check that imports are in the right order
   - mypy
   - pycodestyle  # used by flake8
-  - pip:
-    - cpplint
+  - cpplint
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
