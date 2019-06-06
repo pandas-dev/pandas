@@ -10,16 +10,11 @@ for dependency in hard_dependencies:
     try:
         __import__(dependency)
     except ImportError as e:
-        missing_dependencies.append((dependency, e))
+        missing_dependencies.append("{0}: {1}".format(dependency, str(e)))
 
-msg = None
-ex = None
 if missing_dependencies:
-    msg = "Unable to import required dependencies:"
-    for dependency, ex in missing_dependencies:
-        msg += "\n{0}: {1}".format(dependency, str(ex))
-    raise ImportError(msg)
-del hard_dependencies, dependency, missing_dependencies, ex, msg
+    raise ImportError("Unable to import required dependencies:" + "\n".join(missing_dependencies))
+del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
 from pandas.compat.numpy import (
