@@ -1,9 +1,9 @@
+import builtins
 from datetime import datetime, timedelta
 from importlib import reload
 from io import StringIO
 import re
 import sys
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -1345,7 +1345,7 @@ def test_to_numpy_dtype(as_series):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_missing_required_dependency():
+def test_missing_required_dependency(monkeypatch):
     original_import = __import__
 
     def mock_import_fail(name, *args, **kwargs):
@@ -1365,8 +1365,8 @@ def test_missing_required_dependency():
         "\ndateutil: cannot import name some_other_dependency"
     )
 
-    with patch("builtins.__import__") as mock_import:
-        mock_import.side_effect = mock_import_fail
+    with monkeypatch.context() as m:
+        m.setattr(builtins, "__import__", mock_import_fail)
         with pytest.raises(ImportError, match=expected_msg):
             reload(pd)
 
