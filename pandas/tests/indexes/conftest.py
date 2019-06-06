@@ -1,8 +1,10 @@
+from operator import attrgetter
+
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.indexes.api import Index, MultiIndex, RangeIndex, PeriodIndex
+from pandas.core.indexes.api import Index, MultiIndex, PeriodIndex, RangeIndex
 import pandas.util.testing as tm
 
 indices_list = [tm.makeUnicodeIndex(100),
@@ -55,7 +57,10 @@ def _get_subclasses(cls):
         yield subclass
 
 
-all_indexes = [index for index in ([Index] + list(set(_get_subclasses(Index))))
+all_indexes_inc_abc = [Index] + list(set(_get_subclasses(Index)))
+all_indexes_inc_abc_sorted = sorted(all_indexes_inc_abc,
+                                    key=attrgetter('__name__'))
+all_indexes = [index for index in all_indexes_inc_abc_sorted
                if getattr(pd, index.__name__, None) is not None]
 
 
