@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import IO, AnyStr, Type, TypeVar, Union
+from typing import IO, AnyStr, TypeVar, Union
 
 import numpy as np
 
