@@ -1,6 +1,6 @@
 import copy
 import sys
-from typing import Tuple, Type
+from typing import Type
 import warnings
 
 import numpy as np
