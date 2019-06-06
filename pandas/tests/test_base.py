@@ -1345,8 +1345,7 @@ def test_to_numpy_dtype(as_series):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@patch("builtins.__import__")
-def test_missing_required_dependency(mock_import):
+def test_missing_required_dependency():
     original_import = __import__
 
     def mock_import_fail(name, *args, **kwargs):
