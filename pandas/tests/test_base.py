@@ -1,6 +1,4 @@
-import builtins
 from datetime import datetime, timedelta
-from importlib import reload
 from io import StringIO
 import re
 import sys
@@ -1343,32 +1341,3 @@ def test_to_numpy_dtype(as_series):
     expected = np.array(['2000-01-01T05', '2001-01-01T05'],
                         dtype='M8[ns]')
     tm.assert_numpy_array_equal(result, expected)
-
-
-def test_missing_required_dependency(monkeypatch):
-    original_import = __import__
-
-    def mock_import_fail(name, *args, **kwargs):
-        if name == "numpy":
-            raise ImportError("cannot import name numpy")
-        elif name == "pytz":
-            raise ImportError("cannot import name some_dependency")
-        elif name == "dateutil":
-            raise ImportError("cannot import name some_other_dependency")
-        else:
-            return original_import(name, *args, **kwargs)
-
-    expected_msg = (
-        "Unable to import required dependencies:"
-        "\nnumpy: cannot import name numpy"
-        "\npytz: cannot import name some_dependency"
-        "\ndateutil: cannot import name some_other_dependency"
-    )
-
-    with monkeypatch.context() as m:
-        m.setattr(builtins, "__import__", mock_import_fail)
-        with pytest.raises(ImportError, match=expected_msg):
-            reload(pd)
-
-    # Final reload to ensure normal state of pandas
-    reload(pd)
