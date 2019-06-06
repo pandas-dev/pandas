@@ -29,9 +29,6 @@ def read_spss(path: Union[str, Path],
         from pyreadstat import read_sav
     except ImportError:
         raise ImportError("pyreadstat is required to read SPSS .sav files.")
-    if usecols is not None:
-        if isinstance(usecols, str):
-            usecols = [usecols]
     df, _ = read_sav(path, usecols=usecols,
                      apply_value_formats=categorical)
     return df
