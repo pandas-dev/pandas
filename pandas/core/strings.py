@@ -20,6 +20,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
 import pandas.core.common as com
+from pandas.core.reshape.reshape import get_dummies
 
 _cpython_optimized_encoders = (
     "utf-8", "utf8", "latin-1", "latin1", "iso-8859-1", "mbcs", "ascii"
@@ -1005,17 +1006,14 @@ def str_get_dummies(arr, sep='|'):
     except TypeError:
         arr = sep + arr.astype(str) + sep
 
-    tags = set()
-    for ts in arr.str.split(sep):
-        tags.update(ts)
-    tags = sorted(tags - {""})
+    arr_split = arr.str.split(sep)
+    stacked = np.concatenate(arr_split)
+    stacked_idx = np.repeat(np.arange(len(arr)), arr_split.str.len())
 
-    dummies = np.empty((len(arr), len(tags)), dtype=np.int64)
+    dummies_stacked = get_dummies(stacked)
+    dummies = dummies_stacked.groupby(by=stacked_idx).sum()
 
-    for i, t in enumerate(tags):
-        pat = sep + t + sep
-        dummies[:, i] = lib.map_infer(arr.values, lambda x: pat in x)
-    return dummies, tags
+    return dummies.values, dummies.columns.values
 
 
 def str_join(arr, sep):
