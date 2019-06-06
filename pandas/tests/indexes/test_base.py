@@ -1798,8 +1798,7 @@ class TestIndex(Base):
             index.isin([], level=level)
 
     @pytest.mark.parametrize("label", [1.0, 'foobar', 'xyzzy', np.nan])
-    def test_isin_level_kwarg_bad_label_raises(
-            self, label, all_index_empty):
+    def test_isin_level_kwarg_bad_label_raises(self, label, all_index_empty):
         index = all_index_empty
         if isinstance(index, pd.MultiIndex):
             msg = "'Level {} not found'"
