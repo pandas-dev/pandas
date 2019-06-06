@@ -378,12 +378,7 @@ TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
              FixedOffset(0), FixedOffset(-300), timezone.utc,
              timezone(timedelta(hours=1)),
              timezone(timedelta(hours=-1), name='foo')]
-TIMEZONE_IDS = ['None', 'UTC', 'US/Eastern', 'Asia/Tokyp',
-                'dateutil/US/Pacific', 'dateutil/Asia/Singapore',
-                'dateutil.tz.tzutz()', 'dateutil.tz.tzlocal()',
-                'pytz.FixedOffset(300)', 'pytz.FixedOffset(0)',
-                'pytz.FixedOffset(-300)', 'datetime.timezone.utc',
-                'datetime.timezone.+1', 'datetime.timezone.-1.named']
+TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
 @td.parametrize_fixture_doc(str(TIMEZONE_IDS))
