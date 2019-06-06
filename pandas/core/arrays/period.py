@@ -673,9 +673,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         _raise_on_incompatible(self, other)
 
-    def _values_for_argsort(self):
-        return self._data, self._isnan
-
 
 PeriodArray._add_comparison_ops()
 

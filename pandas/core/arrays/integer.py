@@ -512,28 +512,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         return Series(array, index=index)
 
-    def _values_for_argsort(self) -> Tuple[np.ndarray, np.ndarray]:
-        """Return values for sorting.
-
-        Returns
-        -------
-        ndarray
-            The transformed values should maintain the ordering between values
-            within the array.
-        ndarray
-            The mask which indicates the NA values.
-
-            .. versionadded:: 0.25.0
-
-        See Also
-        --------
-        ExtensionArray.argsort
-        """
-        data = self._data.copy()
-        mask = self._mask
-        data[self._mask] = data.min() - 1
-        return data, mask
-
     @classmethod
     def _create_comparison_method(cls, op):
         def cmp_method(self, other):

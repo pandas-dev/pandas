@@ -23,6 +23,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas._typing import ArrayLike
 from pandas.core import ops
+from pandas.core.sorting import nargsort
 
 _not_implemented_message = "{} does not implement {}."
 
@@ -361,27 +362,6 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def _values_for_argsort(self) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Return values for sorting.
-
-        Returns
-        -------
-        ndarray
-            The transformed values should maintain the ordering between values
-            within the array.
-        ndarray
-            The mask which indicates the NA values.
-
-            .. versionadded:: 0.25.0
-
-        See Also
-        --------
-        ExtensionArray.argsort
-        """
-        # Note: this is used in `ExtensionArray.argsort`.
-        return np.array(self), self.isna()
-
     def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
         """
         Return the indices that would sort this array.
@@ -410,25 +390,14 @@ class ExtensionArray:
         # 1. _values_for_argsort : construct the values passed to np.argsort
         # 2. argsort : total control over sorting.
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
-        values, mask = self._values_for_argsort()
 
-        if mask.any():
-            notmask = ~mask
-            notnull = np.argsort(values[notmask], kind=kind, **kwargs)
-
-            # permu maps the indices of the subarray
-            # without nan to the indices of the original array.
-            permu = np.arange(len(mask))
-            permu = permu[~mask]
-
-            notnull = permu[notnull]
-            allnan = np.arange(len(self))[mask]
-            result = np.append(notnull, allnan)
+        if hasattr(self, '_values_for_argsort'):
+            values = self._values_for_argsort()
         else:
-            result = np.argsort(values, kind=kind, **kwargs)
-
-        if not ascending:
-            result = result[::-1]
+            values = self
+        na_position = 'last' if ascending else 'first'
+        result = nargsort(values, kind=kind, ascending=ascending,
+                          na_position=na_position)
         return result
 
     def fillna(self, value=None, method=None, limit=None):

@@ -171,7 +171,7 @@ class JSONArray(ExtensionArray):
         return cls(data)
 
     def _values_for_factorize(self):
-        frozen, _ = self._values_for_argsort()
+        frozen = self._values_for_argsort()
         if len(frozen) == 0:
             # _factorize_array expects 1-d array, this is a len-0 2-d array.
             frozen = frozen.ravel()
@@ -182,7 +182,7 @@ class JSONArray(ExtensionArray):
         # If all the elemnts of self are the same size P, NumPy will
         # cast them to an (N, P) array, instead of an (N,) array of tuples.
         frozen = [()] + [tuple(x.items()) for x in self]
-        return np.array(frozen, dtype=object)[1:], self.isna()
+        return np.array(frozen, dtype=object)[1:]
 
 
 def make_data():
