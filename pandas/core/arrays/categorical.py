@@ -2666,9 +2666,11 @@ def _factorize_from_iterable(values):
         raise TypeError("Input must be list-like")
 
     if is_categorical(values):
-        if isinstance(values, (ABCCategoricalIndex, ABCSeries)):
-            values = values._values
-        categories = CategoricalIndex(values.categories, dtype=values.dtype)
+        values = CategoricalIndex(values)
+        # The CategoricalIndex level we want to build has the same categories
+        # as values but its codes are by def [0, ..., len(n_categories) - 1]
+        cat_codes = np.arange(len(values.categories), dtype=values.codes.dtype)
+        categories = values._create_from_codes(cat_codes)
         codes = values.codes
     else:
         # The value of ordered is irrelevant since we don't use cat as such,
