@@ -116,15 +116,3 @@ jobs:
       fi
     displayName: 'Running benchmarks'
     condition: true
-
-  - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
-      source activate pandas-dev
-      if [ -e test-data-single.xml ]; then
-        ci/print_skipped.py test-data-single.xml;
-      fi
-      if [ -e test-data-multiple.xml ]; then
-        ci/print_skipped.py test-data-multiple.xml;
-      fi
-    displayName: 'Printing Skipped test'
-    condition: true
