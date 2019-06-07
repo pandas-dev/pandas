@@ -39,6 +39,7 @@ def tsframe():
 
 @pytest.fixture(params=[True, False])
 def merge_cells(request):
+    """Provides valid values for ``merge_cells`` parameter."""
     return request.param
 
 
@@ -60,7 +61,6 @@ def ignore_xlrd_time_clock_warning():
 class TestReaders:
 
     @pytest.fixture(autouse=True, params=[
-        # Add any engines to test here
         pytest.param('xlrd', marks=pytest.mark.skipif(
             not td.safe_import("xlrd"), reason="no xlrd")),
         pytest.param(None, marks=pytest.mark.skipif(
@@ -69,6 +69,8 @@ class TestReaders:
     def cd_and_set_engine(self, request, datapath, monkeypatch):
         """
         Change directory and set engine for read_excel calls.
+
+        Add any engines to test to fixture here.
         """
         func = partial(pd.read_excel, engine=request.param)
         monkeypatch.chdir(datapath("io", "data"))
