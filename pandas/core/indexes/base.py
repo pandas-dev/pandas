@@ -4015,11 +4015,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
-        hash(key)
-        try:
-            return key in self._engine
-        except (TypeError, ValueError):
-            return False
+        return key in self
 
     def __hash__(self):
         raise TypeError("unhashable type: %r" % type(self).__name__)
