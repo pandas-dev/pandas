@@ -410,12 +410,7 @@ class Timestamp(_Timestamp):
                           " tz parameter will raise in the future. Use"
                           " tz_convert instead.", FutureWarning)
 
-        try:
-            ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
-        except OverflowError:
-            # GH#26651 re-raise as OutOfBoundsDatetime
-            raise OutOfBoundsDatetime("Cannot convert {ts_input} to Timestamp"
-                                      .format(ts_input=ts_input))
+        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
 
         if ts.value == NPY_NAT:
             return NaT
