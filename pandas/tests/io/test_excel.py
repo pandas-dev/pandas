@@ -1071,7 +1071,17 @@ class TestXlrdReader:
             tm.assert_frame_equal(df, result)
 
 
-class _WriterBase:
+@pytest.mark.parametrize("engine,ext", [
+    pytest.param('openpyxl', '.xlsx', marks=pytest.mark.skipif(
+        not td.safe_import('openpyxl'), reason='No openpyxl')),
+    pytest.param('openpyxl', '.xlsm', marks=pytest.mark.skipif(
+        not td.safe_import('openpyxl'), reason='No openpyxl')),
+    pytest.param('xlwt', '.xls', marks=pytest.mark.skipif(
+        not td.safe_import('xlwt'), reason='No xlwt')),
+    pytest.param('xlsxwriter', '.xlsx', marks=pytest.mark.skipif(
+        not td.safe_import('xlsxwriter'), reason='No xlsxwriter'))
+])
+class TestExcelWriter:
 
     @pytest.fixture(autouse=True)
     def set_engine_and_path(self, request, engine, ext):
@@ -1099,20 +1109,6 @@ class _WriterBase:
             yield
         set_option(option_name, prev_engine)  # Roll back option change
 
-
-@pytest.mark.parametrize("engine,ext", [
-    pytest.param('openpyxl', '.xlsx', marks=pytest.mark.skipif(
-        not td.safe_import('openpyxl'), reason='No openpyxl')),
-    pytest.param('openpyxl', '.xlsm', marks=pytest.mark.skipif(
-        not td.safe_import('openpyxl'), reason='No openpyxl')),
-    pytest.param('xlwt', '.xls', marks=pytest.mark.skipif(
-        not td.safe_import('xlwt'), reason='No xlwt')),
-    pytest.param('xlsxwriter', '.xlsx', marks=pytest.mark.skipif(
-        not td.safe_import('xlsxwriter'), reason='No xlsxwriter'))
-])
-class TestExcelWriter(_WriterBase):
-    # Base class for test cases to run with different Excel writers.
-
     def test_excel_sheet_size(self, engine, ext):
 
         # GH 26080
@@ -1131,7 +1127,7 @@ class TestExcelWriter(_WriterBase):
         with pytest.raises(ValueError, match=msg):
             col_df.to_excel(self.path)
 
-    def test_excel_sheet_by_name_raise(self, engine, ext):
+    def test_excel_sheet_by_name_raise(self):
         import xlrd
 
         gt = DataFrame(np.random.randn(10, 2))
