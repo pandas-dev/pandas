@@ -1,9 +1,15 @@
 import itertools
+import warnings
 
 import numpy as np
+
+from pandas import (
+    MultiIndex, Series, SparseArray, SparseDataFrame, SparseSeries, date_range)
 import scipy.sparse
-from pandas import (SparseSeries, SparseDataFrame, SparseArray, Series,
-                    date_range, MultiIndex)
+
+from .pandas_vb_common import setup  # noqa: F401
+
+warnings.filterwarnings("ignore", "Sparse", FutureWarning)
 
 
 def make_array(size, dense_proportion, fill_value, dtype):
@@ -147,6 +153,3 @@ class ArithmeticBlock:
 
     def time_division(self, fill_value):
         self.arr1 / self.arr2
-
-
-from .pandas_vb_common import setup  # noqa: F401
