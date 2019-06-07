@@ -800,7 +800,10 @@ class TestDataFramePlots(TestPlotBase):
                 with pytest.raises(ValueError):
                     mixed_df.plot(stacked=True)
 
-                _check_plot_works(df.plot, kind=kind, logx=True, stacked=True)
+                # Use an index with strictly positive values, preventing
+                #  matplotlib from warning about ignoring xlim
+                df2 = df.set_index(df.index + 1)
+                _check_plot_works(df2.plot, kind=kind, logx=True, stacked=True)
 
     def test_line_area_nan_df(self):
         values1 = [1, 2, np.nan, 3]
