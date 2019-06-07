@@ -329,7 +329,7 @@ def test_uint64_type_handling(dtype, how):
     tm.assert_frame_equal(result, expected, check_exact=True)
 
 
-class TestNamedAggregation:
+class TestNamedAggregationSeries:
 
     def test_series_named_agg(self):
         df = pd.Series([1, 2, 3, 4])
@@ -362,6 +362,8 @@ class TestNamedAggregation:
         with pytest.raises(SpecificationError):
             gr.agg(a='sum', b='sum')
 
+
+class TestNamedAggregationDataFrame:
     def test_agg_relabel(self):
         df = pd.DataFrame({"group": ['a', 'a', 'b', 'b'],
                            "A": [0, 1, 2, 3],
