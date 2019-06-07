@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pytest
 
@@ -133,3 +135,14 @@ class TestSparseDataFrameFormatting:
 
         repr(sdf)
         tm.assert_sp_frame_equal(sdf, res)
+
+
+def test_repr_no_warning():
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        df = pd.SparseDataFrame({"A": [1, 2]})
+        s = df['A']
+
+    with tm.assert_produces_warning(None):
+        repr(df)
+        repr(s)

@@ -363,4 +363,5 @@ Library        Accessor   Classes
 ============== ========== =========================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
-.. _pdvega: https://jakevdp.github.io/pdvega/
+.. _pdvega: https://altair-viz.github.io/pdvega/
+

@@ -2477,8 +2477,6 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    bins : integer, default 10
-        Number of histogram bins to be used
     `**kwds` : keywords
         To be passed to the actual plotting function
 
