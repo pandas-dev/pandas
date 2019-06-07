@@ -4065,8 +4065,8 @@ class DataFrame(NDFrame):
         return super().shift(periods=periods, freq=freq, axis=axis,
                              fill_value=fill_value)
 
-    def set_index(self, keys, drop=True, append=False, inplace=False,
-                  verify_integrity=False):
+    def set_index(self, keys, drop=True, append=False, prepend=False,
+                  inplace=False, verify_integrity=False):
         """
         Set the DataFrame index using existing columns.
 
@@ -4085,7 +4085,11 @@ class DataFrame(NDFrame):
         drop : bool, default True
             Delete columns to be used as the new index.
         append : bool, default False
-            Whether to append columns to existing index.
+            Whether to append columns to existing index. Mutually exclusive
+            with 'prepend'.
+        prepend : bool, default False
+            Whether to prepend columns to existing index. Mutually exclusive
+            with 'append'.
         inplace : bool, default False
             Modify the DataFrame in place (do not create a new object).
         verify_integrity : bool, default False
@@ -4164,6 +4168,10 @@ class DataFrame(NDFrame):
                    'array, or a list containing only valid column keys and '
                    'one-dimensional arrays.')
 
+        if append and prepend:
+            raise ValueError('Appending and prepending to an index are mutually '
+                             'exclusive, so they can not both be True.')
+
         missing = []
         for col in keys:
             if isinstance(col, (ABCIndexClass, ABCSeries, np.ndarray,
@@ -4193,7 +4201,7 @@ class DataFrame(NDFrame):
 
         arrays = []
         names = []
-        if append:
+        if append or prepend:
             names = [x for x in self.index.names]
             if isinstance(self.index, ABCMultiIndex):
                 for i in range(self.index.nlevels):
@@ -4226,12 +4234,18 @@ class DataFrame(NDFrame):
 
             if len(arrays[-1]) != len(self):
                 # check newest element against length of calling frame, since
-                # ensure_index_from_sequences would not raise for append=False.
+                # ensure_index_from_sequences would not raise for
+                # append/prepend=False.
                 raise ValueError('Length mismatch: Expected {len_self} rows, '
                                  'received array of length {len_col}'.format(
                                      len_self=len(self),
                                      len_col=len(arrays[-1])
                                  ))
+
+        if prepend:
+            for _ in range(len(keys)):
+                arrays.insert(0, arrays.pop())
+                names.insert(0, names.pop())
 
         index = ensure_index_from_sequences(arrays, names)
 

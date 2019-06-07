@@ -99,6 +99,46 @@ class TestDataFrameAlterAxes:
 
         tm.assert_frame_equal(result, expected)
 
+    # A has duplicate values, C does not
+    @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B'],
+                                      ('tuple', 'as', 'label')])
+    @pytest.mark.parametrize('drop', [True, False])
+    def test_set_index_prepend(self, frame_of_index_cols, drop, keys):
+        df = frame_of_index_cols
+
+        keys = keys if isinstance(keys, list) else [keys]
+        idx = MultiIndex.from_arrays([df[x] for x in keys] + [df.index],
+                                     names=keys + [None])
+        expected = df.drop(keys, axis=1) if drop else df.copy()
+        expected.index = idx
+
+        result = df.set_index(keys, drop=drop, prepend=True)
+
+        tm.assert_frame_equal(result, expected)
+
+    # A has duplicate values, C does not
+    @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B'],
+                                      ('tuple', 'as', 'label')])
+    @pytest.mark.parametrize('drop', [True, False])
+    def test_set_index_prepend_to_multiindex(self, frame_of_index_cols,
+                                            drop, keys):
+        # prepend to existing multiindex
+        df = frame_of_index_cols.set_index(['D'], drop=drop, prepend=True)
+
+        keys = keys if isinstance(keys, list) else [keys]
+        expected = frame_of_index_cols.set_index(keys + ['D'],
+                                                 drop=drop, prepend=True)
+
+        result = df.set_index(keys, drop=drop, prepend=True)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_set_index_append_prepend_exclusive(self, frame_of_index_cols, *_):
+        df = frame_of_index_cols
+        msg = 'mutually exclusive'
+        with pytest.raises(ValueError, match=msg):
+            df.set_index(['D'], append=True, prepend=True)
+
     def test_set_index_after_mutation(self):
         # GH1590
         df = DataFrame({'val': [0, 1, 2], 'key': ['a', 'b', 'c']})
