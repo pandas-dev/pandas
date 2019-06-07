@@ -476,6 +476,9 @@ Other Deprecations
   the :meth:`SparseArray.to_dense` method instead (:issue:`26421`).
 - The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64` or :meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
 - The :meth:`DataFrame.compound` and :meth:`Series.compound` methods are deprecated and will be removed in a future version (:issue:`26405`).
+- The internal attributes ``_start``, ``_stop`` and ``_step`` attributes of :class:`RangeIndex` have been deprecated.
+  Use the public attributes :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop` and :attr:`~RangeIndex.step` instead (:issue:`26581`).
+
 
 .. _whatsnew_0250.prior_deprecations:
 
@@ -487,6 +490,7 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``parse_cols`` keyword in :func:`read_excel` (:issue:`16488`)
 - Removed the previously deprecated ``pd.options.html.border`` (:issue:`16970`)
 - Removed the previously deprecated ``convert_objects`` (:issue:`11221`)
+- Removed the previously deprecated ``select`` method of ``DataFrame`` and ``Series`` (:issue:`17633`)
 
 .. _whatsnew_0250.performance:
 
@@ -498,7 +502,7 @@ Performance Improvements
 - Improved performance of :meth:`Series.searchsorted`. The speedup is especially large when the dtype is
   int8/int16/int32 and the searched key is within the integer bounds for the dtype (:issue:`22034`)
 - Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
-- Improved performance when slicing :class:`RangeIndex` (:issue:`26565`)
+- Improved performance of slicing and other selected operation on a :class:`RangeIndex` (:issue:`26565`, :issue:`26617`)
 - Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
 - Improved performance of :meth:`read_csv` by faster parsing of N/A and boolean values (:issue:`25804`)
 - Improved performance of :attr:`IntervalIndex.is_monotonic`, :attr:`IntervalIndex.is_monotonic_increasing` and :attr:`IntervalIndex.is_monotonic_decreasing` by removing conversion to :class:`MultiIndex` (:issue:`24813`)
@@ -506,6 +510,7 @@ Performance Improvements
 - Improved performance of :meth:`read_csv` by much faster parsing of ``MM/YYYY`` and ``DD/MM/YYYY`` datetime formats (:issue:`25922`)
 - Improved performance of nanops for dtypes that cannot store NaNs. Speedup is particularly prominent for :meth:`Series.all` and :meth:`Series.any` (:issue:`25070`)
 - Improved performance of :meth:`Series.map` for dictionary mappers on categorical series by mapping the categories instead of mapping all values (:issue:`23785`)
+- Improved performance of :meth:`IntervalIndex.intersection` (:issue:`24813`)
 - Improved performance of :meth:`read_csv` by faster concatenating date columns without extra conversion to string for integer/float zero and float ``NaN``; by faster checking the string for the possibility of being a date (:issue:`25754`)
 - Improved performance of :attr:`IntervalIndex.is_unique` by removing conversion to ``MultiIndex`` (:issue:`24813`)
 
@@ -533,6 +538,8 @@ Datetimelike
 - Bug in :func:`to_datetime` which does not replace the invalid argument with ``NaT`` when error is set to coerce (:issue:`26122`)
 - Bug in adding :class:`DateOffset` with nonzero month to :class:`DatetimeIndex` would raise ``ValueError`` (:issue:`26258`)
 - Bug in :func:`to_datetime` which raises unhandled ``OverflowError`` when called with mix of invalid dates and ``NaN`` values with ``format='%Y%m%d'`` and ``error='coerce'`` (:issue:`25512`)
+- Bug in :func:`to_datetime` which raises ``TypeError`` for ``format='%Y%m%d'`` when called for invalid integer dates with length >= 6 digits with ``errors='ignore'``
+- Bug when comparing a :class:`PeriodIndex` against a zero-dimensional numpy array (:issue:`26689`)
 
 Timedelta
 ^^^^^^^^^
@@ -540,6 +547,7 @@ Timedelta
 - Bug in :func:`TimedeltaIndex.intersection` where for non-monotonic indices in some cases an empty ``Index`` was returned when in fact an intersection existed (:issue:`25913`)
 - Bug with comparisons between :class:`Timedelta` and ``NaT`` raising ``TypeError`` (:issue:`26039`)
 - Bug when adding or subtracting a :class:`BusinessHour` to a :class:`Timestamp` with the resulting time landing in a following or prior day respectively (:issue:`26381`)
+- Bug when comparing a :class:`TimedeltaIndex` against a zero-dimensional numpy array (:issue:`26689`)
 
 Timezones
 ^^^^^^^^^
