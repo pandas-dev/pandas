@@ -5,15 +5,13 @@ from cython cimport Py_ssize_t
 
 from cpython cimport (
     PyCallable_Check,
-    PyBUF_SIMPLE, PyObject_GetBuffer, PyBuffer_Release,
+    PyBUF_SIMPLE, PyObject_GetBuffer, PyBuffer_Release, Py_buffer,
     PyBytes_Size,
     PyBytes_FromStringAndSize,
     PyBytes_AsString)
 
 cdef extern from "Python.h":
     ctypedef struct PyObject
-    cdef int PyObject_AsReadBuffer(object o, const void** buff,
-                                   Py_ssize_t* buf_len) except -1
 
 from libc.stdlib cimport free, malloc
 from libc.string cimport memcpy, memmove
@@ -129,8 +127,14 @@ def unpackb(object packed, object object_hook=None, object list_hook=None,
         Py_ssize_t buf_len
         char* cenc = NULL
         char* cerr = NULL
+        Py_buffer view
 
-    PyObject_AsReadBuffer(packed, <const void**>&buf, &buf_len)
+    # Effectively re-implement deprecated PyObject_AsReadBuffer;
+    # based on https://xpra.org/trac/ticket/1884
+    PyObject_GetBuffer(packed, &view, PyBUF_SIMPLE)
+    buf = <char*>view.buf
+    buf_len = view.len
+    PyBuffer_Release(&view)
 
     if encoding is not None:
         if isinstance(encoding, unicode):
