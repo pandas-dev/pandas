@@ -33,6 +33,19 @@ def get_upcast_box(box, vector):
 class TestTimedelta64ArrayComparisons:
     # TODO: All of these need to be parametrized over box
 
+    def test_compare_timedelta64_zerodim(self):
+        # GH#26689 should unbox when comparing with zerodim array
+        tdi = pd.timedelta_range('2H', periods=4)
+        other = np.array(tdi.to_numpy()[0])
+
+        res = tdi <= other
+        expected = np.array([True, False, False, False])
+        tm.assert_numpy_array_equal(res, expected)
+
+        with pytest.raises(TypeError):
+            # zero-dim of wrong dtype should still raise
+            tdi >= np.array(4)
+
     def test_compare_timedelta_series(self):
         # regresssion test for GH#5963
         s = pd.Series([timedelta(days=1), timedelta(days=2)])
