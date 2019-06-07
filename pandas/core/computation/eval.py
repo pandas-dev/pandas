@@ -37,8 +37,12 @@ def _check_engine(engine):
     from pandas.core.computation.check import _NUMEXPR_INSTALLED
 
     if engine is None:
-        if _NUMEXPR_INSTALLED:
-            engine = 'numexpr'
+        import sys
+        if sys.version_info >= (3,0):
+            if _NUMEXPR_INSTALLED:
+                engine = 'numexpr'
+            else:
+                engine = 'python'
         else:
             engine = 'python'
 
