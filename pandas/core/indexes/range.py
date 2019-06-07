@@ -40,7 +40,7 @@ class RangeIndex(Int64Index):
 
     Parameters
     ----------
-    start : int (default: 0), or other RangeIndex instance
+    start : int (default: 0), range or RangeIndex instance
         If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
     step : int (default: 1)
@@ -82,16 +82,14 @@ class RangeIndex(Int64Index):
                           "removed in a future version.",
                           FutureWarning, stacklevel=2)
             if fastpath:
-                return cls._simple_new(start, stop, step, name=name)
+                return cls._simple_new(range(start, stop, step), name=name)
 
-        cls._validate_dtype(dtype)
-
-        # RangeIndex
-        if isinstance(start, RangeIndex):
-            if name is None:
-                name = start.name
-            return cls._simple_new(name=name,
-                                   **dict(start._get_data_as_items()))
+        # RangeIndex, range
+        if isinstance(start, (RangeIndex, range)):
+            if isinstance(start, RangeIndex):
+                name = start.name if name is None else name
+                start = start._range
+            return cls._simple_new(start, dtype=dtype, name=name)
 
         # validate the arguments
         if com._all_none(start, stop, step):
@@ -108,10 +106,11 @@ class RangeIndex(Int64Index):
         if step == 0:
             raise ValueError("Step must not be zero")
 
-        return cls._simple_new(start, stop, step, name)
+        rng = range(start, stop, step)
+        return cls._simple_new(rng, dtype=dtype, name=name)
 
     @classmethod
-    def from_range(cls, data, name=None, dtype=None, **kwargs):
+    def from_range(cls, data, name=None, dtype=None):
         """
         Create RangeIndex from a range object.
 
@@ -123,27 +122,22 @@ class RangeIndex(Int64Index):
             raise TypeError(
                 '{0}(...) must be called with object coercible to a '
                 'range, {1} was passed'.format(cls.__name__, repr(data)))
-
-        start, stop, step = data.start, data.stop, data.step
-        return cls(start, stop, step, dtype=dtype, name=name, **kwargs)
+        return cls._simple_new(data, dtype=dtype, name=name)
 
     @classmethod
-    def _simple_new(cls, start, stop=None, step=None, name=None,
-                    dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, dtype=None, **kwargs):
         result = object.__new__(cls)
 
+        cls._validate_dtype(dtype)
+
         # handle passed None, non-integers
-        if start is None and stop is None:
+        if values is None:
             # empty
-            start, stop, step = 0, 0, 1
+            values = range(0, 0, 1)
+        elif not isinstance(values, range):
+            return Index(values, dtype=dtype, name=name, **kwargs)
 
-        if start is None or not is_integer(start):
-            try:
-                return cls(start, stop, step, name=name, **kwargs)
-            except TypeError:
-                return Index(start, stop, step, name=name, **kwargs)
-
-        result._range = range(start, stop or 0, step or 1)
+        result._range = values
 
         result.name = name
         for k, v in kwargs.items():
@@ -360,8 +354,7 @@ class RangeIndex(Int64Index):
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             name = kwargs.get("name", self.name)
-            return self._simple_new(
-                name=name, **dict(self._get_data_as_items()))
+            return self._simple_new(self._range, name=name)
         else:
             kwargs.setdefault('name', self.name)
             return self._int64index._shallow_copy(values, **kwargs)
@@ -480,11 +473,13 @@ class RangeIndex(Int64Index):
         tmp_start = first.start + (second.start - first.start) * \
             first.step // gcd * s
         new_step = first.step * second.step // gcd
-        new_index = self._simple_new(tmp_start, int_high, new_step)
+        new_range = range(tmp_start, int_high, new_step)
+        new_index = self._simple_new(new_range)
 
         # adjust index to limiting interval
         new_start = new_index._min_fitting_element(int_low)
-        new_index = self._simple_new(new_start, new_index.stop, new_index.step)
+        new_range = range(new_start, new_index.stop, new_index.step)
+        new_index = self._simple_new(new_range)
 
         if (self.step < 0 and other.step < 0) is not (new_index.step < 0):
             new_index = new_index[::-1]
@@ -640,10 +635,12 @@ class RangeIndex(Int64Index):
                 start = self.start // other
                 step = self.step // other
                 stop = start + len(self) * step
-                return self._simple_new(start, stop, step, name=self.name)
+                new_range = range(start, stop, step or 1)
+                return self._simple_new(new_range, name=self.name)
             if len(self) == 1:
                 start = self.start // other
-                return self._simple_new(start, start + 1, 1, name=self.name)
+                new_range = range(start, start + 1, 1)
+                return self._simple_new(new_range, name=self.name)
         return self._int64index // other
 
     def all(self) -> bool:

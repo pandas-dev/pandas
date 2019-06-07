@@ -94,8 +94,9 @@ class TestRangeIndex(Numeric):
 
     def test_constructor_range(self):
 
-        with pytest.raises(TypeError):
-            RangeIndex(range(1, 5, 2))
+        result = RangeIndex(range(1, 5, 2))
+        expected = RangeIndex(1, 5, 2)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = RangeIndex.from_range(range(1, 5, 2))
         expected = RangeIndex(1, 5, 2)
@@ -120,6 +121,9 @@ class TestRangeIndex(Numeric):
 
         with pytest.raises(TypeError):
             Index(range(1, 5, 2), dtype='float64')
+        msg = r'^from_range\(\) got an unexpected keyword argument'
+        with pytest.raises(TypeError, match=msg):
+            pd.RangeIndex.from_range(range(10), copy=True)
 
     def test_constructor_name(self):
         # GH12288

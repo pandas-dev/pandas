@@ -270,11 +270,8 @@ class Index(IndexOpsMixin, PandasObject):
             data = data.to_numpy()
 
         # range
-        if isinstance(data, RangeIndex):
+        if isinstance(data, (RangeIndex, range)):
             return RangeIndex(start=data, copy=copy, dtype=dtype, name=name)
-        elif isinstance(data, range):
-            return RangeIndex.from_range(data, copy=copy, dtype=dtype,
-                                         name=name)
 
         # categorical
         elif is_categorical_dtype(data) or is_categorical_dtype(dtype):
