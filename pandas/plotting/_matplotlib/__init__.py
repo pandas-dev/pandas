@@ -1,5 +1,6 @@
 from pandas.plotting._matplotlib.boxplot import (
     BoxPlot, boxplot, boxplot_frame, boxplot_frame_groupby)
+from pandas.plotting._matplotlib.converter import register, deregister
 from pandas.plotting._matplotlib.core import (
     AreaPlot, BarhPlot, BarPlot, HexBinPlot, LinePlot, PiePlot, ScatterPlot)
 from pandas.plotting._matplotlib.hist import (
@@ -15,4 +16,4 @@ __all__ = ['LinePlot', 'BarPlot', 'BarhPlot', 'HistPlot', 'BoxPlot', 'KdePlot',
            'hist_frame', 'boxplot', 'boxplot_frame', 'boxplot_frame_groupby',
            'tsplot', 'table', 'andrews_curves', 'autocorrelation_plot',
            'bootstrap_plot', 'lag_plot', 'parallel_coordinates', 'radviz',
-           'scatter_matrix']
+           'scatter_matrix', 'register', 'deregister']
