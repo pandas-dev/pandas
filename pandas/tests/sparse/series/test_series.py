@@ -1040,6 +1040,15 @@ class TestSparseSeries(SharedWithSparse):
 
         assert sparse_usage < dense_usage
 
+    def test_deprecate_to_dense(self):
+        ser = pd.Series([1,2,3])
+        sparse_ser = pd.SparseSeries([1,2,3])
+
+        # Deprecated 0.25.0
+        with tm.assert_produces_warning(FutureWarning):
+            result = sparse_ser.to_dense()
+        tm.assert_series_equal(result, ser)
+
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseHandlingMultiIndexes:
