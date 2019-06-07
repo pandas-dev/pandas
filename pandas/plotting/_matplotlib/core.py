@@ -19,7 +19,6 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting import plot_params
 from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
 from pandas.plotting._matplotlib.style import _get_standard_colors
@@ -936,6 +935,7 @@ class LinePlot(MPLPlot):
     orientation = 'vertical'
 
     def __init__(self, data, **kwargs):
+        from pandas.plotting import plot_params
         MPLPlot.__init__(self, data, **kwargs)
         if self.stacked:
             self.data = self.data.fillna(value=0)
