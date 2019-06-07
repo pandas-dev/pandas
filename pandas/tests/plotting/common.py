@@ -441,9 +441,9 @@ class TestPlotBase:
         import matplotlib as mpl
 
         def is_grid_on():
-            xoff = all(not g.gridOn
+            xoff = all(not g.gridline.get_visible()
                        for g in self.plt.gca().xaxis.get_major_ticks())
-            yoff = all(not g.gridOn
+            yoff = all(not g.gridline.get_visible()
                        for g in self.plt.gca().yaxis.get_major_ticks())
             return not (xoff and yoff)
 
