@@ -539,6 +539,7 @@ Datetimelike
 - Bug in adding :class:`DateOffset` with nonzero month to :class:`DatetimeIndex` would raise ``ValueError`` (:issue:`26258`)
 - Bug in :func:`to_datetime` which raises unhandled ``OverflowError`` when called with mix of invalid dates and ``NaN`` values with ``format='%Y%m%d'`` and ``error='coerce'`` (:issue:`25512`)
 - Bug in :func:`to_datetime` which raises ``TypeError`` for ``format='%Y%m%d'`` when called for invalid integer dates with length >= 6 digits with ``errors='ignore'``
+- Bug when comparing a :class:`PeriodIndex` against a zero-dimensional numpy array (:issue:`26689`)
 
 Timedelta
 ^^^^^^^^^
@@ -546,6 +547,7 @@ Timedelta
 - Bug in :func:`TimedeltaIndex.intersection` where for non-monotonic indices in some cases an empty ``Index`` was returned when in fact an intersection existed (:issue:`25913`)
 - Bug with comparisons between :class:`Timedelta` and ``NaT`` raising ``TypeError`` (:issue:`26039`)
 - Bug when adding or subtracting a :class:`BusinessHour` to a :class:`Timestamp` with the resulting time landing in a following or prior day respectively (:issue:`26381`)
+- Bug when comparing a :class:`TimedeltaIndex` against a zero-dimensional numpy array (:issue:`26689`)
 
 Timezones
 ^^^^^^^^^

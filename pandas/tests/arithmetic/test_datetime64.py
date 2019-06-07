@@ -37,6 +37,7 @@ def assert_all(obj):
 # ------------------------------------------------------------------
 # Comparisons
 
+
 class TestDatetime64DataFrameComparison:
     @pytest.mark.parametrize('timestamps', [
         [pd.Timestamp('2012-01-01 13:00:00+00:00')] * 2,
@@ -337,6 +338,17 @@ class TestDatetime64SeriesComparison:
 
 
 class TestDatetimeIndexComparisons:
+
+    # TODO: parametrize over box
+    def test_compare_zerodim(self, tz_naive_fixture):
+        # Test comparison with zero-dimensional array is unboxed
+        tz = tz_naive_fixture
+        dti = date_range('20130101', periods=3, tz=tz)
+
+        other = np.array(dti.to_numpy()[0])
+        result = dti <= other
+        expected = np.array([True, False, False])
+        tm.assert_numpy_array_equal(result, expected)
 
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
     @pytest.mark.parametrize("op", [

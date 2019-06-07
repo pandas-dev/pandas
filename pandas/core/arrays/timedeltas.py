@@ -62,6 +62,7 @@ def _td_array_cmp(cls, op):
     nat_result = opname == '__ne__'
 
     def wrapper(self, other):
+        other = lib.item_from_zerodim(other)
         if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
             return NotImplemented
 

@@ -4,6 +4,7 @@ from typing import Any, Callable, List, Optional, Sequence, Union
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT, NaTType, frequencies as libfrequencies, iNaT, period as libperiod)
 from pandas._libs.tslibs.fields import isleapyear_arr
@@ -51,6 +52,7 @@ def _period_array_cmp(cls, op):
     def wrapper(self, other):
         op = getattr(self.asi8, opname)
 
+        other = lib.item_from_zerodim(other)
         if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
             return NotImplemented
 
