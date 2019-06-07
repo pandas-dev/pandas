@@ -1573,8 +1573,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def to_sparse(self, kind='block', fill_value=None):
         """
-        ..deprecated:: 0.25.0
         Convert Series to SparseSeries.
+        .. deprecated:: 0.25.0
 
         Parameters
         ----------
@@ -1588,7 +1588,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Sparse representation of the Series.
         """
 
-        warnings.warn("to_sparse is deprecated and will be removed"
+        warnings.warn("Series.to_sparse is deprecated and will be removed "
                       "in a future version", FutureWarning, stacklevel=2)
         from pandas.core.sparse.series import SparseSeries
 
@@ -4014,7 +4014,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         >>> s = pd.Series(range(3))
         >>> s.memory_usage()
-        104
+        152
 
         Not including the index gives the size of the rest of the data, which
         is necessarily smaller:
@@ -4028,9 +4028,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.values
         array(['a', 'b'], dtype=object)
         >>> s.memory_usage()
-        96
+        144
         >>> s.memory_usage(deep=True)
-        212
+        260
         """
         v = super().memory_usage(deep=deep)
         if index:

@@ -214,10 +214,12 @@ class SparseSeries(Series):
                            fill_value=fill_value, kind=kind, copy=copy)
 
     def __repr__(self):
-        series_rep = Series.__repr__(self)
-        rep = '{series}\n{index!r}'.format(series=series_rep,
-                                           index=self.sp_index)
-        return rep
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Sparse")
+            series_rep = Series.__repr__(self)
+            rep = '{series}\n{index!r}'.format(series=series_rep,
+                                               index=self.sp_index)
+            return rep
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
@@ -428,15 +430,15 @@ class SparseSeries(Series):
 
     def to_dense(self):
         """
-
-        ..deprecated:: 0.25.0
         Convert SparseSeries to a Series.
+        .. deprecated:: 0.25.0
         Returns
         -------
         s : Series
         """
-        warnings.warn("to_dense is deprecated and will be removed"
-                      "in a future version", FutureWarning, stacklevel=2)
+        warnings.warn("SparseSeries.to_dense is deprecated "
+                      "and will be removed in a future version",
+                      FutureWarning, stacklevel=2)
 
         return Series(self.values.to_dense(), index=self.index,
                       name=self.name)

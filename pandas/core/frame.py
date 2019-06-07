@@ -1887,9 +1887,8 @@ class DataFrame(NDFrame):
 
     def to_sparse(self, fill_value=None, kind='block'):
         """
-        ..deprecated:: 0.25.0
-
         Convert to SparseDataFrame.
+        .. deprecated:: 0.25.0
 
         Implement the sparse version of the DataFrame meaning that any data
         matching a specific value it's omitted in the representation.
@@ -1941,10 +1940,8 @@ class DataFrame(NDFrame):
         >>> type(sdf)  # doctest: +SKIP
         <class 'pandas.core.sparse.frame.SparseDataFrame'>
         """
-        warning_message = """\
-            to_sparse is deprecated and will be removed in a future version
-        """
-        warnings.warn(warning_message, FutureWarning, stacklevel=2)
+        warnings.warn("DataFrame.to_sparse is deprecated and will be removed "
+                      "in a future version", FutureWarning, stacklevel=2)
 
         from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
@@ -2289,7 +2286,7 @@ class DataFrame(NDFrame):
         text_col     5 non-null object
         float_col    5 non-null float64
         dtypes: float64(1), int64(1), object(1)
-        memory usage: 200.0+ bytes
+        memory usage: 248.0+ bytes
 
         Prints a summary of columns count and its dtypes but not per column
         information:
@@ -2299,7 +2296,7 @@ class DataFrame(NDFrame):
         RangeIndex: 5 entries, 0 to 4
         Columns: 3 entries, int_col to float_col
         dtypes: float64(1), int64(1), object(1)
-        memory usage: 200.0+ bytes
+        memory usage: 248.0+ bytes
 
         Pipe output of DataFrame.info to buffer instead of sys.stdout, get
         buffer content and writes to a text file:
@@ -2501,7 +2498,7 @@ class DataFrame(NDFrame):
         4      1      1.0    1.0+0.0j       1  True
 
         >>> df.memory_usage()
-        Index            80
+        Index           128
         int64         40000
         float64       40000
         complex128    80000
@@ -2520,7 +2517,7 @@ class DataFrame(NDFrame):
         The memory footprint of `object` dtype columns is ignored by default:
 
         >>> df.memory_usage(deep=True)
-        Index             80
+        Index            128
         int64          40000
         float64        40000
         complex128     80000
@@ -2532,7 +2529,7 @@ class DataFrame(NDFrame):
         many repeated values.
 
         >>> df['object'].astype('category').memory_usage(deep=True)
-        5168
+        5216
         """
         result = Series([c.memory_usage(index=False, deep=deep)
                          for col, c in self.iteritems()], index=self.columns)

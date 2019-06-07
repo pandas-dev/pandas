@@ -242,6 +242,11 @@ class SparseDataFrame(DataFrame):
     def to_coo(self):
         return SparseFrameAccessor(self).to_coo()
 
+    def __repr__(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Sparse")
+            return super().__repr__()
+
     def __getstate__(self):
         # pickling
         return dict(_typ=self._typ, _subtyp=self._subtyp, _data=self._data,
@@ -278,12 +283,12 @@ class SparseDataFrame(DataFrame):
     @Appender(SparseFrameAccessor.to_dense.__doc__)
     def to_dense(self):
         """
-        ..deprecated:: 0.25.0
-        Use Dataframe.sparse.to_dense() instead
+        .. deprecated:: 0.25.0
+            Use Dataframe.sparse.to_dense() instead
         """
 
         warning_message = """\
-            to_dense is deprecated and will be removed in a future version
+SparseDataFrame.to_dense is deprecated and will be removed in a future version
 
             Use Dataframe.sparse.to_dense() instead
 
