@@ -1001,13 +1001,11 @@ def str_get_dummies(arr, sep='|'):
     2  1  0  1
     """
     arr = arr.fillna('')
-    try:
-        arr = sep + arr + sep
-    except TypeError:
-        arr = sep + arr.astype(str) + sep
 
     arr_split = arr.str.split(sep)
-    stacked = np.concatenate(arr_split)
+
+    stacked = Series(np.concatenate(arr_split))
+    stacked[stacked == ''] = np.nan
     stacked_idx = np.repeat(np.arange(len(arr)), arr_split.str.len())
 
     dummies_stacked = get_dummies(stacked)
