@@ -20,7 +20,6 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
 import pandas.core.common as com
-from pandas.core.reshape.reshape import get_dummies
 
 _cpython_optimized_encoders = (
     "utf-8", "utf8", "latin-1", "latin1", "iso-8859-1", "mbcs", "ascii"
@@ -1000,6 +999,9 @@ def str_get_dummies(arr, sep='|'):
     1  0  0  0
     2  1  0  1
     """
+    from pandas.core.reshape.reshape import get_dummies
+    from pandas import Series
+
     arr = arr.fillna('')
 
     arr_split = arr.str.split(sep)
