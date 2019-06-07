@@ -38,7 +38,7 @@ def _check_engine(engine):
 
     if engine is None:
         import sys
-        if sys.version_info >= (3,0):
+        if sys.version_info >= (3, 0):
             if _NUMEXPR_INSTALLED:
                 engine = 'numexpr'
             else:
