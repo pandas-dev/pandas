@@ -1002,7 +1002,11 @@ def str_get_dummies(arr, sep='|'):
     from pandas.core.reshape.reshape import get_dummies
     from pandas import Series
 
-    arr = arr.fillna('')
+    if len(arr) == 0:
+        empty = np.empty(0, dtype='object')
+        return empty, empty
+
+    arr = arr.fillna('').astype('str')
 
     arr_split = arr.str.split(sep)
 
