@@ -4169,8 +4169,9 @@ class DataFrame(NDFrame):
                    'one-dimensional arrays.')
 
         if append and prepend:
-            raise ValueError('Appending and prepending to an index are mutually '
-                             'exclusive, so they can not both be True.')
+            raise ValueError('Appending and prepending to an index are '
+                             'mutually exclusive, so they can not both '
+                             'be True.')
 
         missing = []
         for col in keys:

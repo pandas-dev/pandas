@@ -121,7 +121,7 @@ class TestDataFrameAlterAxes:
                                       ('tuple', 'as', 'label')])
     @pytest.mark.parametrize('drop', [True, False])
     def test_set_index_prepend_to_multiindex(self, frame_of_index_cols,
-                                            drop, keys):
+                                             drop, keys):
         # prepend to existing multiindex
         df = frame_of_index_cols.set_index(['D'], drop=drop, prepend=True)
 
