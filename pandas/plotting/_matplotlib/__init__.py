@@ -1,6 +1,6 @@
 from pandas.plotting._matplotlib.boxplot import (
     BoxPlot, boxplot, boxplot_frame, boxplot_frame_groupby)
-from pandas.plotting._matplotlib.converter import register, deregister
+from pandas.plotting._matplotlib.converter import deregister, register
 from pandas.plotting._matplotlib.core import (
     AreaPlot, BarhPlot, BarPlot, HexBinPlot, LinePlot, PiePlot, ScatterPlot)
 from pandas.plotting._matplotlib.hist import (
