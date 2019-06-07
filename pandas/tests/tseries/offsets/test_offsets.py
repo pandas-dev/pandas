@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time as dt_time, timedelta
 from distutils.version import LooseVersion
 
 import numpy as np
@@ -767,37 +767,53 @@ class TestBusinessHour(Base):
         self.offset10 = BusinessHour(n=-1, start=['23:00', '13:00'],
                                      end=['02:00', '17:00'])
 
-    def test_constructor_errors(self):
-        from datetime import time as dt_time
+    @pytest.mark.parametrize("start,end,match", [
+        (
+            dt_time(11, 0, 5),
+            '17:00',
+            "time data must be specified only with hour and minute"
+        ),
+        (
+            'AAA',
+            '17:00',
+            "time data must match '%H:%M' format"
+        ),
+        (
+            '14:00:05',
+            '17:00',
+            "time data must match '%H:%M' format"
+        ),
+        (
+            [],
+            '17:00',
+            "Must include at least 1 start time"
+        ),
+        (
+            '09:00',
+            [],
+            "Must include at least 1 end time"
+        ),
+        (
+            ['09:00', '11:00'],
+            '17:00',
+            "number of starting time and ending time must be the same"
+        ),
+        (
+            ['09:00', '11:00'],
+            ['10:00'],
+            "number of starting time and ending time must be the same"
+        ),
+        (
+            ['09:00', '11:00'],
+            ['12:00', '20:00'],
+            r"invalid starting and ending time\(s\): opening hours should not "
+            "touch or overlap with one another"
+        ),
+    ])
+    def test_constructor_errors(self, start, end, match):
         with pytest.raises(ValueError,
-                           match='time data must be specified only with hour '
-                           'and minute'):
-            BusinessHour(start=dt_time(11, 0, 5))
-        with pytest.raises(ValueError,
-                           match="time data must match '%H:%M' format"):
-            BusinessHour(start='AAA')
-        with pytest.raises(ValueError,
-                           match="time data must match '%H:%M' format"):
-            BusinessHour(start='14:00:05')
-        with pytest.raises(ValueError,
-                           match='Must include at least 1 start time'):
-            BusinessHour(start=[])
-        with pytest.raises(ValueError,
-                           match='Must include at least 1 end time'):
-            BusinessHour(end=[])
-        with pytest.raises(ValueError,
-                           match='number of starting time and ending time '
-                                 'must be the same'):
-            BusinessHour(start=['09:00', '11:00'])
-        with pytest.raises(ValueError,
-                           match='number of starting time and ending time '
-                                 'must be the same'):
-            BusinessHour(start=['09:00', '11:00'], end=['10:00'])
-        with pytest.raises(ValueError,
-                           match=r'invalid starting and ending time\(s\): '
-                           'opening hours should not touch or overlap with '
-                           'one another'):
-            BusinessHour(start=['09:00', '11:00'], end=['12:00', '20:00'])
+                           match=match):
+            BusinessHour(start=start, end=end)
 
     def test_different_normalize_equals(self):
         # GH#21404 changed __eq__ to return False when `normalize` doesnt match
@@ -827,30 +843,50 @@ class TestBusinessHour(Base):
         assert self.d + BusinessHour() * 3 == expected
         assert self.d + BusinessHour(n=3) == expected
 
-    def test_eq(self):
-        for offset in [self.offset1, self.offset2, self.offset3, self.offset4,
-                       self.offset8, self.offset9, self.offset10]:
-            assert offset == offset
+    @pytest.mark.parametrize("offset_name", [
+        "offset1",
+        "offset2",
+        "offset3",
+        "offset4",
+        "offset8",
+        "offset9",
+        "offset10"
+    ])
+    def test_eq_attribute(self, offset_name):
+        offset = getattr(self, offset_name)
+        assert offset == offset
 
-        assert BusinessHour() != BusinessHour(-1)
-        assert BusinessHour(start='09:00') == BusinessHour()
-        assert BusinessHour(start='09:00') != BusinessHour(start='09:01')
-        assert (BusinessHour(start='09:00', end='17:00') !=
-                BusinessHour(start='17:00', end='09:01'))
+    @pytest.mark.parametrize("offset1,offset2", [
+        (BusinessHour(start='09:00'), BusinessHour()),
+        (BusinessHour(start=['23:00', '13:00'], end=['12:00', '17:00']),
+         BusinessHour(start=['13:00', '23:00'], end=['17:00', '12:00'])),
+    ])
+    def test_eq(self, offset1, offset2):
+        assert offset1 == offset2
 
-        assert (BusinessHour(start=['23:00', '13:00'],
-                             end=['12:00', '17:00']) ==
-                BusinessHour(start=['13:00', '23:00'],
-                             end=['17:00', '12:00']))
-        assert (BusinessHour(start=['13:00', '23:00'],
-                             end=['18:00', '07:00']) !=
-                BusinessHour(start=['13:00', '23:00'],
-                             end=['17:00', '12:00']))
+    @pytest.mark.parametrize("offset1,offset2", [
+        (BusinessHour(), BusinessHour(-1)),
+        (BusinessHour(start='09:00'), BusinessHour(start='09:01')),
+        (BusinessHour(start='09:00', end='17:00'),
+         BusinessHour(start='17:00', end='09:01')),
+        (BusinessHour(start=['13:00', '23:00'], end=['18:00', '07:00']),
+         BusinessHour(start=['13:00', '23:00'], end=['17:00', '12:00'])),
+    ])
+    def test_neq(self, offset1, offset2):
+        assert offset1 != offset2
 
-    def test_hash(self):
-        for offset in [self.offset1, self.offset2, self.offset3, self.offset4,
-                       self.offset8, self.offset9, self.offset10]:
-            assert hash(offset) == hash(offset)
+    @pytest.mark.parametrize("offset_name", [
+        "offset1",
+        "offset2",
+        "offset3",
+        "offset4",
+        "offset8",
+        "offset9",
+        "offset10"
+    ])
+    def test_hash(self, offset_name):
+        offset = getattr(self, offset_name)
+        assert offset == offset
 
     def test_call(self):
         assert self.offset1(self.d) == datetime(2014, 7, 1, 11)

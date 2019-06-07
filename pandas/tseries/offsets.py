@@ -605,6 +605,7 @@ class BusinessHourMixin(BusinessMixin):
 
         # sort starting and ending time by starting time
         index = np.argsort(start)
+        # convert to tuple so that start and end are hashable
         start = tuple(start[index])
         end = tuple(end[index])
 
