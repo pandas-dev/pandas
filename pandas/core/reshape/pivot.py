@@ -543,6 +543,17 @@ def crosstab(
 
     common_idx = _get_objs_combined_axis(index + columns, intersect=True, sort=False)
 
+    if len(set(rownames)) != len(rownames):
+        raise ValueError("Duplicated index/row names not allowed")
+    if len(set(colnames)) != len(colnames):
+        raise ValueError("Duplicated column names not allowed")
+
+    repeated_names = set(rownames).intersection(set(colnames))
+    if repeated_names:
+        raise ValueError("Column and rows cannot share the same names. "
+                         "Repeated names: {repeated_names}"
+                         .format(repeated_names=", ".join(repeated_names)))
+
     data = {}
     data.update(zip(rownames, index))
     data.update(zip(colnames, columns))
