@@ -1568,12 +1568,12 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         is_level : bool
         """
-        axis = self._get_axis_number(axis)
-
         if self.ndim > 2:
             raise NotImplementedError(
                 "_is_level_reference is not implemented for {type}"
                 .format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
 
         return (key is not None and
                 is_hashable(key) and
@@ -2782,6 +2782,11 @@ class NDFrame(PandasObject, SelectionMixin):
             speed    (date, animal) int64 350 18 361 15
         """
 
+        if self.ndim > 2:
+            raise NotImplementedError(
+                "to_xarray is not implemented for {type}"
+                .format(type=type(self)))
+
         try:
             import xarray
         except ImportError:
@@ -2794,14 +2799,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if self.ndim == 1:
             return xarray.DataArray.from_series(self)
-        elif self.ndim == 2:
+        else:
             return xarray.Dataset.from_dataframe(self)
-
-        # > 2 dims
-        coords = [(a, self._get_axis(a)) for a in self._AXIS_ORDERS]
-        return xarray.DataArray(self,
-                                coords=coords,
-                                )
 
     def to_latex(self, buf=None, columns=None, col_space=None, header=True,
                  index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -6051,22 +6050,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 return result
 
-            # > 3d
-            if self.ndim > 3:
+            if self.ndim > 2:
                 raise NotImplementedError('Cannot fillna with a method for > '
-                                          '3dims')
-
-            # 3d
-            elif self.ndim == 3:
-                # fill in 2d chunks
-                result = {col: s.fillna(method=method, value=value)
-                          for col, s in self.iteritems()}
-                prelim_obj = self._constructor.from_dict(result)
-                new_obj = prelim_obj.__finalize__(self)
-                new_data = new_obj._data
+                                          '2dims')
 
             else:
-                # 2d or less
                 new_data = self._data.interpolate(method=method, axis=axis,
                                                   limit=limit, inplace=inplace,
                                                   coerce=True,
@@ -6783,7 +6771,9 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         if self.ndim > 2:
-            raise NotImplementedError("Interpolate has not been implemented ")
+            raise NotImplementedError(
+                "interpolate is not implemented for {type}"
+                .format(type=type(self)))
 
         if axis == 0:
             ax = self._info_axis_name
@@ -6953,6 +6943,9 @@ class NDFrame(PandasObject, SelectionMixin):
         2018-02-27 09:03:30   30.0 NaN
         2018-02-27 09:04:30   40.0 NaN
         """
+        if self.ndim > 2:
+            raise NotImplementedError("asof is not implemented "
+                                      "for {type}".format(type=type(self)))
         if isinstance(where, str):
             from pandas import to_datetime
             where = to_datetime(where)
@@ -6964,9 +6957,6 @@ class NDFrame(PandasObject, SelectionMixin):
         if is_series:
             if subset is not None:
                 raise ValueError("subset is not valid for Series")
-        elif self.ndim > 2:
-            raise NotImplementedError("asof is not implemented "
-                                      "for {type}".format(type=type(self)))
         else:
             if subset is None:
                 subset = self.columns
@@ -8371,11 +8361,11 @@ class NDFrame(PandasObject, SelectionMixin):
         3   spider          8.0           4.0       4.0        4.0     1.000
         4    snake          NaN           NaN       NaN        5.0       NaN
         """
-        axis = self._get_axis_number(axis)
-
         if self.ndim > 2:
-            msg = "rank does not make sense when ndim > 2"
-            raise NotImplementedError(msg)
+            raise NotImplementedError("rank is not implemented "
+                                      "for {type}".format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
 
         if na_option not in {'keep', 'top', 'bottom'}:
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
