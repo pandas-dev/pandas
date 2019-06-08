@@ -21,8 +21,8 @@ from numpy.random import rand, randn
 from pandas._config.localization import (  # noqa:F401
     can_set_locale, get_locales, set_locale)
 
-from pandas._libs import testing as _testing
-from pandas.compat import lmap, lzip, raise_with_traceback
+import pandas._libs.testing as _testing
+from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -281,25 +281,25 @@ def assert_almost_equal(left, right, check_dtype="equiv",
     """
 
     if isinstance(left, pd.Index):
-        return assert_index_equal(left, right,
-                                  check_exact=False,
-                                  exact=check_dtype,
-                                  check_less_precise=check_less_precise,
-                                  **kwargs)
+        assert_index_equal(left, right,
+                           check_exact=False,
+                           exact=check_dtype,
+                           check_less_precise=check_less_precise,
+                           **kwargs)
 
     elif isinstance(left, pd.Series):
-        return assert_series_equal(left, right,
-                                   check_exact=False,
-                                   check_dtype=check_dtype,
-                                   check_less_precise=check_less_precise,
-                                   **kwargs)
+        assert_series_equal(left, right,
+                            check_exact=False,
+                            check_dtype=check_dtype,
+                            check_less_precise=check_less_precise,
+                            **kwargs)
 
     elif isinstance(left, pd.DataFrame):
-        return assert_frame_equal(left, right,
-                                  check_exact=False,
-                                  check_dtype=check_dtype,
-                                  check_less_precise=check_less_precise,
-                                  **kwargs)
+        assert_frame_equal(left, right,
+                           check_exact=False,
+                           check_dtype=check_dtype,
+                           check_less_precise=check_less_precise,
+                           **kwargs)
 
     else:
         # Other sequences.
@@ -317,7 +317,7 @@ def assert_almost_equal(left, right, check_dtype="equiv",
                 else:
                     obj = "Input"
                 assert_class_equal(left, right, obj=obj)
-        return _testing.assert_almost_equal(
+        _testing.assert_almost_equal(
             left, right,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
@@ -355,7 +355,7 @@ def _check_isinstance(left, right, cls):
 def assert_dict_equal(left, right, compare_keys=True):
 
     _check_isinstance(left, right, dict)
-    return _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
+    _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
 def randbool(size=(), p=0.5):
@@ -717,11 +717,12 @@ def isiterable(obj):
     return hasattr(obj, '__iter__')
 
 
-def is_sorted(seq):
+def assert_is_sorted(seq):
+    """Assert that the sequence is sorted."""
     if isinstance(seq, (Index, Series)):
         seq = seq.values
     # sorting does not change precisions
-    return assert_numpy_array_equal(seq, np.sort(np.array(seq)))
+    assert_numpy_array_equal(seq, np.sort(np.array(seq)))
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
@@ -911,8 +912,6 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         if isinstance(left, np.ndarray) and isinstance(right, np.ndarray):
             assert_attr_equal('dtype', left, right, obj=obj)
 
-    return True
-
 
 def assert_extension_array_equal(left, right, check_dtype=True,
                                  check_less_precise=False,
@@ -1073,12 +1072,10 @@ def assert_series_equal(left, right, check_dtype=True,
         # .values is an ndarray, but ._values is the ExtensionArray.
         # TODO: Use .array
         assert is_extension_array_dtype(right.dtype)
-        return assert_extension_array_equal(left._values, right._values)
-
+        assert_extension_array_equal(left._values, right._values)
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
-        return assert_extension_array_equal(left.array, right.array)
-
+        assert_extension_array_equal(left.array, right.array)
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
                                      check_less_precise=check_less_precise,
@@ -1406,7 +1403,7 @@ def assert_sp_array_equal(left, right, check_dtype=True, check_kind=True,
         assert_attr_equal('fill_value', left, right)
     if check_dtype:
         assert_attr_equal('dtype', left, right)
-    assert_numpy_array_equal(left.values, right.values,
+    assert_numpy_array_equal(left.to_dense(), right.to_dense(),
                              check_dtype=check_dtype)
 
 
@@ -1818,7 +1815,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         def keyfunc(x):
             import re
             numeric_tuple = re.sub(r"[^\d_]_?", "", x).split("_")
-            return lmap(int, numeric_tuple)
+            return [int(num) for num in numeric_tuple]
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
@@ -1830,7 +1827,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         result = list(sorted(cnt.elements(), key=keyfunc))[:nentries]
         tuples.append(result)
 
-    tuples = lzip(*tuples)
+    tuples = list(zip(*tuples))
 
     # convert tuples to index
     if nentries == 1:

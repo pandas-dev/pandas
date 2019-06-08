@@ -67,7 +67,7 @@ class Term(StringMixin):
     def local_name(self):
         return self.name.replace(_LOCAL_TAG, '')
 
-    def __unicode__(self):
+    def __str__(self):
         return pprint_thing(self.name)
 
     def __call__(self, *args, **kwargs):
@@ -149,10 +149,6 @@ class Term(StringMixin):
     def name(self):
         return self._name
 
-    @name.setter
-    def name(self, new_name):
-        self._name = new_name
-
     @property
     def ndim(self):
         return self._value.ndim
@@ -170,7 +166,7 @@ class Constant(Term):
     def name(self):
         return self.value
 
-    def __unicode__(self):
+    def __str__(self):
         # in python 2 str() of float
         # can truncate shorter than repr()
         return repr(self.name)
@@ -192,7 +188,7 @@ class Op(StringMixin):
     def __iter__(self):
         return iter(self.operands)
 
-    def __unicode__(self):
+    def __str__(self):
         """Print a generic n-ary operator and its operands using infix
         notation"""
         # recurse over the operands
@@ -510,7 +506,7 @@ class UnaryOp(Op):
         operand = self.operand(env)
         return self.func(operand)
 
-    def __unicode__(self):
+    def __str__(self):
         return pprint_thing('{0}({1})'.format(self.op, self.operand))
 
     @property
@@ -535,7 +531,7 @@ class MathCall(Op):
         with np.errstate(all='ignore'):
             return self.func.func(*operands)
 
-    def __unicode__(self):
+    def __str__(self):
         operands = map(str, self.operands)
         return pprint_thing('{0}({1})'.format(self.op, ','.join(operands)))
 

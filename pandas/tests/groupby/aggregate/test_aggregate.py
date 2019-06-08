@@ -2,12 +2,13 @@
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 from collections import OrderedDict
+import functools
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat
+from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
@@ -313,3 +314,114 @@ def test_order_aggregate_multiple_funcs():
     expected = pd.Index(['sum', 'max', 'mean', 'ohlc', 'min'])
 
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize('dtype', [np.int64, np.uint64])
+@pytest.mark.parametrize('how', ['first', 'last', 'min',
+                                 'max', 'mean', 'median'])
+def test_uint64_type_handling(dtype, how):
+    # GH 26310
+    df = pd.DataFrame({'x': 6903052872240755750, 'y': [1, 2]})
+    expected = df.groupby('y').agg({'x': how})
+    df.x = df.x.astype(dtype)
+    result = df.groupby('y').agg({'x': how})
+    result.x = result.x.astype(np.int64)
+    tm.assert_frame_equal(result, expected, check_exact=True)
+
+
+class TestNamedAggregation:
+
+    def test_agg_relabel(self):
+        df = pd.DataFrame({"group": ['a', 'a', 'b', 'b'],
+                           "A": [0, 1, 2, 3],
+                           "B": [5, 6, 7, 8]})
+        result = df.groupby("group").agg(
+            a_max=("A", "max"),
+            b_max=("B", "max"),
+        )
+        expected = pd.DataFrame({"a_max": [1, 3], "b_max": [6, 8]},
+                                index=pd.Index(['a', 'b'], name='group'),
+                                columns=['a_max', 'b_max'])
+        tm.assert_frame_equal(result, expected)
+
+        # order invariance
+        p98 = functools.partial(np.percentile, q=98)
+        result = df.groupby('group').agg(
+            b_min=("B", "min"),
+            a_min=("A", min),
+            a_mean=("A", np.mean),
+            a_max=("A", "max"),
+            b_max=("B", "max"),
+            a_98=("A", p98)
+        )
+        expected = pd.DataFrame({"b_min": [5, 7],
+                                 "a_min": [0, 2],
+                                 "a_mean": [0.5, 2.5],
+                                 "a_max": [1, 3],
+                                 "b_max": [6, 8],
+                                 "a_98": [0.98, 2.98]},
+                                index=pd.Index(['a', 'b'], name='group'),
+                                columns=['b_min', 'a_min', 'a_mean',
+                                         'a_max', 'b_max', 'a_98'])
+        if not compat.PY36:
+            expected = expected[['a_98', 'a_max', 'a_mean',
+                                 'a_min', 'b_max', 'b_min']]
+        tm.assert_frame_equal(result, expected)
+
+    def test_agg_relabel_non_identifier(self):
+        df = pd.DataFrame({"group": ['a', 'a', 'b', 'b'],
+                           "A": [0, 1, 2, 3],
+                           "B": [5, 6, 7, 8]})
+
+        result = df.groupby("group").agg(**{'my col': ('A', 'max')})
+        expected = pd.DataFrame({'my col': [1, 3]},
+                                index=pd.Index(['a', 'b'], name='group'))
+        tm.assert_frame_equal(result, expected)
+
+    def test_duplicate_raises(self):
+        # TODO: we currently raise on multiple lambdas. We could *maybe*
+        # update com.get_callable_name to append `_i` to each lambda.
+        df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
+        with pytest.raises(SpecificationError, match="Function names"):
+            df.groupby("A").agg(a=("A", "min"), b=("A", "min"))
+
+    def test_agg_relabel_with_level(self):
+        df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]},
+                          index=pd.MultiIndex.from_product([['A', 'B'],
+                                                            ['a', 'b']]))
+        result = df.groupby(level=0).agg(aa=('A', 'max'), bb=('A', 'min'),
+                                         cc=('B', 'mean'))
+        expected = pd.DataFrame({
+            'aa': [0, 1],
+            'bb': [0, 1],
+            'cc': [1.5, 3.5]
+        }, index=['A', 'B'])
+        tm.assert_frame_equal(result, expected)
+
+    def test_agg_relabel_other_raises(self):
+        df = pd.DataFrame({"A": [0, 0, 1], "B": [1, 2, 3]})
+        grouped = df.groupby("A")
+        match = 'Must provide'
+        with pytest.raises(TypeError, match=match):
+            grouped.agg(foo=1)
+
+        with pytest.raises(TypeError, match=match):
+            grouped.agg()
+
+        with pytest.raises(TypeError, match=match):
+            grouped.agg(a=('B', 'max'), b=(1, 2, 3))
+
+    def test_missing_raises(self):
+        df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
+        with pytest.raises(KeyError, match="Column 'C' does not exist"):
+            df.groupby("A").agg(c=('C', 'sum'))
+
+    def test_agg_namedtuple(self):
+        df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
+        result = df.groupby("A").agg(
+            b=pd.NamedAgg("B", "sum"),
+            c=pd.NamedAgg(column="B", aggfunc="count")
+        )
+        expected = df.groupby("A").agg(b=("B", "sum"),
+                                       c=("B", "count"))
+        tm.assert_frame_equal(result, expected)

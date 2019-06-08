@@ -4,7 +4,6 @@ import dateutil
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -22,7 +21,7 @@ def _skip_if_no_pchip():
         pytest.skip('scipy.interpolate.pchip missing')
 
 
-class TestDataFrameMissingData():
+class TestDataFrameMissingData:
 
     def test_dropEmptyRows(self, float_frame):
         N = len(float_frame.index)
@@ -83,7 +82,7 @@ class TestDataFrameMissingData():
         assert_frame_equal(inp, expected)
 
         dropped = df.dropna(axis=0)
-        expected = df.loc[lrange(2, 6)]
+        expected = df.loc[list(range(2, 6))]
         inp = df.copy()
         inp.dropna(axis=0, inplace=True)
         assert_frame_equal(dropped, expected)
@@ -98,7 +97,7 @@ class TestDataFrameMissingData():
         assert_frame_equal(inp, expected)
 
         dropped = df.dropna(axis=0, thresh=4)
-        expected = df.loc[lrange(2, 6)]
+        expected = df.loc[range(2, 6)]
         inp = df.copy()
         inp.dropna(axis=0, thresh=4, inplace=True)
         assert_frame_equal(dropped, expected)
@@ -414,9 +413,9 @@ class TestDataFrameMissingData():
         assert_series_equal(result, expected)
 
         # empty block
-        df = DataFrame(index=lrange(3), columns=['A', 'B'], dtype='float64')
+        df = DataFrame(index=range(3), columns=['A', 'B'], dtype='float64')
         result = df.fillna('nan')
-        expected = DataFrame('nan', index=lrange(3), columns=['A', 'B'])
+        expected = DataFrame('nan', index=range(3), columns=['A', 'B'])
         assert_frame_equal(result, expected)
 
         # equiv of replace
@@ -616,7 +615,7 @@ class TestDataFrameMissingData():
     def test_fillna_col_reordering(self):
         cols = ["COL." + str(i) for i in range(5, 0, -1)]
         data = np.random.rand(20, 5)
-        df = DataFrame(index=lrange(20), columns=cols, data=data)
+        df = DataFrame(index=range(20), columns=cols, data=data)
         filled = df.fillna(method='ffill')
         assert df.columns.tolist() == filled.columns.tolist()
 
@@ -644,7 +643,7 @@ class TestDataFrameMissingData():
         assert_frame_equal(res, exp)
 
 
-class TestDataFrameInterpolate():
+class TestDataFrameInterpolate:
 
     def test_interp_basic(self):
         df = DataFrame({'A': [1, 2, np.nan, 4],

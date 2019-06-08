@@ -8,8 +8,8 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import hashtable as libhashtable, join as libjoin, lib
-from pandas.compat import lzip
+from pandas._libs import hashtable as libhashtable, lib
+import pandas._libs.join as libjoin
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -803,22 +803,18 @@ class _MergeOperation:
         -------
         join_index
         """
-        join_index = index.take(indexer)
         if (self.how in (how, 'outer') and
                 not isinstance(other_index, MultiIndex)):
             # if final index requires values in other_index but not target
             # index, indexer may hold missing (-1) values, causing Index.take
-            # to take the final value in target index
+            # to take the final value in target index. So, we set the last
+            # element to be the desired fill value. We do not use allow_fill
+            # and fill_value because it throws a ValueError on integer indices
             mask = indexer == -1
             if np.any(mask):
-                # if values missing (-1) from target index,
-                # take from other_index instead
-                join_list = join_index.to_numpy()
-                other_list = other_index.take(other_indexer).to_numpy()
-                join_list[mask] = other_list[mask]
-                join_index = Index(join_list, dtype=join_index.dtype,
-                                   name=join_index.name)
-        return join_index
+                fill_value = na_value_for_dtype(index.dtype, compat=False)
+                index = index.append(Index([fill_value]))
+        return index.take(indexer)
 
     def _get_merge_keys(self):
         """
@@ -1516,7 +1512,7 @@ class _AsOfMerge(_OrderedMerge):
             labels = list(string.ascii_lowercase[:len(xs)])
             dtypes = [x.dtype for x in xs]
             labeled_dtypes = list(zip(labels, dtypes))
-            return np.array(lzip(*xs), labeled_dtypes)
+            return np.array(list(zip(*xs)), labeled_dtypes)
 
         # values to compare
         left_values = (self.left.index.values if self.left_index else
@@ -1679,8 +1675,8 @@ _join_functions = {
 def _factorize_keys(lk, rk, sort=True):
     # Some pre-processing for non-ndarray lk / rk
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
-        lk = lk._data
-        rk = rk._data
+        lk = getattr(lk, '_values', lk)._data
+        rk = getattr(rk, '_values', rk)._data
 
     elif (is_categorical_dtype(lk) and
             is_categorical_dtype(rk) and

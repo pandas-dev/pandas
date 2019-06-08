@@ -7,7 +7,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas.compat import lzip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
@@ -90,18 +89,23 @@ def _cat_compare_op(op):
             else:
                 other_codes = other._codes
 
-            na_mask = (self._codes == -1) | (other_codes == -1)
+            mask = (self._codes == -1) | (other_codes == -1)
             f = getattr(self._codes, op)
             ret = f(other_codes)
-            if na_mask.any():
+            if mask.any():
                 # In other series, the leads to False, so do that here too
-                ret[na_mask] = False
+                ret[mask] = False
             return ret
 
         if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
-                return getattr(self._codes, op)(i)
+                ret = getattr(self._codes, op)(i)
+
+                # check for NaN in self
+                mask = (self._codes == -1)
+                ret[mask] = False
+                return ret
             else:
                 if op == '__eq__':
                     return np.repeat(False, len(self))
@@ -273,7 +277,8 @@ class Categorical(ExtensionArray, PandasObject):
     Notes
     -----
     See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/categorical.html>`_ for more.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html>`_
+    for more.
 
     Examples
     --------
@@ -619,6 +624,10 @@ class Categorical(ExtensionArray, PandasObject):
                When `dtype` is provided, neither `categories` nor `ordered`
                should be provided.
 
+        Returns
+        -------
+        Categorical
+
         Examples
         --------
         >>> dtype = pd.CategoricalDtype(['a', 'b'], ordered=True)
@@ -756,6 +765,11 @@ class Categorical(ExtensionArray, PandasObject):
         inplace : bool, default False
            Whether or not to set the ordered attribute in-place or return
            a copy of this categorical with ordered set to True.
+
+        Returns
+        -------
+        Categorical
+            Ordered Categorical.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         return self.set_ordered(True, inplace=inplace)
@@ -769,6 +783,11 @@ class Categorical(ExtensionArray, PandasObject):
         inplace : bool, default False
            Whether or not to set the ordered attribute in-place or return
            a copy of this categorical with ordered set to False.
+
+        Returns
+        -------
+        Categorical
+            Unordered Categorical.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         return self.set_ordered(False, inplace=inplace)
@@ -1464,7 +1483,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         if dropna or clean:
             obs = code if clean else code[mask]
-            count = bincount(obs, minlength=ncat or None)
+            count = bincount(obs, minlength=ncat or 0)
         else:
             count = bincount(np.where(mask, code, ncat))
             ix = np.append(ix, -1)
@@ -2009,9 +2028,9 @@ class Categorical(ExtensionArray, PandasObject):
         result = formatter.to_string()
         return str(result)
 
-    def __unicode__(self):
+    def __repr__(self):
         """
-        Unicode representation.
+        String representation.
         """
         _maxlen = 10
         if len(self._codes) > _maxlen:
@@ -2023,10 +2042,6 @@ class Categorical(ExtensionArray, PandasObject):
             result = ('[], {repr_msg}'.format(repr_msg=msg))
 
         return result
-
-    def __repr__(self):
-        # We want to bypass the ExtensionArray.__repr__
-        return str(self)
 
     def _maybe_coerce_indexer(self, indexer):
         """
@@ -2127,23 +2142,18 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         dict of categories -> indexers
 
-        Example
-        -------
-        In [1]: c = pd.Categorical(list('aabca'))
-
-        In [2]: c
-        Out[2]:
+        Examples
+        --------
+        >>> c = pd.Categorical(list('aabca'))
+        >>> c
         [a, a, b, c, a]
         Categories (3, object): [a, b, c]
-
-        In [3]: c.categories
-        Out[3]: Index(['a', 'b', 'c'], dtype='object')
-
-        In [4]: c.codes
-        Out[4]: array([0, 0, 1, 2, 0], dtype=int8)
-
-        In [5]: c._reverse_indexer()
-        Out[5]: {'a': array([0, 1, 4]), 'b': array([2]), 'c': array([3])}
+        >>> c.categories
+        Index(['a', 'b', 'c'], dtype='object')
+        >>> c.codes
+        array([0, 0, 1, 2, 0], dtype=int8)
+        >>> c._reverse_indexer()
+        {'a': array([0, 1, 4]), 'b': array([2]), 'c': array([3])}
 
         """
         categories = self.categories
@@ -2692,4 +2702,4 @@ def _factorize_from_iterables(iterables):
     if len(iterables) == 0:
         # For consistency, it should return a list of 2 lists.
         return [[], []]
-    return map(list, lzip(*[_factorize_from_iterable(it) for it in iterables]))
+    return map(list, zip(*(_factorize_from_iterable(it) for it in iterables)))

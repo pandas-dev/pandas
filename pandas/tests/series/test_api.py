@@ -5,8 +5,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import lzip
-
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, Series, TimedeltaIndex,
@@ -124,6 +122,7 @@ class SharedWithSparse:
         result = self.ts.sort_index(ascending=False)
         assert result.name == self.ts.name
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_to_sparse_pass_name(self):
         result = self.ts.to_sparse()
         assert result.name == self.ts.name
@@ -196,9 +195,12 @@ class SharedWithSparse:
         )
         self._assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_from_array_deprecated(self):
 
-        with tm.assert_produces_warning(FutureWarning):
+        # multiple FutureWarnings, so can't assert stacklevel
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
             self.series_klass.from_array([1, 2, 3])
 
     def test_sparse_accessor_updates_on_inplace(self):
@@ -270,8 +272,8 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         tm.makeFloatIndex(10),
         Index([True, False]),
         Index(['a{}'.format(i) for i in range(101)]),
-        pd.MultiIndex.from_tuples(lzip('ABCD', 'EFGH')),
-        pd.MultiIndex.from_tuples(lzip([0, 1, 2, 3], 'EFGH')), ])
+        pd.MultiIndex.from_tuples(zip('ABCD', 'EFGH')),
+        pd.MultiIndex.from_tuples(zip([0, 1, 2, 3], 'EFGH')), ])
     def test_index_tab_completion(self, index):
         # dir contains string-like values of the Index.
         s = pd.Series(index=index)

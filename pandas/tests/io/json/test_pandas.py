@@ -7,7 +7,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_32bit, lrange
+from pandas.compat import is_platform_32bit
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -353,7 +353,7 @@ class TestPandasContainer:
                         '"index":["1","2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
         msg = "3 columns passed, passed data had 2 columns"
-        with pytest.raises(AssertionError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             read_json(json, orient="split")
 
         # bad key
@@ -647,7 +647,7 @@ class TestPandasContainer:
         _check_all_orients(self.ts)
 
         # dtype
-        s = Series(lrange(6), index=['a', 'b', 'c', 'd', 'e', 'f'])
+        s = Series(range(6), index=['a', 'b', 'c', 'd', 'e', 'f'])
         _check_all_orients(Series(s, dtype=np.float64), dtype=np.float64)
         _check_all_orients(Series(s, dtype=np.int), dtype=np.int)
 
@@ -677,8 +677,8 @@ class TestPandasContainer:
 
     def test_typ(self):
 
-        s = Series(lrange(6), index=['a', 'b', 'c',
-                                     'd', 'e', 'f'], dtype='int64')
+        s = Series(range(6), index=['a', 'b', 'c',
+                                    'd', 'e', 'f'], dtype='int64')
         result = read_json(s.to_json(), typ=None)
         assert_series_equal(result, s)
 
@@ -762,7 +762,10 @@ class TestPandasContainer:
             else:
                 json = df.to_json(date_format='iso')
             result = read_json(json)
-            assert_frame_equal(result, df)
+            expected = df.copy()
+            expected.index = expected.index.tz_localize('UTC')
+            expected['date'] = expected['date'].dt.tz_localize('UTC')
+            assert_frame_equal(result, expected)
 
         test_w_date('20130101 20:43:42.123')
         test_w_date('20130101 20:43:42', date_unit='s')
@@ -784,7 +787,10 @@ class TestPandasContainer:
             else:
                 json = ts.to_json(date_format='iso')
             result = read_json(json, typ='series')
-            assert_series_equal(result, ts)
+            expected = ts.copy()
+            expected.index = expected.index.tz_localize('UTC')
+            expected = expected.dt.tz_localize('UTC')
+            assert_series_equal(result, expected)
 
         test_w_date('20130101 20:43:42.123')
         test_w_date('20130101 20:43:42', date_unit='s')
@@ -841,7 +847,7 @@ class TestPandasContainer:
     def test_doc_example(self):
         dfj2 = DataFrame(np.random.randn(5, 2), columns=list('AB'))
         dfj2['date'] = Timestamp('20130101')
-        dfj2['ints'] = lrange(5)
+        dfj2['ints'] = range(5)
         dfj2['bools'] = True
         dfj2.index = pd.date_range('20130101', periods=5)
 
@@ -858,7 +864,7 @@ class TestPandasContainer:
         error_msg = """DataFrame\\.index are different
 
 DataFrame\\.index values are different \\(100\\.0 %\\)
-\\[left\\]:  Index\\(\\[u?'a', u?'b'\\], dtype='object'\\)
+\\[left\\]:  Index\\(\\['a', 'b'\\], dtype='object'\\)
 \\[right\\]: RangeIndex\\(start=0, stop=2, step=1\\)"""
         with pytest.raises(AssertionError, match=error_msg):
             assert_frame_equal(result, expected, check_index_type=False)
@@ -880,11 +886,15 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
     @network
     @pytest.mark.single
-    def test_url(self):
+    @pytest.mark.parametrize('field,dtype', [
+        ['created_at', pd.DatetimeTZDtype(tz='UTC')],
+        ['closed_at', 'datetime64[ns]'],
+        ['updated_at', pd.DatetimeTZDtype(tz='UTC')]
+    ])
+    def test_url(self, field, dtype):
         url = 'https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5'  # noqa
         result = read_json(url, convert_dates=True)
-        for c in ['created_at', 'closed_at', 'updated_at']:
-            assert result[c].dtype == 'datetime64[ns]'
+        assert result[field].dtype == dtype
 
     def test_timedelta(self):
         converter = lambda x: pd.to_timedelta(x, unit='ms')
@@ -1002,6 +1012,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         s_naive = Series(tz_naive)
         assert stz.to_json() == s_naive.to_json()
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
         df = pd.DataFrame(np.random.randn(10, 4))
@@ -1298,3 +1309,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dfjson = expected.to_json(orient=orient, index=index)
         result = read_json(dfjson, orient=orient)
         assert_frame_equal(result, expected)
+
+    def test_read_timezone_information(self):
+        # GH 25546
+        result = read_json('{"2019-01-01T11:00:00.000Z":88}',
+                           typ='series', orient='index')
+        expected = Series([88],
+                          index=DatetimeIndex(['2019-01-01 11:00:00'],
+                                              tz='UTC'))
+        assert_series_equal(result, expected)

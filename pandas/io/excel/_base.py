@@ -5,7 +5,6 @@ from io import BytesIO
 import os
 from textwrap import fill
 from urllib.request import urlopen
-import warnings
 
 from pandas._config import config
 
@@ -65,12 +64,6 @@ index_col : int, list of int, default None
     those columns will be combined into a ``MultiIndex``.  If a
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
-parse_cols : int or list, default None
-    Alias of `usecols`.
-
-    .. deprecated:: 0.21.0
-       Use `usecols` instead.
-
 usecols : int, str, list-like, or callable default None
     Return a subset of the columns.
 
@@ -146,12 +139,12 @@ parse_dates : bool, list-like, or dict, default False
       each as a separate date column.
     * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
       a single date column.
-    * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+    * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
       result 'foo'
 
     If a column or index contains an unparseable date, the entire column or
     index will be returned unaltered as an object data type. For non-standard
-    datetime parsing, use ``pd.to_datetime`` after ``pd.read_csv``
+    datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_parser : function, optional
@@ -261,14 +254,12 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 
 
 @Appender(_read_excel_doc)
-@deprecate_kwarg("parse_cols", "usecols")
 @deprecate_kwarg("skip_footer", "skipfooter")
 def read_excel(io,
                sheet_name=0,
                header=0,
                names=None,
                index_col=None,
-               parse_cols=None,
                usecols=None,
                squeeze=False,
                dtype=None,
@@ -291,15 +282,10 @@ def read_excel(io,
                mangle_dupe_cols=True,
                **kwds):
 
-    # Can't use _deprecate_kwarg since sheetname=None has a special meaning
-    if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
-        warnings.warn("The `sheetname` keyword is deprecated, use "
-                      "`sheet_name` instead", FutureWarning, stacklevel=2)
-        sheet_name = kwds.pop("sheetname")
-
-    if 'sheet' in kwds:
-        raise TypeError("read_excel() got an unexpected keyword argument "
-                        "`sheet`")
+    for arg in ('sheet', 'sheetname', 'parse_cols'):
+        if arg in kwds:
+            raise TypeError("read_excel() got an unexpected keyword argument "
+                            "`{}`".format(arg))
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
@@ -536,7 +522,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     datetime_format : string, default None
         Format string for datetime objects written into Excel files
         (e.g. 'YYYY-MM-DD HH:MM:SS')
-    mode : {'w' or 'a'}, default 'w'
+    mode : {'w', 'a'}, default 'w'
         File mode to use (write or append).
 
         .. versionadded:: 0.24.0
@@ -605,7 +591,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     def __new__(cls, path, engine=None, **kwargs):
         # only switch class if generic(ExcelWriter)
 
-        if issubclass(cls, ExcelWriter):
+        if cls is ExcelWriter:
             if engine is None or (isinstance(engine, str) and
                                   engine == 'auto'):
                 if isinstance(path, str):
@@ -827,17 +813,12 @@ class ExcelFile:
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
         docstring for more info on accepted parameters
+
+        Returns
+        -------
+        DataFrame or dict of DataFrames
+            DataFrame from the passed in Excel file.
         """
-
-        # Can't use _deprecate_kwarg since sheetname=None has a special meaning
-        if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
-            warnings.warn("The `sheetname` keyword is deprecated, use "
-                          "`sheet_name` instead", FutureWarning, stacklevel=2)
-            sheet_name = kwds.pop("sheetname")
-        elif 'sheetname' in kwds:
-            raise TypeError("Cannot specify both `sheet_name` "
-                            "and `sheetname`. Use just `sheet_name`")
-
         if 'chunksize' in kwds:
             raise NotImplementedError("chunksize keyword of read_excel "
                                       "is not implemented")

@@ -11,7 +11,7 @@ import pytest
 import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import PY36, lrange, lzip
+from pandas.compat import PY36
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
@@ -46,7 +46,7 @@ class TestIndex(Base):
                             boolIndex=Index([True, False]),
                             catIndex=tm.makeCategoricalIndex(100),
                             empty=Index([]),
-                            tuples=MultiIndex.from_tuples(lzip(
+                            tuples=MultiIndex.from_tuples(zip(
                                 ['foo', 'bar', 'baz'], [1, 2, 3])),
                             repeats=Index([0, 0, 1, 1, 2, 2]))
         self.setup_indices()
@@ -889,6 +889,8 @@ class TestIndex(Base):
         # i.e. identity is not preserved when sort is True
         assert (union is first) is (not sort)
 
+        # This should no longer be the same object, since [] is not consistent,
+        # both objects will be recast to dtype('O')
         union = first.union([], sort=sort)
         assert (union is first) is (not sort)
 
@@ -967,7 +969,7 @@ class TestIndex(Base):
         # Test that returning a single object from a MultiIndex
         #   returns an Index.
         first_level = ['foo', 'bar', 'baz']
-        multi_index = MultiIndex.from_tuples(lzip(first_level, [1, 2, 3]))
+        multi_index = MultiIndex.from_tuples(zip(first_level, [1, 2, 3]))
         reduced_index = multi_index.map(lambda x: x[0])
         tm.assert_index_equal(reduced_index, Index(first_level))
 
@@ -1611,10 +1613,10 @@ class TestIndex(Base):
     def test_drop_by_str_label(self):
         # TODO: Parametrize these after replacing self.strIndex with fixture
         n = len(self.strIndex)
-        drop = self.strIndex[lrange(5, 10)]
+        drop = self.strIndex[list(range(5, 10))]
         dropped = self.strIndex.drop(drop)
 
-        expected = self.strIndex[lrange(5) + lrange(10, n)]
+        expected = self.strIndex[list(range(5)) + list(range(10, n))]
         tm.assert_index_equal(dropped, expected)
 
         dropped = self.strIndex.drop(self.strIndex[0])
@@ -1631,15 +1633,15 @@ class TestIndex(Base):
 
         # errors='ignore'
         n = len(self.strIndex)
-        drop = self.strIndex[lrange(5, 10)]
+        drop = self.strIndex[list(range(5, 10))]
         mixed = drop.tolist() + ['foo']
         dropped = self.strIndex.drop(mixed, errors='ignore')
 
-        expected = self.strIndex[lrange(5) + lrange(10, n)]
+        expected = self.strIndex[list(range(5)) + list(range(10, n))]
         tm.assert_index_equal(dropped, expected)
 
         dropped = self.strIndex.drop(['foo', 'bar'], errors='ignore')
-        expected = self.strIndex[lrange(n)]
+        expected = self.strIndex[list(range(n))]
         tm.assert_index_equal(dropped, expected)
 
     def test_drop_by_numeric_label_loc(self):
@@ -2379,7 +2381,7 @@ class TestMixedIntIndex(Base):
     @pytest.mark.parametrize("klass", [Series, DataFrame])
     def test_int_name_format(self, klass):
         index = Index(['a', 'b', 'c'], name=0)
-        result = klass(lrange(3), index=index)
+        result = klass(list(range(3)), index=index)
         assert '0' in repr(result)
 
     def test_print_unicode_columns(self):
@@ -2388,10 +2390,12 @@ class TestMixedIntIndex(Base):
                            "c": [7, 8, 9]})
         repr(df.columns)  # should not raise UnicodeDecodeError
 
-    @pytest.mark.parametrize("func", [str, bytes])
-    def test_with_unicode(self, func):
-        index = Index(lrange(1000))
-        func(index)
+    def test_str_to_bytes_raises(self):
+        # GH 26447
+        index = Index([str(x) for x in range(10)])
+        msg = "^'str' object cannot be interpreted as an integer$"
+        with pytest.raises(TypeError, match=msg):
+            bytes(index)
 
     def test_intersect_str_dates(self):
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]

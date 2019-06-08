@@ -73,6 +73,21 @@ def test_dropna():
     with pytest.raises(ValueError, match=msg):
         idx.dropna(how='xxx')
 
+    # GH26408
+    # test if missing values are dropped for mutiindex constructed
+    # from codes and values
+    idx = MultiIndex(levels=[[np.nan, None, pd.NaT, "128", 2],
+                             [np.nan, None, pd.NaT, "128", 2]],
+                     codes=[[0, -1, 1, 2, 3, 4],
+                            [0, -1, 3, 3, 3, 4]])
+    expected = MultiIndex.from_arrays([["128", 2], ["128", 2]])
+    tm.assert_index_equal(idx.dropna(), expected)
+    tm.assert_index_equal(idx.dropna(how='any'), expected)
+
+    expected = MultiIndex.from_arrays([[np.nan, np.nan, "128", 2],
+                                       ["128", "128", "128", 2]])
+    tm.assert_index_equal(idx.dropna(how='all'), expected)
+
 
 def test_nulls(idx):
     # this is really a smoke test for the methods
