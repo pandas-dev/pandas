@@ -830,7 +830,7 @@ class TestExcelFileRead:
         df3 = excel.parse(0, index_col=0, skipfooter=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
-        import xlrd
+        import xlrd  # will move to engine-specific tests as new ones are added
         with pytest.raises(xlrd.XLRDError):
             pd.read_excel(excel, 'asdf')
     
