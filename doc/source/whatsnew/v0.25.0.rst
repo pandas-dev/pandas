@@ -514,6 +514,7 @@ Performance Improvements
 - Improved performance of :meth:`read_csv` by faster concatenating date columns without extra conversion to string for integer/float zero and float ``NaN``; by faster checking the string for the possibility of being a date (:issue:`25754`)
 - Improved performance of :attr:`IntervalIndex.is_unique` by removing conversion to ``MultiIndex`` (:issue:`24813`)
 - Restored performance of :meth:`DatetimeIndex.__iter__` by re-enabling specialized code path (:issue:`26702`)
+- Improved performance when building :class:`MultiIndex` with at least one :class:`CategoricalIndex` level (:issue:`22044`)
 
 .. _whatsnew_0250.bug_fixes:
 
