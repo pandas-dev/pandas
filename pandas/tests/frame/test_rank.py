@@ -8,7 +8,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
 
-class TestRank():
+class TestRank:
     s = Series([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3])
     df = DataFrame({'A': s, 'B': s})
 
