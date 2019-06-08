@@ -383,8 +383,10 @@ class TestDataFramePlots(TestPlotBase):
             for ax in axes[:-2]:
                 self._check_visible(ax.xaxis)  # xaxis must be visible for grid
                 self._check_visible(ax.get_xticklabels(), visible=False)
-                self._check_visible(
-                    ax.get_xticklabels(minor=True), visible=False)
+                if not (kind == 'bar' and self.mpl_ge_3_1_0):
+                    # change https://github.com/pandas-dev/pandas/issues/26714
+                    self._check_visible(
+                        ax.get_xticklabels(minor=True), visible=False)
                 self._check_visible(ax.xaxis.get_label(), visible=False)
                 self._check_visible(ax.get_yticklabels())
 

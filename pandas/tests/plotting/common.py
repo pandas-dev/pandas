@@ -36,6 +36,7 @@ class TestPlotBase:
 
         self.mpl_ge_2_2_3 = plotting._compat._mpl_ge_2_2_3()
         self.mpl_ge_3_0_0 = plotting._compat._mpl_ge_3_0_0()
+        self.mpl_ge_3_1_0 = plotting._compat._mpl_ge_3_1_0()
 
         self.bp_n_objects = 7
         self.polycollection_factor = 2
@@ -440,10 +441,18 @@ class TestPlotBase:
         import matplotlib as mpl
 
         def is_grid_on():
-            xoff = all(not g.gridOn
-                       for g in self.plt.gca().xaxis.get_major_ticks())
-            yoff = all(not g.gridOn
-                       for g in self.plt.gca().yaxis.get_major_ticks())
+            xticks = self.plt.gca().xaxis.get_major_ticks()
+            yticks = self.plt.gca().yaxis.get_major_ticks()
+            # for mpl 2.2.2, gridOn and gridline.get_visible disagree.
+            # for new MPL, they are the same.
+
+            if self.mpl_ge_3_0_0:
+                xoff = all(not g.gridline.get_visible() for g in xticks)
+                yoff = all(not g.gridline.get_visible() for g in yticks)
+            else:
+                xoff = all(not g.gridOn for g in xticks)
+                yoff = all(not g.gridOn for g in yticks)
+
             return not (xoff and yoff)
 
         spndx = 1
