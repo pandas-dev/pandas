@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex, lib
+from pandas._libs import index as libindex
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
@@ -604,12 +604,10 @@ class RangeIndex(Int64Index):
         """
         Conserve RangeIndex type for scalar and slice keys.
         """
-        if is_scalar(key):
-            if not lib.is_integer(key):
-                raise IndexError("only integers, slices (`:`), "
-                                 "ellipsis (`...`), numpy.newaxis (`None`) "
-                                 "and integer or boolean "
-                                 "arrays are valid indices")
+        if isinstance(key, slice):
+            new_range = self._range[key]
+            return self._simple_new(new_range, name=self.name)
+        elif is_integer(key):
             new_key = int(key)
             try:
                 return self._range[new_key]
@@ -617,10 +615,11 @@ class RangeIndex(Int64Index):
                 raise IndexError("index {key} is out of bounds for axis 0 "
                                  "with size {size}".format(key=key,
                                                            size=len(self)))
-        if isinstance(key, slice):
-            new_range = self._range[key]
-            return self.from_range(new_range, name=self.name)
-
+        elif is_scalar(key):
+            raise IndexError("only integers, slices (`:`), "
+                             "ellipsis (`...`), numpy.newaxis (`None`) "
+                             "and integer or boolean "
+                             "arrays are valid indices")
         # fall back to Int64Index
         return super().__getitem__(key)
 
