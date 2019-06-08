@@ -24,6 +24,7 @@ def test_foo():
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
 import locale
+from typing import Any, Callable, Optional
 
 import pytest
 
@@ -32,6 +33,9 @@ from pandas.compat.numpy import _np_version_under1p15
 
 from pandas.core.computation.expressions import (
     _NUMEXPR_INSTALLED, _USE_NUMEXPR)
+
+Decorator = Callable[[Callable[..., Optional[Any]]],
+                     Callable[..., Optional[Any]]]
 
 
 def safe_import(mod_name, min_version=None):
@@ -97,7 +101,7 @@ def _skip_if_no_scipy():
                 safe_import('scipy.signal'))
 
 
-def skip_if_no(package, min_version=None):
+def skip_if_no(package: str, min_version: Optional[str] = None) -> Decorator:
     """
     Generic function to help skip tests when required packages are not
     present on the testing system.
