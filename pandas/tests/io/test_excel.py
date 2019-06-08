@@ -213,7 +213,8 @@ class TestReaders:
     @pytest.mark.parametrize("index_col", [None, 2])
     def test_index_col_with_unnamed(self, read_ext, index_col):
         # see gh-18792
-        result = pd.read_excel("test1" + read_ext, "Sheet4", index_col=index_col)
+        result = pd.read_excel(
+            "test1" + read_ext, "Sheet4", index_col=index_col)
         expected = DataFrame([["i1", "a", "x"], ["i2", "b", "y"]],
                              columns=["Unnamed: 0", "col1", "col2"])
         if index_col:
@@ -256,7 +257,8 @@ class TestReaders:
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
-        df3 = pd.read_excel('test1' + read_ext, 'Sheet1', index_col=0, skipfooter=1)
+        df3 = pd.read_excel(
+            'test1' + read_ext, 'Sheet1', index_col=0, skipfooter=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
     def test_reader_special_dtypes(self, read_ext):
@@ -282,12 +284,14 @@ class TestReaders:
         float_expected = expected.copy()
         float_expected["IntCol"] = float_expected["IntCol"].astype(float)
         float_expected.loc[float_expected.index[1], "Str2Col"] = 3.0
-        actual = pd.read_excel(basename + read_ext, 'Sheet1', convert_float=False)
+        actual = pd.read_excel(
+            basename + read_ext, 'Sheet1', convert_float=False)
         tm.assert_frame_equal(actual, float_expected)
 
         # check setting Index (assuming xls and xlsx are the same here)
         for icol, name in enumerate(expected.columns):
-            actual = pd.read_excel(basename + read_ext, 'Sheet1', index_col=icol)
+            actual = pd.read_excel(
+                basename + read_ext, 'Sheet1', index_col=icol)
             exp = expected.set_index(name)
             tm.assert_frame_equal(actual, exp)
 
@@ -299,8 +303,9 @@ class TestReaders:
 
         no_convert_float = float_expected.copy()
         no_convert_float["StrCol"] = no_convert_float["StrCol"].apply(str)
-        actual = pd.read_excel(basename + read_ext, 'Sheet1', convert_float=False,
-                               converters={"StrCol": str})
+        actual = pd.read_excel(
+            basename + read_ext, 'Sheet1',
+            convert_float=False, converters={"StrCol": str})
         tm.assert_frame_equal(actual, no_convert_float)
 
     # GH8212 - support for converters and missing values
@@ -323,7 +328,8 @@ class TestReaders:
 
         # should read in correctly and set types of single cells (not array
         # dtypes)
-        actual = pd.read_excel(basename + read_ext, 'Sheet1', converters=converters)
+        actual = pd.read_excel(
+            basename + read_ext, 'Sheet1', converters=converters)
         tm.assert_frame_equal(actual, expected)
 
     def test_reader_dtype(self, read_ext):
@@ -474,8 +480,8 @@ class TestReaders:
     def test_read_from_s3_url(self, read_ext, s3_resource):
         # Bucket "pandas-test" created in tests/io/conftest.py
         with open('test1' + read_ext, "rb") as f:
-            s3_resource.Bucket("pandas-test").put_object(Key="test1" + read_ext,
-                                                         Body=f)
+            s3_resource.Bucket("pandas-test").put_object(
+                Key="test1" + read_ext, Body=f)
 
         url = ('s3://pandas-test/test1' + read_ext)
         url_table = pd.read_excel(url)
@@ -839,7 +845,7 @@ class TestExcelFileRead:
         import xlrd  # will move to engine-specific tests as new ones are added
         with pytest.raises(xlrd.XLRDError):
             pd.read_excel(excel, 'asdf')
-    
+
     def test_sheet_name(self, read_ext, df_ref):
         filename = "test1"
         sheet_name = "Sheet1"
