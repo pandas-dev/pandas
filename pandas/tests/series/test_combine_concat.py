@@ -10,6 +10,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
 class TestSeriesCombine:
 
     def test_append(self, datetime_series, string_series, object_series):

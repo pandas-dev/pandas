@@ -39,6 +39,7 @@ def _simple_ts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
 class TestSeriesMissingData:
 
     def test_remove_na_deprecation(self):

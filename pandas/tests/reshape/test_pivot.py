@@ -19,6 +19,7 @@ def dropna(request):
     return request.param
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 class TestPivotTable:
 
     def setup_method(self, method):
@@ -1358,6 +1359,7 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 class TestCrosstab:
 
     def setup_method(self, method):

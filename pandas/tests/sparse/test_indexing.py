@@ -7,6 +7,7 @@ import pandas.util.testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
 class TestSparseSeriesIndexing:
 
     def setup_method(self, method):
@@ -456,6 +457,7 @@ class TestSparseSeriesIndexing:
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
 class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
 
     def setup_method(self, method):
@@ -602,6 +604,8 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
 class TestSparseDataFrameIndexing:
 
     def test_getitem(self):

@@ -128,6 +128,7 @@ def test_cython_fail_agg():
     tm.assert_series_equal(summed, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 @pytest.mark.parametrize('op, targop', [
     ('mean', np.mean),
     ('median', np.median),
@@ -148,6 +149,7 @@ def test__cython_agg_general(op, targop):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 @pytest.mark.parametrize('op, targop', [
     ('mean', np.mean),
     ('median', lambda x: np.median(x) if len(x) > 0 else np.nan),

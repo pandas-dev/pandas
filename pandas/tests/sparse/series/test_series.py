@@ -61,6 +61,7 @@ def _test_data2_zero():
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
 class TestSparseSeries(SharedWithSparse):
 
     series_klass = SparseSeries
@@ -1051,6 +1052,8 @@ class TestSparseSeries(SharedWithSparse):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame:FutureWarning")
 class TestSparseHandlingMultiIndexes:
 
     def setup_method(self, method):
@@ -1082,6 +1085,7 @@ class TestSparseHandlingMultiIndexes:
     "ignore:the matrix subclass:PendingDeprecationWarning"
 )
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
 class TestSparseSeriesScipyInteraction:
     # Issue 8048: add SparseSeries coo methods
 
@@ -1450,6 +1454,7 @@ def _dense_series_compare(s, f):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
 class TestSparseSeriesAnalytics:
 
     def setup_method(self, method):
@@ -1544,6 +1549,7 @@ def test_constructor_dict_datetime64_index(datetime_type):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
 def test_to_sparse():
     # https://github.com/pandas-dev/pandas/issues/22389
     arr = pd.SparseArray([1, 2, None, 3])

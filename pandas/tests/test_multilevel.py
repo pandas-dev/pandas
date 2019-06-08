@@ -674,6 +674,7 @@ Thur,Lunch,Yes,51.51,17"""
         # it works!
         df.unstack(['b', 'c'])
 
+    @pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
     def test_groupby_transform(self):
         s = self.frame['A']
         grouper = s.index.get_level_values(0)
@@ -889,6 +890,7 @@ Thur,Lunch,Yes,51.51,17"""
         with pytest.raises(KeyError, match=msg):
             frame.count(level='x')
 
+    @pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
     @pytest.mark.parametrize('op', AGG_FUNCTIONS)
     @pytest.mark.parametrize('level', [0, 1])
     @pytest.mark.parametrize('skipna', [True, False])

@@ -13,6 +13,7 @@ from pandas import DataFrame, Series
 import pandas.util.testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 class TestSeriesStatReductions:
     # Note: the name TestSeriesStatReductions indicates these tests
     #  were moved from a series-specific test file, _not_ that these tests are

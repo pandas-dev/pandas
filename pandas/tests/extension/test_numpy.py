@@ -181,6 +181,7 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
         super().test_take_series(data)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
     @skip_nested
     def test_groupby_extension_apply(

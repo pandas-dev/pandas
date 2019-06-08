@@ -9,6 +9,7 @@ import pandas.util.testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
 class TestSparseArrayArithmetics:
 
     _base = np.array

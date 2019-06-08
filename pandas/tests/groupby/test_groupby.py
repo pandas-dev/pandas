@@ -24,6 +24,7 @@ def test_repr():
     assert result == expected
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 @pytest.mark.parametrize('dtype', ['int64', 'int32', 'float64', 'float32'])
 def test_basic(dtype):
 
@@ -187,6 +188,7 @@ def test_groupby_return_type():
     assert_series_equal(result, e)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_pass_args_kwargs(ts, tsframe):
 
     def f(x, q=None, axis=0):
@@ -256,6 +258,7 @@ def test_basic_regression():
     grouped.mean()
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 @pytest.mark.parametrize('dtype', ['float64', 'float32', 'int64',
                                    'int32', 'int16', 'int8'])
 def test_with_na_groups(dtype):
@@ -340,6 +343,7 @@ def test_indices_concatenation_order():
         df2.groupby('a').apply(f3)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_attr_wrapper(ts):
     grouped = ts.groupby(lambda x: x.weekday())
 
@@ -657,6 +661,7 @@ def test_groupby_as_index_cython(df):
     assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_groupby_as_index_series_scalar(df):
     grouped = df.groupby(['A', 'B'], as_index=False)
 
@@ -677,6 +682,7 @@ def test_groupby_as_index_corner(df, ts):
         df.groupby(lambda x: x.lower(), as_index=False, axis=1)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_groupby_multiple_key(df):
     df = tm.makeTimeDataFrame()
     grouped = df.groupby([lambda x: x.year, lambda x: x.month,
@@ -743,6 +749,7 @@ def test_omit_nuisance_python_multiple(three_group):
     assert_frame_equal(agged, exp)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_empty_groups_corner(mframe):
     # handle empty groups
     df = DataFrame({'k1': np.array(['b', 'b', 'b', 'a', 'a', 'a']),
@@ -770,6 +777,7 @@ def test_nonsense_func():
         df.groupby(lambda x: x + 'foo')
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_wrap_aggregated_output_multindex(mframe):
     df = mframe.T
     df['baz', 'two'] = 'peekaboo'
@@ -852,6 +860,7 @@ def test_groupby_level_nonmulti():
         s.groupby(level=[1])
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_groupby_complex():
     # GH 12902
     a = Series(data=np.arange(4) * (1 + 2j), index=[0, 0, 1, 1])
@@ -986,6 +995,7 @@ def test_groupby_series_with_name(df):
     assert 'B' in result2
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_seriesgroupby_name_attr(df):
     # GH 6265
     result = df.groupby('A')['C']
@@ -1057,6 +1067,7 @@ def test_groupby_mixed_type_columns():
 
 # TODO: Ensure warning isn't emitted in the first place
 @pytest.mark.filterwarnings("ignore:Mean of:RuntimeWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_cython_grouper_series_bug_noncontig():
     arr = np.empty((100, 100))
     arr.fill(np.nan)
@@ -1067,6 +1078,7 @@ def test_cython_grouper_series_bug_noncontig():
     assert result.isna().all()
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_series_grouper_noncontig_index():
     index = Index(tm.rands_array(10, 100))
 
@@ -1081,6 +1093,7 @@ def test_series_grouper_noncontig_index():
     grouped.agg(f)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_convert_objects_leave_decimal_alone():
 
     s = Series(range(5))
@@ -1285,6 +1298,7 @@ def test_dont_clobber_name_column():
     assert_frame_equal(result, df)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_skip_group_keys():
 
     tsf = tm.makeTimeDataFrame()
@@ -1326,6 +1340,7 @@ def test_multifunc_sum_bug():
     assert result['fl'].dtype == np.float64
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_handle_dict_return_value(df):
     def f(group):
         return {'max': group.max(), 'min': group.min()}
@@ -1340,6 +1355,7 @@ def test_handle_dict_return_value(df):
     assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 @pytest.mark.parametrize('grouper', ['A', ['A', 'B']])
 def test_set_group_name(df, grouper):
     def f(group):
@@ -1409,6 +1425,7 @@ def test_groupby_sort_multiindex_series():
     assert_series_equal(result, mseries_result.sort_index())
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_groupby_reindex_inside_function():
 
     periods = 1000
@@ -1505,6 +1522,7 @@ def test_groupby_multiindex_not_lexsorted():
             tm.assert_frame_equal(expected, result)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_index_label_overlaps_location():
     # checking we don't have any label/location confusion in the
     # the wake of GH5375
@@ -1629,6 +1647,7 @@ def test_pivot_table_values_key_error():
                                      values='badname', aggfunc='count')
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_empty_dataframe_groupby():
     # GH8093
     df = DataFrame(columns=['A', 'B', 'C'])

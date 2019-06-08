@@ -19,6 +19,7 @@ import pandas.util.testing as tm
 from pandas.io.formats.printing import pprint_thing
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_agg_api():
     # GH 6337
     # http://stackoverflow.com/questions/21706030/pandas-groupby-agg-function-column-dtype-error
@@ -83,6 +84,7 @@ def test_agg_period_index():
     list(grouped)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_agg_dict_parameter_cast_result_dtypes():
     # GH 12821
 
@@ -121,6 +123,7 @@ def test_agg_dict_parameter_cast_result_dtypes():
     tm.assert_series_equal(grouped.time.count(), exp)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_agg_cast_results_dtypes():
     # similar to GH12821
     # xref #11444
@@ -291,6 +294,7 @@ def test_agg_nested_dicts():
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_agg_item_by_item_raise_typeerror():
     df = DataFrame(np.random.randint(10, size=(20, 10)))
 
@@ -312,6 +316,7 @@ def test_series_agg_multikey():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_series_agg_multi_pure_python():
     data = DataFrame(
         {'A': ['foo', 'foo', 'foo', 'foo', 'bar', 'bar', 'bar', 'bar',
@@ -333,6 +338,7 @@ def test_series_agg_multi_pure_python():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_agg_consistency():
     # agg with ([]) and () not consistent
     # GH 6715
@@ -356,6 +362,7 @@ def test_agg_consistency():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_agg_callables():
     # GH 7929
     df = DataFrame({'foo': [1, 2], 'bar': [3, 4]}).astype(np.int64)
@@ -396,6 +403,7 @@ def test_agg_over_numpy_arrays():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_agg_timezone_round_trip():
     # GH 15426
     ts = pd.Timestamp("2016-01-01 12:00:00", tz='US/Pacific')
@@ -427,6 +435,7 @@ def test_agg_timezone_round_trip():
     assert ts == grouped.apply(lambda x: x.iloc[-1])[0]
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_sum_uint64_overflow():
     # see gh-14758
     # Convert to uint64 and don't overflow
@@ -447,6 +456,7 @@ def test_sum_uint64_overflow():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 @pytest.mark.parametrize("structure, expected", [
     (tuple, pd.DataFrame({'C': {(1, 1): (1, 1, 1), (3, 4): (3, 4, 4)}})),
     (list, pd.DataFrame({'C': {(1, 1): [1, 1, 1], (3, 4): [3, 4, 4]}})),
@@ -465,6 +475,7 @@ def test_agg_structs_dataframe(structure, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 @pytest.mark.parametrize("structure, expected", [
     (tuple, pd.Series([(1, 1, 1), (3, 4, 4)], index=[1, 3], name='C')),
     (list, pd.Series([[1, 1, 1], [3, 4, 4]], index=[1, 3], name='C')),
@@ -500,6 +511,7 @@ def test_agg_category_nansum(observed):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_agg_list_like_func():
     # GH 18473
     df = pd.DataFrame({'A': [str(x) for x in range(3)],
@@ -511,6 +523,7 @@ def test_agg_list_like_func():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_agg_lambda_with_timezone():
     # GH 23683
     df = pd.DataFrame({

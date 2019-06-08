@@ -6,6 +6,7 @@ import pandas.util.testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame:FutureWarning")
 class TestPivotTable:
 
     def setup_method(self, method):

@@ -15,6 +15,7 @@ test_series = Series(np.random.randn(1000),
                      index=date_range('1/1/2000', periods=1000))
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_apply():
     grouper = Grouper(freq='A', label='right', closed='right')
 

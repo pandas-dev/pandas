@@ -259,6 +259,7 @@ def test_apply_concat_preserve_names(three_group):
     assert result3.index.names == ('A', 'B', None)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_apply_series_to_frame():
     def f(piece):
         with np.errstate(invalid='ignore'):
@@ -277,6 +278,7 @@ def test_apply_series_to_frame():
     tm.assert_index_equal(result.index, ts.index)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_apply_series_yield_constant(df):
     result = df.groupby(['A', 'B'])['C'].apply(len)
     assert result.index.names[:2] == ('A', 'B')
@@ -301,6 +303,7 @@ def test_apply_frame_to_series(df):
     tm.assert_numpy_array_equal(result.values, expected.values)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_apply_frame_concat_series():
     def trans(group):
         return group.groupby('B')['C'].sum().sort_values()[:2]
@@ -319,6 +322,7 @@ def test_apply_frame_concat_series():
     assert result.name == 'C'
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_apply_transform(ts):
     grouped = ts.groupby(lambda x: x.month)
     result = grouped.apply(lambda x: x * 2)

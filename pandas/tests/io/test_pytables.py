@@ -151,6 +151,8 @@ class Base:
 
 
 @pytest.mark.single
+@pytest.mark.filterwarnings("ignore:DataFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
 class TestHDFStore(Base):
 
     def test_format_kwarg_in_constructor(self):

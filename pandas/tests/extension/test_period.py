@@ -151,6 +151,7 @@ class TestSetitem(BasePeriodTests, base.BaseSetitemTests):
     pass
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 class TestGroupby(BasePeriodTests, base.BaseGroupbyTests):
     pass
 

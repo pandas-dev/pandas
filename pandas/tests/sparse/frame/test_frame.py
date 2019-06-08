@@ -25,6 +25,8 @@ def test_deprecated():
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
 class TestSparseDataFrame(SharedWithSparse):
     klass = SparseDataFrame
 
@@ -1304,6 +1306,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame:FutureWarning")
 class TestSparseDataFrameArithmetic:
 
     def test_numeric_op_scalar(self):
@@ -1334,6 +1337,7 @@ class TestSparseDataFrameArithmetic:
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame:FutureWarning")
 class TestSparseDataFrameAnalytics:
 
     def test_cumsum(self, float_frame):

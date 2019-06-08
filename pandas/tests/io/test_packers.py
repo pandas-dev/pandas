@@ -551,6 +551,8 @@ class TestNDFrame(TestPackers):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
 class TestSparse(TestPackers):
 
     def _check_roundtrip(self, obj, comparator, **kwargs):

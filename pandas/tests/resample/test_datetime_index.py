@@ -160,6 +160,7 @@ def test_resample_how(series, downsample_method):
     assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 @pytest.mark.parametrize(
     '_index_start,_index_end,_index_name',
     [('1/1/2000 00:00:00', '1/1/2000 00:13:00', 'index')])
@@ -1135,6 +1136,7 @@ def test_resample_timegrouper():
         assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_resample_nunique():
 
     # GH 12352
