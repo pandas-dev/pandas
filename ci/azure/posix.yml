@@ -90,3 +90,8 @@ jobs:
           Write-Error "$($matches[1]) tests failed"
         }
       displayName: Check for test failures
+    - script: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        ci/print_skipped.py
+      displayName: 'print skipped test'
