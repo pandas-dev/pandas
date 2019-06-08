@@ -182,7 +182,10 @@ class JSONArray(ExtensionArray):
         # If all the elemnts of self are the same size P, NumPy will
         # cast them to an (N, P) array, instead of an (N,) array of tuples.
         frozen = [()] + [tuple(x.items()) for x in self]
-        return np.array(frozen, dtype=object)[1:]
+        data = np.array(frozen, dtype=object)[1:]
+        mask = self.isna()
+        data[mask] = np.nan
+        return data
 
 
 def make_data():

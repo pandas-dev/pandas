@@ -153,6 +153,12 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
                                       "the {} operation".format(name))
         return op(axis=0)
 
+    def _values_for_argsort(self):
+        data = self._data
+        mask = self.isna()
+        data[mask] = decimal.Decimal('Infinity')
+        return data
+
 
 def to_decimal(values, context=None):
     return DecimalArray([decimal.Decimal(x) for x in values], context=context)

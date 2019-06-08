@@ -44,6 +44,11 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
         self.assert_series_equal(result, expected)
 
+    def test_argsort_nan_last(self, data_missing_for_sorting):
+        # GH 21801
+        result = data_missing_for_sorting.argsort()
+        assert result[-1] == 1
+
     @pytest.mark.parametrize('ascending', [True, False])
     def test_sort_values(self, data_for_sorting, ascending):
         ser = pd.Series(data_for_sorting)

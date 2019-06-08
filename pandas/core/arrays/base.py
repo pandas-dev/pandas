@@ -387,7 +387,10 @@ class ExtensionArray:
         """
         # Implementor note: You have two places to override the behavior of
         # argsort.
-        # 1. _values_for_argsort : construct the values passed to np.argsort
+        # 1. _values_for_argsort : construct the values passed to np.argsort.
+        # The transformed values should maintain the ordering between values
+        # within the array. Preferably, the largest value is assiged to NA
+        # values in transformation.
         # 2. argsort : total control over sorting.
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
 

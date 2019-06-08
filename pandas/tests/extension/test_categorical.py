@@ -193,6 +193,11 @@ class TestMethods(base.BaseMethodsTests):
         if not data_for_sorting.ordered:
             raise pytest.skip(reason="searchsorted requires ordered data.")
 
+    def test_argsort_nan_last(self, data_missing_for_sorting):
+        # GH 21801
+        # TODO: Categorical.argsort places NA values at the end
+        pass
+
 
 class TestCasting(base.BaseCastingTests):
     pass
