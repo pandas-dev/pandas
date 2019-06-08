@@ -51,23 +51,6 @@ def get_pairs():
 
 
 def register(explicit=True):
-    """
-    Register Pandas Formatters and Converters with matplotlib
-
-    This function modifies the global ``matplotlib.units.registry``
-    dictionary. Pandas adds custom converters for
-
-    * pd.Timestamp
-    * pd.Period
-    * np.datetime64
-    * datetime.datetime
-    * datetime.date
-    * datetime.time
-
-    See Also
-    --------
-    deregister_matplotlib_converter
-    """
     # Renamed in pandas.plotting.__init__
     global _WARN
 
@@ -84,20 +67,6 @@ def register(explicit=True):
 
 
 def deregister():
-    """
-    Remove pandas' formatters and converters
-
-    Removes the custom converters added by :func:`register`. This
-    attempts to set the state of the registry back to the state before
-    pandas registered its own units. Converters for pandas' own types like
-    Timestamp and Period are removed completely. Converters for types
-    pandas overwrites, like ``datetime.datetime``, are restored to their
-    original value.
-
-    See Also
-    --------
-    deregister_matplotlib_converters
-    """
     # Renamed in pandas.plotting.__init__
     for type_, cls in get_pairs():
         # We use type to catch our classes directly, no inheritance

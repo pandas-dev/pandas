@@ -1,20 +1,18 @@
 """
-Plotting api
+Plotting public API
 """
+from pandas.plotting._core import (
+    FramePlotMethods, SeriesPlotMethods, boxplot, boxplot_frame,
+    boxplot_frame_groupby, hist_frame, hist_series)
+from pandas.plotting._misc import (
+    andrews_curves, autocorrelation_plot, bootstrap_plot,
+    deregister as deregister_matplotlib_converters, lag_plot,
+    parallel_coordinates, plot_params, radviz,
+    register as register_matplotlib_converters, scatter_matrix, table)
 
-# flake8: noqa
-
-from pandas.plotting._misc import (scatter_matrix, radviz,
-                                   andrews_curves, bootstrap_plot,
-                                   parallel_coordinates, lag_plot,
-                                   autocorrelation_plot)
-from pandas.plotting._core import boxplot
-from pandas.plotting._style import plot_params
-from pandas.plotting._tools import table
-try:
-    from pandas.plotting._converter import (
-        register as register_matplotlib_converters)
-    from pandas.plotting._converter import (
-        deregister as deregister_matplotlib_converters)
-except ImportError:
-    pass
+__all__ = ['boxplot', 'boxplot_frame', 'boxplot_frame_groupby', 'hist_frame',
+           'hist_series', 'FramePlotMethods', 'SeriesPlotMethods',
+           'scatter_matrix', 'radviz', 'andrews_curves', 'bootstrap_plot',
+           'parallel_coordinates', 'lag_plot', 'autocorrelation_plot',
+           'table', 'plot_params', 'register_matplotlib_converters',
+           'deregister_matplotlib_converters']
