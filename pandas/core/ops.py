@@ -1581,14 +1581,7 @@ def _unary_method(cls, op, special=True):
     op_name = _get_op_name(op, special)
 
     def f(self):
-        if self.ndim > 2:
-            with np.errstate(all='ignore'):
-                # apply op at once based on current impl
-                new_data = op(self._values)
-            result = self._constructor(new_data, self.items,
-                                       self.major_axis, self.minor_axis)
-            return result.__finalize__(self)
-        elif self.ndim == 2:
+        if self.ndim == 2:
             new_data = {i: op(self.iloc[:, i])
                         for i in range(len(self.columns))}
             result = self._constructor(new_data, index=self.index, copy=False)
