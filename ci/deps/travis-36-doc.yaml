@@ -44,4 +44,3 @@ dependencies:
   # universal
   - pytest>=4.0.2
   - pytest-xdist
-  - isort
