@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Optional, Sequence, Union
 
 from pandas.core.api import DataFrame
+from pandas.api.types import is_list_like
 
 
 def read_spss(path: Union[str, Path],
@@ -30,7 +31,11 @@ def read_spss(path: Union[str, Path],
     except ImportError:
         raise ImportError("pyreadstat is required to read SPSS .sav files.")
 
-    usecols = list(usecols)  # explicitly convert to list
+    if usecols is not None:
+        if not is_list_like(usecols):
+            raise TypeError("usecols must be list-like.")
+        else:
+            usecols = list(usecols)  # pyreadstat requires a list
 
     df, _ = read_sav(path, usecols=usecols,
                      apply_value_formats=convert_categoricals)
