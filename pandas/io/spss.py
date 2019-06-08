@@ -6,7 +6,7 @@ from pandas.core.api import DataFrame
 
 def read_spss(path: Union[str, Path],
               usecols: Optional[Sequence[str]] = None,
-              categorical: bool = True) -> DataFrame:
+              convert_categoricals: bool = True) -> DataFrame:
     """
     Load an SPSS file from the file path, returning a DataFrame.
 
@@ -18,7 +18,7 @@ def read_spss(path: Union[str, Path],
         File path
     usecols : list-like or None
         Return a subset of the columns. If None, return all columns.
-    categorical : bool
+    convert_categoricals : bool
         Convert categorical columns into pd.Categorical.
 
     Returns
@@ -30,5 +30,5 @@ def read_spss(path: Union[str, Path],
     except ImportError:
         raise ImportError("pyreadstat is required to read SPSS .sav files.")
     df, _ = read_sav(path, usecols=usecols,
-                     apply_value_formats=categorical)
+                     apply_value_formats=convert_categoricals)
     return df

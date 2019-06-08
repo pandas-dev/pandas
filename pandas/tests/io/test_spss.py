@@ -64,3 +64,15 @@ def test_spss_umlauts(datapath):
     df = pd.read_spss(fname, categorical=False)
     expected = pd.DataFrame({"var1": [1.0, 2.0, 1.0, 3.0]})
     tm.assert_frame_equal(df, expected)
+
+
+def test_spss_usecols(datapath):
+    # usecols must be list-like
+    fname = datapath("io", "data", "labelled-num.sav")
+
+    usecols = "VAR00002"
+    msg = ("Argument 'usecols' has incorrect type "
+           "(expected list, got {})".format(type(usecols).__name__))
+
+    with pytest.raises(TypeError, match=msg):
+        df = pd.read_spss(fname, usecols=usecols)
