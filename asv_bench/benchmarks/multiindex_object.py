@@ -2,7 +2,7 @@ import string
 
 import numpy as np
 import pandas.util.testing as tm
-from pandas import date_range, MultiIndex
+from pandas import date_range, MultiIndex, DataFrame
 
 
 class GetLoc:
@@ -124,6 +124,20 @@ class Values:
 
     def time_datetime_level_values_sliced(self, mi):
         mi[:10].values
+
+
+class CategoricalLevel:
+
+    def setup(self):
+
+        self.df = DataFrame({
+            'a': np.arange(1_000_000, dtype=np.int32),
+            'b': np.arange(1_000_000, dtype=np.int64),
+            'c': np.arange(1_000_000, dtype=float),
+        }).astype({'a': 'category', 'b': 'category'})
+
+    def time_categorical_level(self):
+        self.df.set_index(['a', 'b'])
 
 
 from .pandas_vb_common import setup  # noqa: F401
