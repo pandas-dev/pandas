@@ -370,10 +370,12 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.ts.hist, grid=False)
         _check_plot_works(self.ts.hist, figsize=(8, 10))
         # _check_plot_works adds an ax so catch warning. see GH #13188
-        with pytest.warns(UserWarning):
+        with tm.assert_produces_warning(Warning,
+                                        check_stacklevel=False):
             _check_plot_works(self.ts.hist,
                               by=self.ts.index.month)
-        with pytest.warns(UserWarning):
+        with tm.assert_produces_warning(Warning,
+                                        check_stacklevel=False):
             _check_plot_works(self.ts.hist,
                               by=self.ts.index.month, bins=5)
 
@@ -410,37 +412,44 @@ class TestSeriesPlots(TestPlotBase):
         df = self.hist_df
 
         # _check_plot_works adds an ax so catch warning. see GH #13188
-        with pytest.warns(UserWarning):
+        with tm.assert_produces_warning(Warning,
+                                        check_stacklevel=False):
             axes = _check_plot_works(df.height.hist,
                                      by=df.gender, layout=(2, 1))
         self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
-        with pytest.warns(UserWarning):
+        with tm.assert_produces_warning(Warning,
+                                        check_stacklevel=False):
             axes = _check_plot_works(df.height.hist,
                                      by=df.gender, layout=(3, -1))
         self._check_axes_shape(axes, axes_num=2, layout=(3, 1))
 
-        with pytest.warns(UserWarning):
+        with tm.assert_produces_warning(Warning,
+                                        check_stacklevel=False):
             axes = _check_plot_works(df.height.hist,
                                      by=df.category, layout=(4, 1))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-        with pytest.warns(UserWarning):
+        with tm.assert_produces_warning(Warning,
+                                        check_stacklevel=False):
             axes = _check_plot_works(df.height.hist,
                                      by=df.category, layout=(2, -1))
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
-        with pytest.warns(UserWarning):
+        with tm.assert_produces_warning(Warning,
+                                        check_stacklevel=False):
             axes = _check_plot_works(df.height.hist,
                                      by=df.category, layout=(3, -1))
         self._check_axes_shape(axes, axes_num=4, layout=(3, 2))
 
-        with pytest.warns(UserWarning):
+        with tm.assert_produces_warning(Warning,
+                                        check_stacklevel=False):
             axes = _check_plot_works(df.height.hist,
                                      by=df.category, layout=(-1, 4))
         self._check_axes_shape(axes, axes_num=4, layout=(1, 4))
 
-        with pytest.warns(UserWarning):
+        with tm.assert_produces_warning(Warning,
+                                        check_stacklevel=False):
             axes = _check_plot_works(df.height.hist,
                                      by=df.classroom, layout=(2, 2))
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
