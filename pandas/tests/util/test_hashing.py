@@ -118,7 +118,7 @@ def test_hash_tuple(tup):
 
 
 @pytest.mark.parametrize("val", [
-    1, 1.4, "A", b"A", u"A", pd.Timestamp("2012-01-01"),
+    1, 1.4, "A", b"A", pd.Timestamp("2012-01-01"),
     pd.Timestamp("2012-01-01", tz="Europe/Brussels"),
     datetime.datetime(2012, 1, 1),
     pd.Timestamp("2012-01-01", tz="EST").to_pydatetime(),
@@ -257,8 +257,7 @@ def test_categorical_with_nan_consistency():
     assert result[1] in expected
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-@pytest.mark.parametrize("obj", [pd.Timestamp("20130101"), tm.makePanel()])
+@pytest.mark.parametrize("obj", [pd.Timestamp("20130101")])
 def test_pandas_errors(obj):
     msg = "Unexpected type for hashing"
     with pytest.raises(TypeError, match=msg):

@@ -1,11 +1,7 @@
-# -*- coding: utf-8 -*-
-
 import re
 
 import numpy as np
 import pytest
-
-from pandas.compat import lrange, range
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
@@ -99,11 +95,11 @@ def test_values_multiindex_periodindex():
 
 def test_consistency():
     # need to construct an overflow
-    major_axis = lrange(70000)
-    minor_axis = lrange(10)
+    major_axis = list(range(70000))
+    minor_axis = list(range(10))
 
     major_codes = np.arange(70000)
-    minor_codes = np.repeat(lrange(10), 7000)
+    minor_codes = np.repeat(range(10), 7000)
 
     # the fact that is works means it's consistent
     index = MultiIndex(levels=[major_axis, minor_axis],
@@ -159,7 +155,8 @@ def test_isna_behavior(idx):
     # should not segfault GH5123
     # NOTE: if MI representation changes, may make sense to allow
     # isna(MI)
-    with pytest.raises(NotImplementedError):
+    msg = "isna is not defined for MultiIndex"
+    with pytest.raises(NotImplementedError, match=msg):
         pd.isna(idx)
 
 
@@ -168,16 +165,16 @@ def test_large_multiindex_error():
     df_below_1000000 = pd.DataFrame(
         1, index=pd.MultiIndex.from_product([[1, 2], range(499999)]),
         columns=['dest'])
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match=r"^\(-1, 0\)$"):
         df_below_1000000.loc[(-1, 0), 'dest']
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match=r"^\(3, 0\)$"):
         df_below_1000000.loc[(3, 0), 'dest']
     df_above_1000000 = pd.DataFrame(
         1, index=pd.MultiIndex.from_product([[1, 2], range(500001)]),
         columns=['dest'])
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match=r"^\(-1, 0\)$"):
         df_above_1000000.loc[(-1, 0), 'dest']
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match=r"^\(3, 0\)$"):
         df_above_1000000.loc[(3, 0), 'dest']
 
 
@@ -260,7 +257,9 @@ def test_hash_error(indices):
 def test_mutability(indices):
     if not len(indices):
         return
-    pytest.raises(TypeError, indices.__setitem__, 0, indices[0])
+    msg = "Index does not support mutable operations"
+    with pytest.raises(TypeError, match=msg):
+        indices[0] = indices[0]
 
 
 def test_wrong_number_names(indices):

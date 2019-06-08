@@ -12,8 +12,8 @@ from pandas.tests.indexing.common import _mklbl
 from pandas.util import testing as tm
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
-class TestMultiIndexSlicers(object):
+@pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
+class TestMultiIndexSlicers:
 
     def test_per_axis_per_level_getitem(self):
 
@@ -107,7 +107,8 @@ class TestMultiIndexSlicers(object):
         # ambiguous cases
         # these can be multiply interpreted (e.g. in this case
         # as df.loc[slice(None),[1]] as well
-        pytest.raises(KeyError, lambda: df.loc[slice(None), [1]])
+        with pytest.raises(KeyError, match=r"'\[1\] not in index'"):
+            df.loc[slice(None), [1]]
 
         result = df.loc[(slice(None), [1]), :]
         expected = df.iloc[[0, 3]]

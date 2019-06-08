@@ -8,11 +8,10 @@ import operator as op
 
 import numpy as np
 
-from pandas.compat import PY3, string_types, text_type
+from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
-import pandas as pd
 from pandas.core.base import StringMixin
 import pandas.core.common as com
 from pandas.core.computation.common import _ensure_decoded, _result_type_many
@@ -44,13 +43,13 @@ class UndefinedVariableError(NameError):
             msg = 'local variable {0!r} is not defined'
         else:
             msg = 'name {0!r} is not defined'
-        super(UndefinedVariableError, self).__init__(msg.format(name))
+        super().__init__(msg.format(name))
 
 
 class Term(StringMixin):
 
     def __new__(cls, name, env, side=None, encoding=None):
-        klass = Constant if not isinstance(name, string_types) else cls
+        klass = Constant if not isinstance(name, str) else cls
         supr_new = super(Term, klass).__new__
         return supr_new(klass)
 
@@ -58,7 +57,7 @@ class Term(StringMixin):
         self._name = name
         self.env = env
         self.side = side
-        tname = text_type(name)
+        tname = str(name)
         self.is_local = (tname.startswith(_LOCAL_TAG) or
                          tname in _DEFAULT_GLOBALS)
         self._value = self._resolve_name()
@@ -68,7 +67,7 @@ class Term(StringMixin):
     def local_name(self):
         return self.name.replace(_LOCAL_TAG, '')
 
-    def __unicode__(self):
+    def __str__(self):
         return pprint_thing(self.name)
 
     def __call__(self, *args, **kwargs):
@@ -99,7 +98,7 @@ class Term(StringMixin):
         key = self.name
 
         # if it's a variable name (otherwise a constant)
-        if isinstance(key, string_types):
+        if isinstance(key, str):
             self.env.swapkey(self.local_name, key, new_value=value)
 
         self.value = value
@@ -150,10 +149,6 @@ class Term(StringMixin):
     def name(self):
         return self._name
 
-    @name.setter
-    def name(self, new_name):
-        self._name = new_name
-
     @property
     def ndim(self):
         return self._value.ndim
@@ -162,8 +157,7 @@ class Term(StringMixin):
 class Constant(Term):
 
     def __init__(self, value, env, side=None, encoding=None):
-        super(Constant, self).__init__(value, env, side=side,
-                                       encoding=encoding)
+        super().__init__(value, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
         return self._name
@@ -172,7 +166,7 @@ class Constant(Term):
     def name(self):
         return self.value
 
-    def __unicode__(self):
+    def __str__(self):
         # in python 2 str() of float
         # can truncate shorter than repr()
         return repr(self.name)
@@ -194,7 +188,7 @@ class Op(StringMixin):
     def __iter__(self):
         return iter(self.operands)
 
-    def __unicode__(self):
+    def __str__(self):
         """Print a generic n-ary operator and its operands using infix
         notation"""
         # recurse over the operands
@@ -272,8 +266,8 @@ _bool_ops_funcs = op.and_, op.or_, op.and_, op.or_
 _bool_ops_dict = dict(zip(_bool_ops_syms, _bool_ops_funcs))
 
 _arith_ops_syms = '+', '-', '*', '/', '**', '//', '%'
-_arith_ops_funcs = (op.add, op.sub, op.mul, op.truediv if PY3 else op.div,
-                    op.pow, op.floordiv, op.mod)
+_arith_ops_funcs = (op.add, op.sub, op.mul, op.truediv, op.pow, op.floordiv,
+                    op.mod)
 _arith_ops_dict = dict(zip(_arith_ops_syms, _arith_ops_funcs))
 
 _special_case_arith_ops_syms = '**', '//', '%'
@@ -330,7 +324,7 @@ class BinOp(Op):
     """
 
     def __init__(self, op, lhs, rhs, **kwargs):
-        super(BinOp, self).__init__(op, (lhs, rhs))
+        super().__init__(op, (lhs, rhs))
         self.lhs = lhs
         self.rhs = rhs
 
@@ -399,8 +393,9 @@ class BinOp(Op):
             if self.op in eval_in_python:
                 res = self.func(left.value, right.value)
             else:
-                res = pd.eval(self, local_dict=env, engine=engine,
-                              parser=parser)
+                from pandas.core.computation.eval import eval
+                res = eval(self, local_dict=env, engine=engine,
+                           parser=parser)
 
         name = env.add_tmp(res)
         return term_type(name, env=env)
@@ -422,7 +417,7 @@ class BinOp(Op):
             v = rhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = pd.Timestamp(_ensure_decoded(v))
+            v = Timestamp(_ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             self.rhs.update(v)
@@ -431,7 +426,7 @@ class BinOp(Op):
             v = lhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = pd.Timestamp(_ensure_decoded(v))
+            v = Timestamp(_ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             self.lhs.update(v)
@@ -462,7 +457,7 @@ class Div(BinOp):
     """
 
     def __init__(self, lhs, rhs, truediv, *args, **kwargs):
-        super(Div, self).__init__('/', lhs, rhs, *args, **kwargs)
+        super().__init__('/', lhs, rhs, *args, **kwargs)
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
             raise TypeError("unsupported operand type(s) for {0}:"
@@ -470,10 +465,9 @@ class Div(BinOp):
                                                       lhs.return_type,
                                                       rhs.return_type))
 
-        if truediv or PY3:
-            # do not upcast float32s to float64 un-necessarily
-            acceptable_dtypes = [np.float32, np.float_]
-            _cast_inplace(com.flatten(self), acceptable_dtypes, np.float_)
+        # do not upcast float32s to float64 un-necessarily
+        acceptable_dtypes = [np.float32, np.float_]
+        _cast_inplace(com.flatten(self), acceptable_dtypes, np.float_)
 
 
 _unary_ops_syms = '+', '-', '~', 'not'
@@ -499,7 +493,7 @@ class UnaryOp(Op):
     """
 
     def __init__(self, op, operand):
-        super(UnaryOp, self).__init__(op, (operand,))
+        super().__init__(op, (operand,))
         self.operand = operand
 
         try:
@@ -512,7 +506,7 @@ class UnaryOp(Op):
         operand = self.operand(env)
         return self.func(operand)
 
-    def __unicode__(self):
+    def __str__(self):
         return pprint_thing('{0}({1})'.format(self.op, self.operand))
 
     @property
@@ -529,7 +523,7 @@ class UnaryOp(Op):
 class MathCall(Op):
 
     def __init__(self, func, args):
-        super(MathCall, self).__init__(func.name, args)
+        super().__init__(func.name, args)
         self.func = func
 
     def __call__(self, env):
@@ -537,12 +531,12 @@ class MathCall(Op):
         with np.errstate(all='ignore'):
             return self.func.func(*operands)
 
-    def __unicode__(self):
+    def __str__(self):
         operands = map(str, self.operands)
         return pprint_thing('{0}({1})'.format(self.op, ','.join(operands)))
 
 
-class FuncNode(object):
+class FuncNode:
     def __init__(self, name):
         from pandas.core.computation.check import (_NUMEXPR_INSTALLED,
                                                    _NUMEXPR_VERSION)

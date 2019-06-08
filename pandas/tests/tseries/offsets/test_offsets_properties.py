@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Behavioral based tests for offsets and date_range.
 

@@ -1,5 +1,3 @@
-# coding=utf-8
-
 import numpy as np
 import pytest
 
@@ -59,17 +57,23 @@ def test_unique_data_ownership():
     Series(Series(["a", "c", "b"]).unique()).sort_values()
 
 
-def test_is_unique():
-    # GH11946
-    s = Series(np.random.randint(0, 10, size=1000))
-    assert s.is_unique is False
-    s = Series(np.arange(1000))
-    assert s.is_unique is True
+@pytest.mark.parametrize('data, expected', [
+    (np.random.randint(0, 10, size=1000), False),
+    (np.arange(1000), True),
+    ([], True),
+    ([np.nan], True),
+    (['foo', 'bar', np.nan], True),
+    (['foo', 'foo', np.nan], False),
+    (['foo', 'bar', np.nan, np.nan], False)])
+def test_is_unique(data, expected):
+    # GH11946 / GH25180
+    s = Series(data)
+    assert s.is_unique is expected
 
 
 def test_is_unique_class_ne(capsys):
     # GH 20661
-    class Foo(object):
+    class Foo:
         def __init__(self, val):
             self._value = val
 

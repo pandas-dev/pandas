@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
@@ -8,7 +6,19 @@ from pandas.core.arrays import TimedeltaArray
 import pandas.util.testing as tm
 
 
-class TestTimedeltaArrayConstructor(object):
+class TestTimedeltaArrayConstructor:
+    def test_only_1dim_accepted(self):
+        # GH#25282
+        arr = np.array([0, 1, 2, 3], dtype='m8[h]').astype('m8[ns]')
+
+        with pytest.raises(ValueError, match="Only 1-dimensional"):
+            # 2-dim
+            TimedeltaArray(arr.reshape(2, 2))
+
+        with pytest.raises(ValueError, match="Only 1-dimensional"):
+            # 0-dim
+            TimedeltaArray(arr[[0]].squeeze())
+
     def test_freq_validation(self):
         # ensure that the public constructor cannot create an invalid instance
         arr = np.array([0, 0, 1], dtype=np.int64) * 3600 * 10**9
@@ -23,18 +33,18 @@ class TestTimedeltaArrayConstructor(object):
             TimedeltaArray([1, 2, 3])
 
     def test_other_type_raises(self):
-        with pytest.raises(TypeError,
+        with pytest.raises(ValueError,
                            match="dtype bool cannot be converted"):
             TimedeltaArray(np.array([1, 2, 3], dtype='bool'))
 
     def test_incorrect_dtype_raises(self):
         # TODO: why TypeError for 'category' but ValueError for i8?
-        with pytest.raises(TypeError,
+        with pytest.raises(ValueError,
                            match=r'category cannot be converted '
                                  r'to timedelta64\[ns\]'):
             TimedeltaArray(np.array([1, 2, 3], dtype='i8'), dtype='category')
 
-        with pytest.raises(TypeError,
+        with pytest.raises(ValueError,
                            match=r"dtype int64 cannot be converted "
                                  r"to timedelta64\[ns\]"):
             TimedeltaArray(np.array([1, 2, 3], dtype='i8'),
@@ -50,9 +60,19 @@ class TestTimedeltaArrayConstructor(object):
         assert arr._data.base is not data
 
 
-class TestTimedeltaArray(object):
+class TestTimedeltaArray:
+    def test_np_sum(self):
+        # GH#25282
+        vals = np.arange(5, dtype=np.int64).view('m8[h]').astype('m8[ns]')
+        arr = TimedeltaArray(vals)
+        result = np.sum(arr)
+        assert result == vals.sum()
+
+        result = np.sum(pd.TimedeltaIndex(arr))
+        assert result == vals.sum()
+
     def test_from_sequence_dtype(self):
-        msg = r"Only timedelta64\[ns\] dtype is valid"
+        msg = "dtype .*object.* cannot be converted to timedelta64"
         with pytest.raises(ValueError, match=msg):
             TimedeltaArray._from_sequence([], dtype=object)
 
@@ -108,7 +128,7 @@ class TestTimedeltaArray(object):
         assert a.freq is None
 
 
-class TestReductions(object):
+class TestReductions:
 
     def test_min_max(self):
         arr = TimedeltaArray._from_sequence([

@@ -15,12 +15,12 @@ dependencies:
   - ipywidgets
   - lxml
   - matplotlib
-  - nbconvert
+  - nbconvert>=5.4.1
   - nbformat
   - nbsphinx
-  - notebook
+  - notebook>=5.7.5
   - numexpr
-  - numpy=1.13*
+  - numpy
   - numpydoc
   - openpyxl
   - pandoc
@@ -29,11 +29,12 @@ dependencies:
   - pytables
   - python-dateutil
   - python-snappy
-  - python=3.6*
+  - python=3.6.*
   - pytz
   - scipy
   - seaborn
-  - sphinx
+  # recursion error with sphinx 2.1.0. https://github.com/pandas-dev/pandas/issues/26723
+  - sphinx==2.0.1
   - sqlalchemy
   - statsmodels
   - xarray
@@ -41,5 +42,6 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest
+  - pytest>=4.0.2
   - pytest-xdist
+  - isort

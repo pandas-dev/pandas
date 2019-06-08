@@ -11,7 +11,7 @@ from pandas.util._decorators import make_signature
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
 
-class GroupByMixin(object):
+class GroupByMixin:
     """
     Provide the groupby facilities to the mixed object.
     """
@@ -89,7 +89,8 @@ dataframe_apply_whitelist = ((common_apply_whitelist |
 cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
                                'cummin', 'cummax'])
 
-cython_cast_blacklist = frozenset(['rank', 'count', 'size'])
+cython_cast_blacklist = frozenset(['rank', 'count', 'size', 'idxmin',
+                                   'idxmax'])
 
 
 def whitelist_method_generator(base, klass, whitelist):
@@ -126,9 +127,7 @@ def whitelist_method_generator(base, klass, whitelist):
     property_wrapper_template = \
         """@property
 def %(name)s(self) :
-    \"""
-    %(doc)s
-    \"""
+    \"""%(doc)s\"""
     return self.__getattr__('%(name)s')"""
 
     for name in whitelist:

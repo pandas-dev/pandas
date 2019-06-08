@@ -4,11 +4,13 @@ import string
 import textwrap
 import pytest
 import numpy as np
+import pandas as pd
+
 import validate_docstrings
 validate_one = validate_docstrings.validate_one
 
 
-class GoodDocStrings(object):
+class GoodDocStrings:
     """
     Collection of good doc strings.
 
@@ -229,8 +231,29 @@ class GoodDocStrings(object):
         """
         pass
 
+    def no_returns(self):
+        """
+        Say hello and have no returns.
+        """
+        pass
 
-class BadGenericDocStrings(object):
+    def empty_returns(self):
+        """
+        Say hello and always return None.
+
+        Since this function never returns a value, this
+        docstring doesn't need a return section.
+        """
+        def say_hello():
+            return "Hello World!"
+        say_hello()
+        if True:
+            return
+        else:
+            return None
+
+
+class BadGenericDocStrings:
     """Everything here has a bad docstring
     """
 
@@ -422,7 +445,7 @@ class BadGenericDocStrings(object):
         pass
 
 
-class BadSummaries(object):
+class BadSummaries:
 
     def wrong_line(self):
         """Exists on the wrong line"""
@@ -461,7 +484,7 @@ class BadSummaries(object):
         """
 
 
-class BadParameters(object):
+class BadParameters:
     """
     Everything here has a problem with its Parameters section.
     """
@@ -588,7 +611,7 @@ class BadParameters(object):
         pass
 
 
-class BadReturns(object):
+class BadReturns:
 
     def return_not_documented(self):
         """
@@ -671,7 +694,7 @@ class BadReturns(object):
         return "Hello", "World!"
 
 
-class BadSeeAlso(object):
+class BadSeeAlso:
 
     def desc_no_period(self):
         """
@@ -709,7 +732,7 @@ class BadSeeAlso(object):
         pass
 
 
-class BadExamples(object):
+class BadExamples:
 
     def unused_import(self):
         """
@@ -747,7 +770,7 @@ class BadExamples(object):
         pass
 
 
-class TestValidator(object):
+class TestValidator:
 
     def _import_path(self, klass=None, func=None):
         """
@@ -783,7 +806,7 @@ class TestValidator(object):
 
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
-        'contains', 'mode', 'good_imports'])
+        'contains', 'mode', 'good_imports', 'no_returns', 'empty_returns'])
     def test_good_functions(self, capsys, func):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings', func=func))['errors']
@@ -928,7 +951,7 @@ class TestValidator(object):
         assert len(result) == 0
 
 
-class TestApiItems(object):
+class TestApiItems:
     @property
     def api_doc(self):
         return io.StringIO(textwrap.dedent('''
@@ -1004,7 +1027,41 @@ class TestApiItems(object):
         assert result[idx][3] == subsection
 
 
-class TestMainFunction(object):
+class TestDocstringClass:
+    @pytest.mark.parametrize('name, expected_obj',
+                             [('pandas.isnull', pd.isnull),
+                              ('pandas.DataFrame', pd.DataFrame),
+                              ('pandas.Series.sum', pd.Series.sum)])
+    def test_resolves_class_name(self, name, expected_obj):
+        d = validate_docstrings.Docstring(name)
+        assert d.obj is expected_obj
+
+    @pytest.mark.parametrize('invalid_name', ['panda', 'panda.DataFrame'])
+    def test_raises_for_invalid_module_name(self, invalid_name):
+        msg = 'No module can be imported from "{}"'.format(invalid_name)
+        with pytest.raises(ImportError, match=msg):
+            validate_docstrings.Docstring(invalid_name)
+
+    @pytest.mark.parametrize('invalid_name',
+                             ['pandas.BadClassName',
+                              'pandas.Series.bad_method_name'])
+    def test_raises_for_invalid_attribute_name(self, invalid_name):
+        name_components = invalid_name.split('.')
+        obj_name, invalid_attr_name = name_components[-2], name_components[-1]
+        msg = "'{}' has no attribute '{}'".format(obj_name, invalid_attr_name)
+        with pytest.raises(AttributeError, match=msg):
+            validate_docstrings.Docstring(invalid_name)
+
+    @pytest.mark.parametrize('name', ['pandas.Series.str.isdecimal',
+                                      'pandas.Series.str.islower'])
+    def test_encode_content_write_to_file(self, name):
+        # GH25466
+        docstr = validate_docstrings.Docstring(name).validate_pep8()
+        # the list of pep8 errors should be empty
+        assert not list(docstr)
+
+
+class TestMainFunction:
     def test_exit_status_for_validate_one(self, monkeypatch):
         monkeypatch.setattr(
             validate_docstrings, 'validate_one', lambda func_name: {

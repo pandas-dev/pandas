@@ -1,10 +1,6 @@
-# -*- coding: utf-8 -*-
-
 """
 test all other .agg behavior
 """
-
-from __future__ import print_function
 
 from collections import OrderedDict
 import datetime as dt
@@ -221,6 +217,7 @@ def test_agg_dict_renaming_deprecation():
         df.groupby('A').agg({'B': {'foo': ['sum', 'max']},
                              'C': {'bar': ['count', 'min']}})
         assert "using a dict with renaming" in str(w[0].message)
+        assert "named aggregation" in str(w[0].message)
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.groupby('A')[['B', 'C']].agg({'ma': 'max'})
@@ -363,7 +360,7 @@ def test_agg_callables():
     # GH 7929
     df = DataFrame({'foo': [1, 2], 'bar': [3, 4]}).astype(np.int64)
 
-    class fn_class(object):
+    class fn_class:
 
         def __call__(self, x):
             return sum(x)
@@ -511,4 +508,19 @@ def test_agg_list_like_func():
     result = grouped.agg({'B': lambda x: list(x)})
     expected = pd.DataFrame({'A': [str(x) for x in range(3)],
                              'B': [[str(x)] for x in range(3)]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_lambda_with_timezone():
+    # GH 23683
+    df = pd.DataFrame({
+        'tag': [1, 1],
+        'date': [
+            pd.Timestamp('2018-01-01', tz='UTC'),
+            pd.Timestamp('2018-01-02', tz='UTC')]
+    })
+    result = df.groupby('tag').agg({'date': lambda e: e.head(1)})
+    expected = pd.DataFrame([pd.Timestamp('2018-01-01', tz='UTC')],
+                            index=pd.Index([1], name='tag'),
+                            columns=['date'])
     tm.assert_frame_equal(result, expected)

@@ -1,13 +1,11 @@
-# pylint: disable=E1101,E1103
-# pylint: disable=W0703,W0622,W0613,W0201
 from functools import partial
 import itertools
 
 import numpy as np
 
-from pandas._libs import algos as _algos, reshape as _reshape
+import pandas._libs.algos as _algos
+import pandas._libs.reshape as _reshape
 from pandas._libs.sparse import IntIndex
-from pandas.compat import PY2, range, text_type, u, zip
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -15,7 +13,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_list_like, is_object_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import notna
 
-from pandas import compat
 import pandas.core.algorithms as algos
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import _factorize_from_iterable
@@ -28,7 +25,7 @@ from pandas.core.sorting import (
     get_group_index)
 
 
-class _Unstacker(object):
+class _Unstacker:
     """
     Helper class to unstack data / pivot with multi-level index
 
@@ -701,19 +698,20 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
                 columns=None, sparse=False, drop_first=False, dtype=None):
     """
-    Convert categorical variable into dummy/indicator variables
+    Convert categorical variable into dummy/indicator variables.
 
     Parameters
     ----------
     data : array-like, Series, or DataFrame
-    prefix : string, list of strings, or dict of strings, default None
+        Data of which to get dummy indicators.
+    prefix : str, list of str, or dict of str, default None
         String to append DataFrame column names.
         Pass a list with length equal to the number of columns
         when calling get_dummies on a DataFrame. Alternatively, `prefix`
         can be a dictionary mapping column names to prefixes.
-    prefix_sep : string, default '_'
+    prefix_sep : str, default '_'
         If appending prefix, separator/delimiter to use. Or pass a
-        list or dictionary as with `prefix.`
+        list or dictionary as with `prefix`.
     dummy_na : bool, default False
         Add a column to indicate NaNs, if False NaNs are ignored.
     columns : list-like, default None
@@ -721,7 +719,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         If `columns` is None then all the columns with
         `object` or `category` dtype will be converted.
     sparse : bool, default False
-        Whether the dummy-encoded columns should be be backed by
+        Whether the dummy-encoded columns should be backed by
         a :class:`SparseArray` (True) or a regular NumPy array (False).
     drop_first : bool, default False
         Whether to get k-1 dummies out of k categorical levels by removing the
@@ -736,11 +734,12 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
     Returns
     -------
-    dummies : DataFrame
+    DataFrame
+        Dummy-coded data.
 
     See Also
     --------
-    Series.str.get_dummies
+    Series.str.get_dummies : Convert Series to dummy codes.
 
     Examples
     --------
@@ -825,7 +824,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         check_len(prefix, 'prefix')
         check_len(prefix_sep, 'prefix_sep')
 
-        if isinstance(prefix, compat.string_types):
+        if isinstance(prefix, str):
             prefix = cycle([prefix])
         if isinstance(prefix, dict):
             prefix = [prefix[col] for col in data_to_encode.columns]
@@ -834,7 +833,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
             prefix = data_to_encode.columns
 
         # validate separators
-        if isinstance(prefix_sep, compat.string_types):
+        if isinstance(prefix_sep, str):
             prefix_sep = cycle([prefix_sep])
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
@@ -909,10 +908,6 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         # PY2 embedded unicode, gh-22084
         def _make_col_name(prefix, prefix_sep, level):
             fstr = '{prefix}{prefix_sep}{level}'
-            if PY2 and (isinstance(prefix, text_type) or
-                        isinstance(prefix_sep, text_type) or
-                        isinstance(level, text_type)):
-                fstr = u(fstr)
             return fstr.format(prefix=prefix,
                                prefix_sep=prefix_sep,
                                level=level)

@@ -7,7 +7,6 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY3
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -47,8 +46,6 @@ def engine(request):
 def pa():
     if not _HAVE_PYARROW:
         pytest.skip("pyarrow is not installed")
-    if LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'):
-        pytest.skip("pyarrow is < 0.7.0")
     return 'pyarrow'
 
 
@@ -86,7 +83,7 @@ def df_full():
          'string_with_nan': ['a', np.nan, 'c'],
          'string_with_none': ['a', None, 'c'],
          'bytes': [b'foo', b'bar', b'baz'],
-         'unicode': [u'foo', u'bar', u'baz'],
+         'unicode': ['foo', 'bar', 'baz'],
          'int': list(range(1, 4)),
          'uint': np.arange(3, 6).astype('u1'),
          'float': np.arange(4.0, 7.0, dtype='float64'),
@@ -223,7 +220,7 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
             tm.assert_frame_equal(result, df[['a', 'd']])
 
 
-class Base(object):
+class Base:
 
     def check_error_on_write(self, df, engine, exc):
         # check that we are raising the exception on writing
@@ -244,7 +241,7 @@ class TestBasic(Base):
                            'int': list(range(1, 4))})
 
         # unicode
-        df.columns = [u'foo', u'bar']
+        df.columns = ['foo', 'bar']
         check_round_trip(df, engine)
 
     def test_columns_dtypes_invalid(self, engine):
@@ -255,10 +252,9 @@ class TestBasic(Base):
         df.columns = [0, 1]
         self.check_error_on_write(df, engine, ValueError)
 
-        if PY3:
-            # bytes on PY3, on PY2 these are str
-            df.columns = [b'foo', b'bar']
-            self.check_error_on_write(df, engine, ValueError)
+        # bytes
+        df.columns = [b'foo', b'bar']
+        self.check_error_on_write(df, engine, ValueError)
 
         # python object
         df.columns = [datetime.datetime(2011, 1, 1, 0, 0),
@@ -288,11 +284,6 @@ class TestBasic(Base):
 
     def test_write_index(self, engine):
         check_names = engine != 'fastparquet'
-
-        if engine == 'pyarrow':
-            import pyarrow
-            if LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'):
-                pytest.skip("pyarrow is < 0.7.0")
 
         df = pd.DataFrame({'A': [1, 2, 3]})
         check_round_trip(df, engine)
@@ -386,10 +377,8 @@ class TestParquetPyArrow(Base):
         df = df_full
 
         # additional supported types for pyarrow
-        import pyarrow
-        if LooseVersion(pyarrow.__version__) >= LooseVersion('0.7.0'):
-            df['datetime_tz'] = pd.date_range('20130101', periods=3,
-                                              tz='Europe/Brussels')
+        df['datetime_tz'] = pd.date_range('20130101', periods=3,
+                                          tz='Europe/Brussels')
         df['bool_with_none'] = [True, None, True]
 
         check_round_trip(df, pa)

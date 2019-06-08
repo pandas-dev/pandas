@@ -21,7 +21,7 @@ START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 class TestDatetimeIndexOps(Ops):
 
     def setup_method(self, method):
-        super(TestDatetimeIndexOps, self).setup_method(method)
+        super().setup_method(method)
         mask = lambda x: (isinstance(x, DatetimeIndex) or
                           isinstance(x, PeriodIndex))
         self.is_valid_objs = [o for o in self.objs if mask(o)]
@@ -37,15 +37,19 @@ class TestDatetimeIndexOps(Ops):
 
         # sanity check that the behavior didn't change
         # GH#7206
+        msg = "'Series' object has no attribute '{}'"
         for op in ['year', 'day', 'second', 'weekday']:
-            pytest.raises(TypeError, lambda x: getattr(self.dt_series, op))
+            with pytest.raises(AttributeError, match=msg.format(op)):
+                getattr(self.dt_series, op)
 
         # attribute access should still work!
         s = Series(dict(year=2000, month=1, day=10))
         assert s.year == 2000
         assert s.month == 1
         assert s.day == 10
-        pytest.raises(AttributeError, lambda: s.weekday)
+        msg = "'Series' object has no attribute 'weekday'"
+        with pytest.raises(AttributeError, match=msg):
+            s.weekday
 
     def test_repeat_range(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -386,7 +390,7 @@ class TestDatetimeIndexOps(Ops):
             idx.offset = BDay()
 
 
-class TestBusinessDatetimeIndex(object):
+class TestBusinessDatetimeIndex:
 
     def setup_method(self, method):
         self.rng = bdate_range(START, END)
@@ -445,7 +449,7 @@ class TestBusinessDatetimeIndex(object):
         assert not t1.identical(t2v)
 
 
-class TestCustomDatetimeIndex(object):
+class TestCustomDatetimeIndex:
     def setup_method(self, method):
         self.rng = bdate_range(START, END, freq='C')
 

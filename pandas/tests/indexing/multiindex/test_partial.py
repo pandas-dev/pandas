@@ -7,7 +7,7 @@ from pandas import DataFrame, MultiIndex
 from pandas.util import testing as tm
 
 
-class TestMultiIndexPartial(object):
+class TestMultiIndexPartial:
 
     def test_getitem_partial_int(self):
         # GH 12416
@@ -100,12 +100,12 @@ class TestMultiIndexPartial(object):
         tm.assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = df.ix[('a', 'y'), [1, 0]]
         tm.assert_frame_equal(result, expected)
 
-        pytest.raises(KeyError, df.loc.__getitem__,
-                      (('a', 'foo'), slice(None, None)))
+        with pytest.raises(KeyError, match=r"\('a', 'foo'\)"):
+            df.loc[('a', 'foo'), :]
 
     def test_partial_set(
             self, multiindex_year_month_day_dataframe_random_data):
@@ -132,7 +132,7 @@ class TestMultiIndexPartial(object):
     # ---------------------------------------------------------------------
     # AMBIGUOUS CASES!
 
-    def test_partial_ix_missing(
+    def test_partial_loc_missing(
             self, multiindex_year_month_day_dataframe_random_data):
         pytest.skip("skipping for now")
 
@@ -147,8 +147,10 @@ class TestMultiIndexPartial(object):
         # assert (self.ymd.loc[2000]['A'] == 0).all()
 
         # Pretty sure the second (and maybe even the first) is already wrong.
-        pytest.raises(Exception, ymd.loc.__getitem__, (2000, 6))
-        pytest.raises(Exception, ymd.loc.__getitem__, (2000, 6), 0)
+        with pytest.raises(Exception):
+            ymd.loc[(2000, 6)]
+        with pytest.raises(Exception):
+            ymd.loc[(2000, 6), 0]
 
     # ---------------------------------------------------------------------
 

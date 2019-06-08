@@ -17,7 +17,7 @@ from pandas.core.arrays import DatetimeArray, period_array
 import pandas.util.testing as tm
 
 
-class TestDatetimeIndex(object):
+class TestDatetimeIndex:
 
     @pytest.mark.parametrize('dt_cls', [DatetimeIndex,
                                         DatetimeArray._from_sequence])
@@ -119,7 +119,7 @@ class TestDatetimeIndex(object):
         i = pd.date_range('20130101', periods=5, freq='H', tz=tz)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
 
-        if str(tz) in ('UTC', 'tzutc()'):
+        if str(tz) in ('UTC', 'tzutc()', 'UTC+00:00'):
             warn = None
         else:
             warn = FutureWarning
@@ -135,8 +135,10 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(i2, expected)
 
         # incompat tz/dtype
-        pytest.raises(ValueError, lambda: DatetimeIndex(
-            i.tz_localize(None).asi8, dtype=i.dtype, tz='US/Pacific'))
+        msg = "cannot supply both a tz and a dtype with a tz"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(i.tz_localize(None).asi8,
+                          dtype=i.dtype, tz='US/Pacific')
 
     def test_construction_index_with_mixed_timezones(self):
         # gh-11488: no tz results in DatetimeIndex
@@ -439,14 +441,19 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(from_ints, expected)
 
         # non-conforming
-        pytest.raises(ValueError, DatetimeIndex,
-                      ['2000-01-01', '2000-01-02', '2000-01-04'], freq='D')
+        msg = ("Inferred frequency None from passed values does not conform"
+               " to passed frequency D")
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'], freq='D')
 
-        pytest.raises(ValueError, date_range, start='2011-01-01',
-                      freq='b')
-        pytest.raises(ValueError, date_range, end='2011-01-01',
-                      freq='B')
-        pytest.raises(ValueError, date_range, periods=10, freq='D')
+        msg = ("Of the four parameters: start, end, periods, and freq, exactly"
+               " three must be specified")
+        with pytest.raises(ValueError, match=msg):
+            date_range(start='2011-01-01', freq='b')
+        with pytest.raises(ValueError, match=msg):
+            date_range(end='2011-01-01', freq='B')
+        with pytest.raises(ValueError, match=msg):
+            date_range(periods=10, freq='D')
 
     @pytest.mark.parametrize('freq', ['AS', 'W-SUN'])
     def test_constructor_datetime64_tzformat(self, freq):
@@ -511,20 +518,28 @@ class TestDatetimeIndex(object):
         idx = DatetimeIndex(['2013-01-01', '2013-01-02'],
                             dtype='datetime64[ns, US/Eastern]')
 
-        pytest.raises(ValueError,
-                      lambda: DatetimeIndex(idx,
-                                            dtype='datetime64[ns]'))
+        msg = ("cannot supply both a tz and a timezone-naive dtype"
+               r" \(i\.e\. datetime64\[ns\]\)")
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(idx, dtype='datetime64[ns]')
 
         # this is effectively trying to convert tz's
-        pytest.raises(TypeError,
-                      lambda: DatetimeIndex(idx,
-                                            dtype='datetime64[ns, CET]'))
-        pytest.raises(ValueError,
-                      lambda: DatetimeIndex(
-                          idx, tz='CET',
-                          dtype='datetime64[ns, US/Eastern]'))
+        msg = ("data is already tz-aware US/Eastern, unable to set specified"
+               " tz: CET")
+        with pytest.raises(TypeError, match=msg):
+            DatetimeIndex(idx, dtype='datetime64[ns, CET]')
+        msg = "cannot supply both a tz and a dtype with a tz"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(idx, tz='CET', dtype='datetime64[ns, US/Eastern]')
+
         result = DatetimeIndex(idx, dtype='datetime64[ns, US/Eastern]')
         tm.assert_index_equal(idx, result)
+
+    @pytest.mark.parametrize('dtype', [object, np.int32, np.int64])
+    def test_constructor_invalid_dtype_raises(self, dtype):
+        # GH 23986
+        with pytest.raises(ValueError):
+            DatetimeIndex([1, 2], dtype=dtype)
 
     def test_constructor_name(self):
         idx = date_range(start='2000-01-01', periods=1, freq='A',
@@ -634,8 +649,25 @@ class TestDatetimeIndex(object):
         expected = DatetimeIndex([Timestamp('2018', tz=tz), pd.NaT])
         tm.assert_index_equal(result, expected)
 
+    def test_constructor_no_precision_warns(self):
+        # GH-24753, GH-24739
+        expected = pd.DatetimeIndex(['2000'], dtype='datetime64[ns]')
 
-class TestTimeSeries(object):
+        # we set the stacklevel for DatetimeIndex
+        with tm.assert_produces_warning(FutureWarning):
+            result = pd.DatetimeIndex(['2000'], dtype='datetime64')
+        tm.assert_index_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = pd.Index(['2000'], dtype='datetime64')
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_wrong_precision_raises(self):
+        with pytest.raises(ValueError):
+            pd.DatetimeIndex(['2000'], dtype='datetime64[us]')
+
+
+class TestTimeSeries:
 
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')
@@ -715,7 +747,9 @@ class TestTimeSeries(object):
 
     def test_datetimeindex_constructor_misc(self):
         arr = ['1/1/2005', '1/2/2005', 'Jn 3, 2005', '2005-01-04']
-        pytest.raises(Exception, DatetimeIndex, arr)
+        msg = r"(\(')?Unknown string format(:', 'Jn 3, 2005'\))?"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(arr)
 
         arr = ['1/1/2005', '1/2/2005', '1/3/2005', '2005-01-04']
         idx1 = DatetimeIndex(arr)

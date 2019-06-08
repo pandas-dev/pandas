@@ -1,13 +1,9 @@
-# -*- coding: utf-8 -*-
-
 from collections import OrderedDict
-import re
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import lrange, range
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
@@ -30,32 +26,32 @@ def test_constructor_no_levels():
     with pytest.raises(ValueError, match=msg):
         MultiIndex(levels=[], codes=[])
 
-    both_re = re.compile('Must pass both levels and codes')
-    with pytest.raises(TypeError, match=both_re):
+    msg = "Must pass both levels and codes"
+    with pytest.raises(TypeError, match=msg):
         MultiIndex(levels=[])
-    with pytest.raises(TypeError, match=both_re):
+    with pytest.raises(TypeError, match=msg):
         MultiIndex(codes=[])
 
 
 def test_constructor_nonhashable_names():
     # GH 20527
-    levels = [[1, 2], [u'one', u'two']]
+    levels = [[1, 2], ['one', 'two']]
     codes = [[0, 0, 1, 1], [0, 1, 0, 1]]
     names = (['foo'], ['bar'])
-    message = "MultiIndex.name must be a hashable type"
-    with pytest.raises(TypeError, match=message):
+    msg = r"MultiIndex\.name must be a hashable type"
+    with pytest.raises(TypeError, match=msg):
         MultiIndex(levels=levels, codes=codes, names=names)
 
     # With .rename()
-    mi = MultiIndex(levels=[[1, 2], [u'one', u'two']],
+    mi = MultiIndex(levels=[[1, 2], ['one', 'two']],
                     codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
                     names=('foo', 'bar'))
     renamed = [['foor'], ['barr']]
-    with pytest.raises(TypeError, match=message):
+    with pytest.raises(TypeError, match=msg):
         mi.rename(names=renamed)
 
     # With .set_names()
-    with pytest.raises(TypeError, match=message):
+    with pytest.raises(TypeError, match=msg):
         mi.set_names(names=renamed)
 
 
@@ -67,8 +63,10 @@ def test_constructor_mismatched_codes_levels(idx):
     with pytest.raises(ValueError, match=msg):
         MultiIndex(levels=levels, codes=codes)
 
-    length_error = re.compile('>= length of level')
-    label_error = re.compile(r'Unequal code lengths: \[4, 2\]')
+    length_error = (r"On level 0, code max \(3\) >= length of level \(1\)\."
+                    " NOTE: this index is in an inconsistent state")
+    label_error = r"Unequal code lengths: \[4, 2\]"
+    code_value_error = r"On level 0, code value \(-2\) < -1"
 
     # important to check that it's looking at the right thing.
     with pytest.raises(ValueError, match=length_error):
@@ -84,6 +82,44 @@ def test_constructor_mismatched_codes_levels(idx):
 
     with pytest.raises(ValueError, match=label_error):
         idx.copy().set_codes([[0, 0, 0, 0], [0, 0]])
+
+    # test set_codes with verify_integrity=False
+    # the setting should not raise any value error
+    idx.copy().set_codes(codes=[[0, 0, 0, 0], [0, 0]],
+                         verify_integrity=False)
+
+    # code value smaller than -1
+    with pytest.raises(ValueError, match=code_value_error):
+        MultiIndex(levels=[['a'], ['b']], codes=[[0, -2], [0, 0]])
+
+
+def test_na_levels():
+    # GH26408
+    # test if codes are re-assigned value -1 for levels
+    # with mising values (NaN, NaT, None)
+    result = MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+                        codes=[[0, -1, 1, 2, 3, 4]])
+    expected = MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+                          codes=[[-1, -1, -1, -1, 3, 4]])
+    tm.assert_index_equal(result, expected)
+
+    result = MultiIndex(levels=[[np.nan, 's', pd.NaT, 128, None]],
+                        codes=[[0, -1, 1, 2, 3, 4]])
+    expected = MultiIndex(levels=[[np.nan, 's', pd.NaT, 128, None]],
+                          codes=[[-1, -1, 1, -1, 3, -1]])
+    tm.assert_index_equal(result, expected)
+
+    # verify set_levels and set_codes
+    result = MultiIndex(
+        levels=[[1, 2, 3, 4, 5]], codes=[[0, -1, 1, 2, 3, 4]]).set_levels(
+            [[np.nan, 's', pd.NaT, 128, None]])
+    tm.assert_index_equal(result, expected)
+
+    result = MultiIndex(
+        levels=[[np.nan, 's', pd.NaT, 128, None]],
+        codes=[[1, 2, 2, 2, 2, 2]]).set_codes(
+            [[0, -1, 1, 2, 3, 4]])
+    tm.assert_index_equal(result, expected)
 
 
 def test_labels_deprecated(idx):
@@ -140,6 +176,15 @@ def test_from_arrays_iterator(idx):
     msg = "Input must be a list / sequence of array-likes."
     with pytest.raises(TypeError, match=msg):
         MultiIndex.from_arrays(0)
+
+
+def test_from_arrays_tuples(idx):
+    arrays = tuple(tuple(np.asarray(lev).take(level_codes))
+                   for lev, level_codes in zip(idx.levels, idx.codes))
+
+    # tuple of tuples as input
+    result = MultiIndex.from_arrays(arrays, names=idx.names)
+    tm.assert_index_equal(result, idx)
 
 
 def test_from_arrays_index_series_datetimetz():
@@ -253,21 +298,16 @@ def test_from_arrays_empty():
         tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize('invalid_array', [
-    (1),
-    ([1]),
-    ([1, 2]),
-    ([[1], 2]),
-    ('a'),
-    (['a']),
-    (['a', 'b']),
-    ([['a'], 'b']),
+@pytest.mark.parametrize('invalid_sequence_of_arrays', [
+    1, [1], [1, 2], [[1], 2], [1, [2]], 'a', ['a'], ['a', 'b'], [['a'], 'b'],
+    (1,), (1, 2), ([1], 2), (1, [2]), 'a', ('a',), ('a', 'b'), (['a'], 'b'),
+    [(1,), 2], [1, (2,)], [('a',), 'b'],
+    ((1,), 2), (1, (2,)), (('a',), 'b')
 ])
-def test_from_arrays_invalid_input(invalid_array):
-    invalid_inputs = [1, [1], [1, 2], [[1], 2],
-                      'a', ['a'], ['a', 'b'], [['a'], 'b']]
-    for i in invalid_inputs:
-        pytest.raises(TypeError, MultiIndex.from_arrays, arrays=i)
+def test_from_arrays_invalid_input(invalid_sequence_of_arrays):
+    msg = "Input must be a list / sequence of array-likes"
+    with pytest.raises(TypeError, match=msg):
+        MultiIndex.from_arrays(arrays=invalid_sequence_of_arrays)
 
 
 @pytest.mark.parametrize('idx1, idx2', [
@@ -332,9 +372,10 @@ def test_tuples_with_name_string():
     # GH 15110 and GH 14848
 
     li = [(0, 0, 1), (0, 1, 0), (1, 0, 0)]
-    with pytest.raises(ValueError):
+    msg = "Names should be list-like for a MultiIndex"
+    with pytest.raises(ValueError, match=msg):
         pd.Index(li, name='abc')
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg):
         pd.Index(li, name='a')
 
 
@@ -380,7 +421,7 @@ def test_from_product_empty_two_levels(first, second):
 def test_from_product_empty_three_levels(N):
     # GH12258
     names = ['A', 'B', 'C']
-    lvl2 = lrange(N)
+    lvl2 = list(range(N))
     result = MultiIndex.from_product([[], lvl2, []], names=names)
     expected = MultiIndex(levels=[[], lvl2, []],
                           codes=[[], [], []], names=names)
@@ -398,7 +439,10 @@ def test_from_product_empty_three_levels(N):
     [['a'], 'b'],
 ])
 def test_from_product_invalid_input(invalid_input):
-    pytest.raises(TypeError, MultiIndex.from_product, iterables=invalid_input)
+    msg = (r"Input must be a list / sequence of iterables|"
+           "Input must be list-like")
+    with pytest.raises(TypeError, match=msg):
+        MultiIndex.from_product(iterables=invalid_input)
 
 
 def test_from_product_datetimeindex():
@@ -563,15 +607,15 @@ def test_from_frame_valid_names(names_in, names_out):
     assert mi.names == names_out
 
 
-@pytest.mark.parametrize('names_in,names_out', [
-    ('bad_input', ValueError("Names should be list-like for a MultiIndex")),
-    (['a', 'b', 'c'], ValueError("Length of names must match number of "
-                                 "levels in MultiIndex."))
+@pytest.mark.parametrize('names,expected_error_msg', [
+    ('bad_input', "Names should be list-like for a MultiIndex"),
+    (['a', 'b', 'c'],
+     "Length of names must match number of levels in MultiIndex")
 ])
-def test_from_frame_invalid_names(names_in, names_out):
+def test_from_frame_invalid_names(names, expected_error_msg):
     # GH 22420
     df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
                       columns=pd.MultiIndex.from_tuples([('L1', 'x'),
                                                          ('L2', 'y')]))
-    with pytest.raises(type(names_out), match=names_out.args[0]):
-        pd.MultiIndex.from_frame(df, names=names_in)
+    with pytest.raises(ValueError, match=expected_error_msg):
+        pd.MultiIndex.from_frame(df, names=names)

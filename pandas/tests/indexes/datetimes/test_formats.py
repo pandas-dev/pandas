@@ -51,7 +51,7 @@ def test_to_native_types():
     tm.assert_numpy_array_equal(result, expected)
 
 
-class TestDatetimeIndexRendering(object):
+class TestDatetimeIndexRendering:
     def test_dti_repr_short(self):
         dr = pd.date_range(start='1/1/2012', periods=1)
         repr(dr)
@@ -62,7 +62,7 @@ class TestDatetimeIndexRendering(object):
         dr = pd.date_range(start='1/1/2012', periods=3)
         repr(dr)
 
-    @pytest.mark.parametrize('method', ['__repr__', '__unicode__', '__str__'])
+    @pytest.mark.parametrize('method', ['__repr__', '__str__'])
     def test_dti_representation(self, method):
         idxs = []
         idxs.append(DatetimeIndex([], freq='D'))

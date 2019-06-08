@@ -1,28 +1,24 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime, timedelta
 import operator
 
 import numpy as np
 import pytest
 
-import pandas.compat as compat
-from pandas.compat import range
-
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, Series, bdate_range, date_range, isna)
 from pandas.core import ops
+from pandas.core.indexes.base import InvalidIndexError
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, assert_series_equal)
+    assert_almost_equal, assert_frame_equal, assert_index_equal,
+    assert_series_equal)
 
 from .common import TestData
 
 
-class TestSeriesLogicalOps(object):
+class TestSeriesLogicalOps:
     @pytest.mark.parametrize('bool_op', [operator.and_,
                                          operator.or_, operator.xor])
     def test_bool_operators_with_nas(self, bool_op):
@@ -177,7 +173,6 @@ class TestSeriesLogicalOps(object):
         operator.and_,
         operator.or_,
         operator.xor,
-
     ])
     def test_logical_ops_with_index(self, op):
         # GH#22092, GH#19792
@@ -195,6 +190,37 @@ class TestSeriesLogicalOps(object):
 
         result = op(ser, idx2)
         assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('op', [
+        pytest.param(ops.rand_,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation returns "
+                                                    "Index",
+                                             raises=AssertionError,
+                                             strict=True)),
+        pytest.param(ops.ror_,
+                     marks=pytest.mark.xfail(reason="Index.get_indexer "
+                                                    "with non unique index",
+                                             raises=InvalidIndexError,
+                                             strict=True)),
+        ops.rxor,
+    ])
+    def test_reversed_logical_ops_with_index(self, op):
+        # GH#22092, GH#19792
+        ser = Series([True, True, False, False])
+        idx1 = Index([True, False, True, False])
+        idx2 = Index([1, 0, 1, 0])
+
+        # symmetric_difference is only for rxor, but other 2 should fail
+        expected = idx1.symmetric_difference(ser)
+
+        result = op(ser, idx1)
+        assert_index_equal(result, expected)
+
+        expected = idx2.symmetric_difference(ser)
+
+        result = op(ser, idx2)
+        assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("op, expected", [
         (ops.rand_, pd.Index([False, True])),
@@ -361,7 +387,7 @@ class TestSeriesLogicalOps(object):
         assert_frame_equal(s4.to_frame() | s3.to_frame(), exp)
 
 
-class TestSeriesComparisons(object):
+class TestSeriesComparisons:
     def test_comparisons(self):
         left = np.random.randn(10)
         right = np.random.randn(10)
@@ -563,8 +589,15 @@ class TestSeriesComparisons(object):
             with pytest.raises(ValueError, match=msg):
                 left.to_frame() < right.to_frame()
 
+    def test_compare_series_interval_keyword(self):
+        # GH 25338
+        s = Series(['IntervalA', 'IntervalB', 'IntervalC'])
+        result = s == 'IntervalA'
+        expected = Series([True, False, False])
+        assert_series_equal(result, expected)
 
-class TestSeriesFlexComparisonOps(object):
+
+class TestSeriesFlexComparisonOps:
 
     def test_comparison_flex_alignment(self):
         left = Series([1, 3, 2], index=list('abc'))
@@ -658,7 +691,8 @@ class TestSeriesOperators(TestData):
                           index=self.ts.index[:-5], name='ts')
         tm.assert_series_equal(added[:-5], expected)
 
-    pairings = []
+    pairings = [(Series.div, operator.truediv, 1),
+                (Series.rdiv, lambda x, y: operator.truediv(y, x), 1)]
     for op in ['add', 'sub', 'mul', 'pow', 'truediv', 'floordiv']:
         fv = 0
         lop = getattr(Series, op)
@@ -668,12 +702,6 @@ class TestSeriesOperators(TestData):
         requiv = lambda x, y, op=op: getattr(operator, op)(y, x)
         pairings.append((lop, lequiv, fv))
         pairings.append((rop, requiv, fv))
-    if compat.PY3:
-        pairings.append((Series.div, operator.truediv, 1))
-        pairings.append((Series.rdiv, lambda x, y: operator.truediv(y, x), 1))
-    else:
-        pairings.append((Series.div, operator.div, 1))
-        pairings.append((Series.rdiv, lambda x, y: operator.div(y, x), 1))
 
     @pytest.mark.parametrize('op, equiv_op, fv', pairings)
     def test_operators_combine(self, op, equiv_op, fv):
@@ -733,3 +761,32 @@ class TestSeriesOperators(TestData):
         result = s1 + s2
         expected = pd.Series([11, 12, np.nan], index=[1, 1, 2])
         assert_series_equal(result, expected)
+
+    def test_divmod(self):
+        # GH25557
+        a = Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+        b = Series([2, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+
+        result = a.divmod(b)
+        expected = divmod(a, b)
+        assert_series_equal(result[0], expected[0])
+        assert_series_equal(result[1], expected[1])
+
+        result = a.rdivmod(b)
+        expected = divmod(b, a)
+        assert_series_equal(result[0], expected[0])
+        assert_series_equal(result[1], expected[1])
+
+
+class TestSeriesUnaryOps:
+    # __neg__, __pos__, __inv__
+
+    def test_neg(self):
+        ser = tm.makeStringSeries()
+        ser.name = 'series'
+        assert_series_equal(-ser, -1 * ser)
+
+    def test_invert(self):
+        ser = tm.makeStringSeries()
+        ser.name = 'series'
+        assert_series_equal(-(ser < 0), ~(ser < 0))

@@ -5,8 +5,6 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -18,13 +16,13 @@ def test_ix_deprecation():
     # GH 15114
 
     df = DataFrame({'A': [1, 2, 3]})
-    with tm.assert_produces_warning(DeprecationWarning,
-                                    check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=True):
         df.ix[1, 'A']
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
-class TestIX(object):
+@pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
+class TestIX:
 
     def test_ix_loc_setitem_consistency(self):
 
@@ -102,7 +100,12 @@ class TestIX(object):
                 with catch_warnings(record=True):
                     df.ix[key]
 
-                pytest.raises(TypeError, lambda: df.loc[key])
+                msg = (r"cannot do slice indexing"
+                       r" on {klass} with these indexers \[(0|1)\] of"
+                       r" {kind}"
+                       .format(klass=type(df.index), kind=str(int)))
+                with pytest.raises(TypeError, match=msg):
+                    df.loc[key]
 
         df = DataFrame(np.random.randn(5, 4), columns=list('ABCD'),
                        index=pd.date_range('2012-01-01', periods=5))
@@ -122,7 +125,8 @@ class TestIX(object):
                 with catch_warnings(record=True):
                     expected = df.ix[key]
             except KeyError:
-                pytest.raises(KeyError, lambda: df.loc[key])
+                with pytest.raises(KeyError, match=r"^'2012-01-31'$"):
+                    df.loc[key]
                 continue
 
             result = df.loc[key]
@@ -188,7 +192,9 @@ class TestIX(object):
         tm.assert_series_equal(df.B, orig + 1)
 
         # GH 3668, mixed frame with series value
-        df = DataFrame({'x': lrange(10), 'y': lrange(10, 20), 'z': 'bar'})
+        df = DataFrame({'x': np.arange(10),
+                        'y': np.arange(10, 20),
+                        'z': 'bar'})
         expected = df.copy()
 
         for i in range(5):
@@ -206,7 +212,7 @@ class TestIX(object):
         expected = DataFrame({'a': [1, 2, 3], 'b': [100, 1, -100]})
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame({'a': lrange(4)})
+        df = DataFrame({'a': list(range(4))})
         df['b'] = np.nan
         df.loc[[1, 3], 'b'] = [100, -100]
         expected = DataFrame({'a': [0, 1, 2, 3],
@@ -216,7 +222,7 @@ class TestIX(object):
         # ok, but chained assignments are dangerous
         # if we turn off chained assignment it will work
         with option_context('chained_assignment', None):
-            df = DataFrame({'a': lrange(4)})
+            df = DataFrame({'a': list(range(4))})
             df['b'] = np.nan
             df['b'].loc[[1, 3]] = [100, -100]
             tm.assert_frame_equal(df, expected)
@@ -279,14 +285,18 @@ class TestIX(object):
             np.random.randn(2, 5), index=["row%s" % i for i in range(2)],
             columns=["col%s" % i for i in range(5)])
         with catch_warnings(record=True):
-            pytest.raises(ValueError, df.ix.__setitem__, (2, 0), 100)
+            msg = "cannot set by positional indexing with enlargement"
+            with pytest.raises(ValueError, match=msg):
+                df.ix[2, 0] = 100
 
     def test_ix_setitem_out_of_bounds_axis_1(self):
         df = DataFrame(
             np.random.randn(5, 2), index=["row%s" % i for i in range(5)],
             columns=["col%s" % i for i in range(2)])
         with catch_warnings(record=True):
-            pytest.raises(ValueError, df.ix.__setitem__, (0, 2), 100)
+            msg = "cannot set by positional indexing with enlargement"
+            with pytest.raises(ValueError, match=msg):
+                df.ix[0, 2] = 100
 
     def test_ix_empty_list_indexer_is_ok(self):
         with catch_warnings(record=True):

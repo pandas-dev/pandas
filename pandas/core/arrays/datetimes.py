@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, time, timedelta
+import textwrap
+from typing import Union
 import warnings
 
 import numpy as np
@@ -8,7 +9,7 @@ from pytz import utc
 from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT, Timestamp, ccalendar, conversion, fields, iNaT, normalize_date,
-    resolution as libresolution, timezones)
+    resolution as libresolution, timezones, tzconversion)
 import pandas.compat as compat
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender
@@ -118,7 +119,7 @@ def _field_accessor(name, field, docstring=None):
         return result
 
     f.__name__ = name
-    f.__doc__ = "\n{}\n".format(docstring)
+    f.__doc__ = docstring
     return property(f)
 
 
@@ -127,7 +128,7 @@ def _dt_array_cmp(cls, op):
     Wrap comparison operations to convert datetime-like to datetime64
     """
     opname = '__{name}__'.format(name=op.__name__)
-    nat_result = True if opname == '__ne__' else False
+    nat_result = opname == '__ne__'
 
     def wrapper(self, other):
         if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
@@ -135,7 +136,7 @@ def _dt_array_cmp(cls, op):
 
         other = lib.item_from_zerodim(other)
 
-        if isinstance(other, (datetime, np.datetime64, compat.string_types)):
+        if isinstance(other, (datetime, np.datetime64, str)):
             if isinstance(other, (datetime, np.datetime64)):
                 # GH#18435 strings get a pass from tzawareness compat
                 self._assert_tzawareness_compat(other)
@@ -195,9 +196,6 @@ def _dt_array_cmp(cls, op):
 
             result = com.values_from_object(result)
 
-            # Make sure to pass an array to result[...]; indexing with
-            # Series breaks with older version of numpy
-            o_mask = np.array(o_mask)
             if o_mask.any():
                 result[o_mask] = nat_result
 
@@ -216,6 +214,13 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 
     .. versionadded:: 0.24.0
+
+    .. warning::
+
+       DatetimeArray is currently experimental, and its API may change
+       without warning. In particular, :attr:`DatetimeArray.dtype` is
+       expected to change to always be an instance of an ``ExtensionDtype``
+       subclass.
 
     Parameters
     ----------
@@ -251,10 +256,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                              'tz_convert',
                              'normalize', 'strftime', 'round', 'floor',
                              'ceil', 'month_name', 'day_name']
-
-    # dummy attribute so that datetime.__eq__(DatetimeArray) defers
-    # by returning NotImplemented
-    timetuple = None
 
     # Needed so that Timestamp.__richcmp__(DateTimeArray) operates pointwise
     ndim = 1
@@ -505,10 +506,15 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         return lambda x: Timestamp(x, freq=self.freq, tz=self.tz)
 
     @property
-    def dtype(self):
-        # type: () -> Union[np.dtype, DatetimeTZDtype]
+    def dtype(self) -> Union[np.dtype, DatetimeTZDtype]:
         """
         The dtype for the DatetimeArray.
+
+        .. warning::
+
+           A future version of pandas will change dtype to never be a
+           ``numpy.dtype``. Instead, :attr:`DatetimeArray.dtype` will
+           always be an instance of an ``ExtensionDtype`` subclass.
 
         Returns
         -------
@@ -573,14 +579,14 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
             # The default for tz-aware is object, to preserve tz info
             dtype = object
 
-        return super(DatetimeArray, self).__array__(dtype=dtype)
+        return super().__array__(dtype=dtype)
 
     def __iter__(self):
         """
         Return an iterator over the boxed values
 
         Yields
-        -------
+        ------
         tstamp : Timestamp
         """
 
@@ -706,11 +712,11 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         self_i8 = self.asi8
         other_i8 = other.asi8
+        arr_mask = self._isnan | other._isnan
         new_values = checked_add_with_arr(self_i8, -other_i8,
-                                          arr_mask=self._isnan)
+                                          arr_mask=arr_mask)
         if self._hasnans or other._hasnans:
-            mask = (self._isnan) | (other._isnan)
-            new_values[mask] = iNaT
+            new_values[arr_mask] = iNaT
         return new_values.view('timedelta64[ns]')
 
     def _add_offset(self, offset):
@@ -764,7 +770,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         -------
         result : DatetimeArray
         """
-        new_values = super(DatetimeArray, self)._add_delta(delta)
+        new_values = super()._add_delta(delta)
         return type(self)._from_sequence(new_values, tz=self.tz, freq='infer')
 
     def __pos__(self):
@@ -781,7 +787,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         This is used to calculate time-of-day information as if the timestamps
         were timezone-naive.
         """
-        return conversion.tz_convert(self.asi8, utc, self.tz)
+        return tzconversion.tz_convert(self.asi8, utc, self.tz)
 
     def tz_convert(self, tz):
         """
@@ -789,14 +795,14 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         Parameters
         ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time. Corresponding timestamps would be converted
             to this time zone of the Datetime Array/Index. A `tz` of None will
             convert to UTC and remove the timezone information.
 
         Returns
         -------
-        normalized : same type as self
+        Array or Index
 
         Raises
         ------
@@ -832,7 +838,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         With the ``tz=None``, we can remove the timezone (after converting
         to UTC if necessary):
 
-        >>> dti = pd.date_range(start='2014-08-01 09:00',freq='H',
+        >>> dti = pd.date_range(start='2014-08-01 09:00', freq='H',
         ...                     periods=3, tz='Europe/Berlin')
 
         >>> dti
@@ -872,7 +878,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         Parameters
         ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
@@ -892,8 +898,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
@@ -920,7 +926,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         Returns
         -------
-        result : same type as self
+        Same type as self
             Array/Index converted to the specified time zone.
 
         Raises
@@ -960,43 +966,39 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         Be careful with DST changes. When there is sequential data, pandas can
         infer the DST time:
-        >>> s = pd.to_datetime(pd.Series([
-        ... '2018-10-28 01:30:00',
-        ... '2018-10-28 02:00:00',
-        ... '2018-10-28 02:30:00',
-        ... '2018-10-28 02:00:00',
-        ... '2018-10-28 02:30:00',
-        ... '2018-10-28 03:00:00',
-        ... '2018-10-28 03:30:00']))
+        >>> s = pd.to_datetime(pd.Series(['2018-10-28 01:30:00',
+        ...                               '2018-10-28 02:00:00',
+        ...                               '2018-10-28 02:30:00',
+        ...                               '2018-10-28 02:00:00',
+        ...                               '2018-10-28 02:30:00',
+        ...                               '2018-10-28 03:00:00',
+        ...                               '2018-10-28 03:30:00']))
         >>> s.dt.tz_localize('CET', ambiguous='infer')
-        2018-10-28 01:30:00+02:00    0
-        2018-10-28 02:00:00+02:00    1
-        2018-10-28 02:30:00+02:00    2
-        2018-10-28 02:00:00+01:00    3
-        2018-10-28 02:30:00+01:00    4
-        2018-10-28 03:00:00+01:00    5
-        2018-10-28 03:30:00+01:00    6
-        dtype: int64
+        0   2018-10-28 01:30:00+02:00
+        1   2018-10-28 02:00:00+02:00
+        2   2018-10-28 02:30:00+02:00
+        3   2018-10-28 02:00:00+01:00
+        4   2018-10-28 02:30:00+01:00
+        5   2018-10-28 03:00:00+01:00
+        6   2018-10-28 03:30:00+01:00
+        dtype: datetime64[ns, CET]
 
         In some cases, inferring the DST is impossible. In such cases, you can
         pass an ndarray to the ambiguous parameter to set the DST explicitly
 
-        >>> s = pd.to_datetime(pd.Series([
-        ... '2018-10-28 01:20:00',
-        ... '2018-10-28 02:36:00',
-        ... '2018-10-28 03:46:00']))
+        >>> s = pd.to_datetime(pd.Series(['2018-10-28 01:20:00',
+        ...                               '2018-10-28 02:36:00',
+        ...                               '2018-10-28 03:46:00']))
         >>> s.dt.tz_localize('CET', ambiguous=np.array([True, True, False]))
-        0   2018-10-28 01:20:00+02:00
-        1   2018-10-28 02:36:00+02:00
-        2   2018-10-28 03:46:00+01:00
-        dtype: datetime64[ns, CET]
+        0   2015-03-29 03:00:00+02:00
+        1   2015-03-29 03:30:00+02:00
+        dtype: datetime64[ns, Europe/Warsaw]
 
         If the DST transition causes nonexistent times, you can shift these
         dates forward or backwards with a timedelta object or `'shift_forward'`
         or `'shift_backwards'`.
-        >>> s = pd.to_datetime(pd.Series([
-        ... '2015-03-29 02:30:00',
-        ... '2015-03-29 03:30:00']))
+        >>> s = pd.to_datetime(pd.Series(['2015-03-29 02:30:00',
+        ...                               '2015-03-29 03:30:00']))
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
         0   2015-03-29 03:00:00+02:00
         1   2015-03-29 03:30:00+02:00
@@ -1033,8 +1035,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         if self.tz is not None:
             if tz is None:
-                new_dates = conversion.tz_convert(self.asi8, timezones.UTC,
-                                                  self.tz)
+                new_dates = tzconversion.tz_convert(self.asi8, timezones.UTC,
+                                                    self.tz)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
@@ -1119,7 +1121,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         Parameters
         ----------
-        freq : string or Offset, optional
+        freq : str or Offset, optional
             One of pandas' :ref:`offset strings <timeseries.offset_aliases>`
             or an Offset object. Will be inferred by default.
 
@@ -1140,7 +1142,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         Examples
         --------
-        >>> df = pd.DataFrame({"y": [1,2,3]},
+        >>> df = pd.DataFrame({"y": [1, 2, 3]},
         ...                   index=pd.to_datetime(["2000-03-31 00:00:00",
         ...                                         "2000-05-31 00:00:00",
         ...                                         "2000-08-31 00:00:00"]))
@@ -1990,6 +1992,15 @@ def _validate_dt64_dtype(dtype):
     """
     if dtype is not None:
         dtype = pandas_dtype(dtype)
+        if is_dtype_equal(dtype, np.dtype("M8")):
+            # no precision, warn
+            dtype = _NS_DTYPE
+            msg = textwrap.dedent("""\
+                Passing in 'datetime64' dtype with no precision is deprecated
+                and will raise in a future version. Please pass in
+                'datetime64[ns]' instead.""")
+            warnings.warn(msg, FutureWarning, stacklevel=5)
+
         if ((isinstance(dtype, np.dtype) and dtype != _NS_DTYPE)
                 or not isinstance(dtype, (np.dtype, DatetimeTZDtype))):
             raise ValueError("Unexpected value for 'dtype': '{dtype}'. "
@@ -2018,7 +2029,7 @@ def validate_tz_from_dtype(dtype, tz):
     ValueError : on tzinfo mismatch
     """
     if dtype is not None:
-        if isinstance(dtype, compat.string_types):
+        if isinstance(dtype, str):
             try:
                 dtype = DatetimeTZDtype.construct_from_string(dtype)
             except TypeError:
@@ -2039,7 +2050,7 @@ def validate_tz_from_dtype(dtype, tz):
             #  tz-naive dtype (i.e. datetime64[ns])
             if tz is not None and not timezones.tz_compare(tz, dtz):
                 raise ValueError("cannot supply both a tz and a "
-                                 "timezone-naive dtype (i.e. datetime64[ns]")
+                                 "timezone-naive dtype (i.e. datetime64[ns])")
 
     return tz
 

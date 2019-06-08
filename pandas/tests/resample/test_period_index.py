@@ -7,10 +7,10 @@ import pytz
 
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.compat import lrange, range, zip
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
+from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.resample import _get_period_range_edges
@@ -31,7 +31,7 @@ def _series_name():
     return 'pi'
 
 
-class TestPeriodIndex(object):
+class TestPeriodIndex:
 
     @pytest.mark.parametrize('freq', ['2D', '1H', '2H'])
     @pytest.mark.parametrize('kind', ['period', None, 'timestamp'])
@@ -72,17 +72,19 @@ class TestPeriodIndex(object):
 
     @pytest.mark.parametrize('freq', ['H', '12H', '2D', 'W'])
     @pytest.mark.parametrize('kind', [None, 'period', 'timestamp'])
-    def test_selection(self, index, freq, kind):
+    @pytest.mark.parametrize('kwargs', [dict(on='date'), dict(level='d')])
+    def test_selection(self, index, freq, kind, kwargs):
         # This is a bug, these should be implemented
         # GH 14008
         rng = np.arange(len(index), dtype=np.int64)
         df = DataFrame({'date': index, 'a': rng},
                        index=pd.MultiIndex.from_arrays([rng, index],
                                                        names=['v', 'd']))
-        with pytest.raises(NotImplementedError):
-            df.resample(freq, on='date', kind=kind)
-        with pytest.raises(NotImplementedError):
-            df.resample(freq, level='d', kind=kind)
+        msg = ("Resampling from level= or on= selection with a PeriodIndex is"
+               r" not currently supported, use \.set_index\(\.\.\.\) to"
+               " explicitly set index")
+        with pytest.raises(NotImplementedError, match=msg):
+            df.resample(freq, kind=kind, **kwargs)
 
     @pytest.mark.parametrize('month', MONTHS)
     @pytest.mark.parametrize('meth', ['ffill', 'bfill'])
@@ -110,13 +112,20 @@ class TestPeriodIndex(object):
         assert_series_equal(ts.resample('a-dec').mean(), result)
         assert_series_equal(ts.resample('a').mean(), result)
 
-    def test_not_subperiod(self, simple_period_range_series):
+    @pytest.mark.parametrize('rule,expected_error_msg', [
+        ('a-dec', '<YearEnd: month=12>'),
+        ('q-mar', '<QuarterEnd: startingMonth=3>'),
+        ('M', '<MonthEnd>'),
+        ('w-thu', '<Week: weekday=3>')
+    ])
+    def test_not_subperiod(
+            self, simple_period_range_series, rule, expected_error_msg):
         # These are incompatible period rules for resampling
         ts = simple_period_range_series('1/1/1990', '6/30/1995', freq='w-wed')
-        pytest.raises(ValueError, lambda: ts.resample('a-dec').mean())
-        pytest.raises(ValueError, lambda: ts.resample('q-mar').mean())
-        pytest.raises(ValueError, lambda: ts.resample('M').mean())
-        pytest.raises(ValueError, lambda: ts.resample('w-thu').mean())
+        msg = ("Frequency <Week: weekday=2> cannot be resampled to {}, as they"
+               " are not sub or super periods").format(expected_error_msg)
+        with pytest.raises(IncompatibleFrequency, match=msg):
+            ts.resample(rule).mean()
 
     @pytest.mark.parametrize('freq', ['D', '2D'])
     def test_basic_upsample(self, freq, simple_period_range_series):
@@ -212,8 +221,9 @@ class TestPeriodIndex(object):
         assert_series_equal(result, expected)
 
     def test_resample_incompat_freq(self):
-
-        with pytest.raises(IncompatibleFrequency):
+        msg = ("Frequency <MonthEnd> cannot be resampled to <Week: weekday=6>,"
+               " as they are not sub or super periods")
+        with pytest.raises(IncompatibleFrequency, match=msg):
             Series(range(3), index=pd.period_range(
                 start='2000', periods=3, freq='M')).resample('W').mean()
 
@@ -373,7 +383,9 @@ class TestPeriodIndex(object):
     def test_cant_fill_missing_dups(self):
         rng = PeriodIndex([2000, 2005, 2005, 2007, 2007], freq='A')
         s = Series(np.random.randn(5), index=rng)
-        pytest.raises(Exception, lambda: s.resample('A').ffill())
+        msg = "Reindexing only valid with uniquely valued Index objects"
+        with pytest.raises(InvalidIndexError, match=msg):
+            s.resample('A').ffill()
 
     @pytest.mark.parametrize('freq', ['5min'])
     @pytest.mark.parametrize('kind', ['period', None, 'timestamp'])
@@ -423,7 +435,7 @@ class TestPeriodIndex(object):
 
     def test_resample_tz_localized(self):
         dr = date_range(start='2012-4-13', end='2012-5-1')
-        ts = Series(lrange(len(dr)), dr)
+        ts = Series(range(len(dr)), index=dr)
 
         ts_utc = ts.tz_localize('UTC')
         ts_local = ts_utc.tz_convert('America/Los_Angeles')
@@ -702,7 +714,7 @@ class TestPeriodIndex(object):
         pi = PeriodIndex([pd.NaT] * 3, freq='S')
         frame = DataFrame([2, 3, 5], index=pi)
         expected_index = PeriodIndex(data=[], freq=pi.freq)
-        expected = DataFrame([], index=expected_index)
+        expected = DataFrame(index=expected_index)
         result = frame.resample('1s').mean()
         assert_frame_equal(result, expected)
 

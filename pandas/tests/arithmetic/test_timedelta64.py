@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Arithmetc tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 from datetime import datetime, timedelta
@@ -31,8 +30,21 @@ def get_upcast_box(box, vector):
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Comparisons
 
-class TestTimedelta64ArrayComparisons(object):
+class TestTimedelta64ArrayComparisons:
     # TODO: All of these need to be parametrized over box
+
+    def test_compare_timedelta64_zerodim(self):
+        # GH#26689 should unbox when comparing with zerodim array
+        tdi = pd.timedelta_range('2H', periods=4)
+        other = np.array(tdi.to_numpy()[0])
+
+        res = tdi <= other
+        expected = np.array([True, False, False, False])
+        tm.assert_numpy_array_equal(res, expected)
+
+        with pytest.raises(TypeError):
+            # zero-dim of wrong dtype should still raise
+            tdi >= np.array(4)
 
     def test_compare_timedelta_series(self):
         # regresssion test for GH#5963
@@ -157,7 +169,7 @@ class TestTimedelta64ArrayComparisons(object):
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Arithmetic Operations
 
-class TestTimedelta64ArithmeticUnsorted(object):
+class TestTimedelta64ArithmeticUnsorted:
     # Tests moved from type-specific test files but not
     #  yet sorted/parametrized/de-duplicated
 
@@ -205,10 +217,20 @@ class TestTimedelta64ArithmeticUnsorted(object):
         td = Timedelta('1 days')
         dt = Timestamp('20130101')
 
-        pytest.raises(TypeError, lambda: tdi - dt)
-        pytest.raises(TypeError, lambda: tdi - dti)
-        pytest.raises(TypeError, lambda: td - dt)
-        pytest.raises(TypeError, lambda: td - dti)
+        msg = "cannot subtract a datelike from a TimedeltaArray"
+        with pytest.raises(TypeError, match=msg):
+            tdi - dt
+        with pytest.raises(TypeError, match=msg):
+            tdi - dti
+
+        msg = (r"descriptor '__sub__' requires a 'datetime\.datetime' object"
+               " but received a 'Timedelta'")
+        with pytest.raises(TypeError, match=msg):
+            td - dt
+
+        msg = "bad operand type for unary -: 'DatetimeArray'"
+        with pytest.raises(TypeError, match=msg):
+            td - dti
 
         result = dt - dti
         expected = TimedeltaIndex(['0 days', '-1 days', '-2 days'], name='bar')
@@ -265,19 +287,38 @@ class TestTimedelta64ArithmeticUnsorted(object):
         _check(result, expected)
 
         # tz mismatches
-        pytest.raises(TypeError, lambda: dt_tz - ts)
-        pytest.raises(TypeError, lambda: dt_tz - dt)
-        pytest.raises(TypeError, lambda: dt_tz - ts_tz2)
-        pytest.raises(TypeError, lambda: dt - dt_tz)
-        pytest.raises(TypeError, lambda: ts - dt_tz)
-        pytest.raises(TypeError, lambda: ts_tz2 - ts)
-        pytest.raises(TypeError, lambda: ts_tz2 - dt)
-        pytest.raises(TypeError, lambda: ts_tz - ts_tz2)
+        msg = ("Timestamp subtraction must have the same timezones or no"
+               " timezones")
+        with pytest.raises(TypeError, match=msg):
+            dt_tz - ts
+        msg = "can't subtract offset-naive and offset-aware datetimes"
+        with pytest.raises(TypeError, match=msg):
+            dt_tz - dt
+        msg = ("Timestamp subtraction must have the same timezones or no"
+               " timezones")
+        with pytest.raises(TypeError, match=msg):
+            dt_tz - ts_tz2
+        msg = "can't subtract offset-naive and offset-aware datetimes"
+        with pytest.raises(TypeError, match=msg):
+            dt - dt_tz
+        msg = ("Timestamp subtraction must have the same timezones or no"
+               " timezones")
+        with pytest.raises(TypeError, match=msg):
+            ts - dt_tz
+        with pytest.raises(TypeError, match=msg):
+            ts_tz2 - ts
+        with pytest.raises(TypeError, match=msg):
+            ts_tz2 - dt
+        with pytest.raises(TypeError, match=msg):
+            ts_tz - ts_tz2
 
         # with dti
-        pytest.raises(TypeError, lambda: dti - ts_tz)
-        pytest.raises(TypeError, lambda: dti_tz - ts)
-        pytest.raises(TypeError, lambda: dti_tz - ts_tz2)
+        with pytest.raises(TypeError, match=msg):
+            dti - ts_tz
+        with pytest.raises(TypeError, match=msg):
+            dti_tz - ts
+        with pytest.raises(TypeError, match=msg):
+            dti_tz - ts_tz2
 
         result = dti_tz - dt_tz
         expected = TimedeltaIndex(['0 days', '1 days', '2 days'])
@@ -349,8 +390,11 @@ class TestTimedelta64ArithmeticUnsorted(object):
         tm.assert_index_equal(result, expected)
 
         # unequal length
-        pytest.raises(ValueError, lambda: tdi + dti[0:1])
-        pytest.raises(ValueError, lambda: tdi[0:1] + dti)
+        msg = "cannot add indices of unequal length"
+        with pytest.raises(ValueError, match=msg):
+            tdi + dti[0:1]
+        with pytest.raises(ValueError, match=msg):
+            tdi[0:1] + dti
 
         # random indexes
         with pytest.raises(NullFrequencyError):
@@ -410,7 +454,7 @@ class TestTimedelta64ArithmeticUnsorted(object):
         tm.assert_index_equal(result2, result3)
 
 
-class TestAddSubNaTMasking(object):
+class TestAddSubNaTMasking:
     # TODO: parametrize over boxes
 
     def test_tdi_add_timestamp_nat_masking(self):
@@ -470,7 +514,7 @@ class TestAddSubNaTMasking(object):
         tm.assert_index_equal(result, exp)
 
 
-class TestTimedeltaArraylikeAddSubOps(object):
+class TestTimedeltaArraylikeAddSubOps:
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
 
     # TODO: moved from frame tests; needs parametrization/de-duplication
@@ -1367,7 +1411,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
                 anchored - tdi
 
 
-class TestTimedeltaArraylikeMulDivOps(object):
+class TestTimedeltaArraylikeMulDivOps:
     # Tests for timedelta64[ns]
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
 
@@ -1493,7 +1537,8 @@ class TestTimedeltaArraylikeMulDivOps(object):
         rng = timedelta_range('1 days', '10 days', name='foo')
         rng = tm.box_expected(rng, box_with_array)
 
-        with pytest.raises(TypeError, match='true_divide cannot use operands'):
+        with pytest.raises(TypeError,
+                           match="'?true_divide'? cannot use operands"):
             rng / pd.NaT
         with pytest.raises(TypeError, match='Cannot divide NaTType by'):
             pd.NaT / rng
@@ -1958,7 +2003,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
             tm.assert_equal(result, expected)
 
 
-class TestTimedeltaArraylikeInvalidArithmeticOps(object):
+class TestTimedeltaArraylikeInvalidArithmeticOps:
 
     def test_td64arr_pow_invalid(self, scalar_td, box_with_array):
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)

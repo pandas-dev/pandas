@@ -131,7 +131,7 @@ def convert_json_field_to_pandas_type(field):
     dtype
 
     Raises
-    -----
+    ------
     ValueError
         If the type of the provided field is unknown or currently unsupported
 
@@ -314,12 +314,13 @@ def parse_table_schema(json, precise_float):
 
     df = df.astype(dtypes)
 
-    df = df.set_index(table['schema']['primaryKey'])
-    if len(df.index.names) == 1:
-        if df.index.name == 'index':
-            df.index.name = None
-    else:
-        df.index.names = [None if x.startswith('level_') else x for x in
-                          df.index.names]
+    if 'primaryKey' in table['schema']:
+        df = df.set_index(table['schema']['primaryKey'])
+        if len(df.index.names) == 1:
+            if df.index.name == 'index':
+                df.index.name = None
+        else:
+            df.index.names = [None if x.startswith('level_') else x for x in
+                              df.index.names]
 
     return df

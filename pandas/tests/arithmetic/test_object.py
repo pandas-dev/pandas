@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Arithmetc tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for object dtype
@@ -17,7 +16,7 @@ import pandas.util.testing as tm
 # Comparisons
 
 
-class TestObjectComparisons(object):
+class TestObjectComparisons:
 
     def test_comparison_object_numeric_nas(self):
         ser = Series(np.random.randn(10), dtype=object)
@@ -71,7 +70,7 @@ class TestObjectComparisons(object):
 # ------------------------------------------------------------------
 # Arithmetic
 
-class TestArithmetic(object):
+class TestArithmetic:
 
     # TODO: parametrize
     def test_pow_ops_object(self):
