@@ -384,8 +384,10 @@ class TestDataFramePlots(TestPlotBase):
             for ax in axes[:-2]:
                 self._check_visible(ax.xaxis)  # xaxis must be visible for grid
                 self._check_visible(ax.get_xticklabels(), visible=False)
-                self._check_visible(
-                    ax.get_xticklabels(minor=True), visible=False)
+                if not (kind == 'bar' and self.mpl_ge_3_1_0):
+                    # change https://github.com/pandas-dev/pandas/issues/26714
+                    self._check_visible(
+                        ax.get_xticklabels(minor=True), visible=False)
                 self._check_visible(ax.xaxis.get_label(), visible=False)
                 self._check_visible(ax.get_yticklabels())
 
@@ -801,7 +803,10 @@ class TestDataFramePlots(TestPlotBase):
                 with pytest.raises(ValueError):
                     mixed_df.plot(stacked=True)
 
-                _check_plot_works(df.plot, kind=kind, logx=True, stacked=True)
+                # Use an index with strictly positive values, preventing
+                #  matplotlib from warning about ignoring xlim
+                df2 = df.set_index(df.index + 1)
+                _check_plot_works(df2.plot, kind=kind, logx=True, stacked=True)
 
     def test_line_area_nan_df(self):
         values1 = [1, 2, np.nan, 3]

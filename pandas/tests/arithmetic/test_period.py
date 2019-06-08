@@ -22,6 +22,16 @@ from pandas.tseries.frequencies import to_offset
 
 class TestPeriodIndexComparisons:
 
+    # TODO: parameterize over boxes
+    def test_compare_zerodim(self):
+        # GH#26689 make sure we unbox zero-dimensional arrays
+        pi = pd.period_range('2000', periods=4)
+        other = np.array(pi.to_numpy()[0])
+
+        result = pi <= other
+        expected = np.array([True, False, False, False])
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize("other", ["2017", 2017])
     def test_eq(self, other):
         idx = PeriodIndex(['2017', '2017', '2018'], freq="D")
