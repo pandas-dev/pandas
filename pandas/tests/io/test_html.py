@@ -1,28 +1,26 @@
-from __future__ import print_function
-
+from functools import partial
+from importlib import reload
+from io import BytesIO, StringIO
 import os
 import re
 import threading
 
-from functools import partial
-
-import pytest
-
 import numpy as np
 from numpy.random import rand
+import pytest
 
-from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
-                    date_range, Series)
-from pandas.compat import (map, zip, StringIO, BytesIO,
-                           is_platform_windows, PY3, reload)
+from pandas.compat import is_platform_windows
 from pandas.errors import ParserError
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv)
+import pandas.util.testing as tm
+from pandas.util.testing import makeCustomDataframe as mkdf, network
+
 from pandas.io.common import URLError, file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
-
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.util.testing import makeCustomDataframe as mkdf, network
 
 HERE = os.path.dirname(__file__)
 
@@ -56,14 +54,17 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
 def test_bs4_version_fails(monkeypatch, datapath):
     import bs4
     monkeypatch.setattr(bs4, '__version__', '4.2')
-    with tm.assert_raises_regex(ValueError, "minimum version"):
+    with pytest.raises(ValueError, match="minimum version"):
         read_html(datapath("io", "data", "spam.html"), flavor='bs4')
 
 
 def test_invalid_flavor():
-    url = 'google.com'
-    with pytest.raises(ValueError):
-        read_html(url, 'google', flavor='not a* valid**++ flaver')
+    url = "google.com"
+    flavor = "invalid flavor"
+    msg = r"\{" + flavor + r"\} is not a valid set of flavors"
+
+    with pytest.raises(ValueError, match=msg):
+        read_html(url, "google", flavor=flavor)
 
 
 @td.skip_if_no('bs4')
@@ -80,14 +81,13 @@ def test_same_ordering(datapath):
         not td.safe_import('lxml'), reason='No bs4')),
     pytest.param('lxml', marks=pytest.mark.skipif(
         not td.safe_import('lxml'), reason='No lxml'))], scope="class")
-class TestReadHtml(object):
+class TestReadHtml:
 
     @pytest.fixture(autouse=True)
     def set_files(self, datapath):
         self.spam_data = datapath('io', 'data', 'spam.html')
         self.spam_data_kwargs = {}
-        if PY3:
-            self.spam_data_kwargs['encoding'] = 'UTF-8'
+        self.spam_data_kwargs['encoding'] = 'UTF-8'
         self.banklist_data = datapath("io", "data", "banklist.html")
 
     @pytest.fixture(autouse=True, scope="function")
@@ -201,8 +201,8 @@ class TestReadHtml(object):
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_invalid(self):
-        with tm.assert_raises_regex(TypeError, 'is not a valid type '
-                                    'for skipping rows'):
+        with pytest.raises(TypeError, match=('is not a valid type '
+                                             'for skipping rows')):
             self.read_html(self.spam_data, '.*Water.*', skiprows='asdf')
 
     def test_index(self):
@@ -270,7 +270,7 @@ class TestReadHtml(object):
                 self.read_html('http://www.a23950sdfa908sd.com',
                                match='.*Water.*')
         except ValueError as e:
-            assert str(e) == 'No tables found'
+            assert 'No tables found' in str(e)
 
     @pytest.mark.slow
     def test_file_url(self):
@@ -285,7 +285,7 @@ class TestReadHtml(object):
     @pytest.mark.slow
     def test_invalid_table_attrs(self):
         url = self.banklist_data
-        with tm.assert_raises_regex(ValueError, 'No tables found'):
+        with pytest.raises(ValueError, match='No tables found'):
             self.read_html(url, 'First Federal Bank of Florida',
                            attrs={'id': 'tasdfable'})
 
@@ -338,8 +338,8 @@ class TestReadHtml(object):
             assert isinstance(df, DataFrame)
 
     def test_negative_skiprows(self):
-        with tm.assert_raises_regex(ValueError,
-                                    r'\(you passed a negative value\)'):
+        msg = r'\(you passed a negative value\)'
+        with pytest.raises(ValueError, match=msg):
             self.read_html(self.spam_data, 'Water', skiprows=-1)
 
     @network
@@ -795,7 +795,7 @@ class TestReadHtml(object):
         """)[0]
 
         columns = MultiIndex(levels=[['A', 'B'], ['a', 'b']],
-                             labels=[[0, 1], [0, 1]])
+                             codes=[[0, 1], [0, 1]])
         expected = DataFrame(data=[[1, 2]], columns=columns)
 
         tm.assert_frame_equal(result, expected)
@@ -819,10 +819,9 @@ class TestReadHtml(object):
 
     def test_computer_sales_page(self, datapath):
         data = datapath('io', 'data', 'computer_sales_page.html')
-        with tm.assert_raises_regex(ParserError,
-                                    r"Passed header=\[0,1\] are "
-                                    r"too many rows for this "
-                                    r"multi_index of columns"):
+        msg = (r"Passed header=\[0,1\] are too many "
+               r"rows for this multi_index of columns")
+        with pytest.raises(ParserError, match=msg):
             self.read_html(data, header=[0, 1])
 
         data = datapath('io', 'data', 'computer_sales_page.html')
@@ -836,10 +835,9 @@ class TestReadHtml(object):
         assert result['sq mi'].dtype == np.dtype('float64')
 
     def test_parser_error_on_empty_header_row(self):
-        with tm.assert_raises_regex(ParserError,
-                                    r"Passed header=\[0,1\] are "
-                                    r"too many rows for this "
-                                    r"multi_index of columns"):
+        msg = (r"Passed header=\[0,1\] are too many "
+               r"rows for this multi_index of columns")
+        with pytest.raises(ParserError, match=msg):
             self.read_html("""
                 <table>
                     <thead>
@@ -994,7 +992,7 @@ class TestReadHtml(object):
         """)[0]
 
         columns = MultiIndex(levels=[['A', 'B'], ['a', 'b']],
-                             labels=[[0, 1], [0, 1]])
+                             codes=[[0, 1], [0, 1]])
         expected = DataFrame(data=[[1, 2]], columns=columns)
 
         tm.assert_frame_equal(result, expected)
@@ -1111,7 +1109,7 @@ class TestReadHtml(object):
     def test_parse_failure_rewinds(self):
         # Issue #17975
 
-        class MockFile(object):
+        class MockFile:
             def __init__(self, data):
                 self.data = data
                 self.at_end = False
@@ -1140,7 +1138,7 @@ class TestReadHtml(object):
         class ErrorThread(threading.Thread):
             def run(self):
                 try:
-                    super(ErrorThread, self).run()
+                    super().run()
                 except Exception as e:
                     self.err = e
                 else:

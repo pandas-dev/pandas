@@ -1,79 +1,47 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import pytest
 import os
 import warnings
-
-from pandas import DataFrame, Series
-from pandas.compat import zip, iteritems
-from pandas.util._decorators import cache_readonly
-from pandas.core.dtypes.api import is_list_like
-import pandas.util.testing as tm
-from pandas.util.testing import (ensure_clean,
-                                 assert_is_valid_plot_return_object)
-import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy import random
 
+from pandas.util._decorators import cache_readonly
+import pandas.util._test_decorators as td
+
+from pandas.core.dtypes.api import is_list_like
+
+from pandas import DataFrame, Series
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_is_valid_plot_return_object, ensure_clean)
+
 import pandas.plotting as plotting
 from pandas.plotting._tools import _flatten
+
 
 """
 This is a common base class used for various plotting tests
 """
 
 
-def _skip_if_no_scipy_gaussian_kde():
-    try:
-        from scipy.stats import gaussian_kde  # noqa
-    except ImportError:
-        pytest.skip("scipy version doesn't support gaussian_kde")
-
-
-def _ok_for_gaussian_kde(kind):
-    if kind in ['kde', 'density']:
-        try:
-            from scipy.stats import gaussian_kde  # noqa
-        except ImportError:
-            return False
-
-    return plotting._compat._mpl_ge_1_5_0()
-
-
 @td.skip_if_no_mpl
-class TestPlotBase(object):
+class TestPlotBase:
 
     def setup_method(self, method):
 
         import matplotlib as mpl
         mpl.rcdefaults()
 
-        self.mpl_le_1_2_1 = plotting._compat._mpl_le_1_2_1()
-        self.mpl_ge_1_3_1 = plotting._compat._mpl_ge_1_3_1()
-        self.mpl_ge_1_4_0 = plotting._compat._mpl_ge_1_4_0()
-        self.mpl_ge_1_5_0 = plotting._compat._mpl_ge_1_5_0()
-        self.mpl_ge_2_0_0 = plotting._compat._mpl_ge_2_0_0()
-        self.mpl_ge_2_0_1 = plotting._compat._mpl_ge_2_0_1()
-        self.mpl_ge_2_2_0 = plotting._compat._mpl_ge_2_2_0()
+        self.mpl_ge_2_2_3 = plotting._compat._mpl_ge_2_2_3()
+        self.mpl_ge_3_0_0 = plotting._compat._mpl_ge_3_0_0()
+        self.mpl_ge_3_1_0 = plotting._compat._mpl_ge_3_1_0()
 
-        if self.mpl_ge_1_4_0:
-            self.bp_n_objects = 7
-        else:
-            self.bp_n_objects = 8
-        if self.mpl_ge_1_5_0:
-            # 1.5 added PolyCollections to legend handler
-            # so we have twice as many items.
-            self.polycollection_factor = 2
-        else:
-            self.polycollection_factor = 1
-
-        if self.mpl_ge_2_0_0:
-            self.default_figsize = (6.4, 4.8)
-        else:
-            self.default_figsize = (8.0, 6.0)
-        self.default_tick_position = 'left' if self.mpl_ge_2_0_0 else 'default'
+        self.bp_n_objects = 7
+        self.polycollection_factor = 2
+        self.default_figsize = (6.4, 4.8)
+        self.default_tick_position = 'left'
 
         n = 100
         with tm.RNGContext(42):
@@ -255,8 +223,8 @@ class TestPlotBase(object):
         else:
             labels = [t.get_text() for t in texts]
             assert len(labels) == len(expected)
-            for l, e in zip(labels, expected):
-                assert l == e
+            for label, e in zip(labels, expected):
+                assert label == e
 
     def _check_ticks_props(self, axes, xlabelsize=None, xrot=None,
                            ylabelsize=None, yrot=None):
@@ -448,7 +416,7 @@ class TestPlotBase(object):
             assert isinstance(returned, Series)
 
             assert sorted(returned.keys()) == sorted(expected_keys)
-            for key, value in iteritems(returned):
+            for key, value in returned.items():
                 assert isinstance(value, types[return_type])
                 # check returned dict has correct mapping
                 if return_type == 'axes':
@@ -461,7 +429,7 @@ class TestPlotBase(object):
                     assert isinstance(value.lines, dict)
                 elif return_type == 'dict':
                     line = value['medians'][0]
-                    axes = line.axes if self.mpl_ge_1_5_0 else line.get_axes()
+                    axes = line.axes
                     if check_ax_title:
                         assert axes.get_title() == key
                 else:
@@ -473,16 +441,22 @@ class TestPlotBase(object):
         import matplotlib as mpl
 
         def is_grid_on():
-            xoff = all(not g.gridOn
-                       for g in self.plt.gca().xaxis.get_major_ticks())
-            yoff = all(not g.gridOn
-                       for g in self.plt.gca().yaxis.get_major_ticks())
+            xticks = self.plt.gca().xaxis.get_major_ticks()
+            yticks = self.plt.gca().yaxis.get_major_ticks()
+            # for mpl 2.2.2, gridOn and gridline.get_visible disagree.
+            # for new MPL, they are the same.
+
+            if self.mpl_ge_3_0_0:
+                xoff = all(not g.gridline.get_visible() for g in xticks)
+                yoff = all(not g.gridline.get_visible() for g in yticks)
+            else:
+                xoff = all(not g.gridOn for g in xticks)
+                yoff = all(not g.gridOn for g in yticks)
+
             return not (xoff and yoff)
 
         spndx = 1
         for kind in kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
 
             self.plt.subplot(1, 4 * len(kinds), spndx)
             spndx += 1
@@ -509,19 +483,11 @@ class TestPlotBase(object):
                 obj.plot(kind=kind, grid=True, **kws)
                 assert is_grid_on()
 
-    def _maybe_unpack_cycler(self, rcParams, field='color'):
+    def _unpack_cycler(self, rcParams, field='color'):
         """
-        Compat layer for MPL 1.5 change to color cycle
-
-        Before: plt.rcParams['axes.color_cycle'] -> ['b', 'g', 'r'...]
-        After : plt.rcParams['axes.prop_cycle'] -> cycler(...)
+        Auxiliary function for correctly unpacking cycler after MPL >= 1.5
         """
-        if self.mpl_ge_1_5_0:
-            cyl = rcParams['axes.prop_cycle']
-            colors = [v[field] for v in cyl]
-        else:
-            colors = rcParams['axes.color_cycle']
-        return colors
+        return [v[field] for v in rcParams['axes.prop_cycle']]
 
 
 def _check_plot_works(f, filterwarnings='always', **kwargs):

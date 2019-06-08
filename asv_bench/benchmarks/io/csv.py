@@ -1,19 +1,17 @@
 import random
-import timeit
 import string
 
 import numpy as np
 import pandas.util.testing as tm
-from pandas import DataFrame, Categorical, date_range, read_csv
-from pandas.compat import PY2
-from pandas.compat import cStringIO as StringIO
+from pandas import DataFrame, Categorical, date_range, read_csv, to_datetime
+from pandas.io.parsers import _parser_defaults
+from io import StringIO
 
-from ..pandas_vb_common import setup, BaseIO  # noqa
+from ..pandas_vb_common import BaseIO
 
 
 class ToCSV(BaseIO):
 
-    goal_time = 0.2
     fname = '__test__.csv'
     params = ['wide', 'long', 'mixed']
     param_names = ['kind']
@@ -43,7 +41,6 @@ class ToCSV(BaseIO):
 
 class ToCSVDatetime(BaseIO):
 
-    goal_time = 0.2
     fname = '__test__.csv'
 
     def setup(self):
@@ -54,7 +51,25 @@ class ToCSVDatetime(BaseIO):
         self.data.to_csv(self.fname, date_format='%Y%m%d')
 
 
-class StringIORewind(object):
+class ToCSVDatetimeBig(BaseIO):
+
+    fname = '__test__.csv'
+    timeout = 1500
+    params = [1000, 10000, 100000]
+    param_names = ['obs']
+
+    def setup(self, obs):
+        d = '2018-11-29'
+        dt = '2018-11-26 11:18:27.0'
+        self.data = DataFrame({'dt': [np.datetime64(dt)] * obs,
+                               'd': [np.datetime64(d)] * obs,
+                               'r': [np.random.uniform()] * obs})
+
+    def time_frame(self, obs):
+        self.data.to_csv(self.fname)
+
+
+class StringIORewind:
 
     def data(self, stringio_object):
         stringio_object.seek(0)
@@ -63,7 +78,6 @@ class StringIORewind(object):
 
 class ReadCSVDInferDatetimeFormat(StringIORewind):
 
-    goal_time = 0.2
     params = ([True, False], ['custom', 'iso8601', 'ymd'])
     param_names = ['infer_datetime_format', 'format']
 
@@ -82,9 +96,37 @@ class ReadCSVDInferDatetimeFormat(StringIORewind):
                  infer_datetime_format=infer_datetime_format)
 
 
+class ReadCSVConcatDatetime(StringIORewind):
+
+    iso8601 = '%Y-%m-%d %H:%M:%S'
+
+    def setup(self):
+        rng = date_range('1/1/2000', periods=50000, freq='S')
+        self.StringIO_input = StringIO('\n'.join(
+                                       rng.strftime(self.iso8601).tolist()))
+
+    def time_read_csv(self):
+        read_csv(self.data(self.StringIO_input),
+                 header=None, names=['foo'], parse_dates=['foo'],
+                 infer_datetime_format=False)
+
+
+class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
+
+    params = (['nan', '0', ''],)
+    param_names = ['bad_date_value']
+
+    def setup(self, bad_date_value):
+        self.StringIO_input = StringIO(('%s,\n' % bad_date_value) * 50000)
+
+    def time_read_csv(self, bad_date_value):
+        read_csv(self.data(self.StringIO_input),
+                 header=None, names=['foo', 'bar'], parse_dates=['foo'],
+                 infer_datetime_format=False)
+
+
 class ReadCSVSkipRows(BaseIO):
 
-    goal_time = 0.2
     fname = '__test__.csv'
     params = [None, 10000]
     param_names = ['skiprows']
@@ -105,8 +147,6 @@ class ReadCSVSkipRows(BaseIO):
 
 
 class ReadUint64Integers(StringIORewind):
-
-    goal_time = 0.2
 
     def setup(self):
         self.na_values = [2**63 + 500]
@@ -129,7 +169,6 @@ class ReadUint64Integers(StringIORewind):
 
 class ReadCSVThousands(BaseIO):
 
-    goal_time = 0.2
     fname = '__test__.csv'
     params = ([',', '|'], [None, ','])
     param_names = ['sep', 'thousands']
@@ -151,8 +190,6 @@ class ReadCSVThousands(BaseIO):
 
 class ReadCSVComment(StringIORewind):
 
-    goal_time = 0.2
-
     def setup(self):
         data = ['A,B,C'] + (['1,2,3 # comment'] * 100000)
         self.StringIO_input = StringIO('\n'.join(data))
@@ -164,7 +201,6 @@ class ReadCSVComment(StringIORewind):
 
 class ReadCSVFloatPrecision(StringIORewind):
 
-    goal_time = 0.2
     params = ([',', ';'], ['.', '_'], [None, 'high', 'round_trip'])
     param_names = ['sep', 'decimal', 'float_precision']
 
@@ -181,13 +217,12 @@ class ReadCSVFloatPrecision(StringIORewind):
                  names=list('abc'), float_precision=float_precision)
 
     def time_read_csv_python_engine(self, sep, decimal, float_precision):
-        read_csv(self.data(self.StringIO_input), sep=sep, header=None, engine='python',
-                 float_precision=None, names=list('abc'))
+        read_csv(self.data(self.StringIO_input), sep=sep, header=None,
+                 engine='python', float_precision=None, names=list('abc'))
 
 
 class ReadCSVCategorical(BaseIO):
 
-    goal_time = 0.2
     fname = '__test__.csv'
 
     def setup(self):
@@ -204,8 +239,6 @@ class ReadCSVCategorical(BaseIO):
 
 
 class ReadCSVParseDates(StringIORewind):
-
-    goal_time = 0.2
 
     def setup(self):
         data = """{},19:00:00,18:56:00,0.8100,2.8100,7.2000,0.0000,280.0000\n
@@ -227,3 +260,88 @@ class ReadCSVParseDates(StringIORewind):
         read_csv(self.data(self.StringIO_input), sep=',', header=None,
                  parse_dates=[1],
                  names=list(string.digits[:9]))
+
+
+class ReadCSVCachedParseDates(StringIORewind):
+    params = ([True, False],)
+    param_names = ['do_cache']
+
+    def setup(self, do_cache):
+        data = ('\n'.join('10/{}'.format(year)
+                for year in range(2000, 2100)) + '\n') * 10
+        self.StringIO_input = StringIO(data)
+
+    def time_read_csv_cached(self, do_cache):
+        # kwds setting here is used to avoid breaking tests in
+        # previous version of pandas, because this is api changes
+        kwds = {}
+        if 'cache_dates' in _parser_defaults:
+            kwds['cache_dates'] = do_cache
+        read_csv(self.data(self.StringIO_input), header=None,
+                 parse_dates=[0], **kwds)
+
+
+class ReadCSVMemoryGrowth(BaseIO):
+
+    chunksize = 20
+    num_rows = 1000
+    fname = "__test__.csv"
+
+    def setup(self):
+        with open(self.fname, "w") as f:
+            for i in range(self.num_rows):
+                f.write("{i}\n".format(i=i))
+
+    def mem_parser_chunks(self):
+        # see gh-24805.
+        result = read_csv(self.fname, chunksize=self.chunksize)
+
+        for _ in result:
+            pass
+
+
+class ReadCSVParseSpecialDate(StringIORewind):
+    params = (['mY', 'mdY', 'hm'],)
+    param_names = ['value']
+    objects = {
+        'mY': '01-2019\n10-2019\n02/2000\n',
+        'mdY': '12/02/2010\n',
+        'hm': '21:34\n'
+    }
+
+    def setup(self, value):
+        count_elem = 10000
+        data = self.objects[value] * count_elem
+        self.StringIO_input = StringIO(data)
+
+    def time_read_special_date(self, value):
+        read_csv(self.data(self.StringIO_input), sep=',', header=None,
+                 names=['Date'], parse_dates=['Date'])
+
+
+class ParseDateComparison(StringIORewind):
+    params = ([False, True],)
+    param_names = ['cache_dates']
+
+    def setup(self, cache_dates):
+        count_elem = 10000
+        data = '12-02-2010\n' * count_elem
+        self.StringIO_input = StringIO(data)
+
+    def time_read_csv_dayfirst(self, cache_dates):
+        read_csv(self.data(self.StringIO_input), sep=',', header=None,
+                 names=['Date'], parse_dates=['Date'], cache_dates=cache_dates,
+                 dayfirst=True)
+
+    def time_to_datetime_dayfirst(self, cache_dates):
+        df = read_csv(self.data(self.StringIO_input),
+                      dtype={'date': str}, names=['date'])
+        to_datetime(df['date'], cache=cache_dates, dayfirst=True)
+
+    def time_to_datetime_format_DD_MM_YYYY(self, cache_dates):
+        df = read_csv(self.data(self.StringIO_input),
+                      dtype={'date': str}, names=['date'])
+        to_datetime(df['date'], cache=cache_dates, format='%d-%m-%Y')
+
+
+from ..pandas_vb_common import setup  # noqa: F401

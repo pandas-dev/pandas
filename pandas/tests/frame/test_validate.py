@@ -1,7 +1,6 @@
-from pandas.core.frame import DataFrame
-
 import pytest
-import pandas.util.testing as tm
+
+from pandas.core.frame import DataFrame
 
 
 @pytest.fixture
@@ -9,7 +8,7 @@ def dataframe():
     return DataFrame({'a': [1, 2], 'b': [3, 4]})
 
 
-class TestDataFrameValidate(object):
+class TestDataFrameValidate:
     """Tests for error handling related to data types of method arguments."""
 
     @pytest.mark.parametrize("func", ["query", "eval", "set_index",
@@ -29,5 +28,5 @@ class TestDataFrameValidate(object):
         elif func == "sort_values":
             kwargs["by"] = ["a"]
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             getattr(dataframe, func)(**kwargs)

@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
 from cython import Py_ssize_t
 
 from cpython cimport (
     PyDict_Contains, PyDict_GetItem, PyDict_SetItem)
 
 
-cdef class CachedProperty(object):
+cdef class CachedProperty:
 
     cdef readonly:
         object func, name, __doc__
@@ -31,7 +29,7 @@ cdef class CachedProperty(object):
 
         if PyDict_Contains(cache, self.name):
             # not necessary to Py_INCREF
-            val = <object> PyDict_GetItem(cache, self.name)
+            val = <object>PyDict_GetItem(cache, self.name)
         else:
             val = self.func(obj)
             PyDict_SetItem(cache, self.name, val)
@@ -44,7 +42,7 @@ cdef class CachedProperty(object):
 cache_readonly = CachedProperty
 
 
-cdef class AxisProperty(object):
+cdef class AxisProperty:
 
     cdef readonly:
         Py_ssize_t axis

@@ -1,0 +1,92 @@
+parameters:
+  name: ''
+  vmImage: ''
+
+jobs:
+- job: ${{ parameters.name }}
+  pool:
+    vmImage: ${{ parameters.vmImage }}
+  strategy:
+    matrix:
+      ${{ if eq(parameters.name, 'macOS') }}:
+        py35_macos:
+          ENV_FILE: ci/deps/azure-macos-35.yaml
+          CONDA_PY: "35"
+          PATTERN: "not slow and not network"
+
+      ${{ if eq(parameters.name, 'Linux') }}:
+        py35_compat:
+          ENV_FILE: ci/deps/azure-35-compat.yaml
+          CONDA_PY: "35"
+          PATTERN: "not slow and not network"
+
+        py36_locale_slow_old_np:
+          ENV_FILE: ci/deps/azure-36-locale.yaml
+          CONDA_PY: "36"
+          PATTERN: "slow"
+          LOCALE_OVERRIDE: "zh_CN.UTF-8"
+          EXTRA_APT: "language-pack-zh-hans"
+
+        py36_locale_slow:
+          ENV_FILE: ci/deps/azure-36-locale_slow.yaml
+          CONDA_PY: "36"
+          PATTERN: "not slow and not network"
+          LOCALE_OVERRIDE: "it_IT.UTF-8"
+
+        py37_locale:
+          ENV_FILE: ci/deps/azure-37-locale.yaml
+          CONDA_PY: "37"
+          PATTERN: "not slow and not network"
+          LOCALE_OVERRIDE: "zh_CN.UTF-8"
+
+        py37_np_dev:
+          ENV_FILE: ci/deps/azure-37-numpydev.yaml
+          CONDA_PY: "37"
+          PATTERN: "not slow and not network"
+          TEST_ARGS: "-W error"
+          PANDAS_TESTING_MODE: "deprecate"
+          EXTRA_APT: "xsel"
+
+  steps:
+    - script: |
+        if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386 $EXTRA_APT; fi
+        echo "Creating Environment"
+        ci/setup_env.sh
+      displayName: 'Setup environment and build pandas'
+    - script: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        ci/run_tests.sh
+      displayName: 'Test'
+    - script: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: 'test-data-*.xml'
+        testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
+    - powershell: |
+        $junitXml = "test-data-single.xml"
+        $(Get-Content $junitXml | Out-String) -match 'failures="(.*?)"'
+        if ($matches[1] -eq 0)
+        {
+          Write-Host "No test failures in test-data-single"
+        }
+        else
+        {
+          # note that this will produce $LASTEXITCODE=1
+          Write-Error "$($matches[1]) tests failed"
+        }
+
+        $junitXmlMulti = "test-data-multiple.xml"
+        $(Get-Content $junitXmlMulti | Out-String) -match 'failures="(.*?)"'
+        if ($matches[1] -eq 0)
+        {
+          Write-Host "No test failures in test-data-multi"
+        }
+        else
+        {
+          # note that this will produce $LASTEXITCODE=1
+          Write-Error "$($matches[1]) tests failed"
+        }
+      displayName: Check for test failures

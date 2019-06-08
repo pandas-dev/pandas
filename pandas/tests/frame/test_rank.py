@@ -1,28 +1,25 @@
-# -*- coding: utf-8 -*-
-import pytest
+from datetime import datetime, timedelta
+
 import numpy as np
-import pandas.util.testing as tm
+import pytest
 
-from distutils.version import LooseVersion
-from datetime import timedelta, datetime
-from numpy import nan
-
-from pandas.util.testing import assert_frame_equal
+from pandas import DataFrame, Series
 from pandas.tests.frame.common import TestData
-from pandas import Series, DataFrame
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal
 
 
 class TestRank(TestData):
-    s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
+    s = Series([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3])
     df = DataFrame({'A': s, 'B': s})
 
     results = {
-        'average': np.array([1.5, 5.5, 7.0, 3.5, nan,
-                             3.5, 1.5, 8.0, nan, 5.5]),
-        'min': np.array([1, 5, 7, 3, nan, 3, 1, 8, nan, 5]),
-        'max': np.array([2, 6, 7, 4, nan, 4, 2, 8, nan, 6]),
-        'first': np.array([1, 5, 7, 3, nan, 4, 2, 8, nan, 6]),
-        'dense': np.array([1, 3, 4, 2, nan, 2, 1, 5, nan, 3]),
+        'average': np.array([1.5, 5.5, 7.0, 3.5, np.nan,
+                             3.5, 1.5, 8.0, np.nan, 5.5]),
+        'min': np.array([1, 5, 7, 3, np.nan, 3, 1, 8, np.nan, 5]),
+        'max': np.array([2, 6, 7, 4, np.nan, 4, 2, 8, np.nan, 6]),
+        'first': np.array([1, 5, 7, 3, np.nan, 4, 2, 8, np.nan, 6]),
+        'dense': np.array([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3]),
     }
 
     @pytest.fixture(params=['average', 'min', 'max', 'first', 'dense'])
@@ -87,27 +84,27 @@ class TestRank(TestData):
         tm.assert_frame_equal(result, expected)
 
         df = DataFrame([['b', np.nan, 'a'], ['a', 'c', 'b']])
-        expected = DataFrame([[2.0, nan, 1.0], [1.0, 3.0, 2.0]])
+        expected = DataFrame([[2.0, np.nan, 1.0], [1.0, 3.0, 2.0]])
         result = df.rank(1, numeric_only=False)
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame([[2.0, nan, 1.0], [1.0, 1.0, 2.0]])
+        expected = DataFrame([[2.0, np.nan, 1.0], [1.0, 1.0, 2.0]])
         result = df.rank(0, numeric_only=False)
         tm.assert_frame_equal(result, expected)
 
         # f7u12, this does not work without extensive workaround
-        data = [[datetime(2001, 1, 5), nan, datetime(2001, 1, 2)],
+        data = [[datetime(2001, 1, 5), np.nan, datetime(2001, 1, 2)],
                 [datetime(2000, 1, 2), datetime(2000, 1, 3),
                  datetime(2000, 1, 1)]]
         df = DataFrame(data)
 
         # check the rank
-        expected = DataFrame([[2., nan, 1.],
+        expected = DataFrame([[2., np.nan, 1.],
                               [2., 3., 1.]])
         result = df.rank(1, numeric_only=False, ascending=True)
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame([[1., nan, 2.],
+        expected = DataFrame([[1., np.nan, 2.],
                               [2., 1., 3.]])
         result = df.rank(1, numeric_only=False, ascending=False)
         tm.assert_frame_equal(result, expected)
@@ -194,11 +191,11 @@ class TestRank(TestData):
         # bad values throw error
         msg = "na_option must be one of 'keep', 'top', or 'bottom'"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.frame.rank(na_option='bad', ascending=False)
 
         # invalid type
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.frame.rank(na_option=True, ascending=False)
 
     def test_rank_axis(self):
@@ -210,7 +207,6 @@ class TestRank(TestData):
     def test_rank_methods_frame(self):
         pytest.importorskip('scipy.stats.special')
         rankdata = pytest.importorskip('scipy.stats.rankdata')
-        import scipy
 
         xs = np.random.randint(0, 21, (100, 26))
         xs = (xs - 10.0) / 10.0
@@ -226,11 +222,8 @@ class TestRank(TestData):
                         rankdata, ax, vals,
                         m if m != 'first' else 'ordinal')
                     sprank = sprank.astype(np.float64)
-                    expected = DataFrame(sprank, columns=cols)
-
-                    if (LooseVersion(scipy.__version__) >=
-                            LooseVersion('0.17.0')):
-                        expected = expected.astype('float64')
+                    expected = DataFrame(sprank,
+                                         columns=cols).astype('float64')
                     tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('dtype', ['O', 'f8', 'i8'])
@@ -309,3 +302,12 @@ class TestRank(TestData):
 
         expected = DataFrame(exp)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.single
+    @pytest.mark.high_memory
+    def test_pct_max_many_rows(self):
+        # GH 18271
+        df = DataFrame({'A': np.arange(2**24 + 1),
+                        'B': np.arange(2**24 + 1, 0, -1)})
+        result = df.rank(pct=True).max()
+        assert (result == 1).all()

@@ -1,24 +1,17 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
-import pytest
-
-from collections import Counter, defaultdict, OrderedDict
+from collections import Counter, OrderedDict, defaultdict
 from itertools import chain
 
 import numpy as np
+import pytest
+
 import pandas as pd
-
-from pandas import (Index, Series, DataFrame, isna)
-from pandas.compat import lrange
-from pandas import compat
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal)
-import pandas.util.testing as tm
+from pandas import DataFrame, Index, Series, isna
 from pandas.conftest import _get_cython_table_params
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestSeriesApply():
+class TestSeriesApply:
 
     def test_apply(self, datetime_series):
         with np.errstate(all='ignore'):
@@ -119,11 +112,11 @@ class TestSeriesApply():
         exp = pd.Series(['Timedelta_1', 'Timedelta_2'])
         tm.assert_series_equal(res, exp)
 
-        # period (object dtype, not boxed)
+        # period
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
         s = pd.Series(vals)
-        assert s.dtype == 'object'
+        assert s.dtype == 'Period[M]'
         res = s.apply(lambda x: '{0}_{1}'.format(x.__class__.__name__,
                                                  x.freqstr))
         exp = pd.Series(['Period_M', 'Period_M'])
@@ -164,8 +157,20 @@ class TestSeriesApply():
         with tm.assert_produces_warning(FutureWarning):
             tsdf.A.agg({'foo': ['sum', 'mean']})
 
+    @pytest.mark.parametrize('series', [
+        ['1-1', '1-1', np.NaN],
+        ['1-1', '1-2', np.NaN]])
+    def test_apply_categorical_with_nan_values(self, series):
+        # GH 20714 bug fixed in: GH 24275
+        s = pd.Series(series, dtype='category')
+        result = s.apply(lambda x: x.split('-')[0])
+        result = result.astype(object)
+        expected = pd.Series(['1', '1', np.NaN], dtype='category')
+        expected = expected.astype(object)
+        tm.assert_series_equal(result, expected)
 
-class TestSeriesAggregate():
+
+class TestSeriesAggregate:
 
     def test_transform(self, string_series):
         # transforming functions
@@ -217,24 +222,20 @@ class TestSeriesAggregate():
 
     def test_transform_and_agg_error(self, string_series):
         # we are trying to transform with an aggregator
-        def f():
+        with pytest.raises(ValueError):
             string_series.transform(['min', 'max'])
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 string_series.agg(['sqrt', 'max'])
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 string_series.transform(['sqrt', 'max'])
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 string_series.agg({'foo': np.sqrt, 'bar': 'sum'})
-        pytest.raises(ValueError, f)
 
     def test_demo(self):
         # demonstration tests
@@ -415,7 +416,7 @@ class TestSeriesAggregate():
             series.agg(func)
 
 
-class TestSeriesMap():
+class TestSeriesMap:
 
     def test_map(self, datetime_series):
         index, data = tm.getMixedTypeDict()
@@ -425,13 +426,13 @@ class TestSeriesMap():
 
         merged = target.map(source)
 
-        for k, v in compat.iteritems(merged):
+        for k, v in merged.items():
             assert v == source[target[k]]
 
         # input could be a dict
         merged = target.map(source.to_dict())
 
-        for k, v in compat.iteritems(merged):
+        for k, v in merged.items():
             assert v == source[target[k]]
 
         # function
@@ -497,7 +498,7 @@ class TestSeriesMap():
         assert not isna(merged['c'])
 
     def test_map_type_inference(self):
-        s = Series(lrange(3))
+        s = Series(range(3))
         s2 = s.map(lambda x: np.where(x == 0, 0, 1))
         assert issubclass(s2.dtype.type, np.integer)
 
@@ -599,11 +600,11 @@ class TestSeriesMap():
         exp = pd.Series(['Timedelta_1', 'Timedelta_2'])
         tm.assert_series_equal(res, exp)
 
-        # period (object dtype, not boxed)
+        # period
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
         s = pd.Series(vals)
-        assert s.dtype == 'object'
+        assert s.dtype == 'Period[M]'
         res = s.map(lambda x: '{0}_{1}'.format(x.__class__.__name__,
                                                x.freqstr))
         exp = pd.Series(['Period_M', 'Period_M'])
@@ -670,3 +671,23 @@ class TestSeriesMap():
         result = s.map(mapping)
 
         tm.assert_series_equal(result, pd.Series(exp))
+
+    @pytest.mark.parametrize("dti,exp", [
+        (Series([1, 2], index=pd.DatetimeIndex([0, 31536000000])),
+            DataFrame(np.repeat([[1, 2]], 2, axis=0), dtype='int64')),
+        (tm.makeTimeSeries(nper=30),
+            DataFrame(np.repeat([[1, 2]], 30, axis=0), dtype='int64'))
+    ])
+    def test_apply_series_on_date_time_index_aware_series(self, dti, exp):
+        # GH 25959
+        # Calling apply on a localized time series should not cause an error
+        index = dti.tz_localize('UTC').index
+        result = pd.Series(index).apply(lambda x: pd.Series([1, 2]))
+        assert_frame_equal(result, exp)
+
+    def test_apply_scaler_on_date_time_index_aware_series(self):
+        # GH 25959
+        # Calling apply on a localized time series should not cause an error
+        series = tm.makeTimeSeries(nper=30).tz_localize('UTC')
+        result = pd.Series(series.index).apply(lambda x: 1)
+        assert_series_equal(result, pd.Series(np.ones(30), dtype='int64'))

@@ -1,6 +1,7 @@
-import pytest
 import numpy as np
-from pandas import MultiIndex, DataFrame
+import pytest
+
+from pandas import DataFrame, MultiIndex
 from pandas.util import testing as tm
 
 
@@ -8,8 +9,8 @@ from pandas.util import testing as tm
 def mframe():
     index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                               'three']],
-                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                        names=['first', 'second'])
     return DataFrame(np.random.randn(10, 3), index=index,
                      columns=['A', 'B', 'C'])

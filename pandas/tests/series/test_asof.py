@@ -1,15 +1,11 @@
-# coding=utf-8
-
+import numpy as np
 import pytest
 
-import numpy as np
-from pandas import (offsets, Series, notna,
-                    isna, date_range, Timestamp)
-
+from pandas import Series, Timestamp, date_range, isna, notna, offsets
 import pandas.util.testing as tm
 
 
-class TestSeriesAsof():
+class TestSeriesAsof:
 
     def test_basic(self):
 

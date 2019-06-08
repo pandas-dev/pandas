@@ -3,9 +3,10 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes SparseSeries.to_coo helpers.
 """
-from pandas.core.index import MultiIndex, Index
+from collections import OrderedDict
+
+from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
-from pandas.compat import OrderedDict, lmap
 
 
 def _check_is_partition(parts, whole):
@@ -50,22 +51,14 @@ def _to_ijv(ss, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
             """ Return OrderedDict of unique labels to number.
             Optionally sort by label.
             """
-            labels = Index(lmap(tuple, labels)).unique().tolist()  # squish
+            labels = Index(map(tuple, labels)).unique().tolist()  # squish
             if sort_labels:
                 labels = sorted(list(labels))
             d = OrderedDict((k, i) for i, k in enumerate(labels))
             return (d)
 
         def _get_index_subset_to_coord_dict(index, subset, sort_labels=False):
-            def robust_get_level_values(i):
-                # if index has labels (that are not None) use those,
-                # else use the level location
-                try:
-                    return index.get_level_values(index.names[i])
-                except KeyError:
-                    return index.get_level_values(i)
-
-            ilabels = list(zip(*[robust_get_level_values(i) for i in subset]))
+            ilabels = list(zip(*[index._get_level_values(i) for i in subset]))
             labels_to_i = _get_label_to_i_dict(ilabels,
                                                sort_labels=sort_labels)
             labels_to_i = Series(labels_to_i)
@@ -97,7 +90,8 @@ def _to_ijv(ss, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
 
 def _sparse_series_to_coo(ss, row_levels=(0, ), column_levels=(1, ),
                           sort_labels=False):
-    """ Convert a SparseSeries to a scipy.sparse.coo_matrix using index
+    """
+    Convert a SparseSeries to a scipy.sparse.coo_matrix using index
     levels row_levels, column_levels as the row and column
     labels respectively. Returns the sparse_matrix, row and column labels.
     """
@@ -122,13 +116,41 @@ def _sparse_series_to_coo(ss, row_levels=(0, ), column_levels=(1, ),
     return sparse_matrix, rows, columns
 
 
-def _coo_to_sparse_series(A, dense_index=False):
-    """ Convert a scipy.sparse.coo_matrix to a SparseSeries.
-    Use the defaults given in the SparseSeries constructor.
+def _coo_to_sparse_series(A, dense_index: bool = False,
+                          sparse_series: bool = True):
     """
-    s = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
+    Convert a scipy.sparse.coo_matrix to a SparseSeries.
+
+    Parameters
+    ----------
+    A : scipy.sparse.coo.coo_matrix
+    dense_index : bool, default False
+    sparse_series : bool, default True
+
+    Returns
+    -------
+    Series or SparseSeries
+
+    Raises
+    ------
+    TypeError if A is not a coo_matrix
+
+    """
+    from pandas import SparseDtype
+
+    try:
+        s = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
+    except AttributeError:
+        raise TypeError('Expected coo_matrix. Got {} instead.'
+                        .format(type(A).__name__))
     s = s.sort_index()
-    s = s.to_sparse()  # TODO: specify kind?
+    if sparse_series:
+        # TODO(SparseSeries): remove this and the sparse_series keyword.
+        # This is just here to avoid a DeprecationWarning when
+        # _coo_to_sparse_series is called via Series.sparse.from_coo
+        s = s.to_sparse()  # TODO: specify kind?
+    else:
+        s = s.astype(SparseDtype(s.dtype))
     if dense_index:
         # is there a better constructor method to use here?
         i = range(A.shape[0])

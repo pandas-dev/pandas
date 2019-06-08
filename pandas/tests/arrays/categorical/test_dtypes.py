@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
+import numpy as np
 import pytest
 
-import numpy as np
-
-import pandas.util.testing as tm
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.compat import long
-from pandas import Categorical, Index, CategoricalIndex, Series, Timestamp
+
+from pandas import Categorical, CategoricalIndex, Index, Series, Timestamp
+import pandas.util.testing as tm
 
 
-class TestCategoricalDtypes(object):
+class TestCategoricalDtypes:
 
     def test_is_equal_dtype(self):
 
@@ -119,7 +117,7 @@ class TestCategoricalDtypes(object):
         tm.assert_numpy_array_equal(result, expected)
 
         msg = 'could not convert string to float'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             cat.astype(float)
 
         # numeric
@@ -164,10 +162,9 @@ class TestCategoricalDtypes(object):
 
     def test_iter_python_types(self):
         # GH-19909
-        # TODO(Py2): Remove long
         cat = Categorical([1, 2])
-        assert isinstance(list(cat)[0], (int, long))
-        assert isinstance(cat.tolist()[0], (int, long))
+        assert isinstance(list(cat)[0], int)
+        assert isinstance(cat.tolist()[0], int)
 
     def test_iter_python_types_datetime(self):
         cat = Categorical([Timestamp('2017-01-01'),

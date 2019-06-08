@@ -1,15 +1,11 @@
-import warnings
-
 import numpy as np
-from pandas import DataFrame, Panel, date_range, HDFStore, read_hdf
+from pandas import DataFrame, date_range, HDFStore, read_hdf
 import pandas.util.testing as tm
 
-from ..pandas_vb_common import BaseIO, setup  # noqa
+from ..pandas_vb_common import BaseIO
 
 
 class HDFStoreDataFrame(BaseIO):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 25000
@@ -101,36 +97,8 @@ class HDFStoreDataFrame(BaseIO):
         self.store.info()
 
 
-class HDFStorePanel(BaseIO):
-
-    goal_time = 0.2
-
-    def setup(self):
-        self.fname = '__test__.h5'
-        with warnings.catch_warnings(record=True):
-            self.p = Panel(np.random.randn(20, 1000, 25),
-                           items=['Item%03d' % i for i in range(20)],
-                           major_axis=date_range('1/1/2000', periods=1000),
-                           minor_axis=['E%03d' % i for i in range(25)])
-            self.store = HDFStore(self.fname)
-            self.store.append('p1', self.p)
-
-    def teardown(self):
-        self.store.close()
-        self.remove(self.fname)
-
-    def time_read_store_table_panel(self):
-        with warnings.catch_warnings(record=True):
-            self.store.select('p1')
-
-    def time_write_store_table_panel(self):
-        with warnings.catch_warnings(record=True):
-            self.store.append('p2', self.p)
-
-
 class HDF(BaseIO):
 
-    goal_time = 0.2
     params = ['table', 'fixed']
     param_names = ['format']
 
@@ -149,3 +117,6 @@ class HDF(BaseIO):
 
     def time_write_hdf(self, format):
         self.df.to_hdf(self.fname, 'df', format=format)
+
+
+from ..pandas_vb_common import setup  # noqa: F401

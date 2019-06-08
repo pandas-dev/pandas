@@ -1,14 +1,14 @@
 from datetime import datetime, timedelta
 
-import numpy as np
-import pandas as pd
 from dateutil import tz
+import numpy as np
 
-from pandas import date_range, Index, DataFrame, Series, Timestamp
+import pandas as pd
+from pandas import DataFrame, Index, Series, Timestamp, date_range
 from pandas.util import testing as tm
 
 
-class TestDatetimeIndex(object):
+class TestDatetimeIndex:
 
     def test_setitem_with_datetime_tz(self):
         # 16889

@@ -5,12 +5,9 @@ import pandas.util.testing as tm
 from pandas import DataFrame, date_range, read_sql_query, read_sql_table
 from sqlalchemy import create_engine
 
-from ..pandas_vb_common import setup  # noqa
 
+class SQL:
 
-class SQL(object):
-
-    goal_time = 0.2
     params = ['sqlalchemy', 'sqlite']
     param_names = ['connection']
 
@@ -41,9 +38,8 @@ class SQL(object):
         read_sql_query(self.query_all, self.con)
 
 
-class WriteSQLDtypes(object):
+class WriteSQLDtypes:
 
-    goal_time = 0.2
     params = (['sqlalchemy', 'sqlite'],
               ['float', 'float_with_nan', 'string', 'bool', 'int', 'datetime'])
     param_names = ['connection', 'dtype']
@@ -75,9 +71,7 @@ class WriteSQLDtypes(object):
         read_sql_query(self.query_col, self.con)
 
 
-class ReadSQLTable(object):
-
-    goal_time = 0.2
+class ReadSQLTable:
 
     def setup(self):
         N = 10000
@@ -104,9 +98,7 @@ class ReadSQLTable(object):
                        parse_dates=['datetime_string'])
 
 
-class ReadSQLTableDtypes(object):
-
-    goal_time = 0.2
+class ReadSQLTableDtypes:
 
     params = ['float', 'float_with_nan', 'string', 'bool', 'int', 'datetime']
     param_names = ['dtype']
@@ -130,3 +122,6 @@ class ReadSQLTableDtypes(object):
 
     def time_read_sql_table_column(self, dtype):
         read_sql_table(self.table_name, self.con, columns=[dtype])
+
+
+from ..pandas_vb_common import setup  # noqa: F401

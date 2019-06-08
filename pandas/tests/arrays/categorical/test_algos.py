@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -71,7 +71,7 @@ def test_isin_empty(empty):
     tm.assert_numpy_array_equal(expected, result)
 
 
-class TestTake(object):
+class TestTake:
     # https://github.com/pandas-dev/pandas/issues/20664
 
     def test_take_warns(self):
@@ -96,18 +96,47 @@ class TestTake(object):
         with pytest.raises(IndexError):
             cat.take([0], allow_fill=allow_fill)
 
-    def test_positional_take(self, ordered):
+    def test_positional_take(self, ordered_fixture):
         cat = pd.Categorical(['a', 'a', 'b', 'b'], categories=['b', 'a'],
-                             ordered=ordered)
+                             ordered=ordered_fixture)
         result = cat.take([0, 1, 2], allow_fill=False)
         expected = pd.Categorical(['a', 'a', 'b'], categories=cat.categories,
-                                  ordered=ordered)
+                                  ordered=ordered_fixture)
         tm.assert_categorical_equal(result, expected)
 
-    def test_positional_take_unobserved(self, ordered):
+    def test_positional_take_unobserved(self, ordered_fixture):
         cat = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'],
-                             ordered=ordered)
+                             ordered=ordered_fixture)
         result = cat.take([1, 0], allow_fill=False)
         expected = pd.Categorical(['b', 'a'], categories=cat.categories,
-                                  ordered=ordered)
+                                  ordered=ordered_fixture)
         tm.assert_categorical_equal(result, expected)
+
+    def test_take_allow_fill(self):
+        # https://github.com/pandas-dev/pandas/issues/23296
+        cat = pd.Categorical(['a', 'a', 'b'])
+        result = cat.take([0, -1, -1], allow_fill=True)
+        expected = pd.Categorical(['a', np.nan, np.nan],
+                                  categories=['a', 'b'])
+        tm.assert_categorical_equal(result, expected)
+
+    def test_take_fill_with_negative_one(self):
+        # -1 was a category
+        cat = pd.Categorical([-1, 0, 1])
+        result = cat.take([0, -1, 1], allow_fill=True, fill_value=-1)
+        expected = pd.Categorical([-1, -1, 0], categories=[-1, 0, 1])
+        tm.assert_categorical_equal(result, expected)
+
+    def test_take_fill_value(self):
+        # https://github.com/pandas-dev/pandas/issues/23296
+        cat = pd.Categorical(['a', 'b', 'c'])
+        result = cat.take([0, 1, -1], fill_value='a', allow_fill=True)
+        expected = pd.Categorical(['a', 'b', 'a'], categories=['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
+    def test_take_fill_value_new_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/23296
+        cat = pd.Categorical(['a', 'b', 'c'])
+        xpr = r"'fill_value' \('d'\) is not in this Categorical's categories."
+        with pytest.raises(TypeError, match=xpr):
+            cat.take([0, 1, -1], fill_value='d', allow_fill=True)

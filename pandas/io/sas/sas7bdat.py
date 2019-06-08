@@ -8,7 +8,7 @@ See also:
   https://github.com/BioStatMatt/sas7bdat
 
 Partial documentation of the file format:
-  https://cran.r-project.org/web/packages/sas7bdat/vignettes/sas7bdat.pdf
+  https://cran.r-project.org/package=sas7bdat/vignettes/sas7bdat.pdf
 
 Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
@@ -18,21 +18,20 @@ import struct
 
 import numpy as np
 
-from pandas import compat
 from pandas.errors import EmptyDataError
-
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
-import pandas.io.sas.sas_constants as const
-from pandas.io.sas._sas import Parser
 
 import pandas as pd
 
+from pandas.io.common import BaseIterator, get_filepath_or_buffer
+from pandas.io.sas._sas import Parser
+import pandas.io.sas.sas_constants as const
 
-class _subheader_pointer(object):
+
+class _subheader_pointer:
     pass
 
 
-class _column(object):
+class _column:
     pass
 
 
@@ -96,7 +95,7 @@ class SAS7BDATReader(BaseIterator):
         self._current_row_in_file_index = 0
 
         self._path_or_buf, _, _, _ = get_filepath_or_buffer(path_or_buf)
-        if isinstance(self._path_or_buf, compat.string_types):
+        if isinstance(self._path_or_buf, str):
             self._path_or_buf = open(self._path_or_buf, 'rb')
             self.handle = self._path_or_buf
 
@@ -163,7 +162,7 @@ class SAS7BDATReader(BaseIterator):
         if buf in const.encoding_names:
             self.file_encoding = const.encoding_names[buf]
         else:
-            self.file_encoding = "unknown (code=%s)" % str(buf)
+            self.file_encoding = "unknown (code={name!s})".format(name=buf)
 
         # Get platform information
         buf = self._read_bytes(const.platform_offset, const.platform_length)
@@ -435,8 +434,11 @@ class SAS7BDATReader(BaseIterator):
         self.column_count = self._read_int(offset, int_len)
         if (self.col_count_p1 + self.col_count_p2 !=
                 self.column_count):
-            print("Warning: column count mismatch (%d + %d != %d)\n",
-                  self.col_count_p1, self.col_count_p2, self.column_count)
+            print(
+                "Warning: column count mismatch ({p1} + {p2} != "
+                "{column_count})\n".format(
+                    p1=self.col_count_p1, p2=self.col_count_p2,
+                    column_count=self.column_count))
 
     # Unknown purpose
     def _process_subheader_counts(self, offset, length):
@@ -694,7 +696,7 @@ class SAS7BDATReader(BaseIterator):
                 js += 1
             else:
                 self.close()
-                raise ValueError("unknown column type %s" %
-                                 self._column_types[j])
+                raise ValueError("unknown column type {type}".format(
+                    type=self._column_types[j]))
 
         return rslt

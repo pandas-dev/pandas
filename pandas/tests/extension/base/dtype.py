@@ -1,6 +1,8 @@
 import warnings
 
 import numpy as np
+import pytest
+
 import pandas as pd
 
 from .base import BaseExtensionTests
@@ -49,6 +51,10 @@ class BaseDtypeTests(BaseExtensionTests):
     def test_eq_with_numpy_object(self, dtype):
         assert dtype != np.dtype('object')
 
+    def test_eq_with_self(self, dtype):
+        assert dtype == dtype
+        assert dtype != object()
+
     def test_array_type(self, data, dtype):
         assert dtype.construct_array_type() is type(data)
 
@@ -81,3 +87,19 @@ class BaseDtypeTests(BaseExtensionTests):
                              index=list('ABCD'))
         result = df.dtypes.apply(str) == str(dtype)
         self.assert_series_equal(result, expected)
+
+    def test_hashable(self, dtype):
+        hash(dtype)  # no error
+
+    def test_str(self, dtype):
+        assert str(dtype) == dtype.name
+
+    def test_eq(self, dtype):
+        assert dtype == dtype.name
+        assert dtype != 'anonther_type'
+
+    def test_construct_from_string(self, dtype):
+        dtype_instance = dtype.__class__.construct_from_string(dtype.name)
+        assert isinstance(dtype_instance, dtype.__class__)
+        with pytest.raises(TypeError):
+            dtype.__class__.construct_from_string('another_type')

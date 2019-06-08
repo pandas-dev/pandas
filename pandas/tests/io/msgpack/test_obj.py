@@ -9,7 +9,7 @@ class DecodeError(Exception):
     pass
 
 
-class TestObj(object):
+class TestObj:
 
     def _arr_to_str(self, arr):
         return ''.join(str(c) for c in arr)
@@ -47,15 +47,16 @@ class TestObj(object):
         assert unpacked[1] == prod_sum
 
     def test_only_one_obj_hook(self):
-        pytest.raises(TypeError, unpackb, b'', object_hook=lambda x: x,
-                      object_pairs_hook=lambda x: x)
+        msg = "object_pairs_hook and object_hook are mutually exclusive"
+        with pytest.raises(TypeError, match=msg):
+            unpackb(b'', object_hook=lambda x: x,
+                    object_pairs_hook=lambda x: x)
 
     def test_bad_hook(self):
-        def f():
+        msg = r"can't serialize \(1\+2j\)"
+        with pytest.raises(TypeError, match=msg):
             packed = packb([3, 1 + 2j], default=lambda o: o)
             unpacked = unpackb(packed, use_list=1)  # noqa
-
-        pytest.raises(TypeError, f)
 
     def test_array_hook(self):
         packed = packb([1, 2, 3])
@@ -63,15 +64,11 @@ class TestObj(object):
         assert unpacked == '123'
 
     def test_an_exception_in_objecthook1(self):
-        def f():
+        with pytest.raises(DecodeError, match='Ooops!'):
             packed = packb({1: {'__complex__': True, 'real': 1, 'imag': 2}})
             unpackb(packed, object_hook=self.bad_complex_decoder)
 
-        pytest.raises(DecodeError, f)
-
     def test_an_exception_in_objecthook2(self):
-        def f():
+        with pytest.raises(DecodeError, match='Ooops!'):
             packed = packb({1: [{'__complex__': True, 'real': 1, 'imag': 2}]})
             unpackb(packed, list_hook=self.bad_complex_decoder, use_list=1)
-
-        pytest.raises(DecodeError, f)

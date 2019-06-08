@@ -1,19 +1,21 @@
 import copy
-import textwrap
 import re
+import textwrap
 
-import pytest
 import numpy as np
+import pytest
+
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import DataFrame
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 
 jinja2 = pytest.importorskip('jinja2')
-from pandas.io.formats.style import Styler, _get_level_lengths  # noqa
+from pandas.io.formats.style import Styler, _get_level_lengths  # noqa  # isort:skip
 
 
-class TestStyler(object):
+class TestStyler:
 
     def setup_method(self, method):
         np.random.seed(24)
@@ -273,6 +275,32 @@ class TestStyler(object):
                         if row in self.df.loc[slice_].index and
                         col in self.df.loc[slice_].columns}
             assert result == expected
+
+    def test_applymap_subset_multiindex(self):
+        # GH 19861
+        # Smoke test for applymap
+        def color_negative_red(val):
+            """
+            Takes a scalar and returns a string with
+            the css property `'color: red'` for negative
+            strings, black otherwise.
+            """
+            color = 'red' if val < 0 else 'black'
+            return 'color: %s' % color
+
+        dic = {
+            ('a', 'd'): [-1.12, 2.11],
+            ('a', 'c'): [2.78, -2.88],
+            ('b', 'c'): [-3.99, 3.77],
+            ('b', 'd'): [4.21, -1.22],
+        }
+
+        idx = pd.IndexSlice
+        df = pd.DataFrame(dic, index=[0, 1])
+
+        (df.style
+         .applymap(color_negative_red, subset=idx[:, idx['b', 'd']])
+         .render())
 
     def test_where_with_one_style(self):
         # GH 17474
@@ -1173,9 +1201,25 @@ class TestStyler(object):
         assert ctx['body'][1][2]['is_visible']
         assert ctx['body'][1][2]['display_value'] == 3
 
+    def test_pipe(self):
+        def set_caption_from_template(styler, a, b):
+            return styler.set_caption(
+                'Dataframe with a = {a} and b = {b}'.format(a=a, b=b))
+
+        styler = self.df.style.pipe(set_caption_from_template, 'A', b='B')
+        assert 'Dataframe with a = A and b = B' in styler.render()
+
+        # Test with an argument that is a (callable, keyword_name) pair.
+        def f(a, b, styler):
+            return (a, b, styler)
+
+        styler = self.df.style
+        result = styler.pipe((f, 'styler'), a=1, b=2)
+        assert result == (1, 2, styler)
+
 
 @td.skip_if_no_mpl
-class TestStylerMatplotlibDep(object):
+class TestStylerMatplotlibDep:
 
     def test_background_gradient(self):
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
@@ -1209,7 +1253,7 @@ class TestStylerMatplotlibDep(object):
     def test_text_color_threshold_raises(self, text_color_threshold):
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
         msg = "`text_color_threshold` must be a value from 0 to 1."
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df.style.background_gradient(
                 text_color_threshold=text_color_threshold)._compute()
 

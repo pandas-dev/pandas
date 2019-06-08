@@ -1,10 +1,10 @@
 """ io on the clipboard """
+from io import StringIO
 import warnings
 
-from pandas.compat import StringIO, PY2, PY3
-
 from pandas.core.dtypes.generic import ABCDataFrame
-from pandas import compat, get_option, option_context
+
+from pandas import get_option, option_context
 
 
 def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
@@ -14,7 +14,7 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
 
     Parameters
     ----------
-    sep : str, default '\s+'.
+    sep : str, default '\s+'
         A string or regex delimiter. The default of '\s+' denotes
         one or more whitespace characters.
 
@@ -34,16 +34,12 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     from pandas.io.parsers import read_csv
     text = clipboard_get()
 
-    # try to decode (if needed on PY3)
-    # Strange. linux py33 doesn't complain, win py33 does
-    if PY3:
-        try:
-            text = compat.bytes_to_str(
-                text, encoding=(kwargs.get('encoding') or
-                                get_option('display.encoding'))
-            )
-        except:
-            pass
+    # Try to decode (if needed, as "text" might already be a string here).
+    try:
+        text = text.decode(kwargs.get('encoding')
+                           or get_option('display.encoding'))
+    except AttributeError:
+        pass
 
     # Excel copies into clipboard with \t separation
     # inspect no more then the 10 first lines, if they
@@ -73,13 +69,6 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
         warnings.warn('read_clipboard with regex separator does not work'
                       ' properly with c engine')
 
-    # In PY2, the c table reader first encodes text with UTF-8 but Python
-    # table reader uses the format of the passed string. For consistency,
-    # encode strings for python engine so that output from python and c
-    # engines produce consistent results
-    if kwargs.get('engine') == 'python' and PY2:
-        text = text.encode('utf-8')
-
     return read_csv(StringIO(text), sep=sep, **kwargs)
 
 
@@ -102,7 +91,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
     Notes
     -----
     Requirements for your platform
-      - Linux: xclip, or xsel (with gtk or PyQt4 modules)
+      - Linux: xclip, or xsel (with PyQt4 modules)
       - Windows:
       - OS X:
     """
@@ -121,11 +110,11 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
             if sep is None:
                 sep = '\t'
             buf = StringIO()
+
             # clipboard_set (pyperclip) expects unicode
             obj.to_csv(buf, sep=sep, encoding='utf-8', **kwargs)
             text = buf.getvalue()
-            if PY2:
-                text = text.decode('utf-8')
+
             clipboard_set(text)
             return
         except TypeError:

@@ -1,14 +1,15 @@
-from pandas.compat import callable, signature, PY2
-from pandas._libs.properties import cache_readonly  # noqa
+from functools import wraps
 import inspect
+from textwrap import dedent
 import warnings
-from textwrap import dedent, wrap
-from functools import wraps, update_wrapper, WRAPPER_ASSIGNMENTS
+
+from pandas._libs.properties import cache_readonly  # noqa
 
 
 def deprecate(name, alternative, version, alt_name=None,
               klass=None, stacklevel=2, msg=None):
-    """Return a new function that emits a deprecation warning on use.
+    """
+    Return a new function that emits a deprecation warning on use.
 
     To use this method for a deprecated function, another function
     `alternative` with the same signature must exist. The deprecated
@@ -38,26 +39,37 @@ def deprecate(name, alternative, version, alt_name=None,
     warning_msg = msg or '{} is deprecated, use {} instead'.format(name,
                                                                    alt_name)
 
-    # adding deprecated directive to the docstring
-    msg = msg or 'Use `{alt_name}` instead.'.format(alt_name=alt_name)
-    msg = '\n    '.join(wrap(msg, 70))
-
-    @Substitution(version=version, msg=msg)
-    @Appender(alternative.__doc__)
+    @wraps(alternative)
     def wrapper(*args, **kwargs):
-        """
-        .. deprecated:: %(version)s
-
-           %(msg)s
-
-        """
         warnings.warn(warning_msg, klass, stacklevel=stacklevel)
         return alternative(*args, **kwargs)
 
-    # Since we are using Substitution to create the required docstring,
-    # remove that from the attributes that should be assigned to the wrapper
-    assignments = tuple(x for x in WRAPPER_ASSIGNMENTS if x != '__doc__')
-    update_wrapper(wrapper, alternative, assigned=assignments)
+    # adding deprecated directive to the docstring
+    msg = msg or 'Use `{alt_name}` instead.'.format(alt_name=alt_name)
+    doc_error_msg = ('deprecate needs a correctly formatted docstring in '
+                     'the target function (should have a one liner short '
+                     'summary, and opening quotes should be in their own '
+                     'line). Found:\n{}'.format(alternative.__doc__))
+
+    # when python is running in optimized mode (i.e. `-OO`), docstrings are
+    # removed, so we check that a docstring with correct formatting is used
+    # but we allow empty docstrings
+    if alternative.__doc__:
+        if alternative.__doc__.count('\n') < 3:
+            raise AssertionError(doc_error_msg)
+        empty1, summary, empty2, doc = alternative.__doc__.split('\n', 3)
+        if empty1 or empty2 and not summary:
+            raise AssertionError(doc_error_msg)
+        wrapper.__doc__ = dedent("""
+        {summary}
+
+        .. deprecated:: {depr_version}
+            {depr_msg}
+
+        {rest_of_docstring}""").format(summary=summary.strip(),
+                                       depr_version=version,
+                                       depr_msg=msg,
+                                       rest_of_docstring=dedent(doc))
 
     return wrapper
 
@@ -105,7 +117,6 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
     FutureWarning: old='yes' is deprecated, use new=True instead
       warnings.warn(msg, FutureWarning)
     yes!
-
 
     To raise a warning that a keyword will be removed entirely in the future
 
@@ -185,22 +196,21 @@ def rewrite_axis_style_signature(name, extra_params):
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
 
-        if not PY2:
-            kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
-            params = [
-                inspect.Parameter('self', kind),
-                inspect.Parameter(name, kind, default=None),
-                inspect.Parameter('index', kind, default=None),
-                inspect.Parameter('columns', kind, default=None),
-                inspect.Parameter('axis', kind, default=None),
-            ]
+        kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
+        params = [
+            inspect.Parameter('self', kind),
+            inspect.Parameter(name, kind, default=None),
+            inspect.Parameter('index', kind, default=None),
+            inspect.Parameter('columns', kind, default=None),
+            inspect.Parameter('axis', kind, default=None),
+        ]
 
-            for pname, default in extra_params:
-                params.append(inspect.Parameter(pname, kind, default=default))
+        for pname, default in extra_params:
+            params.append(inspect.Parameter(pname, kind, default=default))
 
-            sig = inspect.Signature(params)
+        sig = inspect.Signature(params)
 
-            func.__signature__ = sig
+        func.__signature__ = sig
         return wrapper
     return decorate
 
@@ -208,7 +218,7 @@ def rewrite_axis_style_signature(name, extra_params):
 # module http://matplotlib.org/users/license.html
 
 
-class Substitution(object):
+class Substitution:
     """
     A decorator to take a function's docstring and perform string
     substitution on it.
@@ -269,7 +279,7 @@ class Substitution(object):
         return result
 
 
-class Appender(object):
+class Appender:
     """
     A function decorator that will append an addendum to the docstring
     of the target function.
@@ -313,17 +323,18 @@ def indent(text, indents=1):
 
 def make_signature(func):
     """
-    Returns a string repr of the arg list of a func call, with any defaults.
+    Returns a tuple containing the paramenter list with defaults
+    and parameter list.
 
     Examples
     --------
-    >>> def f(a,b,c=2) :
-    >>>     return a*b*c
-    >>> print(_make_signature(f))
-    a,b,c=2
+    >>> def f(a, b, c=2):
+    >>>     return a * b * c
+    >>> print(make_signature(f))
+    (['a', 'b', 'c=2'], ['a', 'b', 'c'])
     """
 
-    spec = signature(func)
+    spec = inspect.getfullargspec(func)
     if spec.defaults is None:
         n_wo_defaults = len(spec.args)
         defaults = ('',) * n_wo_defaults
@@ -331,10 +342,10 @@ def make_signature(func):
         n_wo_defaults = len(spec.args) - len(spec.defaults)
         defaults = ('',) * n_wo_defaults + tuple(spec.defaults)
     args = []
-    for i, (var, default) in enumerate(zip(spec.args, defaults)):
+    for var, default in zip(spec.args, defaults):
         args.append(var if default == '' else var + '=' + repr(default))
     if spec.varargs:
         args.append('*' + spec.varargs)
-    if spec.keywords:
-        args.append('**' + spec.keywords)
+    if spec.varkw:
+        args.append('**' + spec.varkw)
     return args, spec.args

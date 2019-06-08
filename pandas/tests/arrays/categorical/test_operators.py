@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
+import operator
+import warnings
 
+import numpy as np
 import pytest
 
 import pandas as pd
-import numpy as np
-
-import pandas.util.testing as tm
-from pandas import Categorical, Series, DataFrame, date_range
+from pandas import Categorical, DataFrame, Series, date_range
 from pandas.tests.arrays.categorical.common import TestCategorical
+import pandas.util.testing as tm
 
 
 class TestCategoricalOpsWithFactor(TestCategorical):
@@ -18,7 +18,6 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         tm.assert_categorical_equal(factor, self.factor)
 
     def test_comparisons(self):
-
         result = self.factor[self.factor == 'a']
         expected = self.factor[np.asarray(self.factor) == 'a']
         tm.assert_categorical_equal(result, expected)
@@ -77,40 +76,42 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         tm.assert_numpy_array_equal(res, exp)
 
         # Only categories with same categories can be compared
-        def f():
+        with pytest.raises(TypeError):
             cat > cat_rev
-
-        pytest.raises(TypeError, f)
 
         cat_rev_base2 = Categorical(
             ["b", "b", "b"], categories=["c", "b", "a", "d"])
 
-        def f():
+        with pytest.raises(TypeError):
             cat_rev > cat_rev_base2
-
-        pytest.raises(TypeError, f)
 
         # Only categories with same ordering information can be compared
         cat_unorderd = cat.set_ordered(False)
         assert not (cat > cat).any()
 
-        def f():
+        with pytest.raises(TypeError):
             cat > cat_unorderd
-
-        pytest.raises(TypeError, f)
 
         # comparison (in both directions) with Series will raise
         s = Series(["b", "b", "b"])
-        pytest.raises(TypeError, lambda: cat > s)
-        pytest.raises(TypeError, lambda: cat_rev > s)
-        pytest.raises(TypeError, lambda: s < cat)
-        pytest.raises(TypeError, lambda: s < cat_rev)
+        msg = ("Cannot compare a Categorical for op __gt__ with type"
+               r" <class 'numpy\.ndarray'>")
+        with pytest.raises(TypeError, match=msg):
+            cat > s
+        with pytest.raises(TypeError, match=msg):
+            cat_rev > s
+        with pytest.raises(TypeError, match=msg):
+            s < cat
+        with pytest.raises(TypeError, match=msg):
+            s < cat_rev
 
         # comparison with numpy.array will raise in both direction, but only on
         # newer numpy versions
         a = np.array(["b", "b", "b"])
-        pytest.raises(TypeError, lambda: cat > a)
-        pytest.raises(TypeError, lambda: cat_rev > a)
+        with pytest.raises(TypeError, match=msg):
+            cat > a
+        with pytest.raises(TypeError, match=msg):
+            cat_rev > a
 
         # Make sure that unequal comparison take the categories order in
         # account
@@ -120,8 +121,33 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         res = cat_rev > "b"
         tm.assert_numpy_array_equal(res, exp)
 
+        # check that zero-dim array gets unboxed
+        res = cat_rev > np.array("b")
+        tm.assert_numpy_array_equal(res, exp)
 
-class TestCategoricalOps(object):
+
+class TestCategoricalOps:
+
+    def test_compare_frame(self):
+        # GH#24282 check that Categorical.__cmp__(DataFrame) defers to frame
+        data = ["a", "b", 2, "a"]
+        cat = Categorical(data)
+
+        df = DataFrame(cat)
+
+        for op in [operator.eq, operator.ne, operator.ge,
+                   operator.gt, operator.le, operator.lt]:
+            with pytest.raises(ValueError):
+                # alignment raises unless we transpose
+                op(cat, df)
+
+        result = cat == df.T
+        expected = DataFrame([[True, True, True, True]])
+        tm.assert_frame_equal(result, expected)
+
+        result = cat[::-1] != df.T
+        expected = DataFrame([[False, True, True, False]])
+        tm.assert_frame_equal(result, expected)
 
     def test_datetime_categorical_comparison(self):
         dt_cat = Categorical(date_range('2014-01-01', periods=3), ordered=True)
@@ -144,15 +170,51 @@ class TestCategoricalOps(object):
         # for unequal comps, but not for equal/not equal
         cat = Categorical([1, 2, 3], ordered=True)
 
-        pytest.raises(TypeError, lambda: cat < 4)
-        pytest.raises(TypeError, lambda: cat > 4)
-        pytest.raises(TypeError, lambda: 4 < cat)
-        pytest.raises(TypeError, lambda: 4 > cat)
+        msg = ("Cannot compare a Categorical for op __{}__ with a scalar,"
+               " which is not a category")
+        with pytest.raises(TypeError, match=msg.format('lt')):
+            cat < 4
+        with pytest.raises(TypeError, match=msg.format('gt')):
+            cat > 4
+        with pytest.raises(TypeError, match=msg.format('gt')):
+            4 < cat
+        with pytest.raises(TypeError, match=msg.format('lt')):
+            4 > cat
 
         tm.assert_numpy_array_equal(cat == 4,
                                     np.array([False, False, False]))
         tm.assert_numpy_array_equal(cat != 4,
                                     np.array([True, True, True]))
+
+    def test_comparison_of_ordered_categorical_with_nan_to_scalar(
+            self, compare_operators_no_eq_ne):
+        # https://github.com/pandas-dev/pandas/issues/26504
+        # BUG: fix ordered categorical comparison with missing values (#26504 )
+        # and following comparisons with scalars in categories with missing
+        # values should be evaluated as False
+
+        cat = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
+        scalar = 2
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            expected = getattr(np.array(cat),
+                               compare_operators_no_eq_ne)(scalar)
+        actual = getattr(cat, compare_operators_no_eq_ne)(scalar)
+        tm.assert_numpy_array_equal(actual, expected)
+
+    def test_comparison_of_ordered_categorical_with_nan_to_listlike(
+            self, compare_operators_no_eq_ne):
+        # https://github.com/pandas-dev/pandas/issues/26504
+        # and following comparisons of missing values in ordered Categorical
+        # with listlike should be evaluated as False
+
+        cat = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
+        other = Categorical([2, 2, 2, 2], categories=[1, 2, 3], ordered=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            expected = getattr(np.array(cat), compare_operators_no_eq_ne)(2)
+        actual = getattr(cat, compare_operators_no_eq_ne)(other)
+        tm.assert_numpy_array_equal(actual, expected)
 
     @pytest.mark.parametrize('data,reverse,base', [
         (list("abc"), list("cba"), list("bbb")),
@@ -195,23 +257,31 @@ class TestCategoricalOps(object):
         tm.assert_numpy_array_equal(res_rev.values, exp_rev2)
 
         # Only categories with same categories can be compared
-        def f():
+        with pytest.raises(TypeError):
             cat > cat_rev
-
-        pytest.raises(TypeError, f)
 
         # categorical cannot be compared to Series or numpy array, and also
         # not the other way around
-        pytest.raises(TypeError, lambda: cat > s)
-        pytest.raises(TypeError, lambda: cat_rev > s)
-        pytest.raises(TypeError, lambda: cat > a)
-        pytest.raises(TypeError, lambda: cat_rev > a)
+        msg = ("Cannot compare a Categorical for op __gt__ with type"
+               r" <class 'numpy\.ndarray'>")
+        with pytest.raises(TypeError, match=msg):
+            cat > s
+        with pytest.raises(TypeError, match=msg):
+            cat_rev > s
+        with pytest.raises(TypeError, match=msg):
+            cat > a
+        with pytest.raises(TypeError, match=msg):
+            cat_rev > a
 
-        pytest.raises(TypeError, lambda: s < cat)
-        pytest.raises(TypeError, lambda: s < cat_rev)
+        with pytest.raises(TypeError, match=msg):
+            s < cat
+        with pytest.raises(TypeError, match=msg):
+            s < cat_rev
 
-        pytest.raises(TypeError, lambda: a < cat)
-        pytest.raises(TypeError, lambda: a < cat_rev)
+        with pytest.raises(TypeError, match=msg):
+            a < cat
+        with pytest.raises(TypeError, match=msg):
+            a < cat_rev
 
     @pytest.mark.parametrize('ctor', [
         lambda *args, **kwargs: Categorical(*args, **kwargs),
@@ -239,15 +309,17 @@ class TestCategoricalOps(object):
     def test_unordered_different_categories_raises(self):
         c1 = Categorical(['a', 'b'], categories=['a', 'b'], ordered=False)
         c2 = Categorical(['a', 'c'], categories=['c', 'a'], ordered=False)
-        with tm.assert_raises_regex(TypeError,
-                                    "Categoricals can only be compared"):
+
+        with pytest.raises(TypeError, match=("Categoricals can "
+                                             "only be compared")):
             c1 == c2
 
     def test_compare_different_lengths(self):
         c1 = Categorical([], categories=['a', 'b'])
         c2 = Categorical([], categories=['a'])
+
         msg = "Categories are different lengths"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             c1 == c2
 
     def test_compare_unordered_different_order(self):
@@ -268,29 +340,41 @@ class TestCategoricalOps(object):
                                    right=False, labels=cat_labels)
 
         # numeric ops should not succeed
-        for op in ['__add__', '__sub__', '__mul__', '__truediv__']:
-            pytest.raises(TypeError,
-                          lambda: getattr(df, op)(df))
+        for op, str_rep in [('__add__', r'\+'),
+                            ('__sub__', '-'),
+                            ('__mul__', r'\*'),
+                            ('__truediv__', '/')]:
+            msg = r"Series cannot perform the operation {}".format(str_rep)
+            with pytest.raises(TypeError, match=msg):
+                getattr(df, op)(df)
 
         # reduction ops should not succeed (unless specifically defined, e.g.
         # min/max)
         s = df['value_group']
         for op in ['kurt', 'skew', 'var', 'std', 'mean', 'sum', 'median']:
-            pytest.raises(TypeError,
-                          lambda: getattr(s, op)(numeric_only=False))
+            msg = "Categorical cannot perform the operation {}".format(op)
+            with pytest.raises(TypeError, match=msg):
+                getattr(s, op)(numeric_only=False)
 
         # mad technically works because it takes always the numeric data
 
         # numpy ops
         s = Series(Categorical([1, 2, 3, 4]))
-        pytest.raises(TypeError, lambda: np.sum(s))
+        with pytest.raises(TypeError):
+            np.sum(s)
 
         # numeric ops on a Series
-        for op in ['__add__', '__sub__', '__mul__', '__truediv__']:
-            pytest.raises(TypeError, lambda: getattr(s, op)(2))
+        for op, str_rep in [('__add__', r'\+'),
+                            ('__sub__', '-'),
+                            ('__mul__', r'\*'),
+                            ('__truediv__', '/')]:
+            msg = r"Series cannot perform the operation {}".format(str_rep)
+            with pytest.raises(TypeError, match=msg):
+                getattr(s, op)(2)
 
         # invalid ufunc
-        pytest.raises(TypeError, lambda: np.log(s))
+        with pytest.raises(TypeError):
+            np.log(s)
 
     def test_contains(self):
         # GH21508

@@ -1,22 +1,13 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
-import pytest
-
 from datetime import datetime
 
-import pandas as pd
 import numpy as np
-
 from numpy import nan
+import pytest
 
-from pandas import compat
-
-from pandas import (Series, date_range, isna, Categorical)
-from pandas.compat import lrange, range
-
-from pandas.util.testing import (assert_series_equal)
+import pandas as pd
+from pandas import Categorical, Series, date_range, isna
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
 
 
 @pytest.mark.parametrize(
@@ -174,13 +165,13 @@ def test_reindex(test_data):
     subIndex = test_data.series.index[10:20]
     subSeries = test_data.series.reindex(subIndex)
 
-    for idx, val in compat.iteritems(subSeries):
+    for idx, val in subSeries.items():
         assert val == test_data.series[idx]
 
     subIndex2 = test_data.ts.index[10:20]
     subTS = test_data.ts.reindex(subIndex2)
 
-    for idx, val in compat.iteritems(subTS):
+    for idx, val in subTS.items():
         assert val == test_data.ts[idx]
     stuffSeries = test_data.ts.reindex(subIndex)
 
@@ -189,7 +180,7 @@ def test_reindex(test_data):
     # This is extremely important for the Cython code to not screw up
     nonContigIndex = test_data.ts.index[::2]
     subNonContig = test_data.ts.reindex(nonContigIndex)
-    for idx, val in compat.iteritems(subNonContig):
+    for idx, val in subNonContig.items():
         assert val == test_data.ts[idx]
 
     # return a copy the same index here
@@ -213,7 +204,7 @@ def test_reindex_series_add_nat():
     rng = date_range('1/1/2000 00:00:00', periods=10, freq='10s')
     series = Series(rng)
 
-    result = series.reindex(lrange(15))
+    result = series.reindex(range(15))
     assert np.issubdtype(result.dtype, np.dtype('M8[ns]'))
 
     mask = result.isna()
@@ -246,7 +237,10 @@ def test_reindex_corner(test_data):
 
     # bad fill method
     ts = test_data.ts[::2]
-    pytest.raises(Exception, ts.reindex, test_data.ts.index, method='foo')
+    msg = (r"Invalid fill method\. Expecting pad \(ffill\), backfill"
+           r" \(bfill\) or nearest\. Got foo")
+    with pytest.raises(ValueError, match=msg):
+        ts.reindex(test_data.ts.index, method='foo')
 
 
 def test_reindex_pad():
@@ -284,9 +278,9 @@ def test_reindex_pad():
     assert_series_equal(result, expected)
 
     # GH4618 shifted series downcasting
-    s = Series(False, index=lrange(0, 5))
+    s = Series(False, index=range(0, 5))
     result = s.shift(1).fillna(method='bfill')
-    expected = Series(False, index=lrange(0, 5))
+    expected = Series(False, index=range(0, 5))
     assert_series_equal(result, expected)
 
 
@@ -462,6 +456,13 @@ def test_reindex_datetimeindexes_tz_naive_and_aware():
         s.reindex(newidx, method='ffill')
 
 
+def test_reindex_empty_series_tz_dtype():
+    # GH 20869
+    result = Series(dtype='datetime64[ns, UTC]').reindex([0, 1])
+    expected = Series([pd.NaT] * 2, dtype='datetime64[ns, UTC]')
+    tm.assert_equal(result, expected)
+
+
 def test_rename():
     # GH 17407
     s = Series(range(1, 6), index=pd.Index(range(2, 7), name='IntIndex'))
@@ -516,7 +517,7 @@ def test_drop_unique_and_non_unique_index(data, index, axis, drop_labels,
 def test_drop_exception_raised(data, index, drop_labels,
                                axis, error_type, error_desc):
 
-    with tm.assert_raises_regex(error_type, error_desc):
+    with pytest.raises(error_type, match=error_desc):
         Series(data, index=index).drop(drop_labels, axis=axis)
 
 
@@ -553,5 +554,5 @@ def test_drop_empty_list(index, drop_labels):
 ])
 def test_drop_non_empty_list(data, index, drop_labels):
     # GH 21494 and GH 16877
-    with tm.assert_raises_regex(KeyError, 'not found in axis'):
+    with pytest.raises(KeyError, match='not found in axis'):
         pd.Series(data=data, index=index).drop(drop_labels)

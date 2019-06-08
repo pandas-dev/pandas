@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 import re
 
 cimport numpy as cnp
 cnp.import_array()
 
-from util cimport is_integer_object, is_string_object
+from pandas._libs.tslibs.util cimport is_integer_object
 
-from ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 
 # ----------------------------------------------------------------------
 # Constants
@@ -22,7 +21,7 @@ INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 # Period codes
 
 
-class FreqGroup(object):
+class FreqGroup:
     FR_ANN = 1000
     FR_QTR = 2000
     FR_MTH = 3000
@@ -154,8 +153,7 @@ cpdef get_freq_code(freqstr):
         freqstr = (freqstr.rule_code, freqstr.n)
 
     if isinstance(freqstr, tuple):
-        if (is_integer_object(freqstr[0]) and
-                is_integer_object(freqstr[1])):
+        if is_integer_object(freqstr[0]) and is_integer_object(freqstr[1]):
             # e.g., freqstr = (2000, 1)
             return freqstr
         else:
@@ -171,7 +169,7 @@ cpdef get_freq_code(freqstr):
             return code, stride
 
     if is_integer_object(freqstr):
-        return (freqstr, 1)
+        return freqstr, 1
 
     base, stride = _base_and_stride(freqstr)
     code = _period_str_to_code(base)
@@ -182,6 +180,11 @@ cpdef get_freq_code(freqstr):
 cpdef _base_and_stride(freqstr):
     """
     Return base freq and stride info from string representation
+
+    Returns
+    -------
+    base : str
+    stride : int
 
     Examples
     --------
@@ -201,7 +204,7 @@ cpdef _base_and_stride(freqstr):
 
     base = groups.group(2)
 
-    return (base, stride)
+    return base, stride
 
 
 cpdef _period_str_to_code(freqstr):
@@ -312,7 +315,7 @@ cpdef object get_freq(object freq):
     >>> get_freq('3A')
     1000
     """
-    if is_string_object(freq):
+    if isinstance(freq, str):
         base, mult = get_freq_code(freq)
         freq = base
     return freq

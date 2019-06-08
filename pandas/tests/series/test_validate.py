@@ -1,8 +1,7 @@
 import pytest
-import pandas.util.testing as tm
 
 
-class TestSeriesValidate(object):
+class TestSeriesValidate:
     """Tests for error handling related to data types of method arguments."""
 
     @pytest.mark.parametrize("func", ["reset_index", "_set_name",
@@ -16,5 +15,5 @@ class TestSeriesValidate(object):
         if func == "_set_name":
             kwargs["name"] = "hello"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             getattr(string_series, func)(**kwargs)

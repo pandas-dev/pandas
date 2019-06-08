@@ -1,17 +1,13 @@
 # being a bit too dynamic
-# pylint: disable=E1101
-from __future__ import division
-
 import numpy as np
 
 from pandas.util._decorators import deprecate_kwarg
+
 from pandas.core.dtypes.missing import notna
-from pandas.compat import range, lrange, lmap, zip
+
 from pandas.io.formats.printing import pprint_thing
-
-
 from pandas.plotting._style import _get_standard_colors
-from pandas.plotting._tools import _subplots, _set_ticks_props
+from pandas.plotting._tools import _set_ticks_props, _subplots
 
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
@@ -47,6 +43,11 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     kwds : other plotting keyword arguments
         To be passed to scatter function
 
+    Returns
+    -------
+    numpy.ndarray
+        A matrix of scatter plots.
+
     Examples
     --------
     >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
@@ -79,8 +80,8 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
         rdelta_ext = (rmax_ - rmin_) * range_padding / 2.
         boundaries_list.append((rmin_ - rdelta_ext, rmax_ + rdelta_ext))
 
-    for i, a in zip(lrange(n), df.columns):
-        for j, b in zip(lrange(n), df.columns):
+    for i, a in enumerate(df.columns):
+        for j, b in enumerate(df.columns):
             ax = axes[i, j]
 
             if i == j:
@@ -138,9 +139,6 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
 def _get_marker_compat(marker):
     import matplotlib.lines as mlines
-    import matplotlib as mpl
-    if mpl.__version__ < '1.1.0' and marker == '.':
-        return 'o'
     if marker not in mlines.lineMarkers:
         return 'o'
     return marker
@@ -181,11 +179,11 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
     Returns
     -------
-    axes : :class:`matplotlib.axes.Axes`
+    class:`matplotlib.axes.Axes`
 
     See Also
     --------
-    pandas.plotting.andrews_curves : Plot clustering visualization
+    plotting.andrews_curves : Plot clustering visualization.
 
     Examples
     --------
@@ -206,7 +204,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         ...                      'versicolor', 'setosa', 'virginica',
         ...                      'setosa']
         ...     })
-        >>> rad_viz = pd.plotting.radviz(df, 'Category')
+        >>> rad_viz = pd.plotting.radviz(df, 'Category')  # doctest: +SKIP
     """
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
@@ -276,7 +274,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
                    colormap=None, **kwds):
     """
-    Generates a matplotlib plot of Andrews curves, for visualising clusters of
+    Generate a matplotlib plot of Andrews curves, for visualising clusters of
     multivariate data.
 
     Andrews curves have the functional form:
@@ -295,18 +293,17 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     class_column : Name of the column containing class names
     ax : matplotlib axes object, default None
     samples : Number of points to plot in each curve
-    color: list or tuple, optional
+    color : list or tuple, optional
         Colors to use for the different classes
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that name
         from matplotlib.
-    kwds: keywords
+    kwds : keywords
         Options to pass to matplotlib plotting method
 
     Returns
     -------
-    ax: Matplotlib axis object
-
+    class:`matplotlip.axis.Axes`
     """
     from math import sqrt, pi
     import matplotlib.pyplot as plt
@@ -392,13 +389,13 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        Matplotlib figure
+    matplotlib.figure.Figure
+        Matplotlib figure.
 
     See Also
     --------
-    pandas.DataFrame.plot : Basic plotting for DataFrame objects.
-    pandas.Series.plot : Basic plotting for Series objects.
+    DataFrame.plot : Basic plotting for DataFrame objects.
+    Series.plot : Basic plotting for Series objects.
 
     Examples
     --------
@@ -407,7 +404,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
             :context: close-figs
 
             >>> s = pd.Series(np.random.uniform(size=100))
-            >>> fig = pd.plotting.bootstrap_plot(s)
+            >>> fig = pd.plotting.bootstrap_plot(s)  # doctest: +SKIP
     """
     import random
     import matplotlib.pyplot as plt
@@ -422,7 +419,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
                           for sampling in samplings])
     if fig is None:
         fig = plt.figure()
-    x = lrange(samples)
+    x = list(range(samples))
     axes = []
     ax1 = fig.add_subplot(2, 3, 1)
     ax1.set_xlabel("Sample")
@@ -464,36 +461,36 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 
     Parameters
     ----------
-    frame: DataFrame
-    class_column: str
+    frame : DataFrame
+    class_column : str
         Column name containing class names
-    cols: list, optional
+    cols : list, optional
         A list of column names to use
-    ax: matplotlib.axis, optional
+    ax : matplotlib.axis, optional
         matplotlib axis object
-    color: list or tuple, optional
+    color : list or tuple, optional
         Colors to use for the different classes
-    use_columns: bool, optional
+    use_columns : bool, optional
         If true, columns will be used as xticks
-    xticks: list or tuple, optional
+    xticks : list or tuple, optional
         A list of values to use for xticks
-    colormap: str or matplotlib colormap, default None
+    colormap : str or matplotlib colormap, default None
         Colormap to use for line colors.
-    axvlines: bool, optional
+    axvlines : bool, optional
         If true, vertical lines will be added at each xtick
-    axvlines_kwds: keywords, optional
+    axvlines_kwds : keywords, optional
         Options to be passed to axvline method for vertical lines
-    sort_labels: bool, False
+    sort_labels : bool, False
         Sort class_column labels, useful when assigning colors
 
         .. versionadded:: 0.20.0
 
-    kwds: keywords
+    kwds : keywords
         Options to pass to matplotlib plotting method
 
     Returns
     -------
-    ax: matplotlib axis object
+    class:`matplotlib.axis.Axes`
 
     Examples
     --------
@@ -534,7 +531,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
             raise ValueError('Length of xticks must match number of columns')
         x = xticks
     else:
-        x = lrange(ncols)
+        x = list(range(ncols))
 
     if ax is None:
         ax = plt.gca()
@@ -575,14 +572,14 @@ def lag_plot(series, lag=1, ax=None, **kwds):
 
     Parameters
     ----------
-    series: Time series
-    lag: lag of the scatter plot, default 1
-    ax: Matplotlib axis object, optional
-    kwds: Matplotlib scatter method keyword arguments, optional
+    series : Time series
+    lag : lag of the scatter plot, default 1
+    ax : Matplotlib axis object, optional
+    kwds : Matplotlib scatter method keyword arguments, optional
 
     Returns
     -------
-    ax: Matplotlib axis object
+    class:`matplotlib.axis.Axes`
     """
     import matplotlib.pyplot as plt
 
@@ -601,18 +598,19 @@ def lag_plot(series, lag=1, ax=None, **kwds):
 
 
 def autocorrelation_plot(series, ax=None, **kwds):
-    """Autocorrelation plot for time series.
+    """
+    Autocorrelation plot for time series.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     series: Time series
     ax: Matplotlib axis object, optional
     kwds : keywords
         Options to pass to matplotlib plotting method
 
-    Returns:
-    -----------
-    ax: Matplotlib axis object
+    Returns
+    -------
+    class:`matplotlib.axis.Axes`
     """
     import matplotlib.pyplot as plt
     n = len(series)
@@ -626,7 +624,7 @@ def autocorrelation_plot(series, ax=None, **kwds):
         return ((data[:n - h] - mean) *
                 (data[h:] - mean)).sum() / float(n) / c0
     x = np.arange(n) + 1
-    y = lmap(r, x)
+    y = [r(loc) for loc in x]
     z95 = 1.959963984540054
     z99 = 2.5758293035489004
     ax.axhline(y=z99 / np.sqrt(n), linestyle='--', color='grey')

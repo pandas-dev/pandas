@@ -1,17 +1,17 @@
-# -*- coding: utf-8 -*-
 """
 Tests for offsets.Tick and subclasses
 """
 from datetime import datetime, timedelta
 
-import pytest
+from hypothesis import assume, example, given, settings, strategies as st
 import numpy as np
-from hypothesis import given, assume, example, strategies as st
+import pytest
 
 from pandas import Timedelta, Timestamp
+import pandas.util.testing as tm
+
 from pandas.tseries import offsets
-from pandas.tseries.offsets import (Day, Hour, Minute, Second, Milli, Micro,
-                                    Nano)
+from pandas.tseries.offsets import Hour, Micro, Milli, Minute, Nano, Second
 
 from .common import assert_offset_equal
 
@@ -36,8 +36,13 @@ def test_delta_to_tick():
     tick = offsets._delta_to_tick(delta)
     assert (tick == offsets.Day(3))
 
+    td = Timedelta(nanoseconds=5)
+    tick = offsets._delta_to_tick(td)
+    assert tick == Nano(5)
+
 
 @pytest.mark.parametrize('cls', tick_classes)
+@settings(deadline=None)  # GH 24641
 @example(n=2, m=3)
 @example(n=800, m=300)
 @example(n=1000, m=5)
@@ -58,6 +63,7 @@ def test_tick_add_sub(cls, n, m):
 
 
 @pytest.mark.parametrize('cls', tick_classes)
+@settings(deadline=None)
 @example(n=2, m=3)
 @given(n=st.integers(-999, 999), m=st.integers(-999, 999))
 def test_tick_equality(cls, n, m):
@@ -212,13 +218,6 @@ def test_Nanosecond():
     assert Micro(5) + Nano(1) == Nano(5001)
 
 
-def test_Day_equals_24_Hours():
-    ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
-    result = ts + Day(1)
-    expected = ts + Hour(24)
-    assert result == expected
-
-
 @pytest.mark.parametrize('kls, expected',
                          [(Hour, Timedelta(hours=5)),
                           (Minute, Timedelta(hours=2, minutes=3)),
@@ -231,6 +230,56 @@ def test_tick_addition(kls, expected):
     result = offset + Timedelta(hours=2)
     assert isinstance(result, Timedelta)
     assert result == expected
+
+
+@pytest.mark.parametrize('cls', tick_classes)
+def test_tick_division(cls):
+    off = cls(10)
+
+    assert off / cls(5) == 2
+    assert off / 2 == cls(5)
+    assert off / 2.0 == cls(5)
+
+    assert off / off.delta == 1
+    assert off / off.delta.to_timedelta64() == 1
+
+    assert off / Nano(1) == off.delta / Nano(1).delta
+
+    if cls is not Nano:
+        # A case where we end up with a smaller class
+        result = off / 1000
+        assert isinstance(result, offsets.Tick)
+        assert not isinstance(result, cls)
+        assert result.delta == off.delta / 1000
+
+    if cls._inc < Timedelta(seconds=1):
+        # Case where we end up with a bigger class
+        result = off / .001
+        assert isinstance(result, offsets.Tick)
+        assert not isinstance(result, cls)
+        assert result.delta == off.delta / .001
+
+
+@pytest.mark.parametrize('cls', tick_classes)
+def test_tick_rdiv(cls):
+    off = cls(10)
+    delta = off.delta
+    td64 = delta.to_timedelta64()
+
+    with pytest.raises(TypeError):
+        2 / off
+    with pytest.raises(TypeError):
+        2.0 / off
+
+    assert (td64 * 2.5) / off == 2.5
+
+    if cls is not Nano:
+        # skip pytimedelta for Nano since it gets dropped
+        assert (delta.to_pytimedelta() * 2) / off == 2
+
+    result = np.array([2 * td64, td64]) / off
+    expected = np.array([2., 1.])
+    tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize('cls1', tick_classes)
@@ -267,3 +316,25 @@ def test_compare_ticks(cls):
     assert cls(4) > three
     assert cls(3) == cls(3)
     assert cls(3) != cls(4)
+
+
+@pytest.mark.parametrize('cls', tick_classes)
+def test_compare_ticks_to_strs(cls):
+    # GH#23524
+    off = cls(19)
+
+    # These tests should work with any strings, but we particularly are
+    #  interested in "infer" as that comparison is convenient to make in
+    #  Datetime/Timedelta Array/Index constructors
+    assert not off == "infer"
+    assert not "foo" == off
+
+    for left, right in [("infer", off), (off, "infer")]:
+        with pytest.raises(TypeError):
+            left < right
+        with pytest.raises(TypeError):
+            left <= right
+        with pytest.raises(TypeError):
+            left > right
+        with pytest.raises(TypeError):
+            left >= right

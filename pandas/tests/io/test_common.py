@@ -1,23 +1,22 @@
 """
 Tests for the pandas.io.common functionalities
 """
+from io import StringIO
 import mmap
 import os
 
 import pytest
 
-import pandas as pd
-import pandas.io.common as icom
+from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
+
+import pandas as pd
 import pandas.util.testing as tm
-from pandas.compat import (
-    is_platform_windows,
-    StringIO,
-    FileNotFoundError,
-)
+
+import pandas.io.common as icom
 
 
-class CustomFSPath(object):
+class CustomFSPath:
     """For testing fspath on unknown objects"""
     def __init__(self, path):
         self.path = path
@@ -46,7 +45,7 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 # https://github.com/cython/cython/issues/1720
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
-class TestCommonIOCapabilities(object):
+class TestCommonIOCapabilities:
     data1 = """index,A,B,C,D
 foo,2,3,4,5
 bar,7,8,9,10
@@ -147,12 +146,58 @@ bar2,12,13,14,15
         pytest.importorskip(module)
 
         path = os.path.join(HERE, 'data', 'does_not_exist.' + fn_ext)
-        with pytest.raises(error_class):
+        msg1 = (r"File (b')?.+does_not_exist\.{}'? does not exist"
+                .format(fn_ext))
+        msg2 = (r"\[Errno 2\] No such file or directory: '.+does_not_exist"
+                r"\.{}'").format(fn_ext)
+        msg3 = "Expected object or value"
+        msg4 = "path_or_buf needs to be a string file path or file-like"
+        msg5 = (r"\[Errno 2\] File .+does_not_exist\.{} does not exist:"
+                r" '.+does_not_exist\.{}'").format(fn_ext, fn_ext)
+        with pytest.raises(error_class, match=r"({}|{}|{}|{}|{})".format(
+                msg1, msg2, msg3, msg4, msg5)):
+            reader(path)
+
+    @pytest.mark.parametrize('reader, module, error_class, fn_ext', [
+        (pd.read_csv, 'os', FileNotFoundError, 'csv'),
+        (pd.read_fwf, 'os', FileNotFoundError, 'txt'),
+        (pd.read_excel, 'xlrd', FileNotFoundError, 'xlsx'),
+        (pd.read_feather, 'feather', Exception, 'feather'),
+        (pd.read_hdf, 'tables', FileNotFoundError, 'h5'),
+        (pd.read_stata, 'os', FileNotFoundError, 'dta'),
+        (pd.read_sas, 'os', FileNotFoundError, 'sas7bdat'),
+        (pd.read_json, 'os', ValueError, 'json'),
+        (pd.read_msgpack, 'os', ValueError, 'mp'),
+        (pd.read_pickle, 'os', FileNotFoundError, 'pickle'),
+    ])
+    def test_read_expands_user_home_dir(self, reader, module,
+                                        error_class, fn_ext, monkeypatch):
+        pytest.importorskip(module)
+
+        path = os.path.join('~', 'does_not_exist.' + fn_ext)
+        monkeypatch.setattr(icom, '_expand_user',
+                            lambda x: os.path.join('foo', x))
+
+        msg1 = (r"File (b')?.+does_not_exist\.{}'? does not exist"
+                .format(fn_ext))
+        msg2 = (r"\[Errno 2\] No such file or directory:"
+                r" '.+does_not_exist\.{}'").format(fn_ext)
+        msg3 = "Unexpected character found when decoding 'false'"
+        msg4 = "path_or_buf needs to be a string file path or file-like"
+        msg5 = (r"\[Errno 2\] File .+does_not_exist\.{} does not exist:"
+                r" '.+does_not_exist\.{}'").format(fn_ext, fn_ext)
+
+        with pytest.raises(error_class, match=r"({}|{}|{}|{}|{})".format(
+                msg1, msg2, msg3, msg4, msg5)):
             reader(path)
 
     def test_read_non_existant_read_table(self):
         path = os.path.join(HERE, 'data', 'does_not_exist.' + 'csv')
-        with pytest.raises(FileNotFoundError):
+        msg1 = r"File b'.+does_not_exist\.csv' does not exist"
+        msg2 = (r"\[Errno 2\] File .+does_not_exist\.csv does not exist:"
+                r" '.+does_not_exist\.csv'")
+        with pytest.raises(FileNotFoundError, match=r"({}|{})".format(
+                msg1, msg2)):
             with tm.assert_produces_warning(FutureWarning):
                 pd.read_table(path)
 
@@ -207,7 +252,7 @@ bar2,12,13,14,15
         ('to_latex', {}, 'os'),
         ('to_msgpack', {}, 'os'),
         ('to_pickle', {}, 'os'),
-        ('to_stata', {}, 'os'),
+        ('to_stata', {'time_stamp': pd.to_datetime('2019-01-01 00:00')}, 'os'),
     ])
     def test_write_fspath_all(self, writer_name, writer_kwargs, module):
         p1 = tm.ensure_clean('string')
@@ -255,7 +300,7 @@ def mmap_file(datapath):
     return datapath('io', 'data', 'test_mmap.csv')
 
 
-class TestMMapWrapper(object):
+class TestMMapWrapper:
 
     def test_constructor_bad_file(self, mmap_file):
         non_file = StringIO('I am not a file')
@@ -269,14 +314,15 @@ class TestMMapWrapper(object):
             msg = "[Errno 22]"
             err = mmap.error
 
-        tm.assert_raises_regex(err, msg, icom.MMapWrapper, non_file)
+        with pytest.raises(err, match=msg):
+            icom.MMapWrapper(non_file)
 
         target = open(mmap_file, 'r')
         target.close()
 
         msg = "I/O operation on closed file"
-        tm.assert_raises_regex(
-            ValueError, msg, icom.MMapWrapper, target)
+        with pytest.raises(ValueError, match=msg):
+            icom.MMapWrapper(target)
 
     def test_get_attr(self, mmap_file):
         with open(mmap_file, 'r') as target:
@@ -301,11 +347,12 @@ class TestMMapWrapper(object):
             next_line = next(wrapper)
             assert next_line.strip() == line.strip()
 
-        pytest.raises(StopIteration, next, wrapper)
+        with pytest.raises(StopIteration, match=r'^$'):
+            next(wrapper)
 
     def test_unknown_engine(self):
         with tm.ensure_clean() as path:
             df = tm.makeDataFrame()
             df.to_csv(path)
-            with tm.assert_raises_regex(ValueError, 'Unknown engine'):
+            with pytest.raises(ValueError, match='Unknown engine'):
                 pd.read_csv(path, engine='pyt')

@@ -1,10 +1,7 @@
-# coding=utf-8
-
+import numpy as np
 import pytest
 
-import numpy as np
-
-from pandas import Series, Categorical
+from pandas import Categorical, Series
 import pandas.util.testing as tm
 
 
@@ -60,29 +57,35 @@ def test_unique_data_ownership():
     Series(Series(["a", "c", "b"]).unique()).sort_values()
 
 
-def test_is_unique():
-    # GH11946
-    s = Series(np.random.randint(0, 10, size=1000))
-    assert not s.is_unique
-    s = Series(np.arange(1000))
-    assert s.is_unique
+@pytest.mark.parametrize('data, expected', [
+    (np.random.randint(0, 10, size=1000), False),
+    (np.arange(1000), True),
+    ([], True),
+    ([np.nan], True),
+    (['foo', 'bar', np.nan], True),
+    (['foo', 'foo', np.nan], False),
+    (['foo', 'bar', np.nan, np.nan], False)])
+def test_is_unique(data, expected):
+    # GH11946 / GH25180
+    s = Series(data)
+    assert s.is_unique is expected
 
 
 def test_is_unique_class_ne(capsys):
     # GH 20661
-    class Foo(object):
+    class Foo:
         def __init__(self, val):
             self._value = val
 
         def __ne__(self, other):
             raise Exception("NEQ not supported")
 
-    li = [Foo(i) for i in range(5)]
-    s = Series(li, index=[i for i in range(5)])
-    _, err = capsys.readouterr()
+    with capsys.disabled():
+        li = [Foo(i) for i in range(5)]
+        s = Series(li, index=[i for i in range(5)])
     s.is_unique
-    _, err = capsys.readouterr()
-    assert len(err) == 0
+    captured = capsys.readouterr()
+    assert len(captured.err) == 0
 
 
 @pytest.mark.parametrize(
@@ -92,8 +95,11 @@ def test_is_unique_class_ne(capsys):
         ('last', Series([False, True, True, False, False, False, False])),
         (False, Series([False, True, True, False, True, True, False]))
     ])
-def test_drop_duplicates_non_bool(any_numpy_dtype, keep, expected):
-    tc = Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(any_numpy_dtype))
+def test_drop_duplicates(any_numpy_dtype, keep, expected):
+    tc = Series([1, 0, 3, 5, 3, 0, 4], dtype=np.dtype(any_numpy_dtype))
+
+    if tc.dtype == 'bool':
+        pytest.skip('tested separately in test_drop_duplicates_bool')
 
     tm.assert_series_equal(tc.duplicated(keep=keep), expected)
     tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])

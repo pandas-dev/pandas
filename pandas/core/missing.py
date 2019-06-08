@@ -1,26 +1,17 @@
 """
-Routines for filling missing data
+Routines for filling missing data.
 """
 import operator
 
 import numpy as np
-from distutils.version import LooseVersion
 
 from pandas._libs import algos, lib
 
-from pandas.compat import range, string_types
-from pandas.core.dtypes.common import (
-    is_numeric_v_string_like,
-    is_float_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_integer_dtype,
-    is_scalar,
-    is_integer,
-    needs_i8_conversion,
-    ensure_float64)
-
 from pandas.core.dtypes.cast import infer_dtype_from_array
+from pandas.core.dtypes.common import (
+    ensure_float64, is_datetime64_dtype, is_datetime64tz_dtype, is_float_dtype,
+    is_integer, is_integer_dtype, is_numeric_v_string_like, is_scalar,
+    is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import isna
 
 
@@ -80,7 +71,7 @@ def clean_fill_method(method, allow_nearest=False):
     if method in [None, 'asfreq']:
         return None
 
-    if isinstance(method, string_types):
+    if isinstance(method, str):
         method = method.lower()
         if method == 'ffill':
             method = 'pad'
@@ -123,7 +114,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     xvalues and yvalues will each be 1-d arrays of the same length.
 
     Bounds_error is currently hardcoded to False since non-scipy ones don't
-    take it as an argumnet.
+    take it as an argument.
     """
     # Treat the original, non-scipy methods first.
 
@@ -251,9 +242,9 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
                                bounds_error=False, order=None, **kwargs):
     """
-    passed off to scipy.interpolate.interp1d. method is scipy's kind.
+    Passed off to scipy.interpolate.interp1d. method is scipy's kind.
     Returns an array interpolated at new_x.  Add any new methods to
-    the list in _clean_interp_method
+    the list in _clean_interp_method.
     """
     try:
         from scipy import interpolate
@@ -300,9 +291,10 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
                                     bounds_error=bounds_error)
         new_y = terp(new_x)
     elif method == 'spline':
-        # GH #10633
-        if not order:
-            raise ValueError("order needs to be specified and greater than 0")
+        # GH #10633, #24014
+        if isna(order) or (order <= 0):
+            raise ValueError("order needs to be specified and greater than 0; "
+                             "got order: {}".format(order))
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
         new_y = terp(new_x)
     else:
@@ -321,7 +313,7 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
 
 def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     """
-    Convenience function for interpolate.BPoly.from_derivatives
+    Convenience function for interpolate.BPoly.from_derivatives.
 
     Construct a piecewise polynomial in the Bernstein basis, compatible
     with the specified values and derivatives at breakpoints.
@@ -332,7 +324,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
         sorted 1D array of x-coordinates
     yi : array_like or list of array-likes
         yi[i][j] is the j-th derivative known at xi[i]
-    orders : None or int or array_like of ints. Default: None.
+    order: None or int or array_like of ints. Default: None.
         Specifies the degree of local polynomials. If not None, some
         derivatives are ignored.
     der : int or list
@@ -351,19 +343,9 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     Returns
     -------
     y : scalar or array_like
-        The result, of length R or length M or M by R,
-
+        The result, of length R or length M or M by R.
     """
-    import scipy
     from scipy import interpolate
-
-    if LooseVersion(scipy.__version__) < LooseVersion('0.18.0'):
-        try:
-            method = interpolate.piecewise_polynomial_interpolate
-            return method(xi, yi.reshape(-1, 1), x,
-                          orders=order, der=der)
-        except AttributeError:
-            pass
 
     # return the method for compat with scipy version & backwards compat
     method = interpolate.BPoly.from_derivatives
@@ -425,8 +407,9 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
 def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None,
                    dtype=None):
-    """ perform an actual interpolation of values, values will be make 2-d if
-    needed fills inplace, returns the result
+    """
+    Perform an actual interpolation of values, values will be make 2-d if
+    needed fills inplace, returns the result.
     """
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
@@ -459,99 +442,56 @@ def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None,
     return values
 
 
-def _interp_wrapper(f, wrap_dtype, na_override=None):
-    def wrapper(arr, mask, limit=None):
-        view = arr.view(wrap_dtype)
-        f(view, mask, limit=limit)
+def _cast_values_for_fillna(values, dtype):
+    """
+    Cast values to a dtype that algos.pad and algos.backfill can handle.
+    """
+    # TODO: for int-dtypes we make a copy, but for everything else this
+    #  alters the values in-place.  Is this intentional?
 
-    return wrapper
+    if (is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype) or
+            is_timedelta64_dtype(dtype)):
+        values = values.view(np.int64)
+
+    elif is_integer_dtype(values):
+        # NB: this check needs to come after the datetime64 check above
+        values = ensure_float64(values)
+
+    return values
 
 
-_pad_1d_datetime = _interp_wrapper(algos.pad_inplace_int64, np.int64)
-_pad_2d_datetime = _interp_wrapper(algos.pad_2d_inplace_int64, np.int64)
-_backfill_1d_datetime = _interp_wrapper(algos.backfill_inplace_int64, np.int64)
-_backfill_2d_datetime = _interp_wrapper(algos.backfill_2d_inplace_int64,
-                                        np.int64)
+def _fillna_prep(values, mask=None, dtype=None):
+    # boilerplate for pad_1d, backfill_1d, pad_2d, backfill_2d
+    if dtype is None:
+        dtype = values.dtype
+
+    if mask is None:
+        # This needs to occur before datetime/timedeltas are cast to int64
+        mask = isna(values)
+
+    values = _cast_values_for_fillna(values, dtype)
+
+    mask = mask.view(np.uint8)
+    return values, mask
 
 
 def pad_1d(values, limit=None, mask=None, dtype=None):
-    if dtype is None:
-        dtype = values.dtype
-    _method = None
-    if is_float_dtype(values):
-        name = 'pad_inplace_{name}'.format(name=dtype.name)
-        _method = getattr(algos, name, None)
-    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
-        _method = _pad_1d_datetime
-    elif is_integer_dtype(values):
-        values = ensure_float64(values)
-        _method = algos.pad_inplace_float64
-    elif values.dtype == np.object_:
-        _method = algos.pad_inplace_object
-
-    if _method is None:
-        raise ValueError('Invalid dtype for pad_1d [{name}]'
-                         .format(name=dtype.name))
-
-    if mask is None:
-        mask = isna(values)
-    mask = mask.view(np.uint8)
-    _method(values, mask, limit=limit)
+    values, mask = _fillna_prep(values, mask, dtype)
+    algos.pad_inplace(values, mask, limit=limit)
     return values
 
 
 def backfill_1d(values, limit=None, mask=None, dtype=None):
-    if dtype is None:
-        dtype = values.dtype
-    _method = None
-    if is_float_dtype(values):
-        name = 'backfill_inplace_{name}'.format(name=dtype.name)
-        _method = getattr(algos, name, None)
-    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
-        _method = _backfill_1d_datetime
-    elif is_integer_dtype(values):
-        values = ensure_float64(values)
-        _method = algos.backfill_inplace_float64
-    elif values.dtype == np.object_:
-        _method = algos.backfill_inplace_object
-
-    if _method is None:
-        raise ValueError('Invalid dtype for backfill_1d [{name}]'
-                         .format(name=dtype.name))
-
-    if mask is None:
-        mask = isna(values)
-    mask = mask.view(np.uint8)
-
-    _method(values, mask, limit=limit)
+    values, mask = _fillna_prep(values, mask, dtype)
+    algos.backfill_inplace(values, mask, limit=limit)
     return values
 
 
 def pad_2d(values, limit=None, mask=None, dtype=None):
-    if dtype is None:
-        dtype = values.dtype
-    _method = None
-    if is_float_dtype(values):
-        name = 'pad_2d_inplace_{name}'.format(name=dtype.name)
-        _method = getattr(algos, name, None)
-    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
-        _method = _pad_2d_datetime
-    elif is_integer_dtype(values):
-        values = ensure_float64(values)
-        _method = algos.pad_2d_inplace_float64
-    elif values.dtype == np.object_:
-        _method = algos.pad_2d_inplace_object
-
-    if _method is None:
-        raise ValueError('Invalid dtype for pad_2d [{name}]'
-                         .format(name=dtype.name))
-
-    if mask is None:
-        mask = isna(values)
-    mask = mask.view(np.uint8)
+    values, mask = _fillna_prep(values, mask, dtype)
 
     if np.all(values.shape):
-        _method(values, mask, limit=limit)
+        algos.pad_2d_inplace(values, mask, limit=limit)
     else:
         # for test coverage
         pass
@@ -559,30 +499,10 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
 
 
 def backfill_2d(values, limit=None, mask=None, dtype=None):
-    if dtype is None:
-        dtype = values.dtype
-    _method = None
-    if is_float_dtype(values):
-        name = 'backfill_2d_inplace_{name}'.format(name=dtype.name)
-        _method = getattr(algos, name, None)
-    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
-        _method = _backfill_2d_datetime
-    elif is_integer_dtype(values):
-        values = ensure_float64(values)
-        _method = algos.backfill_2d_inplace_float64
-    elif values.dtype == np.object_:
-        _method = algos.backfill_2d_inplace_object
-
-    if _method is None:
-        raise ValueError('Invalid dtype for backfill_2d [{name}]'
-                         .format(name=dtype.name))
-
-    if mask is None:
-        mask = isna(values)
-    mask = mask.view(np.uint8)
+    values, mask = _fillna_prep(values, mask, dtype)
 
     if np.all(values.shape):
-        _method(values, mask, limit=limit)
+        algos.backfill_2d_inplace(values, mask, limit=limit)
     else:
         # for test coverage
         pass
@@ -603,13 +523,13 @@ def clean_reindex_fill_method(method):
 
 def fill_zeros(result, x, y, name, fill):
     """
-    if this is a reversed op, then flip x,y
+    If this is a reversed op, then flip x,y
 
-    if we have an integer value (or array in y)
+    If we have an integer value (or array in y)
     and we have 0's, fill them with the fill,
-    return the result
+    return the result.
 
-    mask the nan's from x
+    Mask the nan's from x.
     """
     if fill is None or is_float_dtype(result):
         return result
@@ -760,9 +680,10 @@ def _interp_limit(invalid, fw_limit, bw_limit):
 
     .. code-block:: python
 
-       for x in np.where(invalid)[0]:
-           if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
-               yield x
+        def _interp_limit(invalid, fw_limit, bw_limit):
+            for x in np.where(invalid)[0]:
+                if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
+                    yield x
     """
     # handle forward first; the backward direction is the same except
     # 1. operate on the reversed array

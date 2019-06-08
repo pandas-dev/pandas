@@ -1,27 +1,25 @@
-# -*- coding: utf-8 -*-
-# pylint: disable=E1101
-
+from collections import OrderedDict
 import datetime as dt
-import io
+from datetime import datetime
 import gzip
+import io
 import os
 import struct
 import warnings
-from collections import OrderedDict
-from datetime import datetime
 
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import compat
-from pandas.compat import iterkeys
 from pandas.core.dtypes.common import is_categorical_dtype
+
+import pandas as pd
 from pandas.core.frame import DataFrame, Series
+import pandas.util.testing as tm
+
 from pandas.io.parsers import read_csv
-from pandas.io.stata import (InvalidColumnName, PossiblePrecisionLoss,
-                             StataMissingValue, StataReader, read_stata)
+from pandas.io.stata import (
+    InvalidColumnName, PossiblePrecisionLoss, StataMissingValue, StataReader,
+    read_stata)
 
 
 @pytest.fixture
@@ -37,7 +35,7 @@ def parsed_114(dirpath):
     return parsed_114
 
 
-class TestStata(object):
+class TestStata:
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
@@ -62,6 +60,8 @@ class TestStata(object):
         self.dta4_117 = os.path.join(self.dirpath, 'stata4_117.dta')
 
         self.dta_encoding = os.path.join(self.dirpath, 'stata1_encoding.dta')
+        self.dta_encoding_118 = os.path.join(self.dirpath,
+                                             'stata1_encoding_118.dta')
 
         self.csv14 = os.path.join(self.dirpath, 'stata5.csv')
         self.dta14_113 = os.path.join(self.dirpath, 'stata5_113.dta')
@@ -273,10 +273,10 @@ class TestStata(object):
         parsed_118 = self.read_dta(self.dta22_118)
         parsed_118["Bytes"] = parsed_118["Bytes"].astype('O')
         expected = DataFrame.from_records(
-            [['Cat', 'Bogota', u'Bogotá', 1, 1.0, u'option b Ünicode', 1.0],
-             ['Dog', 'Boston', u'Uzunköprü', np.nan, np.nan, np.nan, np.nan],
-             ['Plane', 'Rome', u'Tromsø', 0, 0.0, 'option a', 0.0],
-             ['Potato', 'Tokyo', u'Elâzığ', -4, 4.0, 4, 4],
+            [['Cat', 'Bogota', 'Bogotá', 1, 1.0, 'option b Ünicode', 1.0],
+             ['Dog', 'Boston', 'Uzunköprü', np.nan, np.nan, np.nan, np.nan],
+             ['Plane', 'Rome', 'Tromsø', 0, 0.0, 'option a', 0.0],
+             ['Potato', 'Tokyo', 'Elâzığ', -4, 4.0, 4, 4],
              ['', '', '', 0, 0.3332999, 'option a', 1 / 3.]
              ],
             columns=['Things', 'Cities', 'Unicode_Cities_Strl',
@@ -287,17 +287,17 @@ class TestStata(object):
 
         with StataReader(self.dta22_118) as rdr:
             vl = rdr.variable_labels()
-            vl_expected = {u'Unicode_Cities_Strl':
-                           u'Here are some strls with Ünicode chars',
-                           u'Longs': u'long data',
-                           u'Things': u'Here are some things',
-                           u'Bytes': u'byte data',
-                           u'Ints': u'int data',
-                           u'Cities': u'Here are some cities',
-                           u'Floats': u'float data'}
+            vl_expected = {'Unicode_Cities_Strl':
+                           'Here are some strls with Ünicode chars',
+                           'Longs': 'long data',
+                           'Things': 'Here are some things',
+                           'Bytes': 'byte data',
+                           'Ints': 'int data',
+                           'Cities': 'Here are some cities',
+                           'Floats': 'float data'}
             tm.assert_dict_equal(vl, vl_expected)
 
-            assert rdr.data_label == u'This is a  Ünicode data label'
+            assert rdr.data_label == 'This is a  Ünicode data label'
 
     def test_read_write_dta5(self):
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
@@ -368,7 +368,7 @@ class TestStata(object):
 
         expected = raw.kreis1849[0]
         assert result == expected
-        assert isinstance(result, compat.string_types)
+        assert isinstance(result, str)
 
         with tm.ensure_clean() as path:
             with tm.assert_produces_warning(FutureWarning):
@@ -379,7 +379,7 @@ class TestStata(object):
 
     def test_read_write_dta11(self):
         original = DataFrame([(1, 2, 3, 4)],
-                             columns=['good', compat.u('b\u00E4d'), '8number',
+                             columns=['good', 'b\u00E4d', '8number',
                                       'astringwithmorethan32characters______'])
         formatted = DataFrame([(1, 2, 3, 4)],
                               columns=['good', 'b_d', '_8number',
@@ -502,7 +502,8 @@ class TestStata(object):
         original = DataFrame([(1,)], columns=['variable'])
         time_stamp = '01 Jan 2000, 00:00:00'
         with tm.ensure_clean() as path:
-            with pytest.raises(ValueError):
+            msg = "time_stamp should be datetime type"
+            with pytest.raises(ValueError, match=msg):
                 original.to_stata(path, time_stamp=time_stamp,
                                   version=version)
 
@@ -543,8 +544,8 @@ class TestStata(object):
         with tm.ensure_clean() as path:
             original.to_stata(path, write_index=False)
             written_and_read_again = self.read_dta(path)
-            pytest.raises(
-                KeyError, lambda: written_and_read_again['index_not_written'])
+            with pytest.raises(KeyError, match=original.index.name):
+                written_and_read_again['index_not_written']
 
     def test_string_no_dates(self):
         s1 = Series(['a', 'A longer string'])
@@ -678,7 +679,7 @@ class TestStata(object):
             sr_117 = rdr.variable_labels()
         keys = ('var1', 'var2', 'var3')
         labels = ('label1', 'label2', 'label3')
-        for k, v in compat.iteritems(sr_115):
+        for k, v in sr_115.items():
             assert k in sr_117
             assert v == sr_117[k]
             assert k in keys
@@ -709,7 +710,11 @@ class TestStata(object):
             s['s' + str(str_len)] = Series(['a' * str_len,
                                             'b' * str_len, 'c' * str_len])
         original = DataFrame(s)
-        with pytest.raises(ValueError):
+        msg = (r"Fixed width strings in Stata \.dta files are limited to 244"
+               r" \(or fewer\)\ncharacters\.  Column 's500' does not satisfy"
+               r" this restriction\. Use the\n'version=117' parameter to write"
+               r" the newer \(Stata 13 and later\) format\.")
+        with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
                 original.to_stata(path)
 
@@ -747,8 +752,7 @@ class TestStata(object):
     def test_missing_value_conversion(self, file):
         columns = ['int8_', 'int16_', 'int32_', 'float32_', 'float64_']
         smv = StataMissingValue(101)
-        keys = [key for key in iterkeys(smv.MISSING_VALUES)]
-        keys.sort()
+        keys = sorted(smv.MISSING_VALUES.keys())
         data = []
         for i in range(27):
             row = [StataMissingValue(keys[i + (j * 27)]) for j in range(5)]
@@ -860,11 +864,14 @@ class TestStata(object):
                                columns=columns)
         tm.assert_frame_equal(expected, reordered)
 
-        with pytest.raises(ValueError):
+        msg = "columns contains duplicate entries"
+        with pytest.raises(ValueError, match=msg):
             columns = ['byte_', 'byte_']
             read_stata(self.dta15_117, convert_dates=True, columns=columns)
 
-        with pytest.raises(ValueError):
+        msg = ("The following columns were not found in the Stata data set:"
+               " not_found")
+        with pytest.raises(ValueError, match=msg):
             columns = ['byte_', 'int_', 'long_', 'not_found']
             read_stata(self.dta15_117, convert_dates=True, columns=columns)
 
@@ -920,7 +927,10 @@ class TestStata(object):
         original = pd.concat([original[col].astype('category')
                               for col in original], axis=1)
         with tm.ensure_clean() as path:
-            pytest.raises(ValueError, original.to_stata, path)
+            msg = ("Stata value labels for a single variable must have"
+                   r" a combined length less than 32,000 characters\.")
+            with pytest.raises(ValueError, match=msg):
+                original.to_stata(path)
 
         original = pd.DataFrame.from_records(
             [['a'],
@@ -995,7 +1005,7 @@ class TestStata(object):
         parsed = read_stata(getattr(self, file))
 
         # Sort based on codes, not strings
-        parsed = parsed.sort_values("srh")
+        parsed = parsed.sort_values("srh", na_position='first')
 
         # Don't sort index
         parsed.index = np.arange(parsed.shape[0])
@@ -1192,14 +1202,17 @@ class TestStata(object):
                            'b': 'City Exponent',
                            'c': 'City'}
         with tm.ensure_clean() as path:
-            with pytest.raises(ValueError):
+            msg = "Variable labels must be 80 characters or fewer"
+            with pytest.raises(ValueError, match=msg):
                 original.to_stata(path,
                                   variable_labels=variable_labels,
                                   version=version)
 
-        variable_labels['a'] = u'invalid character Œ'
+        variable_labels['a'] = 'invalid character Œ'
         with tm.ensure_clean() as path:
-            with pytest.raises(ValueError):
+            msg = ("Variable labels must contain only characters that can be"
+                   " encoded in Latin-1")
+            with pytest.raises(ValueError, match=msg):
                 original.to_stata(path,
                                   variable_labels=variable_labels,
                                   version=version)
@@ -1209,15 +1222,17 @@ class TestStata(object):
                                  'b': [1.0, 3.0, 27.0, 81.0],
                                  'c': ['Atlanta', 'Birmingham',
                                        'Cincinnati', 'Detroit']})
-        values = [u'\u03A1', u'\u0391',
-                  u'\u039D', u'\u0394',
-                  u'\u0391', u'\u03A3']
+        values = ['\u03A1', '\u0391',
+                  '\u039D', '\u0394',
+                  '\u0391', '\u03A3']
 
         variable_labels_utf8 = {'a': 'City Rank',
                                 'b': 'City Exponent',
-                                'c': u''.join(values)}
+                                'c': ''.join(values)}
 
-        with pytest.raises(ValueError):
+        msg = ("Variable labels must contain only characters that can be"
+               " encoded in Latin-1")
+        with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
                 original.to_stata(path, variable_labels=variable_labels_utf8)
 
@@ -1227,7 +1242,8 @@ class TestStata(object):
                                      'that is too long for Stata which means '
                                      'that it has more than 80 characters'}
 
-        with pytest.raises(ValueError):
+        msg = "Variable labels must be 80 characters or fewer"
+        with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
                 original.to_stata(path, variable_labels=variable_labels_long)
 
@@ -1261,7 +1277,8 @@ class TestStata(object):
     def test_unsupported_type(self):
         original = pd.DataFrame({'a': [1 + 2j, 2 + 4j]})
 
-        with pytest.raises(NotImplementedError):
+        msg = "Data type complex128 not supported"
+        with pytest.raises(NotImplementedError, match=msg):
             with tm.ensure_clean() as path:
                 original.to_stata(path)
 
@@ -1273,7 +1290,8 @@ class TestStata(object):
                                  'strs': ['apple', 'banana', 'cherry'],
                                  'dates': dates})
 
-        with pytest.raises(NotImplementedError):
+        msg = "Format %tC not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
             with tm.ensure_clean() as path:
                 original.to_stata(path, convert_dates={'dates': 'tC'})
 
@@ -1286,10 +1304,19 @@ class TestStata(object):
                 original.to_stata(path)
 
     def test_repeated_column_labels(self):
-        # GH 13923
-        with pytest.raises(ValueError) as cm:
+        # GH 13923, 25772
+        msg = """
+Value labels for column ethnicsn are not unique. These cannot be converted to
+pandas categoricals.
+
+Either read the file with `convert_categoricals` set to False or use the
+low level interface in `StataReader` to separately read the values and the
+value_labels.
+
+The repeated labels are:\n-+\nwolof
+"""
+        with pytest.raises(ValueError, match=msg):
             read_stata(self.dta23, convert_categoricals=True)
-            assert 'wolof' in cm.exception
 
     def test_stata_111(self):
         # 111 is an old version but still used by current versions of
@@ -1312,17 +1339,18 @@ class TestStata(object):
                         'ColumnTooBig': [0.0,
                                          np.finfo(np.double).eps,
                                          np.finfo(np.double).max]})
-        with pytest.raises(ValueError) as cm:
+        msg = (r"Column ColumnTooBig has a maximum value \(.+\)"
+               r" outside the range supported by Stata \(.+\)")
+        with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
                 df.to_stata(path)
-            assert 'ColumnTooBig' in cm.exception
 
         df.loc[2, 'ColumnTooBig'] = np.inf
-        with pytest.raises(ValueError) as cm:
+        msg = ("Column ColumnTooBig has a maximum value of infinity which"
+               " is outside the range supported by Stata")
+        with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
                 df.to_stata(path)
-            assert 'ColumnTooBig' in cm.exception
-            assert 'infinity' in cm.exception
 
     def test_out_of_range_float(self):
         original = DataFrame({'ColumnOk': [0.0,
@@ -1344,11 +1372,11 @@ class TestStata(object):
                                   reread.set_index('index'))
 
         original.loc[2, 'ColumnTooBig'] = np.inf
-        with pytest.raises(ValueError) as cm:
+        msg = ("Column ColumnTooBig has a maximum value of infinity which"
+               " is outside the range supported by Stata")
+        with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
                 original.to_stata(path)
-            assert 'ColumnTooBig' in cm.exception
-            assert 'infinity' in cm.exception
 
     def test_path_pathlib(self):
         df = tm.makeDataFrame()
@@ -1462,7 +1490,8 @@ class TestStata(object):
                                  'dates': dates})
 
         with tm.ensure_clean() as path:
-            with pytest.raises(ValueError):
+            msg = "convert_dates key must be a column or an integer"
+            with pytest.raises(ValueError, match=msg):
                 original.to_stata(path,
                                   convert_dates={'wrong_name': 'tc'})
 
@@ -1495,9 +1524,9 @@ class TestStata(object):
         unicode_df = self.read_dta(self.dta25_118)
 
         columns = ['utf8', 'latin1', 'ascii', 'utf8_strl', 'ascii_strl']
-        values = [[u'ραηδας', u'PÄNDÄS', 'p', u'ραηδας', 'p'],
-                  [u'ƤĀńĐąŜ', u'Ö', 'a', u'ƤĀńĐąŜ', 'a'],
-                  [u'ᴘᴀᴎᴅᴀS', u'Ü', 'n', u'ᴘᴀᴎᴅᴀS', 'n'],
+        values = [['ραηδας', 'PÄNDÄS', 'p', 'ραηδας', 'p'],
+                  ['ƤĀńĐąŜ', 'Ö', 'a', 'ƤĀńĐąŜ', 'a'],
+                  ['ᴘᴀᴎᴅᴀS', 'Ü', 'n', 'ᴘᴀᴎᴅᴀS', 'n'],
                   ['      ', '      ', 'd', '      ', 'd'],
                   [' ', '', 'a', ' ', 'a'],
                   ['', '', 's', '', 's'],
@@ -1505,3 +1534,95 @@ class TestStata(object):
         expected = pd.DataFrame(values, columns=columns)
 
         tm.assert_frame_equal(unicode_df, expected)
+
+    def test_mixed_string_strl(self):
+        # GH 23633
+        output = [
+            {'mixed': 'string' * 500,
+             'number': 0},
+            {'mixed': None,
+             'number': 1}
+        ]
+        output = pd.DataFrame(output)
+        output.number = output.number.astype('int32')
+
+        with tm.ensure_clean() as path:
+            output.to_stata(path, write_index=False, version=117)
+            reread = read_stata(path)
+            expected = output.fillna('')
+            tm.assert_frame_equal(reread, expected)
+
+            # Check strl supports all None (null)
+            output.loc[:, 'mixed'] = None
+            output.to_stata(path, write_index=False, convert_strl=['mixed'],
+                            version=117)
+            reread = read_stata(path)
+            expected = output.fillna('')
+            tm.assert_frame_equal(reread, expected)
+
+    @pytest.mark.parametrize('version', [114, 117])
+    def test_all_none_exception(self, version):
+        output = [
+            {'none': 'none',
+             'number': 0},
+            {'none': None,
+             'number': 1}
+        ]
+        output = pd.DataFrame(output)
+        output.loc[:, 'none'] = None
+        with tm.ensure_clean() as path:
+            msg = (r"Column `none` cannot be exported\.\n\n"
+                   "Only string-like object arrays containing all strings or a"
+                   r" mix of strings and None can be exported\. Object arrays"
+                   r" containing only null values are prohibited\. Other"
+                   " object typescannot be exported and must first be"
+                   r" converted to one of the supported types\.")
+            with pytest.raises(ValueError, match=msg):
+                output.to_stata(path, version=version)
+
+    @pytest.mark.parametrize('version', [114, 117])
+    def test_invalid_file_not_written(self, version):
+        content = 'Here is one __�__ Another one __·__ Another one __½__'
+        df = DataFrame([content], columns=['invalid'])
+        with tm.ensure_clean() as path:
+            msg1 = (r"'latin-1' codec can't encode character '\\ufffd'"
+                    r" in position 14: ordinal not in range\(256\)")
+            msg2 = ("'ascii' codec can't decode byte 0xef in position 14:"
+                    r" ordinal not in range\(128\)")
+            with pytest.raises(UnicodeEncodeError, match=r'{}|{}'.format(
+                    msg1, msg2)):
+                with tm.assert_produces_warning(ResourceWarning):
+                    df.to_stata(path)
+
+    def test_strl_latin1(self):
+        # GH 23573, correct GSO data to reflect correct size
+        output = DataFrame([['pandas'] * 2, ['þâÑÐÅ§'] * 2],
+                           columns=['var_str', 'var_strl'])
+
+        with tm.ensure_clean() as path:
+            output.to_stata(path, version=117, convert_strl=['var_strl'])
+            with open(path, 'rb') as reread:
+                content = reread.read()
+                expected = 'þâÑÐÅ§'
+                assert expected.encode('latin-1') in content
+                assert expected.encode('utf-8') in content
+                gsos = content.split(b'strls')[1][1:-2]
+                for gso in gsos.split(b'GSO')[1:]:
+                    val = gso.split(b'\x00')[-2]
+                    size = gso[gso.find(b'\x82') + 1]
+                    assert len(val) == size - 1
+
+    def test_encoding_latin1_118(self):
+        # GH 25960
+        msg = """
+One or more strings in the dta file could not be decoded using utf-8, and
+so the fallback encoding of latin-1 is being used.  This can happen when a file
+has been incorrectly encoded by Stata or some other software. You should verify
+the string values returned are correct."""
+        with tm.assert_produces_warning(UnicodeWarning) as w:
+            encoded = read_stata(self.dta_encoding_118)
+            assert len(w) == 151
+            assert w[0].message.args[0] == msg
+
+        expected = pd.DataFrame([['Düsseldorf']] * 151, columns=['kreis1849'])
+        tm.assert_frame_equal(encoded, expected)

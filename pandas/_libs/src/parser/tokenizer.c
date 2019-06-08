@@ -23,6 +23,8 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <float.h>
 #include <math.h>
 
+#include "../headers/portable.h"
+
 static void *safe_realloc(void *buffer, size_t size) {
     void *result;
     // OSX is weird.
@@ -129,8 +131,6 @@ void parser_set_default_options(parser_t *self) {
     self->skip_footer = 0;
 }
 
-int get_parser_memory_footprint(parser_t *self) { return 0; }
-
 parser_t *parser_new() { return (parser_t *)calloc(1, sizeof(parser_t)); }
 
 int parser_clear_data_buffers(parser_t *self) {
@@ -197,6 +197,7 @@ int parser_init(parser_t *self) {
     sz = sz ? sz : 1;
     self->words = (char **)malloc(sz * sizeof(char *));
     self->word_starts = (int64_t *)malloc(sz * sizeof(int64_t));
+    self->max_words_cap = sz;
     self->words_cap = sz;
     self->words_len = 0;
 
@@ -247,7 +248,7 @@ void parser_del(parser_t *self) {
 }
 
 static int make_stream_space(parser_t *self, size_t nbytes) {
-    int64_t i, cap;
+    int64_t i, cap, length;
     int status;
     void *orig_ptr, *newptr;
 
@@ -287,8 +288,23 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     */
 
     cap = self->words_cap;
+
+    /**
+     * If we are reading in chunks, we need to be aware of the maximum number
+     * of words we have seen in previous chunks (self->max_words_cap), so
+     * that way, we can properly allocate when reading subsequent ones.
+     *
+     * Otherwise, we risk a buffer overflow if we mistakenly under-allocate
+     * just because a recent chunk did not have as many words.
+     */
+    if (self->words_len + nbytes < self->max_words_cap) {
+        length = self->max_words_cap - nbytes - 1;
+    } else {
+        length = self->words_len;
+    }
+
     self->words =
-        (char **)grow_buffer((void *)self->words, self->words_len,
+        (char **)grow_buffer((void *)self->words, length,
                              (int64_t*)&self->words_cap, nbytes,
                              sizeof(char *), &status);
     TRACE(
@@ -659,18 +675,16 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 #define IS_WHITESPACE(c) ((c == ' ' || c == '\t'))
 
 #define IS_TERMINATOR(c)                            \
-    ((self->lineterminator == '\0' && c == '\n') || \
-     (self->lineterminator != '\0' && c == self->lineterminator))
+    (c == line_terminator)
 
 #define IS_QUOTE(c) ((c == self->quotechar && self->quoting != QUOTE_NONE))
 
 // don't parse '\r' with a custom line terminator
-#define IS_CARRIAGE(c) ((self->lineterminator == '\0' && c == '\r'))
+#define IS_CARRIAGE(c) (c == carriage_symbol)
 
-#define IS_COMMENT_CHAR(c) \
-    ((self->commentchar != '\0' && c == self->commentchar))
+#define IS_COMMENT_CHAR(c) (c == comment_symbol)
 
-#define IS_ESCAPE_CHAR(c) ((self->escapechar != '\0' && c == self->escapechar))
+#define IS_ESCAPE_CHAR(c) (c == escape_symbol)
 
 #define IS_SKIPPABLE_SPACE(c) \
     ((!self->delim_whitespace && c == ' ' && self->skipinitialspace))
@@ -721,12 +735,24 @@ int skip_this_line(parser_t *self, int64_t rownum) {
     }
 }
 
-int tokenize_bytes(parser_t *self, size_t line_limit, int64_t start_lines) {
+int tokenize_bytes(parser_t *self,
+                   size_t line_limit, int64_t start_lines) {
     int64_t i, slen;
     int should_skip;
     char c;
     char *stream;
     char *buf = self->data + self->datapos;
+
+    const char line_terminator = (self->lineterminator == '\0') ?
+            '\n' : self->lineterminator;
+
+    // 1000 is something that couldn't fit in "char"
+    // thus comparing a char to it would always be "false"
+    const int carriage_symbol = (self->lineterminator == '\0') ? '\r' : 1000;
+    const int comment_symbol = (self->commentchar != '\0') ?
+            self->commentchar : 1000;
+    const int escape_symbol = (self->escapechar != '\0') ?
+            self->escapechar : 1000;
 
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {
         int64_t bufsize = 100;
@@ -1241,6 +1267,19 @@ int parser_trim_buffers(parser_t *self) {
 
     int64_t i;
 
+    /**
+     * Before we free up space and trim, we should
+     * save how many words we saw when parsing, if
+     * it exceeds the maximum number we saw before.
+     *
+     * This is important for when we read in chunks,
+     * so that we can inform subsequent chunk parsing
+     * as to how many words we could possibly see.
+     */
+    if (self->words_cap > self->max_words_cap) {
+        self->max_words_cap = self->words_cap;
+    }
+
     /* trim words, word_starts */
     new_cap = _next_pow2(self->words_len) + 1;
     if (new_cap < self->words_cap) {
@@ -1382,22 +1421,7 @@ int tokenize_all_rows(parser_t *self) {
 }
 
 PANDAS_INLINE void uppercase(char *p) {
-    for (; *p; ++p) *p = toupper(*p);
-}
-
-int PANDAS_INLINE to_longlong(char *item, long long *p_value) {
-    char *p_end;
-
-    // Try integer conversion.  We explicitly give the base to be 10. If
-    // we used 0, strtoll() would convert '012' to 10, because the leading 0 in
-    // '012' signals an octal number in C.  For a general purpose reader, that
-    // would be a bug, not a feature.
-    *p_value = strtoll(item, &p_end, 10);
-
-    // Allow trailing spaces.
-    while (isspace(*p_end)) ++p_end;
-
-    return (errno == 0) && (!*p_end);
+    for (; *p; ++p) *p = toupper_ascii(*p);
 }
 
 int to_boolean(const char *item, uint8_t *val) {
@@ -1432,24 +1456,6 @@ done:
     free(tmp);
     return status;
 }
-
-#ifdef TEST
-
-int main(int argc, char *argv[]) {
-    double x, y;
-    long long xi;
-    int status;
-    char *s;
-
-    s = "123,789";
-    status = to_longlong_thousands(s, &xi, ',');
-    printf("s = '%s'\n", s);
-    printf("status = %d\n", status);
-    printf("x = %d\n", (int)xi);
-
-    return 0;
-}
-#endif
 
 // ---------------------------------------------------------------------------
 // Implementation of xstrtod
@@ -1498,9 +1504,14 @@ int main(int argc, char *argv[]) {
 // * Add tsep argument for thousands separator
 //
 
+// pessimistic but quick assessment,
+// assuming that each decimal digit requires 4 bits to store
+const int max_int_decimal_digits = (sizeof(unsigned int) * 8) / 4;
+
 double xstrtod(const char *str, char **endptr, char decimal, char sci,
-               char tsep, int skip_trailing) {
+               char tsep, int skip_trailing, int *error, int *maybe_int) {
     double number;
+    unsigned int i_number = 0;
     int exponent;
     int negative;
     char *p = (char *)str;
@@ -1509,10 +1520,9 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     int num_digits;
     int num_decimals;
 
-    errno = 0;
-
+    if (maybe_int != NULL) *maybe_int = 1;
     // Skip leading whitespace.
-    while (isspace(*p)) p++;
+    while (isspace_ascii(*p)) p++;
 
     // Handle optional sign.
     negative = 0;
@@ -1523,25 +1533,37 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
             p++;
     }
 
-    number = 0.;
     exponent = 0;
     num_digits = 0;
     num_decimals = 0;
 
     // Process string of digits.
-    while (isdigit(*p)) {
-        number = number * 10. + (*p - '0');
+    while (isdigit_ascii(*p) && num_digits <= max_int_decimal_digits) {
+        i_number = i_number * 10 + (*p - '0');
         p++;
         num_digits++;
 
         p += (tsep != '\0' && *p == tsep);
     }
+    number = i_number;
+
+    if (num_digits > max_int_decimal_digits) {
+        // process what's left as double
+        while (isdigit_ascii(*p)) {
+            number = number * 10. + (*p - '0');
+            p++;
+            num_digits++;
+
+            p += (tsep != '\0' && *p == tsep);
+        }
+    }
 
     // Process decimal part.
     if (*p == decimal) {
+        if (maybe_int != NULL) *maybe_int = 0;
         p++;
 
-        while (isdigit(*p)) {
+        while (isdigit_ascii(*p)) {
             number = number * 10. + (*p - '0');
             p++;
             num_digits++;
@@ -1552,7 +1574,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (num_digits == 0) {
-        errno = ERANGE;
+        *error = ERANGE;
         return 0.0;
     }
 
@@ -1560,7 +1582,9 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     if (negative) number = -number;
 
     // Process an exponent string.
-    if (toupper(*p) == toupper(sci)) {
+    if (toupper_ascii(*p) == toupper_ascii(sci)) {
+        if (maybe_int != NULL) *maybe_int = 0;
+
         // Handle optional sign.
         negative = 0;
         switch (*++p) {
@@ -1573,7 +1597,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
         // Process string of digits.
         num_digits = 0;
         n = 0;
-        while (isdigit(*p)) {
+        while (isdigit_ascii(*p)) {
             n = n * 10 + (*p - '0');
             num_digits++;
             p++;
@@ -1589,7 +1613,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (exponent < DBL_MIN_EXP || exponent > DBL_MAX_EXP) {
-        errno = ERANGE;
+        *error = ERANGE;
         return HUGE_VAL;
     }
 
@@ -1609,21 +1633,21 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (number == HUGE_VAL) {
-        errno = ERANGE;
+        *error = ERANGE;
     }
 
     if (skip_trailing) {
         // Skip trailing whitespace.
-        while (isspace(*p)) p++;
+        while (isspace_ascii(*p)) p++;
     }
 
     if (endptr) *endptr = p;
-
     return number;
 }
 
-double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
-                       char tsep, int skip_trailing) {
+double precise_xstrtod(const char *str, char **endptr, char decimal,
+                       char sci, char tsep, int skip_trailing,
+                       int *error, int *maybe_int) {
     double number;
     int exponent;
     int negative;
@@ -1632,6 +1656,8 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     int num_decimals;
     int max_digits = 17;
     int n;
+
+    if (maybe_int != NULL) *maybe_int = 1;
     // Cache powers of 10 in memory.
     static double e[] = {
         1.,    1e1,   1e2,   1e3,   1e4,   1e5,   1e6,   1e7,   1e8,   1e9,
@@ -1665,10 +1691,9 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
         1e280, 1e281, 1e282, 1e283, 1e284, 1e285, 1e286, 1e287, 1e288, 1e289,
         1e290, 1e291, 1e292, 1e293, 1e294, 1e295, 1e296, 1e297, 1e298, 1e299,
         1e300, 1e301, 1e302, 1e303, 1e304, 1e305, 1e306, 1e307, 1e308};
-    errno = 0;
 
     // Skip leading whitespace.
-    while (isspace(*p)) p++;
+    while (isspace_ascii(*p)) p++;
 
     // Handle optional sign.
     negative = 0;
@@ -1685,7 +1710,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     num_decimals = 0;
 
     // Process string of digits.
-    while (isdigit(*p)) {
+    while (isdigit_ascii(*p)) {
         if (num_digits < max_digits) {
             number = number * 10. + (*p - '0');
             num_digits++;
@@ -1699,9 +1724,10 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     // Process decimal part
     if (*p == decimal) {
+        if (maybe_int != NULL) *maybe_int = 0;
         p++;
 
-        while (num_digits < max_digits && isdigit(*p)) {
+        while (num_digits < max_digits && isdigit_ascii(*p)) {
             number = number * 10. + (*p - '0');
             p++;
             num_digits++;
@@ -1709,13 +1735,13 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
         }
 
         if (num_digits >= max_digits)  // Consume extra decimal digits.
-            while (isdigit(*p)) ++p;
+            while (isdigit_ascii(*p)) ++p;
 
         exponent -= num_decimals;
     }
 
     if (num_digits == 0) {
-        errno = ERANGE;
+        *error = ERANGE;
         return 0.0;
     }
 
@@ -1723,7 +1749,9 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     if (negative) number = -number;
 
     // Process an exponent string.
-    if (toupper(*p) == toupper(sci)) {
+    if (toupper_ascii(*p) == toupper_ascii(sci)) {
+        if (maybe_int != NULL) *maybe_int = 0;
+
         // Handle optional sign
         negative = 0;
         switch (*++p) {
@@ -1736,7 +1764,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
         // Process string of digits.
         num_digits = 0;
         n = 0;
-        while (isdigit(*p)) {
+        while (isdigit_ascii(*p)) {
             n = n * 10 + (*p - '0');
             num_digits++;
             p++;
@@ -1752,7 +1780,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (exponent > 308) {
-        errno = ERANGE;
+        *error = ERANGE;
         return HUGE_VAL;
     } else if (exponent > 0) {
         number *= e[exponent];
@@ -1765,11 +1793,11 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
         number /= e[-exponent];
     }
 
-    if (number == HUGE_VAL || number == -HUGE_VAL) errno = ERANGE;
+    if (number == HUGE_VAL || number == -HUGE_VAL) *error = ERANGE;
 
     if (skip_trailing) {
         // Skip trailing whitespace.
-        while (isspace(*p)) p++;
+        while (isspace_ascii(*p)) p++;
     }
 
     if (endptr) *endptr = p;
@@ -1777,8 +1805,11 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 }
 
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
-                  int skip_trailing) {
+                  int skip_trailing, int *error, int *maybe_int) {
     double r = PyOS_string_to_double(p, q, 0);
+    if (maybe_int != NULL) *maybe_int = 0;
+    if (PyErr_Occurred() != NULL) *error = -1;
+    else if (r == Py_HUGE_VAL) *error = Py_HUGE_VAL;
     PyErr_Clear();
     return r;
 }
@@ -1804,7 +1835,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     int d;
 
     // Skip leading spaces.
-    while (isspace(*p)) {
+    while (isspace_ascii(*p)) {
         ++p;
     }
 
@@ -1817,7 +1848,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     }
 
     // Check that there is a first digit.
-    if (!isdigit(*p)) {
+    if (!isdigit_ascii(*p)) {
         // Error...
         *error = ERROR_NO_DIGITS;
         return 0;
@@ -1836,7 +1867,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                 if (d == tsep) {
                     d = *++p;
                     continue;
-                } else if (!isdigit(d)) {
+                } else if (!isdigit_ascii(d)) {
                     break;
                 }
                 if ((number > pre_min) ||
@@ -1849,7 +1880,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                 }
             }
         } else {
-            while (isdigit(d)) {
+            while (isdigit_ascii(d)) {
                 if ((number > pre_min) ||
                     ((number == pre_min) && (d - '0' <= dig_pre_min))) {
                     number = number * 10 - (d - '0');
@@ -1873,7 +1904,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                 if (d == tsep) {
                     d = *++p;
                     continue;
-                } else if (!isdigit(d)) {
+                } else if (!isdigit_ascii(d)) {
                     break;
                 }
                 if ((number < pre_max) ||
@@ -1887,7 +1918,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                 }
             }
         } else {
-            while (isdigit(d)) {
+            while (isdigit_ascii(d)) {
                 if ((number < pre_max) ||
                     ((number == pre_max) && (d - '0' <= dig_pre_max))) {
                     number = number * 10 + (d - '0');
@@ -1902,7 +1933,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     }
 
     // Skip trailing spaces.
-    while (isspace(*p)) {
+    while (isspace_ascii(*p)) {
         ++p;
     }
 
@@ -1925,7 +1956,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     int d;
 
     // Skip leading spaces.
-    while (isspace(*p)) {
+    while (isspace_ascii(*p)) {
         ++p;
     }
 
@@ -1939,7 +1970,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     }
 
     // Check that there is a first digit.
-    if (!isdigit(*p)) {
+    if (!isdigit_ascii(*p)) {
         // Error...
         *error = ERROR_NO_DIGITS;
         return 0;
@@ -1955,7 +1986,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
             if (d == tsep) {
                 d = *++p;
                 continue;
-            } else if (!isdigit(d)) {
+            } else if (!isdigit_ascii(d)) {
                 break;
             }
             if ((number < pre_max) ||
@@ -1969,7 +2000,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
             }
         }
     } else {
-        while (isdigit(d)) {
+        while (isdigit_ascii(d)) {
             if ((number < pre_max) ||
                 ((number == pre_max) && (d - '0' <= dig_pre_max))) {
                 number = number * 10 + (d - '0');
@@ -1983,7 +2014,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     }
 
     // Skip trailing spaces.
-    while (isspace(*p)) {
+    while (isspace_ascii(*p)) {
         ++p;
     }
 

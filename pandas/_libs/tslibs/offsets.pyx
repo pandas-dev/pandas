@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
-
 import cython
-from cython import Py_ssize_t
 
 import time
 from cpython.datetime cimport (PyDateTime_IMPORT,
+                               PyDateTime_Check,
+                               PyDelta_Check,
                                datetime, timedelta,
                                time as dt_time)
 PyDateTime_IMPORT
@@ -17,14 +16,18 @@ from numpy cimport int64_t
 cnp.import_array()
 
 
-from util cimport is_string_object, is_integer_object
+from pandas._libs.tslibs cimport util
+from pandas._libs.tslibs.util cimport is_integer_object
 
-from ccalendar import MONTHS, DAYS
-from ccalendar cimport get_days_in_month, dayofweek
-from conversion cimport tz_convert_single, pydt_to_i8, localize_pydatetime
-from nattype cimport NPY_NAT
-from np_datetime cimport (npy_datetimestruct,
-                          dtstruct_to_dt64, dt64_to_dtstruct)
+from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
+from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
+from pandas._libs.tslibs.conversion cimport pydt_to_i8, localize_pydatetime
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.np_datetime cimport (
+    npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct)
+from pandas._libs.tslibs.timezones import UTC
+from pandas._libs.tslibs.tzconversion cimport tz_convert_single
+
 
 # ---------------------------------------------------------------------
 # Constants
@@ -83,6 +86,8 @@ cdef to_offset(object obj):
     Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
     imports
     """
+    if isinstance(obj, _BaseOffset):
+        return obj
     from pandas.tseries.frequencies import to_offset
     return to_offset(obj)
 
@@ -121,6 +126,26 @@ def apply_index_wraps(func):
         pass
     return wrapper
 
+
+cdef _wrap_timedelta_result(result):
+    """
+    Tick operations dispatch to their Timedelta counterparts.  Wrap the result
+    of these operations in a Tick if possible.
+
+    Parameters
+    ----------
+    result : object
+
+    Returns
+    -------
+    object
+    """
+    if PyDelta_Check(result):
+        # convert Timedelta back to a Tick
+        from pandas.tseries.offsets import _delta_to_tick
+        return _delta_to_tick(result)
+
+    return result
 
 # ---------------------------------------------------------------------
 # Business Helpers
@@ -208,7 +233,7 @@ def _to_dt64(dt, dtype='datetime64'):
     # Thus astype is needed to cast datetime to datetime64[D]
     if getattr(dt, 'tzinfo', None) is not None:
         i8 = pydt_to_i8(dt)
-        dt = tz_convert_single(i8, 'UTC', dt.tzinfo)
+        dt = tz_convert_single(i8, UTC, dt.tzinfo)
         dt = np.int64(dt).astype('datetime64[ns]')
     else:
         dt = np.datetime64(dt)
@@ -222,7 +247,7 @@ def _to_dt64(dt, dtype='datetime64'):
 
 
 def _validate_business_time(t_input):
-    if is_string_object(t_input):
+    if isinstance(t_input, str):
         try:
             t = time.strptime(t_input, '%H:%M')
             return dt_time(hour=t.tm_hour, minute=t.tm_min)
@@ -282,22 +307,15 @@ class ApplyTypeError(TypeError):
     pass
 
 
-# TODO: unused.  remove?
-class CacheableOffset(object):
-    _cacheable = True
-
-
 # ---------------------------------------------------------------------
 # Base Classes
 
-class _BaseOffset(object):
+class _BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses
     and will (after pickle errors are resolved) go into a cdef class.
     """
     _typ = "dateoffset"
-    _normalize_cache = True
-    _cacheable = False
     _day_opt = None
     _attributes = frozenset(['n', 'normalize'])
 
@@ -311,9 +329,14 @@ class _BaseOffset(object):
         raise AttributeError("DateOffset objects are immutable.")
 
     def __eq__(self, other):
-        if is_string_object(other):
-            other = to_offset(other)
-
+        if isinstance(other, str):
+            try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return False
         try:
             return self._params == other._params
         except AttributeError:
@@ -350,9 +373,18 @@ class _BaseOffset(object):
                 if name not in ['n', 'normalize']}
         return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
+    @property
+    def base(self):
+        """
+        Returns a copy of the calling offset object with n=1 and all other
+        attributes equal.
+        """
+        return type(self)(n=1, normalize=self.normalize, **self.kwds)
+
     def __add__(self, other):
-        if getattr(other, "_typ", None) in ["datetimeindex",
-                                            "series", "period"]:
+        if getattr(other, "_typ", None) in ["datetimeindex", "periodindex",
+                                            "datetimearray", "periodarray",
+                                            "series", "period", "dataframe"]:
             # defer to the other class's implementation
             return other + self
         try:
@@ -361,7 +393,7 @@ class _BaseOffset(object):
             return NotImplemented
 
     def __sub__(self, other):
-        if isinstance(other, datetime):
+        if PyDateTime_Check(other):
             raise TypeError('Cannot subtract datetime from offset.')
         elif type(other) == type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
@@ -373,22 +405,22 @@ class _BaseOffset(object):
         return self.apply(other)
 
     def __mul__(self, other):
+        if hasattr(other, "_typ"):
+            return NotImplemented
+        if util.is_array(other):
+            return np.array([self * x for x in other])
         return type(self)(n=other * self.n, normalize=self.normalize,
                           **self.kwds)
 
     def __neg__(self):
-        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # Note: we are deferring directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
         return self * -1
 
     def copy(self):
-        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # Note: we are deferring directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
         return self * 1
-
-    # TODO: this is never true.  fix it or get rid of it
-    def _should_cache(self):
-        return self.isAnchored() and self._cacheable
 
     def __repr__(self):
         className = getattr(self, '_outputName', type(self).__name__)
@@ -427,6 +459,9 @@ class _BaseOffset(object):
         TypeError if `int(n)` raises
         ValueError if n != int(n)
         """
+        if util.is_timedelta64_object(n):
+            raise TypeError('`n` argument must be an integer, '
+                            'got {ntype}'.format(ntype=type(n)))
         try:
             nint = int(n)
         except (ValueError, TypeError):
@@ -496,18 +531,28 @@ class BaseOffset(_BaseOffset):
         return -self + other
 
 
-class _Tick(object):
+class _Tick:
     """
     dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
     can do isinstance checks on _Tick and avoid importing tseries.offsets
     """
-    pass
+
+    # ensure that reversed-ops with numpy scalars return NotImplemented
+    __array_priority__ = 1000
+
+    def __truediv__(self, other):
+        result = self.delta.__truediv__(other)
+        return _wrap_timedelta_result(result)
+
+    def __rtruediv__(self, other):
+        result = self.delta.__rtruediv__(other)
+        return _wrap_timedelta_result(result)
 
 
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
-cpdef datetime shift_day(datetime other, int days):
+def shift_day(other: datetime, days: int) -> datetime:
     """
     Increment the datetime `other` by the given number of days, retaining
     the time-portion of the datetime.  For tz-naive datetimes this is
@@ -534,7 +579,7 @@ cpdef datetime shift_day(datetime other, int days):
 
 cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
     """new year number after shifting npy_datetimestruct number of months"""
-    return dts.year + (dts.month + months - 1) / 12
+    return dts.year + (dts.month + months - 1) // 12
 
 
 cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
@@ -542,7 +587,8 @@ cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
     New month number after shifting npy_datetimestruct
     number of months.
     """
-    cdef int new_month = (dts.month + months) % 12
+    cdef:
+        int new_month = (dts.month + months) % 12
     return 12 if new_month == 0 else new_month
 
 
@@ -826,7 +872,8 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
     return np.asarray(out)
 
 
-cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
+def shift_month(stamp: datetime, months: int,
+                day_opt: object=None) -> datetime:
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,
@@ -838,11 +885,15 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     ----------
     stamp : datetime or Timestamp
     months : int
-    day_opt : None, 'start', 'end', or an integer
+    day_opt : None, 'start', 'end', 'business_start', 'business_end', or int
         None: returned datetimelike has the same day as the input, or the
               last day of the month if the new month is too short
         'start': returned datetimelike has day=1
         'end': returned datetimelike has day on the last day of the month
+        'business_start': returned datetimelike has day on the first
+            business day of the month
+        'business_end': returned datetimelike has day on the last
+            business day of the month
         int: returned datetimelike has day equal to day_opt
 
     Returns
@@ -890,9 +941,13 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
     Parameters
     ----------
     other : datetime or Timestamp
-    day_opt : 'start', 'end'
+    day_opt : 'start', 'end', 'business_start', 'business_end', or int
         'start': returns 1
         'end': returns last day of the month
+        'business_start': returns the first business day of the month
+        'business_end': returns the last business day of the month
+        int: returns the day in the month indicated by `other`, or the last of
+            day the month if the value exceeds in that month's number of days.
 
     Returns
     -------
@@ -956,8 +1011,8 @@ cpdef int roll_convention(int other, int n, int compare) nogil:
     return n
 
 
-cpdef int roll_qtrday(datetime other, int n, int month, object day_opt,
-                      int modby=3) except? -1:
+def roll_qtrday(other: datetime, n: int, month: int,
+                day_opt: object, modby: int=3) -> int:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
@@ -967,7 +1022,7 @@ cpdef int roll_qtrday(datetime other, int n, int month, object day_opt,
     other : datetime or Timestamp
     n : number of periods to increment, before adjusting for rolling
     month : int reference month giving the first month of the year
-    day_opt : 'start', 'end', 'business_start', 'business_end'
+    day_opt : 'start', 'end', 'business_start', 'business_end', or int
         The convention to use in finding the day in a given month against
         which to compare for rollforward/rollbackward decisions.
     modby : int 3 for quarters, 12 for years
@@ -975,6 +1030,10 @@ cpdef int roll_qtrday(datetime other, int n, int month, object day_opt,
     Returns
     -------
     n : int number of periods to increment
+
+    See Also
+    --------
+    get_day_of_month : Find the day in a month provided an offset.
     """
     cdef:
         int months_since
@@ -999,8 +1058,7 @@ cpdef int roll_qtrday(datetime other, int n, int month, object day_opt,
     return n
 
 
-cpdef int roll_yearday(datetime other, int n, int month,
-                       object day_opt) except? -1:
+def roll_yearday(other: datetime, n: int, month: int, day_opt: object) -> int:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
@@ -1010,9 +1068,16 @@ cpdef int roll_yearday(datetime other, int n, int month,
     other : datetime or Timestamp
     n : number of periods to increment, before adjusting for rolling
     month : reference month giving the first month of the year
-    day_opt : 'start', 'end'
-        'start': returns 1
-        'end': returns last day of the month
+    day_opt : 'start', 'end', 'business_start', 'business_end', or int
+        The day of the month to compare against that of `other` when
+        incrementing or decrementing the number of periods:
+
+        'start': 1
+        'end': last day of the month
+        'business_start': first business day of the month
+        'business_end': last business day of the month
+        int: day in the month indicated by `other`, or the last of day
+            the month if the value exceeds in that month's number of days.
 
     Returns
     -------

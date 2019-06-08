@@ -12,7 +12,7 @@ import os
 import re
 import subprocess
 import sys
-from pandas.compat import PY3
+from typing import Callable, Dict
 
 
 def get_keywords():
@@ -26,7 +26,7 @@ def get_keywords():
     return keywords
 
 
-class VersioneerConfig(object):
+class VersioneerConfig:
     pass
 
 
@@ -47,12 +47,11 @@ class NotThisMethod(Exception):
     pass
 
 
-LONG_VERSION_PY = {}
-HANDLERS = {}
+HANDLERS = {}  # type: Dict[str, Dict[str, Callable]]
 
 
-def register_vcs_handler(vcs, method):  # decorator
-    def decorate(f):
+def register_vcs_handler(vcs: str, method: str) -> Callable:  # decorator
+    def decorate(f: Callable) -> Callable:
         if vcs not in HANDLERS:
             HANDLERS[vcs] = {}
         HANDLERS[vcs][method] = f
@@ -83,9 +82,7 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False):
         if verbose:
             print("unable to find command, tried %s" % (commands,))
         return None
-    stdout = p.communicate()[0].strip()
-    if PY3:
-        stdout = stdout.decode()
+    stdout = p.communicate()[0].strip().decode()
     if p.returncode != 0:
         if verbose:
             print("unable to run {dispcmd} (error)".format(dispcmd=dispcmd))
@@ -237,14 +234,14 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
         # tag
         full_tag = mo.group(1)
         if not full_tag.startswith(tag_prefix):
+            fmt = ("tag '{full_tag}' doesn't start with prefix "
+                   "'{tag_prefix}'")
+            msg = fmt.format(full_tag=full_tag, tag_prefix=tag_prefix)
             if verbose:
-                fmt = "tag '{full_tag}' doesn't start with prefix " \
-                      "'{tag_prefix}'"
-                print(fmt.format(full_tag=full_tag, tag_prefix=tag_prefix))
-            pieces["error"] = ("tag '{full_tag}' doesn't start with "
-                               "prefix '{tag_prefix}'".format(
-                                   full_tag, tag_prefix))
+                print(msg)
+            pieces["error"] = msg
             return pieces
+
         pieces["closest-tag"] = full_tag[len(tag_prefix):]
 
         # distance: number of commits since tag

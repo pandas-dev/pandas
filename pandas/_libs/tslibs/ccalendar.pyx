@@ -1,16 +1,16 @@
-# -*- coding: utf-8 -*-
 # cython: boundscheck=False
 """
 Cython implementations of functions resembling the stdlib calendar module
 """
 
 import cython
-from cython import Py_ssize_t
 
 from numpy cimport int64_t, int32_t
 
 from locale import LC_TIME
-from strptime import LocaleTime
+
+from pandas._config.localization import set_locale
+from pandas._libs.tslibs.strptime import LocaleTime
 
 # ----------------------------------------------------------------------
 # Constants
@@ -49,12 +49,15 @@ DAYS_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday',
 int_to_weekday = {num: name for num, name in enumerate(DAYS)}
 weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
 
+DAY_SECONDS = 86400
+HOUR_SECONDS = 3600
+
 # ----------------------------------------------------------------------
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef inline int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
+cpdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
     """Return the number of days in the given month of the given year.
 
     Parameters
@@ -148,11 +151,8 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
     Assumes the inputs describe a valid date.
     """
     cdef:
-        bint isleap
         int32_t doy, dow
         int woy
-
-    isleap = is_leapyear(year)
 
     doy = get_day_of_year(year, month, day)
     dow = dayofweek(year, month, day)
@@ -160,7 +160,7 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
     # estimate
     woy = (doy - 1) - dow + 3
     if woy >= 0:
-        woy = woy / 7 + 1
+        woy = woy // 7 + 1
 
     # verify
     if woy < 0:
@@ -207,7 +207,7 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
     return day_of_year
 
 
-cpdef get_locale_names(object name_type, object locale=None):
+def get_locale_names(name_type: object, locale: object=None):
     """Returns an array of localized day or month names
 
     Parameters
@@ -219,9 +219,6 @@ cpdef get_locale_names(object name_type, object locale=None):
     Returns
     -------
     list of locale names
-
     """
-    from pandas.util.testing import set_locale
-
     with set_locale(locale, LC_TIME):
         return getattr(LocaleTime(), name_type)

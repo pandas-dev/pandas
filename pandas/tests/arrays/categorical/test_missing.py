@@ -1,21 +1,20 @@
-# -*- coding: utf-8 -*-
 import collections
 
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
-from pandas import Categorical, Index, isna
-from pandas.compat import lrange
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
+from pandas import Categorical, Index, isna
+import pandas.util.testing as tm
 
-class TestCategoricalMissing(object):
+
+class TestCategoricalMissing:
 
     def test_na_flags_int_categories(self):
         # #1457
 
-        categories = lrange(10)
+        categories = list(range(10))
         labels = np.random.randint(0, 10, 20)
         labels[::5] = -1
 
@@ -68,7 +67,7 @@ class TestCategoricalMissing(object):
         # https://github.com/pandas-dev/pandas/issues/19682
         cat = Categorical([1, 2, 3])
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             cat.fillna(**fillna_kwargs)
 
     @pytest.mark.parametrize("named", [True, False])

@@ -6,14 +6,15 @@ http://specs.frictionlessdata.io/json-table-schema/
 import warnings
 
 import pandas._libs.json as json
+
+from pandas.core.dtypes.common import (
+    is_bool_dtype, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_integer_dtype, is_numeric_dtype, is_period_dtype,
+    is_string_dtype, is_timedelta64_dtype)
+
 from pandas import DataFrame
 from pandas.api.types import CategoricalDtype
 import pandas.core.common as com
-from pandas.core.dtypes.common import (
-    is_integer_dtype, is_timedelta64_dtype, is_numeric_dtype,
-    is_bool_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
-    is_categorical_dtype, is_period_dtype, is_string_dtype
-)
 
 loads = json.loads
 
@@ -130,7 +131,7 @@ def convert_json_field_to_pandas_type(field):
     dtype
 
     Raises
-    -----
+    ------
     ValueError
         If the type of the provided field is unknown or currently unsupported
 
@@ -200,6 +201,16 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     -------
     schema : dict
 
+    Notes
+    -----
+    See `_as_json_table_type` for conversion types.
+    Timedeltas as converted to ISO8601 duration format with
+    9 decimal places after the seconds field for nanosecond precision.
+
+    Categoricals are converted to the `any` dtype, and use the `enum` field
+    constraint to list the allowed values. The `ordered` attribute is included
+    in an `ordered` field.
+
     Examples
     --------
     >>> df = pd.DataFrame(
@@ -214,16 +225,6 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     {'name': 'C', 'type': 'datetime'}],
     'pandas_version': '0.20.0',
     'primaryKey': ['idx']}
-
-    Notes
-    -----
-    See `_as_json_table_type` for conversion types.
-    Timedeltas as converted to ISO8601 duration format with
-    9 decimal places after the seconds field for nanosecond precision.
-
-    Categoricals are converted to the `any` dtype, and use the `enum` field
-    constraint to list the allowed values. The `ordered` attribute is included
-    in an `ordered` field.
     """
     if index is True:
         data = set_default_names(data)
@@ -289,9 +290,9 @@ def parse_table_schema(json, precise_float):
         :class:`Index` name of 'index'  and :class:`MultiIndex` names starting
         with 'level_' are not supported.
 
-    See also
+    See Also
     --------
-    build_table_schema : inverse function
+    build_table_schema : Inverse function.
     pandas.read_json
     """
     table = loads(json, precise_float=precise_float)
@@ -313,12 +314,13 @@ def parse_table_schema(json, precise_float):
 
     df = df.astype(dtypes)
 
-    df = df.set_index(table['schema']['primaryKey'])
-    if len(df.index.names) == 1:
-        if df.index.name == 'index':
-            df.index.name = None
-    else:
-        df.index.names = [None if x.startswith('level_') else x for x in
-                          df.index.names]
+    if 'primaryKey' in table['schema']:
+        df = df.set_index(table['schema']['primaryKey'])
+        if len(df.index.names) == 1:
+            if df.index.name == 'index':
+                df.index.name = None
+        else:
+            df.index.names = [None if x.startswith('level_') else x for x in
+                              df.index.names]
 
     return df

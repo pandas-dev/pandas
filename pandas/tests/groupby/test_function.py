@@ -1,14 +1,18 @@
-import pytest
+import builtins
+from io import StringIO
+from itertools import product
+from string import ascii_lowercase
 
 import numpy as np
-import pandas as pd
-from pandas import (DataFrame, Index, compat, isna,
-                    Series, MultiIndex, Timestamp, date_range)
+import pytest
+
 from pandas.errors import UnsupportedFunctionCall
-from pandas.util import testing as tm
+
+import pandas as pd
+from pandas import (
+    DataFrame, Index, MultiIndex, Series, Timestamp, date_range, isna)
 import pandas.core.nanops as nanops
-from string import ascii_lowercase
-from pandas.compat import product as cart_product
+from pandas.util import testing as tm
 
 
 @pytest.mark.parametrize("agg_func", ['any', 'all'])
@@ -24,7 +28,7 @@ def test_groupby_bool_aggs(agg_func, skipna, vals):
     df = DataFrame({'key': ['a'] * 3 + ['b'] * 3, 'val': vals * 2})
 
     # Figure out expectation using Python builtin
-    exp = getattr(compat.builtins, agg_func)(vals)
+    exp = getattr(builtins, agg_func)(vals)
 
     # edge case for missing data with skipna and 'any'
     if skipna and all(isna(vals)) and agg_func == 'any':
@@ -59,8 +63,8 @@ def test_intercept_builtin_sum():
     s = Series([1., 2., np.nan, 3.])
     grouped = s.groupby([0, 1, 2, 2])
 
-    result = grouped.agg(compat.builtins.sum)
-    result2 = grouped.apply(compat.builtins.sum)
+    result = grouped.agg(builtins.sum)
+    result2 = grouped.apply(builtins.sum)
     expected = grouped.sum()
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)
@@ -247,7 +251,7 @@ def test_non_cython_api():
     expected_col = pd.MultiIndex(levels=[['B'],
                                          ['count', 'mean', 'std', 'min',
                                           '25%', '50%', '75%', 'max']],
-                                 labels=[[0] * 8, list(range(8))])
+                                 codes=[[0] * 8, list(range(8))])
     expected = pd.DataFrame([[1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
                              [0.0, np.nan, np.nan, np.nan, np.nan, np.nan,
                               np.nan, np.nan]],
@@ -388,7 +392,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
                        "args": [1]},
                "count": {"expected": 2}}
 
-    for method, data in compat.iteritems(grp_exp):
+    for method, data in grp_exp.items():
         if "args" not in data:
             data["args"] = []
 
@@ -396,6 +400,25 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
         res = getattr(grouped, method)(*data["args"])
 
         assert res.iloc[0].b == data["expected"]
+
+
+@pytest.mark.parametrize("func, values", [
+    ("idxmin", {'c_int': [0, 2], 'c_float': [1, 3], 'c_date': [1, 2]}),
+    ("idxmax", {'c_int': [1, 3], 'c_float': [0, 2], 'c_date': [0, 3]})
+])
+def test_idxmin_idxmax_returns_int_types(func, values):
+    # GH 25444
+    df = pd.DataFrame({'name': ['A', 'A', 'B', 'B'],
+                       'c_int': [1, 2, 3, 4],
+                       'c_float': [4.02, 3.03, 2.04, 1.05],
+                       'c_date': ['2019', '2018', '2016', '2017']})
+    df['c_date'] = pd.to_datetime(df['c_date'])
+
+    result = getattr(df.groupby('name'), func)()
+
+    expected = pd.DataFrame(values, index=Index(['A', 'B'], name="name"))
+
+    tm.assert_frame_equal(result, expected)
 
 
 def test_fill_consistency():
@@ -473,7 +496,7 @@ def test_max_nan_bug():
 -05-06,2013-05-06 00:00:00,,log.log
 -05-07,2013-05-07 00:00:00,OE,xlsx"""
 
-    df = pd.read_csv(compat.StringIO(raw), parse_dates=[0])
+    df = pd.read_csv(StringIO(raw), parse_dates=[0])
     gb = df.groupby('Date')
     r = gb[['File']].max()
     e = gb['File'].max().to_frame()
@@ -517,18 +540,20 @@ def test_nsmallest():
     tm.assert_series_equal(gb.nsmallest(3, keep='last'), e)
 
 
-def test_numpy_compat():
+@pytest.mark.parametrize("func", [
+    'mean', 'var', 'std', 'cumprod', 'cumsum'
+])
+def test_numpy_compat(func):
     # see gh-12811
     df = pd.DataFrame({'A': [1, 2, 1], 'B': [1, 2, 3]})
     g = df.groupby('A')
 
     msg = "numpy operations are not valid with groupby"
 
-    for func in ('mean', 'var', 'std', 'cumprod', 'cumsum'):
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(g, func), 1, 2, 3)
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(g, func), foo=1)
+    with pytest.raises(UnsupportedFunctionCall, match=msg):
+        getattr(g, func)(1, 2, 3)
+    with pytest.raises(UnsupportedFunctionCall, match=msg):
+        getattr(g, func)(foo=1)
 
 
 def test_cummin_cummax():
@@ -731,7 +756,7 @@ def test_frame_describe_multikey(tsframe):
         # GH 17464 - Remove duplicate MultiIndex levels
         group_col = pd.MultiIndex(
             levels=[[col], group.columns],
-            labels=[[0] * len(group.columns), range(len(group.columns))])
+            codes=[[0] * len(group.columns), range(len(group.columns))])
         group = pd.DataFrame(group.values,
                              columns=group_col,
                              index=group.index)
@@ -745,7 +770,7 @@ def test_frame_describe_multikey(tsframe):
     expected = tsframe.describe().T
     expected.index = pd.MultiIndex(
         levels=[[0, 1], expected.index],
-        labels=[[0, 0, 1, 1], range(len(expected.index))])
+        codes=[[0, 0, 1, 1], range(len(expected.index))])
     tm.assert_frame_equal(result, expected)
 
 
@@ -757,8 +782,11 @@ def test_frame_describe_tupleindex():
                      'z': [100, 200, 300, 400, 500] * 3})
     df1['k'] = [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5
     df2 = df1.rename(columns={'k': 'key'})
-    pytest.raises(ValueError, lambda: df1.groupby('k').describe())
-    pytest.raises(ValueError, lambda: df2.groupby('key').describe())
+    msg = "Names should be list-like for a MultiIndex"
+    with pytest.raises(ValueError, match=msg):
+        df1.groupby('k').describe()
+    with pytest.raises(ValueError, match=msg):
+        df2.groupby('key').describe()
 
 
 def test_frame_describe_unstacked_format():
@@ -890,6 +918,15 @@ def test_nunique_with_timegrouper():
     tm.assert_series_equal(result, expected)
 
 
+def test_nunique_preserves_column_level_names():
+    # GH 23222
+    test = pd.DataFrame([1, 2, 2],
+                        columns=pd.Index(['A'], name="level_0"))
+    result = test.groupby([0, 0, 0]).nunique()
+    expected = pd.DataFrame([2], columns=test.columns)
+    tm.assert_frame_equal(result, expected)
+
+
 # count
 # --------------------------------
 
@@ -1004,10 +1041,10 @@ def test_count_uses_size_on_exception():
     class RaisingObjectException(Exception):
         pass
 
-    class RaisingObject(object):
+    class RaisingObject:
 
         def __init__(self, msg='I will raise inside Cython'):
-            super(RaisingObject, self).__init__()
+            super().__init__()
             self.msg = msg
 
         def __eq__(self, other):
@@ -1042,15 +1079,73 @@ def test_size(df):
         assert result[key] == len(group)
 
     df = DataFrame(np.random.choice(20, (1000, 3)), columns=list('abc'))
-    for sort, key in cart_product((False, True), ('a', 'b', ['a', 'b'])):
+    for sort, key in product((False, True), ('a', 'b', ['a', 'b'])):
         left = df.groupby(key, sort=sort).size()
         right = df.groupby(key, sort=sort)['c'].apply(lambda a: a.shape[0])
         tm.assert_series_equal(left, right, check_names=False)
 
     # GH11699
-    df = DataFrame([], columns=['A', 'B'])
-    out = Series([], dtype='int64', index=Index([], name='A'))
+    df = DataFrame(columns=['A', 'B'])
+    out = Series(dtype='int64', index=Index([], name='A'))
     tm.assert_series_equal(df.groupby('A').size(), out)
+
+
+def test_size_groupby_all_null():
+    # GH23050
+    # Assert no 'Value Error : Length of passed values is 2, index implies 0'
+    df = DataFrame({'A': [None, None]})  # all-null groups
+    result = df.groupby('A').size()
+    expected = Series(dtype='int64', index=Index([], name='A'))
+    tm.assert_series_equal(result, expected)
+
+
+# quantile
+# --------------------------------
+@pytest.mark.parametrize("interpolation", [
+    "linear", "lower", "higher", "nearest", "midpoint"])
+@pytest.mark.parametrize("a_vals,b_vals", [
+    # Ints
+    ([1, 2, 3, 4, 5], [5, 4, 3, 2, 1]),
+    ([1, 2, 3, 4], [4, 3, 2, 1]),
+    ([1, 2, 3, 4, 5], [4, 3, 2, 1]),
+    # Floats
+    ([1., 2., 3., 4., 5.], [5., 4., 3., 2., 1.]),
+    # Missing data
+    ([1., np.nan, 3., np.nan, 5.], [5., np.nan, 3., np.nan, 1.]),
+    ([np.nan, 4., np.nan, 2., np.nan], [np.nan, 4., np.nan, 2., np.nan]),
+    # Timestamps
+    ([x for x in pd.date_range('1/1/18', freq='D', periods=5)],
+     [x for x in pd.date_range('1/1/18', freq='D', periods=5)][::-1]),
+    # All NA
+    ([np.nan] * 5, [np.nan] * 5),
+])
+@pytest.mark.parametrize('q', [0, .25, .5, .75, 1])
+def test_quantile(interpolation, a_vals, b_vals, q):
+    if interpolation == 'nearest' and q == 0.5 and b_vals == [4, 3, 2, 1]:
+        pytest.skip("Unclear numpy expectation for nearest result with "
+                    "equidistant data")
+
+    a_expected = pd.Series(a_vals).quantile(q, interpolation=interpolation)
+    b_expected = pd.Series(b_vals).quantile(q, interpolation=interpolation)
+
+    df = DataFrame({
+        'key': ['a'] * len(a_vals) + ['b'] * len(b_vals),
+        'val': a_vals + b_vals})
+
+    expected = DataFrame([a_expected, b_expected], columns=['val'],
+                         index=Index(['a', 'b'], name='key'))
+    result = df.groupby('key').quantile(q, interpolation=interpolation)
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_quantile_raises():
+    df = pd.DataFrame([
+        ['foo', 'a'], ['foo', 'b'], ['foo', 'c']], columns=['key', 'val'])
+
+    with pytest.raises(TypeError, match="cannot be performed against "
+                       "'object' dtypes"):
+        df.groupby('key').quantile()
 
 
 # pipe
@@ -1080,7 +1175,7 @@ def test_pipe():
     # NDFrame.pipe methods
     result = df.groupby('A').pipe(f).pipe(square)
 
-    index = Index([u'bar', u'foo'], dtype='object', name=u'A')
+    index = Index(['bar', 'foo'], dtype='object', name='A')
     expected = pd.Series([8.99110003361, 8.17516964785], name='B',
                          index=index)
 

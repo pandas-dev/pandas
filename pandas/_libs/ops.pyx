@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import operator
 
 from cpython cimport (PyObject_RichCompareBool,
@@ -12,9 +11,9 @@ from numpy cimport ndarray, uint8_t, import_array
 import_array()
 
 
-from util cimport UINT8_MAX, is_nan
+from pandas._libs.util cimport UINT8_MAX, is_nan
 
-from missing cimport checknull
+from pandas._libs.missing cimport checknull
 
 
 @cython.wraparound(False)

@@ -1,48 +1,30 @@
-# -*- coding: utf-8 -*-
 from datetime import timedelta
-from pandas.compat import zip
-from pandas import compat
 import re
+from typing import Dict
 
 import numpy as np
+from pytz import AmbiguousTimeError
 
+from pandas._libs.algos import unique_deltas
+from pandas._libs.tslibs import Timedelta, Timestamp
+from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, int_to_weekday
+from pandas._libs.tslibs.fields import build_field_sarray
+import pandas._libs.tslibs.frequencies as libfreqs
+from pandas._libs.tslibs.offsets import _offset_to_period_map
+import pandas._libs.tslibs.resolution as libresolution
+from pandas._libs.tslibs.resolution import Resolution
+from pandas._libs.tslibs.timezones import UTC
+from pandas._libs.tslibs.tzconversion import tz_convert
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.common import (
-    is_period_arraylike,
-    is_timedelta64_dtype,
-    is_datetime64_dtype)
+    is_datetime64_dtype, is_period_arraylike, is_timedelta64_dtype)
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.algorithms import unique
 
-from pandas.tseries.offsets import DateOffset
-
-from pandas._libs.tslibs import Timedelta, Timestamp
-
-import pandas._libs.tslibs.frequencies as libfreqs
-from pandas._libs.tslibs.frequencies import (  # noqa, semi-public API
-    get_freq, get_base_alias, get_to_timestamp_base, get_freq_code,
-    FreqGroup,
-    is_subperiod, is_superperiod)
-from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, int_to_weekday
-import pandas._libs.tslibs.resolution as libresolution
-from pandas._libs.tslibs.resolution import Resolution
-from pandas._libs.tslibs.fields import build_field_sarray
-from pandas._libs.tslibs.conversion import tz_convert
-
-from pandas._libs.algos import unique_deltas
-
-from pytz import AmbiguousTimeError
-
-
-RESO_NS = 0
-RESO_US = 1
-RESO_MS = 2
-RESO_SEC = 3
-RESO_MIN = 4
-RESO_HR = 5
-RESO_DAY = 6
+from pandas.tseries.offsets import (
+    DateOffset, Day, Hour, Micro, Milli, Minute, Nano, Second, prefix_mapping)
 
 _ONE_MICRO = 1000
 _ONE_MILLI = (_ONE_MICRO * 1000)
@@ -54,21 +36,8 @@ _ONE_DAY = (24 * _ONE_HOUR)
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
 
-from pandas._libs.tslibs.offsets import _offset_to_period_map  # noqa:E402
-from pandas.tseries.offsets import (Nano, Micro, Milli, Second,  # noqa
-                                    Minute, Hour,
-                                    Day, BDay, CDay, Week, MonthBegin,
-                                    MonthEnd, BMonthBegin, BMonthEnd,
-                                    QuarterBegin, QuarterEnd, BQuarterBegin,
-                                    BQuarterEnd, YearBegin, YearEnd,
-                                    BYearBegin, BYearEnd, prefix_mapping)
-try:
-    cday = CDay()
-except NotImplementedError:
-    cday = None
-
 #: cache of previously seen offsets
-_offset_map = {}
+_offset_map = {}  # type: Dict[str, DateOffset]
 
 
 def get_period_alias(offset_str):
@@ -96,8 +65,8 @@ def to_offset(freq):
 
     Returns
     -------
-    delta : DateOffset
-        None if freq is None
+    DateOffset
+        None if freq is None.
 
     Raises
     ------
@@ -106,7 +75,7 @@ def to_offset(freq):
 
     See Also
     --------
-    pandas.DateOffset
+    DateOffset
 
     Examples
     --------
@@ -137,7 +106,7 @@ def to_offset(freq):
     if isinstance(freq, tuple):
         name = freq[0]
         stride = freq[1]
-        if isinstance(stride, compat.string_types):
+        if isinstance(stride, str):
             name, stride = stride, name
         name, _ = libfreqs._base_and_stride(name)
         delta = get_offset(name) * stride
@@ -226,8 +195,6 @@ def get_offset(name):
     return _offset_map[name]
 
 
-getOffset = get_offset
-
 # ---------------------------------------------------------------------
 # Period codes
 
@@ -245,7 +212,7 @@ def infer_freq(index, warn=True):
 
     Returns
     -------
-    freq : string or None
+    str or None
         None if no discernible frequency
         TypeError if the index is not datetime-like
         ValueError if there are less than three values.
@@ -285,28 +252,28 @@ def infer_freq(index, warn=True):
     return inferer.get_freq()
 
 
-class _FrequencyInferer(object):
+class _FrequencyInferer:
     """
     Not sure if I can avoid the state machine here
     """
 
     def __init__(self, index, warn=True):
         self.index = index
-        self.values = np.asarray(index).view('i8')
+        self.values = index.asi8
 
         # This moves the values, which are implicitly in UTC, to the
         # the timezone so they are in local time
         if hasattr(index, 'tz'):
             if index.tz is not None:
-                self.values = tz_convert(self.values, 'UTC', index.tz)
+                self.values = tz_convert(self.values, UTC, index.tz)
 
         self.warn = warn
 
         if len(index) < 3:
             raise ValueError('Need at least 3 dates to infer frequency')
 
-        self.is_monotonic = (self.index.is_monotonic_increasing or
-                             self.index.is_monotonic_decreasing)
+        self.is_monotonic = (self.index._is_monotonic_increasing or
+                             self.index._is_monotonic_decreasing)
 
     @cache_readonly
     def deltas(self):
@@ -324,16 +291,16 @@ class _FrequencyInferer(object):
     def is_unique_asi8(self):
         return len(self.deltas_asi8) == 1
 
-    def get_freq(self):  # noqa:F811
+    def get_freq(self):
         """
         Find the appropriate frequency string to describe the inferred
         frequency of self.values
 
         Returns
         -------
-        freqstr : str or None
+        str or None
         """
-        if not self.is_monotonic or not self.index.is_unique:
+        if not self.is_monotonic or not self.index._is_unique:
             return None
 
         delta = self.deltas[0]

@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame
 from pandas.errors import PerformanceWarning
+
+from pandas import DataFrame
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal
 

@@ -3,9 +3,8 @@ import os
 from pandas import read_sas
 
 
-class SAS(object):
+class SAS:
 
-    goal_time = 0.2
     params = ['sas7bdat', 'xport']
     param_names = ['format']
 

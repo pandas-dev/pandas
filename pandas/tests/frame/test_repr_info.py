@@ -1,26 +1,21 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 from datetime import datetime, timedelta
+from io import StringIO
 import re
 import sys
 import textwrap
 
-from numpy import nan
 import numpy as np
 import pytest
 
-from pandas import (DataFrame, Series, compat, option_context,
-                    date_range, period_range, Categorical)
-from pandas.compat import StringIO, lrange, u, PYPY
-import pandas.io.formats.format as fmt
-import pandas as pd
+from pandas.compat import PYPY
 
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Series, date_range, option_context, period_range)
+from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
-from pandas.tests.frame.common import TestData
-
+import pandas.io.formats.format as fmt
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
@@ -48,9 +43,9 @@ class TestDataFrameReprInfoEtc(TestData):
         # big mixed
         biggie = DataFrame({'A': np.random.randn(200),
                             'B': tm.makeStringIndex(200)},
-                           index=lrange(200))
-        biggie.loc[:20, 'A'] = nan
-        biggie.loc[:20, 'B'] = nan
+                           index=range(200))
+        biggie.loc[:20, 'A'] = np.nan
+        biggie.loc[:20, 'B'] = np.nan
 
         foo = repr(biggie)  # noqa
 
@@ -93,8 +88,8 @@ class TestDataFrameReprInfoEtc(TestData):
     @pytest.mark.slow
     def test_repr_big(self):
         # big one
-        biggie = DataFrame(np.zeros((200, 4)), columns=lrange(4),
-                           index=lrange(200))
+        biggie = DataFrame(np.zeros((200, 4)), columns=range(4),
+                           index=range(200))
         repr(biggie)
 
     def test_repr_unsortable(self):
@@ -126,7 +121,7 @@ class TestDataFrameReprInfoEtc(TestData):
         warnings.filters = warn_filters
 
     def test_repr_unicode(self):
-        uval = u('\u03c3\u03c3\u03c3\u03c3')
+        uval = '\u03c3\u03c3\u03c3\u03c3'
 
         # TODO(wesm): is this supposed to be used?
         bval = uval.encode('utf-8')  # noqa
@@ -142,19 +137,15 @@ class TestDataFrameReprInfoEtc(TestData):
         assert result.split('\n')[0].rstrip() == ex_top
 
     def test_unicode_string_with_unicode(self):
-        df = DataFrame({'A': [u("\u05d0")]})
+        df = DataFrame({'A': ["\u05d0"]})
+        str(df)
 
-        if compat.PY3:
-            str(df)
-        else:
-            compat.text_type(df)
-
-    def test_bytestring_with_unicode(self):
-        df = DataFrame({'A': [u("\u05d0")]})
-        if compat.PY3:
+    def test_str_to_bytes_raises(self):
+        # GH 26447
+        df = DataFrame({'A': ["abc"]})
+        msg = "^'str' object cannot be interpreted as an integer$"
+        with pytest.raises(TypeError, match=msg):
             bytes(df)
-        else:
-            str(df)
 
     def test_very_wide_info_repr(self):
         df = DataFrame(np.random.randn(10, 20),
@@ -194,7 +185,6 @@ class TestDataFrameReprInfoEtc(TestData):
         # GH 12182
         assert df._repr_latex_() is None
 
-    @tm.capture_stdout
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)
@@ -505,7 +495,7 @@ class TestDataFrameReprInfoEtc(TestData):
         df.info(buf=buf)
 
         df2 = df[df['category'] == 'd']
-        buf = compat.StringIO()
+        buf = StringIO()
         df2.info(buf=buf)
 
     def test_repr_categorical_dates_periods(self):
@@ -514,12 +504,21 @@ class TestDataFrameReprInfoEtc(TestData):
                         tz='US/Eastern')
         p = period_range('2011-01', freq='M', periods=5)
         df = DataFrame({'dt': dt, 'p': p})
-        exp = """                         dt       p
-0 2011-01-01 09:00:00-05:00 2011-01
-1 2011-01-01 10:00:00-05:00 2011-02
-2 2011-01-01 11:00:00-05:00 2011-03
-3 2011-01-01 12:00:00-05:00 2011-04
-4 2011-01-01 13:00:00-05:00 2011-05"""
+        exp = """                         dt        p
+0 2011-01-01 09:00:00-05:00  2011-01
+1 2011-01-01 10:00:00-05:00  2011-02
+2 2011-01-01 11:00:00-05:00  2011-03
+3 2011-01-01 12:00:00-05:00  2011-04
+4 2011-01-01 13:00:00-05:00  2011-05"""
 
         df = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
         assert repr(df) == exp
+
+    @pytest.mark.parametrize('arg', [np.datetime64, np.timedelta64])
+    @pytest.mark.parametrize('box, expected', [
+        [Series, '0    NaT\ndtype: object'],
+        [DataFrame, '     0\n0  NaT']])
+    def test_repr_np_nat_with_object(self, arg, box, expected):
+        # GH 25445
+        result = repr(box([arg('NaT')], dtype=object))
+        assert result == expected

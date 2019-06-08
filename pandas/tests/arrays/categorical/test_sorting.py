@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
+import pytest
 
-import pandas.util.testing as tm
 from pandas import Categorical, Index
+import pandas.util.testing as tm
 
 
-class TestCategoricalSort(object):
+class TestCategoricalSort:
 
     def test_argsort(self):
         c = Categorical([5, 3, 1, 4, 2], ordered=True)
@@ -30,12 +29,12 @@ class TestCategoricalSort(object):
                                     check_dtype=False)
 
         msg = "the 'axis' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.argsort,
-                               c, axis=0)
+        with pytest.raises(ValueError, match=msg):
+            np.argsort(c, axis=0)
 
         msg = "the 'order' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.argsort,
-                               c, order='C')
+        with pytest.raises(ValueError, match=msg):
+            np.argsort(c, order='C')
 
     def test_sort_values(self):
 

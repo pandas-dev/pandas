@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # copyright 2013, y-p @ github
 """
 Search the git history for all commits touching a named method
@@ -11,13 +10,14 @@ files will probably erase them.
 Usage::
     $ ./find_commits_touching_func.py  (see arguments below)
 """
-from __future__ import print_function
 import logging
 import re
 import os
 import argparse
 from collections import namedtuple
-from pandas.compat import lrange, map, string_types, text_type, parse_date
+
+from dateutil.parser import parse
+
 try:
     import sh
 except ImportError:
@@ -31,7 +31,7 @@ argparser = argparse.ArgumentParser(description=desc)
 argparser.add_argument('funcname', metavar='FUNCNAME',
                        help='Name of function/method to search for changes on')
 argparser.add_argument('-f', '--file-masks', metavar='f_re(,f_re)*',
-                       default=["\.py.?$"],
+                       default=[r"\.py.?$"],
                        help='comma separated list of regexes to match '
                        'filenames against\ndefaults all .py? files')
 argparser.add_argument('-d', '--dir-masks', metavar='d_re(,d_re)*',
@@ -80,7 +80,7 @@ def get_hits(defname, files=()):
         try:
             r = sh.git('blame',
                        '-L',
-                       '/def\s*{start}/,/def/'.format(start=defname),
+                       r'/def\s*{start}/,/def/'.format(start=defname),
                        f,
                        _tty_out=False)
         except sh.ErrorReturnCode_128:
@@ -89,7 +89,7 @@ def get_hits(defname, files=()):
 
         lines = r.strip().splitlines()[:-1]
         # remove comment lines
-        lines = [x for x in lines if not re.search("^\w+\s*\(.+\)\s*#", x)]
+        lines = [x for x in lines if not re.search(r"^\w+\s*\(.+\)\s*#", x)]
         hits = set(map(lambda x: x.split(" ")[0], lines))
         cs.update({Hit(commit=c, path=f) for c in hits})
 
@@ -103,12 +103,12 @@ def get_commit_info(c, fmt, sep='\t'):
                "-n",
                "1",
                _tty_out=False)
-    return text_type(r).split(sep)
+    return str(r).split(sep)
 
 
 def get_commit_vitals(c, hlen=HASH_LEN):
     h, s, d = get_commit_info(c, '%H\t%s\t%ci', "\t")
-    return h[:hlen], s, parse_date(d)
+    return h[:hlen], s, parse(d)
 
 
 def file_filter(state, dirname, fnames):
@@ -174,7 +174,7 @@ def pprint_hits(hits):
 
     print(('\nThese commits touched the %s method in these files '
            'on these dates:\n') % args.funcname)
-    for i in sorted(lrange(len(hits)), key=sorter):
+    for i in sorted(range(len(hits)), key=sorter):
         hit = hits[i]
         h, s, d = get_commit_vitals(hit.commit)
         p = hit.path.split(os.path.realpath(os.curdir) + os.path.sep)[-1]
@@ -199,11 +199,11 @@ You must specify the -y argument to ignore this warning.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 """)
         return
-    if isinstance(args.file_masks, string_types):
+    if isinstance(args.file_masks, str):
         args.file_masks = args.file_masks.split(',')
-    if isinstance(args.path_masks, string_types):
+    if isinstance(args.path_masks, str):
         args.path_masks = args.path_masks.split(',')
-    if isinstance(args.dir_masks, string_types):
+    if isinstance(args.dir_masks, str):
         args.dir_masks = args.dir_masks.split(',')
 
     logger.setLevel(getattr(logging, args.debug_level))

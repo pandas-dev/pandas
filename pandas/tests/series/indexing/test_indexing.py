@@ -1,38 +1,42 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 """ test get/set & misc """
-
-import pytest
 
 from datetime import timedelta
 
 import numpy as np
-import pandas as pd
+import pytest
 
 from pandas.core.dtypes.common import is_scalar
-from pandas import (Series, DataFrame, MultiIndex,
-                    Timestamp, Timedelta, Categorical)
-from pandas.tseries.offsets import BDay
 
-from pandas.compat import lrange, range
-
-from pandas.util.testing import (assert_series_equal)
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, MultiIndex, Series, Timedelta, Timestamp)
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
+
+from pandas.tseries.offsets import BDay
 
 
 def test_basic_indexing():
     s = Series(np.random.randn(5), index=['a', 'b', 'a', 'a', 'b'])
 
-    pytest.raises(IndexError, s.__getitem__, 5)
-    pytest.raises(IndexError, s.__setitem__, 5, 0)
+    msg = "index out of bounds"
+    with pytest.raises(IndexError, match=msg):
+        s[5]
+    msg = "index 5 is out of bounds for axis 0 with size 5"
+    with pytest.raises(IndexError, match=msg):
+        s[5] = 0
 
-    pytest.raises(KeyError, s.__getitem__, 'c')
+    with pytest.raises(KeyError, match=r"^'c'$"):
+        s['c']
 
     s = s.sort_index()
 
-    pytest.raises(IndexError, s.__getitem__, 5)
-    pytest.raises(IndexError, s.__setitem__, 5, 0)
+    msg = r"index out of bounds|^5$"
+    with pytest.raises(IndexError, match=msg):
+        s[5]
+    msg = r"index 5 is out of bounds for axis (0|1) with size 5|^5$"
+    with pytest.raises(IndexError, match=msg):
+        s[5] = 0
 
 
 def test_basic_getitem_with_labels(test_data):
@@ -47,7 +51,7 @@ def test_basic_getitem_with_labels(test_data):
     assert_series_equal(result, expected)
 
     # integer indexes, be careful
-    s = Series(np.random.randn(10), index=lrange(0, 20, 2))
+    s = Series(np.random.randn(10), index=list(range(0, 20, 2)))
     inds = [0, 2, 5, 7, 8]
     arr_inds = np.array([0, 2, 5, 7, 8])
     with tm.assert_produces_warning(FutureWarning,
@@ -105,7 +109,9 @@ def test_getitem_get(test_data):
 
     # missing
     d = test_data.ts.index[0] - BDay()
-    pytest.raises(KeyError, test_data.ts.__getitem__, d)
+    msg = r"Timestamp\('1999-12-31 00:00:00', freq='B'\)"
+    with pytest.raises(KeyError, match=msg):
+        test_data.ts[d]
 
     # None
     # GH 5652
@@ -166,11 +172,14 @@ def test_getitem_with_duplicates_indices(
 
 def test_getitem_out_of_bounds(test_data):
     # don't segfault, GH #495
-    pytest.raises(IndexError, test_data.ts.__getitem__, len(test_data.ts))
+    msg = "index out of bounds"
+    with pytest.raises(IndexError, match=msg):
+        test_data.ts[len(test_data.ts)]
 
     # GH #917
     s = Series([])
-    pytest.raises(IndexError, s.__getitem__, -1)
+    with pytest.raises(IndexError, match=msg):
+        s[-1]
 
 
 def test_getitem_setitem_integers():
@@ -244,13 +253,15 @@ def test_series_box_timestamp():
 
 
 def test_getitem_ambiguous_keyerror():
-    s = Series(lrange(10), index=lrange(0, 20, 2))
-    pytest.raises(KeyError, s.__getitem__, 1)
-    pytest.raises(KeyError, s.loc.__getitem__, 1)
+    s = Series(range(10), index=list(range(0, 20, 2)))
+    with pytest.raises(KeyError, match=r"^1$"):
+        s[1]
+    with pytest.raises(KeyError, match=r"^1$"):
+        s.loc[1]
 
 
 def test_getitem_unordered_dup():
-    obj = Series(lrange(5), index=['c', 'a', 'a', 'b', 'b'])
+    obj = Series(range(5), index=['c', 'a', 'a', 'b', 'b'])
     assert is_scalar(obj['c'])
     assert obj['c'] == 0
 
@@ -277,7 +288,7 @@ def test_getitem_dups():
 
 
 def test_setitem_ambiguous_keyerror():
-    s = Series(lrange(10), index=lrange(0, 20, 2))
+    s = Series(range(10), index=list(range(0, 20, 2)))
 
     # equivalent of an append
     s2 = s.copy()
@@ -295,7 +306,10 @@ def test_getitem_dataframe():
     rng = list(range(10))
     s = pd.Series(10, index=rng)
     df = pd.DataFrame(rng, index=rng)
-    pytest.raises(TypeError, s.__getitem__, df > 5)
+    msg = ("Indexing a Series with DataFrame is not supported,"
+           " use the appropriate DataFrame column")
+    with pytest.raises(TypeError, match=msg):
+        s[df > 5]
 
 
 def test_setitem(test_data):
@@ -387,16 +401,17 @@ def test_set_value(test_data):
 def test_setslice(test_data):
     sl = test_data.ts[5:20]
     assert len(sl) == len(sl.index)
-    assert sl.index.is_unique
+    assert sl.index.is_unique is True
 
 
 # FutureWarning from NumPy about [slice(None, 5).
 @pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
 def test_basic_getitem_setitem_corner(test_data):
     # invalid tuples, e.g. td.ts[:, None] vs. td.ts[:, 2]
-    with tm.assert_raises_regex(ValueError, 'tuple-index'):
+    msg = "Can only tuple-index with a MultiIndex"
+    with pytest.raises(ValueError, match=msg):
         test_data.ts[:, 2]
-    with tm.assert_raises_regex(ValueError, 'tuple-index'):
+    with pytest.raises(ValueError, match=msg):
         test_data.ts[:, 2] = 2
 
     # weird lists. [slice(0, 5)] will work but not two slices
@@ -405,10 +420,11 @@ def test_basic_getitem_setitem_corner(test_data):
     assert_series_equal(result, expected)
 
     # OK
-    pytest.raises(Exception, test_data.ts.__getitem__,
-                  [5, slice(None, None)])
-    pytest.raises(Exception, test_data.ts.__setitem__,
-                  [5, slice(None, None)], 2)
+    msg = r"unhashable type(: 'slice')?"
+    with pytest.raises(TypeError, match=msg):
+        test_data.ts[[5, slice(None, None)]]
+    with pytest.raises(TypeError, match=msg):
+        test_data.ts[[5, slice(None, None)]] = 2
 
 
 @pytest.mark.parametrize('tz', ['US/Eastern', 'UTC', 'Asia/Tokyo'])
@@ -558,7 +574,7 @@ def test_slice_can_reorder_not_uniquely_indexed():
     s[::-1]  # it works!
 
 
-def test_ix_setitem(test_data):
+def test_loc_setitem(test_data):
     inds = test_data.series.index[[3, 4, 7]]
 
     result = test_data.series.copy()
@@ -711,8 +727,8 @@ def test_type_promote_putmask():
 def test_multilevel_preserve_name():
     index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                               'three']],
-                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                        names=['first', 'second'])
     s = Series(np.random.randn(len(index)), index=index, name='sth')
 
@@ -730,7 +746,8 @@ def test_setitem_scalar_into_readonly_backing_data():
     series = Series(array)
 
     for n in range(len(series)):
-        with pytest.raises(ValueError):
+        msg = "assignment destination is read-only"
+        with pytest.raises(ValueError, match=msg):
             series[n] = 1
 
         assert array[n] == 0
@@ -743,7 +760,8 @@ def test_setitem_slice_into_readonly_backing_data():
     array.flags.writeable = False  # make the array immutable
     series = Series(array)
 
-    with pytest.raises(ValueError):
+    msg = "assignment destination is read-only"
+    with pytest.raises(ValueError, match=msg):
         series[1:3] = 1
 
     assert not array.any()
@@ -752,20 +770,6 @@ def test_setitem_slice_into_readonly_backing_data():
 """
 miscellaneous methods
 """
-
-
-def test_select(test_data):
-    # deprecated: gh-12410
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        n = len(test_data.ts)
-        result = test_data.ts.select(lambda x: x >= test_data.ts.index[n // 2])
-        expected = test_data.ts.reindex(test_data.ts.index[n // 2:])
-        assert_series_equal(result, expected)
-
-        result = test_data.ts.select(lambda x: x.weekday() == 2)
-        expected = test_data.ts[test_data.ts.index.weekday == 2]
-        assert_series_equal(result, expected)
 
 
 def test_pop():
@@ -791,8 +795,11 @@ def test_take():
     expected = Series([4, 2, 4], index=[4, 3, 4])
     tm.assert_series_equal(actual, expected)
 
-    pytest.raises(IndexError, s.take, [1, 10])
-    pytest.raises(IndexError, s.take, [2, 5])
+    msg = "index {} is out of bounds for size 5"
+    with pytest.raises(IndexError, match=msg.format(10)):
+        s.take([1, 10])
+    with pytest.raises(IndexError, match=msg.format(5)):
+        s.take([2, 5])
 
     with tm.assert_produces_warning(FutureWarning):
         s.take([-1, 3, 4], convert=False)

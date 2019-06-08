@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
-
 import cython
-from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t, int32_t, ndarray
+from numpy cimport int64_t, int32_t, intp_t, ndarray
 cnp.import_array()
 
 import pytz
@@ -14,45 +11,46 @@ import pytz
 from datetime import time as datetime_time
 from cpython.datetime cimport (datetime, tzinfo,
                                PyDateTime_Check, PyDate_Check,
-                               PyDateTime_CheckExact, PyDateTime_IMPORT)
+                               PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from np_datetime cimport (check_dts_bounds,
-                          npy_datetimestruct,
-                          pandas_datetime_to_datetimestruct, _string_to_dts,
-                          npy_datetime,
-                          dt64_to_dtstruct, dtstruct_to_dt64,
-                          get_datetime64_unit, get_datetime64_value,
-                          pydatetime_to_dt64, NPY_DATETIMEUNIT, NPY_FR_ns)
-from np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
-from util cimport (is_string_object,
-                   is_datetime64_object,
-                   is_integer_object, is_float_object, is_array)
+from pandas._libs.tslibs.np_datetime cimport (
+    check_dts_bounds, npy_datetimestruct, pandas_datetime_to_datetimestruct,
+    _string_to_dts, npy_datetime, dt64_to_dtstruct, dtstruct_to_dt64,
+    get_datetime64_unit, get_datetime64_value, pydatetime_to_dt64,
+    NPY_DATETIMEUNIT, NPY_FR_ns)
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
-from timedeltas cimport cast_from_unit
-from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
-                        treat_tz_as_dateutil, treat_tz_as_pytz,
-                        get_utcoffset, get_dst_info,
-                        get_timezone, maybe_get_tz, tz_compare)
-from parsing import parse_datetime_string
+from pandas._libs.tslibs.util cimport (
+    is_datetime64_object, is_integer_object, is_float_object)
 
-from nattype import nat_strings, NaT
-from nattype cimport NPY_NAT, checknull_with_nat
+from pandas._libs.tslibs.timedeltas cimport cast_from_unit
+from pandas._libs.tslibs.timezones cimport (
+    is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
+    get_timezone, maybe_get_tz, tz_compare)
+from pandas._libs.tslibs.timezones import UTC
+from pandas._libs.tslibs.parsing import parse_datetime_string
+
+from pandas._libs.tslibs.nattype import nat_strings
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT, checknull_with_nat, c_NaT as NaT)
+
+from pandas._libs.tslibs.tzconversion import (
+    tz_localize_to_utc, tz_convert_single)
+from pandas._libs.tslibs.tzconversion cimport _tz_convert_tzlocal_utc
 
 # ----------------------------------------------------------------------
 # Constants
 
-cdef int64_t DAY_NS = 86400000000000LL
 NS_DTYPE = np.dtype('M8[ns]')
 TD_DTYPE = np.dtype('m8[ns]')
 
-UTC = pytz.UTC
 
 # ----------------------------------------------------------------------
 # Misc Helpers
 
-# TODO: How to declare np.datetime64 as the input type?
 cdef inline int64_t get_datetime64_nanos(object val) except? -1:
     """
     Extract the value and unit from a np.datetime64 object, then convert the
@@ -63,8 +61,11 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
         NPY_DATETIMEUNIT unit
         npy_datetime ival
 
-    unit = get_datetime64_unit(val)
     ival = get_datetime64_value(val)
+    if ival == NPY_NAT:
+        return NPY_NAT
+
+    unit = get_datetime64_unit(val)
 
     if unit != NPY_FR_ns:
         pandas_datetime_to_datetimestruct(ival, unit, &dts)
@@ -74,7 +75,9 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
     return ival
 
 
-def ensure_datetime64ns(ndarray arr, copy=True):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def ensure_datetime64ns(arr: ndarray, copy: bool=True):
     """
     Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
 
@@ -94,14 +97,17 @@ def ensure_datetime64ns(ndarray arr, copy=True):
         NPY_DATETIMEUNIT unit
         npy_datetimestruct dts
 
-    shape = (<object> arr).shape
+    shape = (<object>arr).shape
 
     ivalues = arr.view(np.int64).ravel()
 
-    result = np.empty(shape, dtype='M8[ns]')
+    result = np.empty(shape, dtype=NS_DTYPE)
     iresult = result.ravel().view(np.int64)
 
     if len(iresult) == 0:
+        result = arr.view(NS_DTYPE)
+        if copy:
+            result = result.copy()
         return result
 
     unit = get_datetime64_unit(arr.flat[0])
@@ -121,7 +127,7 @@ def ensure_datetime64ns(ndarray arr, copy=True):
     return result
 
 
-def ensure_timedelta64ns(ndarray arr, copy=True):
+def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
     """
     Ensure a np.timedelta64 array has dtype specifically 'timedelta64[ns]'
 
@@ -136,8 +142,11 @@ def ensure_timedelta64ns(ndarray arr, copy=True):
 
     """
     return arr.astype(TD_DTYPE, copy=copy)
+    # TODO: check for overflows when going from a lower-resolution to nanos
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def datetime_to_datetime64(object[:] values):
     """
     Convert ndarray of datetime-like objects to int64 array representing
@@ -145,11 +154,11 @@ def datetime_to_datetime64(object[:] values):
 
     Parameters
     ----------
-    values : ndarray
+    values : ndarray[object]
 
     Returns
     -------
-    result : ndarray with dtype int64
+    result : ndarray[int64_t]
     inferred_tz : tzinfo or None
     """
     cdef:
@@ -158,6 +167,7 @@ def datetime_to_datetime64(object[:] values):
         int64_t[:] iresult
         npy_datetimestruct dts
         _TSObject _ts
+        bint found_naive = False
 
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
@@ -167,6 +177,9 @@ def datetime_to_datetime64(object[:] values):
             iresult[i] = NPY_NAT
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
+                if found_naive:
+                    raise ValueError('Cannot mix tz-aware with '
+                                     'tz-naive values')
                 if inferred_tz is not None:
                     if not tz_compare(val.tzinfo, inferred_tz):
                         raise ValueError('Array must be all same time zone')
@@ -177,6 +190,7 @@ def datetime_to_datetime64(object[:] values):
                 iresult[i] = _ts.value
                 check_dts_bounds(&_ts.dts)
             else:
+                found_naive = True
                 if inferred_tz is not None:
                     raise ValueError('Cannot mix tz-aware with '
                                      'tz-naive values')
@@ -225,6 +239,7 @@ cdef class _TSObject:
 
     @property
     def value(self):
+        # This is needed in order for `value` to be accessible in lib.pyx
         return self.value
 
 
@@ -269,16 +284,14 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
 
     obj = _TSObject()
 
-    if is_string_object(ts):
+    if isinstance(ts, str):
         return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
     if ts is None or ts is NaT:
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
-        if ts.view('i8') == NPY_NAT:
-            obj.value = NPY_NAT
-        else:
-            obj.value = get_datetime64_nanos(ts)
+        obj.value = get_datetime64_nanos(ts)
+        if obj.value != NPY_NAT:
             dt64_to_dtstruct(obj.value, &obj.dts)
     elif is_integer_object(ts):
         if ts == NPY_NAT:
@@ -357,7 +370,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         else:
             # UTC
             obj.value = pydatetime_to_dt64(ts, &obj.dts)
-            obj.tzinfo = pytz.utc
+            obj.tzinfo = tz
     else:
         obj.value = pydatetime_to_dt64(ts, &obj.dts)
         obj.tzinfo = ts.tzinfo
@@ -366,8 +379,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         offset = get_utcoffset(obj.tzinfo, ts)
         obj.value -= int(offset.total_seconds() * 1e9)
 
-    if not PyDateTime_CheckExact(ts):
-        # datetime instance but not datetime type --> Timestamp
+    if isinstance(ts, _Timestamp):
         obj.value += ts.nanosecond
         obj.dts.ps = ts.nanosecond * 1000
 
@@ -377,6 +389,45 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
 
     check_dts_bounds(&obj.dts)
     check_overflows(obj)
+    return obj
+
+
+cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
+                                               int tzoffset, object tz=None):
+    """
+    Convert a datetimestruct `dts`, along with initial timezone offset
+    `tzoffset` to a _TSObject (with timezone object `tz` - optional).
+
+    Parameters
+    ----------
+    dts: npy_datetimestruct
+    tzoffset: int
+    tz : tzinfo or None
+        timezone for the timezone-aware output.
+
+    Returns
+    -------
+    obj : _TSObject
+    """
+    cdef:
+        _TSObject obj = _TSObject()
+        int64_t value  # numpy dt64
+        datetime dt
+
+    value = dtstruct_to_dt64(&dts)
+    obj.dts = dts
+    obj.tzinfo = pytz.FixedOffset(tzoffset)
+    obj.value = tz_convert_single(value, obj.tzinfo, UTC)
+    if tz is None:
+        check_overflows(obj)
+        return obj
+
+    # Keep the converter same as PyDateTime's
+    dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
+                  obj.dts.hour, obj.dts.min, obj.dts.sec,
+                  obj.dts.us, obj.tzinfo)
+    obj = convert_datetime_to_tsobject(
+        dt, tz, nanos=obj.dts.ps // 1000)
     return obj
 
 
@@ -408,16 +459,14 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
     obj : _TSObject
     """
     cdef:
-        _TSObject obj
+        npy_datetimestruct dts
         int out_local = 0, out_tzoffset = 0
-        datetime dt
+        bint do_parse_datetime_string = False
 
     if tz is not None:
         tz = maybe_get_tz(tz)
 
-    obj = _TSObject()
-
-    assert is_string_object(ts)
+    assert isinstance(ts, str)
 
     if len(ts) == 0 or ts in nat_strings:
         ts = NaT
@@ -431,35 +480,22 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
         ts = datetime.now(tz)
         # equiv: datetime.today().replace(tzinfo=tz)
     else:
+        string_to_dts_failed = _string_to_dts(
+            ts, &dts, &out_local,
+            &out_tzoffset, False
+        )
         try:
-            _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
-            obj.value = dtstruct_to_dt64(&obj.dts)
-            check_dts_bounds(&obj.dts)
-            if out_local == 1:
-                obj.tzinfo = pytz.FixedOffset(out_tzoffset)
-                obj.value = tz_convert_single(obj.value, obj.tzinfo, 'UTC')
-                if tz is None:
-                    check_dts_bounds(&obj.dts)
-                    check_overflows(obj)
-                    return obj
+            if not string_to_dts_failed:
+                check_dts_bounds(&dts)
+                if out_local == 1:
+                    return create_tsobject_tz_using_offset(dts,
+                                                           out_tzoffset, tz)
                 else:
-                    # Keep the converter same as PyDateTime's
-                    obj = convert_to_tsobject(obj.value, obj.tzinfo,
-                                              None, 0, 0)
-                    dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
-                                  obj.dts.hour, obj.dts.min, obj.dts.sec,
-                                  obj.dts.us, obj.tzinfo)
-                    obj = convert_datetime_to_tsobject(dt, tz,
-                                                       nanos=obj.dts.ps / 1000)
-                    return obj
-
-            else:
-                ts = obj.value
-                if tz is not None:
-                    # shift for localize_tso
-                    ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
-                                            ambiguous='raise',
-                                            errors='raise')[0]
+                    ts = dtstruct_to_dt64(&dts)
+                    if tz is not None:
+                        # shift for localize_tso
+                        ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
+                                                ambiguous='raise')[0]
 
         except OutOfBoundsDatetime:
             # GH#19382 for just-barely-OutOfBounds falling back to dateutil
@@ -468,6 +504,9 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
             raise
 
         except ValueError:
+            do_parse_datetime_string = True
+
+        if string_to_dts_failed or do_parse_datetime_string:
             try:
                 ts = parse_datetime_string(ts, dayfirst=dayfirst,
                                            yearfirst=yearfirst)
@@ -528,6 +567,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
         int64_t[:] deltas
         int64_t local_val
         Py_ssize_t pos
+        str typ
 
     assert obj.tzinfo is None
 
@@ -572,8 +612,6 @@ cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
         identically, i.e. discards nanos from Timestamps.
         It also assumes that the `tz` input is not None.
     """
-    if tz == 'UTC' or tz is UTC:
-        return UTC.localize(dt)
     try:
         # datetime.replace with pytz may be incorrect result
         return tz.localize(dt)
@@ -596,11 +634,10 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
     """
     if tz is None:
         return dt
-    elif not PyDateTime_CheckExact(dt):
-        # i.e. is a Timestamp
+    elif isinstance(dt, _Timestamp):
         return dt.tz_localize(tz)
-    elif tz == 'UTC' or tz is UTC:
-        return UTC.localize(dt)
+    elif is_utc(tz):
+        return _localize_pydatetime(dt, tz)
     try:
         # datetime.replace with pytz may be incorrect result
         return tz.localize(dt)
@@ -609,435 +646,10 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
 
 
 # ----------------------------------------------------------------------
-# Timezone Conversion
-
-cdef inline int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
-                                       bint to_utc=True):
-    """
-    tz_convert for non-UTC non-tzlocal cases where we have to check
-    DST transitions pointwise.
-
-    Parameters
-    ----------
-    values : ndarray[int64_t]
-    tz : tzinfo
-    to_utc : bool
-        True if converting _to_ UTC, False if converting _from_ utc
-
-    Returns
-    -------
-    result : ndarray[int64_t]
-    """
-    cdef:
-        Py_ssize_t n = len(values)
-        Py_ssize_t i, pos
-        int64_t[:] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans
-        int64_t[:] deltas
-        int64_t v
-
-    trans, deltas, typ = get_dst_info(tz)
-    if not to_utc:
-        # We add `offset` below instead of subtracting it
-        deltas = -1 * np.array(deltas, dtype='i8')
-
-    for i in range(n):
-        v = values[i]
-        if v == NPY_NAT:
-            result[i] = v
-        else:
-            # TODO: Is it more efficient to call searchsorted pointwise or
-            # on `values` outside the loop?  We are not consistent about this.
-            # relative effiency of pointwise increases with number of iNaTs
-            pos = trans.searchsorted(v, side='right') - 1
-            if pos < 0:
-                raise ValueError('First time before start of DST info')
-            result[i] = v - deltas[pos]
-
-    return result
-
-
-cdef inline int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz,
-                                            bint to_utc=True):
-    """
-    Convert the i8 representation of a datetime from a tzlocal timezone to
-    UTC, or vice-versa.
-
-    Private, not intended for use outside of tslibs.conversion
-
-    Parameters
-    ----------
-    val : int64_t
-    tz : tzinfo
-    to_utc : bint
-        True if converting tzlocal _to_ UTC, False if going the other direction
-
-    Returns
-    -------
-    result : int64_t
-    """
-    cdef:
-        npy_datetimestruct dts
-        int64_t result, delta
-        datetime dt
-
-    dt64_to_dtstruct(val, &dts)
-    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                  dts.min, dts.sec, dts.us, tz)
-    delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-
-    if not to_utc:
-        return val + delta
-    return val - delta
-
-
-cdef inline int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz):
-    """
-    Parameters
-    ----------
-    utc_val : int64_t
-    tz : tzinfo
-
-    Returns
-    -------
-    local_val : int64_t
-    """
-    return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False)
-
-
-cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
-    """
-    Convert the val (in i8) from timezone1 to timezone2
-
-    This is a single timezone version of tz_convert
-
-    Parameters
-    ----------
-    val : int64
-    tz1 : string / timezone object
-    tz2 : string / timezone object
-
-    Returns
-    -------
-    converted: int64
-    """
-    cdef:
-        int64_t[:] deltas
-        Py_ssize_t pos
-        int64_t v, offset, utc_date
-        npy_datetimestruct dts
-        int64_t arr[1]
-
-    # See GH#17734 We should always be converting either from UTC or to UTC
-    assert (is_utc(tz1) or tz1 == 'UTC') or (is_utc(tz2) or tz2 == 'UTC')
-
-    if val == NPY_NAT:
-        return val
-
-    # Convert to UTC
-    if is_tzlocal(tz1):
-        utc_date = _tz_convert_tzlocal_utc(val, tz1, to_utc=True)
-    elif get_timezone(tz1) != 'UTC':
-        arr[0] = val
-        utc_date = _tz_convert_dst(arr, tz1, to_utc=True)[0]
-    else:
-        utc_date = val
-
-    if get_timezone(tz2) == 'UTC':
-        return utc_date
-    elif is_tzlocal(tz2):
-        return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
-    else:
-        # Convert UTC to other timezone
-        arr[0] = utc_date
-        # Note: at least with cython 0.28.3, doing a lookup `[0]` in the next
-        # line is sensitive to the declared return type of _tz_convert_dst;
-        # if it is declared as returning ndarray[int64_t], a compile-time error
-        # is raised.
-        return _tz_convert_dst(arr, tz2, to_utc=False)[0]
-
-
-cdef inline int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz,
-                                           bint to_utc):
-    """
-    Convert the given values (in i8) either to UTC or from UTC.
-
-    Parameters
-    ----------
-    vals : int64 ndarray
-    tz1 : string / timezone object
-    to_utc : bint
-
-    Returns
-    -------
-    converted : ndarray[int64_t]
-    """
-    cdef:
-        int64_t[:] converted, result
-        Py_ssize_t i, n = len(vals)
-        int64_t val
-
-    if get_timezone(tz) != 'UTC':
-        converted = np.empty(n, dtype=np.int64)
-        if is_tzlocal(tz):
-            for i in range(n):
-                val = vals[i]
-                if val == NPY_NAT:
-                    converted[i] = NPY_NAT
-                else:
-                    converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc)
-        else:
-            converted = _tz_convert_dst(vals, tz, to_utc)
-    else:
-        converted = vals
-
-    return converted
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def tz_convert(int64_t[:] vals, object tz1, object tz2):
-    """
-    Convert the values (in i8) from timezone1 to timezone2
-
-    Parameters
-    ----------
-    vals : int64 ndarray
-    tz1 : string / timezone object
-    tz2 : string / timezone object
-
-    Returns
-    -------
-    int64 ndarray of converted
-    """
-    cdef:
-        int64_t[:] utc_dates, converted
-
-    if len(vals) == 0:
-        return np.array([], dtype=np.int64)
-
-    # Convert to UTC
-    utc_dates = _tz_convert_one_way(vals, tz1, to_utc=True)
-    converted = _tz_convert_one_way(utc_dates, tz2, to_utc=False)
-    return np.array(converted, dtype=np.int64)
-
-
-# TODO: cdef scalar version to call from convert_str_to_tsobject
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
-                       object errors='raise'):
-    """
-    Localize tzinfo-naive i8 to given time zone (using pytz). If
-    there are ambiguities in the values, raise AmbiguousTimeError.
-
-    Parameters
-    ----------
-    vals : ndarray[int64_t]
-    tz : tzinfo or None
-    ambiguous : str, bool, or arraylike
-        If arraylike, must have the same length as vals
-    errors : {"raise", "coerce"}, default "raise"
-
-    Returns
-    -------
-    localized : ndarray[int64_t]
-    """
-    cdef:
-        ndarray[int64_t] trans
-        int64_t[:] deltas, idx_shifted
-        ndarray ambiguous_array
-        Py_ssize_t i, idx, pos, ntrans, n = len(vals)
-        int64_t *tdata
-        int64_t v, left, right
-        ndarray[int64_t] result, result_a, result_b, dst_hours
-        npy_datetimestruct dts
-        bint infer_dst = False, is_dst = False, fill = False
-        bint is_coerce = errors == 'coerce', is_raise = errors == 'raise'
-
-    # Vectorized version of DstTzInfo.localize
-
-    assert is_coerce or is_raise
-
-    if tz == UTC or tz is None:
-        return vals
-
-    result = np.empty(n, dtype=np.int64)
-
-    if is_tzlocal(tz):
-        for i in range(n):
-            v = vals[i]
-            result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=True)
-        return result
-
-    if is_string_object(ambiguous):
-        if ambiguous == 'infer':
-            infer_dst = True
-        elif ambiguous == 'NaT':
-            fill = True
-    elif isinstance(ambiguous, bool):
-        is_dst = True
-        if ambiguous:
-            ambiguous_array = np.ones(len(vals), dtype=bool)
-        else:
-            ambiguous_array = np.zeros(len(vals), dtype=bool)
-    elif hasattr(ambiguous, '__iter__'):
-        is_dst = True
-        if len(ambiguous) != len(vals):
-            raise ValueError("Length of ambiguous bool-array must be "
-                             "the same size as vals")
-        ambiguous_array = np.asarray(ambiguous)
-
-    trans, deltas, typ = get_dst_info(tz)
-
-    tdata = <int64_t*> cnp.PyArray_DATA(trans)
-    ntrans = len(trans)
-
-    result_a = np.empty(n, dtype=np.int64)
-    result_b = np.empty(n, dtype=np.int64)
-    result_a.fill(NPY_NAT)
-    result_b.fill(NPY_NAT)
-
-    # left side
-    idx_shifted = (np.maximum(0, trans.searchsorted(
-        vals - DAY_NS, side='right') - 1)).astype(np.int64)
-
-    for i in range(n):
-        v = vals[i] - deltas[idx_shifted[i]]
-        pos = bisect_right_i8(tdata, v, ntrans) - 1
-
-        # timestamp falls to the left side of the DST transition
-        if v + deltas[pos] == vals[i]:
-            result_a[i] = v
-
-    # right side
-    idx_shifted = (np.maximum(0, trans.searchsorted(
-        vals + DAY_NS, side='right') - 1)).astype(np.int64)
-
-    for i in range(n):
-        v = vals[i] - deltas[idx_shifted[i]]
-        pos = bisect_right_i8(tdata, v, ntrans) - 1
-
-        # timestamp falls to the right side of the DST transition
-        if v + deltas[pos] == vals[i]:
-            result_b[i] = v
-
-    if infer_dst:
-        dst_hours = np.empty(n, dtype=np.int64)
-        dst_hours.fill(NPY_NAT)
-
-        # Get the ambiguous hours (given the above, these are the hours
-        # where result_a != result_b and neither of them are NAT)
-        both_nat = np.logical_and(result_a != NPY_NAT, result_b != NPY_NAT)
-        both_eq = result_a == result_b
-        trans_idx = np.squeeze(np.nonzero(np.logical_and(both_nat, ~both_eq)))
-        if trans_idx.size == 1:
-            stamp = _render_tstamp(vals[trans_idx])
-            raise pytz.AmbiguousTimeError(
-                "Cannot infer dst time from %s as there "
-                "are no repeated times" % stamp)
-        # Split the array into contiguous chunks (where the difference between
-        # indices is 1).  These are effectively dst transitions in different
-        # years which is useful for checking that there is not an ambiguous
-        # transition in an individual year.
-        if trans_idx.size > 0:
-            one_diff = np.where(np.diff(trans_idx) != 1)[0] +1
-            trans_grp = np.array_split(trans_idx, one_diff)
-
-            # Iterate through each day, if there are no hours where the
-            # delta is negative (indicates a repeat of hour) the switch
-            # cannot be inferred
-            for grp in trans_grp:
-
-                delta = np.diff(result_a[grp])
-                if grp.size == 1 or np.all(delta > 0):
-                    stamp = _render_tstamp(vals[grp[0]])
-                    raise pytz.AmbiguousTimeError(stamp)
-
-                # Find the index for the switch and pull from a for dst and b
-                # for standard
-                switch_idx = (delta <= 0).nonzero()[0]
-                if switch_idx.size > 1:
-                    raise pytz.AmbiguousTimeError(
-                        "There are %i dst switches when "
-                        "there should only be 1." % switch_idx.size)
-                switch_idx = switch_idx[0] + 1
-                # Pull the only index and adjust
-                a_idx = grp[:switch_idx]
-                b_idx = grp[switch_idx:]
-                dst_hours[grp] = np.hstack((result_a[a_idx], result_b[b_idx]))
-
-    for i in range(n):
-        left = result_a[i]
-        right = result_b[i]
-        if vals[i] == NPY_NAT:
-            result[i] = vals[i]
-        elif left != NPY_NAT and right != NPY_NAT:
-            if left == right:
-                result[i] = left
-            else:
-                if infer_dst and dst_hours[i] != NPY_NAT:
-                    result[i] = dst_hours[i]
-                elif is_dst:
-                    if ambiguous_array[i]:
-                        result[i] = left
-                    else:
-                        result[i] = right
-                elif fill:
-                    result[i] = NPY_NAT
-                else:
-                    stamp = _render_tstamp(vals[i])
-                    raise pytz.AmbiguousTimeError(
-                        "Cannot infer dst time from %r, try using the "
-                        "'ambiguous' argument" % stamp)
-        elif left != NPY_NAT:
-            result[i] = left
-        elif right != NPY_NAT:
-            result[i] = right
-        else:
-            if is_coerce:
-                result[i] = NPY_NAT
-            else:
-                stamp = _render_tstamp(vals[i])
-                raise pytz.NonExistentTimeError(stamp)
-
-    return result
-
-
-cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
-    cdef Py_ssize_t pivot, left = 0, right = n
-
-    assert n >= 1
-
-    # edge cases
-    if val > data[n - 1]:
-        return n
-
-    if val < data[0]:
-        return 0
-
-    while left < right:
-        pivot = left + (right - left) // 2
-
-        if data[pivot] <= val:
-            left = pivot + 1
-        else:
-            right = pivot
-
-    return left
-
-
-cdef inline str _render_tstamp(int64_t val):
-    """ Helper function to render exception messages"""
-    from timestamps import Timestamp
-    return str(Timestamp(val))
-
-
-# ----------------------------------------------------------------------
 # Normalization
 
 
-def normalize_date(object dt):
+def normalize_date(dt: object) -> datetime:
     """
     Normalize datetime.datetime value to midnight. Returns datetime.date as a
     datetime.datetime at midnight
@@ -1055,8 +667,7 @@ def normalize_date(object dt):
     TypeError : if input is not datetime.date, datetime.datetime, or Timestamp
     """
     if PyDateTime_Check(dt):
-        if not PyDateTime_CheckExact(dt):
-            # i.e. a Timestamp object
+        if isinstance(dt, _Timestamp):
             return dt.replace(hour=0, minute=0, second=0, microsecond=0,
                               nanosecond=0)
         else:
@@ -1071,48 +682,11 @@ def normalize_date(object dt):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def normalize_i8_timestamps(int64_t[:] stamps, tz=None):
+def normalize_i8_timestamps(int64_t[:] stamps, object tz):
     """
-    Normalize each of the (nanosecond) timestamps in the given array by
-    rounding down to the beginning of the day (i.e. midnight).  If `tz`
-    is not None, then this is midnight for this timezone.
-
-    Parameters
-    ----------
-    stamps : int64 ndarray
-    tz : tzinfo or None
-
-    Returns
-    -------
-    result : int64 ndarray of converted of normalized nanosecond timestamps
-    """
-    cdef:
-        Py_ssize_t i, n = len(stamps)
-        npy_datetimestruct dts
-        int64_t[:] result = np.empty(n, dtype=np.int64)
-
-    if tz is not None:
-        tz = maybe_get_tz(tz)
-        result = _normalize_local(stamps, tz)
-    else:
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = _normalized_stamp(&dts)
-
-    return result.base  # .base to access underlying np.ndarray
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef int64_t[:] _normalize_local(int64_t[:] stamps, object tz):
-    """
-    Normalize each of the (nanosecond) timestamps in the given array by
-    rounding down to the beginning of the day (i.e. midnight) for the
-    given timezone `tz`.
+    Normalize each of the (nanosecond) timezone aware timestamps in the given
+    array by rounding down to the beginning of the day (i.e. midnight).
+    This is midnight for timezone, `tz`.
 
     Parameters
     ----------
@@ -1126,21 +700,40 @@ cdef int64_t[:] _normalize_local(int64_t[:] stamps, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
+
+    result = _normalize_local(stamps, tz)
+
+    return result.base  # .base to access underlying np.ndarray
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef int64_t[:] _normalize_local(int64_t[:] stamps, tzinfo tz):
+    """
+    Normalize each of the (nanosecond) timestamps in the given array by
+    rounding down to the beginning of the day (i.e. midnight) for the
+    given timezone `tz`.
+
+    Parameters
+    ----------
+    stamps : int64 ndarray
+    tz : tzinfo
+
+    Returns
+    -------
+    result : int64 ndarray of converted of normalized nanosecond timestamps
+    """
+    cdef:
+        Py_ssize_t i, n = len(stamps)
+        int64_t[:] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans
         int64_t[:] deltas
+        str typ
         Py_ssize_t[:] pos
         npy_datetimestruct dts
-        int64_t delta
+        int64_t delta, local_val
 
-    if is_utc(tz):
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = _normalized_stamp(&dts)
-    elif is_tzlocal(tz):
+    if is_tzlocal(tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
@@ -1193,7 +786,9 @@ cdef inline int64_t _normalized_stamp(npy_datetimestruct *dts) nogil:
     return dtstruct_to_dt64(dts)
 
 
-def is_date_array_normalized(int64_t[:] stamps, tz=None):
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def is_date_array_normalized(int64_t[:] stamps, object tz=None):
     """
     Check if all of the given (nanosecond) timestamps are normalized to
     midnight, i.e. hour == minute == second == 0.  If the optional timezone
@@ -1209,11 +804,13 @@ def is_date_array_normalized(int64_t[:] stamps, tz=None):
     is_normalized : bool True if all stamps are normalized
     """
     cdef:
-        Py_ssize_t pos, i, n = len(stamps)
+        Py_ssize_t i, n = len(stamps)
         ndarray[int64_t] trans
         int64_t[:] deltas
+        intp_t[:] pos
         npy_datetimestruct dts
         int64_t local_val, delta
+        str typ
 
     if tz is None or is_utc(tz):
         for i in range(n):
@@ -1239,11 +836,10 @@ def is_date_array_normalized(int64_t[:] stamps, tz=None):
                     return False
 
         else:
+            pos = trans.searchsorted(stamps) - 1
             for i in range(n):
                 # Adjust datetime64 timestamp, recompute datetimestruct
-                pos = trans.searchsorted(stamps[i]) - 1
-
-                dt64_to_dtstruct(stamps[i] + deltas[pos], &dts)
+                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
                 if (dts.hour + dts.min + dts.sec + dts.us) > 0:
                     return False
 

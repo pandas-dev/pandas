@@ -11,12 +11,12 @@ def test(extra_args=None):
     try:
         import pytest
     except ImportError:
-        raise ImportError("Need pytest>=3.0 to run tests")
+        raise ImportError("Need pytest>=4.0.2 to run tests")
     try:
         import hypothesis  # noqa
     except ImportError:
         raise ImportError("Need hypothesis>=3.58 to run tests")
-    cmd = ['--skip-slow', '--skip-network']
+    cmd = ['--skip-slow', '--skip-network', '--skip-db']
     if extra_args:
         if not isinstance(extra_args, list):
             extra_args = [extra_args]

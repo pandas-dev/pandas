@@ -1,15 +1,11 @@
 # being a bit too dynamic
-# pylint: disable=E1101
-from __future__ import division
-
-import warnings
 from math import ceil
+import warnings
 
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCDataFrame
-from pandas.compat import range
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 
 def format_date_labels(ax, rot):
@@ -30,10 +26,10 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
 
     Parameters
     ----------
-    `ax`: Matplotlib axes object
-    `data`: DataFrame or Series
+    ax : Matplotlib axes object
+    data : DataFrame or Series
         data for table contents
-    `kwargs`: keywords, optional
+    kwargs : keywords, optional
         keyword arguments which passed to matplotlib.table.table.
         If `rowLabels` or `colLabels` is not specified, data index or column
         name will be used.
