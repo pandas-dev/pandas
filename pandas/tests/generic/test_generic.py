@@ -7,7 +7,6 @@ from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
-from pandas.core.generic import NDFrame
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
@@ -919,33 +918,3 @@ class TestNDFrame:
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == \
                 box._get_block_manager_axis(v)
-
-
-@pytest.mark.parametrize('method, args', [
-    ('_is_level_reference', ['key']),
-    ('_is_label_reference', ['key']),
-    ('_is_label_or_level_reference', ['key']),
-    ('_check_label_or_level_ambiguity', ['key']),
-    ('_get_label_or_level_values', ['key']),
-    ('_drop_labels_or_levels', ['keys']),
-    ('to_xarray', []),
-    ('interpolate', []),
-    ('asof', ['where']),
-    ('rank', [])
-])
-def test_ndframe_not_implemented_raises(method, args):
-    obj = NDFrame(np.empty(shape=(0, 0, 0)))
-    msg = ("{} is not implemented for "
-           "<class 'pandas.core.generic.NDFrame'>").format(method)
-    with pytest.raises(NotImplementedError, match=msg):
-        getattr(obj, method)(*args)
-
-
-def test_fillna_method_arg_raises(monkeypatch):
-    monkeypatch.setattr(NDFrame, '_consolidate_inplace', lambda x: x)
-    monkeypatch.setattr(NDFrame, '_get_axis_number', lambda x, y: 0)
-    monkeypatch.setattr(NDFrame, '_is_mixed_type', False)
-    obj = NDFrame(np.empty(shape=(0, 0, 0)))
-    msg = ("Cannot fillna with a method for > 2dims")
-    with pytest.raises(NotImplementedError, match=msg):
-        obj.fillna(method='backfill')
