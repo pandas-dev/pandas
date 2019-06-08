@@ -402,7 +402,8 @@ class TestDataFrameDataTypes(TestData):
                                B='float32:dense',
                                C='float16:dense',
                                D='float64:dense')).sort_values()
-        result = frame.ftypes.sort_values()
+        with tm.assert_produces_warning(FutureWarning):
+            result = frame.ftypes.sort_values()
         assert_series_equal(result, expected)
 
     def test_astype(self):

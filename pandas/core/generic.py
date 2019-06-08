@@ -5525,6 +5525,9 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return the ftypes (indication of sparse/dense and dtype) in DataFrame.
 
+        .. deprecated:: 0.25.0
+           Use :func:`dtypes` instead.
+
         This returns a Series with the data type of each column.
         The result's index is the original DataFrame's columns. Columns
         with mixed types are stored with the ``object`` dtype.  See
@@ -5562,6 +5565,11 @@ class NDFrame(PandasObject, SelectionMixin):
         3    float64:sparse
         dtype: object
         """
+        warnings.warn("ftypes is deprecated and will "
+                      "be removed in a future version. "
+                      "Use dtypes instead.",
+                      FutureWarning, stacklevel=2)
+
         from pandas import Series
         return Series(self._data.get_ftypes(), index=self._info_axis,
                       dtype=np.object_)
