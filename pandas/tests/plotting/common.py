@@ -446,7 +446,7 @@ class TestPlotBase:
             # for mpl 2.2.2, gridOn and gridline.get_visible disagree.
             # for new MPL, they are the same.
 
-            if self.mpl_ge_3_0_0:
+            if self.mpl_ge_3_1_0:
                 xoff = all(not g.gridline.get_visible() for g in xticks)
                 yoff = all(not g.gridline.get_visible() for g in yticks)
             else:
