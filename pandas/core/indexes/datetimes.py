@@ -243,6 +243,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
+    # Use faster implementation given we know we have DatetimeArrays
+    __iter__ = DatetimeArray.__iter__
     # some things like freq inference make use of these attributes.
     _bool_ops = DatetimeArray._bool_ops
     _object_ops = DatetimeArray._object_ops
