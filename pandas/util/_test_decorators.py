@@ -24,7 +24,9 @@ def test_foo():
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
 import locale
+from typing import Optional
 
+from _pytest.mark.structures import MarkDecorator
 import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
@@ -97,38 +99,45 @@ def _skip_if_no_scipy():
                 safe_import('scipy.signal'))
 
 
-def skip_if_no(package, min_version=None):
+def skip_if_no(
+    package: str,
+    min_version: Optional[str] = None
+) -> MarkDecorator:
     """
-    Generic function to help skip test functions when required packages are not
+    Generic function to help skip tests when required packages are not
     present on the testing system.
 
-    Intended for use as a decorator, this function will wrap the decorated
-    function with a pytest ``skip_if`` mark. During a pytest test suite
-    execution, that mark will attempt to import the specified ``package`` and
-    optionally ensure it meets the ``min_version``. If the import and version
-    check are unsuccessful, then the decorated function will be skipped.
+    This function returns a pytest mark with a skip condition that will be
+    evaluated during test collection. An attempt will be made to import the
+    specified ``package`` and optionally ensure it meets the ``min_version``
+
+    The mark can be used as either a decorator for a test function or to be
+    applied to parameters in pytest.mark.parametrize calls or parametrized
+    fixtures.
+
+    If the import and version check are unsuccessful, then the test function
+    (or test case when used in conjunction with parametrization) will be
+    skipped.
 
     Parameters
     ----------
     package: str
-        The name of the package required by the decorated function
+        The name of the required package.
     min_version: str or None, default None
-        Optional minimum version of the package required by the decorated
-        function
+        Optional minimum version of the package.
 
     Returns
     -------
-    decorated_func: function
-        The decorated function wrapped within a pytest ``skip_if`` mark
+    _pytest.mark.structures.MarkDecorator
+        a pytest.mark.skipif to use as either a test decorator or a
+        parametrization mark.
     """
-    def decorated_func(func):
-        msg = "Could not import '{}'".format(package)
-        if min_version:
-            msg += " satisfying a min_version of {}".format(min_version)
-        return pytest.mark.skipif(
-            not safe_import(package, min_version=min_version), reason=msg
-        )(func)
-    return decorated_func
+    msg = "Could not import '{}'".format(package)
+    if min_version:
+        msg += " satisfying a min_version of {}".format(min_version)
+    return pytest.mark.skipif(
+        not safe_import(package, min_version=min_version), reason=msg
+    )
 
 
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
