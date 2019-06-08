@@ -1888,6 +1888,7 @@ class DataFrame(NDFrame):
     def to_sparse(self, fill_value=None, kind='block'):
         """
         Convert to SparseDataFrame.
+
         .. deprecated:: 0.25.0
 
         Implement the sparse version of the DataFrame meaning that any data

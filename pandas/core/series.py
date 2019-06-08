@@ -1574,6 +1574,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def to_sparse(self, kind='block', fill_value=None):
         """
         Convert Series to SparseSeries.
+
         .. deprecated:: 0.25.0
 
         Parameters
