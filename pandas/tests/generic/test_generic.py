@@ -933,7 +933,7 @@ class TestNDFrame:
     ('asof', ['where']),
     ('rank', [])
 ])
-def test_ndframe_not_implemented_raises(method, args, monkeypatch):
+def test_ndframe_not_implemented_raises(method, args):
     obj = NDFrame(np.empty(shape=(0, 0, 0)))
     msg = ("{} is not implemented for "
            "<class 'pandas.core.generic.NDFrame'>").format(method)
