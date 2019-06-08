@@ -799,7 +799,7 @@ class TestIndex(Base):
         j1 = Index([1, 2], name='j1')
         j2 = Index([], name='j2')
         j3 = Index([], name='j3')
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
             union = j1.union(j2.union(j3, sort=sort), sort=sort)
             expected = j1.union(j2, sort=sort).union(j3, sort=sort)
         tm.assert_index_equal(union, expected)
@@ -874,7 +874,7 @@ class TestIndex(Base):
         case = klass(second.values)
 
         warning = FutureWarning if sort is None else None
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
             result = first.union(case, sort=sort)
 
         if sort is not False:
@@ -895,8 +895,7 @@ class TestIndex(Base):
 
         # This should no longer be the same object, since [] is not consistent,
         # both objects will be recast to dtype('O')
-        union = first.union([], sort=sort)
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
             union = first.union([], sort=sort)
         assert (union is first) is (not sort)
 
@@ -2263,7 +2262,7 @@ class TestMixedIntIndex(Base):
         first = index[3:]
         second = index[:5]
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = first.union(klass(second.values))
 
         assert tm.equalContents(result, index)

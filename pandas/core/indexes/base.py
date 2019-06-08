@@ -2301,6 +2301,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         Index
         """
+
         this = self.astype(object, copy=False)
         # cast to Index for when `other` is list-like
         other = Index(other).astype(object, copy=False)
@@ -2414,6 +2415,11 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         Index
         """
+
+        if sort is None:
+            warnings.warn("sort='None' is deprecated, and will be "
+                          "removed in a future version.",
+                          FutureWarning, stacklevel=3)
 
         if not len(other) or self.equals(other):
             res = self._get_reconciled_name_object(other)
