@@ -56,6 +56,16 @@ def ignore_xlrd_time_clock_warning():
         yield
 
 
+@pytest.fixture
+def df_ref():
+    """
+    Obtain the reference data from read_csv with the Python engine.
+    """
+    df_ref = read_csv('test1.csv', index_col=0,
+                      parse_dates=True, engine='python')
+    return df_ref
+
+
 @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
 class TestReaders:
 
@@ -73,15 +83,6 @@ class TestReaders:
         func = partial(pd.read_excel, engine=request.param)
         monkeypatch.chdir(datapath("io", "data"))
         monkeypatch.setattr(pd, 'read_excel', func)
-
-    @pytest.fixture
-    def df_ref(self):
-        """
-        Obtain the reference data from read_csv with the Python engine.
-        """
-        df_ref = read_csv('test1.csv', index_col=0,
-                          parse_dates=True, engine='python')
-        return df_ref
 
     def test_usecols_int(self, ext, df_ref):
         df_ref = df_ref.reindex(columns=["A", "B", "C"])
@@ -238,75 +239,6 @@ class TestReaders:
         parsed = pd.read_excel('test3' + ext, 'Sheet1')
         expected = DataFrame([[np.nan]], columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
-
-    def test_excel_passes_na(self, ext):
-
-        excel = ExcelFile('test4' + ext)
-
-        parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=False,
-                               na_values=['apple'])
-        expected = DataFrame([['NA'], [1], ['NA'], [np.nan], ['rabbit']],
-                             columns=['Test'])
-        tm.assert_frame_equal(parsed, expected)
-
-        parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=True,
-                               na_values=['apple'])
-        expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
-                             columns=['Test'])
-        tm.assert_frame_equal(parsed, expected)
-
-        # 13967
-        excel = ExcelFile('test5' + ext)
-
-        parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=False,
-                               na_values=['apple'])
-        expected = DataFrame([['1.#QNAN'], [1], ['nan'], [np.nan], ['rabbit']],
-                             columns=['Test'])
-        tm.assert_frame_equal(parsed, expected)
-
-        parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=True,
-                               na_values=['apple'])
-        expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
-                             columns=['Test'])
-        tm.assert_frame_equal(parsed, expected)
-
-    @pytest.mark.parametrize('arg', ['sheet', 'sheetname', 'parse_cols'])
-    def test_unexpected_kwargs_raises(self, ext, arg):
-        # gh-17964
-        excel = ExcelFile('test1' + ext)
-
-        kwarg = {arg: 'Sheet1'}
-        msg = "unexpected keyword argument `{}`".format(arg)
-        with pytest.raises(TypeError, match=msg):
-            pd.read_excel(excel, **kwarg)
-
-    def test_excel_table_sheet_by_index(self, ext, df_ref):
-
-        excel = ExcelFile('test1' + ext)
-
-        df1 = pd.read_excel(excel, 0, index_col=0)
-        df2 = pd.read_excel(excel, 1, skiprows=[1], index_col=0)
-        tm.assert_frame_equal(df1, df_ref, check_names=False)
-        tm.assert_frame_equal(df2, df_ref, check_names=False)
-
-        df1 = excel.parse(0, index_col=0)
-        df2 = excel.parse(1, skiprows=[1], index_col=0)
-        tm.assert_frame_equal(df1, df_ref, check_names=False)
-        tm.assert_frame_equal(df2, df_ref, check_names=False)
-
-        df3 = pd.read_excel(excel, 0, index_col=0, skipfooter=1)
-        tm.assert_frame_equal(df3, df1.iloc[:-1])
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df4 = pd.read_excel(excel, 0, index_col=0, skip_footer=1)
-            tm.assert_frame_equal(df3, df4)
-
-        df3 = excel.parse(0, index_col=0, skipfooter=1)
-        tm.assert_frame_equal(df3, df1.iloc[:-1])
-
-        import xlrd
-        with pytest.raises(xlrd.XLRDError):
-            pd.read_excel(excel, 'asdf')
 
     def test_excel_table(self, ext, df_ref):
 
@@ -497,12 +429,7 @@ class TestReaders:
         result = pd.read_excel('testdateoverflow' + ext)
         tm.assert_frame_equal(result, expected)
 
-    def test_sheet_name_and_sheetname(self, ext, df_ref):
-        # gh-10559: Minor improvement: Change "sheet_name" to "sheetname"
-        # gh-10969: DOC: Consistent var names (sheetname vs sheet_name)
-        # gh-12604: CLN GH10559 Rename sheetname variable to sheet_name
-        # gh-20920: ExcelFile.parse() and pd.read_xlsx() have different
-        #           behavior for "sheetname" argument
+    def test_sheet_name(self, ext, df_ref):
         filename = "test1"
         sheet_name = "Sheet1"
 
@@ -512,15 +439,8 @@ class TestReaders:
             df2 = pd.read_excel(filename + ext, index_col=0,
                                 sheet_name=sheet_name)
 
-        excel = ExcelFile(filename + ext)
-        df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
-        df2_parse = excel.parse(index_col=0,
-                                sheet_name=sheet_name)
-
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
-        tm.assert_frame_equal(df1_parse, df_ref, check_names=False)
-        tm.assert_frame_equal(df2_parse, df_ref, check_names=False)
 
     def test_excel_read_buffer(self, ext):
 
@@ -528,11 +448,6 @@ class TestReaders:
         expected = pd.read_excel(pth, 'Sheet1', index_col=0)
         with open(pth, 'rb') as f:
             actual = pd.read_excel(f, 'Sheet1', index_col=0)
-            tm.assert_frame_equal(expected, actual)
-
-        with open(pth, 'rb') as f:
-            xls = ExcelFile(f)
-            actual = pd.read_excel(xls, 'Sheet1', index_col=0)
             tm.assert_frame_equal(expected, actual)
 
     def test_bad_engine_raises(self, ext):
@@ -605,15 +520,6 @@ class TestReaders:
         actual = pd.read_excel(path_obj, 'Sheet1', index_col=0)
 
         tm.assert_frame_equal(expected, actual)
-
-    def test_reader_closes_file(self, ext):
-
-        f = open('test1' + ext, 'rb')
-        with ExcelFile(f) as xlsx:
-            # parses okay
-            pd.read_excel(xlsx, 'Sheet1', index_col=0)
-
-        assert f.closed
 
     def test_reader_seconds(self, ext):
 
@@ -839,6 +745,125 @@ class TestReaders:
         actual = pd.read_excel(f, 'one_column', squeeze=True)
         expected = pd.Series([1, 2, 3], name='a')
         tm.assert_series_equal(actual, expected)
+
+
+@pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])        
+class TestExcelFileRead:
+
+    @pytest.fixture(autouse=True, params=[
+        # Add any engines to test here
+        pytest.param('xlrd', marks=pytest.mark.skipif(
+            not td.safe_import("xlrd"), reason="no xlrd")),
+        pytest.param(None, marks=pytest.mark.skipif(
+            not td.safe_import("xlrd"), reason="no xlrd")),
+    ])
+    def cd_and_set_engine(self, request, datapath, monkeypatch):
+        """
+        Change directory and set engine for ExcelFile objects.
+        """
+        func = partial(pd.ExcelFile, engine=request.param)
+        monkeypatch.chdir(datapath("io", "data"))
+        monkeypatch.setattr(pd, 'ExcelFile', func)
+
+    def test_excel_passes_na(self, ext):
+
+        excel = ExcelFile('test4' + ext)
+
+        parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=False,
+                               na_values=['apple'])
+        expected = DataFrame([['NA'], [1], ['NA'], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
+        parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=True,
+                               na_values=['apple'])
+        expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
+        # 13967
+        excel = ExcelFile('test5' + ext)
+
+        parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=False,
+                               na_values=['apple'])
+        expected = DataFrame([['1.#QNAN'], [1], ['nan'], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
+        parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=True,
+                               na_values=['apple'])
+        expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
+    @pytest.mark.parametrize('arg', ['sheet', 'sheetname', 'parse_cols'])
+    def test_unexpected_kwargs_raises(self, ext, arg):
+        # gh-17964
+        excel = ExcelFile('test1' + ext)
+
+        kwarg = {arg: 'Sheet1'}
+        msg = "unexpected keyword argument `{}`".format(arg)
+        with pytest.raises(TypeError, match=msg):
+            pd.read_excel(excel, **kwarg)
+
+    def test_excel_table_sheet_by_index(self, ext, df_ref):
+
+        excel = ExcelFile('test1' + ext)
+
+        df1 = pd.read_excel(excel, 0, index_col=0)
+        df2 = pd.read_excel(excel, 1, skiprows=[1], index_col=0)
+        tm.assert_frame_equal(df1, df_ref, check_names=False)
+        tm.assert_frame_equal(df2, df_ref, check_names=False)
+
+        df1 = excel.parse(0, index_col=0)
+        df2 = excel.parse(1, skiprows=[1], index_col=0)
+        tm.assert_frame_equal(df1, df_ref, check_names=False)
+        tm.assert_frame_equal(df2, df_ref, check_names=False)
+
+        df3 = pd.read_excel(excel, 0, index_col=0, skipfooter=1)
+        tm.assert_frame_equal(df3, df1.iloc[:-1])
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df4 = pd.read_excel(excel, 0, index_col=0, skip_footer=1)
+            tm.assert_frame_equal(df3, df4)
+
+        df3 = excel.parse(0, index_col=0, skipfooter=1)
+        tm.assert_frame_equal(df3, df1.iloc[:-1])
+
+        import xlrd
+        with pytest.raises(xlrd.XLRDError):
+            pd.read_excel(excel, 'asdf')
+    
+    def test_sheet_name(self, ext, df_ref):
+        filename = "test1"
+        sheet_name = "Sheet1"
+
+        excel = ExcelFile(filename + ext)
+        df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
+        df2_parse = excel.parse(index_col=0,
+                                sheet_name=sheet_name)
+
+        tm.assert_frame_equal(df1_parse, df_ref, check_names=False)
+        tm.assert_frame_equal(df2_parse, df_ref, check_names=False)
+
+    def test_excel_read_buffer(self, ext):
+
+        pth = 'test1' + ext
+        expected = pd.read_excel(pth, 'Sheet1', index_col=0)
+
+        with open(pth, 'rb') as f:
+            xls = ExcelFile(f)
+            actual = pd.read_excel(xls, 'Sheet1', index_col=0)
+            tm.assert_frame_equal(expected, actual)
+
+    def test_reader_closes_file(self, ext):
+
+        f = open('test1' + ext, 'rb')
+        with ExcelFile(f) as xlsx:
+            # parses okay
+            pd.read_excel(xlsx, 'Sheet1', index_col=0)
+
+        assert f.closed
 
 
 @td.skip_if_no('xlrd')
