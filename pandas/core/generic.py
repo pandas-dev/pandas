@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Any, Dict, FrozenSet, List, Optional, Set, Union
+from typing import Any, Callable, Dict, FrozenSet, List, Optional, Set, Union
 import warnings
 import weakref
 
