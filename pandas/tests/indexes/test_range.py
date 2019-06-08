@@ -245,10 +245,9 @@ class TestRangeIndex(Numeric):
         assert self.index.dtype == np.int64
 
     def test_cached_data(self):
-        # GH 26565
-        # Calling RangeIndex._data caches an int64 array of the same length as
-        # self at self._cached_data.
-        # This tests whether _cached_data is being set by various operations.
+        # GH 26565, GH26617
+        # Calling RangeIndex._data caches an int64 array of the same length at
+        # self._cached_data. This test checks whether _cached_data has been set
         idx = RangeIndex(0, 100, 10)
 
         assert idx._cached_data is None
@@ -260,6 +259,24 @@ class TestRangeIndex(Numeric):
         assert idx._cached_data is None
 
         idx.get_loc(20)
+        assert idx._cached_data is None
+
+        90 in idx
+        assert idx._cached_data is None
+
+        91 in idx
+        assert idx._cached_data is None
+
+        idx.contains(90)
+        assert idx._cached_data is None
+
+        idx.contains(91)
+        assert idx._cached_data is None
+
+        idx.all()
+        assert idx._cached_data is None
+
+        idx.any()
         assert idx._cached_data is None
 
         df = pd.DataFrame({'a': range(10)}, index=idx)
