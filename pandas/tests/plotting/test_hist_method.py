@@ -16,6 +16,7 @@ from pandas.plotting._core import grouped_hist
 
 
 @td.skip_if_no_mpl
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 class TestSeriesPlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -32,9 +33,9 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.ts.hist, grid=False)
         _check_plot_works(self.ts.hist, figsize=(8, 10))
         # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             _check_plot_works(self.ts.hist, by=self.ts.index.month)
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             _check_plot_works(self.ts.hist, by=self.ts.index.month, bins=5)
 
         fig, ax = self.plt.subplots(1, 1)
@@ -72,37 +73,37 @@ class TestSeriesPlots(TestPlotBase):
         # _check_plot_works adds an `ax` kwarg to the method call
         # so we get a warning about an axis being cleared, even
         # though we don't explicing pass one, see GH #13188
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             axes = _check_plot_works(df.height.hist, by=df.gender,
                                      layout=(2, 1))
         self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             axes = _check_plot_works(df.height.hist, by=df.gender,
                                      layout=(3, -1))
         self._check_axes_shape(axes, axes_num=2, layout=(3, 1))
 
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             axes = _check_plot_works(df.height.hist, by=df.category,
                                      layout=(4, 1))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             axes = _check_plot_works(
                 df.height.hist, by=df.category, layout=(2, -1))
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             axes = _check_plot_works(
                 df.height.hist, by=df.category, layout=(3, -1))
         self._check_axes_shape(axes, axes_num=4, layout=(3, 2))
 
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             axes = _check_plot_works(
                 df.height.hist, by=df.category, layout=(-1, 4))
         self._check_axes_shape(axes, axes_num=4, layout=(1, 4))
 
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             axes = _check_plot_works(
                 df.height.hist, by=df.classroom, layout=(2, 2))
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
@@ -261,6 +262,7 @@ class TestDataFramePlots(TestPlotBase):
 
 
 @td.skip_if_no_mpl
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @pytest.mark.slow
@@ -343,12 +345,12 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         with pytest.raises(ValueError, match=msg):
             df.hist(column='height', by=df.category, layout=(-1, -1))
 
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             axes = _check_plot_works(df.hist, column='height', by=df.gender,
                                      layout=(2, 1))
         self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             axes = _check_plot_works(df.hist, column='height', by=df.gender,
                                      layout=(2, -1))
         self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
@@ -366,13 +368,13 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tm.close()
 
         # GH 6769
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             axes = _check_plot_works(
                 df.hist, column='height', by='classroom', layout=(2, 2))
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         # without column
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             axes = _check_plot_works(df.hist, by='classroom')
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
