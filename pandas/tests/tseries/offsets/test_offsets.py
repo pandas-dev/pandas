@@ -809,6 +809,12 @@ class TestBusinessHour(Base):
             r"invalid starting and ending time\(s\): opening hours should not "
             "touch or overlap with one another"
         ),
+        (
+            ['12:00', '20:00'],
+            ['09:00', '11:00'],
+            r"invalid starting and ending time\(s\): opening hours should not "
+            "touch or overlap with one another"
+        ),
     ])
     def test_constructor_errors(self, start, end, match):
         with pytest.raises(ValueError,
