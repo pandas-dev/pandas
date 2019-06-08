@@ -95,10 +95,10 @@ def _ensure_term(where, scope_level):
                 wlist.append(w)
             else:
                 wlist.append(Term(w, scope_level=level))
-        where = wlist
+        where = wlist if wlist else None
     elif maybe_expression(where):
         where = Term(where, scope_level=level)
-    return where
+    return where if where != "" else None
 
 
 class PossibleDataLossError(Exception):

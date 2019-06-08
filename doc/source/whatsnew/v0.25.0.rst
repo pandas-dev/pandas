@@ -649,6 +649,7 @@ I/O
 - Bug in :func:`read_json` where date strings with ``Z`` were not converted to a UTC timezone (:issue:`26168`)
 - Added ``cache_dates=True`` parameter to :meth:`read_csv`, which allows to cache unique dates when they are parsed (:issue:`25990`)
 - :meth:`DataFrame.to_excel` now raises a ``ValueError`` when the caller's dimensions exceed the limitations of Excel (:issue:`26051`)
+- Bug while selecting from HDF store with `where`='' specified (:issue:`26610`). Now the whole DataFrame will be returned from store.
 
 Plotting
 ^^^^^^^^
