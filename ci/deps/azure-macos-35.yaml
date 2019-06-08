@@ -21,7 +21,6 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  - isort
   - pip:
     - python-dateutil==2.5.3
     # universal
