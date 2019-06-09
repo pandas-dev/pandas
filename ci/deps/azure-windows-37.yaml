@@ -31,4 +31,3 @@ dependencies:
   - pytest-azurepipelines
   - moto
   - hypothesis>=3.58.0
-  - isort

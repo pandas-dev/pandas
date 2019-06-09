@@ -28,4 +28,3 @@ dependencies:
   - pytest-mock
   - pytest-azurepipelines
   - hypothesis>=3.58.0
-  - isort

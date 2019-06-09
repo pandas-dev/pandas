@@ -29,7 +29,6 @@ dependencies:
   - pytest-xdist
   - pytest-mock
   - pytest-azurepipelines
-  - isort
   - pip
   - pip:
     - hypothesis>=3.58.0
