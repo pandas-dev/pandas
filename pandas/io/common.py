@@ -10,7 +10,7 @@ import lzma
 import mmap
 import os
 import pathlib
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Type, Union
 from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
     urlencode, urljoin, urlparse as parse_url, uses_netloc, uses_params,
@@ -221,7 +221,7 @@ _compression_to_extension = {
 
 
 def _get_compression_method(
-        compression: Optional[Union[Dict[str, str]]]
+        compression: Optional[Union[str, Dict[str, str]]]
 ) -> Tuple[Optional[str], Dict[str, str]]:
     """
     Simplifies a compression argument to a compression method string and
@@ -246,8 +246,7 @@ def _get_compression_method(
     if isinstance(compression, dict):
         compression_args = compression.copy()
         try:
-            compression = compression['method']
-            compression_args.pop('method')
+            compression = compression_args.pop('method')
         except KeyError:
             raise ValueError("If dict, compression "
                              "must have key 'method'")
@@ -348,11 +347,12 @@ def _get_handle(path_or_buf, mode, encoding=None,
     handles : list of file-like objects
         A list of file-like object that were opened in this function.
     """
+    need_text_wrapping = (BytesIO,)  # type: Tuple[Type[BytesIO], ...]
     try:
         from s3fs import S3File
-        need_text_wrapping = (BytesIO, S3File)  # type: Tuple
+        need_text_wrapping = need_text_wrapping + (S3File,)
     except ImportError:
-        need_text_wrapping = (BytesIO,)
+        pass
 
     handles = list()
     f = path_or_buf
