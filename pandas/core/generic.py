@@ -1570,11 +1570,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         axis = self._get_axis_number(axis)
 
-        if self.ndim > 2:
-            raise NotImplementedError(
-                "_is_level_reference is not implemented for {type}"
-                .format(type=type(self)))
-
         return (key is not None and
                 is_hashable(key) and
                 key in self.axes[axis].names and
@@ -1600,11 +1595,6 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         is_label: bool
         """
-        if self.ndim > 2:
-            raise NotImplementedError(
-                "_is_label_reference is not implemented for {type}"
-                .format(type=type(self)))
-
         axis = self._get_axis_number(axis)
         other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
 
@@ -1632,12 +1622,6 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         is_label_or_level: bool
         """
-
-        if self.ndim > 2:
-            raise NotImplementedError(
-                "_is_label_or_level_reference is not implemented for {type}"
-                .format(type=type(self)))
-
         return (self._is_level_reference(key, axis=axis) or
                 self._is_label_reference(key, axis=axis))
 
@@ -1659,11 +1643,6 @@ class NDFrame(PandasObject, SelectionMixin):
         ------
         ValueError: `key` is ambiguous
         """
-        if self.ndim > 2:
-            raise NotImplementedError(
-                "_check_label_or_level_ambiguity is not implemented for {type}"
-                .format(type=type(self)))
-
         axis = self._get_axis_number(axis)
         other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
 
@@ -1724,11 +1703,6 @@ class NDFrame(PandasObject, SelectionMixin):
             if `key` is ambiguous. This will become an ambiguity error in a
             future version
         """
-        if self.ndim > 2:
-            raise NotImplementedError(
-                "_get_label_or_level_values is not implemented for {type}"
-                .format(type=type(self)))
-
         axis = self._get_axis_number(axis)
         other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
 
@@ -1787,11 +1761,6 @@ class NDFrame(PandasObject, SelectionMixin):
         ValueError
             if any `keys` match neither a label nor a level
         """
-        if self.ndim > 2:
-            raise NotImplementedError(
-                "_drop_labels_or_levels is not implemented for {type}"
-                .format(type=type(self)))
-
         axis = self._get_axis_number(axis)
 
         # Validate keys
@@ -2781,7 +2750,6 @@ class NDFrame(PandasObject, SelectionMixin):
         Data variables:
             speed    (date, animal) int64 350 18 361 15
         """
-
         try:
             import xarray
         except ImportError:
@@ -2794,14 +2762,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if self.ndim == 1:
             return xarray.DataArray.from_series(self)
-        elif self.ndim == 2:
+        else:
             return xarray.Dataset.from_dataframe(self)
-
-        # > 2 dims
-        coords = [(a, self._get_axis(a)) for a in self._AXIS_ORDERS]
-        return xarray.DataArray(self,
-                                coords=coords,
-                                )
 
     def to_latex(self, buf=None, columns=None, col_space=None, header=True,
                  index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -5692,11 +5654,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                    'the key in Series dtype mappings.')
                 new_type = dtype[self.name]
                 return self.astype(new_type, copy, errors, **kwargs)
-            elif self.ndim > 2:
-                raise NotImplementedError(
-                    'astype() only accepts a dtype arg of type dict when '
-                    'invoked on Series and DataFrames.'
-                )
+
             for col_name in dtype.keys():
                 if col_name not in self:
                     raise KeyError('Only a column name can be used for the '
@@ -6051,26 +6009,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 return result
 
-            # > 3d
-            if self.ndim > 3:
-                raise NotImplementedError('Cannot fillna with a method for > '
-                                          '3dims')
-
-            # 3d
-            elif self.ndim == 3:
-                # fill in 2d chunks
-                result = {col: s.fillna(method=method, value=value)
-                          for col, s in self.iteritems()}
-                prelim_obj = self._constructor.from_dict(result)
-                new_obj = prelim_obj.__finalize__(self)
-                new_data = new_obj._data
-
-            else:
-                # 2d or less
-                new_data = self._data.interpolate(method=method, axis=axis,
-                                                  limit=limit, inplace=inplace,
-                                                  coerce=True,
-                                                  downcast=downcast)
+            new_data = self._data.interpolate(method=method, axis=axis,
+                                              limit=limit, inplace=inplace,
+                                              coerce=True,
+                                              downcast=downcast)
         else:
             if len(self._get_axis(axis)) == 0:
                 return self
@@ -6782,9 +6724,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
-        if self.ndim > 2:
-            raise NotImplementedError("Interpolate has not been implemented ")
-
         if axis == 0:
             ax = self._info_axis_name
             _maybe_transposed_self = self
@@ -6964,9 +6903,6 @@ class NDFrame(PandasObject, SelectionMixin):
         if is_series:
             if subset is not None:
                 raise ValueError("subset is not valid for Series")
-        elif self.ndim > 2:
-            raise NotImplementedError("asof is not implemented "
-                                      "for {type}".format(type=type(self)))
         else:
             if subset is None:
                 subset = self.columns
@@ -8372,10 +8308,6 @@ class NDFrame(PandasObject, SelectionMixin):
         4    snake          NaN           NaN       NaN        5.0       NaN
         """
         axis = self._get_axis_number(axis)
-
-        if self.ndim > 2:
-            msg = "rank does not make sense when ndim > 2"
-            raise NotImplementedError(msg)
 
         if na_option not in {'keep', 'top', 'bottom'}:
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
