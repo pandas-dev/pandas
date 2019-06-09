@@ -1,17 +1,19 @@
-import contextlib
-import os
-import warnings
 from collections import OrderedDict
+import contextlib
 from datetime import datetime, time
 from functools import partial
+import os
+import warnings
 
 import numpy as np
 import pytest
 
-import pandas as pd
 import pandas.util._test_decorators as td
-import pandas.util.testing as tm
+
+import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
+import pandas.util.testing as tm
+
 from pandas.io.common import URLError
 from pandas.io.excel import ExcelFile
 

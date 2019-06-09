@@ -3,9 +3,11 @@ import warnings
 import pytest
 
 import pandas.util._test_decorators as td
+
 from pandas import DataFrame
-from pandas.io.excel import ExcelWriter
 from pandas.util.testing import ensure_clean
+
+from pandas.io.excel import ExcelWriter
 
 
 @td.skip_if_no('xlsxwriter')

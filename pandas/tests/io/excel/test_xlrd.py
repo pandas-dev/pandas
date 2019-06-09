@@ -1,8 +1,10 @@
-import pandas as pd
 import pandas.util._test_decorators as td
+
+import pandas as pd
 import pandas.util.testing as tm
-from pandas.io.excel import ExcelFile
 from pandas.util.testing import ensure_clean
+
+from pandas.io.excel import ExcelFile
 
 
 @td.skip_if_no('xlrd')

@@ -1,11 +1,13 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 import pandas.util._test_decorators as td
+
+import pandas as pd
 from pandas import DataFrame, MultiIndex
-from pandas.io.excel import ExcelWriter, _XlwtWriter
 from pandas.util.testing import ensure_clean
+
+from pandas.io.excel import ExcelWriter, _XlwtWriter
 
 
 @td.skip_if_no('xlwt')

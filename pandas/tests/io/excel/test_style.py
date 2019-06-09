@@ -4,9 +4,10 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame
+from pandas.util.testing import ensure_clean
+
 from pandas.io.excel import ExcelWriter
 from pandas.io.formats.excel import ExcelFormatter
-from pandas.util.testing import ensure_clean
 
 
 @pytest.mark.parametrize('engine', [

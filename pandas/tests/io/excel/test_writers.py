@@ -1,21 +1,23 @@
-import os
 from datetime import date, datetime, timedelta
-from io import BytesIO
 from functools import partial
+from io import BytesIO
+import os
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
+
+from pandas.compat import PY36
+import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util._test_decorators as td
-import pandas.util.testing as tm
 from pandas import DataFrame, Index, MultiIndex, get_option, set_option
-from pandas.compat import PY36
+import pandas.util.testing as tm
+from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
+
 from pandas.io.excel import (
     ExcelFile, ExcelWriter, _OpenpyxlWriter, _XlsxWriter, _XlwtWriter,
     register_writer)
-from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 
 
 @td.skip_if_no('xlrd')

@@ -1,9 +1,11 @@
 import pytest
 
 import pandas.util._test_decorators as td
+
 from pandas import DataFrame
-from pandas.io.excel import ExcelWriter, _OpenpyxlWriter
 from pandas.util.testing import ensure_clean
+
+from pandas.io.excel import ExcelWriter, _OpenpyxlWriter
 
 
 @td.skip_if_no('openpyxl')
