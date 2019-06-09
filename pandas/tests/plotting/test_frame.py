@@ -23,7 +23,6 @@ import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
-from pandas.plotting._compat import _mpl_ge_3_1_0
 
 
 @td.skip_if_no_mpl
@@ -50,6 +49,8 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_plot(self):
+        from pandas.plotting._matplotlib.compat import _mpl_ge_3_1_0
+
         df = self.tdf
         _check_plot_works(df.plot, grid=False)
         # _check_plot_works adds an ax so catch warning. see GH #13188
@@ -2737,7 +2738,7 @@ class TestDataFramePlots(TestPlotBase):
         import gc
 
         results = {}
-        for kind in plotting._core._plot_klass.keys():
+        for kind in plotting._core._plot_classes().keys():
 
             args = {}
             if kind in ['hexbin', 'scatter', 'pie']:

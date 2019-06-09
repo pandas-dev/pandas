@@ -17,9 +17,6 @@ import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_is_valid_plot_return_object, ensure_clean)
 
-import pandas.plotting as plotting
-from pandas.plotting._tools import _flatten
-
 
 """
 This is a common base class used for various plotting tests
@@ -32,11 +29,12 @@ class TestPlotBase:
     def setup_method(self, method):
 
         import matplotlib as mpl
+        from pandas.plotting._matplotlib import compat
         mpl.rcdefaults()
 
-        self.mpl_ge_2_2_3 = plotting._compat._mpl_ge_2_2_3()
-        self.mpl_ge_3_0_0 = plotting._compat._mpl_ge_3_0_0()
-        self.mpl_ge_3_1_0 = plotting._compat._mpl_ge_3_1_0()
+        self.mpl_ge_2_2_3 = compat._mpl_ge_2_2_3()
+        self.mpl_ge_3_0_0 = compat._mpl_ge_3_0_0()
+        self.mpl_ge_3_1_0 = compat._mpl_ge_3_1_0()
 
         self.bp_n_objects = 7
         self.polycollection_factor = 2
@@ -309,6 +307,8 @@ class TestPlotBase:
         figsize : tuple
             expected figsize. default is matplotlib default
         """
+        from pandas.plotting._matplotlib.tools import _flatten
+
         if figsize is None:
             figsize = self.default_figsize
         visible_axes = self._flatten_visible(axes)
@@ -346,6 +346,8 @@ class TestPlotBase:
         axes : matplotlib Axes object, or its list-like
 
         """
+        from pandas.plotting._matplotlib.tools import _flatten
+
         axes = _flatten(axes)
         axes = [ax for ax in axes if ax.get_visible()]
         return axes
