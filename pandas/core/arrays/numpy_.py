@@ -283,6 +283,9 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     def _values_for_factorize(self):
         return self._ndarray, -1
 
+    def _values_for_argsort(self):
+        return self._ndarray
+
     def unique(self):
         from pandas import unique
 
