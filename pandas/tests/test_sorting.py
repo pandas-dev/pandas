@@ -7,7 +7,8 @@ from numpy import nan
 import pytest
 
 from pandas import (
-    DataFrame, MultiIndex, Series, array, concat, merge, to_datetime)
+    Categorical, DataFrame, MultiIndex, Series, array, concat, merge,
+    to_datetime)
 from pandas.core import common as com
 from pandas.core.sorting import (
     decons_group_index, get_group_index, is_int64_overflow_possible,
@@ -187,6 +188,14 @@ class TestSorting:
         data = to_datetime([0, 2, 0, 1]).tz_localize('Europe/Brussels')
         with tm.assert_produces_warning(None):
             nargsort(data)
+
+    @pytest.mark.parametrize('data', [
+        Categorical(['a', 'c', 'a', 'b']),
+        to_datetime([0, 2, 0, 1]).tz_localize('Europe/Brussels')])
+    def test_nargsort_extension_array(self, data):
+        result = nargsort(data)
+        expected = np.array([0, 2, 3, 1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestMerge:
