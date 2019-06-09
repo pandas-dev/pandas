@@ -965,6 +965,7 @@ Thur,Lunch,Yes,51.51,17"""
         ex = DataFrame({'data': [False, False]}, index=['one', 'two'])
         tm.assert_frame_equal(result, ex)
 
+    @pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
     def test_std_var_pass_ddof(self):
         index = MultiIndex.from_arrays([np.arange(5).repeat(10), np.tile(
             np.arange(10), 5)])

@@ -102,6 +102,7 @@ def test_cython_agg_frame_columns():
     df.groupby(level=0, axis='columns').mean()
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_cython_agg_return_dict():
     # GH 16741
     df = DataFrame(
@@ -118,6 +119,7 @@ def test_cython_agg_return_dict():
     tm.assert_series_equal(ts, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_cython_fail_agg():
     dr = bdate_range('1/1/2000', periods=50)
     ts = Series(['A', 'B', 'C', 'D', 'E'] * 10, index=dr)

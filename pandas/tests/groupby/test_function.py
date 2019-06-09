@@ -749,6 +749,7 @@ def test_series_describe_multikey():
     tm.assert_series_equal(result['min'], grouped.min(), check_names=False)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_series_describe_single():
     ts = tm.makeTimeSeries()
     grouped = ts.groupby(lambda x: x.month)

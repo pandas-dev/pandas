@@ -421,6 +421,7 @@ def test_filter_and_transform_with_multiple_non_unique_int_index():
     tm.assert_series_equal(actual, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_filter_and_transform_with_non_unique_float_index():
     # GH4620
     index = np.array([1, 1, 1, 2, 1, 1, 0, 1], dtype=float)
@@ -462,6 +463,7 @@ def test_filter_and_transform_with_non_unique_float_index():
     tm.assert_series_equal(actual, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_filter_and_transform_with_non_unique_timestamp_index():
     # GH4620
     t0 = Timestamp('2013-09-30 00:05:00')
@@ -506,6 +508,7 @@ def test_filter_and_transform_with_non_unique_timestamp_index():
     tm.assert_series_equal(actual, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_filter_and_transform_with_non_unique_string_index():
     # GH4620
     index = list('bbbcbbab')
