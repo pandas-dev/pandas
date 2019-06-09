@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import IO, AnyStr, Type, Union
+from typing import IO, AnyStr, TypeVar, Union
 
 import numpy as np
 
@@ -11,12 +11,14 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCExtensionArray, ABCIndexClass, ABCSeries, ABCSparseSeries)
 
-AnyArrayLike = Union[ABCExtensionArray,
-                     ABCIndexClass,
-                     ABCSeries,
-                     ABCSparseSeries,
-                     np.ndarray]
-ArrayLike = Union[ABCExtensionArray, np.ndarray]
-DatetimeLikeScalar = Type[Union[Period, Timestamp, Timedelta]]
+AnyArrayLike = TypeVar('AnyArrayLike',
+                       ABCExtensionArray,
+                       ABCIndexClass,
+                       ABCSeries,
+                       ABCSparseSeries,
+                       np.ndarray)
+ArrayLike = TypeVar('ArrayLike', ABCExtensionArray, np.ndarray)
+DatetimeLikeScalar = TypeVar('DatetimeLikeScalar', Period, Timestamp,
+                             Timedelta)
 Dtype = Union[str, np.dtype, ExtensionDtype]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]

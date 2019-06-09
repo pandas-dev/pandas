@@ -2,6 +2,7 @@
 from math import ceil
 import warnings
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
@@ -21,23 +22,6 @@ def format_date_labels(ax, rot):
 
 
 def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
-    """
-    Helper function to convert DataFrame and Series to matplotlib.table
-
-    Parameters
-    ----------
-    ax : Matplotlib axes object
-    data : DataFrame or Series
-        data for table contents
-    kwargs : keywords, optional
-        keyword arguments which passed to matplotlib.table.table.
-        If `rowLabels` or `colLabels` is not specified, data index or column
-        name will be used.
-
-    Returns
-    -------
-    matplotlib table object
-    """
     if isinstance(data, ABCSeries):
         data = data.to_frame()
     elif isinstance(data, ABCDataFrame):
@@ -183,8 +167,6 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
     # Four polar axes
     plt.subplots(2, 2, subplot_kw=dict(polar=True))
     """
-    import matplotlib.pyplot as plt
-
     if subplot_kw is None:
         subplot_kw = {}
 
@@ -363,8 +345,6 @@ def _get_xlim(lines):
 
 def _set_ticks_props(axes, xlabelsize=None, xrot=None,
                      ylabelsize=None, yrot=None):
-    import matplotlib.pyplot as plt
-
     for ax in _flatten(axes):
         if xlabelsize is not None:
             plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
