@@ -4731,9 +4731,6 @@ class TestHDFStore(Base):
             result = store['p']
             assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("call", [
-        "read_hdf", "select", "select_as_coordinates", "select_as_multiple"
-    ])
     @pytest.mark.parametrize("where", ["", (), (None, ), [], [None]])
     def test_select_empty_where(self, call, where):
         # GH26610
@@ -4742,22 +4739,12 @@ class TestHDFStore(Base):
         # while reading from HDF store raises
         # "SyntaxError: only a single expression is allowed"
 
-        df = pd.DataFrame([[1, 2], [1, 2]], columns=list("ab"))
+        df = pd.DataFrame([1, 2, 3])
         with ensure_clean_path("empty_where.h5") as path:
             with pd.HDFStore(path) as store:
-                key1 = "df1"
-                key2 = "df2"
-                store.put("df1", df[["a"]], "t")
-                store.put("df2", df[["b"]], "t")
-                if call == "read_hdf":
-                    pd.read_hdf(store, key1, where=where)
-                elif call == "select":
-                    store.select(key1, where=where)
-                elif call == "select_as_coordinates":
-                    store.select_as_coordinates(key1, where=where)
-                elif call == "select_as_multiple":
-                    store.select_as_multiple(
-                        [key1, key2], where=where, selector=key1)
+                store.put("df", df, "t")
+                result = pd.read_hdf(store, "df", where=where)
+                assert_frame_equal(result, df)
 
 
 class TestHDFComplexValues(Base):
