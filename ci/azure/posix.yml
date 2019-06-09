@@ -93,5 +93,5 @@ jobs:
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
-        ci/print_skipped.py
+        python ci/print_skipped.py
       displayName: 'print skipped test'
