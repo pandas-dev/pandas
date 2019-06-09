@@ -460,6 +460,17 @@ with cf.config_prefix('io.parquet'):
 # Plotting
 # ---------
 
+plotting_backend_doc = """
+: str
+    The plotting backend to use. The default value is "matplotlib", the
+    backend provided with pandas. Other backends can be specified by
+    prodiving the name of the module that implements the backend.
+"""
+
+with cf.config_prefix('plotting'):
+    cf.register_option('backend', defval='matplotlib',
+                       doc=plotting_backend_doc)
+
 register_converter_doc = """
 : bool
     Whether to register converters with matplotlib's units registry for
