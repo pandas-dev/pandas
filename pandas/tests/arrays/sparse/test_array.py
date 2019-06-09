@@ -472,6 +472,7 @@ class TestSparseArray:
         # float -> float
         arr = SparseArray([None, None, 0, 2])
         result = arr.astype("Sparse[float32]")
+
         expected = SparseArray([None, None, 0, 2], dtype=np.dtype('float32'))
         tm.assert_sp_array_equal(result, expected)
 

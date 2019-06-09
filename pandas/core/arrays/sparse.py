@@ -25,7 +25,8 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar)
 from pandas.core.dtypes.common import (
     is_array_like, is_bool_dtype, is_datetime64_any_dtype, is_dtype_equal,
-    is_integer, is_object_dtype, is_scalar, is_string_dtype, pandas_dtype)
+    is_float_dtype, is_integer, is_integer_dtype, is_object_dtype, is_scalar,
+    is_string_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
@@ -1927,15 +1928,24 @@ def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
     index = _make_index(length, indices, kind)
     sparsified_values = arr[mask]
 
-    # careful about casting here as we could easily specify a type that
-    # cannot hold the resulting values, e.g. integer when we have floats
-    # if we don't have an object specified then use this as the cast
     if dtype is not None:
 
-        ok_to_cast = all(not (is_object_dtype(t) or is_bool_dtype(t))
-                         for t in (dtype, sparsified_values.dtype))
-        if ok_to_cast:
+        # careful about casting here as we could easily specify a type that
+        # cannot hold the resulting values, e.g. integer when we have floats
+        # if this is not safe then convert the dtype; note that if there are
+        # nan's in the source array this will raise
+
+        # TODO: ideally this would be done by 'safe' casting in astype_nansafe
+        # but alas too many cases rely upon this working in the current way
+        # and casting='safe' doesn't really work in numpy properly
+        if is_integer_dtype(dtype) and is_float_dtype(sparsified_values.dtype):
+            result = astype_nansafe(
+                sparsified_values, dtype=dtype)
+            if np.allclose(result, sparsified_values, rtol=0):
+                return result, index, fill_value
+
             dtype = find_common_type([dtype, sparsified_values.dtype])
+
         sparsified_values = astype_nansafe(
             sparsified_values, dtype=dtype)
 

@@ -154,32 +154,6 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
         self._check_unsupported(data)
         super().test_reindex(data, na_value)
 
-    def test_getitem_mask(self, data):
-        # Empty mask, raw array
-        mask = np.zeros(len(data), dtype=bool)
-        result = data[mask]
-        assert len(result) == 0
-        assert isinstance(result, type(data))
-
-        # Empty mask, in series
-        mask = np.zeros(len(data), dtype=bool)
-        result = pd.Series(data)[mask]
-        assert len(result) == 0
-
-        # we change int -> float because of the masking
-        assert result.dtype == SparseDtype('float64', data.dtype.fill_value)
-
-        # non-empty mask, raw array
-        mask[0] = True
-        result = data[mask]
-        assert len(result) == 1
-        assert isinstance(result, type(data))
-
-        # non-empty mask, in series
-        result = pd.Series(data)[mask]
-        assert len(result) == 1
-        assert result.dtype == data.dtype
-
 
 # Skipping TestSetitem, since we don't implement it.
 
