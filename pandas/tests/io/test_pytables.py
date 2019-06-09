@@ -4732,7 +4732,7 @@ class TestHDFStore(Base):
             assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("where", ["", (), (None, ), [], [None]])
-    def test_select_empty_where(self, call, where):
+    def test_select_empty_where(self, where):
         # GH26610
 
         # Using keyword `where` as '' or (), or [None], etc
