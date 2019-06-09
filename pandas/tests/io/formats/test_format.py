@@ -11,7 +11,6 @@ import re
 from shutil import get_terminal_size
 import sys
 import textwrap
-import warnings
 
 import dateutil
 import numpy as np
@@ -30,8 +29,6 @@ import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
-
-_frame = DataFrame(tm.getSeriesData())
 
 
 def curpath():
@@ -101,17 +98,8 @@ def has_expanded_repr(df):
     return False
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning:.*format')
 class TestDataFrameFormatting:
-
-    def setup_method(self, method):
-        self.warn_filters = warnings.filters
-        warnings.filterwarnings('ignore', category=FutureWarning,
-                                module=".*format")
-
-        self.frame = _frame.copy()
-
-    def teardown_method(self, method):
-        warnings.filters = self.warn_filters
 
     def test_repr_embedded_ndarray(self):
         arr = np.empty(10, dtype=[('err', object)])
@@ -123,17 +111,18 @@ class TestDataFrameFormatting:
         repr(df)
         df.to_string()
 
-    def test_eng_float_formatter(self):
-        self.frame.loc[5] = 0
+    def test_eng_float_formatter(self, float_frame):
+        df = float_frame
+        df.loc[5] = 0
 
         fmt.set_eng_float_format()
-        repr(self.frame)
+        repr(df)
 
         fmt.set_eng_float_format(use_eng_prefix=True)
-        repr(self.frame)
+        repr(df)
 
         fmt.set_eng_float_format(accuracy=0)
-        repr(self.frame)
+        repr(df)
         tm.reset_display_options()
 
     def test_show_null_counts(self):
@@ -467,7 +456,7 @@ class TestDataFrameFormatting:
         finally:
             sys.stdin = _stdin
 
-    def test_to_string_unicode_columns(self):
+    def test_to_string_unicode_columns(self, float_frame):
         df = DataFrame({'\u03c3': np.arange(10.)})
 
         buf = StringIO()
@@ -478,7 +467,7 @@ class TestDataFrameFormatting:
         df.info(buf=buf)
         buf.getvalue()
 
-        result = self.frame.to_string()
+        result = float_frame.to_string()
         assert isinstance(result, str)
 
     def test_to_string_utf8_columns(self):
@@ -1513,14 +1502,15 @@ c  10  11  12  13  14\
             assert '5 rows' not in str(df)
             assert '5 rows' not in df._repr_html_()
 
-    def test_repr_html(self):
-        self.frame._repr_html_()
+    def test_repr_html(self, float_frame):
+        df = float_frame
+        df._repr_html_()
 
         fmt.set_option('display.max_rows', 1, 'display.max_columns', 1)
-        self.frame._repr_html_()
+        df._repr_html_()
 
         fmt.set_option('display.notebook_repr_html', False)
-        self.frame._repr_html_()
+        df._repr_html_()
 
         tm.reset_display_options()
 
@@ -1698,16 +1688,18 @@ c  10  11  12  13  14\
                             'display.max_columns', max_cols):
             assert '&lt;class' in df._repr_html_()
 
-    def test_fake_qtconsole_repr_html(self):
+    def test_fake_qtconsole_repr_html(self, float_frame):
+        df = float_frame
+
         def get_ipython():
             return {'config': {'KernelApp':
                                {'parent_appname': 'ipython-qtconsole'}}}
 
-        repstr = self.frame._repr_html_()
+        repstr = df._repr_html_()
         assert repstr is not None
 
         fmt.set_option('display.max_rows', 5, 'display.max_columns', 2)
-        repstr = self.frame._repr_html_()
+        repstr = df._repr_html_()
 
         assert 'class' in repstr  # info fallback
         tm.reset_display_options()
