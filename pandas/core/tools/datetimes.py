@@ -42,6 +42,31 @@ def _guess_datetime_format_for_array(arr, **kwargs):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 
+def do_cache(arg, check_count: int, unique_share: float):
+    """
+    Decides whether to do caching.
+
+    If the percent of unique elements among `check_count` elements less
+    than `unique_share * 100` then we can do caching.
+
+    Parameters
+    ----------
+    arg: list, tuple, 1-d array, Series
+    check_count: int
+    unique_share: float
+
+    Returns
+    -------
+    : bool
+    """
+    from pandas.core.algorithms import unique
+
+    unique = unique(arg[:check_count])
+    if len(unique) > check_count * unique_share:
+        return False
+    return True
+
+
 def _maybe_cache(arg, format, cache, convert_listlike):
     """
     Create a cache of unique dates from an array of dates
@@ -66,6 +91,10 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     if cache:
         # Perform a quicker unique check
         from pandas import Index
+
+        if not do_cache(arg, int(len(arg) * 0.1), 0.7):
+            return cache_array
+
         unique_dates = Index(arg).unique()
         if len(unique_dates) < len(arg):
             cache_dates = convert_listlike(unique_dates.to_numpy(),
