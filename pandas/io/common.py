@@ -220,7 +220,9 @@ _compression_to_extension = {
 }
 
 
-def _get_compression_method(compression: Optional[Union[str, Dict[str, Any]]]):
+def _get_compression_method(
+        compression: Optional[Union[Dict[str, str]]]
+) -> Tuple[Optional[str], Dict[str, str]]:
     """
     Simplifies a compression argument to a compression method string and
     a dict containing additional arguments.

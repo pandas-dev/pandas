@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Any, Callable, Dict, FrozenSet, List, Optional, Set, Union
+from typing import Callable, Dict, FrozenSet, List, Optional, Set, Union
 import warnings
 import weakref
 
@@ -2943,7 +2943,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None,
-               compression: Optional[Union[str, Dict[str, Any]]] = 'infer',
+               compression: Optional[Union[str, Dict[str, str]]] = 'infer',
                quoting=None, quotechar='"', line_terminator=None,
                chunksize=None, tupleize_cols=None, date_format=None,
                doublequote=True, escapechar=None, decimal='.'):
@@ -3062,8 +3062,11 @@ class NDFrame(PandasObject, SelectionMixin):
         'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
 
         # create 'out.zip' containing 'out.csv'
-        >>> compression_opts = dict(method='zip', archive_name='out.csv')
-        >>> df.to_csv('out.zip', index=False, compression=compression_opts)
+        >>> compression_opts = dict(method='zip',
+        ...                         archive_name='out.csv')  # doctest: +SKIP
+
+        >>> df.to_csv('out.zip', index=False,
+        ...           compression=compression_opts)  # doctest: +SKIP
         """
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
