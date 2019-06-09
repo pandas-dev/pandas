@@ -1,10 +1,8 @@
 import numpy as np
-from numpy import nan
 import pytest
 
 import pandas as pd
 from pandas import Series
-from pandas.core.sparse import series as sps
 from pandas.util import testing as tm
 
 

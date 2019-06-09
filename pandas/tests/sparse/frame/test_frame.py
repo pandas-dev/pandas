@@ -1295,18 +1295,6 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(expected, result)
 
 
-#@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
-def test_deprecated_to_dense():
-    df = pd.DataFrame({"A": [1, np.nan, 3]})
-    
-    # Deprecated 0.25.0
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        sparse_df = pd.SparseDataFrame({"A": [1, np.nan, 3]})
-        result = sparse_df.to_dense()
-    tm.assert_frame_equal(result, df)
-
-
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 @pytest.mark.filterwarnings("ignore:DataFrame:FutureWarning")
 class TestSparseDataFrameArithmetic:
@@ -1431,3 +1419,14 @@ class TestSparseDataFrameAnalytics:
         if inplace:
             result_df = input_df
         tm.assert_sp_frame_equal(expected, result_df)
+
+
+def test_deprecated_to_dense():
+    df = pd.DataFrame({"A": [1, np.nan, 3]})
+
+    # Deprecated 0.25.0
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        sparse_df = pd.SparseDataFrame({"A": [1, np.nan, 3]})
+        result = sparse_df.to_dense()
+    tm.assert_frame_equal(result, df)
