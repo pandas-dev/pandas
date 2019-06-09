@@ -235,8 +235,8 @@ def _get_compression_method(
 
     Returns
     -------
-    tuple of ({compression method}, any
-              {compression arguments}, dict)
+    tuple of ({compression method}, Optional[str]
+              {compression arguments}, Dict[str, str])
 
     Raises
     ------
