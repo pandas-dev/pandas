@@ -7,7 +7,8 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import remove_na_arraylike
-from pandas.core.reshape.concat import concat
+
+from pandas import concat
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
