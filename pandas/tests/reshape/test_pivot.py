@@ -2445,7 +2445,8 @@ class TestCrosstab:
         s1 = pd.Series(range(3), name='foo')
         s2 = s1 + 1
 
-        msg = "Column and rows cannot share the same names. Repeated names: foo"
+        msg = "Column and rows cannot share the same names. " \
+              "Repeated names: foo"
         with pytest.raises(ValueError, match=msg):
             pd.crosstab(s1, s2)
         with pytest.raises(ValueError, match=msg):
