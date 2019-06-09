@@ -1792,17 +1792,19 @@ class TestIndex(Base):
                                     index.isin(values, level='foobar'))
 
     @pytest.mark.parametrize("level", [2, 10, -3])
-    def test_isin_level_kwarg_bad_level_raises(self, level, all_index_empty):
-        index = all_index_empty
+    def test_isin_level_kwarg_bad_level_raises(self, level, indices):
+        index = indices
         with pytest.raises(IndexError, match='Too many levels'):
             index.isin([], level=level)
 
     @pytest.mark.parametrize("label", [1.0, 'foobar', 'xyzzy', np.nan])
-    def test_isin_level_kwarg_bad_label_raises(self, label, all_index_empty):
-        index = all_index_empty
-        if isinstance(index, pd.MultiIndex):
+    def test_isin_level_kwarg_bad_label_raises(self, label, indices):
+        index = indices
+        if isinstance(index, MultiIndex):
+            index = index.rename(['foo', 'bar'])
             msg = "'Level {} not found'"
         else:
+            index = index.rename('foo')
             msg = r"'Level {} must be same as name \(foo\)'"
         with pytest.raises(KeyError, match=msg.format(label)):
             index.isin([], level=label)

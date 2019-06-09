@@ -1,10 +1,8 @@
-from operator import attrgetter
-
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.indexes.api import Index, MultiIndex, PeriodIndex, RangeIndex
+from pandas.core.indexes.api import Index, MultiIndex
 import pandas.util.testing as tm
 
 indices_list = [tm.makeUnicodeIndex(100),
@@ -49,40 +47,3 @@ def zero(request):
     # For testing division by (or of) zero for Index with length 5, this
     # gives several scalar-zeros and length-5 vector-zeros
     return request.param
-
-
-def _get_subclasses(cls):
-    for subclass in cls.__subclasses__():
-        yield from _get_subclasses(subclass)
-        yield subclass
-
-
-all_indexes_inc_abc = [Index] + list(set(_get_subclasses(Index)))
-all_indexes_inc_abc_sorted = sorted(all_indexes_inc_abc,
-                                    key=attrgetter('__name__'))
-all_indexes = [index for index in all_indexes_inc_abc_sorted
-               if getattr(pd, index.__name__, False)]
-
-
-@pytest.fixture(params=all_indexes)
-def all_index_types(request):
-    """
-    A Fixture for all indexes types. Index and subclasses in pandas namespace.
-    """
-    return request.param
-
-
-@pytest.fixture
-def all_index_empty(all_index_types):
-    """
-    A Fixture for empty instances of all indexes types in pandas namespace.
-    """
-    cls = all_index_types
-    if issubclass(cls, RangeIndex):
-        return cls(0, name='foo')
-    elif issubclass(cls, MultiIndex):
-        return cls.from_arrays([[], []], names=['foo', 'bar'])
-    elif issubclass(cls, PeriodIndex):
-        return cls([], freq='M', name='foo')
-    else:
-        return cls([], name='foo')
