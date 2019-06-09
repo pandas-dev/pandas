@@ -1294,15 +1294,17 @@ class TestSparseDataFrame(SharedWithSparse):
                                     default_fill_value=1.0)
         tm.assert_frame_equal(expected, result)
 
-    def test_deprecated_to_dense(self):
-        df = pd.DataFrame({"A": [1, np.nan, 3]})
-        sparse_df = pd.SparseDataFrame({"A": [1, np.nan, 3]})
 
-        # Deprecated 0.25.0
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = sparse_df.to_dense()
-        tm.assert_frame_equal(result, df)
+#@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
+def test_deprecated_to_dense():
+    df = pd.DataFrame({"A": [1, np.nan, 3]})
+    
+    # Deprecated 0.25.0
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        sparse_df = pd.SparseDataFrame({"A": [1, np.nan, 3]})
+        result = sparse_df.to_dense()
+    tm.assert_frame_equal(result, df)
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")

@@ -55,6 +55,7 @@ class Base:
         self.ymd.index.set_names(['year', 'month', 'day'], inplace=True)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 class TestMultiLevel(Base):
 
     def test_append(self):

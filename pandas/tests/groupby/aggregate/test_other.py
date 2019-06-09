@@ -385,6 +385,7 @@ def test_agg_callables():
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 def test_agg_over_numpy_arrays():
     # GH 3788
     df = pd.DataFrame([[1, np.array([10, 20, 30])],
