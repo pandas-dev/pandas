@@ -362,6 +362,21 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
+    def _values_for_argsort(self) -> np.ndarray:
+        """
+        Return values for sorting.
+        Returns
+        -------
+        ndarray
+            The transformed values should maintain the ordering between values
+            within the array.
+        See Also
+        --------
+        ExtensionArray.argsort
+        """
+        # Note: this is used in `ExtensionArray.argsort`.
+        return np.array(self)
+
     def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
         """
         Return the indices that would sort this array.
@@ -394,10 +409,10 @@ class ExtensionArray:
         # 2. argsort : total control over sorting.
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
 
-        if hasattr(self, '_values_for_argsort'):
-            values = self._values_for_argsort()
-        else:
-            values = self
+        #if hasattr(self, '_values_for_argsort'):
+        values = self._values_for_argsort()
+        #else:
+            #values = self
         na_position = 'last' if ascending else 'first'
         result = nargsort(values, kind=kind, ascending=ascending,
                           na_position=na_position)
