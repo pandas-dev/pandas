@@ -1791,22 +1791,23 @@ class TestIndex(Base):
         tm.assert_numpy_array_equal(expected,
                                     index.isin(values, level='foobar'))
 
-    @pytest.mark.parametrize("level", [1, 10, -2])
-    @pytest.mark.parametrize("index", [
-        Index(['qux', 'baz', 'foo', 'bar']),
-        # Float64Index overrides isin, so must be checked separately
-        Float64Index([1.0, 2.0, 3.0, 4.0])])
-    def test_isin_level_kwarg_raises_bad_index(self, level, index):
+    @pytest.mark.parametrize("level", [2, 10, -3])
+    def test_isin_level_kwarg_bad_level_raises(self, level, indices):
+        index = indices
         with pytest.raises(IndexError, match='Too many levels'):
             index.isin([], level=level)
 
-    @pytest.mark.parametrize("level", [1.0, 'foobar', 'xyzzy', np.nan])
-    @pytest.mark.parametrize("index", [
-        Index(['qux', 'baz', 'foo', 'bar']),
-        Float64Index([1.0, 2.0, 3.0, 4.0])])
-    def test_isin_level_kwarg_raises_key(self, level, index):
-        with pytest.raises(KeyError, match='must be same as name'):
-            index.isin([], level=level)
+    @pytest.mark.parametrize("label", [1.0, 'foobar', 'xyzzy', np.nan])
+    def test_isin_level_kwarg_bad_label_raises(self, label, indices):
+        index = indices
+        if isinstance(index, MultiIndex):
+            index = index.rename(['foo', 'bar'])
+            msg = "'Level {} not found'"
+        else:
+            index = index.rename('foo')
+            msg = r"'Level {} must be same as name \(foo\)'"
+        with pytest.raises(KeyError, match=msg.format(label)):
+            index.isin([], level=label)
 
     @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
     def test_isin_empty(self, empty):

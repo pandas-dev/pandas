@@ -540,6 +540,7 @@ Datetimelike
 - Bug in :func:`to_datetime` which does not replace the invalid argument with ``NaT`` when error is set to coerce (:issue:`26122`)
 - Bug in adding :class:`DateOffset` with nonzero month to :class:`DatetimeIndex` would raise ``ValueError`` (:issue:`26258`)
 - Bug in :func:`to_datetime` which raises unhandled ``OverflowError`` when called with mix of invalid dates and ``NaN`` values with ``format='%Y%m%d'`` and ``error='coerce'`` (:issue:`25512`)
+- Bug in :meth:`isin` for datetimelike indexes; :class:`DatetimeIndex`, :class:`TimedeltaIndex` and :class:`PeriodIndex` where the ``levels`` parameter was ignored. (:issue:`26675`)
 - Bug in :func:`to_datetime` which raises ``TypeError`` for ``format='%Y%m%d'`` when called for invalid integer dates with length >= 6 digits with ``errors='ignore'``
 - Bug when comparing a :class:`PeriodIndex` against a zero-dimensional numpy array (:issue:`26689`)
 
