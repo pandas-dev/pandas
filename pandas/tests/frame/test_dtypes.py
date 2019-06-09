@@ -402,6 +402,8 @@ class TestDataFrameDataTypes(TestData):
                                B='float32:dense',
                                C='float16:dense',
                                D='float64:dense')).sort_values()
+
+        # GH 26705 - Assert .ftypes is deprecated
         with tm.assert_produces_warning(FutureWarning):
             result = frame.ftypes.sort_values()
         assert_series_equal(result, expected)
