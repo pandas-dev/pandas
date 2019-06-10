@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype, is_scalar)
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
+from pandas._typing import DatetimeLikeArray
 from pandas.core import algorithms, ops
 from pandas.core.accessor import PandasDelegate
 from pandas.core.arrays import ExtensionOpsMixin
@@ -58,7 +59,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
-    _data = None
+    _data = None  # type: DatetimeLikeArray
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index

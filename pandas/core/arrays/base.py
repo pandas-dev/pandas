@@ -6,7 +6,7 @@
    without warning.
 """
 import operator
-from typing import Any, Callable, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -26,7 +26,7 @@ from pandas.core import ops
 
 _not_implemented_message = "{} does not implement {}."
 
-_extension_array_shared_docs = dict()
+_extension_array_shared_docs = dict()  # type: Dict[str, str]
 
 
 class ExtensionArray:

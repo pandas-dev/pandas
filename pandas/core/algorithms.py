@@ -26,8 +26,9 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
+from type import Dict
 
-_shared_docs = {}
+_shared_docs = {}  # type: Dict[str, str]
 
 
 # --------------- #
