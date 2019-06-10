@@ -14,7 +14,7 @@ import pandas.util.testing as tm
 
 from pandas.tseries.offsets import Day, Micro, Milli, Second
 
-converter = pytest.importorskip('pandas.plotting._converter')
+converter = pytest.importorskip('pandas.plotting._matplotlib.converter')
 from pandas.plotting import (deregister_matplotlib_converters,  # isort:skip
                              register_matplotlib_converters)
 

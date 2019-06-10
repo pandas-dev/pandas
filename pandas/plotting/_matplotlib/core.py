@@ -61,6 +61,7 @@ class MPLPlot:
                  secondary_y=False, colormap=None,
                  table=False, layout=None, **kwds):
 
+        converter._WARN = False  # no warning for pandas plots
         self.data = data
         self.by = by
 
