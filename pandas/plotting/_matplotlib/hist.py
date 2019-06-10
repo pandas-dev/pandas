@@ -2,7 +2,6 @@ import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import gaussian_kde
 
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass
@@ -126,6 +125,7 @@ class KdePlot(HistPlot):
     @classmethod
     def _plot(cls, ax, y, style=None, bw_method=None, ind=None,
               column_num=None, stacking_id=None, **kwds):
+        from scipy.stats import gaussian_kde
 
         y = remove_na_arraylike(y)
         gkde = gaussian_kde(y, bw_method=bw_method)
