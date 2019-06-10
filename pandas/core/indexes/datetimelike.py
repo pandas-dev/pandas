@@ -522,6 +522,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         -------
         is_contained : ndarray (boolean dtype)
         """
+        if level is not None:
+            self._validate_index_level(level)
+
         if not isinstance(values, type(self)):
             try:
                 values = type(self)(values)
