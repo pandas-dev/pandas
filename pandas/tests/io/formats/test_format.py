@@ -2729,11 +2729,6 @@ def test_format_percentiles():
     expected = ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
     assert result == expected
 
-    result = fmt.format_percentiles(np.linspace(0, 1, 10 + 1))
-    expected = ['0%', '10%', '20%', '30%', '40%', '50%',
-                '60%', '70%', '80%', '90%', '100%']
-    assert result == expected
-
     msg = r"percentiles should all be in the interval \[0,1\]"
     with pytest.raises(ValueError, match=msg):
         fmt.format_percentiles([0.1, np.nan, 0.5])
@@ -2743,6 +2738,13 @@ def test_format_percentiles():
         fmt.format_percentiles([2, 0.1, 0.5])
     with pytest.raises(ValueError, match=msg):
         fmt.format_percentiles([0.1, 0.5, 'a'])
+
+
+def test_format_percentiles_integer_idx():
+    result = fmt.format_percentiles(np.linspace(0, 1, 10 + 1))
+    expected = ['0%', '10%', '20%', '30%', '40%', '50%',
+                '60%', '70%', '80%', '90%', '100%']
+    assert result == expected
 
 
 def test_repr_html_ipython_config(ip):
