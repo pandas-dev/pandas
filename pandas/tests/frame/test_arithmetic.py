@@ -635,7 +635,7 @@ class TestFrameArithmetic:
 
 # ------------------------------------------------------------------
 # Unary
-class TestFrameUnary(object):
+class TestFrameUnary:
 
     @pytest.mark.parametrize('op', [operator.pos, operator.neg,
                                     operator.inv, operator.abs])

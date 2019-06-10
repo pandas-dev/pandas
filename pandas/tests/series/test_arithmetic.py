@@ -174,7 +174,7 @@ class TestSeriesComparison:
 # Unary
 
 
-class TestSeriesUnary(object):
+class TestSeriesUnary:
 
     def test_neg(self):
         ser = tm.makeStringSeries()
