@@ -2741,6 +2741,7 @@ def test_format_percentiles():
 
 
 def test_format_percentiles_integer_idx():
+    # Issue #26660
     result = fmt.format_percentiles(np.linspace(0, 1, 10 + 1))
     expected = ['0%', '10%', '20%', '30%', '40%', '50%',
                 '60%', '70%', '80%', '90%', '100%']
