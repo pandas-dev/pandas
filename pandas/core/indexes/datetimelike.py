@@ -73,6 +73,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     _maybe_mask_results = ea_passthrough(
         DatetimeLikeArrayMixin._maybe_mask_results)
     __iter__ = ea_passthrough(DatetimeLikeArrayMixin.__iter__)
+    mean = ea_passthrough(DatetimeLikeArrayMixin.mean)
 
     @property
     def freq(self):

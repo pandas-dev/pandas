@@ -403,6 +403,13 @@ Conversion
    DatetimeIndex.to_series
    DatetimeIndex.to_frame
 
+Methods
+~~~~~~~
+.. autosummary::
+    :toctree: api/
+
+    DatetimeIndex.mean
+
 TimedeltaIndex
 --------------
 .. autosummary::
@@ -434,6 +441,13 @@ Conversion
    TimedeltaIndex.floor
    TimedeltaIndex.ceil
    TimedeltaIndex.to_frame
+
+Methods
+~~~~~~~
+.. autosummary::
+    :toctree: api/
+
+    TimedeltaIndex.mean
 
 .. currentmodule:: pandas
 
