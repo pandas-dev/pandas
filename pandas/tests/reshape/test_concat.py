@@ -39,15 +39,7 @@ def sort_with_none(request):
     return request.param
 
 
-class ConcatenateBase:
-
-    def setup_method(self, method):
-        self.frame = DataFrame(tm.getSeriesData())
-        self.mixed_frame = self.frame.copy()
-        self.mixed_frame['foo'] = 'bar'
-
-
-class TestConcatAppendCommon(ConcatenateBase):
+class TestConcatAppendCommon:
 
     """
     Test common dtype coercion rules between concat and append.
@@ -731,17 +723,20 @@ class TestConcatAppendCommon(ConcatenateBase):
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
 
-class TestAppend(ConcatenateBase):
+class TestAppend:
 
-    def test_append(self, sort):
-        begin_index = self.frame.index[:5]
-        end_index = self.frame.index[5:]
+    def test_append(self, sort, float_frame):
+        mixed_frame = float_frame.copy()
+        mixed_frame['foo'] = 'bar'
 
-        begin_frame = self.frame.reindex(begin_index)
-        end_frame = self.frame.reindex(end_index)
+        begin_index = float_frame.index[:5]
+        end_index = float_frame.index[5:]
+
+        begin_frame = float_frame.reindex(begin_index)
+        end_frame = float_frame.reindex(end_index)
 
         appended = begin_frame.append(end_frame)
-        tm.assert_almost_equal(appended['A'], self.frame['A'])
+        tm.assert_almost_equal(appended['A'], float_frame['A'])
 
         del end_frame['A']
         partial_appended = begin_frame.append(end_frame, sort=sort)
@@ -751,35 +746,35 @@ class TestAppend(ConcatenateBase):
         assert 'A' in partial_appended
 
         # mixed type handling
-        appended = self.mixed_frame[:5].append(self.mixed_frame[5:])
-        tm.assert_frame_equal(appended, self.mixed_frame)
+        appended = mixed_frame[:5].append(mixed_frame[5:])
+        tm.assert_frame_equal(appended, mixed_frame)
 
         # what to test here
-        mixed_appended = self.mixed_frame[:5].append(self.frame[5:], sort=sort)
-        mixed_appended2 = self.frame[:5].append(self.mixed_frame[5:],
-                                                sort=sort)
+        mixed_appended = mixed_frame[:5].append(float_frame[5:], sort=sort)
+        mixed_appended2 = float_frame[:5].append(mixed_frame[5:], sort=sort)
 
         # all equal except 'foo' column
         tm.assert_frame_equal(
             mixed_appended.reindex(columns=['A', 'B', 'C', 'D']),
             mixed_appended2.reindex(columns=['A', 'B', 'C', 'D']))
 
-        # append empty
+    def test_append_empty(self, float_frame):
         empty = DataFrame()
 
-        appended = self.frame.append(empty)
-        tm.assert_frame_equal(self.frame, appended)
-        assert appended is not self.frame
+        appended = float_frame.append(empty)
+        tm.assert_frame_equal(float_frame, appended)
+        assert appended is not float_frame
 
-        appended = empty.append(self.frame)
-        tm.assert_frame_equal(self.frame, appended)
-        assert appended is not self.frame
+        appended = empty.append(float_frame)
+        tm.assert_frame_equal(float_frame, appended)
+        assert appended is not float_frame
 
-        # Overlap
+    def test_append_overlap_raises(self, float_frame):
         msg = "Indexes have overlapping values"
         with pytest.raises(ValueError, match=msg):
-            self.frame.append(self.frame, verify_integrity=True)
+            float_frame.append(float_frame, verify_integrity=True)
 
+    def test_append_new_columns(self):
         # see gh-6129: new columns
         df = DataFrame({'a': {'x': 1, 'y': 2}, 'b': {'x': 3, 'y': 4}})
         row = Series([5, 6, 7], index=['a', 'b', 'c'], name='z')
@@ -851,17 +846,17 @@ class TestAppend(ConcatenateBase):
         assert isna(appended['strings'][0:4]).all()
         assert isna(appended['bools'][5:]).all()
 
-    def test_append_many(self, sort):
-        chunks = [self.frame[:5], self.frame[5:10],
-                  self.frame[10:15], self.frame[15:]]
+    def test_append_many(self, sort, float_frame):
+        chunks = [float_frame[:5], float_frame[5:10],
+                  float_frame[10:15], float_frame[15:]]
 
         result = chunks[0].append(chunks[1:])
-        tm.assert_frame_equal(result, self.frame)
+        tm.assert_frame_equal(result, float_frame)
 
         chunks[-1] = chunks[-1].copy()
         chunks[-1]['foo'] = 'bar'
         result = chunks[0].append(chunks[1:], sort=sort)
-        tm.assert_frame_equal(result.loc[:, self.frame.columns], self.frame)
+        tm.assert_frame_equal(result.loc[:, float_frame.columns], float_frame)
         assert (result['foo'][15:] == 'bar').all()
         assert result['foo'][:15].isna().all()
 
@@ -1042,7 +1037,7 @@ class TestAppend(ConcatenateBase):
         assert_frame_equal(result, expected)
 
 
-class TestConcatenate(ConcatenateBase):
+class TestConcatenate:
 
     def test_concat_copy(self):
         df = DataFrame(np.random.randn(4, 3))
