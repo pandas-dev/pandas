@@ -839,9 +839,9 @@ class TestExcelFileRead:
         'xlrd',
         None
     ])
-    def test_read_excel_engine_value(self, ext, excel_engine):
+    def test_read_excel_engine_value(self, read_ext, excel_engine):
         # GH 26566
-        xl = ExcelFile("test1" + ext, engine=excel_engine)
+        xl = ExcelFile("test1" + read_ext, engine=excel_engine)
         msg = "Engine should not be specified when passing an ExcelFile"
         with pytest.raises(ValueError, match=msg):
             pd.read_excel(xl, engine='openpyxl')
