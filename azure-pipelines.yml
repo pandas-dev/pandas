@@ -173,10 +173,8 @@ jobs:
   - script: |
       cd doc/build/html
       git remote add origin git@github.com:pandas-dev/pandas-dev.github.io.git
-      # FIXME not forcing the push will fail, testing if the exit 0 makes the build green anyway
-      # git push -f origin master
-      git push origin master
-      exit 0
+      git push -f origin master
+      exit 0  # FIXME this will leave the build green even if the step fails. To be removed when we are confident with this.
     displayName: 'Publish docs to GitHub pages'
     condition : |
       and(not(eq(variables['Build.Reason'], 'PullRequest')),
