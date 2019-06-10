@@ -58,7 +58,6 @@ def test_backend_is_not_module():
            'A pandas plotting backend must be a module that can be imported')
     with pytest.raises(ValueError, match=msg):
         pandas.set_option('plotting.backend', 'not_an_existing_module')
-    pandas.set_option('plotting.backend', 'matplotlib')
 
 
 def test_backend_not_a_backend_module(monkeypatch):
@@ -74,7 +73,6 @@ def test_backend_not_a_backend_module(monkeypatch):
                         _mocked_import_module)
     with pytest.raises(ValueError, match=msg):
         pandas.set_option('plotting.backend', 'module_not_a_backend')
-    pandas.set_option('plotting.backend', 'matplotlib')
 
 
 def test_backend_has_missing_objects(monkeypatch):
@@ -85,7 +83,6 @@ def test_backend_has_missing_objects(monkeypatch):
                         _mocked_import_module)
     with pytest.raises(ValueError, match=msg):
         pandas.set_option('plotting.backend', 'backend_missing_area_plot')
-    pandas.set_option('plotting.backend', 'matplotlib')
 
 
 def test_backend_is_correct(monkeypatch):
@@ -93,4 +90,9 @@ def test_backend_is_correct(monkeypatch):
                         _mocked_import_module)
     pandas.set_option('plotting.backend', 'correct_backend')
     assert pandas.get_option('plotting.backend') == 'correct_backend'
-    pandas.set_option('plotting.backend', 'matplotlib')
+
+    # Restore backend for other tests (matplotlib can be not installed)
+    try:
+        pandas.set_option('plotting.backend', 'matplotlib')
+    except ImportError:
+        pass
