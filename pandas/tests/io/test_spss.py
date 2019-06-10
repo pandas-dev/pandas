@@ -71,4 +71,4 @@ def test_spss_usecols(datapath):
     fname = datapath("io", "data", "labelled-num.sav")
 
     with pytest.raises(TypeError, match="usecols must be list-like."):
-        df = pd.read_spss(fname, usecols="VAR00002")
+        pd.read_spss(fname, usecols="VAR00002")
