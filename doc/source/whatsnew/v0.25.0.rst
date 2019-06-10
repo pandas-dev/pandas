@@ -28,7 +28,7 @@ Groupby Aggregation with Relabeling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Pandas has added special groupby behavior, known as "named aggregation", for naming the
-output columns when applying multiple aggregation functions to specific columns (:issue:`18366`).
+output columns when applying multiple aggregation functions to specific columns (:issue:`18366`, :issue:`26512`).
 
 .. ipython:: python
 
@@ -39,7 +39,7 @@ output columns when applying multiple aggregation functions to specific columns 
    animals.groupby("kind").agg(
        min_height=pd.NamedAgg(column='height', aggfunc='min'),
        max_height=pd.NamedAgg(column='height', aggfunc='max'),
-       average_weight=pd.NamedAgg(column='height', aggfunc=np.mean),
+       average_weight=pd.NamedAgg(column='weight', aggfunc=np.mean),
    )
 
 Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
@@ -52,11 +52,25 @@ what the arguments to the function are, but plain tuples are accepted as well.
    animals.groupby("kind").agg(
        min_height=('height', 'min'),
        max_height=('height', 'max'),
-       average_weight=('height', np.mean),
+       average_weight=('weight', np.mean),
    )
 
 Named aggregation is the recommended replacement for the deprecated "dict-of-dicts"
 approach to naming the output of column-specific aggregations (:ref:`whatsnew_0200.api_breaking.deprecate_group_agg_dict`).
+
+A similar approach is now available for Series groupby objects as well. Because there's no need for
+column selection, the values can just be the functions to apply
+
+.. ipython:: python
+
+   animals.groupby("kind").height.agg(
+       min_height="min",
+       max_height="max",
+   )
+
+
+This type of aggregation is the recommended alternative to the deprecated behavior when passing
+a dict to a Series groupby aggregation (:ref:`whatsnew_0200.api_breaking.deprecate_group_agg_dict`).
 
 See :ref:`_groupby.aggregate.named` for more.
 
@@ -82,6 +96,7 @@ Other Enhancements
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
 - :func:`merge_asof` now gives a more clear error message when merge keys are categoricals that are not equal (:issue:`26136`)
 - :meth:`pandas.core.window.Rolling` supports exponential (or Poisson) window type (:issue:`21303`)
+- :class:`DatetimeIndex` and :class:`TimedeltaIndex` now have a `mean` method (:issue:`24757`)
 -
 
 .. _whatsnew_0250.api_breaking:
@@ -540,6 +555,7 @@ Datetimelike
 - Bug in :func:`to_datetime` which does not replace the invalid argument with ``NaT`` when error is set to coerce (:issue:`26122`)
 - Bug in adding :class:`DateOffset` with nonzero month to :class:`DatetimeIndex` would raise ``ValueError`` (:issue:`26258`)
 - Bug in :func:`to_datetime` which raises unhandled ``OverflowError`` when called with mix of invalid dates and ``NaN`` values with ``format='%Y%m%d'`` and ``error='coerce'`` (:issue:`25512`)
+- Bug in :meth:`isin` for datetimelike indexes; :class:`DatetimeIndex`, :class:`TimedeltaIndex` and :class:`PeriodIndex` where the ``levels`` parameter was ignored. (:issue:`26675`)
 - Bug in :func:`to_datetime` which raises ``TypeError`` for ``format='%Y%m%d'`` when called for invalid integer dates with length >= 6 digits with ``errors='ignore'``
 - Bug when comparing a :class:`PeriodIndex` against a zero-dimensional numpy array (:issue:`26689`)
 
@@ -649,6 +665,7 @@ I/O
 - Bug in :func:`read_json` where date strings with ``Z`` were not converted to a UTC timezone (:issue:`26168`)
 - Added ``cache_dates=True`` parameter to :meth:`read_csv`, which allows to cache unique dates when they are parsed (:issue:`25990`)
 - :meth:`DataFrame.to_excel` now raises a ``ValueError`` when the caller's dimensions exceed the limitations of Excel (:issue:`26051`)
+- :func:`read_excel` now raises a ``ValueError`` when input is of type :class:`pandas.io.excel.ExcelFile` and ``engine`` param is passed since :class:`pandas.io.excel.ExcelFile` has an engine defined (:issue:`26566`)
 - Bug while selecting from :class:`HDFStore` with ``where=''`` specified (:issue:`26610`).
 
 Plotting

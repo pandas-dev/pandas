@@ -735,6 +735,17 @@ class SeriesGroupBy(GroupBy):
        min  max
     1    1    2
     2    3    4
+
+    The output column names can be controlled by passing
+    the desired column names and aggregations as keyword arguments.
+
+    >>> s.groupby([1, 1, 2, 2]).agg(
+    ...     minimum='min',
+    ...     maximum='max',
+    ... )
+       minimum  maximum
+    1        1        2
+    2        3        4
     """)
 
     @Appender(_apply_docs['template']
@@ -749,8 +760,24 @@ class SeriesGroupBy(GroupBy):
                   klass='Series',
                   axis='')
     @Appender(_shared_docs['aggregate'])
-    def aggregate(self, func_or_funcs, *args, **kwargs):
+    def aggregate(self, func_or_funcs=None, *args, **kwargs):
         _level = kwargs.pop('_level', None)
+
+        relabeling = func_or_funcs is None
+        columns = None
+        no_arg_message = ("Must provide 'func_or_funcs' or named "
+                          "aggregation **kwargs.")
+        if relabeling:
+            columns = list(kwargs)
+            if not PY36:
+                # sort for 3.5 and earlier
+                columns = list(sorted(columns))
+
+            func_or_funcs = [kwargs[col] for col in columns]
+            kwargs = {}
+            if not columns:
+                raise TypeError(no_arg_message)
+
         if isinstance(func_or_funcs, str):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
@@ -759,6 +786,8 @@ class SeriesGroupBy(GroupBy):
             # but not the class list / tuple itself.
             ret = self._aggregate_multiple_funcs(func_or_funcs,
                                                  (_level or 0) + 1)
+            if relabeling:
+                ret.columns = columns
         else:
             cyfunc = self._is_cython_func(func_or_funcs)
             if cyfunc and not args and not kwargs:
@@ -793,11 +822,14 @@ class SeriesGroupBy(GroupBy):
             # have not shown a higher level one
             # GH 15931
             if isinstance(self._selected_obj, Series) and _level <= 1:
-                warnings.warn(
-                    ("using a dict on a Series for aggregation\n"
-                     "is deprecated and will be removed in a future "
-                     "version"),
-                    FutureWarning, stacklevel=3)
+                msg = dedent("""\
+                using a dict on a Series for aggregation
+                is deprecated and will be removed in a future version. Use \
+                named aggregation instead.
+
+                    >>> grouper.agg(name_1=func_1, name_2=func_2)
+                """)
+                warnings.warn(msg, FutureWarning, stacklevel=3)
 
             columns = list(arg.keys())
             arg = arg.items()
@@ -1562,7 +1594,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
 def _is_multi_agg_with_relabel(**kwargs):
     """
-    Check whether the kwargs pass to .agg look like multi-agg with relabling.
+    Check whether kwargs passed to .agg look like multi-agg with relabeling.
 
     Parameters
     ----------
