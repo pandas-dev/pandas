@@ -1246,7 +1246,7 @@ def format_percentiles(percentiles):
             raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
-    int_idx = ((percentiles.astype(int) - percentiles) < 1e-4)
+    int_idx = (abs(percentiles.astype(int) - percentiles) < 1e-4)
 
     if np.all(int_idx):
         out = percentiles.astype(int).astype(str)
