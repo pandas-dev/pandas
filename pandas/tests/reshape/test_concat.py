@@ -758,7 +758,7 @@ class TestAppend:
             mixed_appended.reindex(columns=['A', 'B', 'C', 'D']),
             mixed_appended2.reindex(columns=['A', 'B', 'C', 'D']))
 
-        # append empty
+    def test_append_empty(self, float_frame):
         empty = DataFrame()
 
         appended = float_frame.append(empty)
@@ -769,11 +769,12 @@ class TestAppend:
         tm.assert_frame_equal(float_frame, appended)
         assert appended is not float_frame
 
-        # Overlap
+    def test_append_overlap_raises(self, float_frame):
         msg = "Indexes have overlapping values"
         with pytest.raises(ValueError, match=msg):
             float_frame.append(float_frame, verify_integrity=True)
 
+    def test_append_new_columns(self):
         # see gh-6129: new columns
         df = DataFrame({'a': {'x': 1, 'y': 2}, 'b': {'x': 3, 'y': 4}})
         row = Series([5, 6, 7], index=['a', 'b', 'c'], name='z')
