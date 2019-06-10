@@ -62,8 +62,9 @@ def should_cache(arg, check_count: int, unique_share: float):
     -------
     do_caching: bool
     """
-    assert 0 < check_count <= len(arg)
-    assert 0 < unique_share < 1
+    assert 0 < check_count <= len(arg), ('check_count must be in next bounds: '
+                                         '(0; len(arg)]')
+    assert 0 < unique_share < 1, 'unique_share must be in next bounds: (0; 1)'
 
     do_caching = True
 
