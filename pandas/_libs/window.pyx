@@ -1,7 +1,7 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
 import cython
-from cython import Py_ssize_t
+from cython import Py_ssize_t, size_t
 from libcpp.deque cimport deque
 
 from libc.stdlib cimport malloc, free
@@ -1821,7 +1821,7 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
     """
 
     cdef:
-        Py_ssize_t N = len(input_x)
+        size_t N = len(input_x)
         float64_t alpha, old_wt_factor, new_wt, mean_x, mean_y, cov
         float64_t sum_wt, sum_wt2, old_wt, cur_x, cur_y, old_mean_x, old_mean_y
         Py_ssize_t i, nobs

@@ -1,5 +1,6 @@
 # cython: profile=False
 # cython: boundscheck=False, initializedcheck=False
+from cython import size_t
 
 import numpy as np
 import pandas.io.sas.sas_constants as const
@@ -18,8 +19,9 @@ cdef const uint8_t[:] rle_decompress(int result_length,
     cdef:
         uint8_t control_byte, x
         uint8_t[:] result = np.zeros(result_length, np.uint8)
-        int rpos = 0, ipos = 0, length = len(inbuff)
+        int rpos = 0
         int i, nbytes, end_of_first_byte
+        size_t ipos = 0, length = len(inbuff)
 
     while ipos < length:
         control_byte = inbuff[ipos] & 0xF0
@@ -123,8 +125,9 @@ cdef const uint8_t[:] rdc_decompress(int result_length,
     cdef:
         uint8_t cmd
         uint16_t ctrl_bits, ctrl_mask = 0, ofs, cnt
-        int ipos = 0, rpos = 0, k
+        int rpos = 0, k
         uint8_t[:] outbuff = np.zeros(result_length, dtype=np.uint8)
+        size_t ipos = 0
 
     ii = -1
 

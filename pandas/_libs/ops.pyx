@@ -4,7 +4,7 @@ from cpython cimport (PyObject_RichCompareBool,
                       Py_EQ, Py_NE, Py_LT, Py_LE, Py_GT, Py_GE)
 
 import cython
-from cython import Py_ssize_t
+from cython import Py_ssize_t, size_t
 
 import numpy as np
 from numpy cimport ndarray, uint8_t, import_array
@@ -118,7 +118,7 @@ def vec_compare(object[:] left, object[:] right, object op):
     result : ndarray[bool]
     """
     cdef:
-        Py_ssize_t i, n = len(left)
+        size_t i, n = len(left)
         ndarray[uint8_t, cast=True] result
         int flag
 
@@ -220,7 +220,7 @@ def vec_binop(object[:] left, object[:] right, object op):
     result : ndarray[object]
     """
     cdef:
-        Py_ssize_t i, n = len(left)
+        size_t i, n = len(left)
         object[:] result
 
     if n != len(right):

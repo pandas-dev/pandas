@@ -8,6 +8,7 @@ from io import StringIO
 from libc.string cimport strchr
 
 import cython
+from cython import size_t, Py_ssize_t
 
 from cpython cimport PyObject_Str, PyUnicode_Join
 
@@ -603,7 +604,7 @@ def try_parse_date_and_time(object[:] dates, object[:] times,
                             date_parser=None, time_parser=None,
                             dayfirst=False, default=None):
     cdef:
-        Py_ssize_t i, n
+        size_t i, n
         object[:] result
 
     n = len(dates)
@@ -639,7 +640,7 @@ def try_parse_date_and_time(object[:] dates, object[:] times,
 def try_parse_year_month_day(object[:] years, object[:] months,
                              object[:] days):
     cdef:
-        Py_ssize_t i, n
+        size_t i, n
         object[:] result
 
     n = len(years)
@@ -661,7 +662,7 @@ def try_parse_datetime_components(object[:] years,
                                   object[:] seconds):
 
     cdef:
-        Py_ssize_t i, n
+        size_t i, n
         object[:] result
         int secs
         double float_secs
