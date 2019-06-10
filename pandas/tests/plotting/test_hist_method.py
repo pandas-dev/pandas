@@ -12,8 +12,6 @@ from pandas import DataFrame, Series
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 import pandas.util.testing as tm
 
-from pandas.plotting._core import grouped_hist
-
 
 @td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
@@ -266,12 +264,13 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.slow
     def test_grouped_hist_legacy(self):
         from matplotlib.patches import Rectangle
+        from pandas.plotting._matplotlib.hist import _grouped_hist
 
         df = DataFrame(randn(500, 2), columns=['A', 'B'])
         df['C'] = np.random.randint(0, 4, 500)
         df['D'] = ['X'] * 500
 
-        axes = grouped_hist(df.A, by=df.C)
+        axes = _grouped_hist(df.A, by=df.C)
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
         tm.close()
@@ -289,9 +288,9 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         xf, yf = 20, 18
         xrot, yrot = 30, 40
 
-        axes = grouped_hist(df.A, by=df.C, cumulative=True,
-                            bins=4, xlabelsize=xf, xrot=xrot,
-                            ylabelsize=yf, yrot=yrot, density=True)
+        axes = _grouped_hist(df.A, by=df.C, cumulative=True,
+                             bins=4, xlabelsize=xf, xrot=xrot,
+                             ylabelsize=yf, yrot=yrot, density=True)
         # height of last bin (index 5) must be 1.0
         for ax in axes.ravel():
             rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
@@ -301,14 +300,14 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                 ylabelsize=yf, yrot=yrot)
 
         tm.close()
-        axes = grouped_hist(df.A, by=df.C, log=True)
+        axes = _grouped_hist(df.A, by=df.C, log=True)
         # scale of y must be 'log'
         self._check_ax_scales(axes, yaxis='log')
 
         tm.close()
         # propagate attr exception from matplotlib.Axes.hist
         with pytest.raises(AttributeError):
-            grouped_hist(df.A, by=df.C, foo='bar')
+            _grouped_hist(df.A, by=df.C, foo='bar')
 
         with tm.assert_produces_warning(FutureWarning):
             df.hist(by='C', figsize='default')
