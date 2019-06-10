@@ -28,7 +28,7 @@ Groupby Aggregation with Relabeling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Pandas has added special groupby behavior, known as "named aggregation", for naming the
-output columns when applying multiple aggregation functions to specific columns (:issue:`18366`).
+output columns when applying multiple aggregation functions to specific columns (:issue:`18366`, :issue:`26512`).
 
 .. ipython:: python
 
@@ -39,7 +39,7 @@ output columns when applying multiple aggregation functions to specific columns 
    animals.groupby("kind").agg(
        min_height=pd.NamedAgg(column='height', aggfunc='min'),
        max_height=pd.NamedAgg(column='height', aggfunc='max'),
-       average_weight=pd.NamedAgg(column='height', aggfunc=np.mean),
+       average_weight=pd.NamedAgg(column='weight', aggfunc=np.mean),
    )
 
 Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
@@ -52,11 +52,25 @@ what the arguments to the function are, but plain tuples are accepted as well.
    animals.groupby("kind").agg(
        min_height=('height', 'min'),
        max_height=('height', 'max'),
-       average_weight=('height', np.mean),
+       average_weight=('weight', np.mean),
    )
 
 Named aggregation is the recommended replacement for the deprecated "dict-of-dicts"
 approach to naming the output of column-specific aggregations (:ref:`whatsnew_0200.api_breaking.deprecate_group_agg_dict`).
+
+A similar approach is now available for Series groupby objects as well. Because there's no need for
+column selection, the values can just be the functions to apply
+
+.. ipython:: python
+
+   animals.groupby("kind").height.agg(
+       min_height="min",
+       max_height="max",
+   )
+
+
+This type of aggregation is the recommended alternative to the deprecated behavior when passing
+a dict to a Series groupby aggregation (:ref:`whatsnew_0200.api_breaking.deprecate_group_agg_dict`).
 
 See :ref:`_groupby.aggregate.named` for more.
 
