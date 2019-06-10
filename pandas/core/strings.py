@@ -53,6 +53,27 @@ def cat_core(list_of_columns, sep):
     return np.sum(list_with_sep, axis=0)
 
 
+def cat_safe(list_of_columns, sep):
+    """
+    Auxiliary function for :meth:`str.cat`.
+
+    Same signature as cat_core, but handles TypeErrors in concatenation, which
+    happen if the Series in list_of columns have the wrong dtypes or content.
+    """
+    # if there are any non-string values (wrong dtype or hidden behind object
+    # dtype), np.sum will fail; catch error and return with better message
+    try:
+        result = cat_core(list_of_columns, sep)
+    except TypeError:
+        dtypes = [lib.infer_dtype(x, skipna=True) for x in list_of_columns]
+        illegal = [x not in ('string', 'empty') for x in dtypes]
+        first_offender = [x for x, y in zip(list_of_columns, illegal) if y][0]
+        raise TypeError('Concatenation requires list-likes containing only '
+                        'strings (or missing values). Offending values found '
+                        'in column {}'.format(first_offender)) from None
+    return result
+
+
 def _na_map(f, arr, na_result=np.nan, dtype=object):
     # should really _check_ for NA
     return _map(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
@@ -2280,23 +2301,6 @@ class StringMethods(NoNewAttributesMixin):
                                  'must all be of the same length as the '
                                  'calling Series/Index.')
 
-        # data has already been checked by _validate to be of correct dtype,
-        # but others could still have Series of dtypes (e.g. integers) which
-        # will necessarily fail in concatenation. To avoid deep and confusing
-        # traces, we raise here for anything that's not object or all-NA float.
-        def _legal_dtype(series):
-            # unify dtype handling between categorical/non-categorical
-            dtype = (series.dtype if not is_categorical_dtype(series)
-                     else series.cat.categories.dtype)
-            legal = dtype == 'O' or (dtype == 'float' and series.isna().all())
-            return legal
-        err_wrong_dtype = ('Can only concatenate list-likes containing only '
-                           'strings (or missing values).')
-        if any(not _legal_dtype(x) for x in others):
-            raise TypeError(err_wrong_dtype + ' Received list-like of dtype: '
-                            '{}'.format([x.dtype for x in others
-                                         if not _legal_dtype(x)][0]))
-
         if join is None and warn:
             warnings.warn("A future version of pandas will perform index "
                           "alignment when `others` is a Series/Index/"
@@ -2324,28 +2328,23 @@ class StringMethods(NoNewAttributesMixin):
         na_masks = np.array([isna(x) for x in all_cols])
         union_mask = np.logical_or.reduce(na_masks, axis=0)
 
-        # if there are any non-string, non-null values hidden within an object
-        # dtype, cat_core will fail; catch error and return with better message
-        try:
-            if na_rep is None and union_mask.any():
-                # no na_rep means NaNs for all rows where any column has a NaN
-                # only necessary if there are actually any NaNs
-                result = np.empty(len(data), dtype=object)
-                np.putmask(result, union_mask, np.nan)
+        if na_rep is None and union_mask.any():
+            # no na_rep means NaNs for all rows where any column has a NaN
+            # only necessary if there are actually any NaNs
+            result = np.empty(len(data), dtype=object)
+            np.putmask(result, union_mask, np.nan)
 
-                not_masked = ~union_mask
-                result[not_masked] = cat_core([x[not_masked]
-                                               for x in all_cols], sep)
-            elif na_rep is not None and union_mask.any():
-                # fill NaNs with na_rep in case there are actually any NaNs
-                all_cols = [np.where(nm, na_rep, col)
-                            for nm, col in zip(na_masks, all_cols)]
-                result = cat_core(all_cols, sep)
-            else:
-                # no NaNs - can just concatenate
-                result = cat_core(all_cols, sep)
-        except TypeError:
-            raise TypeError(err_wrong_dtype)
+            not_masked = ~union_mask
+            result[not_masked] = cat_safe([x[not_masked] for x in all_cols],
+                                          sep)
+        elif na_rep is not None and union_mask.any():
+            # fill NaNs with na_rep in case there are actually any NaNs
+            all_cols = [np.where(nm, na_rep, col)
+                        for nm, col in zip(na_masks, all_cols)]
+            result = cat_safe(all_cols, sep)
+        else:
+            # no NaNs - can just concatenate
+            result = cat_safe(all_cols, sep)
 
         if isinstance(self._orig, Index):
             # add dtype for case that result is all-NA

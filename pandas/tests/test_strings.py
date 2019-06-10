@@ -440,9 +440,10 @@ class TestStringMethods:
         s = Series(['a', 'b', 'c'])
         t = box(data)
 
-        msg = 'Can only concatenate list-likes containing only strings.*'
+        msg = 'Concatenation requires list-likes containing only strings.*'
         with pytest.raises(TypeError, match=msg):
-            s.str.cat(t, join='left')
+            # need to use outer and na_rep, as otherwise Index would not raise
+            s.str.cat(t, join='outer', na_rep='-')
 
     @pytest.mark.parametrize('box', [Series, Index])
     def test_str_cat_mixed_inputs(self, box):
