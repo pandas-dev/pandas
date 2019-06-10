@@ -135,6 +135,7 @@ def test_pyarrow(df):
 
 
 def test_missing_required_dependency(monkeypatch):
+    # GH 23868
     original_import = __import__
 
     def mock_import_fail(name, *args, **kwargs):
