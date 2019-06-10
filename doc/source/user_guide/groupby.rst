@@ -595,7 +595,7 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation",
    animals.groupby("kind").agg(
        min_height=pd.NamedAgg(column='height', aggfunc='min'),
        max_height=pd.NamedAgg(column='height', aggfunc='max'),
-       average_weight=pd.NamedAgg(column='height', aggfunc=np.mean),
+       average_weight=pd.NamedAgg(column='weight', aggfunc=np.mean),
    )
 
 
@@ -606,7 +606,7 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation",
    animals.groupby("kind").agg(
        min_height=('height', 'min'),
        max_height=('height', 'max'),
-       average_weight=('height', np.mean),
+       average_weight=('weight', np.mean),
    )
 
 
@@ -629,6 +629,16 @@ requires additional arguments, partially apply them with :meth:`functools.partia
    preserved. This means that the output column ordering would not be
    consistent. To ensure consistent ordering, the keys (and so output columns)
    will always be sorted for Python 3.5.
+
+Named aggregation is also valid for Series groupby aggregations. In this case there's
+no column selection, so the values are just the functions.
+
+.. ipython:: python
+
+   animals.groupby("kind").height.agg(
+       min_height='min',
+       max_height='max',
+   )
 
 Applying different functions to DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

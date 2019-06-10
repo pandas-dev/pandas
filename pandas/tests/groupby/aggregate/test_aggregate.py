@@ -329,8 +329,41 @@ def test_uint64_type_handling(dtype, how):
     tm.assert_frame_equal(result, expected, check_exact=True)
 
 
-class TestNamedAggregation:
+class TestNamedAggregationSeries:
 
+    def test_series_named_agg(self):
+        df = pd.Series([1, 2, 3, 4])
+        gr = df.groupby([0, 0, 1, 1])
+        result = gr.agg(a='sum', b='min')
+        expected = pd.DataFrame({'a': [3, 7], 'b': [1, 3]},
+                                columns=['a', 'b'], index=[0, 1])
+        tm.assert_frame_equal(result, expected)
+
+        result = gr.agg(b='min', a='sum')
+        # sort for 35 and earlier
+        if compat.PY36:
+            expected = expected[['b', 'a']]
+        tm.assert_frame_equal(result, expected)
+
+    def test_no_args_raises(self):
+        gr = pd.Series([1, 2]).groupby([0, 1])
+        with pytest.raises(TypeError, match='Must provide'):
+            gr.agg()
+
+        # but we do allow this
+        result = gr.agg([])
+        expected = pd.DataFrame()
+        tm.assert_frame_equal(result, expected)
+
+    def test_series_named_agg_duplicates_raises(self):
+        # This is a limitation of the named agg implementation reusing
+        # aggregate_multiple_funcs. It could maybe be lifted in the future.
+        gr = pd.Series([1, 2, 3]).groupby([0, 0, 1])
+        with pytest.raises(SpecificationError):
+            gr.agg(a='sum', b='sum')
+
+
+class TestNamedAggregationDataFrame:
     def test_agg_relabel(self):
         df = pd.DataFrame({"group": ['a', 'a', 'b', 'b'],
                            "A": [0, 1, 2, 3],
