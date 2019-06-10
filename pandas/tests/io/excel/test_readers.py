@@ -834,3 +834,14 @@ class TestExcelFileRead:
             pd.read_excel(xlsx, 'Sheet1', index_col=0)
 
         assert f.closed
+
+    @pytest.mark.parametrize('excel_engine', [
+        'xlrd',
+        None
+    ])
+    def test_read_excel_engine_value(self, read_ext, excel_engine):
+        # GH 26566
+        xl = ExcelFile("test1" + read_ext, engine=excel_engine)
+        msg = "Engine should not be specified when passing an ExcelFile"
+        with pytest.raises(ValueError, match=msg):
+            pd.read_excel(xl, engine='openpyxl')

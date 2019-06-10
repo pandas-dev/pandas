@@ -289,6 +289,9 @@ def read_excel(io,
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
+    elif engine and engine != io.engine:
+        raise ValueError("Engine should not be specified when passing "
+                         "an ExcelFile - ExcelFile already has the engine set")
 
     return io.parse(
         sheet_name=sheet_name,
@@ -777,6 +780,7 @@ class ExcelFile:
         if engine not in self._engines:
             raise ValueError("Unknown engine: {engine}".format(engine=engine))
 
+        self.engine = engine
         # could be a str, ExcelFile, Book, etc.
         self.io = io
         # Always a string
