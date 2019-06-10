@@ -2044,7 +2044,7 @@ def test_should_cache(listlike, do_caching):
 
 
 @pytest.mark.parametrize('check_count,unique_share, err_message', [
-    (11, 0.5, r'check_count must be in next bounds: \(0; len\(arg\)]'),
+    (11, 0.5, r'check_count must be in next bounds: [0; len\(arg\)]'),
     (10, 2, r'unique_share must be in next bounds: \(0; 1\)')
 ])
 def test_should_cache_errors(check_count, unique_share, err_message):

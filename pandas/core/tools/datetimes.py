@@ -54,7 +54,7 @@ def should_cache(arg, check_count: int, unique_share: float):
     ----------
     arg: listlike, tuple, 1-d array, Series
     check_count: int
-        0 < check_count <= len(arg)
+        0 <= check_count <= len(arg)
     unique_share: float
         0 < unique_share < 1
 
@@ -62,9 +62,12 @@ def should_cache(arg, check_count: int, unique_share: float):
     -------
     do_caching: bool
     """
-    assert 0 < check_count <= len(arg), ('check_count must be in next bounds: '
-                                         '(0; len(arg)]')
+    assert 0 <= check_count <= len(arg), ('check_count must be in next bounds:'
+                                          ' [0; len(arg)]')
     assert 0 < unique_share < 1, 'unique_share must be in next bounds: (0; 1)'
+
+    if check_count == 0:
+        return False
 
     do_caching = True
 
