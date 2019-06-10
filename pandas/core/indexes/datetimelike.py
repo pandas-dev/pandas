@@ -73,6 +73,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     _maybe_mask_results = ea_passthrough(
         DatetimeLikeArrayMixin._maybe_mask_results)
     __iter__ = ea_passthrough(DatetimeLikeArrayMixin.__iter__)
+    mean = ea_passthrough(DatetimeLikeArrayMixin.mean)
 
     @property
     def freq(self):
@@ -522,6 +523,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         -------
         is_contained : ndarray (boolean dtype)
         """
+        if level is not None:
+            self._validate_index_level(level)
+
         if not isinstance(values, type(self)):
             try:
                 values = type(self)(values)
