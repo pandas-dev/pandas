@@ -472,7 +472,7 @@ static int end_line(parser_t *self) {
         return 0;
     }
 
-    if (!(self->lines <= (uint64_t) self->header_end + 1) &&
+    if (!(self->lines <= self->header_end + 1) &&
         (self->expected_fields < 0 && fields > ex_fields) && !(self->usecols)) {
         // increment file line count
         self->file_lines++;
@@ -508,7 +508,7 @@ static int end_line(parser_t *self) {
         }
     } else {
         // missing trailing delimiters
-        if ((self->lines >= (uint64_t) self->header_end + 1) &&
+        if ((self->lines >= self->header_end + 1) &&
                 fields < ex_fields) {
             // might overrun the buffer when closing fields
             if (make_stream_space(self, ex_fields - fields) < 0) {
@@ -652,7 +652,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + (uint64_t)line_limit) {  \
+    if (line_limit > 0 && self->lines == start_lines + (uint64_t)line_limit) { \
         goto linelimit;                                              \
     }
 
