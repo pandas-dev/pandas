@@ -1606,7 +1606,9 @@ labels.
     frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W'
     which all have a default of 'right'.
 
-    This might lead to unintended look-ahead bias as in the following example:
+    This might unintendedly lead to looking ahead, where the value for a later
+    time is pulled back to a previous time as in the following example with
+    the :class:`~pandas.tseries.offsets.BusinessDay` frequency:
 
     .. ipython:: python
 
@@ -1618,7 +1620,8 @@ labels.
         s.resample('B').last().dt.weekday_name
 
     Notice how the value for Sunday got pulled back to the previous Friday.
-    To prevent any look-ahead bias, use instead
+    To get the behavior where the value for Sunday is pushed to Monday, use
+    instead
 
     .. ipython:: python
 
