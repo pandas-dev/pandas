@@ -467,9 +467,54 @@ plotting_backend_doc = """
     prodiving the name of the module that implements the backend.
 """
 
+
+def register_plotting_backend_cb(key):
+    import importlib
+
+    backend_str = cf.get_option(key)
+    if backend_str == 'matplotlib':
+        try:
+            import pandas.plotting._matplotlib  # noqa
+        except ImportError:
+            raise ImportError('matplotlib is required for plotting when the '
+                              'default backend "matplotlib" is selected.')
+        else:
+            return
+
+    try:
+        backend_mod = importlib.import_module(backend_str)
+    except ImportError:
+        raise ValueError('"{}" does not seem to be an installed module.'
+                         'A pandas plotting backend must be a module that '
+                         'can be imported'.format(backend_str))
+
+    required_objs = ['LinePlot', 'BarPlot', 'BarhPlot', 'HistPlot',
+                     'BoxPlot', 'KdePlot', 'AreaPlot', 'PiePlot',
+                     'ScatterPlot', 'HexBinPlot', 'hist_series',
+                     'hist_frame', 'boxplot', 'boxplot_frame',
+                     'boxplot_frame_groupby', 'tsplot', 'table',
+                     'andrews_curves', 'autocorrelation_plot',
+                     'bootstrap_plot', 'lag_plot', 'parallel_coordinates',
+                     'radviz', 'scatter_matrix', 'register', 'deregister']
+    missing_objs = set(required_objs) - set(dir(backend_mod))
+    if len(missing_objs) == len(required_objs):
+        raise ValueError(
+            '"{}" does not seem to be a valid backend. Valid backends are '
+            'modules that implement the next objects:\n{}'.format(
+                backend_str, '\n-'.join(required_objs)))
+    elif missing_objs:
+        raise ValueError(
+            '"{}" does not seem to be a complete backend. Valid backends '
+            'must implement the next objects:\n{}'.format(
+                backend_str, '\n-'.join(missing_objs)))
+
+
 with cf.config_prefix('plotting'):
     cf.register_option('backend', defval='matplotlib',
-                       doc=plotting_backend_doc)
+                       doc=plotting_backend_doc,
+                       validator=str,
+                       cb=register_plotting_backend_cb)
+
 
 register_converter_doc = """
 : bool
