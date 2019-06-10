@@ -1,6 +1,12 @@
 # being a bit too dynamic
+from math import pi, sqrt
+import random
+
+import matplotlib.lines as mlines
+import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.stats import gaussian_kde
 
 from pandas.core.dtypes.missing import notna
 
@@ -50,7 +56,6 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                     ax.hist(values, **hist_kwds)
 
                 elif diagonal in ('kde', 'density'):
-                    from scipy.stats import gaussian_kde
                     y = values
                     gkde = gaussian_kde(y)
                     ind = np.linspace(y.min(), y.max(), 1000)
@@ -96,14 +101,12 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
 
 def _get_marker_compat(marker):
-    import matplotlib.lines as mlines
     if marker not in mlines.lineMarkers:
         return 'o'
     return marker
 
 
 def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
-    import matplotlib.patches as patches
 
     def normalize(series):
         a = min(series)
@@ -168,7 +171,6 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
 def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
                    colormap=None, **kwds):
-    from math import sqrt, pi
 
     def function(amplitudes):
         def f(t):
@@ -223,7 +225,6 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
 
 
 def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
-    import random
 
     # random.sample(ndarray, int) fails on python 3.3, sigh
     data = list(series.values)
