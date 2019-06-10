@@ -438,7 +438,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         .. deprecated:: 0.25.0
            Use :func:`dtypes` instead.
         """
-        warnings.warn("ftypes is deprecated and will "
+        warnings.warn("Series.ftypes is deprecated and will "
                       "be removed in a future version. "
                       "Use Series.dtype instead.",
                       FutureWarning, stacklevel=2)
