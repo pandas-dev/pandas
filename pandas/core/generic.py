@@ -5565,7 +5565,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3    float64:sparse
         dtype: object
         """
-        warnings.warn("ftypes is deprecated and will "
+        warnings.warn("DataFrame.ftypes is deprecated and will "
                       "be removed in a future version. "
                       "Use dtypes instead.",
                       FutureWarning, stacklevel=2)
