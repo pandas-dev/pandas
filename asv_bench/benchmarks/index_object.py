@@ -52,7 +52,6 @@ class Datetime:
 
 class Ops:
 
-    sample_time = 0.2
     params = ['float', 'int']
     param_names = ['dtype']
 
@@ -94,6 +93,12 @@ class Range:
 
     def time_min_trivial(self):
         self.idx_inc.min()
+
+    def time_get_loc_inc(self):
+        self.idx_inc.get_loc(900000)
+
+    def time_get_loc_dec(self):
+        self.idx_dec.get_loc(100000)
 
 
 class IndexAppend:
@@ -183,7 +188,7 @@ class Float64IndexMethod:
 
 class IntervalIndexMethod:
     # GH 24813
-    params = [10**3, 10**5, 10**7]
+    params = [10**3, 10**5]
 
     def setup(self, N):
         left = np.append(np.arange(N), np.array(0))
@@ -191,11 +196,20 @@ class IntervalIndexMethod:
         self.intv = IntervalIndex.from_arrays(left, right)
         self.intv._engine
 
+        self.left = IntervalIndex.from_breaks(np.arange(N))
+        self.right = IntervalIndex.from_breaks(np.arange(N - 3, 2 * N - 3))
+
     def time_monotonic_inc(self, N):
         self.intv.is_monotonic_increasing
 
     def time_is_unique(self, N):
         self.intv.is_unique
+
+    def time_intersection(self, N):
+        self.left.intersection(self.right)
+
+    def time_intersection_duplicate(self, N):
+        self.intv.intersection(self.right)
 
 
 from .pandas_vb_common import setup  # noqa: F401

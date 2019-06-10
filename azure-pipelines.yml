@@ -15,7 +15,7 @@ jobs:
     name: Windows
     vmImage: vs2017-win2016
 
-- job: 'Checks_and_doc'
+- job: 'Checks'
   pool:
     vmImage: ubuntu-16.04
   timeoutInMinutes: 90
@@ -97,10 +97,11 @@ jobs:
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
+      cd asv_bench
+      asv check -E existing
       git remote add upstream https://github.com/pandas-dev/pandas.git
       git fetch upstream
       if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
-          cd asv_bench
           asv machine --yes
           ASV_OUTPUT="$(asv dev)"
           if [[ $(echo "$ASV_OUTPUT" | grep "failed") ]]; then

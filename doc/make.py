@@ -220,10 +220,11 @@ class DocBuilder:
         if os.path.exists(zip_fname):
             os.remove(zip_fname)
 
-        if self.single_doc_html is not None:
-            self._open_browser(self.single_doc_html)
-        else:
-            self._add_redirects()
+        if ret_code == 0:
+            if self.single_doc_html is not None:
+                self._open_browser(self.single_doc_html)
+            else:
+                self._add_redirects()
         return ret_code
 
     def latex(self, force=False):

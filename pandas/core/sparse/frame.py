@@ -42,7 +42,7 @@ class SparseDataFrame(DataFrame):
     DataFrame containing sparse floating point data in the form of SparseSeries
     objects
 
-    .. deprectaed:: 0.25.0
+    .. deprecated:: 0.25.0
 
        Use a DataFrame with sparse values instead.
 
@@ -242,11 +242,10 @@ class SparseDataFrame(DataFrame):
     def to_coo(self):
         return SparseFrameAccessor(self).to_coo()
 
-    def __array_wrap__(self, result):
-        return self._constructor(
-            result, index=self.index, columns=self.columns,
-            default_kind=self._default_kind,
-            default_fill_value=self._default_fill_value).__finalize__(self)
+    def __repr__(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Sparse")
+            return super().__repr__()
 
     def __getstate__(self):
         # pickling
