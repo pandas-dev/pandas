@@ -188,7 +188,7 @@ class Float64IndexMethod:
 
 class IntervalIndexMethod:
     # GH 24813
-    params = [10**3, 10**5, 10**7]
+    params = [10**3, 10**5]
 
     def setup(self, N):
         left = np.append(np.arange(N), np.array(0))
