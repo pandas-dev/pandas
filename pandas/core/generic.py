@@ -7476,7 +7476,7 @@ class NDFrame(PandasObject, SelectionMixin):
             aligned; see ``.align()`` method). If an ndarray is passed, the
             values are used as-is determine the groups. A label or list of
             labels may be passed to group by the columns in ``self``. Notice
-            that a tuple is interpreted a (single) key.
+            that a tuple is interpreted as a (single) key.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Split along rows (0) or columns (1).
         level : int, level name, or sequence of such, default None
