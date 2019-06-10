@@ -407,9 +407,8 @@ class ExtensionArray:
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
 
         values = self._values_for_argsort()
-        na_position = 'last' if ascending else 'first'
         result = nargsort(values, kind=kind, ascending=ascending,
-                          na_position=na_position)
+                          na_position='last')
         return result
 
     def fillna(self, value=None, method=None, limit=None):

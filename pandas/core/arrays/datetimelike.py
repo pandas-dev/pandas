@@ -620,6 +620,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
     def _from_factorized(cls, values, original):
         return cls(values, dtype=original.dtype)
 
+    def _values_for_argsort(self):
+        return self._data
+
     # ------------------------------------------------------------------
     # Additional array methods
     #  These are not part of the EA API, but we implement them because
