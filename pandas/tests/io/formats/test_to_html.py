@@ -5,8 +5,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, option_context
 from pandas.util import testing as tm
@@ -51,7 +49,7 @@ def biggie_df_fixture(request):
     if request.param == 'mixed':
         df = DataFrame({'A': np.random.randn(200),
                         'B': tm.makeStringIndex(200)},
-                       index=lrange(200))
+                       index=np.arange(200))
         df.loc[:20, 'A'] = np.nan
         df.loc[:20, 'B'] = np.nan
         return df
@@ -177,7 +175,7 @@ def test_to_html_multiindex_odd_even_truncate(max_rows, expected, datapath):
 @pytest.mark.parametrize('df,formatters,expected', [
     (DataFrame(
         [[0, 1], [2, 3], [4, 5], [6, 7]],
-        columns=['foo', None], index=lrange(4)),
+        columns=['foo', None], index=np.arange(4)),
      {'__index__': lambda x: 'abcd' [x]},
      'index_formatter'),
 
@@ -246,12 +244,6 @@ def test_to_html_border(option, result, expected):
     assert expected in result
 
 
-def test_display_option_warning():
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        pd.options.html.border
-
-
 @pytest.mark.parametrize('biggie_df_fixture', ['mixed'], indirect=True)
 def test_to_html(biggie_df_fixture):
     # TODO: split this test
@@ -303,13 +295,13 @@ def test_to_html_columns_arg():
 
 @pytest.mark.parametrize('columns,justify,expected', [
     (MultiIndex.from_tuples(
-        list(zip(np.arange(2).repeat(2), np.mod(lrange(4), 2))),
+        list(zip(np.arange(2).repeat(2), np.mod(range(4), 2))),
         names=['CL0', 'CL1']),
      'left',
      'multiindex_1'),
 
     (MultiIndex.from_tuples(
-        list(zip(range(4), np.mod(lrange(4), 2)))),
+        list(zip(range(4), np.mod(range(4), 2)))),
      'right',
      'multiindex_2')
 ])

@@ -39,7 +39,7 @@ def _simple_ts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
-class TestSeriesMissingData():
+class TestSeriesMissingData:
 
     def test_remove_na_deprecation(self):
         # see gh-16971
@@ -780,6 +780,7 @@ class TestSeriesMissingData():
         expected[:3] = np.nan
         assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse_series_fillna_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)
@@ -787,7 +788,8 @@ class TestSeriesMissingData():
         ss = s[:2].reindex(index).to_sparse()
         # TODO: what is this test doing? why are result an expected
         # the same call to fillna?
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             # TODO: release-note fillna performance warning
             result = ss.fillna(method='pad', limit=5)
             expected = ss.fillna(method='pad', limit=5)
@@ -797,7 +799,8 @@ class TestSeriesMissingData():
         assert_series_equal(result, expected)
 
         ss = s[-2:].reindex(index).to_sparse()
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             result = ss.fillna(method='backfill', limit=5)
             expected = ss.fillna(method='backfill')
         expected = expected.to_dense()
@@ -805,13 +808,15 @@ class TestSeriesMissingData():
         expected = expected.to_sparse()
         assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse_series_pad_backfill_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)
         s = s.to_sparse()
 
         result = s[:2].reindex(index, method='pad', limit=5)
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             expected = s[:2].reindex(index).fillna(method='pad')
         expected = expected.to_dense()
         expected[-3:] = np.nan
@@ -819,13 +824,15 @@ class TestSeriesMissingData():
         assert_series_equal(result, expected)
 
         result = s[-2:].reindex(index, method='backfill', limit=5)
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             expected = s[-2:].reindex(index).fillna(method='backfill')
         expected = expected.to_dense()
         expected[:3] = np.nan
         expected = expected.to_sparse()
         assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_series_pad_backfill_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)
@@ -875,7 +882,7 @@ def interp_methods_ind(request):
     return method, kwargs
 
 
-class TestSeriesInterpolateData():
+class TestSeriesInterpolateData:
     def test_interpolate(self, datetime_series, string_series):
         ts = Series(np.arange(len(datetime_series), dtype=float),
                     datetime_series.index)
@@ -912,7 +919,7 @@ class TestSeriesInterpolateData():
 
         # interpolate at new_index
         new_index = ser.index.union(Index([49.25, 49.5, 49.75, 50.25, 50.5,
-                                           50.75]))
+                                           50.75])).astype(float)
         interp_s = ser.reindex(new_index).interpolate(method='pchip')
         # does not blow up, GH5977
         interp_s[49:51]
@@ -928,7 +935,9 @@ class TestSeriesInterpolateData():
                           index=Index([1.0, 1.25, 1.5, 1.75,
                                        2.0, 2.25, 2.5, 2.75, 3.0]))
         # interpolate at new_index
-        new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75]))
+        new_index = ser.index.union(
+            Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])
+        ).astype(float)
         interp_s = ser.reindex(new_index).interpolate(method='akima')
         assert_series_equal(interp_s[1:3], expected)
 
@@ -941,7 +950,9 @@ class TestSeriesInterpolateData():
                           index=Index([1.0, 1.25, 1.5, 1.75,
                                        2.0, 2.25, 2.5, 2.75, 3.0]))
         # interpolate at new_index
-        new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75]))
+        new_index = ser.index.union(
+            Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])
+        ).astype(float)
         interp_s = ser.reindex(new_index).interpolate(
             method='piecewise_polynomial')
         assert_series_equal(interp_s[1:3], expected)
@@ -955,7 +966,9 @@ class TestSeriesInterpolateData():
                           index=Index([1.0, 1.25, 1.5, 1.75,
                                        2.0, 2.25, 2.5, 2.75, 3.0]))
         # interpolate at new_index
-        new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75]))
+        new_index = ser.index.union(
+            Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])
+        ).astype(float)
         interp_s = ser.reindex(new_index).interpolate(
             method='from_derivatives')
         assert_series_equal(interp_s[1:3], expected)

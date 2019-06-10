@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import lrange
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
@@ -64,9 +63,10 @@ def test_constructor_mismatched_codes_levels(idx):
     with pytest.raises(ValueError, match=msg):
         MultiIndex(levels=levels, codes=codes)
 
-    length_error = (r"On level 0, code max \(3\) >= length of level  \(1\)\."
+    length_error = (r"On level 0, code max \(3\) >= length of level \(1\)\."
                     " NOTE: this index is in an inconsistent state")
     label_error = r"Unequal code lengths: \[4, 2\]"
+    code_value_error = r"On level 0, code value \(-2\) < -1"
 
     # important to check that it's looking at the right thing.
     with pytest.raises(ValueError, match=length_error):
@@ -82,6 +82,44 @@ def test_constructor_mismatched_codes_levels(idx):
 
     with pytest.raises(ValueError, match=label_error):
         idx.copy().set_codes([[0, 0, 0, 0], [0, 0]])
+
+    # test set_codes with verify_integrity=False
+    # the setting should not raise any value error
+    idx.copy().set_codes(codes=[[0, 0, 0, 0], [0, 0]],
+                         verify_integrity=False)
+
+    # code value smaller than -1
+    with pytest.raises(ValueError, match=code_value_error):
+        MultiIndex(levels=[['a'], ['b']], codes=[[0, -2], [0, 0]])
+
+
+def test_na_levels():
+    # GH26408
+    # test if codes are re-assigned value -1 for levels
+    # with mising values (NaN, NaT, None)
+    result = MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+                        codes=[[0, -1, 1, 2, 3, 4]])
+    expected = MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+                          codes=[[-1, -1, -1, -1, 3, 4]])
+    tm.assert_index_equal(result, expected)
+
+    result = MultiIndex(levels=[[np.nan, 's', pd.NaT, 128, None]],
+                        codes=[[0, -1, 1, 2, 3, 4]])
+    expected = MultiIndex(levels=[[np.nan, 's', pd.NaT, 128, None]],
+                          codes=[[-1, -1, 1, -1, 3, -1]])
+    tm.assert_index_equal(result, expected)
+
+    # verify set_levels and set_codes
+    result = MultiIndex(
+        levels=[[1, 2, 3, 4, 5]], codes=[[0, -1, 1, 2, 3, 4]]).set_levels(
+            [[np.nan, 's', pd.NaT, 128, None]])
+    tm.assert_index_equal(result, expected)
+
+    result = MultiIndex(
+        levels=[[np.nan, 's', pd.NaT, 128, None]],
+        codes=[[1, 2, 2, 2, 2, 2]]).set_codes(
+            [[0, -1, 1, 2, 3, 4]])
+    tm.assert_index_equal(result, expected)
 
 
 def test_labels_deprecated(idx):
@@ -383,7 +421,7 @@ def test_from_product_empty_two_levels(first, second):
 def test_from_product_empty_three_levels(N):
     # GH12258
     names = ['A', 'B', 'C']
-    lvl2 = lrange(N)
+    lvl2 = list(range(N))
     result = MultiIndex.from_product([[], lvl2, []], names=names)
     expected = MultiIndex(levels=[[], lvl2, []],
                           codes=[[], [], []], names=names)

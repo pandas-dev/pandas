@@ -200,19 +200,27 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         if format is not None:
             raise ValueError("cannot specify both format and unit")
         arg = getattr(arg, 'values', arg)
-        result = tslib.array_with_unit_to_datetime(arg, unit,
-                                                   errors=errors)
+        result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit,
+                                                              errors=errors)
         if box:
             if errors == 'ignore':
                 from pandas import Index
                 result = Index(result, name=name)
-                # GH 23758: We may still need to localize the result with tz
-                try:
-                    return result.tz_localize(tz)
-                except AttributeError:
-                    return result
-
-            return DatetimeIndex(result, tz=tz, name=name)
+            else:
+                result = DatetimeIndex(result, name=name)
+            # GH 23758: We may still need to localize the result with tz
+            # GH 25546: Apply tz_parsed first (from arg), then tz (from caller)
+            # result will be naive but in UTC
+            try:
+                result = result.tz_localize('UTC').tz_convert(tz_parsed)
+            except AttributeError:
+                # Regular Index from 'ignore' path
+                return result
+            if tz is not None:
+                if result.tz is None:
+                    result = result.tz_localize(tz)
+                else:
+                    result = result.tz_convert(tz)
         return result
     elif getattr(arg, 'ndim', 1) > 1:
         raise TypeError('arg must be a string, datetime, list, tuple, '
@@ -517,15 +525,15 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     'ms', 'us', 'ns']) or plurals of the same
 
     >>> df = pd.DataFrame({'year': [2015, 2016],
-                           'month': [2, 3],
-                           'day': [4, 5]})
+    ...                    'month': [2, 3],
+    ...                    'day': [4, 5]})
     >>> pd.to_datetime(df)
     0   2015-02-04
     1   2016-03-05
     dtype: datetime64[ns]
 
     If a date does not meet the `timestamp limitations
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
     #timeseries-timestamp-limits>`_, passing errors='ignore'
     will return the original input instead of raising any exception.
 
@@ -540,8 +548,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     Passing infer_datetime_format=True can often-times speedup a parsing
     if its not an ISO8601 format exactly, but in a regular format.
 
-    >>> s = pd.Series(['3/11/2000', '3/12/2000', '3/13/2000']*1000)
-
+    >>> s = pd.Series(['3/11/2000', '3/12/2000', '3/13/2000'] * 1000)
     >>> s.head()
     0    3/11/2000
     1    3/12/2000
@@ -550,10 +557,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     4    3/12/2000
     dtype: object
 
-    >>> %timeit pd.to_datetime(s,infer_datetime_format=True)
+    >>> %timeit pd.to_datetime(s,infer_datetime_format=True)  # doctest: +SKIP
     100 loops, best of 3: 10.4 ms per loop
 
-    >>> %timeit pd.to_datetime(s,infer_datetime_format=False)
+    >>> %timeit pd.to_datetime(s,infer_datetime_format=False)  # doctest: +SKIP
     1 loop, best of 3: 471 ms per loop
 
     Using a unix epoch time
@@ -569,10 +576,9 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     Using a non-unix epoch origin
 
     >>> pd.to_datetime([1, 2, 3], unit='D',
-                       origin=pd.Timestamp('1960-01-01'))
-    0    1960-01-02
-    1    1960-01-03
-    2    1960-01-04
+    ...                origin=pd.Timestamp('1960-01-01'))
+    DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'], \
+dtype='datetime64[ns]', freq=None)
     """
     if arg is None:
         return None
@@ -769,21 +775,21 @@ def _attempt_YYYYMMDD(arg, errors):
     # try intlike / strings that are ints
     try:
         return calc(arg.astype(np.int64))
-    except ValueError:
+    except (ValueError, OverflowError):
         pass
 
     # a float with actual np.nan
     try:
         carg = arg.astype(np.float64)
         return calc_with_mask(carg, notna(carg))
-    except ValueError:
+    except (ValueError, OverflowError):
         pass
 
     # string with NaN-like
     try:
         mask = ~algorithms.isin(arg, list(tslib.nat_strings))
         return calc_with_mask(arg, mask)
-    except ValueError:
+    except (ValueError, OverflowError):
         pass
 
     return None

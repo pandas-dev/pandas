@@ -15,16 +15,15 @@ import pytz
 from pandas._libs.tslib import Timestamp
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_datetime_string
-from pandas.compat import is_platform_windows, lrange
+from pandas.compat import is_platform_windows
 from pandas.compat.numpy import np_array_datetime64_compat
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Index, MultiIndex
+from pandas import DataFrame, DatetimeIndex, Index, MultiIndex, Series
 from pandas.core.indexes.datetimes import date_range
 import pandas.util.testing as tm
 
 import pandas.io.date_converters as conv
-import pandas.io.parsers as parsers
 
 # constant
 _DEFAULT_DATETIME = datetime(1, 1, 1)
@@ -76,7 +75,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         -------
         parsed : Series
         """
-        return parsing.try_parse_dates(parsers._concat_date_cols(date_cols))
+        return parsing.try_parse_dates(parsing._concat_date_cols(date_cols))
 
     result = parser.read_csv(StringIO(data), header=None,
                              date_parser=date_parser, prefix="X",
@@ -115,6 +114,18 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
     # this standardizes the order.
     result = result[expected.columns]
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("container", [list, tuple, Index, Series])
+@pytest.mark.parametrize("dim", [1, 2])
+def test_concat_date_col_fail(container, dim):
+    msg = "not all elements from date_cols are numpy arrays"
+    value = "19990127"
+
+    date_cols = tuple(container([value]) for _ in range(dim))
+
+    with pytest.raises(ValueError, match=msg):
+        parsing._concat_date_cols(date_cols)
 
 
 @pytest.mark.parametrize("keep_date_col", [True, False])
@@ -310,7 +321,7 @@ def test_date_parser_int_bug(all_parsers):
 def test_nat_parse(all_parsers):
     # see gh-3062
     parser = all_parsers
-    df = DataFrame(dict({"A": np.asarray(lrange(10), dtype="float64"),
+    df = DataFrame(dict({"A": np.arange(10, dtype="float64"),
                          "B": pd.Timestamp("20010101")}))
     df.iloc[3:6, :] = np.nan
 

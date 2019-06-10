@@ -21,15 +21,13 @@ from cython import Py_ssize_t
 from cpython cimport (PyObject, PyBytes_FromString,
                       PyBytes_AsString,
                       PyUnicode_AsUTF8String,
-                      PyErr_Occurred, PyErr_Fetch)
+                      PyErr_Occurred, PyErr_Fetch,
+                      PyUnicode_Decode)
 from cpython.ref cimport Py_XDECREF
 
 
 cdef extern from "Python.h":
     object PyUnicode_FromString(char *v)
-
-    object PyUnicode_Decode(char *v, Py_ssize_t size, char *encoding,
-                            char *errors)
 
 
 import numpy as np
@@ -43,7 +41,7 @@ import pandas._libs.lib as lib
 from pandas._libs.khash cimport (
     khiter_t,
     kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
-    kh_get_str, kh_destroy_str, kh_resize_str,
+    kh_get_str, kh_destroy_str,
     kh_float64_t, kh_get_float64, kh_destroy_float64,
     kh_put_float64, kh_init_float64, kh_resize_float64,
     kh_strbox_t, kh_put_strbox, kh_get_strbox, kh_init_strbox,
@@ -51,7 +49,6 @@ from pandas._libs.khash cimport (
     kh_str_starts_t, kh_put_str_starts_item, kh_init_str_starts,
     kh_get_str_starts_item, kh_destroy_str_starts, kh_resize_str_starts)
 
-import pandas.compat as compat
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer_dtype, is_float_dtype,
@@ -83,11 +80,6 @@ cdef extern from "headers/portable.h":
     # In a sane world, the `from libc.string cimport` above would fail
     # loudly.
     pass
-
-try:
-    basestring
-except NameError:
-    basestring = str
 
 
 cdef extern from "parser/tokenizer.h":
@@ -156,9 +148,6 @@ cdef extern from "parser/tokenizer.h":
         char lineterminator
         int skipinitialspace       # ignore spaces following delimiter? */
         int quoting                # style of quoting to write */
-
-        # hmm =/
-        # int numeric_field
 
         char commentchar
         int allow_embedded_newline
@@ -484,14 +473,19 @@ cdef class TextReader:
 
         self.verbose = verbose
         self.low_memory = low_memory
-        self.parser.double_converter_nogil = xstrtod
-        self.parser.double_converter_withgil = NULL
-        if float_precision == 'high':
-            self.parser.double_converter_nogil = precise_xstrtod
-            self.parser.double_converter_withgil = NULL
-        elif float_precision == 'round_trip':  # avoid gh-15140
+
+        if float_precision == "round_trip":
+            # see gh-15140
+            #
+            # Our current roundtrip implementation requires the GIL.
             self.parser.double_converter_nogil = NULL
             self.parser.double_converter_withgil = round_trip
+        elif float_precision == "high":
+            self.parser.double_converter_withgil = NULL
+            self.parser.double_converter_nogil = precise_xstrtod
+        else:
+            self.parser.double_converter_withgil = NULL
+            self.parser.double_converter_nogil = xstrtod
 
         if isinstance(dtype, dict):
             dtype = {k: pandas_dtype(dtype[k])
@@ -632,7 +626,7 @@ cdef class TextReader:
 
         if self.compression:
             if self.compression == 'gzip':
-                if isinstance(source, basestring):
+                if isinstance(source, str):
                     source = gzip.GzipFile(source, 'rb')
                 else:
                     source = gzip.GzipFile(fileobj=source)
@@ -653,7 +647,7 @@ cdef class TextReader:
                     raise ValueError('Multiple files found in compressed '
                                      'zip file %s', str(zip_names))
             elif self.compression == 'xz':
-                if isinstance(source, basestring):
+                if isinstance(source, str):
                     source = lzma.LZMAFile(source, 'rb')
                 else:
                     source = lzma.LZMAFile(filename=source)
@@ -671,11 +665,10 @@ cdef class TextReader:
 
             self.handle = source
 
-        if isinstance(source, basestring):
-            if not isinstance(source, bytes):
-                encoding = sys.getfilesystemencoding() or "utf-8"
+        if isinstance(source, str):
+            encoding = sys.getfilesystemencoding() or "utf-8"
 
-                source = source.encode(encoding)
+            source = source.encode(encoding)
 
             if self.memory_map:
                 ptr = new_mmap(source)
@@ -768,9 +761,7 @@ cdef class TextReader:
                 for i in range(field_count):
                     word = self.parser.words[start + i]
 
-                    if path == CSTRING:
-                        name = PyBytes_FromString(word)
-                    elif path == UTF8:
+                    if path == UTF8:
                         name = PyUnicode_FromString(word)
                     elif path == ENCODED:
                         name = PyUnicode_Decode(word, strlen(word),
@@ -1309,9 +1300,6 @@ cdef class TextReader:
         elif path == ENCODED:
             return _string_box_decode(self.parser, i, start, end,
                                       na_filter, na_hashset, self.c_encoding)
-        elif path == CSTRING:
-            return _string_box_factorize(self.parser, i, start, end,
-                                         na_filter, na_hashset)
 
     def _get_converter(self, i, name):
         if self.converters is None:
@@ -1389,7 +1377,7 @@ cdef:
 def _ensure_encoded(list lst):
     cdef list result = []
     for x in lst:
-        if isinstance(x, unicode):
+        if isinstance(x, str):
             x = PyUnicode_AsUTF8String(x)
         elif not isinstance(x, bytes):
             x = str(x).encode('utf-8')
@@ -1421,7 +1409,6 @@ def _maybe_upcast(arr):
 
 
 cdef enum StringPath:
-    CSTRING
     UTF8
     ENCODED
 
@@ -1663,10 +1650,6 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         for k in range(table.n_buckets):
             if kh_exist_str(table, k):
                 result[table.vals[k]] = PyUnicode_FromString(table.keys[k])
-    elif path == CSTRING:
-        for k in range(table.n_buckets):
-            if kh_exist_str(table, k):
-                result[table.vals[k]] = PyBytes_FromString(table.keys[k])
 
     kh_destroy_str(table)
     return np.asarray(codes), result, na_count

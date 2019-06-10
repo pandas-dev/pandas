@@ -3,8 +3,6 @@ import random
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, IntervalIndex, MultiIndex, NaT, Series, Timestamp,
@@ -229,6 +227,18 @@ class TestDataFrameSorting(TestData):
                                    kind='mergesort')
         assert_frame_equal(sorted_df, expected)
 
+    def test_sort_multi_index(self):
+        # GH 25775, testing that sorting by index works with a multi-index.
+        df = DataFrame({'a': [3, 1, 2], 'b': [0, 0, 0],
+                        'c': [0, 1, 2], 'd': list('abc')})
+        result = df.set_index(list('abc')).sort_index(level=list('ba'))
+
+        expected = DataFrame({'a': [1, 2, 3], 'b': [0, 0, 0],
+                              'c': [1, 2, 0], 'd': list('bca')})
+        expected = expected.set_index(list('abc'))
+
+        tm.assert_frame_equal(result, expected)
+
     def test_stable_categorial(self):
         # GH 16793
         df = DataFrame({
@@ -442,7 +452,7 @@ class TestDataFrameSortIndexKinds(TestData):
 
         # with 9816, these are all translated to .sort_values
 
-        df = DataFrame([lrange(5, 9), lrange(4)],
+        df = DataFrame([range(5, 9), range(4)],
                        columns=['a', 'a', 'b', 'b'])
 
         with pytest.raises(ValueError, match='not unique'):

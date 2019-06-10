@@ -3,6 +3,7 @@
 import functools
 
 from matplotlib import pylab
+import matplotlib.pyplot as plt
 import numpy as np
 
 from pandas._libs.tslibs.frequencies import (
@@ -13,7 +14,7 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._converter import (
+from pandas.plotting._matplotlib.converter import (
     TimeSeries_DateFormatter, TimeSeries_DateLocator,
     TimeSeries_TimedeltaFormatter)
 import pandas.tseries.frequencies as frequencies
@@ -47,7 +48,6 @@ def tsplot(series, plotf, ax=None, **kwargs):
 
     # Used inferred freq is possible, need a test case for inferred
     if ax is None:
-        import matplotlib.pyplot as plt
         ax = plt.gca()
 
     freq, series = _maybe_resample(series, ax, kwargs)
@@ -144,8 +144,12 @@ def _replot_ax(ax, freq, kwargs):
 
             # for tsplot
             if isinstance(plotf, str):
-                from pandas.plotting._core import _plot_klass
-                plotf = _plot_klass[plotf]._plot
+                # XXX _plot_classes is private and shouldn't be imported
+                # here. But as tsplot is deprecated, and we'll remove this
+                # code soon, it's probably better to not overcomplicate
+                # things, and just leave this the way it was implemented
+                from pandas.plotting._core import _plot_classes
+                plotf = _plot_classes()[plotf]._plot
 
             lines.append(plotf(ax, series.index._mpl_repr(),
                                series.values, **kwds)[0])
@@ -262,7 +266,7 @@ def _get_index_freq(data):
 def _maybe_convert_index(ax, data):
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
-    if isinstance(data.index, ABCDatetimeIndex):
+    if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
         freq = getattr(data.index, 'freq', None)
 
         if freq is None:
@@ -279,7 +283,10 @@ def _maybe_convert_index(ax, data):
         freq = get_base_alias(freq)
         freq = frequencies.get_period_alias(freq)
 
-        data = data.to_period(freq=freq)
+        if isinstance(data.index, ABCDatetimeIndex):
+            data = data.to_period(freq=freq)
+        elif isinstance(data.index, ABCPeriodIndex):
+            data.index = data.index.asfreq(freq=freq)
     return data
 
 

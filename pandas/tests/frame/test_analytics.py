@@ -6,7 +6,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -54,7 +53,7 @@ def assert_stat_op_calc(opname, alternative, frame, has_skipna=True,
         result = getattr(df, opname)()
         assert isinstance(result, Series)
 
-        df['a'] = lrange(len(df))
+        df['a'] = range(len(df))
         result = getattr(df, opname)()
         assert isinstance(result, Series)
         assert len(result)
@@ -589,6 +588,16 @@ class TestDataFrameAnalytics:
         result = df3.describe()
         tm.assert_numpy_array_equal(result["cat"].values, result["s"].values)
 
+    def test_describe_empty_categorical_column(self):
+        # GH 26397
+        # Ensure the index of an an empty categoric DataFrame column
+        # also contains (count, unique, top, freq)
+        df = pd.DataFrame({"empty_col": Categorical([])})
+        result = df.describe()
+        expected = DataFrame({'empty_col': [0, 0, None, None]},
+                             index=['count', 'unique', 'top', 'freq'])
+        tm.assert_frame_equal(result, expected)
+
     def test_describe_categorical_columns(self):
         # GH 11558
         columns = pd.CategoricalIndex(['int1', 'int2', 'obj'],
@@ -609,6 +618,7 @@ class TestDataFrameAnalytics:
                              index=['count', 'mean', 'std', 'min', '25%',
                                     '50%', '75%', 'max'],
                              columns=exp_columns)
+
         tm.assert_frame_equal(result, expected)
         tm.assert_categorical_equal(result.columns.values,
                                     expected.columns.values)
@@ -1195,6 +1205,47 @@ class TestDataFrameAnalytics:
         means = float_frame.mean(0)
         assert means['bool'] == float_frame['bool'].values.mean()
 
+    def test_mean_datetimelike(self):
+        # GH#24757 check that datetimelike are excluded by default, handled
+        #  correctly with numeric_only=True
+
+        df = pd.DataFrame({
+            'A': np.arange(3),
+            'B': pd.date_range('2016-01-01', periods=3),
+            'C': pd.timedelta_range('1D', periods=3),
+            'D': pd.period_range('2016', periods=3, freq='A')
+        })
+        result = df.mean(numeric_only=True)
+        expected = pd.Series({'A': 1.})
+        tm.assert_series_equal(result, expected)
+
+        result = df.mean()
+        expected = pd.Series({
+            'A': 1.,
+            'C': df.loc[1, 'C']
+        })
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.xfail(reason="casts to object-dtype and then tries to "
+                              "add timestamps",
+                       raises=TypeError, strict=True)
+    def test_mean_datetimelike_numeric_only_false(self):
+        df = pd.DataFrame({
+            'A': np.arange(3),
+            'B': pd.date_range('2016-01-01', periods=3),
+            'C': pd.timedelta_range('1D', periods=3),
+            'D': pd.period_range('2016', periods=3, freq='A')
+        })
+
+        result = df.mean(numeric_only=False)
+        expected = pd.Series({
+            'A': 1,
+            'B': df.loc[1, 'B'],
+            'C': df.loc[1, 'C'],
+            'D': df.loc[1, 'D']
+        })
+        tm.assert_series_equal(result, expected)
+
     def test_stats_mixed_type(self, float_string_frame):
         # don't blow up
         float_string_frame.std(1)
@@ -1203,7 +1254,7 @@ class TestDataFrameAnalytics:
         float_string_frame.skew(1)
 
     def test_sum_bools(self):
-        df = DataFrame(index=lrange(1), columns=lrange(10))
+        df = DataFrame(index=range(1), columns=range(10))
         bools = isna(df)
         assert bools.sum(axis=1)[0] == 10
 
@@ -1212,7 +1263,7 @@ class TestDataFrameAnalytics:
 
     def test_cumsum_corner(self):
         dm = DataFrame(np.arange(20).reshape(4, 5),
-                       index=lrange(4), columns=lrange(5))
+                       index=range(4), columns=range(5))
         # ?(wesm)
         result = dm.cumsum()  # noqa
 
@@ -1327,12 +1378,12 @@ class TestDataFrameAnalytics:
         assert isinstance(ct2, Series)
 
         # GH#423
-        df = DataFrame(index=lrange(10))
+        df = DataFrame(index=range(10))
         result = df.count(1)
         expected = Series(0, index=df.index)
         tm.assert_series_equal(result, expected)
 
-        df = DataFrame(columns=lrange(10))
+        df = DataFrame(columns=range(10))
         result = df.count(0)
         expected = Series(0, index=df.columns)
         tm.assert_series_equal(result, expected)
@@ -2137,9 +2188,9 @@ class TestDataFrameAnalytics:
 
         # unaligned
         df = DataFrame(np.random.randn(3, 4),
-                       index=[1, 2, 3], columns=lrange(4))
+                       index=[1, 2, 3], columns=range(4))
         df2 = DataFrame(np.random.randn(5, 3),
-                        index=lrange(5), columns=[1, 2, 3])
+                        index=range(5), columns=[1, 2, 3])
 
         with pytest.raises(ValueError, match='aligned'):
             df.dot(df2)
@@ -2197,9 +2248,9 @@ class TestDataFrameAnalytics:
 
         # unaligned
         df = DataFrame(np.random.randn(3, 4),
-                       index=[1, 2, 3], columns=lrange(4))
+                       index=[1, 2, 3], columns=range(4))
         df2 = DataFrame(np.random.randn(5, 3),
-                        index=lrange(5), columns=[1, 2, 3])
+                        index=range(5), columns=[1, 2, 3])
 
         with pytest.raises(ValueError, match='aligned'):
             operator.matmul(df, df2)

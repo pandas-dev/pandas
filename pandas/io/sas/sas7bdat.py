@@ -8,7 +8,7 @@ See also:
   https://github.com/BioStatMatt/sas7bdat
 
 Partial documentation of the file format:
-  https://cran.r-project.org/web/packages/sas7bdat/vignettes/sas7bdat.pdf
+  https://cran.r-project.org/package=sas7bdat/vignettes/sas7bdat.pdf
 
 Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm

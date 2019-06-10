@@ -7,7 +7,8 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, lib, tslib, tslibs
+from pandas._libs import lib, tslib, tslibs
+import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
 from pandas.util._validators import validate_bool_kwarg
 
@@ -23,8 +24,7 @@ from pandas.core.dtypes.common import (
     is_list_like, is_numeric_v_string_like, is_object_dtype, is_period_dtype,
     is_re, is_re_compilable, is_sparse, is_timedelta64_dtype, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, ExtensionDtype, PandasExtensionDtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
     ABCPandasArray, ABCSeries)
@@ -233,8 +233,7 @@ class Block(PandasObject):
         return make_block(values, placement=placement, ndim=ndim,
                           klass=self.__class__, dtype=dtype)
 
-    def __unicode__(self):
-
+    def __repr__(self):
         # don't want to print out all of the items here
         name = pprint_thing(self.__class__.__name__)
         if self._is_single_block:
@@ -544,7 +543,7 @@ class Block(PandasObject):
             raise ValueError(invalid_arg)
 
         if (inspect.isclass(dtype) and
-                issubclass(dtype, (PandasExtensionDtype, ExtensionDtype))):
+                issubclass(dtype, ExtensionDtype)):
             msg = ("Expected an instance of {}, but got the class instead. "
                    "Try instantiating 'dtype'.".format(dtype.__name__))
             raise TypeError(msg)
@@ -2051,11 +2050,14 @@ class DatetimeLikeBlockMixin:
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
     is_datetime = True
-    _can_hold_na = True
 
     def __init__(self, values, placement, ndim=None):
         values = self._maybe_coerce_values(values)
         super().__init__(values, placement=placement, ndim=ndim)
+
+    @property
+    def _can_hold_na(self):
+        return True
 
     def _maybe_coerce_values(self, values):
         """Input validation for values passed to __init__. Ensure that
@@ -2212,8 +2214,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """Input validation for values passed to __init__. Ensure that
         we have datetime64TZ, coercing if necessary.
 
-        Parametetrs
-        -----------
+        Parameters
+        ----------
         values : array-like
             Must be convertible to datetime64
 
@@ -2367,12 +2369,12 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         n : int, number of periods to diff
         axis : int, axis to diff upon. default 0
 
-        Return
-        ------
+        Returns
+        -------
         A list with a new TimeDeltaBlock.
 
-        Note
-        ----
+        Notes
+        -----
         The arguments here are mimicking shift so they are called correctly
         by apply.
         """
@@ -3036,6 +3038,9 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):
         values = values.to_numpy()
+        if ndim and ndim > 1:
+            values = np.atleast_2d(values)
+
     if isinstance(dtype, PandasDtype):
         dtype = dtype.numpy_dtype
 
