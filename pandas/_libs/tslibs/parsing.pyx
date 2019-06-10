@@ -604,11 +604,12 @@ def try_parse_date_and_time(object[:] dates, object[:] times,
                             date_parser=None, time_parser=None,
                             dayfirst=False, default=None):
     cdef:
-        size_t i, n
+        Py_ssize_t i, n
         object[:] result
 
     n = len(dates)
-    if len(times) != n:
+    # Cast to avoid build warning see GH#26757
+    if <Py_ssize_t>len(times) != n:
         raise ValueError('Length of dates and times must be equal')
     result = np.empty(n, dtype='O')
 
@@ -640,11 +641,12 @@ def try_parse_date_and_time(object[:] dates, object[:] times,
 def try_parse_year_month_day(object[:] years, object[:] months,
                              object[:] days):
     cdef:
-        size_t i, n
+        Py_ssize_t i, n
         object[:] result
 
     n = len(years)
-    if len(months) != n or len(days) != n:
+    # Cast to avoid build warning see GH#26757
+    if <Py_ssize_t>len(months) != n or <Py_ssize_t>len(days) != n:
         raise ValueError('Length of years/months/days must all be equal')
     result = np.empty(n, dtype='O')
 
@@ -662,15 +664,17 @@ def try_parse_datetime_components(object[:] years,
                                   object[:] seconds):
 
     cdef:
-        size_t i, n
+        Py_ssize_t i, n
         object[:] result
         int secs
         double float_secs
         double micros
 
     n = len(years)
-    if (len(months) != n or len(days) != n or len(hours) != n or
-            len(minutes) != n or len(seconds) != n):
+    # Cast to avoid build warning see GH#26757
+    if (<Py_ssize_t>len(months) != n or <Py_ssize_t>len(days) != n or
+            <Py_ssize_t>len(hours) != n or <Py_ssize_t>len(minutes) != n or
+            <Py_ssize_t>len(seconds) != n):
         raise ValueError('Length of all datetime components must be equal')
     result = np.empty(n, dtype='O')
 

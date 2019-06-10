@@ -4,7 +4,7 @@ from cpython cimport (PyObject_RichCompareBool,
                       Py_EQ, Py_NE, Py_LT, Py_LE, Py_GT, Py_GE)
 
 import cython
-from cython import Py_ssize_t, size_t
+from cython import Py_ssize_t
 
 import numpy as np
 from numpy cimport ndarray, uint8_t, import_array
@@ -118,11 +118,11 @@ def vec_compare(object[:] left, object[:] right, object op):
     result : ndarray[bool]
     """
     cdef:
-        size_t i, n = len(left)
+        Py_ssize_t i, n = len(left)
         ndarray[uint8_t, cast=True] result
         int flag
 
-    if n != len(right):
+    if n != <Py_ssize_t>len(right):
         raise ValueError('Arrays were different lengths: {n} vs {nright}'
                          .format(n=n, nright=len(right)))
 
