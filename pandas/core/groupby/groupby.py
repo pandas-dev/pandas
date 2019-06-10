@@ -1299,7 +1299,7 @@ class GroupBy(_GroupBy):
         """
 
         def groupby_function(name, alias, npfunc,
-                             numeric_only=True, _convert=False,
+                             numeric_only=True,
                              min_count=-1):
 
             _local_template = """
@@ -1321,27 +1321,30 @@ class GroupBy(_GroupBy):
                     kwargs['min_count'] = min_count
 
                 self._set_group_selection()
+
+                # try a cython aggregation if we can
                 try:
                     return self._cython_agg_general(
                         alias, alt=npfunc, **kwargs)
                 except AssertionError as e:
                     raise SpecificationError(str(e))
                 except Exception:
-                    result = self.aggregate(
-                        lambda x: npfunc(x, axis=self.axis))
+                    pass
 
-                    # coerce the columns if we can
-                    if isinstance(result, DataFrame):
-                        for col in result.columns:
-                            result[col] = self._try_cast(
-                                result[col], self.obj[col])
-                    else:
-                        result = self._try_cast(
-                            result, self.obj)
+                # apply a non-cython aggregation
+                result = self.aggregate(
+                    lambda x: npfunc(x, axis=self.axis))
 
-                    if _convert:
-                        result = result._convert(datetime=True)
-                    return result
+                # coerce the resulting columns if we can
+                if isinstance(result, DataFrame):
+                    for col in result.columns:
+                        result[col] = self._try_cast(
+                            result[col], self.obj[col])
+                else:
+                    result = self._try_cast(
+                        result, self.obj)
+
+                return result
 
             set_function_name(f, name, cls)
 
