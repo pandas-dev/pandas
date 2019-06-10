@@ -11,12 +11,12 @@ def test_spss_labelled_num(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "labelled-num.sav")
 
-    df = pd.read_spss(fname, categorical=True)
+    df = pd.read_spss(fname, convert_categoricals=True)
     expected = pd.DataFrame({"VAR00002": "This is one"}, index=[0])
     expected["VAR00002"] = pd.Categorical(expected["VAR00002"])
     tm.assert_frame_equal(df, expected)
 
-    df = pd.read_spss(fname, categorical=False)
+    df = pd.read_spss(fname, convert_categoricals=False)
     expected = pd.DataFrame({"VAR00002": 1.0}, index=[0])
     tm.assert_frame_equal(df, expected)
 
@@ -25,12 +25,12 @@ def test_spss_labelled_num_na(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "labelled-num-na.sav")
 
-    df = pd.read_spss(fname, categorical=True)
+    df = pd.read_spss(fname, convert_categoricals=True)
     expected = pd.DataFrame({"VAR00002": ["This is one", None]})
     expected["VAR00002"] = pd.Categorical(expected["VAR00002"])
     tm.assert_frame_equal(df, expected)
 
-    df = pd.read_spss(fname, categorical=False)
+    df = pd.read_spss(fname, convert_categoricals=False)
     expected = pd.DataFrame({"VAR00002": [1.0, np.nan]})
     tm.assert_frame_equal(df, expected)
 
@@ -39,12 +39,12 @@ def test_spss_labelled_str(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "labelled-str.sav")
 
-    df = pd.read_spss(fname, categorical=True)
+    df = pd.read_spss(fname, convert_categoricals=True)
     expected = pd.DataFrame({"gender": ["Male", "Female"]})
     expected["gender"] = pd.Categorical(expected["gender"])
     tm.assert_frame_equal(df, expected)
 
-    df = pd.read_spss(fname, categorical=False)
+    df = pd.read_spss(fname, convert_categoricals=False)
     expected = pd.DataFrame({"gender": ["M", "F"]})
     tm.assert_frame_equal(df, expected)
 
@@ -53,7 +53,7 @@ def test_spss_umlauts(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "umlauts.sav")
 
-    df = pd.read_spss(fname, categorical=True)
+    df = pd.read_spss(fname, convert_categoricals=True)
     expected = pd.DataFrame({"var1": ["the ä umlaut",
                                       "the ü umlaut",
                                       "the ä umlaut",
@@ -61,7 +61,7 @@ def test_spss_umlauts(datapath):
     expected["var1"] = pd.Categorical(expected["var1"])
     tm.assert_frame_equal(df, expected)
 
-    df = pd.read_spss(fname, categorical=False)
+    df = pd.read_spss(fname, convert_categoricals=False)
     expected = pd.DataFrame({"var1": [1.0, 2.0, 1.0, 3.0]})
     tm.assert_frame_equal(df, expected)
 
@@ -70,9 +70,5 @@ def test_spss_usecols(datapath):
     # usecols must be list-like
     fname = datapath("io", "data", "labelled-num.sav")
 
-    usecols = "VAR00002"
-    msg = ("Argument 'usecols' has incorrect type "
-           "(expected list, got {})".format(type(usecols).__name__))
-
-    with pytest.raises(TypeError, match=msg):
-        df = pd.read_spss(fname, usecols=usecols)
+    with pytest.raises(TypeError, match="usecols must be list-like."):
+        df = pd.read_spss(fname, usecols="VAR00002")
