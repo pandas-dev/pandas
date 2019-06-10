@@ -5567,7 +5567,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         warnings.warn("DataFrame.ftypes is deprecated and will "
                       "be removed in a future version. "
-                      "Use dtypes instead.",
+                      "Use DataFrame.dtypes instead.",
                       FutureWarning, stacklevel=2)
 
         from pandas import Series
