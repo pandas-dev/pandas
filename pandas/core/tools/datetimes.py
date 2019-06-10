@@ -12,6 +12,7 @@ from pandas._libs.tslibs.parsing import (  # noqa
 from pandas._libs.tslibs.strptime import array_strptime
 from pandas.util._decorators import deprecate_kwarg
 
+from pandas.core.algorithms import unique
 from pandas.core.dtypes.common import (
     ensure_object, is_datetime64_dtype, is_datetime64_ns_dtype,
     is_datetime64tz_dtype, is_float, is_integer, is_integer_dtype,
@@ -42,7 +43,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 
-def do_cache(arg, check_count: int, unique_share: float):
+def should_cache(arg, check_count: int, unique_share: float):
     """
     Decides whether to do caching.
 
@@ -51,20 +52,25 @@ def do_cache(arg, check_count: int, unique_share: float):
 
     Parameters
     ----------
-    arg: list, tuple, 1-d array, Series
+    arg: listlike, tuple, 1-d array, Series
     check_count: int
+        0 < check_count <= len(arg)
     unique_share: float
+        0 < unique_share < 1
 
     Returns
     -------
-    : bool
+    do_caching: bool
     """
-    from pandas.core.algorithms import unique
+    assert 0 < check_count <= len(arg)
+    assert 0 < unique_share < 1
 
-    unique = unique(arg[:check_count])
-    if len(unique) > check_count * unique_share:
-        return False
-    return True
+    do_caching = True
+
+    unique_elements = unique(arg[:check_count])
+    if len(unique_elements) > check_count * unique_share:
+        do_caching = False
+    return do_caching
 
 
 def _maybe_cache(arg, format, cache, convert_listlike):
@@ -73,7 +79,7 @@ def _maybe_cache(arg, format, cache, convert_listlike):
 
     Parameters
     ----------
-    arg : integer, float, string, datetime, list, tuple, 1-d array, Series
+    arg : listlike, tuple, 1-d array, Series
     format : string
         Strftime format to parse time
     cache : boolean
@@ -92,7 +98,7 @@ def _maybe_cache(arg, format, cache, convert_listlike):
         # Perform a quicker unique check
         from pandas import Index
 
-        if not do_cache(arg, int(len(arg) * 0.1), 0.7):
+        if not should_cache(arg, int(len(arg) * 0.1), 0.7):
             return cache_array
 
         unique_dates = Index(arg).unique()
