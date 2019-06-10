@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Optional, Sequence, Union
 
-from pandas.core.api import DataFrame
 from pandas.api.types import is_list_like
+from pandas.core.api import DataFrame
 
 
 def read_spss(path: Union[str, Path],
