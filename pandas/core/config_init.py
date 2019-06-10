@@ -9,6 +9,8 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
+import importlib
+
 import pandas._config.config as cf
 from pandas._config.config import (
     is_bool, is_callable, is_instance_factory, is_int, is_one_of_factory,
@@ -469,8 +471,6 @@ plotting_backend_doc = """
 
 
 def register_plotting_backend_cb(key):
-    import importlib
-
     backend_str = cf.get_option(key)
     if backend_str == 'matplotlib':
         try:
@@ -484,7 +484,7 @@ def register_plotting_backend_cb(key):
     try:
         backend_mod = importlib.import_module(backend_str)
     except ImportError:
-        raise ValueError('"{}" does not seem to be an installed module.'
+        raise ValueError('"{}" does not seem to be an installed module. '
                          'A pandas plotting backend must be a module that '
                          'can be imported'.format(backend_str))
 
@@ -492,21 +492,18 @@ def register_plotting_backend_cb(key):
                      'BoxPlot', 'KdePlot', 'AreaPlot', 'PiePlot',
                      'ScatterPlot', 'HexBinPlot', 'hist_series',
                      'hist_frame', 'boxplot', 'boxplot_frame',
-                     'boxplot_frame_groupby', 'tsplot', 'table',
-                     'andrews_curves', 'autocorrelation_plot',
-                     'bootstrap_plot', 'lag_plot', 'parallel_coordinates',
-                     'radviz', 'scatter_matrix', 'register', 'deregister']
+                     'boxplot_frame_groupby']
     missing_objs = set(required_objs) - set(dir(backend_mod))
     if len(missing_objs) == len(required_objs):
         raise ValueError(
             '"{}" does not seem to be a valid backend. Valid backends are '
             'modules that implement the next objects:\n{}'.format(
-                backend_str, '\n-'.join(required_objs)))
+                backend_str, '\n'.join(required_objs)))
     elif missing_objs:
         raise ValueError(
             '"{}" does not seem to be a complete backend. Valid backends '
             'must implement the next objects:\n{}'.format(
-                backend_str, '\n-'.join(missing_objs)))
+                backend_str, '\n'.join(missing_objs)))
 
 
 with cf.config_prefix('plotting'):
