@@ -248,7 +248,8 @@ void parser_del(parser_t *self) {
 }
 
 static int make_stream_space(parser_t *self, size_t nbytes) {
-    int64_t i, cap, length;
+    uint64_t i, cap;
+    int64_t length;
     int status;
     void *orig_ptr, *newptr;
 
@@ -471,7 +472,7 @@ static int end_line(parser_t *self) {
         return 0;
     }
 
-    if (!(self->lines <= (int64_t) self->header_end + 1) &&
+    if (!(self->lines <= (uint64_t) self->header_end + 1) &&
         (self->expected_fields < 0 && fields > ex_fields) && !(self->usecols)) {
         // increment file line count
         self->file_lines++;
@@ -507,7 +508,7 @@ static int end_line(parser_t *self) {
         }
     } else {
         // missing trailing delimiters
-        if ((self->lines >= (int64_t) self->header_end + 1) &&
+        if ((self->lines >= (uint64_t) self->header_end + 1) &&
                 fields < ex_fields) {
             // might overrun the buffer when closing fields
             if (make_stream_space(self, ex_fields - fields) < 0) {
@@ -651,7 +652,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + (int64_t)line_limit) {  \
+    if (line_limit > 0 && self->lines == start_lines + (uint64_t)line_limit) {  \
         goto linelimit;                                              \
     }
 
@@ -666,7 +667,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + (int64_t)line_limit) { \
+    if (line_limit > 0 && self->lines == start_lines + (uint64_t)line_limit) { \
         goto linelimit;                                              \
     }
 
@@ -737,7 +738,8 @@ int skip_this_line(parser_t *self, int64_t rownum) {
 
 int tokenize_bytes(parser_t *self,
                    size_t line_limit, int64_t start_lines) {
-    int64_t i, slen;
+    int64_t i;
+    uint64_t slen;
     int should_skip;
     char c;
     char *stream;
@@ -1203,7 +1205,8 @@ static int parser_handle_eof(parser_t *self) {
 }
 
 int parser_consume_rows(parser_t *self, size_t nrows) {
-    int64_t i, offset, word_deletions, char_count;
+    int64_t offset, word_deletions;
+    uint64_t char_count, i;
 
     if (nrows > self->lines) {
         nrows = self->lines;
@@ -1229,6 +1232,8 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     self->stream_len -= char_count;
 
     /* move token metadata */
+    // Note: We should always have words_len < word_deletions, so this
+    //  subtraction will remain appropriately-typed.
     for (i = 0; i < self->words_len - word_deletions; ++i) {
         offset = i + word_deletions;
 
@@ -1242,6 +1247,8 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     self->word_start -= char_count;
 
     /* move line metadata */
+    // Note: We should always have self->lines - nrows + 1 >= 0, so this
+    //  subtraction will remain appropriately-typed.
     for (i = 0; i < self->lines - nrows + 1; ++i) {
         offset = i + nrows;
         self->line_start[i] = self->line_start[offset] - word_deletions;
@@ -1265,7 +1272,7 @@ int parser_trim_buffers(parser_t *self) {
     size_t new_cap;
     void *newptr;
 
-    int64_t i;
+    uint64_t i;
 
     /**
      * Before we free up space and trim, we should
