@@ -425,7 +425,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         warnings.warn("Series.ftype is deprecated and will "
                       "be removed in a future version. "
-                      "Use dtype instead.",
+                      "Use Series.dtype instead.",
                       FutureWarning, stacklevel=2)
 
         return self._data.ftype
