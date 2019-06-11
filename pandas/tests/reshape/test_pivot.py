@@ -211,6 +211,7 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_with_interval_index(self, interval_values, dropna):
+        # GH 25814
         df = pd.DataFrame(
             {'A': interval_values,
              'B': [1] * interval_values.size})
