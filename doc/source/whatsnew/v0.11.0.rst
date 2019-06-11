@@ -105,27 +105,54 @@ Conversion
 
 Mixed Conversion
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   df3['D'] = '1.'
-   df3['E'] = '1'
-   df3.convert_objects(convert_numeric=True).dtypes
+    In [12]: df3['D'] = '1.'
 
-   # same, but specific dtype conversion
-   df3['D'] = df3['D'].astype('float16')
-   df3['E'] = df3['E'].astype('int32')
-   df3.dtypes
+    In [13]: df3['E'] = '1'
+
+    In [14]: df3.convert_objects(convert_numeric=True).dtypes
+    Out[14]:
+    A    float32
+    B    float64
+    C    float64
+    D    float64
+    E      int64
+    dtype: object
+
+    # same, but specific dtype conversion
+    In [15]: df3['D'] = df3['D'].astype('float16')
+
+    In [16]: df3['E'] = df3['E'].astype('int32')
+
+    In [17]: df3.dtypes
+    Out[17]:
+    A    float32
+    B    float64
+    C    float64
+    D    float16
+    E      int32
+    dtype: object
 
 Forcing Date coercion (and setting ``NaT`` when not datelike)
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   import datetime
-   s = pd.Series([datetime.datetime(2001, 1, 1, 0, 0), 'foo', 1.0, 1,
-                  pd.Timestamp('20010104'), '20010105'], dtype='O')
-   s.convert_objects(convert_dates='coerce')
+    In [18]: import datetime
+
+    In [19]: s = pd.Series([datetime.datetime(2001, 1, 1, 0, 0), 'foo', 1.0, 1,
+       ....:                pd.Timestamp('20010104'), '20010105'], dtype='O')
+       ....:
+
+    In [20]: s.convert_objects(convert_dates='coerce')
+    Out[20]:
+    0   2001-01-01
+    1          NaT
+    2          NaT
+    3          NaT
+    4   2001-01-04
+    5   2001-01-05
+    dtype: datetime64[ns]
 
 Dtype Gotchas
 ~~~~~~~~~~~~~
@@ -138,11 +165,22 @@ dtypes, they *WILL* be respected, however (:issue:`2837`)
 
 The following will all result in ``int64`` dtypes
 
-.. ipython:: python
+.. code-block:: ipython
 
-    pd.DataFrame([1, 2], columns=['a']).dtypes
-    pd.DataFrame({'a': [1, 2]}).dtypes
-    pd.DataFrame({'a': 1}, index=range(2)).dtypes
+    In [21]: pd.DataFrame([1, 2], columns=['a']).dtypes
+    Out[21]:
+    a    int64
+    dtype: object
+
+    In [22]: pd.DataFrame({'a': [1, 2]}).dtypes
+    Out[22]:
+    a    int64
+    dtype: object
+
+    In [23]: pd.DataFrame({'a': 1}, index=range(2)).dtypes
+    Out[23]:
+    a    int64
+    dtype: object
 
 Keep in mind that ``DataFrame(np.array([1,2]))`` **WILL** result in ``int32`` on 32-bit platforms!
 
@@ -152,28 +190,95 @@ Keep in mind that ``DataFrame(np.array([1,2]))`` **WILL** result in ``int32`` on
 Performing indexing operations on integer type data can easily upcast the data.
 The dtype of the input data will be preserved in cases where ``nans`` are not introduced.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   dfi = df3.astype('int32')
-   dfi['D'] = dfi['D'].astype('int64')
-   dfi
-   dfi.dtypes
+    In [24]: dfi = df3.astype('int32')
 
-   casted = dfi[dfi > 0]
-   casted
-   casted.dtypes
+    In [25]: dfi['D'] = dfi['D'].astype('int64')
+
+    In [26]: dfi
+    Out[26]:
+      A  B  C  D  E
+    0  0  0  0  1  1
+    1 -2  0  1  1  1
+    2 -2  0  2  1  1
+    3  0 -1  3  1  1
+    4  1  0  4  1  1
+    5  0  0  5  1  1
+    6  0 -1  6  1  1
+    7  0  0  7  1  1
+
+    In [27]: dfi.dtypes
+    Out[27]:
+    A    int32
+    B    int32
+    C    int32
+    D    int64
+    E    int32
+    dtype: object
+
+    In [28]: casted = dfi[dfi > 0]
+
+    In [29]: casted
+    Out[29]:
+        A   B    C  D  E
+    0  NaN NaN  NaN  1  1
+    1  NaN NaN  1.0  1  1
+    2  NaN NaN  2.0  1  1
+    3  NaN NaN  3.0  1  1
+    4  1.0 NaN  4.0  1  1
+    5  NaN NaN  5.0  1  1
+    6  NaN NaN  6.0  1  1
+    7  NaN NaN  7.0  1  1
+
+    In [30]: casted.dtypes
+    Out[30]:
+    A    float64
+    B    float64
+    C    float64
+    D      int64
+    E      int32
+    dtype: object
 
 While float dtypes are unchanged.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   df4 = df3.copy()
-   df4['A'] = df4['A'].astype('float32')
-   df4.dtypes
+    In [31]: df4 = df3.copy()
 
-   casted = df4[df4 > 0]
-   casted
-   casted.dtypes
+    In [32]: df4['A'] = df4['A'].astype('float32')
+
+    In [33]: df4.dtypes
+    Out[33]:
+    A    float32
+    B    float64
+    C    float64
+    D    float16
+    E      int32
+    dtype: object
+
+    In [34]: casted = df4[df4 > 0]
+
+    In [35]: casted
+    Out[35]:
+              A         B    C    D  E
+    0       NaN       NaN  NaN  1.0  1
+    1       NaN  0.567020  1.0  1.0  1
+    2       NaN  0.276232  2.0  1.0  1
+    3       NaN       NaN  3.0  1.0  1
+    4  1.933792       NaN  4.0  1.0  1
+    5       NaN  0.113648  5.0  1.0  1
+    6       NaN       NaN  6.0  1.0  1
+    7       NaN  0.524988  7.0  1.0  1
+
+    In [36]: casted.dtypes
+    Out[36]:
+    A    float32
+    B    float64
+    C    float64
+    D    float16
+    E      int32
+    dtype: object
 
 Datetimes Conversion
 ~~~~~~~~~~~~~~~~~~~~

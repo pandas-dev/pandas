@@ -10867,6 +10867,7 @@ _min_examples = _shared_docs['stat_func_example'].format(
     level_output_1=0)
 
 _stat_func_see_also = """
+
 See Also
 --------
 Series.sum : Return the sum.

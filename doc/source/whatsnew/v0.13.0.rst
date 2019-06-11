@@ -271,17 +271,39 @@ This is like an ``append`` operation.
 
 A Panel setting operation on an arbitrary axis aligns the input to the Panel
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   p = pd.Panel(np.arange(16).reshape(2, 4, 2),
-                items=['Item1', 'Item2'],
-                major_axis=pd.date_range('2001/1/12', periods=4),
-                minor_axis=['A', 'B'], dtype='float64')
-   p
-   p.loc[:, :, 'C'] = pd.Series([30, 32], index=p.items)
-   p
-   p.loc[:, :, 'C']
+   In [20]: p = pd.Panel(np.arange(16).reshape(2, 4, 2),
+      ....:              items=['Item1', 'Item2'],
+      ....:              major_axis=pd.date_range('2001/1/12', periods=4),
+      ....:              minor_axis=['A', 'B'], dtype='float64')
+      ....:
+
+   In [21]: p
+   Out[21]:
+   <class 'pandas.core.panel.Panel'>
+   Dimensions: 2 (items) x 4 (major_axis) x 2 (minor_axis)
+   Items axis: Item1 to Item2
+   Major_axis axis: 2001-01-12 00:00:00 to 2001-01-15 00:00:00
+   Minor_axis axis: A to B
+
+   In [22]: p.loc[:, :, 'C'] = pd.Series([30, 32], index=p.items)
+
+   In [23]: p
+   Out[23]:
+   <class 'pandas.core.panel.Panel'>
+   Dimensions: 2 (items) x 4 (major_axis) x 3 (minor_axis)
+   Items axis: Item1 to Item2
+   Major_axis axis: 2001-01-12 00:00:00 to 2001-01-15 00:00:00
+   Minor_axis axis: A to C
+
+   In [24]: p.loc[:, :, 'C']
+   Out[24]:
+               Item1  Item2
+   2001-01-12   30.0   32.0
+   2001-01-13   30.0   32.0
+   2001-01-14   30.0   32.0
+   2001-01-15   30.0   32.0
 
 Float64Index API Change
 ~~~~~~~~~~~~~~~~~~~~~~~
