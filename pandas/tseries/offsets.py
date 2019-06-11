@@ -1,7 +1,7 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time as dt_time, timedelta
 import functools
 import operator
-from typing import Optional
+from typing import List, Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -577,6 +577,9 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
 
 
 class BusinessHourMixin(BusinessMixin):
+    start: List[dt_time]
+    end: List[dt_time]
+    n: int
 
     def __init__(self, start='09:00', end='17:00', offset=timedelta(0)):
         # must be validated here to equality check
@@ -717,8 +720,7 @@ class BusinessHourMixin(BusinessMixin):
         """
         return self._next_opening_time(other, sign=-1)
 
-    def _get_business_hours_by_sec(self, start: datetime, end: datetime
-                                   ) -> int:
+    def _get_business_hours_by_sec(self, start: dt_time, end: dt_time) -> int:
         """
         Return business hours in a day by seconds.
         """
@@ -726,7 +728,7 @@ class BusinessHourMixin(BusinessMixin):
         dtstart = datetime(2014, 4, 1, start.hour, start.minute)
         day = 1 if start < end else 2
         until = datetime(2014, 4, day, end.hour, end.minute)
-        return (until - dtstart).total_seconds()
+        return int((until - dtstart).total_seconds())
 
     @apply_wraps
     def rollback(self, dt: datetime) -> datetime:
@@ -771,6 +773,7 @@ class BusinessHourMixin(BusinessMixin):
             if st.hour == dt.hour and st.minute == dt.minute:
                 return dt + timedelta(
                     seconds=self._get_business_hours_by_sec(st, self.end[i]))
+        assert False
 
     @apply_wraps
     def apply(self, other):
