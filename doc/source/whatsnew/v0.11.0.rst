@@ -105,27 +105,54 @@ Conversion
 
 Mixed Conversion
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   df3['D'] = '1.'
-   df3['E'] = '1'
-   df3.convert_objects(convert_numeric=True).dtypes
+    In [12]: df3['D'] = '1.'
 
-   # same, but specific dtype conversion
-   df3['D'] = df3['D'].astype('float16')
-   df3['E'] = df3['E'].astype('int32')
-   df3.dtypes
+    In [13]: df3['E'] = '1'
+
+    In [14]: df3.convert_objects(convert_numeric=True).dtypes
+    Out[14]:
+    A    float32
+    B    float64
+    C    float64
+    D    float64
+    E      int64
+    dtype: object
+
+    # same, but specific dtype conversion
+    In [15]: df3['D'] = df3['D'].astype('float16')
+
+    In [16]: df3['E'] = df3['E'].astype('int32')
+
+    In [17]: df3.dtypes
+    Out[17]:
+    A    float32
+    B    float64
+    C    float64
+    D    float16
+    E      int32
+    dtype: object
 
 Forcing Date coercion (and setting ``NaT`` when not datelike)
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   import datetime
-   s = pd.Series([datetime.datetime(2001, 1, 1, 0, 0), 'foo', 1.0, 1,
-                  pd.Timestamp('20010104'), '20010105'], dtype='O')
-   s.convert_objects(convert_dates='coerce')
+    In [18]: import datetime
+
+    In [19]: s = pd.Series([datetime.datetime(2001, 1, 1, 0, 0), 'foo', 1.0, 1,
+        ....:                pd.Timestamp('20010104'), '20010105'], dtype='O')
+        ....:
+
+    In [20]: s.convert_objects(convert_dates='coerce')
+    Out[20]:
+    0   2001-01-01
+    1          NaT
+    2          NaT
+    3          NaT
+    4   2001-01-04
+    5   2001-01-05
+    dtype: datetime64[ns]
 
 Dtype Gotchas
 ~~~~~~~~~~~~~
