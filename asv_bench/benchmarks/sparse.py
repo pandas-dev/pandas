@@ -1,8 +1,8 @@
 import numpy as np
+import scipy.sparse
 
 import pandas as pd
 from pandas import MultiIndex, Series, SparseArray, date_range
-import scipy.sparse
 
 
 def make_array(size, dense_proportion, fill_value, dtype):
