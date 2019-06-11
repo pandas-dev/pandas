@@ -214,10 +214,12 @@ class SparseSeries(Series):
                            fill_value=fill_value, kind=kind, copy=copy)
 
     def __repr__(self):
-        series_rep = Series.__repr__(self)
-        rep = '{series}\n{index!r}'.format(series=series_rep,
-                                           index=self.sp_index)
-        return rep
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Sparse")
+            series_rep = Series.__repr__(self)
+            rep = '{series}\n{index!r}'.format(series=series_rep,
+                                               index=self.sp_index)
+            return rep
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
