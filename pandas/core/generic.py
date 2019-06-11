@@ -10342,7 +10342,7 @@ numeric_only : bool, default None
 
 Returns
 -------
-%(name1)s or %(name2)s (if level specified)\
+%(name1)s or %(name2)s (if level specified)
 %(see_also)s
 %(examples)s\
 """

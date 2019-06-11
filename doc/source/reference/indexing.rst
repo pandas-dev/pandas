@@ -479,3 +479,18 @@ Methods
     PeriodIndex.asfreq
     PeriodIndex.strftime
     PeriodIndex.to_timestamp
+
+RangeIndex
+----------
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   RangeIndex
+
+Methods
+~~~~~~~
+.. autosummary::
+    :toctree: api/
+
+    RangeIndex.from_range
