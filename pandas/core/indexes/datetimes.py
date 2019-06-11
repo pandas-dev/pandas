@@ -203,6 +203,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     to_frame
     month_name
     day_name
+    mean
 
     See Also
     --------
