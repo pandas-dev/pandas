@@ -6,36 +6,26 @@ import numpy as np
 from pandas.io.excel._base import _BaseExcelReader
 
 
+try:
+    import xlrd
+    from xlrd import (
+        Book, open_workbook, xldate, XL_CELL_DATE, XL_CELL_ERROR,
+        XL_CELL_BOOLEAN, XL_CELL_NUMBER)
+except ImportError:
+    raise ImportError("Install xlrd >= 1.0.0 for Excel support")
+else:
+    if xlrd.__VERSION__ < LooseVersion("1.0.0"):
+        raise ImportError("Install xlrd >= 1.0.0 for Excel support" +
+                          ". Current version " + xlrd.__VERSION__)
+
+
 class _XlrdReader(_BaseExcelReader):
-
-    def __init__(self, filepath_or_buffer):
-        """Reader using xlrd engine.
-
-        Parameters
-        ----------
-        filepath_or_buffer : string, path object or Workbook
-            Object to be parsed.
-        """
-        err_msg = "Install xlrd >= 1.0.0 for Excel support"
-
-        try:
-            import xlrd
-        except ImportError:
-            raise ImportError(err_msg)
-        else:
-            if xlrd.__VERSION__ < LooseVersion("1.0.0"):
-                raise ImportError(err_msg +
-                                  ". Current version " + xlrd.__VERSION__)
-
-        super().__init__(filepath_or_buffer)
 
     @property
     def _workbook_class(self):
-        from xlrd import Book
         return Book
 
     def load_workbook(self, filepath_or_buffer):
-        from xlrd import open_workbook
         if hasattr(filepath_or_buffer, "read"):
             data = filepath_or_buffer.read()
             return open_workbook(file_contents=data)
@@ -53,10 +43,6 @@ class _XlrdReader(_BaseExcelReader):
         return self.book.sheet_by_index(index)
 
     def get_sheet_data(self, sheet, convert_float):
-        from xlrd import (xldate, XL_CELL_DATE,
-                          XL_CELL_ERROR, XL_CELL_BOOLEAN,
-                          XL_CELL_NUMBER)
-
         epoch1904 = self.book.datemode
 
         def _parse_cell(cell_contents, cell_typ):
