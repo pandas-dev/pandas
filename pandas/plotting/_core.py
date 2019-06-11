@@ -14,7 +14,7 @@ from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 # This block will be eventually removed, but it's not clear when
 if pandas.get_option('plotting.matplotlib.register_converters'):
     try:
-        from .misc import register
+        from ._misc import register
         register(explicit=False)
     except ImportError:
         pass
