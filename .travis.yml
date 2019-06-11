@@ -51,14 +51,14 @@ matrix:
     # In allow_failures
     - dist: trusty
       env:
-        - JOB="3.6, doc" ENV_FILE="environment.yml" DOC=true
+        - JOB="3.6, doc" ENV_FILE="ci/deps/travis-36-doc.yaml" DOC=true
     allow_failures:
       - dist: trusty
         env:
           - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow"
       - dist: trusty
         env:
-          - JOB="3.6, doc" ENV_FILE="environment.yml" DOC=true
+          - JOB="3.6, doc" ENV_FILE="ci/deps/travis-36-doc.yaml" DOC=true
 
 before_install:
   - echo "before_install"
@@ -103,10 +103,5 @@ script:
 after_script:
   - echo "after_script start"
   - source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
-  - if [ -e test-data-single.xml ]; then
-        ci/print_skipped.py test-data-single.xml;
-    fi
-  - if [ -e test-data-multiple.xml ]; then
-        ci/print_skipped.py test-data-multiple.xml;
-    fi
+  - ci/print_skipped.py 
   - echo "after_script done"
