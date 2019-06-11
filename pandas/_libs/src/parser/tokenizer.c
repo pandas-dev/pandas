@@ -652,7 +652,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + (uint64_t)line_limit) { \
+    if (line_limit > 0 && self->lines == start_lines + line_limit) { \
         goto linelimit;                                              \
     }
 
@@ -667,7 +667,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + (uint64_t)line_limit) { \
+    if (line_limit > 0 && self->lines == start_lines + line_limit) { \
         goto linelimit;                                              \
     }
 
