@@ -162,6 +162,7 @@ would be reassigned as -1. (:issue:`19387`)
 *New Behavior*:
 
 .. ipython:: python
+    :okexcept:
 
     pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
                   codes=[[0, -1, 1, 2, 3, 4]])
