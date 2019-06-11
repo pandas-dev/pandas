@@ -240,7 +240,7 @@ class TestSeriesUnary:
             result = op(ser)
             if op is operator.pos and pd.compat.numpy._is_numpy_dev:
                 # behavior change due to np#11450 ?
-                with pytest.warns(DeprecationWarning, match="ill-defined"):
+                with tm.assert_produces_warning(DeprecationWarning):
                     values = op(ser.values)
             else:
                 values = op(ser.values)
