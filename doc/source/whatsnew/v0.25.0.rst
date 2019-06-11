@@ -151,7 +151,7 @@ would be reassigned as -1. (:issue:`19387`)
 
     In [1]: pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
        ...:               codes=[[0, -1, 1, 2, 3, 4]])
-       ...: 
+       ...:
     Out[1]: MultiIndex(levels=[[nan, None, NaT, 128, 2]],
                        codes=[[0, -1, 1, 2, 3, 4]])
 

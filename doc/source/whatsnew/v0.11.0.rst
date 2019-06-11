@@ -141,8 +141,8 @@ Forcing Date coercion (and setting ``NaT`` when not datelike)
     In [18]: import datetime
 
     In [19]: s = pd.Series([datetime.datetime(2001, 1, 1, 0, 0), 'foo', 1.0, 1,
-        ....:                pd.Timestamp('20010104'), '20010105'], dtype='O')
-        ....:
+       ....:                pd.Timestamp('20010104'), '20010105'], dtype='O')
+       ....:
 
     In [20]: s.convert_objects(convert_dates='coerce')
     Out[20]:
