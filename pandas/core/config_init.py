@@ -482,7 +482,7 @@ def register_plotting_backend_cb(key):
             return
 
     try:
-        backend_mod = importlib.import_module(backend_str)
+        importlib.import_module(backend_str)
     except ImportError:
         raise ValueError('"{}" does not seem to be an installed module. '
                          'A pandas plotting backend must be a module that '
