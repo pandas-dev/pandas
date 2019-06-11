@@ -1,17 +1,20 @@
 # being a bit too dynamic
 import warnings
 
+import matplotlib.cm as cm
+import matplotlib.colors
 import matplotlib.pyplot as plt
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
+
+import pandas.core.common as com
 
 
 def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
                          color=None):
     if color is None and colormap is not None:
         if isinstance(colormap, str):
-            import matplotlib.cm as cm
             cmap = colormap
             colormap = cm.get_cmap(colormap)
             if colormap is None:
@@ -37,7 +40,6 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
 
             colors = colors[0:num_colors]
         elif color_type == 'random':
-            import pandas.core.common as com
 
             def random_color(column):
                 """ Returns a random color represented as a list of length 3"""
@@ -50,7 +52,6 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             raise ValueError("color_type must be either 'default' or 'random'")
 
     if isinstance(colors, str):
-        import matplotlib.colors
         conv = matplotlib.colors.ColorConverter()
 
         def _maybe_valid_colors(colors):

@@ -1,6 +1,7 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 import functools
+import warnings
 
 from matplotlib import pylab
 import matplotlib.pyplot as plt
@@ -25,7 +26,6 @@ from pandas.tseries.offsets import DateOffset
 
 
 def tsplot(series, plotf, ax=None, **kwargs):
-    import warnings
     """
     Plots a Series on the given Matplotlib axes or the current axes
 

@@ -1,4 +1,7 @@
-# being a bit too dynamic
+import random
+
+import matplotlib.lines as mlines
+import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -96,14 +99,12 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
 
 def _get_marker_compat(marker):
-    import matplotlib.lines as mlines
     if marker not in mlines.lineMarkers:
         return 'o'
     return marker
 
 
 def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
-    import matplotlib.patches as patches
 
     def normalize(series):
         a = min(series)
@@ -168,12 +169,11 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
 def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
                    colormap=None, **kwds):
-    from math import sqrt, pi
 
     def function(amplitudes):
         def f(t):
             x1 = amplitudes[0]
-            result = x1 / sqrt(2.0)
+            result = x1 / np.sqrt(2.0)
 
             # Take the rest of the coefficients and resize them
             # appropriately. Take a copy of amplitudes as otherwise numpy
@@ -196,7 +196,7 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     class_col = frame[class_column]
     classes = frame[class_column].drop_duplicates()
     df = frame.drop(class_column, axis=1)
-    t = np.linspace(-pi, pi, samples)
+    t = np.linspace(-np.pi, np.pi, samples)
     used_legends = set()
 
     color_values = _get_standard_colors(num_colors=len(classes),
@@ -204,7 +204,7 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
                                         color=color)
     colors = dict(zip(classes, color_values))
     if ax is None:
-        ax = plt.gca(xlim=(-pi, pi))
+        ax = plt.gca(xlim=(-np.pi, np.pi))
     for i in range(n):
         row = df.iloc[i].values
         f = function(row)
@@ -223,7 +223,6 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
 
 
 def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
-    import random
 
     # random.sample(ndarray, int) fails on python 3.3, sigh
     data = list(series.values)
