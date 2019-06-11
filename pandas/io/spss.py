@@ -17,9 +17,9 @@ def read_spss(path: Union[str, Path],
     ----------
     path : string or Path
         File path
-    usecols : list-like or None
+    usecols : list-like, optional
         Return a subset of the columns. If None, return all columns.
-    convert_categoricals : bool
+    convert_categoricals : bool, default is True
         Convert categorical columns into pd.Categorical.
 
     Returns
