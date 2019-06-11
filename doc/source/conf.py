@@ -18,7 +18,7 @@ import logging
 import jinja2
 from sphinx.ext.autosummary import _import_by_name
 from numpydoc.docscrape import NumpyDocString
-from numpydoc.docscrape_sphinx import SphinxDocString
+
 
 logger = logging.getLogger(__name__)
 
