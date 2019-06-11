@@ -77,10 +77,10 @@ def should_cache(arg, unique_share=0.7, check_count=None):
     else:
         assert 0 <= check_count <= len(arg), \
             'check_count must be in next bounds: [0; len(arg)]'
-        assert 0 < unique_share < 1, \
-            'unique_share must be in next bounds: (0; 1)'
         if check_count == 0:
             return False
+
+    assert 0 < unique_share < 1, 'unique_share must be in next bounds: (0; 1)'
 
     unique_elements = unique(arg[:check_count])
     if len(unique_elements) > check_count * unique_share:
