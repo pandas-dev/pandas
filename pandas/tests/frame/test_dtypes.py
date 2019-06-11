@@ -38,23 +38,34 @@ class TestDataFrameDataTypes(TestData):
     def test_empty_frame_dtypes_ftypes(self):
         empty_df = pd.DataFrame()
         assert_series_equal(empty_df.dtypes, pd.Series(dtype=np.object))
-        assert_series_equal(empty_df.ftypes, pd.Series(dtype=np.object))
+
+        # GH 26705 - Assert .ftypes is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            assert_series_equal(empty_df.ftypes, pd.Series(dtype=np.object))
 
         nocols_df = pd.DataFrame(index=[1, 2, 3])
         assert_series_equal(nocols_df.dtypes, pd.Series(dtype=np.object))
-        assert_series_equal(nocols_df.ftypes, pd.Series(dtype=np.object))
+
+        # GH 26705 - Assert .ftypes is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            assert_series_equal(nocols_df.ftypes, pd.Series(dtype=np.object))
 
         norows_df = pd.DataFrame(columns=list("abc"))
         assert_series_equal(norows_df.dtypes, pd.Series(
             np.object, index=list("abc")))
-        assert_series_equal(norows_df.ftypes, pd.Series(
-            'object:dense', index=list("abc")))
+
+        # GH 26705 - Assert .ftypes is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            assert_series_equal(norows_df.ftypes, pd.Series(
+                'object:dense', index=list("abc")))
 
         norows_int_df = pd.DataFrame(columns=list("abc")).astype(np.int32)
         assert_series_equal(norows_int_df.dtypes, pd.Series(
             np.dtype('int32'), index=list("abc")))
-        assert_series_equal(norows_int_df.ftypes, pd.Series(
-            'int32:dense', index=list("abc")))
+        # GH 26705 - Assert .ftypes is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            assert_series_equal(norows_int_df.ftypes, pd.Series(
+                'int32:dense', index=list("abc")))
 
         odict = OrderedDict
         df = pd.DataFrame(odict([('a', 1), ('b', True), ('c', 1.0)]),
@@ -66,11 +77,17 @@ class TestDataFrameDataTypes(TestData):
                                      ('b', 'bool:dense'),
                                      ('c', 'float64:dense')]))
         assert_series_equal(df.dtypes, ex_dtypes)
-        assert_series_equal(df.ftypes, ex_ftypes)
+
+        # GH 26705 - Assert .ftypes is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            assert_series_equal(df.ftypes, ex_ftypes)
 
         # same but for empty slice of df
         assert_series_equal(df[:0].dtypes, ex_dtypes)
-        assert_series_equal(df[:0].ftypes, ex_ftypes)
+
+        # GH 26705 - Assert .ftypes is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            assert_series_equal(df[:0].ftypes, ex_ftypes)
 
     def test_datetime_with_tz_dtypes(self):
         tzframe = DataFrame({'A': date_range('20130101', periods=3),
@@ -402,7 +419,10 @@ class TestDataFrameDataTypes(TestData):
                                B='float32:dense',
                                C='float16:dense',
                                D='float64:dense')).sort_values()
-        result = frame.ftypes.sort_values()
+
+        # GH 26705 - Assert .ftypes is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            result = frame.ftypes.sort_values()
         assert_series_equal(result, expected)
 
     def test_astype(self):
