@@ -188,13 +188,16 @@ class Float64IndexMethod:
 
 class IntervalIndexMethod:
     # GH 24813
-    params = [10**3, 10**5, 10**7]
+    params = [10**3, 10**5]
 
     def setup(self, N):
         left = np.append(np.arange(N), np.array(0))
         right = np.append(np.arange(1, N + 1), np.array(1))
         self.intv = IntervalIndex.from_arrays(left, right)
         self.intv._engine
+
+        self.intv2 = IntervalIndex.from_arrays(left + 1, right + 1)
+        self.intv2._engine
 
         self.left = IntervalIndex.from_breaks(np.arange(N))
         self.right = IntervalIndex.from_breaks(np.arange(N - 3, 2 * N - 3))
@@ -208,8 +211,11 @@ class IntervalIndexMethod:
     def time_intersection(self, N):
         self.left.intersection(self.right)
 
-    def time_intersection_duplicate(self, N):
+    def time_intersection_one_duplicate(self, N):
         self.intv.intersection(self.right)
+
+    def time_intersection_both_duplicate(self, N):
+        self.intv.intersection(self.intv2)
 
 
 from .pandas_vb_common import setup  # noqa: F401
