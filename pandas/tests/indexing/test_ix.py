@@ -182,9 +182,9 @@ class TestIX:
                                       4: 5}})
         tm.assert_frame_equal(df, expected)
 
-    def test_ix_assign_column_mixed(self):
+    def test_ix_assign_column_mixed(self, float_frame):
         # GH #1142
-        df = DataFrame(tm.getSeriesData())
+        df = float_frame
         df['foo'] = 'bar'
 
         orig = df.loc[:, 'B'].copy()

@@ -48,9 +48,8 @@ class TestDataFrameUnaryOperators:
         with pytest.raises(TypeError):
             (- df['a'])
 
-    def test_invert(self):
-        _seriesd = tm.getSeriesData()
-        df = pd.DataFrame(_seriesd)
+    def test_invert(self, float_frame):
+        df = float_frame
 
         assert_frame_equal(-(df < 0), ~(df < 0))
 
