@@ -5487,6 +5487,9 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return the ftypes (indication of sparse/dense and dtype) in DataFrame.
 
+        .. deprecated:: 0.25.0
+           Use :func:`dtypes` instead.
+
         This returns a Series with the data type of each column.
         The result's index is the original DataFrame's columns. Columns
         with mixed types are stored with the ``object`` dtype.  See
@@ -5524,6 +5527,11 @@ class NDFrame(PandasObject, SelectionMixin):
         3    float64:sparse
         dtype: object
         """
+        warnings.warn("DataFrame.ftypes is deprecated and will "
+                      "be removed in a future version. "
+                      "Use DataFrame.dtypes instead.",
+                      FutureWarning, stacklevel=2)
+
         from pandas import Series
         return Series(self._data.get_ftypes(), index=self._info_axis,
                       dtype=np.object_)
@@ -7476,7 +7484,7 @@ class NDFrame(PandasObject, SelectionMixin):
             aligned; see ``.align()`` method). If an ndarray is passed, the
             values are used as-is determine the groups. A label or list of
             labels may be passed to group by the columns in ``self``. Notice
-            that a tuple is interpreted a (single) key.
+            that a tuple is interpreted as a (single) key.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Split along rows (0) or columns (1).
         level : int, level name, or sequence of such, default None
