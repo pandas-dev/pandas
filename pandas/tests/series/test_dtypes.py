@@ -48,8 +48,14 @@ class TestSeriesDtypes:
 
         assert datetime_series.dtype == np.dtype('float64')
         assert datetime_series.dtypes == np.dtype('float64')
-        assert datetime_series.ftype == 'float64:dense'
-        assert datetime_series.ftypes == 'float64:dense'
+
+        # GH 26705 - Assert .ftype is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            assert datetime_series.ftype == 'float64:dense'
+
+        # GH 26705 - Assert .ftypes is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            assert datetime_series.ftypes == 'float64:dense'
         tm.assert_series_equal(datetime_series.get_dtype_counts(),
                                Series(1, ['float64']))
         # GH18243 - Assert .get_ftype_counts is deprecated
