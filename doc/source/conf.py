@@ -425,7 +425,6 @@ ipython_exec_lines = [
 ]
 
 
-
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
 
