@@ -163,9 +163,9 @@ would be reassigned as -1. (:issue:`19387`)
 
 .. ipython:: python
 
-    mi1 = pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
-                        codes=[[0, -1, 1, 2, 3, 4]])
-    mi2 = pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
+    pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+                  codes=[[0, -1, 1, 2, 3, 4]])
+    pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
 
 
 .. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
