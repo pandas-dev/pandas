@@ -34,7 +34,7 @@ dependencies:
   - scipy
   - seaborn
   # recursion error with sphinx 2.1.0. https://github.com/pandas-dev/pandas/issues/26723
-  - sphinx==2.0.1
+  - sphinx==1.8.5
   - sqlalchemy
   - statsmodels
   - xarray
