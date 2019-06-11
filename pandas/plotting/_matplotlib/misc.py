@@ -4,7 +4,6 @@ import matplotlib.lines as mlines
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import gaussian_kde
 
 from pandas.core.dtypes.missing import notna
 
@@ -54,6 +53,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                     ax.hist(values, **hist_kwds)
 
                 elif diagonal in ('kde', 'density'):
+                    from scipy.stats import gaussian_kde
                     y = values
                     gkde = gaussian_kde(y)
                     ind = np.linspace(y.min(), y.max(), 1000)
