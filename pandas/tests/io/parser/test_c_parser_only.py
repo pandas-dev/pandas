@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that apply specifically to the CParser. Unless specifically stated
 as a CParser-specific issue, the goal is to eventually move as many of
@@ -7,7 +5,7 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
-from io import TextIOWrapper
+from io import BytesIO, StringIO, TextIOWrapper
 import mmap
 import os
 import tarfile
@@ -15,7 +13,6 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import BytesIO, StringIO, lrange
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -247,10 +244,9 @@ def test_parse_ragged_csv(c_parser_only):
     # too many columns, cause segfault if not careful
     data = "1,2\n3,4,5"
 
-    result = parser.read_csv(StringIO(data), header=None,
-                             names=lrange(50))
+    result = parser.read_csv(StringIO(data), header=None, names=range(50))
     expected = parser.read_csv(StringIO(data), header=None,
-                               names=lrange(3)).reindex(columns=lrange(50))
+                               names=range(3)).reindex(columns=range(50))
 
     tm.assert_frame_equal(result, expected)
 
@@ -416,7 +412,7 @@ def test_read_nrows_large(c_parser_only):
 
 
 def test_float_precision_round_trip_with_text(c_parser_only):
-    # see gh-15140 - This should not segfault on Python 2.7+
+    # see gh-15140
     parser = c_parser_only
     df = parser.read_csv(StringIO("a"), header=None,
                          float_precision="round_trip")

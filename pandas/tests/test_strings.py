@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime, timedelta
 import re
 
@@ -8,8 +5,6 @@ import numpy as np
 from numpy import nan as NA
 from numpy.random import randint
 import pytest
-
-import pandas.compat as compat
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings
@@ -155,6 +150,9 @@ def any_allowed_skipna_inferred_dtype(request):
     ...     inferred_dtype, values = any_allowed_skipna_inferred_dtype
     ...     # will pass
     ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
+    ...
+    ...     # constructor for .str-accessor will also pass
+    ...     pd.Series(values).str
     """
     inferred_dtype, values = request.param
     values = np.array(values, dtype=object)  # object dtype to avoid casting
@@ -163,13 +161,21 @@ def any_allowed_skipna_inferred_dtype(request):
     return inferred_dtype, values
 
 
-class TestStringMethods(object):
+class TestStringMethods:
 
     def test_api(self):
 
         # GH 6106, GH 9322
         assert Series.str is strings.StringMethods
         assert isinstance(Series(['']).str, strings.StringMethods)
+
+    def test_api_mi_raises(self):
+        # GH 23679
+        mi = MultiIndex.from_arrays([['a', 'b', 'c']])
+        with pytest.raises(AttributeError, match='Can only use .str accessor '
+                           'with Index, not MultiIndex'):
+            mi.str
+        assert not hasattr(mi, 'str')
 
     @pytest.mark.parametrize('dtype', [object, 'category'])
     @pytest.mark.parametrize('box', [Series, Index])
@@ -184,20 +190,6 @@ class TestStringMethods(object):
             pytest.xfail(reason='Conversion to numpy array fails because '
                          'the ._values-attribute is not a numpy array for '
                          'PeriodArray/IntervalArray; see GH 23553')
-        if box == Index and inferred_dtype in ['empty', 'bytes']:
-            pytest.xfail(reason='Raising too restrictively; '
-                         'solved by GH 23167')
-        if (box == Index and dtype == object
-                and inferred_dtype in ['boolean', 'date', 'time']):
-            pytest.xfail(reason='Inferring incorrectly because of NaNs; '
-                         'solved by GH 23167')
-        if (box == Series
-                and (dtype == object and inferred_dtype not in [
-                    'string', 'unicode', 'empty',
-                    'bytes', 'mixed', 'mixed-integer'])
-                or (dtype == 'category'
-                    and inferred_dtype in ['decimal', 'boolean', 'time'])):
-            pytest.xfail(reason='Not raising correctly; solved by GH 23167')
 
         types_passing_constructor = ['string', 'unicode', 'empty',
                                      'bytes', 'mixed', 'mixed-integer']
@@ -225,27 +217,21 @@ class TestStringMethods(object):
         method_name, args, kwargs = any_string_method
 
         # TODO: get rid of these xfails
-        if (method_name not in ['encode', 'decode', 'len']
-                and inferred_dtype == 'bytes'):
-            pytest.xfail(reason='Not raising for "bytes", see GH 23011;'
-                         'Also: malformed method names, see GH 23551; '
-                         'solved by GH 23167')
-        if (method_name == 'cat'
-                and inferred_dtype in ['mixed', 'mixed-integer']):
-            pytest.xfail(reason='Bad error message; should raise better; '
-                         'solved by GH 23167')
-        if box == Index and inferred_dtype in ['empty', 'bytes']:
-            pytest.xfail(reason='Raising too restrictively; '
-                         'solved by GH 23167')
-        if (box == Index and dtype == object
-                and inferred_dtype in ['boolean', 'date', 'time']):
-            pytest.xfail(reason='Inferring incorrectly because of NaNs; '
-                         'solved by GH 23167')
+        if (method_name in ['partition', 'rpartition'] and box == Index
+                and inferred_dtype == 'empty'):
+            pytest.xfail(reason='Method cannot deal with empty Index')
+        if (method_name == 'split' and box == Index and values.size == 0
+                and kwargs.get('expand', None) is not None):
+            pytest.xfail(reason='Split fails on empty Series when expand=True')
+        if (method_name == 'get_dummies' and box == Index
+                and inferred_dtype == 'empty' and (dtype == object
+                                                   or values.size == 0)):
+            pytest.xfail(reason='Need to fortify get_dummies corner cases')
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
         method = getattr(t.str, method_name)
 
-        bytes_allowed = method_name in ['encode', 'decode', 'len']
+        bytes_allowed = method_name in ['decode', 'get', 'len', 'slice']
         # as of v0.23.4, all methods except 'cat' are very lenient with the
         # allowed data types, just returning NaN for entries that error.
         # This could be changed with an 'errors'-kwarg to the `str`-accessor,
@@ -302,7 +288,7 @@ class TestStringMethods(object):
 
             for el in s:
                 # each element of the series is either a basestring/str or nan
-                assert isinstance(el, compat.string_types) or isna(el)
+                assert isinstance(el, str) or isna(el)
 
         # desired behavior is to iterate until everything would be nan on the
         # next iter so make sure the last element of the iterator was 'l' in
@@ -1792,7 +1778,7 @@ class TestStringMethods(object):
 
     def test_empty_str_methods_to_frame(self):
         empty = Series(dtype=str)
-        empty_df = DataFrame([])
+        empty_df = DataFrame()
         tm.assert_frame_equal(empty_df, empty.str.partition('a'))
         tm.assert_frame_equal(empty_df, empty.str.rpartition('a'))
 
@@ -2163,10 +2149,6 @@ class TestStringMethods(object):
             expected = klass(['cdedefg', 'cdee', 'edddfg', 'edefggg'])
             _check(result, expected)
 
-            msg = "deletechars is not a valid argument"
-            with pytest.raises(ValueError, match=msg):
-                result = s.str.translate(table, deletechars='fg')
-
         # Series with non-string values
         s = Series(['a', 'b', 'c', 1.2])
         expected = Series(['c', 'd', 'e', np.nan])
@@ -2356,7 +2338,7 @@ class TestStringMethods(object):
         # expand blank split GH 20067
         values = Series([''], name='test')
         result = values.str.split(expand=True)
-        exp = DataFrame([[]])
+        exp = DataFrame([[]])  # NOTE: this is NOT an empty DataFrame
         tm.assert_frame_equal(result, exp)
 
         values = Series(['a b c', 'a b', '', ' '], name='test')
@@ -3176,7 +3158,8 @@ class TestStringMethods(object):
     def test_method_on_bytes(self):
         lhs = Series(np.array(list('abc'), 'S1').astype(object))
         rhs = Series(np.array(list('def'), 'S1').astype(object))
-        with pytest.raises(TypeError, match="can't concat str to bytes"):
+        with pytest.raises(TypeError,
+                           match="Cannot use .str.cat with values of.*"):
             lhs.str.cat(rhs)
 
     def test_casefold(self):

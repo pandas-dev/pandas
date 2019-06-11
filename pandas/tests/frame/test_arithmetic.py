@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from collections import deque
 from datetime import datetime
 import operator
@@ -14,7 +13,7 @@ import pandas.util.testing as tm
 # Comparisons
 
 
-class TestFrameComparisons(object):
+class TestFrameComparisons:
     # Specifically _not_ flex-comparisons
 
     def test_comparison_invalid(self):
@@ -138,7 +137,7 @@ class TestFrameComparisons(object):
         tm.assert_frame_equal(df[-mask_b], df.loc[1:1, :])
 
 
-class TestFrameFlexComparisons(object):
+class TestFrameFlexComparisons:
     # TODO: test_bool_flex_frame needs a better name
     def test_bool_flex_frame(self):
         data = np.random.randn(5, 3)
@@ -291,7 +290,7 @@ class TestFrameFlexComparisons(object):
 # -------------------------------------------------------------------
 # Arithmetic
 
-class TestFrameFlexArithmetic(object):
+class TestFrameFlexArithmetic:
 
     def test_df_add_td64_columnwise(self):
         # GH 22534 Check that column-wise addition broadcasts correctly
@@ -435,7 +434,7 @@ class TestFrameFlexArithmetic(object):
         # GH 19522 passing fill_value to frame flex arith methods should
         # raise even in the zero-length special cases
         ser_len0 = pd.Series([])
-        df_len0 = pd.DataFrame([], columns=['A', 'B'])
+        df_len0 = pd.DataFrame(columns=['A', 'B'])
         df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
 
         with pytest.raises(NotImplementedError, match='fill_value'):
@@ -445,7 +444,7 @@ class TestFrameFlexArithmetic(object):
             df_len0.sub(df['A'], axis=None, fill_value=3)
 
 
-class TestFrameArithmetic(object):
+class TestFrameArithmetic:
     def test_df_add_2d_array_rowlike_broadcasts(self):
         # GH#23000
         arr = np.arange(6).reshape(3, 2)

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 These the test the public routines exposed in types/common.py
 related to inference and not otherwise tested in types/test_common.py
@@ -9,6 +7,7 @@ import collections
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from fractions import Fraction
+from io import StringIO
 from numbers import Number
 import re
 
@@ -17,7 +16,6 @@ import pytest
 import pytz
 
 from pandas._libs import iNaT, lib, missing as libmissing
-from pandas.compat import StringIO, lrange
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
@@ -110,7 +108,7 @@ def test_is_sequence():
     assert (not is_seq("abcd"))
     assert (not is_seq(np.int64))
 
-    class A(object):
+    class A:
 
         def __getitem__(self):
             return 1
@@ -174,7 +172,7 @@ def test_is_dict_like_fails(ll):
 @pytest.mark.parametrize("has_getitem", [True, False])
 @pytest.mark.parametrize("has_contains", [True, False])
 def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
-    class DictLike(object):
+    class DictLike:
         def __init__(self, d):
             self.d = d
 
@@ -198,7 +196,7 @@ def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
 
 
 def test_is_file_like():
-    class MockFile(object):
+    class MockFile:
         pass
 
     is_file = inference.is_file_like
@@ -252,13 +250,13 @@ def test_is_names_tuple_fails(ll):
 def test_is_hashable():
 
     # all new-style classes are hashable by default
-    class HashableClass(object):
+    class HashableClass:
         pass
 
-    class UnhashableClass1(object):
+    class UnhashableClass1:
         __hash__ = None
 
-    class UnhashableClass2(object):
+    class UnhashableClass2:
 
         def __hash__(self):
             raise TypeError("Not hashable")
@@ -280,7 +278,7 @@ def test_is_hashable():
     for i in abc_hashable_not_really_hashable:
         assert not inference.is_hashable(i)
 
-    # numpy.array is no longer collections.Hashable as of
+    # numpy.array is no longer collections.abc.Hashable as of
     # https://github.com/numpy/numpy/pull/5326, just test
     # is_hashable()
     assert not inference.is_hashable(np.array([]))
@@ -314,7 +312,7 @@ def test_is_recompilable_fails(ll):
     assert not inference.is_re_compilable(ll)
 
 
-class TestInference(object):
+class TestInference:
 
     def test_infer_dtype_bytes(self):
         compare = 'bytes'
@@ -496,10 +494,10 @@ class TestInference(object):
         tm.assert_numpy_array_equal(result, array)
 
 
-class TestTypeInference(object):
+class TestTypeInference:
 
     # Dummy class used for testing with Python objects
-    class Dummy():
+    class Dummy:
         pass
 
     def test_inferred_dtype_fixture(self, any_skipna_inferred_dtype):
@@ -1083,7 +1081,7 @@ class TestTypeInference(object):
         assert result == 'categorical'
 
 
-class TestNumberScalar(object):
+class TestNumberScalar:
 
     def test_is_number(self):
 
@@ -1226,7 +1224,7 @@ class TestNumberScalar(object):
         assert not is_timedelta64_ns_dtype(tdi.astype('timedelta64[h]'))
 
 
-class TestIsScalar(object):
+class TestIsScalar:
 
     def test_is_scalar_builtin_scalars(self):
         assert is_scalar(None)
@@ -1303,8 +1301,7 @@ def test_datetimeindex_from_empty_datetime64_array():
 def test_nan_to_nat_conversions():
 
     df = DataFrame(dict({
-        'A': np.asarray(
-            lrange(10), dtype='float64'),
+        'A': np.asarray(range(10), dtype='float64'),
         'B': Timestamp('20010101')
     }))
     df.iloc[3:6, :] = np.nan

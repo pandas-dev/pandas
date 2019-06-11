@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-# pylint: disable=E1101
-
 from collections import OrderedDict
 import datetime as dt
 from datetime import datetime
@@ -12,9 +9,6 @@ import warnings
 
 import numpy as np
 import pytest
-
-import pandas.compat as compat
-from pandas.compat import iterkeys
 
 from pandas.core.dtypes.common import is_categorical_dtype
 
@@ -41,7 +35,7 @@ def parsed_114(dirpath):
     return parsed_114
 
 
-class TestStata(object):
+class TestStata:
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
@@ -66,6 +60,8 @@ class TestStata(object):
         self.dta4_117 = os.path.join(self.dirpath, 'stata4_117.dta')
 
         self.dta_encoding = os.path.join(self.dirpath, 'stata1_encoding.dta')
+        self.dta_encoding_118 = os.path.join(self.dirpath,
+                                             'stata1_encoding_118.dta')
 
         self.csv14 = os.path.join(self.dirpath, 'stata5.csv')
         self.dta14_113 = os.path.join(self.dirpath, 'stata5_113.dta')
@@ -372,7 +368,7 @@ class TestStata(object):
 
         expected = raw.kreis1849[0]
         assert result == expected
-        assert isinstance(result, compat.string_types)
+        assert isinstance(result, str)
 
         with tm.ensure_clean() as path:
             with tm.assert_produces_warning(FutureWarning):
@@ -683,7 +679,7 @@ class TestStata(object):
             sr_117 = rdr.variable_labels()
         keys = ('var1', 'var2', 'var3')
         labels = ('label1', 'label2', 'label3')
-        for k, v in compat.iteritems(sr_115):
+        for k, v in sr_115.items():
             assert k in sr_117
             assert v == sr_117[k]
             assert k in keys
@@ -756,8 +752,7 @@ class TestStata(object):
     def test_missing_value_conversion(self, file):
         columns = ['int8_', 'int16_', 'int32_', 'float32_', 'float64_']
         smv = StataMissingValue(101)
-        keys = [key for key in iterkeys(smv.MISSING_VALUES)]
-        keys.sort()
+        keys = sorted(smv.MISSING_VALUES.keys())
         data = []
         for i in range(27):
             row = [StataMissingValue(keys[i + (j * 27)]) for j in range(5)]
@@ -1309,9 +1304,17 @@ class TestStata(object):
                 original.to_stata(path)
 
     def test_repeated_column_labels(self):
-        # GH 13923
-        msg = (r"Value labels for column ethnicsn are not unique\. The"
-               r" repeated labels are:\n-+\nwolof")
+        # GH 13923, 25772
+        msg = """
+Value labels for column ethnicsn are not unique. These cannot be converted to
+pandas categoricals.
+
+Either read the file with `convert_categoricals` set to False or use the
+low level interface in `StataReader` to separately read the values and the
+value_labels.
+
+The repeated labels are:\n-+\nwolof
+"""
         with pytest.raises(ValueError, match=msg):
             read_stata(self.dta23, convert_categoricals=True)
 
@@ -1608,3 +1611,18 @@ class TestStata(object):
                     val = gso.split(b'\x00')[-2]
                     size = gso[gso.find(b'\x82') + 1]
                     assert len(val) == size - 1
+
+    def test_encoding_latin1_118(self):
+        # GH 25960
+        msg = """
+One or more strings in the dta file could not be decoded using utf-8, and
+so the fallback encoding of latin-1 is being used.  This can happen when a file
+has been incorrectly encoded by Stata or some other software. You should verify
+the string values returned are correct."""
+        with tm.assert_produces_warning(UnicodeWarning) as w:
+            encoded = read_stata(self.dta_encoding_118)
+            assert len(w) == 151
+            assert w[0].message.args[0] == msg
+
+        expected = pd.DataFrame([['Düsseldorf']] * 151, columns=['kreis1849'])
+        tm.assert_frame_equal(encoded, expected)

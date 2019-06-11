@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -11,7 +10,7 @@ from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
 
 
-class TestTimestampArithmetic(object):
+class TestTimestampArithmetic:
     def test_overflow_offset(self):
         # no overflow expected
 

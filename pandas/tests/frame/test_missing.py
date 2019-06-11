@@ -1,15 +1,9 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 import datetime
-from distutils.version import LooseVersion
 
 import dateutil
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -17,13 +11,6 @@ from pandas import Categorical, DataFrame, Series, Timestamp, date_range
 from pandas.tests.frame.common import _check_mixed_float
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-
-try:
-    import scipy
-    _is_scipy_ge_0190 = (LooseVersion(scipy.__version__) >=
-                         LooseVersion('0.19.0'))
-except ImportError:
-    _is_scipy_ge_0190 = False
 
 
 def _skip_if_no_pchip():
@@ -34,7 +21,7 @@ def _skip_if_no_pchip():
         pytest.skip('scipy.interpolate.pchip missing')
 
 
-class TestDataFrameMissingData():
+class TestDataFrameMissingData:
 
     def test_dropEmptyRows(self, float_frame):
         N = len(float_frame.index)
@@ -95,7 +82,7 @@ class TestDataFrameMissingData():
         assert_frame_equal(inp, expected)
 
         dropped = df.dropna(axis=0)
-        expected = df.loc[lrange(2, 6)]
+        expected = df.loc[list(range(2, 6))]
         inp = df.copy()
         inp.dropna(axis=0, inplace=True)
         assert_frame_equal(dropped, expected)
@@ -110,7 +97,7 @@ class TestDataFrameMissingData():
         assert_frame_equal(inp, expected)
 
         dropped = df.dropna(axis=0, thresh=4)
-        expected = df.loc[lrange(2, 6)]
+        expected = df.loc[range(2, 6)]
         inp = df.copy()
         inp.dropna(axis=0, thresh=4, inplace=True)
         assert_frame_equal(dropped, expected)
@@ -426,9 +413,9 @@ class TestDataFrameMissingData():
         assert_series_equal(result, expected)
 
         # empty block
-        df = DataFrame(index=lrange(3), columns=['A', 'B'], dtype='float64')
+        df = DataFrame(index=range(3), columns=['A', 'B'], dtype='float64')
         result = df.fillna('nan')
-        expected = DataFrame('nan', index=lrange(3), columns=['A', 'B'])
+        expected = DataFrame('nan', index=range(3), columns=['A', 'B'])
         assert_frame_equal(result, expected)
 
         # equiv of replace
@@ -628,7 +615,7 @@ class TestDataFrameMissingData():
     def test_fillna_col_reordering(self):
         cols = ["COL." + str(i) for i in range(5, 0, -1)]
         data = np.random.rand(20, 5)
-        df = DataFrame(index=lrange(20), columns=cols, data=data)
+        df = DataFrame(index=range(20), columns=cols, data=data)
         filled = df.fillna(method='ffill')
         assert df.columns.tolist() == filled.columns.tolist()
 
@@ -656,7 +643,7 @@ class TestDataFrameMissingData():
         assert_frame_equal(res, exp)
 
 
-class TestDataFrameInterpolate():
+class TestDataFrameInterpolate:
 
     def test_interp_basic(self):
         df = DataFrame({'A': [1, 2, np.nan, 4],
@@ -718,14 +705,8 @@ class TestDataFrameInterpolate():
 
         result = df.interpolate(method='cubic')
         # GH #15662.
-        # new cubic and quadratic interpolation algorithms from scipy 0.19.0.
-        # previously `splmake` was used. See scipy/scipy#6710
-        if _is_scipy_ge_0190:
-            expected.A.loc[3] = 2.81547781
-            expected.A.loc[13] = 5.52964175
-        else:
-            expected.A.loc[3] = 2.81621174
-            expected.A.loc[13] = 5.64146581
+        expected.A.loc[3] = 2.81547781
+        expected.A.loc[13] = 5.52964175
         assert_frame_equal(result, expected)
 
         result = df.interpolate(method='nearest')
@@ -734,12 +715,8 @@ class TestDataFrameInterpolate():
         assert_frame_equal(result, expected, check_dtype=False)
 
         result = df.interpolate(method='quadratic')
-        if _is_scipy_ge_0190:
-            expected.A.loc[3] = 2.82150771
-            expected.A.loc[13] = 6.12648668
-        else:
-            expected.A.loc[3] = 2.82533638
-            expected.A.loc[13] = 6.02817974
+        expected.A.loc[3] = 2.82150771
+        expected.A.loc[13] = 6.12648668
         assert_frame_equal(result, expected)
 
         result = df.interpolate(method='slinear')
@@ -771,14 +748,10 @@ class TestDataFrameInterpolate():
         assert_frame_equal(result, expectedk)
 
         _skip_if_no_pchip()
-        import scipy
+
         result = df.interpolate(method='pchip')
         expected.loc[2, 'A'] = 3
-
-        if LooseVersion(scipy.__version__) >= LooseVersion('0.17.0'):
-            expected.loc[5, 'A'] = 6.0
-        else:
-            expected.loc[5, 'A'] = 6.125
+        expected.loc[5, 'A'] = 6.0
 
         assert_frame_equal(result, expected)
 

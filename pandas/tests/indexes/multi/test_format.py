@@ -1,18 +1,15 @@
-# -*- coding: utf-8 -*-
-
-
 import warnings
 
 import pytest
 
 import pandas as pd
-from pandas import MultiIndex, compat
+from pandas import MultiIndex
 import pandas.util.testing as tm
 
 
 def test_dtype_str(indices):
     dtype = indices.dtype_str
-    assert isinstance(dtype, compat.string_types)
+    assert isinstance(dtype, str)
     assert dtype == str(indices.dtype)
 
 
@@ -89,12 +86,6 @@ def test_unicode_string_with_unicode():
     d = {"a": ["\u05d0", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
     idx = pd.DataFrame(d).set_index(["a", "b"]).index
     str(idx)
-
-
-def test_bytestring_with_unicode():
-    d = {"a": ["\u05d0", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
-    idx = pd.DataFrame(d).set_index(["a", "b"]).index
-    bytes(idx)
 
 
 def test_repr_max_seq_item_setting(idx):

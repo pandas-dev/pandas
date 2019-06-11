@@ -15,7 +15,7 @@ jobs:
     name: Windows
     vmImage: vs2017-win2016
 
-- job: 'Checks_and_doc'
+- job: 'Checks'
   pool:
     vmImage: ubuntu-16.04
   timeoutInMinutes: 90
@@ -39,9 +39,8 @@ jobs:
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       sudo apt-get install -y libc6-dev-i386
-      ci/incremental/install_miniconda.sh
-      ci/incremental/setup_conda_environment.sh
-    displayName: 'Set up environment'
+      ci/setup_env.sh
+    displayName: 'Setup environment and build pandas'
     condition: true
 
   # Do not require pandas
@@ -57,13 +56,6 @@ jobs:
       source activate pandas-dev
       ci/code_checks.sh dependencies
     displayName: 'Dependencies consistency'
-    condition: true
-
-  - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
-      source activate pandas-dev
-      ci/incremental/build.sh
-    displayName: 'Build'
     condition: true
 
   # Require pandas
@@ -91,6 +83,13 @@ jobs:
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
+      ci/code_checks.sh typing
+    displayName: 'Typing validation'
+    condition: true
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
       pytest --capture=no --strict scripts
     displayName: 'Testing docstring validaton script'
     condition: true
@@ -98,10 +97,11 @@ jobs:
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
+      cd asv_bench
+      asv check -E existing
       git remote add upstream https://github.com/pandas-dev/pandas.git
       git fetch upstream
       if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
-          cd asv_bench
           asv machine --yes
           ASV_OUTPUT="$(asv dev)"
           if [[ $(echo "$ASV_OUTPUT" | grep "failed") ]]; then

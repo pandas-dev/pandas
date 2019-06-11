@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 import operator
+import warnings
 
 import numpy as np
 import pytest
@@ -18,7 +18,6 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         tm.assert_categorical_equal(factor, self.factor)
 
     def test_comparisons(self):
-
         result = self.factor[self.factor == 'a']
         expected = self.factor[np.asarray(self.factor) == 'a']
         tm.assert_categorical_equal(result, expected)
@@ -127,7 +126,7 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         tm.assert_numpy_array_equal(res, exp)
 
 
-class TestCategoricalOps(object):
+class TestCategoricalOps:
 
     def test_compare_frame(self):
         # GH#24282 check that Categorical.__cmp__(DataFrame) defers to frame
@@ -186,6 +185,36 @@ class TestCategoricalOps(object):
                                     np.array([False, False, False]))
         tm.assert_numpy_array_equal(cat != 4,
                                     np.array([True, True, True]))
+
+    def test_comparison_of_ordered_categorical_with_nan_to_scalar(
+            self, compare_operators_no_eq_ne):
+        # https://github.com/pandas-dev/pandas/issues/26504
+        # BUG: fix ordered categorical comparison with missing values (#26504 )
+        # and following comparisons with scalars in categories with missing
+        # values should be evaluated as False
+
+        cat = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
+        scalar = 2
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            expected = getattr(np.array(cat),
+                               compare_operators_no_eq_ne)(scalar)
+        actual = getattr(cat, compare_operators_no_eq_ne)(scalar)
+        tm.assert_numpy_array_equal(actual, expected)
+
+    def test_comparison_of_ordered_categorical_with_nan_to_listlike(
+            self, compare_operators_no_eq_ne):
+        # https://github.com/pandas-dev/pandas/issues/26504
+        # and following comparisons of missing values in ordered Categorical
+        # with listlike should be evaluated as False
+
+        cat = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
+        other = Categorical([2, 2, 2, 2], categories=[1, 2, 3], ordered=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            expected = getattr(np.array(cat), compare_operators_no_eq_ne)(2)
+        actual = getattr(cat, compare_operators_no_eq_ne)(other)
+        tm.assert_numpy_array_equal(actual, expected)
 
     @pytest.mark.parametrize('data,reverse,base', [
         (list("abc"), list("cba"), list("bbb")),

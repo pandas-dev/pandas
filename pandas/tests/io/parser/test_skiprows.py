@@ -1,23 +1,21 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that skipped rows are properly handled during
 parsing for all of the parsers defined in parsers.py
 """
 
 from datetime import datetime
+from io import StringIO
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange
 from pandas.errors import EmptyDataError
 
 from pandas import DataFrame, Index
 import pandas.util.testing as tm
 
 
-@pytest.mark.parametrize("skiprows", [lrange(6), 6])
+@pytest.mark.parametrize("skiprows", [list(range(6)), 6])
 def test_skip_rows_bug(all_parsers, skiprows):
     # see gh-505
     parser = all_parsers

@@ -1,9 +1,13 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
+import bz2
+import gzip
+import lzma
 import os
 import sys
 import time
 import warnings
+import zipfile
 
 from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
 from errno import ENOENT
@@ -17,15 +21,13 @@ from cython import Py_ssize_t
 from cpython cimport (PyObject, PyBytes_FromString,
                       PyBytes_AsString,
                       PyUnicode_AsUTF8String,
-                      PyErr_Occurred, PyErr_Fetch)
+                      PyErr_Occurred, PyErr_Fetch,
+                      PyUnicode_Decode)
 from cpython.ref cimport Py_XDECREF
 
 
 cdef extern from "Python.h":
     object PyUnicode_FromString(char *v)
-
-    object PyUnicode_Decode(char *v, Py_ssize_t size, char *encoding,
-                            char *errors)
 
 
 import numpy as np
@@ -39,7 +41,7 @@ import pandas._libs.lib as lib
 from pandas._libs.khash cimport (
     khiter_t,
     kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
-    kh_get_str, kh_destroy_str, kh_resize_str,
+    kh_get_str, kh_destroy_str,
     kh_float64_t, kh_get_float64, kh_destroy_float64,
     kh_put_float64, kh_init_float64, kh_resize_float64,
     kh_strbox_t, kh_put_strbox, kh_get_strbox, kh_init_strbox,
@@ -47,7 +49,6 @@ from pandas._libs.khash cimport (
     kh_str_starts_t, kh_put_str_starts_item, kh_init_str_starts,
     kh_get_str_starts_item, kh_destroy_str_starts, kh_resize_str_starts)
 
-import pandas.compat as compat
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer_dtype, is_float_dtype,
@@ -67,8 +68,6 @@ CParserError = ParserError
 
 
 cdef:
-    bint PY3 = (sys.version_info[0] >= 3)
-
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
 
@@ -81,11 +80,6 @@ cdef extern from "headers/portable.h":
     # In a sane world, the `from libc.string cimport` above would fail
     # loudly.
     pass
-
-try:
-    basestring
-except NameError:
-    basestring = str
 
 
 cdef extern from "parser/tokenizer.h":
@@ -155,9 +149,6 @@ cdef extern from "parser/tokenizer.h":
         int skipinitialspace       # ignore spaces following delimiter? */
         int quoting                # style of quoting to write */
 
-        # hmm =/
-        # int numeric_field
-
         char commentchar
         int allow_embedded_newline
         int strict                 # raise exception on bad CSV */
@@ -185,9 +176,11 @@ cdef extern from "parser/tokenizer.h":
         int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
         float64_t (*double_converter_nogil)(const char *, char **,
-                                            char, char, char, int, int *) nogil
+                                            char, char, char,
+                                            int, int *, int *) nogil
         float64_t (*double_converter_withgil)(const char *, char **,
-                                              char, char, char, int)
+                                              char, char, char,
+                                              int, int *, int *)
 
         #  error handling
         char *warn_msg
@@ -235,12 +228,15 @@ cdef extern from "parser/tokenizer.h":
     uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
                            uint64_t uint_max, int *error, char tsep) nogil
 
-    float64_t xstrtod(const char *p, char **q, char decimal, char sci,
-                      char tsep, int skip_trailing, int *error) nogil
-    float64_t precise_xstrtod(const char *p, char **q, char decimal, char sci,
-                              char tsep, int skip_trailing, int *error) nogil
-    float64_t round_trip(const char *p, char **q, char decimal, char sci,
-                         char tsep, int skip_trailing) nogil
+    float64_t xstrtod(const char *p, char **q, char decimal,
+                      char sci, char tsep, int skip_trailing,
+                      int *error, int *maybe_int) nogil
+    float64_t precise_xstrtod(const char *p, char **q, char decimal,
+                              char sci, char tsep, int skip_trailing,
+                              int *error, int *maybe_int) nogil
+    float64_t round_trip(const char *p, char **q, char decimal,
+                         char sci, char tsep, int skip_trailing,
+                         int *error, int *maybe_int) nogil
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
@@ -477,14 +473,19 @@ cdef class TextReader:
 
         self.verbose = verbose
         self.low_memory = low_memory
-        self.parser.double_converter_nogil = xstrtod
-        self.parser.double_converter_withgil = NULL
-        if float_precision == 'high':
-            self.parser.double_converter_nogil = precise_xstrtod
-            self.parser.double_converter_withgil = NULL
-        elif float_precision == 'round_trip':  # avoid gh-15140
+
+        if float_precision == "round_trip":
+            # see gh-15140
+            #
+            # Our current roundtrip implementation requires the GIL.
             self.parser.double_converter_nogil = NULL
             self.parser.double_converter_withgil = round_trip
+        elif float_precision == "high":
+            self.parser.double_converter_withgil = NULL
+            self.parser.double_converter_nogil = precise_xstrtod
+        else:
+            self.parser.double_converter_withgil = NULL
+            self.parser.double_converter_nogil = xstrtod
 
         if isinstance(dtype, dict):
             dtype = {k: pandas_dtype(dtype[k])
@@ -590,8 +591,7 @@ cdef class TextReader:
         if not QUOTE_MINIMAL <= quoting <= QUOTE_NONE:
             raise TypeError('bad "quoting" value')
 
-        if not isinstance(quote_char, (str, compat.text_type,
-                                       bytes)) and quote_char is not None:
+        if not isinstance(quote_char, (str, bytes)) and quote_char is not None:
             dtype = type(quote_char).__name__
             raise TypeError('"quotechar" must be string, '
                             'not {dtype}'.format(dtype=dtype))
@@ -626,21 +626,13 @@ cdef class TextReader:
 
         if self.compression:
             if self.compression == 'gzip':
-                import gzip
-                if isinstance(source, basestring):
+                if isinstance(source, str):
                     source = gzip.GzipFile(source, 'rb')
                 else:
                     source = gzip.GzipFile(fileobj=source)
             elif self.compression == 'bz2':
-                import bz2
-                if isinstance(source, basestring) or PY3:
-                    source = bz2.BZ2File(source, 'rb')
-                else:
-                    content = source.read()
-                    source.close()
-                    source = compat.StringIO(bz2.decompress(content))
+                source = bz2.BZ2File(source, 'rb')
             elif self.compression == 'zip':
-                import zipfile
                 zip_file = zipfile.ZipFile(source)
                 zip_names = zip_file.namelist()
 
@@ -655,9 +647,7 @@ cdef class TextReader:
                     raise ValueError('Multiple files found in compressed '
                                      'zip file %s', str(zip_names))
             elif self.compression == 'xz':
-                lzma = compat.import_lzma()
-
-                if isinstance(source, basestring):
+                if isinstance(source, str):
                     source = lzma.LZMAFile(source, 'rb')
                 else:
                     source = lzma.LZMAFile(filename=source)
@@ -675,11 +665,10 @@ cdef class TextReader:
 
             self.handle = source
 
-        if isinstance(source, basestring):
-            if not isinstance(source, bytes):
-                encoding = sys.getfilesystemencoding() or "utf-8"
+        if isinstance(source, str):
+            encoding = sys.getfilesystemencoding() or "utf-8"
 
-                source = source.encode(encoding)
+            source = source.encode(encoding)
 
             if self.memory_map:
                 ptr = new_mmap(source)
@@ -772,9 +761,7 @@ cdef class TextReader:
                 for i in range(field_count):
                     word = self.parser.words[start + i]
 
-                    if path == CSTRING:
-                        name = PyBytes_FromString(word)
-                    elif path == UTF8:
+                    if path == UTF8:
                         name = PyUnicode_FromString(word)
                     elif path == ENCODED:
                         name = PyUnicode_Decode(word, strlen(word),
@@ -1313,9 +1300,6 @@ cdef class TextReader:
         elif path == ENCODED:
             return _string_box_decode(self.parser, i, start, end,
                                       na_filter, na_hashset, self.c_encoding)
-        elif path == CSTRING:
-            return _string_box_factorize(self.parser, i, start, end,
-                                         na_filter, na_hashset)
 
     def _get_converter(self, i, name):
         if self.converters is None:
@@ -1393,20 +1377,13 @@ cdef:
 def _ensure_encoded(list lst):
     cdef list result = []
     for x in lst:
-        if isinstance(x, unicode):
+        if isinstance(x, str):
             x = PyUnicode_AsUTF8String(x)
         elif not isinstance(x, bytes):
-            x = asbytes(x)
+            x = str(x).encode('utf-8')
 
         result.append(x)
     return result
-
-
-cdef asbytes(object o):
-    if PY3:
-        return str(o).encode('utf-8')
-    else:
-        return str(o)
 
 
 # common NA values
@@ -1432,7 +1409,6 @@ def _maybe_upcast(arr):
 
 
 cdef enum StringPath:
-    CSTRING
     UTF8
     ENCODED
 
@@ -1441,10 +1417,7 @@ cdef enum StringPath:
 cdef inline StringPath _string_path(char *encoding):
     if encoding != NULL and encoding != b"utf-8":
         return ENCODED
-    elif PY3 or encoding != NULL:
-        return UTF8
-    else:
-        return CSTRING
+    return UTF8
 
 
 # ----------------------------------------------------------------------
@@ -1677,10 +1650,6 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         for k in range(table.n_buckets):
             if kh_exist_str(table, k):
                 result[table.vals[k]] = PyUnicode_FromString(table.keys[k])
-    elif path == CSTRING:
-        for k in range(table.n_buckets):
-            if kh_exist_str(table, k):
-                result[table.vals[k]] = PyBytes_FromString(table.keys[k])
 
     kh_destroy_str(table)
     return np.asarray(codes), result, na_count
@@ -1756,7 +1725,8 @@ cdef _try_double(parser_t *parser, int64_t col,
         assert parser.double_converter_withgil != NULL
         error = _try_double_nogil(parser,
                                   <float64_t (*)(const char *, char **,
-                                                 char, char, char, int, int *)
+                                                 char, char, char,
+                                                 int, int *, int *)
                                   nogil>parser.double_converter_withgil,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
@@ -1770,7 +1740,7 @@ cdef _try_double(parser_t *parser, int64_t col,
 cdef inline int _try_double_nogil(parser_t *parser,
                                   float64_t (*double_converter)(
                                       const char *, char **, char,
-                                      char, char, int, int *) nogil,
+                                      char, char, int, int *, int *) nogil,
                                   int col, int line_start, int line_end,
                                   bint na_filter, kh_str_starts_t *na_hashset,
                                   bint use_na_flist,
@@ -1799,7 +1769,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
             else:
                 data[0] = double_converter(word, &p_end, parser.decimal,
                                            parser.sci, parser.thousands,
-                                           1, &error)
+                                           1, &error, NULL)
                 if error != 0 or p_end == word or p_end[0]:
                     error = 0
                     if (strcasecmp(word, cinf) == 0 or
@@ -1819,7 +1789,8 @@ cdef inline int _try_double_nogil(parser_t *parser,
         for i in range(lines):
             COLITER_NEXT(it, word)
             data[0] = double_converter(word, &p_end, parser.decimal,
-                                       parser.sci, parser.thousands, 1, &error)
+                                       parser.sci, parser.thousands,
+                                       1, &error, NULL)
             if error != 0 or p_end == word or p_end[0]:
                 error = 0
                 if (strcasecmp(word, cinf) == 0 or
@@ -2141,7 +2112,7 @@ cdef raise_parser_error(object base, parser_t *parser):
 
             # PyErr_Fetch only returned the error message in *value,
             # so the Exception class must be extracted from *type.
-            if isinstance(old_exc, compat.string_types):
+            if isinstance(old_exc, str):
                 if type != NULL:
                     exc_type = <object>type
                 else:
@@ -2155,10 +2126,7 @@ cdef raise_parser_error(object base, parser_t *parser):
 
     message = '{base}. C error: '.format(base=base)
     if parser.error_msg != NULL:
-        if PY3:
-            message += parser.error_msg.decode('utf-8')
-        else:
-            message += parser.error_msg
+        message += parser.error_msg.decode('utf-8')
     else:
         message += 'no error message set'
 
@@ -2257,12 +2225,7 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
 
     coliter_setup(&it, parser, col, line_start)
 
-    if not PY3 and c_encoding == NULL:
-        for i in range(lines):
-            COLITER_NEXT(it, word)
-            val = PyBytes_FromString(word)
-            result[i] = f(val)
-    elif ((PY3 and c_encoding == NULL) or c_encoding == b'utf-8'):
+    if c_encoding == NULL or c_encoding == b'utf-8':
         for i in range(lines):
             COLITER_NEXT(it, word)
             val = PyUnicode_FromString(word)

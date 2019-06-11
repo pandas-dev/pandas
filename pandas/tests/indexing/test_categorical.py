@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
-
-import pandas.compat as compat
 
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -17,7 +13,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestCategoricalIndex(object):
+class TestCategoricalIndex:
 
     def setup_method(self, method):
 
@@ -152,7 +148,7 @@ class TestCategoricalIndex(object):
         # row
         res_row = df.iloc[2, :]
         tm.assert_series_equal(res_row, exp_row)
-        assert isinstance(res_row["cats"], compat.string_types)
+        assert isinstance(res_row["cats"], str)
 
         # col
         res_col = df.iloc[:, 0]
@@ -172,7 +168,7 @@ class TestCategoricalIndex(object):
         # row
         res_row = df.loc["j", :]
         tm.assert_series_equal(res_row, exp_row)
-        assert isinstance(res_row["cats"], compat.string_types)
+        assert isinstance(res_row["cats"], str)
 
         # col
         res_col = df.loc[:, "cats"]
@@ -193,7 +189,7 @@ class TestCategoricalIndex(object):
         # row
         res_row = df.loc["j", :]
         tm.assert_series_equal(res_row, exp_row)
-        assert isinstance(res_row["cats"], compat.string_types)
+        assert isinstance(res_row["cats"], str)
 
         # col
         res_col = df.loc[:, "cats"]
@@ -227,7 +223,7 @@ class TestCategoricalIndex(object):
         # i : int, slice, or sequence of integers
         res_row = df.iloc[2]
         tm.assert_series_equal(res_row, exp_row)
-        assert isinstance(res_row["cats"], compat.string_types)
+        assert isinstance(res_row["cats"], str)
 
         res_df = df.iloc[slice(2, 4)]
         tm.assert_frame_equal(res_df, exp_df)
@@ -641,6 +637,16 @@ class TestCategoricalIndex(object):
         # result = df.loc[1:5]
         # expected = df.iloc[[1,2,3,4]]
         # assert_frame_equal(result, expected)
+
+    def test_loc_and_at_with_categorical_index(self):
+        # GH 20629
+        s = Series([1, 2, 3], index=pd.CategoricalIndex(["A", "B", "C"]))
+        assert s.loc['A'] == 1
+        assert s.at['A'] == 1
+        df = DataFrame([[1, 2], [3, 4], [5, 6]],
+                       index=pd.CategoricalIndex(["A", "B", "C"]))
+        assert df.loc['B', 1] == 4
+        assert df.at['B', 1] == 4
 
     def test_boolean_selection(self):
 

@@ -41,7 +41,7 @@ matrix:
 
     - dist: trusty
       env:
-        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36.yaml" PATTERN="((not slow and not network) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
+        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
 
     # In allow_failures
     - dist: trusty
@@ -82,14 +82,17 @@ before_install:
 install:
   - echo "install start"
   - ci/prep_cython_cache.sh
-  - ci/install_travis.sh
+  - ci/setup_env.sh
   - ci/submit_cython_cache.sh
   - echo "install done"
 
 before_script:
-  - ci/install_db_travis.sh
+  # display server (for clipboard functionality) needs to be started here,
+  # does not work if done in install:setup_env.sh (GH-26103)
   - export DISPLAY=":99.0"
-  - ci/before_script_travis.sh
+  - echo "sh -e /etc/init.d/xvfb start"
+  - sh -e /etc/init.d/xvfb start
+  - sleep 3
 
 script:
   - echo "script start"
@@ -100,10 +103,5 @@ script:
 after_script:
   - echo "after_script start"
   - source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
-  - if [ -e test-data-single.xml ]; then
-        ci/print_skipped.py test-data-single.xml;
-    fi
-  - if [ -e test-data-multiple.xml ]; then
-        ci/print_skipped.py test-data-multiple.xml;
-    fi
+  - ci/print_skipped.py 
   - echo "after_script done"

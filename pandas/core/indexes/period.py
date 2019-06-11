@@ -1,4 +1,3 @@
-# pylint: disable=E1101,E1103,W0232
 from datetime import datetime, timedelta
 import warnings
 
@@ -15,7 +14,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, is_datetime64_any_dtype, is_float, is_float_dtype,
     is_integer, is_integer_dtype, pandas_dtype)
 
-from pandas import compat
 from pandas.core import common as com
 from pandas.core.accessor import delegate_names
 from pandas.core.algorithms import unique1d
@@ -82,7 +80,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     Parameters
     ----------
-    data : array-like (1-dimensional), optional
+    data : array-like (1d integer np.ndarray or PeriodArray), optional
         Optional period-like data to construct index with
     copy : bool
         Make a copy of input ndarray
@@ -146,6 +144,14 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     strftime
     to_timestamp
 
+    See Also
+    --------
+    Index : The base pandas Index type.
+    Period : Represents a period of time.
+    DatetimeIndex : Index with datetime64 data.
+    TimedeltaIndex : Index of timedelta64 data.
+    period_range : Create a fixed-frequency PeriodIndex.
+
     Notes
     -----
     Creating a PeriodIndex based on `start`, `periods`, and `end` has
@@ -154,14 +160,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     Examples
     --------
     >>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)
-
-    See Also
-    ---------
-    Index : The base pandas Index type.
-    Period : Represents a period of time.
-    DatetimeIndex : Index with datetime64 data.
-    TimedeltaIndex : Index of timedelta64 data.
-    period_range : Create a fixed-frequency PeriodIndex.
     """
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
@@ -170,7 +168,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
-    _data = None  # type: PeriodArray
+    _data = None
 
     _engine_type = libindex.PeriodEngine
 
@@ -526,7 +524,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return self.to_timestamp(how=how).tz_localize(tz)
 
         # TODO: should probably raise on `how` here, so we don't ignore it.
-        return super(PeriodIndex, self).astype(dtype, copy=copy)
+        return super().astype(dtype, copy=copy)
 
     @Substitution(klass='PeriodIndex')
     @Appender(_shared_docs['searchsorted'])
@@ -538,7 +536,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                                             other_freq=value.freqstr)
                 raise IncompatibleFrequency(msg)
             value = value.ordinal
-        elif isinstance(value, compat.string_types):
+        elif isinstance(value, str):
             try:
                 value = Period(value, freq=self.freq).ordinal
             except DateParseError:
@@ -578,7 +576,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         s = com.values_from_object(series)
         try:
             return com.maybe_box(self,
-                                 super(PeriodIndex, self).get_value(s, key),
+                                 super().get_value(s, key),
                                  series, key)
         except (KeyError, IndexError):
             try:
@@ -636,7 +634,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """
         wrap Index._get_unique_index to handle NaT
         """
-        res = super(PeriodIndex, self)._get_unique_index(dropna=dropna)
+        res = super()._get_unique_index(dropna=dropna)
         if dropna:
             res = res.dropna()
         return res
@@ -717,7 +715,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         if isinstance(label, datetime):
             return Period(label, freq=self.freq)
-        elif isinstance(label, compat.string_types):
+        elif isinstance(label, str):
             try:
                 _, parsed, reso = parse_time_string(label, self.freq)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
@@ -793,6 +791,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """
         self._assert_can_do_setop(other)
 
+        if not isinstance(other, PeriodIndex):
+            return self.astype(object).join(other, how=how, level=level,
+                                            return_indexers=return_indexers,
+                                            sort=sort)
+
         result = Int64Index.join(self, other, how=how, level=level,
                                  return_indexers=return_indexers,
                                  sort=sort)
@@ -802,13 +805,16 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return self._apply_meta(result), lidx, ridx
         return self._apply_meta(result)
 
+    @Appender(Index.intersection.__doc__)
+    def intersection(self, other, sort=False):
+        return Index.intersection(self, other, sort=sort)
+
     def _assert_can_do_setop(self, other):
-        super(PeriodIndex, self)._assert_can_do_setop(other)
+        super()._assert_can_do_setop(other)
 
-        if not isinstance(other, PeriodIndex):
-            raise ValueError('can only call with other PeriodIndex-ed objects')
-
-        if self.freq != other.freq:
+        # *Can't* use PeriodIndexes of different freqs
+        # *Can* use PeriodIndex/DatetimeIndex
+        if isinstance(other, PeriodIndex) and self.freq != other.freq:
             msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
                                         own_freq=self.freqstr,
                                         other_freq=other.freqstr)
@@ -830,7 +836,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """Necessary for making this object picklable"""
 
         if isinstance(state, dict):
-            super(PeriodIndex, self).__setstate__(state)
+            super().__setstate__(state)
 
         elif isinstance(state, tuple):
 
@@ -933,7 +939,7 @@ def period_range(start=None, end=None, periods=None, freq=None, name=None):
     must be specified.
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------

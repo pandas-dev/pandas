@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 import numpy as np
 import pytest
-
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
@@ -27,7 +21,7 @@ class TestDataFrameNonuniqueIndexes(TestData):
         # assignment
         # GH 3687
         arr = np.random.randn(3, 2)
-        idx = lrange(2)
+        idx = list(range(2))
         df = DataFrame(arr, columns=['A', 'A'])
         df.columns = idx
         expected = DataFrame(arr, columns=idx)
@@ -416,9 +410,12 @@ class TestDataFrameNonuniqueIndexes(TestData):
             [[1, 2, 1., 2., 3., 'foo', 'bar']], columns=list('ABCDEFG'))
         assert_frame_equal(df, expected)
 
-        # this is an error because we cannot disambiguate the dup columns
-        pytest.raises(Exception, lambda x: DataFrame(
-            [[1, 2, 'foo', 'bar']], columns=['a', 'a', 'a', 'a']))
+        df = DataFrame([[1, 2, 'foo', 'bar']], columns=['a', 'a', 'a', 'a'])
+        df.columns = ['a', 'a.1', 'a.2', 'a.3']
+        str(df)
+        expected = DataFrame([[1, 2, 'foo', 'bar']],
+                             columns=['a', 'a.1', 'a.2', 'a.3'])
+        assert_frame_equal(df, expected)
 
         # dups across blocks
         df_float = DataFrame(np.random.randn(10, 3), dtype='float64')

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from textwrap import dedent
 
 import numpy as np
@@ -120,7 +119,7 @@ def test_mock_clipboard(mock_clipboard):
 @pytest.mark.skipif(not _DEPS_INSTALLED,
                     reason="clipboard primitives not installed")
 @pytest.mark.usefixtures("mock_clipboard")
-class TestClipboard(object):
+class TestClipboard:
 
     def check_round_trip_frame(self, data, excel=None, sep=None,
                                encoding=None):

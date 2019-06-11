@@ -1,15 +1,11 @@
-# -*- coding: utf-8 -*-
-
 """ test where we are determining what we are grouping, or getting groups """
 
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import (
-    CategoricalIndex, DataFrame, Index, MultiIndex, Series, Timestamp, compat,
+    CategoricalIndex, DataFrame, Index, MultiIndex, Series, Timestamp,
     date_range)
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
@@ -20,7 +16,7 @@ from pandas.util.testing import (
 # --------------------------------
 
 
-class TestSelection(object):
+class TestSelection:
 
     def test_select_bad_cols(self):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
@@ -97,7 +93,7 @@ class TestSelection(object):
 # grouping
 # --------------------------------
 
-class TestGrouping():
+class TestGrouping:
 
     def test_grouper_index_types(self):
         # related GH5375
@@ -253,28 +249,27 @@ class TestGrouping():
         tm.assert_frame_equal(by_levels, by_columns)
 
     def test_groupby_categorical_index_and_columns(self, observed):
-        # GH18432
+        # GH18432, adapted for GH25871
         columns = ['A', 'B', 'A', 'B']
         categories = ['B', 'A']
-        data = np.ones((5, 4), int)
+        data = np.array([[1, 2, 1, 2],
+                         [1, 2, 1, 2],
+                         [1, 2, 1, 2],
+                         [1, 2, 1, 2],
+                         [1, 2, 1, 2]], int)
         cat_columns = CategoricalIndex(columns,
                                        categories=categories,
                                        ordered=True)
         df = DataFrame(data=data, columns=cat_columns)
         result = df.groupby(axis=1, level=0, observed=observed).sum()
-        expected_data = 2 * np.ones((5, 2), int)
-
-        if observed:
-            # if we are not-observed we undergo a reindex
-            # so need to adjust the output as our expected sets us up
-            # to be non-observed
-            expected_columns = CategoricalIndex(['A', 'B'],
-                                                categories=categories,
-                                                ordered=True)
-        else:
-            expected_columns = CategoricalIndex(categories,
-                                                categories=categories,
-                                                ordered=True)
+        expected_data = np.array([[4, 2],
+                                  [4, 2],
+                                  [4, 2],
+                                  [4, 2],
+                                  [4, 2]], int)
+        expected_columns = CategoricalIndex(categories,
+                                            categories=categories,
+                                            ordered=True)
         expected = DataFrame(data=expected_data, columns=expected_columns)
         assert_frame_equal(result, expected)
 
@@ -484,7 +479,7 @@ class TestGrouping():
     def test_groupby_level_index_names(self):
         # GH4014 this used to raise ValueError since 'exp'>1 (in py2)
         df = DataFrame({'exp': ['A'] * 3 + ['B'] * 3,
-                        'var1': lrange(6), }).set_index('exp')
+                        'var1': range(6), }).set_index('exp')
         df.groupby(level='exp')
         msg = "level name foo is not the name of the index"
         with pytest.raises(ValueError, match=msg):
@@ -557,11 +552,28 @@ class TestGrouping():
         expected = {pd.Timestamp('2011-01-01'): 365}
         tm.assert_dict_equal(result.groups, expected)
 
+    @pytest.mark.parametrize(
+        'func,expected',
+        [
+            ('transform', pd.Series(name=2, index=pd.RangeIndex(0, 0, 1))),
+            ('agg', pd.Series(name=2, index=pd.Float64Index([], name=1))),
+            ('apply', pd.Series(name=2, index=pd.Float64Index([], name=1))),
+        ])
+    def test_evaluate_with_empty_groups(self, func, expected):
+        # 26208
+        # test transform'ing empty groups
+        # (not testing other agg fns, because they return
+        # different index objects.
+        df = pd.DataFrame({1: [], 2: []})
+        g = df.groupby(1)
+        result = getattr(g[2], func)(lambda x: x)
+        assert_series_equal(result, expected)
+
 
 # get_group
 # --------------------------------
 
-class TestGetGroup():
+class TestGetGroup:
     def test_get_group(self):
         # GH 5267
         # be datelike friendly
@@ -643,7 +655,7 @@ class TestGetGroup():
         df = pd.DataFrame({'a': list('abssbab')})
         tm.assert_frame_equal(df.groupby('a').get_group('a'), df.iloc[[0, 5]])
         # GH 13530
-        exp = pd.DataFrame([], index=pd.Index(['a', 'b', 's'], name='a'))
+        exp = pd.DataFrame(index=pd.Index(['a', 'b', 's'], name='a'))
         tm.assert_frame_equal(df.groupby('a').count(), exp)
         tm.assert_frame_equal(df.groupby('a').sum(), exp)
         tm.assert_frame_equal(df.groupby('a').nth(1), exp)
@@ -665,21 +677,21 @@ class TestGetGroup():
 # groups & iteration
 # --------------------------------
 
-class TestIteration():
+class TestIteration:
 
     def test_groups(self, df):
         grouped = df.groupby(['A'])
         groups = grouped.groups
         assert groups is grouped.groups  # caching works
 
-        for k, v in compat.iteritems(grouped.groups):
+        for k, v in grouped.groups.items():
             assert (df.loc[v]['A'] == k).all()
 
         grouped = df.groupby(['A', 'B'])
         groups = grouped.groups
         assert groups is grouped.groups  # caching works
 
-        for k, v in compat.iteritems(grouped.groups):
+        for k, v in grouped.groups.items():
             assert (df.loc[v]['A'] == k[0]).all()
             assert (df.loc[v]['B'] == k[1]).all()
 

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
@@ -9,6 +7,7 @@ import codecs
 from collections import OrderedDict
 import csv
 from datetime import datetime
+from io import BytesIO, StringIO
 import os
 import platform
 from tempfile import TemporaryFile
@@ -17,7 +16,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import BytesIO, StringIO, lrange
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
@@ -123,7 +121,7 @@ def test_read_csv_local(all_parsers, csv1):
     prefix = "file:///" if compat.is_platform_windows() else "file://"
     parser = all_parsers
 
-    fname = prefix + compat.text_type(os.path.abspath(csv1))
+    fname = prefix + str(os.path.abspath(csv1))
     result = parser.read_csv(fname, index_col=0, parse_dates=True)
 
     expected = DataFrame([[0.980269, 3.685731, -0.364216805298, -1.159738],
@@ -924,8 +922,9 @@ def test_skip_initial_space(all_parsers):
             '-9999.0,   -9999.0,   -9999.0,  -9999.0, 000, 012, 128')
     parser = all_parsers
 
-    result = parser.read_csv(StringIO(data), names=lrange(33), header=None,
-                             na_values=["-9999.0"], skipinitialspace=True)
+    result = parser.read_csv(StringIO(data), names=list(range(33)),
+                             header=None, na_values=["-9999.0"],
+                             skipinitialspace=True)
     expected = DataFrame([["09-Apr-2012", "01:10:18.300", 2456026.548822908,
                            12849, 1.00361, 1.12551, 330.65659,
                            355626618.16711, 73.48821, 314.11625, 1917.09447,
@@ -1137,7 +1136,7 @@ def test_empty_with_index(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col=0)
 
-    expected = DataFrame([], columns=["y"], index=Index([], name="x"))
+    expected = DataFrame(columns=["y"], index=Index([], name="x"))
     tm.assert_frame_equal(result, expected)
 
 
@@ -1147,7 +1146,7 @@ def test_empty_with_multi_index(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col=["x", "y"])
 
-    expected = DataFrame([], columns=["z"],
+    expected = DataFrame(columns=["z"],
                          index=MultiIndex.from_arrays(
                              [[]] * 2, names=["x", "y"]))
     tm.assert_frame_equal(result, expected)
@@ -1158,7 +1157,7 @@ def test_empty_with_reversed_multi_index(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col=[1, 0])
 
-    expected = DataFrame([], columns=["z"],
+    expected = DataFrame(columns=["z"],
                          index=MultiIndex.from_arrays(
                              [[]] * 2, names=["y", "x"]))
     tm.assert_frame_equal(result, expected)
@@ -1270,7 +1269,7 @@ def test_numeric_range_too_wide(all_parsers, exp_data):
 def test_empty_with_nrows_chunksize(all_parsers, iterator):
     # see gh-9535
     parser = all_parsers
-    expected = DataFrame([], columns=["foo", "bar"])
+    expected = DataFrame(columns=["foo", "bar"])
 
     nrows = 10
     data = StringIO("foo,bar\n")
@@ -1791,7 +1790,7 @@ def test_file_handles_with_open(all_parsers, csv1):
 
 def test_invalid_file_buffer_class(all_parsers):
     # see gh-15337
-    class InvalidBuffer(object):
+    class InvalidBuffer:
         pass
 
     parser = all_parsers
@@ -1806,7 +1805,7 @@ def test_invalid_file_buffer_mock(all_parsers):
     parser = all_parsers
     msg = "Invalid file path or buffer object type"
 
-    class Foo():
+    class Foo:
         pass
 
     with pytest.raises(ValueError, match=msg):

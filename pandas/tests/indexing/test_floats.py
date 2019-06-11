@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from warnings import catch_warnings
 
 import numpy as np
@@ -10,10 +8,10 @@ from pandas import (
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal, assert_series_equal
 
-ignore_ix = pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+ignore_ix = pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
 
 
-class TestFloatIndexers(object):
+class TestFloatIndexers:
 
     def check(self, result, original, indexer, getitem):
         """
@@ -137,9 +135,9 @@ class TestFloatIndexers(object):
                     # for idxr in [lambda x: x.ix,
                     #             lambda x: x]:
                     #    s2 = s.copy()
-                    #    def f():
+                    #
+                    #    with pytest.raises(TypeError):
                     #        idxr(s2)[3.0] = 0
-                    #    pytest.raises(TypeError, f)
                     pass
 
                 else:
