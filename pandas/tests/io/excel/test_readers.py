@@ -463,12 +463,6 @@ class TestReaders:
                'pandas/tests/io/data/test1' + read_ext)
         url_table = pd.read_excel(url)
         local_table = pd.read_excel('test1' + read_ext)
-
-        if pd.read_excel.keywords['engine'] == 'openpyxl':
-            # TODO: figure this out. No differences are
-            # apparent in the debugger
-            pytest.skip('openpyxl fails here')
-
         tm.assert_frame_equal(url_table, local_table)
 
     @td.skip_if_not_us_locale
@@ -481,12 +475,6 @@ class TestReaders:
         url = ('s3://pandas-test/test1' + read_ext)
         url_table = pd.read_excel(url)
         local_table = pd.read_excel('test1' + read_ext)
-
-        if pd.read_excel.keywords['engine'] == 'openpyxl':
-            # TODO: figure this out. No differences are
-            # apparent in the debugger
-            pytest.skip('openpyxl fails here')
-
         tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.slow
