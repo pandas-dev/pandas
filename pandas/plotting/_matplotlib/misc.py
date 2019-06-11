@@ -1,4 +1,3 @@
-# being a bit too dynamic
 from math import pi, sqrt
 import random
 
