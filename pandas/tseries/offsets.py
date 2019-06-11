@@ -17,7 +17,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.generic import ABCPeriod
-from pandas.core.dtypes.inference import _iterable_not_string
+from pandas.core.dtypes.inference import is_list_like
 
 from pandas.core.tools.datetimes import to_datetime
 
@@ -580,22 +580,19 @@ class BusinessHourMixin(BusinessMixin):
 
     def __init__(self, start='09:00', end='17:00', offset=timedelta(0)):
         # must be validated here to equality check
-        if _iterable_not_string(start):
-            start = np.asarray(start)
-            if len(start) == 0:
-                raise ValueError('Must include at least 1 start time')
-        else:
-            start = np.array([start])
-        if _iterable_not_string(end):
-            end = np.asarray(end)
-            if len(end) == 0:
-                raise ValueError('Must include at least 1 end time')
-        else:
-            end = np.array([end])
+        if not is_list_like(start):
+            start = [start]
+        if not len(start):
+            raise ValueError('Must include at least 1 start time')
+
+        if not is_list_like(end):
+            end = [end]
+        if not len(end):
+            raise ValueError('Must include at least 1 end time')
 
         vliboffsets = np.vectorize(liboffsets._validate_business_time)
-        start = vliboffsets(start)
-        end = vliboffsets(end)
+        start = vliboffsets(np.asarray(start))
+        end = vliboffsets(np.asarray(end))
 
         # Validation of input
         if len(start) != len(end):
@@ -605,6 +602,7 @@ class BusinessHourMixin(BusinessMixin):
 
         # sort starting and ending time by starting time
         index = np.argsort(start)
+
         # convert to tuple so that start and end are hashable
         start = tuple(start[index])
         end = tuple(end[index])
@@ -641,10 +639,7 @@ class BusinessHourMixin(BusinessMixin):
         else:
             return BusinessDay(n=nb_offset)
 
-    def _get_daytime_flag(self, start, end):
-        return start < end
-
-    def _next_opening_time(self, other, sign=1):
+    def _next_opening_time(self, other: datetime, sign: int=1) -> datetime:
         """
         If self.n and sign have the same sign, return the earliest opening time
         later than or equal to current time.
@@ -653,68 +648,87 @@ class BusinessHourMixin(BusinessMixin):
 
         Opening time always locates on BusinessDay.
         However, closing time may not if business hour extends over midnight.
+
+        Parameters
+        ----------
+        other : datetime
+            Current time.
+        sign : int, default 1.
+            Either 1 or -1. Going forward in time if it has the same sign as
+            self.n. Going backward in time otherwise.
+
+        Returns
+        -------
+        result : datetime
+            Next opening time.
         """
         earliest_start = self.start[0]
         latest_start = self.start[-1]
+
         if not self.next_bday.onOffset(other):
             # today is not business day
             other = other + sign * self.next_bday
             if self.n * sign >= 0:
-                return datetime(other.year, other.month, other.day,
-                                earliest_start.hour, earliest_start.minute)
+                hour, minute = earliest_start.hour, earliest_start.minute
             else:
-                return datetime(other.year, other.month, other.day,
-                                latest_start.hour, latest_start.minute)
+                hour, minute = latest_start.hour, latest_start.minute
         else:
-            if self.n * sign >= 0 and latest_start < other.time():
-                # current time is after latest starting time in today
-                other = other + sign * self.next_bday
-                return datetime(other.year, other.month, other.day,
-                                earliest_start.hour, earliest_start.minute)
-            elif self.n * sign < 0 and other.time() < earliest_start:
-                # current time is before earliest starting time in today
-                other = other + sign * self.next_bday
-                return datetime(other.year, other.month, other.day,
-                                latest_start.hour, latest_start.minute)
-        if self.n * sign >= 0:
-            # find earliest starting time later than or equal to current time
-            for st in self.start:
-                if other.time() <= st:
-                    return datetime(other.year, other.month, other.day,
-                                    st.hour, st.minute)
-        else:
-            # find latest starting time earlier than or equal to current time
-            for st in reversed(self.start):
-                if other.time() >= st:
-                    return datetime(other.year, other.month, other.day,
-                                    st.hour, st.minute)
+            if self.n * sign >= 0:
+                if latest_start < other.time():
+                    # current time is after latest starting time in today
+                    other = other + sign * self.next_bday
+                    hour, minute = earliest_start.hour, earliest_start.minute
+                else:
+                    # find earliest starting time later than or equal to current time
+                    for st in self.start:
+                        if other.time() <= st:
+                            hour, minute = st.hour, st.minute
+                            break
+            else:
+                if other.time() < earliest_start:
+                    # current time is before earliest starting time in today
+                    other = other + sign * self.next_bday
+                    hour, minute = latest_start.hour, latest_start.minute
+                else:
+                    # find latest starting time earlier than or equal to current time
+                    for st in reversed(self.start):
+                        if other.time() >= st:
+                            hour, minute = st.hour, st.minute
+                            break
 
-    def _prev_opening_time(self, other):
+        return datetime(other.year, other.month, other.day, hour, minute)
+
+    def _prev_opening_time(self, other: datetime) -> datetime:
         """
         If n is positive, return the latest opening time earlier than or equal
         to current time.
         Otherwise the earliest opening time later than or equal to current
         time.
 
+        Parameters
+        ----------
+        other : datetime
+            Current time.
+
+        Returns
+        -------
+        result : datetime
+            Previous opening time.
         """
         return self._next_opening_time(other, sign=-1)
 
-    def _get_business_hours_by_sec(self, start, end):
+    def _get_business_hours_by_sec(self, start: datetime, end: datetime) -> int:
         """
         Return business hours in a day by seconds.
         """
-        if self._get_daytime_flag(start, end):
-            # create dummy datetime to calculate businesshours in a day
-            dtstart = datetime(2014, 4, 1, start.hour, start.minute)
-            until = datetime(2014, 4, 1, end.hour, end.minute)
-            return (until - dtstart).total_seconds()
-        else:
-            dtstart = datetime(2014, 4, 1, start.hour, start.minute)
-            until = datetime(2014, 4, 2, end.hour, end.minute)
-            return (until - dtstart).total_seconds()
+        # create dummy datetime to calculate businesshours in a day
+        dtstart = datetime(2014, 4, 1, start.hour, start.minute)
+        day = 1 if start < end else 2
+        until = datetime(2014, 4, day, end.hour, end.minute)
+        return (until - dtstart).total_seconds()
 
     @apply_wraps
-    def rollback(self, dt):
+    def rollback(self, dt: datetime) -> datetime:
         """
         Roll provided date backward to next offset only if not on offset.
         """
@@ -727,7 +741,7 @@ class BusinessHourMixin(BusinessMixin):
         return dt
 
     @apply_wraps
-    def rollforward(self, dt):
+    def rollforward(self, dt: datetime) -> datetime:
         """
         Roll provided date forward to next offset only if not on offset.
         """
@@ -738,8 +752,20 @@ class BusinessHourMixin(BusinessMixin):
                 return self._prev_opening_time(dt)
         return dt
 
-    def _get_closing_time(self, dt):
-        # dt is guaranteed to be a starting time
+    def _get_closing_time(self, dt: datetime) -> datetime:
+        """
+        Get the closing time of a business hour interval by its opening time.
+
+        Parameters
+        ----------
+        dt : datetime
+            Opening time of a business hour interval.
+
+        Returns
+        -------
+        result : datetime
+            Corresponding closing time.
+        """
         for i, st in enumerate(self.start):
             if st.hour == dt.hour and st.minute == dt.minute:
                 return dt + timedelta(
@@ -756,6 +782,8 @@ class BusinessHourMixin(BusinessMixin):
                              other.hour, other.minute,
                              other.second, other.microsecond)
             n = self.n
+
+            # adjust other to reduce cases to handle
             if n >= 0:
                 if (other.time() in self.end or
                         not self._onOffset(other)):
@@ -768,12 +796,15 @@ class BusinessHourMixin(BusinessMixin):
                     other = self._next_opening_time(other)
                     other = self._get_closing_time(other)
 
+            # get total business hours by sec in one business day
             businesshours = sum(self._get_business_hours_by_sec(st, en)
                                 for st, en in zip(self.start, self.end))
+
             bd, r = divmod(abs(n * 60), businesshours // 60)
             if n < 0:
                 bd, r = -bd, -r
 
+            # adjust by business days first
             if bd != 0:
                 skip_bd = BusinessDay(n=bd)
                 # midnight business hour may not on BusinessDay
@@ -784,41 +815,36 @@ class BusinessHourMixin(BusinessMixin):
                 else:
                     other = other + skip_bd
 
-            hours, minutes = divmod(r, 60)
-            rem = timedelta(hours=hours, minutes=minutes)
+            # remaining business hours to adjust
+            bhour_remain = timedelta(minutes=r)
 
-            # because of previous adjustment, time will be larger than start
             if n >= 0:
-                while rem != timedelta(0):
-                    bhour_left = self._get_closing_time(
+                while bhour_remain != timedelta(0):
+                    # business hour left in this business time interval
+                    bhour = self._get_closing_time(
                         self._prev_opening_time(other)) - other
-                    if bhour_left >= rem:
-                        other = other + rem
-                        rem = timedelta(0)
+                    if bhour_remain < bhour:
+                        # finish adjusting if possible
+                        other += bhour_remain
+                        bhour_remain = timedelta(0)
                     else:
-                        rem = rem - bhour_left
-                        other = self._next_opening_time(other + bhour_left)
+                        # go to next business time interval
+                        bhour_remain -= bhour
+                        other = self._next_opening_time(other + bhour)
             else:
-                while rem != timedelta(0):
-                    bhour_left = self._next_opening_time(other) - other
-                    if bhour_left <= rem:
-                        other = other + rem
-                        rem = timedelta(0)
+                while bhour_remain != timedelta(0):
+                    # business hour left in this business time interval
+                    bhour = self._next_opening_time(other) - other
+                    if bhour_remain > bhour or bhour_remain == bhour and nanosecond != 0:
+                        # finish adjusting if possible
+                        other += bhour_remain
+                        bhour_remain = timedelta(0)
                     else:
-                        rem = rem - bhour_left
+                        # go to next business time interval
+                        bhour_remain -= bhour
                         other = self._get_closing_time(
                             self._next_opening_time(
-                                other + bhour_left - timedelta(seconds=1)))
-
-            # edge handling
-            if n >= 0:
-                if other.time() in self.end:
-                    other = self._next_opening_time(other)
-            else:
-                if other.time() in self.start and nanosecond == 0:
-                    # adjustment to move to previous business day
-                    other = self._get_closing_time(self._next_opening_time(
-                        other - timedelta(seconds=1)))
+                                other + bhour - timedelta(seconds=1)))
 
             return other
         else:
