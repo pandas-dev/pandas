@@ -2043,12 +2043,12 @@ def test_should_cache(listlike, do_caching):
                               unique_share=0.7) == do_caching
 
 
-@pytest.mark.parametrize('check_count,unique_share, err_message', [
-    (11, 0.5, r'check_count must be in next bounds: \[0; len\(arg\)\]'),
+@pytest.mark.parametrize('unique_share,check_count, err_message', [
+    (0.5, 11, r'check_count must be in next bounds: \[0; len\(arg\)\]'),
     (10, 2, r'unique_share must be in next bounds: \(0; 1\)')
 ])
-def test_should_cache_errors(check_count, unique_share, err_message):
+def test_should_cache_errors(unique_share, check_count, err_message):
     arg = [5] * 10
 
     with pytest.raises(AssertionError, match=err_message):
-        tools.should_cache(arg, check_count, unique_share)
+        tools.should_cache(arg, unique_share, check_count)

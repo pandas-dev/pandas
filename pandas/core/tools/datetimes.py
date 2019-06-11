@@ -43,7 +43,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 
-def should_cache(arg, check_count: int, unique_share: float):
+def should_cache(arg, unique_share=0.7, check_count=None):
     """
     Decides whether to do caching.
 
@@ -53,23 +53,34 @@ def should_cache(arg, check_count: int, unique_share: float):
     Parameters
     ----------
     arg: listlike, tuple, 1-d array, Series
-    check_count: int
-        0 <= check_count <= len(arg)
-    unique_share: float
+    unique_share: float or None
         0 < unique_share < 1
+    check_count: int or None
+        0 <= check_count <= len(arg)
 
     Returns
     -------
     do_caching: bool
     """
-    assert 0 <= check_count <= len(arg), ('check_count must be in next bounds:'
-                                          ' [0; len(arg)]')
-    assert 0 < unique_share < 1, 'unique_share must be in next bounds: (0; 1)'
-
-    if check_count == 0:
-        return False
-
     do_caching = True
+
+    # default realization
+    if check_count is None:
+        # in this case, the gain from caching is negligible
+        if len(arg) <= 50:
+            return False
+
+        if len(arg) <= 5000:
+            check_count = int(len(arg) * 0.1)
+        else:
+            check_count = 500
+    else:
+        assert 0 <= check_count <= len(arg), \
+            'check_count must be in next bounds: [0; len(arg)]'
+        assert 0 < unique_share < 1, \
+            'unique_share must be in next bounds: (0; 1)'
+        if check_count == 0:
+            return False
 
     unique_elements = unique(arg[:check_count])
     if len(unique_elements) > check_count * unique_share:
@@ -102,7 +113,7 @@ def _maybe_cache(arg, format, cache, convert_listlike):
         # Perform a quicker unique check
         from pandas import Index
 
-        if not should_cache(arg, int(len(arg) * 0.1), 0.7):
+        if not should_cache(arg):
             return cache_array
 
         unique_dates = Index(arg).unique()
