@@ -220,10 +220,10 @@ def vec_binop(object[:] left, object[:] right, object op):
     result : ndarray[object]
     """
     cdef:
-        size_t i, n = len(left)
+        Py_ssize_t i, n = len(left)
         object[:] result
 
-    if n != len(right):
+    if n != <Py_ssize_t>len(right):
         raise ValueError('Arrays were different lengths: {n} vs {nright}'
                          .format(n=n, nright=len(right)))
 
