@@ -639,7 +639,7 @@ class BusinessHourMixin(BusinessMixin):
         else:
             return BusinessDay(n=nb_offset)
 
-    def _next_opening_time(self, other: datetime, sign: int=1) -> datetime:
+    def _next_opening_time(self, other: datetime, sign: int = 1) -> datetime:
         """
         If self.n and sign have the same sign, return the earliest opening time
         later than or equal to current time.
@@ -679,7 +679,7 @@ class BusinessHourMixin(BusinessMixin):
                     other = other + sign * self.next_bday
                     hour, minute = earliest_start.hour, earliest_start.minute
                 else:
-                    # find earliest starting time later than or equal to current time
+                    # find earliest starting time no earlier than current time
                     for st in self.start:
                         if other.time() <= st:
                             hour, minute = st.hour, st.minute
@@ -690,7 +690,7 @@ class BusinessHourMixin(BusinessMixin):
                     other = other + sign * self.next_bday
                     hour, minute = latest_start.hour, latest_start.minute
                 else:
-                    # find latest starting time earlier than or equal to current time
+                    # find latest starting time no later than current time
                     for st in reversed(self.start):
                         if other.time() >= st:
                             hour, minute = st.hour, st.minute
@@ -717,7 +717,8 @@ class BusinessHourMixin(BusinessMixin):
         """
         return self._next_opening_time(other, sign=-1)
 
-    def _get_business_hours_by_sec(self, start: datetime, end: datetime) -> int:
+    def _get_business_hours_by_sec(self, start: datetime, end: datetime
+                                   ) -> int:
         """
         Return business hours in a day by seconds.
         """
@@ -783,7 +784,7 @@ class BusinessHourMixin(BusinessMixin):
                              other.second, other.microsecond)
             n = self.n
 
-            # adjust other to reduce cases to handle
+            # adjust other to reduce number of cases to handle
             if n >= 0:
                 if (other.time() in self.end or
                         not self._onOffset(other)):
@@ -835,7 +836,8 @@ class BusinessHourMixin(BusinessMixin):
                 while bhour_remain != timedelta(0):
                     # business hour left in this business time interval
                     bhour = self._next_opening_time(other) - other
-                    if bhour_remain > bhour or bhour_remain == bhour and nanosecond != 0:
+                    if (bhour_remain > bhour or
+                            bhour_remain == bhour and nanosecond != 0):
                         # finish adjusting if possible
                         other += bhour_remain
                         bhour_remain = timedelta(0)
