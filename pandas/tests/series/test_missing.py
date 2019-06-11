@@ -1262,7 +1262,6 @@ class TestSeriesInterpolateData:
             5., np.nan, np.nan, np.nan,
             -1., -1, -1
         ])
-
         result = s.interpolate(method='linear', max_gap=2)
         assert_series_equal(result, excpected)
 
@@ -1273,8 +1272,17 @@ class TestSeriesInterpolateData:
             5., np.nan, np.nan, np.nan,
             -1., np.nan, np.nan
         ])
-
         result = s.interpolate(method='linear', max_gap=2, limit_area='inside')
+        assert_series_equal(result, excpected)
+
+        excpected = Series([
+            np.nan,
+            1., 1,
+            2., 2., 2.,
+            5., np.nan, np.nan, np.nan,
+            -1., np.nan, np.nan
+        ])
+        result = s.interpolate(method='pad', max_gap=2, limit_area='inside')
         assert_series_equal(result, excpected)
 
     def test_interp_max_gap_errors(self):
