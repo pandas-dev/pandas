@@ -488,23 +488,6 @@ def register_plotting_backend_cb(key):
                          'A pandas plotting backend must be a module that '
                          'can be imported'.format(backend_str))
 
-    required_objs = ['LinePlot', 'BarPlot', 'BarhPlot', 'HistPlot',
-                     'BoxPlot', 'KdePlot', 'AreaPlot', 'PiePlot',
-                     'ScatterPlot', 'HexBinPlot', 'hist_series',
-                     'hist_frame', 'boxplot', 'boxplot_frame',
-                     'boxplot_frame_groupby']
-    missing_objs = set(required_objs) - set(dir(backend_mod))
-    if len(missing_objs) == len(required_objs):
-        raise ValueError(
-            '"{}" does not seem to be a valid backend. Valid backends are '
-            'modules that implement the next objects:\n{}'.format(
-                backend_str, '\n'.join(required_objs)))
-    elif missing_objs:
-        raise ValueError(
-            '"{}" does not seem to be a complete backend. Valid backends '
-            'must implement the next objects:\n{}'.format(
-                backend_str, '\n'.join(missing_objs)))
-
 
 with cf.config_prefix('plotting'):
     cf.register_option('backend', defval='matplotlib',
