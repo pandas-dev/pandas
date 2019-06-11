@@ -237,7 +237,12 @@ class TestSeriesUnary:
             with pytest.raises(TypeError):
                 op(ser.values)
         else:
-            result = op(ser)
+            if op is operator.pos and pd.compat.numpy._is_numpy_dev:
+                # behavior change due to np#11450 ?
+                with pytest.warns(DeprecationWarning):
+                    result = op(ser)
+            else:
+                result = op(ser)
             exp = Series(op(ser.values), index=ser.index)
             tm.assert_series_equal(result, exp)
 
