@@ -173,6 +173,61 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None, max_gap=None,
     elif max_gap < 1:
         raise ValueError('max_gap must be greater than 0')
 
+    preserve_nans = _derive_indices_of_nans_to_preserve(
+        yvalues=yvalues, valid=valid, invalid=invalid,
+        limit=limit, limit_area=limit_area, limit_direction=limit_direction,
+        max_gap=max_gap)
+
+    xvalues = getattr(xvalues, 'values', xvalues)
+    yvalues = getattr(yvalues, 'values', yvalues)
+    result = yvalues.copy()
+
+    if method in ['linear', 'time', 'index', 'values']:
+        if method in ('values', 'index'):
+            inds = np.asarray(xvalues)
+            # hack for DatetimeIndex, #1646
+            if needs_i8_conversion(inds.dtype.type):
+                inds = inds.view(np.int64)
+            if inds.dtype == np.object_:
+                inds = lib.maybe_convert_objects(inds)
+        else:
+            inds = xvalues
+        result[invalid] = np.interp(inds[invalid], inds[valid], yvalues[valid])
+        result[preserve_nans] = np.nan
+        return result
+
+    sp_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
+                  'barycentric', 'krogh', 'spline', 'polynomial',
+                  'from_derivatives', 'piecewise_polynomial', 'pchip', 'akima']
+
+    if method in sp_methods:
+        inds = np.asarray(xvalues)
+        # hack for DatetimeIndex, #1646
+        if issubclass(inds.dtype.type, np.datetime64):
+            inds = inds.view(np.int64)
+        result[invalid] = _interpolate_scipy_wrapper(inds[valid],
+                                                     yvalues[valid],
+                                                     inds[invalid],
+                                                     method=method,
+                                                     fill_value=fill_value,
+                                                     bounds_error=bounds_error,
+                                                     order=order, **kwargs)
+        result[preserve_nans] = np.nan
+        return result
+
+
+def _derive_indices_of_nans_to_preserve(yvalues, invalid, valid,
+                                        limit, limit_area, limit_direction,
+                                        max_gap):
+    """ Derive the indices of NaNs that shall be preserved after interpolation
+
+    This function is called by `interpolate_1d` and takes the arguments with
+    the same name from there. In `interpolate_1d`, after performing the
+    interpolation the list of indices of NaNs to preserve is used to put
+    NaNs in the desired locations.
+
+    """
+
     from pandas import Series
     ys = Series(yvalues)
 
@@ -220,7 +275,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None, max_gap=None,
         diff[invalid] = np.nan
         diff = bfill_nan(diff)
         # hack to avoid having trailing NaNs in `diff`. Fill these
-        # with `max_gap`. Everthing smaller than `max_gap` won't matter
+        # with `max_gap`. Everything smaller than `max_gap` won't matter
         # in the following.
         diff[np.isnan(diff)] = max_gap
         preserve_nans = set(np.flatnonzero((diff > max_gap) & invalid))
@@ -237,42 +292,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None, max_gap=None,
     # sort preserve_nans and covert to list
     preserve_nans = sorted(preserve_nans)
 
-    xvalues = getattr(xvalues, 'values', xvalues)
-    yvalues = getattr(yvalues, 'values', yvalues)
-    result = yvalues.copy()
-
-    if method in ['linear', 'time', 'index', 'values']:
-        if method in ('values', 'index'):
-            inds = np.asarray(xvalues)
-            # hack for DatetimeIndex, #1646
-            if needs_i8_conversion(inds.dtype.type):
-                inds = inds.view(np.int64)
-            if inds.dtype == np.object_:
-                inds = lib.maybe_convert_objects(inds)
-        else:
-            inds = xvalues
-        result[invalid] = np.interp(inds[invalid], inds[valid], yvalues[valid])
-        result[preserve_nans] = np.nan
-        return result
-
-    sp_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-                  'barycentric', 'krogh', 'spline', 'polynomial',
-                  'from_derivatives', 'piecewise_polynomial', 'pchip', 'akima']
-
-    if method in sp_methods:
-        inds = np.asarray(xvalues)
-        # hack for DatetimeIndex, #1646
-        if issubclass(inds.dtype.type, np.datetime64):
-            inds = inds.view(np.int64)
-        result[invalid] = _interpolate_scipy_wrapper(inds[valid],
-                                                     yvalues[valid],
-                                                     inds[invalid],
-                                                     method=method,
-                                                     fill_value=fill_value,
-                                                     bounds_error=bounds_error,
-                                                     order=order, **kwargs)
-        result[preserve_nans] = np.nan
-        return result
+    return preserve_nans
 
 
 def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
