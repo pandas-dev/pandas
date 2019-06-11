@@ -3,6 +3,7 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
+from collections import OrderedDict
 import datetime
 import operator
 import textwrap
@@ -1581,8 +1582,10 @@ def _unary_method(cls, op, special=True):
 
     def f(self):
         if self.ndim == 2:
-            new_data = {i: op(self.iloc[:, i])
-                        for i in range(len(self.columns))}
+            new_data = OrderedDict()
+            for index, (_, column) in enumerate(self.items()):
+                new_data[index] = op(column)
+
             result = self._constructor(new_data, index=self.index, copy=False)
             # Pin columns instead of passing to constructor for compat with
             # non-unique columns case
