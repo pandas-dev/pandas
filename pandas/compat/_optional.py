@@ -1,7 +1,6 @@
 import distutils.version
 import importlib
 import types
-from typing import Optional
 import warnings
 
 # Update install.rst when updating versions!
