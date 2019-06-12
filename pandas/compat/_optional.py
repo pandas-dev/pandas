@@ -8,6 +8,7 @@ import warnings
 
 VERSIONS = {
     "bs4": "4.4.1",
+    "bottleneck": "1.2.1",
     "fastparquet": "0.2.1",
     "gcsfs": "0.1.0",
     "matplotlib": "2.2.2",
