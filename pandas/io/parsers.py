@@ -17,16 +17,16 @@ import pandas._libs.lib as lib
 import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.tslibs import parsing
-import pandas.compat as compat
 from pandas.errors import (
     AbstractMethodError, EmptyDataError, ParserError, ParserWarning)
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
-    ensure_object, is_bool_dtype, is_categorical_dtype, is_dtype_equal,
-    is_extension_array_dtype, is_float, is_integer, is_integer_dtype,
-    is_list_like, is_object_dtype, is_scalar, is_string_dtype, pandas_dtype)
+    ensure_object, ensure_str, is_bool_dtype, is_categorical_dtype,
+    is_dtype_equal, is_extension_array_dtype, is_float, is_integer,
+    is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
+    is_string_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
@@ -1494,7 +1494,7 @@ class ParserBase:
         # If we find unnamed columns all in a single
         # level, then our header was too long.
         for n in range(len(columns[0])):
-            if all(compat.to_str(c[n]) in self.unnamed_cols for c in columns):
+            if all(ensure_str(col[n]) in self.unnamed_cols for col in columns):
                 raise ParserError(
                     "Passed header=[{header}] are too many rows for this "
                     "multi_index of columns"
