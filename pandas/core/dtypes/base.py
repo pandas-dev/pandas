@@ -214,6 +214,8 @@ class ExtensionDtype:
         ...         raise TypeError("Cannot construct a '{}' from "
         ...                         "'{}'".format(cls.__name__, string))
         """
+        if not isinstance(string, str):
+            raise TypeError("Expects a string, got {}".format(type(string)))
         if string != cls.name:
             raise TypeError("Cannot construct a '{}' from '{}'".format(
                 cls.__name__, string))
