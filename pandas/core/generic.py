@@ -16,6 +16,7 @@ from pandas._config import config
 
 from pandas._libs import Timestamp, iNaT, properties
 from pandas.compat import set_function_name
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -2750,15 +2751,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Data variables:
             speed    (date, animal) int64 350 18 361 15
         """
-        try:
-            import xarray
-        except ImportError:
-            # Give a nice error message
-            raise ImportError("the xarray library is not installed\n"
-                              "you can install via conda\n"
-                              "conda install xarray\n"
-                              "or via pip\n"
-                              "pip install xarray\n")
+        xarray = import_optional_dependency("xarray")
 
         if self.ndim == 1:
             return xarray.DataArray.from_series(self)
