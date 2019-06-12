@@ -358,7 +358,7 @@ that, by default, performs linear interpolation at missing data points.
    ts
    ts.count()
    @savefig series_before_interpolate.png
-   ts.interpolate().plot()
+   ts.plot()
 
 .. ipython:: python
 
@@ -458,11 +458,12 @@ You can mix pandas' ``reindex`` and ``interpolate`` methods to interpolate
 at the new values.
 
 .. ipython:: python
+   :okexcept:
 
    ser = pd.Series(np.sort(np.random.uniform(size=100)))
 
    # interpolate at new_index
-   new_index = pd.Float64Index(ser.index | pd.Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75]))
+   new_index = ser.index | pd.Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75])
    interp_s = ser.reindex(new_index).interpolate(method='pchip')
    interp_s[49:51]
 
