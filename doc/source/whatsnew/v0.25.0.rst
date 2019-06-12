@@ -96,8 +96,9 @@ Other Enhancements
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
 - :func:`merge_asof` now gives a more clear error message when merge keys are categoricals that are not equal (:issue:`26136`)
 - :meth:`pandas.core.window.Rolling` supports exponential (or Poisson) window type (:issue:`21303`)
-- :class:`DatetimeIndex` and :class:`TimedeltaIndex` now have a `mean` method (:issue:`24757`)
--
+- Error message for missing required imports now includes the original import error's text (:issue:`23868`)
+- :class:`DatetimeIndex` and :class:`TimedeltaIndex` now have a ``mean`` method (:issue:`24757`)
+- :meth:`DataFrame.describe` now formats integer percentiles without decimal point (:issue:`26660`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -145,29 +146,28 @@ Constructing a :class:`MultiIndex` with ``NaN`` levels or codes value < -1 was a
 Now, construction with codes value < -1 is not allowed and ``NaN`` levels' corresponding codes
 would be reassigned as -1. (:issue:`19387`)
 
-.. ipython:: python
-
-    mi1 = pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
-                        codes=[[0, -1, 1, 2, 3, 4]])
-    mi2 = pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
-
 *Previous Behavior*:
 
 .. code-block:: ipython
 
-    In [1]: mi1
+    In [1]: pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+       ...:               codes=[[0, -1, 1, 2, 3, 4]])
+       ...:
     Out[1]: MultiIndex(levels=[[nan, None, NaT, 128, 2]],
                        codes=[[0, -1, 1, 2, 3, 4]])
-    In [2]: mi2
+
+    In [2]: pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
     Out[2]: MultiIndex(levels=[[1, 2]],
                        codes=[[0, -2]])
 
 *New Behavior*:
 
 .. ipython:: python
+    :okexcept:
 
-    mi1
-    mi2
+    pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+                  codes=[[0, -1, 1, 2, 3, 4]])
+    pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
 
 
 .. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
@@ -493,6 +493,8 @@ Other Deprecations
 - The :meth:`DataFrame.compound` and :meth:`Series.compound` methods are deprecated and will be removed in a future version (:issue:`26405`).
 - The internal attributes ``_start``, ``_stop`` and ``_step`` attributes of :class:`RangeIndex` have been deprecated.
   Use the public attributes :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop` and :attr:`~RangeIndex.step` instead (:issue:`26581`).
+- The :meth:`Series.ftype`, :meth:`Series.ftypes` and :meth:`DataFrame.ftypes` methods are deprecated and will be removed in a future version.
+  Instead, use :meth:`Series.dtype` and :meth:`DataFrame.dtypes` (:issue:`26705`).
 
 
 .. _whatsnew_0250.prior_deprecations:
@@ -666,6 +668,7 @@ I/O
 - Added ``cache_dates=True`` parameter to :meth:`read_csv`, which allows to cache unique dates when they are parsed (:issue:`25990`)
 - :meth:`DataFrame.to_excel` now raises a ``ValueError`` when the caller's dimensions exceed the limitations of Excel (:issue:`26051`)
 - :func:`read_excel` now raises a ``ValueError`` when input is of type :class:`pandas.io.excel.ExcelFile` and ``engine`` param is passed since :class:`pandas.io.excel.ExcelFile` has an engine defined (:issue:`26566`)
+- Bug while selecting from :class:`HDFStore` with ``where=''`` specified (:issue:`26610`).
 
 Plotting
 ^^^^^^^^
