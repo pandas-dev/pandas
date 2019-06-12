@@ -1,5 +1,7 @@
 import distutils.version
 import importlib
+import types
+from typing import Optional
 import warnings
 
 # Update install.rst when updating versions!
@@ -32,7 +34,7 @@ version_message = (
 )
 
 
-def _get_version(module):
+def _get_version(module: types.ModuleType) -> str:
     try:
         version = module.__version__
     except AttributeError:
@@ -42,8 +44,11 @@ def _get_version(module):
 
 
 def import_optional_dependency(
-    name, extra="", raise_on_missing=True, on_version="raise"
-):
+    name: str,
+    extra: str = "",
+    raise_on_missing: bool = True,
+    on_version: str = "raise",
+) -> Optional[types.ModuleType]:
     """
     Import an optional dependency.
 
@@ -88,9 +93,11 @@ def import_optional_dependency(
         version = _get_version(module)
         if distutils.version.LooseVersion(version) <= minimum_version:
             assert on_version in {"warn", "raise"}
-            msg = version_message.format(minimum_version=minimum_version,
-                                         name=name,
-                                         actual_version=version)
+            msg = version_message.format(
+                minimum_version=minimum_version,
+                name=name,
+                actual_version=version,
+            )
             if on_version == "warn":
                 warnings.warn(msg, UserWarning)
                 return None
