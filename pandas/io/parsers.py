@@ -2755,23 +2755,24 @@ class PythonParser(ParserBase):
         if first_elt != _BOM:
             return first_row
 
-        first_row = first_row[0]
+        first_row_bom = first_row[0]
 
-        if len(first_row) > 1 and first_row[1] == self.quotechar:
+        if len(first_row_bom) > 1 and first_row_bom[1] == self.quotechar:
             start = 2
-            quote = first_row[1]
-            end = first_row[2:].index(quote) + 2
+            quote = first_row_bom[1]
+            end = first_row_bom[2:].index(quote) + 2
 
             # Extract the data between the quotation marks
-            new_row = first_row[start:end]
+            new_row = first_row_bom[start:end]
 
             # Extract any remaining data after the second
             # quotation mark.
-            if len(first_row) > end + 1:
-                new_row += first_row[end + 1:]
-            return [new_row]
-        elif len(first_row) > 1:
-            return [first_row[1:]]
+            if len(first_row_bom) > end + 1:
+                new_row += first_row_bom[end + 1:]
+            return [new_row] + first_row[1:]
+
+        elif len(first_row_bom) > 1:
+            return [first_row_bom[1:]]
         else:
             # First row is just the BOM, so we
             # return an empty string.
