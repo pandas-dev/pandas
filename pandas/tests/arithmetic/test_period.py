@@ -16,6 +16,7 @@ import pandas.util.testing as tm
 
 from pandas.tseries.frequencies import to_offset
 
+
 # ------------------------------------------------------------------
 # Comparisons
 
