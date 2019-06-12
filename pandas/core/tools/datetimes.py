@@ -159,7 +159,6 @@ def _return_parsed_timezone_results(result, timezones, box, tz, name):
 
         - Index-like if box=True
         - ndarray of Timestamps if box=False
-
     """
     if tz is not None:
         raise ValueError("Cannot pass a tz argument when "
