@@ -260,33 +260,33 @@ the method requiring that dependency is called.
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-matplotlib                2.2.2              Visualization
-xarray                    0.8.2              pandas-like API for N-dimensional data
-Jinja2                                       Conditional formatting with DataFrame.style
-SciPy                     0.19.0             Miscellaneous statistical functions
-blosc                                        Compression for msgpack
-zlib                                         Compression for msgpack
-pyarrow                   0.9.0              Parquet and feather reading / writing
-fastparquet               0.2.1              Parquet reading / writing
-s3fs                      0.0.8              Amazon S3 access
-gcsfs                     0.1.0              Google Cloud Storage access
-pandas-gbq                0.8.0              Google Big Query access
-PyTables                  3.4.2              HDF5-based reading / writing
-SQLAlchemy                1.1.4              SQL support for databases other than sqlite
-psycopg2                                     PostgreSQL engine for sqlalchemy
-pymysql                                      MySQL engine for sqlalchemy
-xlrd                      1.0.0              Excel reading
-xlwt                      2.4.0              Excel writing
-XLsxWriter                                   Excel writing
-openpyxl                  2.4.0              Reading / writing for xlsx files
 BeautifulSoup4            4.4.1              HTML parser for read_html (see :ref:`note <optional_html>`)
-html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
-lxml                                         HTML parser for read_html (see :ref:`note <optional_html>`)
-qtpy                                         Clipboard I/O
+Jinja2                                       Conditional formatting with DataFrame.style
 PyQt4                                        Clipboard I/O
 PyQt5                                        Clipboard I/O
-xsel                                         Clipboard I/O on linux
+PyTables                  3.4.2              HDF5-based reading / writing
+SQLAlchemy                1.1.4              SQL support for databases other than sqlite
+SciPy                     0.19.0             Miscellaneous statistical functions
+XLsxWriter                                   Excel writing
+blosc                                        Compression for msgpack
+fastparquet               0.2.1              Parquet reading / writing
+gcsfs                     0.1.0              Google Cloud Storage access
+html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
+lxml                                         HTML parser for read_html (see :ref:`note <optional_html>`)
+matplotlib                2.2.2              Visualization
+openpyxl                  2.4.0              Reading / writing for xlsx files
+pandas-gbq                0.8.0              Google Big Query access
+psycopg2                                     PostgreSQL engine for sqlalchemy
+pyarrow                   0.9.0              Parquet and feather reading / writing
+pymysql                                      MySQL engine for sqlalchemy
+qtpy                                         Clipboard I/O
+s3fs                      0.0.8              Amazon S3 access
+xarray                    0.8.2              pandas-like API for N-dimensional data
 xclip                                        Clipboard I/O on linux
+xlrd                      1.0.0              Excel reading
+xlwt                      2.4.0              Excel writing
+xsel                                         Clipboard I/O on linux
+zlib                                         Compression for msgpack
 ========================= ================== =============================================================
 
 .. _optional_html:
