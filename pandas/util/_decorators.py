@@ -319,33 +319,3 @@ def indent(text, indents=1):
         return ''
     jointext = ''.join(['\n'] + ['    '] * indents)
     return jointext.join(text.split('\n'))
-
-
-def make_signature(func):
-    """
-    Returns a tuple containing the paramenter list with defaults
-    and parameter list.
-
-    Examples
-    --------
-    >>> def f(a, b, c=2):
-    >>>     return a * b * c
-    >>> print(make_signature(f))
-    (['a', 'b', 'c=2'], ['a', 'b', 'c'])
-    """
-
-    spec = inspect.getfullargspec(func)
-    if spec.defaults is None:
-        n_wo_defaults = len(spec.args)
-        defaults = ('',) * n_wo_defaults
-    else:
-        n_wo_defaults = len(spec.args) - len(spec.defaults)
-        defaults = ('',) * n_wo_defaults + tuple(spec.defaults)
-    args = []
-    for var, default in zip(spec.args, defaults):
-        args.append(var if default == '' else var + '=' + repr(default))
-    if spec.varargs:
-        args.append('*' + spec.varargs)
-    if spec.varkw:
-        args.append('**' + spec.varkw)
-    return args, spec.args
