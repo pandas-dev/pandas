@@ -53,7 +53,7 @@ def import_optional_dependency(
     extra: str = "",
     raise_on_missing: bool = True,
     on_version: str = "raise",
-) -> Optional[types.ModuleType]:
+):
     """
     Import an optional dependency.
 
