@@ -10,6 +10,7 @@ import os
 import re
 
 from pandas.compat import raise_with_traceback
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError, EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
@@ -35,24 +36,17 @@ def _importers():
         return
 
     global _HAS_BS4, _HAS_LXML, _HAS_HTML5LIB
+    bs4 = import_optional_dependency("bs4", raise_on_missing=False,
+                                     on_version="ignore")
+    _HAS_BS4 = bs4 is not None
 
-    try:
-        import bs4  # noqa
-        _HAS_BS4 = True
-    except ImportError:
-        pass
+    lxml = import_optional_dependency("lxml", raise_on_missing=False,
+                                      on_version="ignore")
+    _HAS_LXML = lxml is not None
 
-    try:
-        import lxml  # noqa
-        _HAS_LXML = True
-    except ImportError:
-        pass
-
-    try:
-        import html5lib  # noqa
-        _HAS_HTML5LIB = True
-    except ImportError:
-        pass
+    html5lib = import_optional_dependency("html5lib", raise_on_missing=False,
+                                          on_version="ignore")
+    _HAS_HTML5LIB = html5lib is not None
 
     _IMPORTS = True
 

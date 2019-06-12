@@ -1,7 +1,8 @@
 from datetime import time
-from distutils.version import LooseVersion
 
 import numpy as np
+
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import _BaseExcelReader
 
@@ -17,16 +18,7 @@ class _XlrdReader(_BaseExcelReader):
             Object to be parsed.
         """
         err_msg = "Install xlrd >= 1.0.0 for Excel support"
-
-        try:
-            import xlrd
-        except ImportError:
-            raise ImportError(err_msg)
-        else:
-            if xlrd.__VERSION__ < LooseVersion("1.0.0"):
-                raise ImportError(err_msg +
-                                  ". Current version " + xlrd.__VERSION__)
-
+        import_optional_dependency("xlrd", extra=err_msg)
         super().__init__(filepath_or_buffer)
 
     @property

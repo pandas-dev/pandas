@@ -15,6 +15,7 @@ import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
 import pandas.compat as compat
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 
@@ -2205,10 +2206,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         float32. By numpy.find_common_type convention, mixing int64 and
         and uint64 will result in a float64 dtype.
         """
-        try:
-            from scipy.sparse import coo_matrix
-        except ImportError:
-            raise ImportError('Scipy is not installed')
+        import_optional_dependency("scipy")
+        from scipy.sparse import coo_matrix
 
         dtype = find_common_type(self._parent.dtypes)
         if isinstance(dtype, SparseDtype):

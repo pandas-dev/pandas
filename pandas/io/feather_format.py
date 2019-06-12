@@ -2,35 +2,12 @@
 
 from distutils.version import LooseVersion
 
+from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas import DataFrame, Int64Index, RangeIndex
 
 from pandas.io.common import _stringify_path
-
-
-def _try_import():
-    # since pandas is a dependency of pyarrow
-    # we need to import on first use
-    try:
-        import pyarrow
-        from pyarrow import feather
-    except ImportError:
-        # give a nice error message
-        raise ImportError("pyarrow is not installed\n\n"
-                          "you can install via conda\n"
-                          "conda install pyarrow -c conda-forge\n"
-                          "or via pip\n"
-                          "pip install -U pyarrow\n")
-
-    if LooseVersion(pyarrow.__version__) < LooseVersion('0.9.0'):
-        raise ImportError("pyarrow >= 0.9.0 required for feather support\n\n"
-                          "you can install via conda\n"
-                          "conda install pyarrow -c conda-forge"
-                          "or via pip\n"
-                          "pip install -U pyarrow\n")
-
-    return feather, pyarrow
 
 
 def to_feather(df, path):
@@ -43,11 +20,14 @@ def to_feather(df, path):
     path : string file path, or file-like object
 
     """
+    import_optional_dependency("pyarrow")
+    from pyarrow import feather
+
     path = _stringify_path(path)
+
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
 
-    feather = _try_import()[0]
     valid_types = {'string', 'unicode'}
 
     # validate index
@@ -110,8 +90,9 @@ def read_feather(path, columns=None, use_threads=True):
     -------
     type of object stored in file
     """
+    pyarrow = import_optional_dependency("pyarrow")
+    from pyarrow import feather
 
-    feather, pyarrow = _try_import()
     path = _stringify_path(path)
 
     if LooseVersion(pyarrow.__version__) < LooseVersion('0.11.0'):

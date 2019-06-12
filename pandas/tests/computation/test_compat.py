@@ -2,8 +2,9 @@ from distutils.version import LooseVersion
 
 import pytest
 
+from pandas.compat._optional import VERSIONS
+
 import pandas as pd
-from pandas.core.computation.check import _MIN_NUMEXPR_VERSION
 from pandas.core.computation.engines import _engines
 import pandas.core.computation.expr as expr
 
@@ -15,7 +16,7 @@ def test_compat():
     try:
         import numexpr as ne
         ver = ne.__version__
-        if LooseVersion(ver) < LooseVersion(_MIN_NUMEXPR_VERSION):
+        if LooseVersion(ver) < LooseVersion(VERSIONS['numexpr']):
             assert not _NUMEXPR_INSTALLED
         else:
             assert _NUMEXPR_INSTALLED
@@ -38,7 +39,7 @@ def test_invalid_numexpr_version(engine, parser):
             pytest.skip("no numexpr")
         else:
             if (LooseVersion(ne.__version__) <
-                    LooseVersion(_MIN_NUMEXPR_VERSION)):
+                    LooseVersion(VERSIONS['numexpr'])):
                 with pytest.raises(ImportError):
                     testit()
             else:
