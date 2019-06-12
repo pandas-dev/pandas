@@ -466,7 +466,7 @@ at the new values.
 .. _missing_data.interp_limits:
 
 Interpolation Limits
-^^^^^^^^^^^^^^^^^^^^
+--------------------
 
 Like other pandas fill methods, :meth:`~DataFrame.interpolate` accepts a ``limit`` keyword
 argument. Use this argument to limit the number of consecutive ``NaN`` values

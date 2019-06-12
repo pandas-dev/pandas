@@ -705,7 +705,7 @@ handling of NaN:
     you can use  ``df["cat_col"] = pd.Categorical(df["col"])`` or
     ``df["cat_col"] = df["col"].astype("category")``. For full docs on :class:`~pandas.Categorical`,
     see the :ref:`Categorical introduction <categorical>` and the
-    :ref:`API documentation <api.categorical>`.
+    :ref:`API documentation <api.arrays.categorical>`.
 
 Examples
 --------

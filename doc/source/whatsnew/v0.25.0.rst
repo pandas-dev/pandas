@@ -72,7 +72,7 @@ column selection, the values can just be the functions to apply
 This type of aggregation is the recommended alternative to the deprecated behavior when passing
 a dict to a Series groupby aggregation (:ref:`whatsnew_0200.api_breaking.deprecate_group_agg_dict`).
 
-See :ref:`_groupby.aggregate.named` for more.
+See :ref:`groupby.aggregate.named` for more.
 
 .. _whatsnew_0250.enhancements.other:
 
