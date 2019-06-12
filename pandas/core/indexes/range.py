@@ -49,6 +49,12 @@ class RangeIndex(Int64Index):
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
 
+    Attributes
+    ----------
+    start
+    stop
+    step
+
     Methods
     -------
     from_range
