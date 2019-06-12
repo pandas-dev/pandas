@@ -2859,9 +2859,9 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    'mask': ['red', 'purple'],
         ...                    'weapon': ['sai', 'bo staff']})
         >>> df.to_latex(index=False) # doctest: +NORMALIZE_WHITESPACE
-        '\\begin{tabular}{lll}\n\\toprule\n      name &    mask &    weapon
-        \\\\\n\\midrule\n   Raphael &     red &       sai \\\\\n Donatello &
-         purple &  bo staff \\\\\n\\bottomrule\n\\end{tabular}\n'
+        '\\begin{tabular}{lll}\n\\toprule\n     name &   mask &   weapon
+        \\\\\n\\midrule\n  Raphael &    red &      sai \\\\\nDonatello &
+        purple & bo staff \\\\\n\\bottomrule\n\\end{tabular}\n'
         """
         # Get defaults from the pandas config
         if self.ndim == 1:

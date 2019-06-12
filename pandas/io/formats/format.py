@@ -247,8 +247,15 @@ class SeriesFormatter:
 
     def _get_formatted_values(self):
         values_to_format = self.tr_series._formatting_values()
+
+        if self.index:
+            leading_space = 'compat'
+        else:
+            leading_space = False
         return format_array(values_to_format, None,
-                            float_format=self.float_format, na_rep=self.na_rep)
+                            float_format=self.float_format,
+                            na_rep=self.na_rep,
+                            leading_space=leading_space)
 
     def to_string(self):
         series = self.tr_series
@@ -712,9 +719,15 @@ class DataFrameFormatter(TableFormatter):
         frame = self.tr_frame
         formatter = self._get_formatter(i)
         values_to_format = frame.iloc[:, i]._formatting_values()
+
+        if self.index:
+            leading_space = 'compat'
+        else:
+            leading_space = False
         return format_array(values_to_format, formatter,
                             float_format=self.float_format, na_rep=self.na_rep,
-                            space=self.col_space, decimal=self.decimal)
+                            space=self.col_space, decimal=self.decimal,
+                            leading_space=leading_space)
 
     def to_html(self, classes=None, notebook=False, border=None):
         """
@@ -851,7 +864,7 @@ class DataFrameFormatter(TableFormatter):
 
 def format_array(values, formatter, float_format=None, na_rep='NaN',
                  digits=None, space=None, justify='right', decimal='.',
-                 leading_space=None):
+                 leading_space='compat'):
     """
     Format an array for printing.
 
@@ -865,7 +878,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
     space
     justify
     decimal
-    leading_space : bool, optional
+    leading_space : bool, default is 'compat'
         Whether the array should be formatted with a leading space.
         When an array as a column of a Series or DataFrame, we do want
         the leading space to pad between columns.
@@ -915,7 +928,7 @@ class GenericArrayFormatter:
 
     def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
                  space=12, float_format=None, justify='right', decimal='.',
-                 quoting=None, fixed_width=True, leading_space=None):
+                 quoting=None, fixed_width=True, leading_space='compat'):
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
@@ -973,7 +986,7 @@ class GenericArrayFormatter:
 
         is_float_type = lib.map_infer(vals, is_float) & notna(vals)
         leading_space = self.leading_space
-        if leading_space is None:
+        if leading_space == 'compat':
             leading_space = is_float_type.any()
 
         fmt_values = []
@@ -1101,7 +1114,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
         # The default is otherwise to use str instead of a formatting string
         if self.float_format is None:
             if self.fixed_width:
-                float_format = partial('{value: .{digits:d}f}'.format,
+                if self.leading_space is not False:
+                    fmt_str = '{value: .{digits:d}f}'
+                else:
+                    fmt_str = '{value:.{digits:d}f}'
+                float_format = partial(fmt_str.format,
                                        digits=self.digits)
             else:
                 float_format = self.float_format
@@ -1133,7 +1150,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
                                 (abs_vals > 0)).any()
 
         if has_small_values or (too_long and has_large_values):
-            float_format = partial('{value: .{digits:d}e}'.format,
+            if self.leading_space is not False:
+                fmt_str = '{value: .{digits:d}e}'
+            else:
+                fmt_str = '{value:.{digits:d}e}'
+            float_format = partial(fmt_str.format,
                                    digits=self.digits)
             formatted_values = format_values_with(float_format)
 
@@ -1150,7 +1171,12 @@ class FloatArrayFormatter(GenericArrayFormatter):
 class IntArrayFormatter(GenericArrayFormatter):
 
     def _format_strings(self):
-        formatter = self.formatter or (lambda x: '{x: d}'.format(x=x))
+        if self.leading_space is False:
+            fmt_str = '{x:d}'
+        else:
+            fmt_str = '{x: d}'
+        formatter = self.formatter or (lambda x: fmt_str.format(x=x))
+#        formatter = self.formatter or (lambda x: '{x: d}'.format(x=x))
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
 

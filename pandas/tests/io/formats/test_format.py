@@ -1232,15 +1232,15 @@ class TestDataFrameFormatting:
 
         df_s = df.to_string(index=False)
         # Leading space is expected for positive numbers.
-        expected = ("  x   y    z\n"
-                    " 11  33  AAA\n"
-                    " 22 -44     ")
+        expected = (" x   y   z\n"
+                    "11  33 AAA\n"
+                    "22 -44    ")
         assert df_s == expected
 
         df_s = df[['y', 'x', 'z']].to_string(index=False)
-        expected = ("  y   x    z\n"
-                    " 33  11  AAA\n"
-                    "-44  22     ")
+        expected = ("  y  x   z\n"
+                    " 33 11 AAA\n"
+                    "-44 22    ")
         assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
@@ -1255,7 +1255,7 @@ class TestDataFrameFormatting:
         df = DataFrame({'x': [11, 22, 33], 'y': [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = "  x  \\\n 11   \n 22   \n 33   \n\n y  \n 4  \n 5  \n 6  "
+        expected = " x  \\\n11   \n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
@@ -1844,7 +1844,7 @@ class TestSeriesFormatting:
         # GH 11729 Test index=False option
         s = Series([1, 2, 3, 4])
         result = s.to_string(index=False)
-        expected = (' 1\n' + ' 2\n' + ' 3\n' + ' 4')
+        expected = ('1\n' + '2\n' + '3\n' + '4')
         assert result == expected
 
     def test_unicode_name_in_footer(self):
@@ -2332,6 +2332,15 @@ class TestSeriesFormatting:
         exp = '0    0\n    ..\n9    9'
         assert res == exp
 
+    @pytest.mark.parametrize("inputs, expected", [
+        ([' a', ' b'], ' a\n b'),
+        (['.1', '1'], '.1\n 1'),
+        (['10', '-10'], ' 10\n-10')
+    ])
+    def test_to_string_index_false_corner_case(self, inputs, expected):
+        s = pd.Series(inputs).to_string(index=False)
+        assert s == expected
+
     def test_to_string_multindex_header(self):
         # GH 16718
         df = (pd.DataFrame({'a': [0], 'b': [1], 'c': [2], 'd': [3]})
@@ -2738,6 +2747,31 @@ def test_format_percentiles():
         fmt.format_percentiles([2, 0.1, 0.5])
     with pytest.raises(ValueError, match=msg):
         fmt.format_percentiles([0.1, 0.5, 'a'])
+
+
+@pytest.mark.parametrize("input_array, expected", [
+    ("a", "a"),
+    (["a", "b"], "a\nb"),
+    ([1, "a"], "1\na"),
+    (1, "1"),
+    ([0, -1], " 0\n-1"),
+    (1.0, '1.0')
+])
+def test_format_remove_leading_space_series(input_array, expected):
+    # GH: 24980
+    s = pd.Series(input_array).to_string(index=False)
+    assert s == expected
+
+
+@pytest.mark.parametrize("input_array, expected", [
+    ({"A": ["a"]}, "A\na"),
+    ({"A": ["a", "b"], "B": ["c", "dd"]}, "A  B\na  c\nb dd"),
+    ({"A": ["a", 1], "B": ["aa", 1]}, "A  B\na aa\n1  1")
+])
+def test_format_remove_leading_space_dataframe(input_array, expected):
+    # GH: 24980
+    df = pd.DataFrame(input_array).to_string(index=False)
+    assert df == expected
 
 
 def test_format_percentiles_integer_idx():
