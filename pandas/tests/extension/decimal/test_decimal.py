@@ -379,14 +379,6 @@ def test_divmod_array(reverse, expected_div, expected_mod):
     tm.assert_extension_array_equal(div, expected_div)
     tm.assert_extension_array_equal(mod, expected_mod)
 
-def test_na_count():
-    ser = pd.Series(to_decimal([1,2,3]))
-    n = ser.count()
-    assert n == 3
-    for i in range(len(ser)):
-        ser[i] = np.nan
-        n -= 1
-        assert ser.count() == n
 
 def test_formatting_values_deprecated():
     class DecimalArray2(DecimalArray):
