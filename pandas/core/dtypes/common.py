@@ -1,5 +1,5 @@
 """ common type operations """
-from typing import Union
+from typing import Any, Union
 import warnings
 
 import numpy as np
@@ -67,6 +67,17 @@ ensure_int16 = algos.ensure_int16
 ensure_int8 = algos.ensure_int8
 ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
+
+
+def ensure_str(value: Union[bytes, Any]) -> str:
+    """
+    Ensure that bytes and non-strings get converted into ``str`` objects.
+    """
+    if isinstance(value, bytes):
+        value = value.decode('utf-8')
+    elif not isinstance(value, str):
+        value = str(value)
+    return value
 
 
 def ensure_categorical(arr):
