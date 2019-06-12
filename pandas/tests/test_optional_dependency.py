@@ -40,3 +40,13 @@ def test_bad_version():
     module.__version__ = "1.0.0"  # exact match is OK
     result = import_optional_dependency("fakemodule")
     assert result is module
+
+
+def test_no_version_raises():
+    name = 'fakemodule'
+    module = types.ModuleType(name)
+    sys.modules[name] = module
+    VERSIONS[name] = '1.0.0'
+
+    with pytest.raises(ImportError, match="Can't determine .* fakemodule"):
+        import_optional_dependency(name)

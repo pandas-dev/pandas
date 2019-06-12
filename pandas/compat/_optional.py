@@ -36,11 +36,15 @@ version_message = (
 
 
 def _get_version(module: types.ModuleType) -> str:
-    try:
-        version = module.__version__
-    except AttributeError:
+    version = getattr(module, '__version__', None)
+    if version is None:
         # xlrd uses a capitalized attribute name
-        version = module.__VERSION__
+        version = getattr(module, '__VERSION__', None)
+
+    if version is None:
+        raise ImportError(
+            "Can't determine version for {}".format(module.__name__)
+        )
     return version
 
 
@@ -90,7 +94,7 @@ def import_optional_dependency(
         if raise_on_missing:
             raise ImportError(message.format(name=name, extra=extra)) from None
         else:
-            return
+            return None
 
     minimum_version = VERSIONS.get(name)
     if minimum_version:
