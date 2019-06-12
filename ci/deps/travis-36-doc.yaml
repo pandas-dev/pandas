@@ -34,7 +34,7 @@ dependencies:
   - scipy
   - seaborn
   # some styling is broken with sphinx >= 2 (https://github.com/pandas-dev/pandas/issues/26058)
-  - sphinx==1.8.5
+  - sphinx=1.8.5
   - sqlalchemy
   - statsmodels
   - xarray
