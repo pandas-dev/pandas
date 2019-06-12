@@ -713,6 +713,9 @@ See the :ref:`Plotting <visualization>` docs.
 
 .. ipython:: python
 
+   # register converters to display dates in plots
+   pd.plotting.register_matplotlib_converters()
+
    ts = pd.Series(np.random.randn(1000),
                   index=pd.date_range('1/1/2000', periods=1000))
    ts = ts.cumsum()
