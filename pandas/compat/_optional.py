@@ -92,7 +92,7 @@ def import_optional_dependency(
     minimum_version = VERSIONS.get(name)
     if minimum_version:
         version = _get_version(module)
-        if distutils.version.LooseVersion(version) <= minimum_version:
+        if distutils.version.LooseVersion(version) < minimum_version:
             assert on_version in {"warn", "raise"}
             msg = version_message.format(
                 minimum_version=minimum_version,

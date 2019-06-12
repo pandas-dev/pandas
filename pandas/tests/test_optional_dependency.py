@@ -36,3 +36,7 @@ def test_bad_version():
     with tm.assert_produces_warning(UserWarning):
         result = import_optional_dependency("fakemodule", on_version="warn")
     assert result is None
+
+    module.__version__ = "1.0.0"  # exact match is OK
+    result = import_optional_dependency("fakemodule")
+    assert result is module
