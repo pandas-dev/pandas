@@ -3,6 +3,8 @@ from math import ceil
 import warnings
 
 import matplotlib.pyplot as plt
+import matplotlib.table
+import matplotlib.ticker as ticker
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
@@ -37,7 +39,6 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
 
     cellText = data.values
 
-    import matplotlib.table
     table = matplotlib.table.table(ax, cellText=cellText,
                                    rowLabels=rowLabels,
                                    colLabels=colLabels, **kwargs)
@@ -260,7 +261,6 @@ def _remove_labels_from_axis(axis):
     try:
         # set_visible will not be effective if
         # minor axis has NullLocator and NullFormattor (default)
-        import matplotlib.ticker as ticker
         if isinstance(axis.get_minor_locator(), ticker.NullLocator):
             axis.set_minor_locator(ticker.AutoLocator())
         if isinstance(axis.get_minor_formatter(), ticker.NullFormatter):

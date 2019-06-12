@@ -530,8 +530,8 @@ class Window(_Window):
     >>> df.rolling(2, win_type='triang').sum()
          B
     0  NaN
-    1  1.0
-    2  2.5
+    1  0.5
+    2  1.5
     3  NaN
     4  NaN
 

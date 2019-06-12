@@ -146,29 +146,28 @@ Constructing a :class:`MultiIndex` with ``NaN`` levels or codes value < -1 was a
 Now, construction with codes value < -1 is not allowed and ``NaN`` levels' corresponding codes
 would be reassigned as -1. (:issue:`19387`)
 
-.. ipython:: python
-
-    mi1 = pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
-                        codes=[[0, -1, 1, 2, 3, 4]])
-    mi2 = pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
-
 *Previous Behavior*:
 
 .. code-block:: ipython
 
-    In [1]: mi1
+    In [1]: pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+       ...:               codes=[[0, -1, 1, 2, 3, 4]])
+       ...:
     Out[1]: MultiIndex(levels=[[nan, None, NaT, 128, 2]],
                        codes=[[0, -1, 1, 2, 3, 4]])
-    In [2]: mi2
+
+    In [2]: pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
     Out[2]: MultiIndex(levels=[[1, 2]],
                        codes=[[0, -2]])
 
 *New Behavior*:
 
 .. ipython:: python
+    :okexcept:
 
-    mi1
-    mi2
+    pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+                  codes=[[0, -1, 1, 2, 3, 4]])
+    pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
 
 
 .. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
