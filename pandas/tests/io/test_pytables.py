@@ -5231,33 +5231,22 @@ class TestReadPyTablesHDF5(Base):
 
     def test_read_complete(self):
         path, objname, samples = self._create_simple_hdf5_file_with_pytables()
-
-        df = pd.read_hdf(path, key=objname)
-        self._compare(df, samples)
+        self._compare(pd.read_hdf(path, key=objname), samples)
 
     def test_read_with_start(self):
         path, objname, samples = self._create_simple_hdf5_file_with_pytables()
-
-        # Currently this fails as of
-        # https://github.com/pandas-dev/pandas/issues/11188
-        with pytest.raises(ValueError, match='Shape of passed values is'):
-            df = pd.read_hdf(path, key=objname, start=1)
-            self._compare(df, samples[1:])
+        # This is a regression test for pandas-dev/pandas/issues/11188
+        self._compare(pd.read_hdf(path, key=objname, start=1), samples[1:])
 
     def test_read_with_stop(self):
         path, objname, samples = self._create_simple_hdf5_file_with_pytables()
-
-        # Currently this fails as of
-        # https://github.com/pandas-dev/pandas/issues/11188
-        with pytest.raises(ValueError, match='Shape of passed values is'):
-            df = pd.read_hdf(path, key=objname, stop=1)
-            self._compare(df, samples[0:1])
+        # This is a regression test for pandas-dev/pandas/issues/11188
+        self._compare(pd.read_hdf(path, key=objname, stop=1), samples[0:1])
 
     def test_read_with_startstop(self):
         path, objname, samples = self._create_simple_hdf5_file_with_pytables()
-
-        # Currently this fails as of
-        # https://github.com/pandas-dev/pandas/issues/11188
-        with pytest.raises(ValueError, match='Shape of passed values is'):
-            df = pd.read_hdf(path, key=objname, start=1, stop=2)
-            self._compare(df, samples[1:2])
+        # This is a regression test for pandas-dev/pandas/issues/11188
+        self._compare(
+            pd.read_hdf(path, key=objname, start=1, stop=2),
+            samples[1:2]
+        )

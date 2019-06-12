@@ -1456,6 +1456,11 @@ class TableIterator:
                 stop = nrows
             stop = min(nrows, stop)
 
+            # Piggy-back normalized `nrows` (considering start and stop) onto
+            # PyTables tables object so that the GenericIndexCol constructor
+            # knows how large the index should be.
+            self.s.table._nrows_to_read = stop - start
+
         self.nrows = nrows
         self.start = start
         self.stop = stop
@@ -1816,7 +1821,16 @@ class GenericIndexCol(IndexCol):
     def convert(self, values, nan_rep, encoding, errors):
         """ set the values from this selection: take = take ownership """
 
-        self.values = Int64Index(np.arange(self.table.nrows))
+        if hasattr(self.table, '_nrows_to_read'):
+            # The `_nrows_to_read` property is set on the table object by the
+            # code path invoked by the top-level `read_hdf()`, and calculated
+            # based on the start` and `stop` integer values. These values allow
+            # for a sub-selection and likewise the index size needs to be
+            # adjusted to the size of this sub-selection.
+            self.values = Int64Index(np.arange(self.table._nrows_to_read))
+        else:
+            self.values = Int64Index(np.arange(self.table.nrows))
+
         return self
 
     def get_attr(self):
