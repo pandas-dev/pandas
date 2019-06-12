@@ -37,6 +37,7 @@ def assert_all(obj):
 # ------------------------------------------------------------------
 # Comparisons
 
+
 class TestDatetime64DataFrameComparison:
     @pytest.mark.parametrize('timestamps', [
         [pd.Timestamp('2012-01-01 13:00:00+00:00')] * 2,
@@ -337,6 +338,17 @@ class TestDatetime64SeriesComparison:
 
 
 class TestDatetimeIndexComparisons:
+
+    # TODO: parametrize over box
+    def test_compare_zerodim(self, tz_naive_fixture):
+        # Test comparison with zero-dimensional array is unboxed
+        tz = tz_naive_fixture
+        dti = date_range('20130101', periods=3, tz=tz)
+
+        other = np.array(dti.to_numpy()[0])
+        result = dti <= other
+        expected = np.array([True, False, False])
+        tm.assert_numpy_array_equal(result, expected)
 
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
     @pytest.mark.parametrize("op", [
@@ -1435,27 +1447,39 @@ class TestDatetime64DateOffsetArithmetic:
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(res, expected)
 
-    @pytest.mark.parametrize("op, offset, exp", [
+    @pytest.mark.parametrize("op, offset, exp, exp_freq", [
         ('__add__', pd.DateOffset(months=3, days=10),
-         DatetimeIndex([Timestamp('2014-04-11'), Timestamp('2015-04-11'),
-                        Timestamp('2016-04-11'), Timestamp('2017-04-11')])),
+         [Timestamp('2014-04-11'), Timestamp('2015-04-11'),
+          Timestamp('2016-04-11'), Timestamp('2017-04-11')],
+         None),
         ('__add__', pd.DateOffset(months=3),
-         DatetimeIndex([Timestamp('2014-04-01'), Timestamp('2015-04-01'),
-                        Timestamp('2016-04-01'), Timestamp('2017-04-01')])),
+         [Timestamp('2014-04-01'), Timestamp('2015-04-01'),
+          Timestamp('2016-04-01'), Timestamp('2017-04-01')],
+         "AS-APR"),
         ('__sub__', pd.DateOffset(months=3, days=10),
-         DatetimeIndex([Timestamp('2013-09-21'), Timestamp('2014-09-21'),
-                        Timestamp('2015-09-21'), Timestamp('2016-09-21')])),
+         [Timestamp('2013-09-21'), Timestamp('2014-09-21'),
+          Timestamp('2015-09-21'), Timestamp('2016-09-21')],
+         None),
         ('__sub__', pd.DateOffset(months=3),
-         DatetimeIndex([Timestamp('2013-10-01'), Timestamp('2014-10-01'),
-                        Timestamp('2015-10-01'), Timestamp('2016-10-01')]))
-
+         [Timestamp('2013-10-01'), Timestamp('2014-10-01'),
+          Timestamp('2015-10-01'), Timestamp('2016-10-01')],
+         "AS-OCT")
     ])
-    def test_dti_add_sub_nonzero_mth_offset(self, op, offset, exp):
+    def test_dti_add_sub_nonzero_mth_offset(self, op, offset,
+                                            exp, exp_freq,
+                                            tz_aware_fixture,
+                                            box_with_array):
         # GH 26258
-        date = date_range(start='01 Jan 2014', end='01 Jan 2017', freq='AS')
+        tz = tz_aware_fixture
+        date = date_range(start='01 Jan 2014', end='01 Jan 2017', freq='AS',
+                          tz=tz)
+        date = tm.box_expected(date, box_with_array, False)
         mth = getattr(date, op)
         result = mth(offset)
-        tm.assert_equal(result, exp)
+
+        expected = pd.DatetimeIndex(exp, tz=tz, freq=exp_freq)
+        expected = tm.box_expected(expected, box_with_array, False)
+        tm.assert_equal(result, expected)
 
 
 class TestDatetime64OverflowHandling:

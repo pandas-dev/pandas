@@ -16,12 +16,12 @@ def test_ix_deprecation():
     # GH 15114
 
     df = DataFrame({'A': [1, 2, 3]})
-    with tm.assert_produces_warning(DeprecationWarning,
-                                    check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=True):
         df.ix[1, 'A']
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
 class TestIX:
 
     def test_ix_loc_setitem_consistency(self):
@@ -182,9 +182,9 @@ class TestIX:
                                       4: 5}})
         tm.assert_frame_equal(df, expected)
 
-    def test_ix_assign_column_mixed(self):
+    def test_ix_assign_column_mixed(self, float_frame):
         # GH #1142
-        df = DataFrame(tm.getSeriesData())
+        df = float_frame
         df['foo'] = 'bar'
 
         orig = df.loc[:, 'B'].copy()

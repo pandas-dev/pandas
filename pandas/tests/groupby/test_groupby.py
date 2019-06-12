@@ -1306,12 +1306,12 @@ def test_skip_group_keys():
     assert_series_equal(result, expected)
 
 
-def test_no_nonsense_name(frame):
+def test_no_nonsense_name(float_frame):
     # GH #995
-    s = frame['C'].copy()
+    s = float_frame['C'].copy()
     s.name = None
 
-    result = s.groupby(frame['A']).agg(np.sum)
+    result = s.groupby(float_frame['A']).agg(np.sum)
     assert result.name is None
 
 
@@ -1736,3 +1736,19 @@ def test_groupby_multiindex_series_keys_len_equal_group_axis():
     expected = pd.Series([3], index=ei)
 
     assert_series_equal(result, expected)
+
+
+def test_groupby_groups_in_BaseGrouper():
+    # GH 26326
+    # Test if DataFrame grouped with a pandas.Grouper has correct groups
+    mi = pd.MultiIndex.from_product([['A', 'B'],
+                                     ['C', 'D']], names=['alpha', 'beta'])
+    df = pd.DataFrame({'foo': [1, 2, 1, 2], 'bar': [1, 2, 3, 4]},
+                      index=mi)
+    result = df.groupby([pd.Grouper(level='alpha'), 'beta'])
+    expected = df.groupby(['alpha', 'beta'])
+    assert(result.groups == expected.groups)
+
+    result = df.groupby(['beta', pd.Grouper(level='alpha')])
+    expected = df.groupby(['beta', 'alpha'])
+    assert(result.groups == expected.groups)

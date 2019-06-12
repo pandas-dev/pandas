@@ -574,7 +574,7 @@ def test_slice_can_reorder_not_uniquely_indexed():
     s[::-1]  # it works!
 
 
-def test_ix_setitem(test_data):
+def test_loc_setitem(test_data):
     inds = test_data.series.index[[3, 4, 7]]
 
     result = test_data.series.copy()
@@ -770,20 +770,6 @@ def test_setitem_slice_into_readonly_backing_data():
 """
 miscellaneous methods
 """
-
-
-def test_select(test_data):
-    # deprecated: gh-12410
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        n = len(test_data.ts)
-        result = test_data.ts.select(lambda x: x >= test_data.ts.index[n // 2])
-        expected = test_data.ts.reindex(test_data.ts.index[n // 2:])
-        assert_series_equal(result, expected)
-
-        result = test_data.ts.select(lambda x: x.weekday() == 2)
-        expected = test_data.ts[test_data.ts.index.weekday == 2]
-        assert_series_equal(result, expected)
 
 
 def test_pop():

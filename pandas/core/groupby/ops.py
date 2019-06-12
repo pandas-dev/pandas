@@ -150,6 +150,15 @@ class BaseGrouper:
         comp_ids, _, ngroups = self.group_info
         return get_splitter(data, comp_ids, ngroups, axis=axis)
 
+    def _get_grouper(self):
+        """
+        We are a grouper as part of another's groupings.
+
+        We have a specific method of grouping, so cannot
+        convert to a Index for our grouper.
+        """
+        return self.groupings[0].grouper
+
     def _get_group_keys(self):
         if len(self.groupings) == 1:
             return self.levels[0]
@@ -706,6 +715,15 @@ class BinGrouper(BaseGrouper):
     @property
     def nkeys(self):
         return 1
+
+    def _get_grouper(self):
+        """
+        We are a grouper as part of another's groupings.
+
+        We have a specific method of grouping, so cannot
+        convert to a Index for our grouper.
+        """
+        return self
 
     def get_iterator(self, data, axis=0):
         """

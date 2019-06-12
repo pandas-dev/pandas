@@ -1,4 +1,5 @@
 """ common type operations """
+from typing import Any, Union
 import warnings
 
 import numpy as np
@@ -68,6 +69,17 @@ ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
 
 
+def ensure_str(value: Union[bytes, Any]) -> str:
+    """
+    Ensure that bytes and non-strings get converted into ``str`` objects.
+    """
+    if isinstance(value, bytes):
+        value = value.decode('utf-8')
+    elif not isinstance(value, str):
+        value = str(value)
+    return value
+
+
 def ensure_categorical(arr):
     """
     Ensure that an array-like object is a Categorical (if not already).
@@ -123,6 +135,34 @@ def ensure_int_or_float(arr: ArrayLike, copy=False) -> np.array:
         return arr.astype('uint64', copy=copy, casting='safe')
     except TypeError:
         return arr.astype('float64', copy=copy)
+
+
+def ensure_python_int(value: Union[int, np.integer]) -> int:
+    """
+    Ensure that a value is a python int.
+
+    Parameters
+    ----------
+    value: int or numpy.integer
+
+    Returns
+    -------
+    int
+
+    Raises
+    ------
+    TypeError: if the value isn't an int or can't be converted to one.
+    """
+    if not is_scalar(value):
+        raise TypeError("Value needs to be a scalar value, was type {}"
+                        .format(type(value)))
+    msg = "Wrong type {} for value {}"
+    try:
+        new_value = int(value)
+        assert (new_value == value)
+    except (TypeError, ValueError, AssertionError):
+        raise TypeError(msg.format(type(value), value))
+    return new_value
 
 
 def classes(*klasses):
@@ -1902,8 +1942,6 @@ def _is_dtype_type(arr_or_dtype, condition):
         if issubclass(arr_or_dtype, ExtensionDtype):
             arr_or_dtype = arr_or_dtype.type
         return condition(np.dtype(arr_or_dtype).type)
-    elif arr_or_dtype is None:
-        return condition(type(None))
 
     # if we have an array-like
     if hasattr(arr_or_dtype, 'dtype'):
