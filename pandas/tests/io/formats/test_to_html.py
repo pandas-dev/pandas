@@ -542,7 +542,8 @@ def test_to_html_truncation_index_false_max_cols(
 @pytest.mark.parametrize('notebook', [True, False])
 def test_to_html_notebook_has_style(notebook):
     df = DataFrame({"A": [1, 2, 3]})
-    result = df.to_html(notebook=notebook)
+    with tm.assert_produces_warning(FutureWarning):
+        result = df.to_html(notebook=notebook)
 
     if notebook:
         assert "tbody tr th:only-of-type" in result
@@ -627,9 +628,10 @@ def test_to_html_invalid_classes_type(classes):
 def test_to_html_round_column_headers():
     # GH 17280
     df = DataFrame([1], columns=[0.55555])
-    with pd.option_context('display.precision', 3):
-        html = df.to_html(notebook=False)
-        notebook = df.to_html(notebook=True)
+    with tm.assert_produces_warning(FutureWarning):
+        with pd.option_context('display.precision', 3):
+            html = df.to_html(notebook=False)
+            notebook = df.to_html(notebook=True)
     assert "0.55555" in html
     assert "0.556" in notebook
 

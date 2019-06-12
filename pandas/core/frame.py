@@ -650,8 +650,11 @@ class DataFrame(NDFrame):
             max_cols = get_option("display.max_columns")
             show_dimensions = get_option("display.show_dimensions")
 
-            return self.to_html(max_rows=max_rows, max_cols=max_cols,
-                                show_dimensions=show_dimensions, notebook=True)
+            formatter = fmt.DataFrameFormatter(
+                self, max_rows=max_rows, max_cols=max_cols,
+                show_dimensions=show_dimensions)
+            formatter.to_html(notebook=True)
+            return formatter.buf.getvalue()
         else:
             return None
 
@@ -2141,6 +2144,7 @@ class DataFrame(NDFrame):
                             '                Abillity to use str')
     @Substitution(shared_params=fmt.common_docstring,
                   returns=fmt.return_docstring)
+    @deprecate_kwarg(old_arg_name="notebook", new_arg_name=None)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
                 index=True, na_rep='NaN', formatters=None, float_format=None,
                 sparsify=None, index_names=True, justify=None, max_rows=None,
@@ -2158,6 +2162,9 @@ class DataFrame(NDFrame):
             Convert the characters <, >, and & to HTML-safe sequences.
         notebook : {True, False}, default False
             Whether the generated HTML is for IPython Notebook.
+
+            .. deprecated:: 0.25.0
+
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
