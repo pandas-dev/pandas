@@ -15,7 +15,7 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import Timestamp, iNaT, properties
-from pandas.compat import set_function_name, to_str
+from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -24,7 +24,7 @@ from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
-    ensure_int64, ensure_object, is_bool, is_bool_dtype,
+    ensure_int64, ensure_object, ensure_str, is_bool, is_bool_dtype,
     is_datetime64_any_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
     is_dict_like, is_extension_array_dtype, is_integer, is_list_like,
     is_number, is_numeric_dtype, is_object_dtype, is_period_arraylike,
@@ -4564,12 +4564,12 @@ class NDFrame(PandasObject, SelectionMixin):
                 **{name: [r for r in items if r in labels]})
         elif like:
             def f(x):
-                return like in to_str(x)
+                return like in ensure_str(x)
             values = labels.map(f)
             return self.loc(axis=axis)[values]
         elif regex:
             def f(x):
-                return matcher.search(to_str(x)) is not None
+                return matcher.search(ensure_str(x)) is not None
             matcher = re.compile(regex)
             values = labels.map(f)
             return self.loc(axis=axis)[values]
