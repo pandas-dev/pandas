@@ -1710,7 +1710,8 @@ def _arith_method_SERIES(cls, op, special):
         if isinstance(rvalues, ABCSeries):
             rvalues = rvalues.values
 
-        result = na_op(lvalues, rvalues)
+        with np.errstate(all='ignore'):
+            result = na_op(lvalues, rvalues)
         return construct_result(left, result,
                                 index=left.index, name=res_name, dtype=None)
 
