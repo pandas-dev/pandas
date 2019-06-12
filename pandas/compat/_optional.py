@@ -70,8 +70,11 @@ def import_optional_dependency(
     on_version : str {'raise', 'warn'}
         What to do when a dependency's version is too old.
 
-        * raise : raise an ImportError
+        * raise : Raise an ImportError
         * warn : Warn that the version is too old. Returns None
+        * ignore: Return the module, even if the version is too old.
+          It's expected that users validate the version locally when
+          using ``on_version="ignore"`` (see. ``io/html.py``)
 
     Returns
     -------
@@ -93,7 +96,7 @@ def import_optional_dependency(
     if minimum_version:
         version = _get_version(module)
         if distutils.version.LooseVersion(version) < minimum_version:
-            assert on_version in {"warn", "raise"}
+            assert on_version in {"warn", "raise", "ignore"}
             msg = version_message.format(
                 minimum_version=minimum_version,
                 name=name,

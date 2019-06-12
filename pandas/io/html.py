@@ -37,15 +37,15 @@ def _importers():
 
     global _HAS_BS4, _HAS_LXML, _HAS_HTML5LIB
     bs4 = import_optional_dependency("bs4", raise_on_missing=False,
-                                     on_version="warn")
+                                     on_version="ignore")
     _HAS_BS4 = bs4 is not None
 
     lxml = import_optional_dependency("lxml", raise_on_missing=False,
-                                      on_version="warn")
+                                      on_version="ignore")
     _HAS_LXML = lxml is not None
 
     html5lib = import_optional_dependency("html5lib", raise_on_missing=False,
-                                          on_version="warn")
+                                          on_version="ignore")
     _HAS_HTML5LIB = html5lib is not None
 
     _IMPORTS = True
