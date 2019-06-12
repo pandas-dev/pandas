@@ -761,34 +761,6 @@ regularity will result in a ``DatetimeIndex``, although frequency is lost:
 
    ts2[[0, 2, 6]].index
 
-.. _timeseries.iterating-label:
-
-Iterating through groups
-------------------------
-
-With the ``Resampler`` object in hand, iterating through the grouped data is very
-natural and functions similarly to :py:func:`itertools.groupby`:
-
-.. ipython:: python
-
-   small = pd.Series(
-       range(6),
-       index=pd.to_datetime(['2017-01-01T00:00:00',
-                             '2017-01-01T00:30:00',
-                             '2017-01-01T00:31:00',
-                             '2017-01-01T01:00:00',
-                             '2017-01-01T03:00:00',
-                             '2017-01-01T03:05:00'])
-   )
-   resampled = small.resample('H')
-
-   for name, group in resampled:
-       print("Group: ", name)
-       print("-" * 27)
-       print(group, end="\n\n")
-
-See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
-
 .. _timeseries.components:
 
 Time/Date Components
@@ -1628,24 +1600,32 @@ labels.
 
    ts.resample('5Min', label='left', loffset='1s').mean()
 
-.. note::
+.. warning::
 
-    The default values for ``label`` and ``closed`` is 'left' for all
+    The default values for ``label`` and ``closed`` is '**left**' for all
     frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W'
     which all have a default of 'right'.
 
+    This might unintendedly lead to looking ahead, where the value for a later
+    time is pulled back to a previous time as in the following example with
+    the :class:`~pandas.tseries.offsets.BusinessDay` frequency:
+
     .. ipython:: python
 
-       rng2 = pd.date_range('1/1/2012', end='3/31/2012', freq='D')
-       ts2 = pd.Series(range(len(rng2)), index=rng2)
+        s = pd.date_range('2000-01-01', '2000-01-05').to_series()
+        s.iloc[2] = pd.NaT
+        s.dt.weekday_name
 
-       # default: label='right', closed='right'
-       ts2.resample('M').max()
+        # default: label='left', closed='left'
+        s.resample('B').last().dt.weekday_name
 
-       # default: label='left', closed='left'
-       ts2.resample('SM').max()
+    Notice how the value for Sunday got pulled back to the previous Friday.
+    To get the behavior where the value for Sunday is pushed to Monday, use
+    instead
 
-       ts2.resample('SM', label='right', closed='right').max()
+    .. ipython:: python
+
+        s.resample('B', label='right', closed='right').last().dt.weekday_name
 
 The ``axis`` parameter can be set to 0 or 1 and allows you to resample the
 specified axis for a ``DataFrame``.
@@ -1795,6 +1775,34 @@ level of ``MultiIndex``, its name or location can be passed to the
 .. ipython:: python
 
    df.resample('M', level='d').sum()
+
+.. _timeseries.iterating-label:
+
+Iterating through groups
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+With the ``Resampler`` object in hand, iterating through the grouped data is very
+natural and functions similarly to :py:func:`itertools.groupby`:
+
+.. ipython:: python
+
+   small = pd.Series(
+       range(6),
+       index=pd.to_datetime(['2017-01-01T00:00:00',
+                             '2017-01-01T00:30:00',
+                             '2017-01-01T00:31:00',
+                             '2017-01-01T01:00:00',
+                             '2017-01-01T03:00:00',
+                             '2017-01-01T03:05:00'])
+   )
+   resampled = small.resample('H')
+
+   for name, group in resampled:
+       print("Group: ", name)
+       print("-" * 27)
+       print(group, end="\n\n")
+
+See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 
 
 .. _timeseries.periods:
