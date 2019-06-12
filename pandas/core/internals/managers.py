@@ -1554,14 +1554,6 @@ class SingleBlockManager(BlockManager):
         return np.array(self._block.to_dense(), copy=False)
 
     @property
-    def asobject(self):
-        """
-        return a object dtype array. datetime/timedelta like values are boxed
-        to Timestamp/Timedelta instances.
-        """
-        return self._block.get_values(dtype=object)
-
-    @property
     def _can_hold_na(self):
         return self._block._can_hold_na
 
