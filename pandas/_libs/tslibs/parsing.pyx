@@ -8,7 +8,7 @@ from io import StringIO
 from libc.string cimport strchr
 
 import cython
-from cython import size_t, Py_ssize_t
+from cython import Py_ssize_t
 
 from cpython cimport PyObject_Str, PyUnicode_Join
 
