@@ -19,11 +19,6 @@ def dropna(request):
     return request.param
 
 
-@pytest.fixture(params=['right', 'left'])
-def closed(request):
-    return request.param
-
-
 @pytest.fixture(params=[([0] * 4, [1] * 4), (range(0, 3), range(1, 4))])
 def interval_values(request, closed):
     left, right = request.param
