@@ -10283,8 +10283,8 @@ numeric_only : bool, default None
 Returns
 -------
 %(name1)s or %(name2)s (if level specified)\
-%(see_also)s
-%(examples)s\
+%(see_also)s\
+%(examples)s
 """
 
 _num_ddof_doc = """
@@ -10427,7 +10427,8 @@ skipna : boolean, default True
 
 Returns
 -------
-%(name1)s or %(name2)s\n
+%(name1)s or %(name2)s
+
 See Also
 --------
 core.window.Expanding.%(accum_func_name)s : Similar functionality
@@ -10788,10 +10789,10 @@ True
 Series([], dtype: bool)
 """
 
-_shared_docs['stat_func_example'] = """\
+_shared_docs['stat_func_example'] = """
+
 Examples
 --------
-
 >>> idx = pd.MultiIndex.from_arrays([
 ...     ['warm', 'warm', 'cold', 'cold'],
 ...     ['dog', 'falcon', 'fish', 'spider']],
@@ -10820,8 +10821,7 @@ Name: legs, dtype: int64
 blooded
 warm    {level_output_0}
 cold    {level_output_1}
-Name: legs, dtype: int64
-"""
+Name: legs, dtype: int64"""
 
 _sum_examples = _shared_docs['stat_func_example'].format(
     stat_func='sum',
@@ -10831,6 +10831,7 @@ _sum_examples = _shared_docs['stat_func_example'].format(
     level_output_1=8)
 
 _sum_examples += """
+
 By default, the sum of an empty or all-NA Series is ``0``.
 
 >>> pd.Series([]).sum()  # min_count=0 is the default
@@ -10849,8 +10850,7 @@ empty series identically.
 0.0
 
 >>> pd.Series([np.nan]).sum(min_count=1)
-nan
-"""
+nan"""
 
 _max_examples = _shared_docs['stat_func_example'].format(
     stat_func='max',
@@ -10879,10 +10879,10 @@ DataFrame.sum : Return the sum over the requested axis.
 DataFrame.min : Return the minimum over the requested axis.
 DataFrame.max : Return the maximum over the requested axis.
 DataFrame.idxmin : Return the index of the minimum over the requested axis.
-DataFrame.idxmax : Return the index of the maximum over the requested axis.
-"""
+DataFrame.idxmax : Return the index of the maximum over the requested axis."""
 
-_prod_examples = """\
+_prod_examples = """
+
 Examples
 --------
 By default, the product of an empty or all-NA Series is ``1``
@@ -10902,8 +10902,7 @@ empty series identically.
 1.0
 
 >>> pd.Series([np.nan]).prod(min_count=1)
-nan
-"""
+nan"""
 
 _min_count_stub = """\
 min_count : int, default 0
