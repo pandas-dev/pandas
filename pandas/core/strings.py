@@ -421,7 +421,7 @@ def str_endswith(arr, pat, na=np.nan):
     return _na_map(f, arr, na, dtype=bool)
 
 
-def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
+def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=None):
     r"""
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
@@ -452,9 +452,13 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     flags : int, default 0 (no flags)
         - re module flags, e.g. re.IGNORECASE
         - Cannot be set if `pat` is a compiled regex
-    regex : bool, default True
+    regex : boolean, default None
         - If True, assumes the passed-in pattern is a regular expression.
         - If False, treats the pattern as a literal string
+        - If `pat` is a single character and `regex` is not specified, `pat`
+          is interpreted as a string literal. If `pat` is also a regular
+          expression symbol, a warning is issued that in the future `pat`
+          will be interpreted as a regex, rather than a literal.
         - Cannot be set to False if `pat` is a compiled regex or `repl` is
           a callable.
 
@@ -561,7 +565,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
             # add case flag, if provided
             if case is False:
                 flags |= re.IGNORECASE
-        if is_compiled_re or len(pat) > 1 or flags or callable(repl):
+        if is_compiled_re or pat or flags or callable(repl):
             n = n if n >= 0 else 0
             compiled = re.compile(pat, flags=flags)
             f = lambda x: compiled.sub(repl=repl, string=x, count=n)
@@ -574,6 +578,12 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
         if callable(repl):
             raise ValueError("Cannot use a callable replacement when "
                              "regex=False")
+        # if regex is default None, and a single special character is given
+        # in pat, still take it as a literal, and raise the Future warning
+        if regex is None and len(pat) == 1 and pat in list(r"[\^$.|?*+()]"):
+            warnings.warn("'{}' is interpreted as a literal in ".format(pat) +
+                          "default, not regex. It will change in the future.",
+                          FutureWarning)
         f = lambda x: x.replace(pat, repl, n)
 
     return _na_map(f, arr)

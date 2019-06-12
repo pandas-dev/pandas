@@ -6,6 +6,7 @@ from numpy import nan as NA
 from numpy.random import randint
 import pytest
 
+
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings
 import pandas.util.testing as tm
@@ -892,11 +893,11 @@ class TestStringMethods:
     def test_replace(self):
         values = Series(['fooBAD__barBAD', NA])
 
-        result = values.str.replace('BAD[_]*', '')
+        result = values.str.replace('BAD[_]*', '', regex=True)
         exp = Series(['foobar', NA])
         tm.assert_series_equal(result, exp)
 
-        result = values.str.replace('BAD[_]*', '', n=1)
+        result = values.str.replace('BAD[_]*', '', regex=True, n=1)
         exp = Series(['foobarBAD', NA])
         tm.assert_series_equal(result, exp)
 
@@ -904,15 +905,27 @@ class TestStringMethods:
         mixed = Series(['aBAD', NA, 'bBAD', True, datetime.today(), 'fooBAD',
                         None, 1, 2.])
 
-        rs = Series(mixed).str.replace('BAD[_]*', '')
+        rs = Series(mixed).str.replace('BAD[_]*', '', regex=True)
         xp = Series(['a', NA, 'b', NA, NA, 'foo', NA, NA, NA])
         assert isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
+        # unicode
+        values = Series([u'fooBAD__barBAD', NA])
+
+        result = values.str.replace('BAD[_]*', '', regex=True)
+        exp = Series([u'foobar', NA])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.replace('BAD[_]*', '', n=1, regex=True)
+        exp = Series([u'foobarBAD', NA])
+        tm.assert_series_equal(result, exp)
+
         # flags + unicode
         values = Series([b"abcd,\xc3\xa0".decode("utf-8")])
         exp = Series([b"abcd, \xc3\xa0".decode("utf-8")])
-        result = values.str.replace(r"(?<=\w),(?=\w)", ", ", flags=re.UNICODE)
+        result = values.str.replace(r"(?<=\w),(?=\w)", ", ", regex=True,
+                                    flags=re.UNICODE)
         tm.assert_series_equal(result, exp)
 
         # GH 13438
@@ -930,7 +943,7 @@ class TestStringMethods:
 
         # test with callable
         repl = lambda m: m.group(0).swapcase()
-        result = values.str.replace('[a-z][A-Z]{2}', repl, n=2)
+        result = values.str.replace('[a-z][A-Z]{2}', repl, n=2, regex=True)
         exp = Series(['foObaD__baRbaD', NA])
         tm.assert_series_equal(result, exp)
 
@@ -940,21 +953,21 @@ class TestStringMethods:
 
         repl = lambda: None
         with pytest.raises(TypeError, match=p_err):
-            values.str.replace('a', repl)
+            values.str.replace('a', repl, regex=True)
 
         repl = lambda m, x: None
         with pytest.raises(TypeError, match=p_err):
-            values.str.replace('a', repl)
+            values.str.replace('a', repl, regex=True)
 
         repl = lambda m, x, y=None: None
         with pytest.raises(TypeError, match=p_err):
-            values.str.replace('a', repl)
+            values.str.replace('a', repl, regex=True)
 
         # test regex named groups
         values = Series(['Foo Bar Baz', NA])
         pat = r"(?P<first>\w+) (?P<middle>\w+) (?P<last>\w+)"
         repl = lambda m: m.group('middle').swapcase()
-        result = values.str.replace(pat, repl)
+        result = values.str.replace(pat, repl, regex=True)
         exp = Series(['bAR', NA])
         tm.assert_series_equal(result, exp)
 
@@ -964,11 +977,11 @@ class TestStringMethods:
 
         # test with compiled regex
         pat = re.compile(r'BAD[_]*')
-        result = values.str.replace(pat, '')
+        result = values.str.replace(pat, '', regex=True)
         exp = Series(['foobar', NA])
         tm.assert_series_equal(result, exp)
 
-        result = values.str.replace(pat, '', n=1)
+        result = values.str.replace(pat, '', n=1, regex=True)
         exp = Series(['foobarBAD', NA])
         tm.assert_series_equal(result, exp)
 
@@ -976,16 +989,27 @@ class TestStringMethods:
         mixed = Series(['aBAD', NA, 'bBAD', True, datetime.today(), 'fooBAD',
                         None, 1, 2.])
 
-        rs = Series(mixed).str.replace(pat, '')
+        rs = Series(mixed).str.replace(pat, '', regex=True)
         xp = Series(['a', NA, 'b', NA, NA, 'foo', NA, NA, NA])
         assert isinstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
+
+        # unicode
+        values = Series([u'fooBAD__barBAD', NA])
+
+        result = values.str.replace(pat, '', regex=True)
+        exp = Series([u'foobar', NA])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.replace(pat, '', n=1, regex=True)
+        exp = Series([u'foobarBAD', NA])
+        tm.assert_series_equal(result, exp)
 
         # flags + unicode
         values = Series([b"abcd,\xc3\xa0".decode("utf-8")])
         exp = Series([b"abcd, \xc3\xa0".decode("utf-8")])
         pat = re.compile(r"(?<=\w),(?=\w)", flags=re.UNICODE)
-        result = values.str.replace(pat, ", ")
+        result = values.str.replace(pat, ", ", regex=True)
         tm.assert_series_equal(result, exp)
 
         # case and flags provided to str.replace will have no effect
@@ -995,21 +1019,22 @@ class TestStringMethods:
 
         with pytest.raises(ValueError,
                            match="case and flags cannot be"):
-            result = values.str.replace(pat, '', flags=re.IGNORECASE)
+            result = values.str.replace(pat, '', flags=re.IGNORECASE,
+                                        regex=True)
 
         with pytest.raises(ValueError,
                            match="case and flags cannot be"):
-            result = values.str.replace(pat, '', case=False)
+            result = values.str.replace(pat, '', case=False, regex=True)
 
         with pytest.raises(ValueError,
                            match="case and flags cannot be"):
-            result = values.str.replace(pat, '', case=True)
+            result = values.str.replace(pat, '', case=True, regex=True)
 
         # test with callable
         values = Series(['fooBAD__barBAD', NA])
         repl = lambda m: m.group(0).swapcase()
         pat = re.compile('[a-z][A-Z]{2}')
-        result = values.str.replace(pat, repl, n=2)
+        result = values.str.replace(pat, repl, n=2, regex=True)
         exp = Series(['foObaD__baRbaD', NA])
         tm.assert_series_equal(result, exp)
 
@@ -1017,7 +1042,7 @@ class TestStringMethods:
         # GH16808 literal replace (regex=False vs regex=True)
         values = Series(['f.o', 'foo', NA])
         exp = Series(['bao', 'bao', NA])
-        result = values.str.replace('f.', 'ba')
+        result = values.str.replace('f.', 'ba', regex=True)
         tm.assert_series_equal(result, exp)
 
         exp = Series(['bao', 'foo', NA])
@@ -2710,6 +2735,7 @@ class TestStringMethods:
             result = values.str.rpartition(pat='_')
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore: '|' is interpreted as a literal")
     def test_pipe_failures(self):
         # #2119
         s = Series(['A|B|C'])
@@ -2719,7 +2745,7 @@ class TestStringMethods:
 
         tm.assert_series_equal(result, exp)
 
-        result = s.str.replace('|', ' ')
+        result = s.str.replace('|', ' ', regex=None)
         exp = Series(['A B C'])
 
         tm.assert_series_equal(result, exp)
@@ -2980,17 +3006,17 @@ class TestStringMethods:
         s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', NA, 'CABA',
                     'dog', 'cat'])
 
-        result = s.str.replace('A', 'YYY')
+        result = s.str.replace('A', 'YYY', regex=True)
         expected = Series(['YYY', 'B', 'C', 'YYYaba', 'Baca', '', NA,
                            'CYYYBYYY', 'dog', 'cat'])
         assert_series_equal(result, expected)
 
-        result = s.str.replace('A', 'YYY', case=False)
+        result = s.str.replace('A', 'YYY', case=False, regex=True)
         expected = Series(['YYY', 'B', 'C', 'YYYYYYbYYY', 'BYYYcYYY', '', NA,
                            'CYYYBYYY', 'dog', 'cYYYt'])
         assert_series_equal(result, expected)
 
-        result = s.str.replace('^.a|dog', 'XX-XX ', case=False)
+        result = s.str.replace('^.a|dog', 'XX-XX ', case=False, regex=True)
         expected = Series(['A', 'B', 'C', 'XX-XX ba', 'XX-XX ca', '', NA,
                            'XX-XX BA', 'XX-XX ', 'XX-XX t'])
         assert_series_equal(result, expected)
@@ -3161,6 +3187,40 @@ class TestStringMethods:
         with pytest.raises(TypeError,
                            match="Cannot use .str.cat with values of.*"):
             lhs.str.cat(rhs)
+
+    @pytest.mark.filterwarnings("ignore: '.' is interpreted as a literal")
+    @pytest.mark.parametrize("regex, expected_array", [
+        (True, ['foofoofoo', 'foofoofoo']),
+        (False, ['abc', '123']),
+        (None, ['abc', '123'])
+    ])
+    def test_replace_single_pattern(self, regex, expected_array):
+        values = Series(['abc', '123'])
+        # GH: 24804
+        result = values.str.replace('.', 'foo', regex=regex)
+        expected = Series(expected_array)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("input_array, single_char, replace_char, "
+                             "expect_array, warn",
+                             [("a.c", ".", "b", "abc", True),
+                              ("a@c", "@", "at", "aatc", False)]
+                             )
+    def test_replace_warning_single_character(self, input_array,
+                                              single_char, replace_char,
+                                              expect_array, warn):
+        # GH: 24804
+        values = Series([input_array])
+        if warn:
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = values.str.replace(single_char, replace_char,
+                                            regex=None)
+        else:
+            result = values.str.replace(single_char, replace_char)
+
+        expected = Series([expect_array])
+        tm.assert_series_equal(result, expected)
 
     def test_casefold(self):
         # GH25405
