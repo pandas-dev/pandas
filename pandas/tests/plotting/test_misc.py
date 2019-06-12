@@ -308,13 +308,13 @@ class TestDataFramePlots(TestPlotBase):
         assert rand1 != rand2
 
         # Make sure it produces the same colors every time it's called
-        from pandas.plotting._style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import _get_standard_colors
         color1 = _get_standard_colors(1, color_type='random')
         color2 = _get_standard_colors(1, color_type='random')
         assert color1 == color2
 
     def test_get_standard_colors_default_num_colors(self):
-        from pandas.plotting._style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import _get_standard_colors
 
         # Make sure the default color_types returns the specified amount
         color1 = _get_standard_colors(1, color_type='default')
@@ -345,9 +345,9 @@ class TestDataFramePlots(TestPlotBase):
         # Make sure not to add more colors so that matplotlib can cycle
         # correctly.
         from matplotlib import cm
+        from pandas.plotting._matplotlib.style import _get_standard_colors
         color_before = cm.gnuplot(range(5))
-        color_after = plotting._style._get_standard_colors(
-            1, color=color_before)
+        color_after = _get_standard_colors(1, color=color_before)
         assert len(color_after) == len(color_before)
 
         df = DataFrame(np.random.randn(48, 4), columns=list("ABCD"))
