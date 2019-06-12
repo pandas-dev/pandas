@@ -36,8 +36,8 @@ _cat_frame['sort'] = np.arange(len(_cat_frame), dtype='int64')
 _mixed_frame = _frame.copy()
 
 
-@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
-@pytest.mark.filterwarnings("ignore:DataFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestPandasContainer:
 
     @pytest.fixture(scope="function", autouse=True)

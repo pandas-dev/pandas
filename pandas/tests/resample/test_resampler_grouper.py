@@ -62,7 +62,7 @@ def test_deferred_with_groupby():
     assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_getitem():
     g = test_frame.groupby('A')
 
@@ -78,7 +78,7 @@ def test_getitem():
     assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_getitem_multiple():
 
     # GH 13174
@@ -99,7 +99,7 @@ def test_getitem_multiple():
     assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_groupby_resample_on_api_with_getitem():
     # GH 17813
     df = pd.DataFrame({'id': list('aabbb'),
@@ -129,7 +129,7 @@ def test_nearest():
     assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_methods():
     g = test_frame.groupby('A')
     r = g.resample('2s')
@@ -192,7 +192,7 @@ def test_apply():
     assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_apply_with_mutated_index():
     # GH 15169
     index = pd.date_range('1-1-2015', '12-31-15', freq='D')

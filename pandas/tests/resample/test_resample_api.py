@@ -217,7 +217,7 @@ def test_fillna():
         r.fillna(0)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_apply_without_aggregation():
 
     # both resample and groupby should work w/o aggregation
@@ -340,7 +340,7 @@ def test_agg():
                                                   ('r2', 'B', 'sum')])
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_agg_misc():
     # test with all three Resampler apis and TimeGrouper
 

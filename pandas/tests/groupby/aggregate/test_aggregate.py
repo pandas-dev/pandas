@@ -21,7 +21,7 @@ def test_agg_regression1(tsframe):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_agg_must_agg(df):
     grouped = df.groupby('A')['C']
 
@@ -32,7 +32,7 @@ def test_agg_must_agg(df):
         grouped.agg(lambda x: x.index[:2])
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_agg_ser_multi_key(df):
     # TODO(wesm): unused
     ser = df.C  # noqa
@@ -147,7 +147,7 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_aggregate_item_by_item(df):
     grouped = df.groupby('A')
 
@@ -175,7 +175,7 @@ def test_aggregate_item_by_item(df):
     assert len(result) == 0
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_wrap_agg_out(three_group):
     grouped = three_group.groupby(['A', 'B'])
 
@@ -214,7 +214,7 @@ def test_multiple_functions_tuples_and_non_tuples(df):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_agg_multiple_functions_too_many_lambdas(df):
     grouped = df.groupby('A')
     funcs = ['mean', lambda x: x.mean(), lambda x: x.std()]
@@ -224,7 +224,7 @@ def test_agg_multiple_functions_too_many_lambdas(df):
         grouped.agg(funcs)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_more_flexible_frame_multi_function(df):
     grouped = df.groupby('A')
 
@@ -293,7 +293,7 @@ def test_multi_function_flexible_mix(df):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_groupby_agg_coercing_bools():
     # issue 14873
     dat = pd.DataFrame(
@@ -323,7 +323,7 @@ def test_order_aggregate_multiple_funcs():
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize('dtype', [np.int64, np.uint64])
 @pytest.mark.parametrize('how', ['first', 'last', 'min',
                                  'max', 'mean', 'median'])
@@ -337,7 +337,7 @@ def test_uint64_type_handling(dtype, how):
     tm.assert_frame_equal(result, expected, check_exact=True)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 class TestNamedAggregation:
 
     def test_agg_relabel(self):

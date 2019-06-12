@@ -948,7 +948,7 @@ class TestDataFrameAnalytics:
             result = nanops.nansem(arr, axis=0)
             assert not (result < 0).any()
 
-    @pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
     @td.skip_if_no_scipy
     def test_kurt(self):
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],

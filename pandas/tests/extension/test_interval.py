@@ -90,7 +90,7 @@ class TestGetitem(BaseInterval, base.BaseGetitemTests):
     pass
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 class TestGrouping(BaseInterval, base.BaseGroupbyTests):
     pass
 

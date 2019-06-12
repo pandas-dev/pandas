@@ -204,7 +204,7 @@ class TestCasting(base.BaseCastingTests):
     pass
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 class TestGroupby(base.BaseGroupbyTests):
     pass
 

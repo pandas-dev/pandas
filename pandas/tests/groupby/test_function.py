@@ -40,7 +40,7 @@ def test_groupby_bool_aggs(agg_func, skipna, vals):
     tm.assert_frame_equal(result, exp_df)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_max_min_non_numeric():
     # #2700
     aa = DataFrame({'nn': [11, 11, 22, 22],
@@ -60,7 +60,7 @@ def test_max_min_non_numeric():
     assert 'ss' in result
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_intercept_builtin_sum():
     s = Series([1., 2., np.nan, 3.])
     grouped = s.groupby([0, 1, 2, 2])
@@ -106,7 +106,7 @@ def test_builtins_apply(keys, f):
                            getattr(df, fname)())
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_arg_passthru():
     # make sure that we are passing thru kwargs
     # to our agg functions
@@ -225,7 +225,7 @@ def test_arg_passthru():
         tm.assert_index_equal(result.columns, expected_columns)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_non_cython_api():
 
     # GH5610
@@ -310,7 +310,7 @@ def test_cython_api2():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_cython_median():
     df = DataFrame(np.random.randn(1000))
     df.values[::2] = np.nan
@@ -328,7 +328,7 @@ def test_cython_median():
     tm.assert_frame_equal(rs, xp)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_median_empty_bins(observed):
     df = pd.DataFrame(np.random.randint(0, 44, 500))
 
@@ -408,7 +408,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
         assert res.iloc[0].b == data["expected"]
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize("func, values", [
     ("idxmin", {'c_int': [0, 2], 'c_float': [1, 3], 'c_date': [1, 2]}),
     ("idxmax", {'c_int': [1, 3], 'c_float': [0, 2], 'c_date': [0, 3]})
@@ -447,7 +447,7 @@ def test_fill_consistency():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_groupby_cumprod():
     # GH 4095
     df = pd.DataFrame({'key': ['b'] * 10, 'value': 2})
@@ -467,7 +467,7 @@ def test_groupby_cumprod():
     tm.assert_series_equal(actual, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_ops_general():
     ops = [('mean', np.mean),
            ('median', np.median),
@@ -499,7 +499,7 @@ def test_ops_general():
             raise
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_max_nan_bug():
     raw = """,Date,app,File
 -04-23,2013-04-23 00:00:00,,log080001.log
@@ -514,7 +514,7 @@ def test_max_nan_bug():
     assert not r['File'].isna().any()
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_nlargest():
     a = Series([1, 3, 5, 7, 2, 9, 0, 4, 6, 10])
     b = Series(list('a' * 5 + 'b' * 5))
@@ -533,7 +533,7 @@ def test_nlargest():
     tm.assert_series_equal(gb.nlargest(3, keep='last'), e)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_nsmallest():
     a = Series([1, 3, 5, 7, 2, 9, 0, 4, 6, 10])
     b = Series(list('a' * 5 + 'b' * 5))
@@ -568,7 +568,7 @@ def test_numpy_compat(func):
         getattr(g, func)(foo=1)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_cummin_cummax():
     # GH 15048
     num_types = [np.int32, np.int64, np.float32, np.float64]
@@ -667,7 +667,7 @@ def test_cummin_cummax():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize('in_vals, out_vals', [
 
     # Basics: strictly increasing (T), strictly decreasing (F),
@@ -701,7 +701,7 @@ def test_is_monotonic_increasing(in_vals, out_vals):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize('in_vals, out_vals', [
     # Basics: strictly decreasing (T), strictly increasing (F),
     # abs val decreasing (F), non-strictly increasing (T)
@@ -738,7 +738,7 @@ def test_apply_describe_bug(mframe):
     grouped.describe()  # it works!
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_series_describe_multikey():
     ts = tm.makeTimeSeries()
     grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
@@ -749,7 +749,7 @@ def test_series_describe_multikey():
     tm.assert_series_equal(result['min'], grouped.min(), check_names=False)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_series_describe_single():
     ts = tm.makeTimeSeries()
     grouped = ts.groupby(lambda x: x.month)
@@ -758,14 +758,14 @@ def test_series_describe_single():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_series_index_name(df):
     grouped = df.loc[:, ['C']].groupby(df['A'])
     result = grouped.agg(lambda x: x.mean())
     assert result.index.name == 'A'
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_frame_describe_multikey(tsframe):
     grouped = tsframe.groupby([lambda x: x.year, lambda x: x.month])
     result = grouped.describe()
@@ -808,7 +808,7 @@ def test_frame_describe_tupleindex():
         df2.groupby('key').describe()
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_frame_describe_unstacked_format():
     # GH 4792
     prices = {pd.Timestamp('2011-01-06 10:59:05', tz=None): 24990,
@@ -832,7 +832,7 @@ def test_frame_describe_unstacked_format():
 # nunique
 # --------------------------------
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize('n', 10 ** np.arange(2, 6))
 @pytest.mark.parametrize('m', [10, 100, 1000])
 @pytest.mark.parametrize('sort', [False, True])
@@ -925,7 +925,7 @@ def test_nunique_with_empty_series():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_nunique_with_timegrouper():
     # GH 13453
     test = pd.DataFrame({
@@ -1084,7 +1084,7 @@ def test_count_uses_size_on_exception():
 # size
 # --------------------------------
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_size(df):
     grouped = df.groupby(['A', 'B'])
     result = grouped.size()

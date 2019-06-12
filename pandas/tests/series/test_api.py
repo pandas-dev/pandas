@@ -209,7 +209,7 @@ class SharedWithSparse:
         assert s.sparse.density == 1.0
 
 
-@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSeriesMisc(TestData, SharedWithSparse):
 
     series_klass = Series

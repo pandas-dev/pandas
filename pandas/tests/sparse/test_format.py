@@ -13,7 +13,7 @@ use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:Series:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSparseSeriesFormatting:
 
     @property
@@ -111,7 +111,7 @@ class TestSparseSeriesFormatting:
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:DataFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseDataFrameFormatting:
 
     def test_sparse_frame(self):

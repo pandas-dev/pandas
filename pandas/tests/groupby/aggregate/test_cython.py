@@ -102,7 +102,7 @@ def test_cython_agg_frame_columns():
     df.groupby(level=0, axis='columns').mean()
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_cython_agg_return_dict():
     # GH 16741
     df = DataFrame(
@@ -119,7 +119,7 @@ def test_cython_agg_return_dict():
     tm.assert_series_equal(ts, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_cython_fail_agg():
     dr = bdate_range('1/1/2000', periods=50)
     ts = Series(['A', 'B', 'C', 'D', 'E'] * 10, index=dr)
@@ -130,7 +130,7 @@ def test_cython_fail_agg():
     tm.assert_series_equal(summed, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize('op, targop', [
     ('mean', np.mean),
     ('median', np.median),
@@ -151,7 +151,7 @@ def test__cython_agg_general(op, targop):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
+@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize('op, targop', [
     ('mean', np.mean),
     ('median', lambda x: np.median(x) if len(x) > 0 else np.nan),
