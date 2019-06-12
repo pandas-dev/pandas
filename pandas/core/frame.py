@@ -4000,6 +4000,7 @@ class DataFrame(NDFrame):
         intent.
 
         Rename columns using a mapping:
+
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> df.rename(columns={"A": "a", "B": "c"})
            a  c
@@ -4008,6 +4009,7 @@ class DataFrame(NDFrame):
         2  3  6
 
         Rename index using a mapping:
+
         >>> df.rename(index={0: "x", 1: "y", 2: "z"})
            A  B
         x  1  4
@@ -4015,6 +4017,7 @@ class DataFrame(NDFrame):
         z  3  6
 
         Cast index labels to a different type:
+
         >>> df.index
         RangeIndex(start=0, stop=3, step=1)
         >>> df.rename(index=str).index
