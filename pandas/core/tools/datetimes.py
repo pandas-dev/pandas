@@ -20,13 +20,14 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCIndex, ABCIndexClass, ABCSeries)
 from pandas.core.dtypes.missing import notna
 
-from pandas._typing import ArrayLike, DatetimeScalar
+from pandas._typing import ArrayLike
 from pandas.core import algorithms
 
 # ---------------------------------------------------------------------
 # types used in annotations
 
-
+Scalar = Union[int, float, str]
+DatetimeScalar = Union[Scalar, datetime]
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, list, tuple,
                                          ArrayLike, ABCSeries]
 
