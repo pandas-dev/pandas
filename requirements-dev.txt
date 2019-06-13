@@ -1,5 +1,5 @@
 numpy>=1.15
-python-dateutil>=2.5.0
+python-dateutil>=2.6.1
 pytz
 asv
 cython>=0.28.2
@@ -38,7 +38,7 @@ jinja2
 matplotlib>=2.2.2
 numexpr>=2.6.8
 scipy>=1.1
-beautifulsoup4>=4.2.1
+beautifulsoup4>=4.6.0
 fastparquet>=0.2.1
 html5lib
 lxml
