@@ -24,7 +24,8 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_platform_int, is_bool, is_datetimelike,
-    is_integer_dtype, is_interval_dtype, is_numeric_dtype, is_scalar)
+    is_integer_dtype, is_interval_dtype, is_numeric_dtype, is_object_dtype,
+    is_scalar)
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algorithms
@@ -1657,7 +1658,7 @@ def _normalize_keyword_aggregation(kwargs):
     return aggspec, columns, order
 
 
-def _recast_datetimelike_result(result):
+def _recast_datetimelike_result(result: DataFrame):
     """
     If we have date/time like in the original, then coerce dates
     as we are stacking can easily have object dtypes here.
@@ -1673,7 +1674,7 @@ def _recast_datetimelike_result(result):
     - Modifies `result` inplace
     """
     ocols = [idx for idx in range(len(result.columns))
-             if result.dtypes[idx] == object]
+             if is_object_dtype(result.dtypes[idx])]
 
     for cidx in ocols:
         # TODO: get maybe_convert_objects working here
@@ -1686,5 +1687,5 @@ def _recast_datetimelike_result(result):
         if exdtype in ['float', 'mixed-integer-float']:
             result.iloc[:, cidx] = cvals.astype(np.float64)
         if exdtype == 'datetime':
-            # TODO: what about z-aware?
+            # TODO: what about tz-aware?
             result.iloc[:, cidx] = cvals.astype('M8[ns]')
