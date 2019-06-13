@@ -20,7 +20,7 @@ dependencies:
   - openpyxl
   - pandas-gbq=0.8.0
   - psycopg2=2.6.2
-  - pymysql=0.7.9
+  - pymysql=0.7.11
   - pytables
   - python-dateutil
   # cannot go past python=3.6.6 for matplotlib=3.0.0 due to
