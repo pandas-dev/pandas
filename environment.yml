@@ -6,7 +6,7 @@ dependencies:
   # required
   - numpy>=1.15
   - python=3
-  - python-dateutil>=2.5.0
+  - python-dateutil>=2.6.1
   - pytz
 
   # benchmarks
@@ -64,7 +64,7 @@ dependencies:
   - scipy>=1.1
 
   # optional for io
-  - beautifulsoup4>=4.2.1  # pandas.read_html
+  - beautifulsoup4>=4.6.0  # pandas.read_html
   - fastparquet>=0.2.1  # pandas.read_parquet, DataFrame.to_parquet
   - html5lib  # pandas.read_html
   - lxml  # pandas.read_html
