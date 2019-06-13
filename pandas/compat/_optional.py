@@ -6,13 +6,13 @@ import warnings
 # Update install.rst when updating versions!
 
 VERSIONS = {
-    "bs4": "4.4.1",
+    "bs4": "4.6.0",
     "bottleneck": "1.2.1",
     "fastparquet": "0.2.1",
     "gcsfs": "0.1.0",
     "matplotlib": "2.2.2",
     "numexpr": "2.6.2",
-    "openpyxl": "2.4.0",
+    "openpyxl": "2.4.8",
     "pandas_gbq": "0.8.0",
     "pyarrow": "0.9.0",
     "pytables": "3.4.2",
@@ -20,8 +20,9 @@ VERSIONS = {
     "scipy": "0.19.0",
     "sqlalchemy": "1.1.4",
     "xarray": "0.8.2",
-    "xlrd": "1.0.0",
-    "xlwt": "2.4.0",
+    "xlrd": "1.1.0",
+    "xlwt": "1.2.0",
+    "xlsxwriter": "0.9.8",
 }
 
 message = (
