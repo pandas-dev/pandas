@@ -473,6 +473,7 @@ strings and apply several methods to it. These can be accessed like
        Series.cat
        Series.dt
        Series.sparse
+       DataFrame.sparse
        Index.str
 
 .. _api.series.cat:
