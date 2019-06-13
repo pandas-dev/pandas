@@ -2,7 +2,6 @@ name: pandas-dev
 channels:
   - defaults
   - conda-forge
-  - free
 dependencies:
   - beautifulsoup4=4.6.0
   - bottleneck=1.2.1
