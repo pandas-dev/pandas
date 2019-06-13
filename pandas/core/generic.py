@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Any, Callable, FrozenSet, List, Optional, Set, Union
+from typing import Callable, FrozenSet, List, Optional, Set, Union
 import warnings
 import weakref
 
@@ -2458,12 +2458,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return packers.to_msgpack(path_or_buf, self, encoding=encoding,
                                   **kwargs)
 
-    def to_sql(self, name: str,
-        con,
-        schema: Optional[str]=None, if_exists: str='fail', index: bool=True,
-        index_label: Optional[Union[str, List[str]]]=None,
-        chunksize: Optional[int]=None, dtype: Union[dict]=None,
-        method: Union[str, Callable]=None):
+    def to_sql(self, name: str, con,
+               schema: Optional[str] = None, if_exists: str = 'fail',
+               index: bool = True,
+               index_label: Optional[Union[str, List[str]]] = None,
+               chunksize: Optional[int] = None, dtype: Union[dict] = None,
+               method: Union[str, Callable] = None):
         """
         Write records stored in a DataFrame to a SQL database.
 
