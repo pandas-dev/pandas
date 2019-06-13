@@ -2,7 +2,7 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import Dict
+from typing import Dict, List
 import warnings
 
 import numpy as np
@@ -31,7 +31,7 @@ _cpython_optimized_decoders = _cpython_optimized_encoders + (
 _shared_docs = dict()  # type: Dict[str, str]
 
 
-def cat_core(list_of_columns, sep):
+def cat_core(list_of_columns: List, sep: str):
     """
     Auxiliary function for :meth:`str.cat`
 
@@ -53,7 +53,7 @@ def cat_core(list_of_columns, sep):
     return np.sum(list_with_sep, axis=0)
 
 
-def cat_safe(list_of_columns, sep):
+def cat_safe(list_of_columns: List, sep: str):
     """
     Auxiliary function for :meth:`str.cat`.
 
