@@ -2399,3 +2399,69 @@ class TestDataFrameConstructorWithDatetimeTZ(TestData):
             index=pd.Index([2001, 2002, 2003])
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_from_tzaware_object_array(self):
+        # 2D object array of tzaware timestamps should not raise
+        dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
+        data = dti._data.astype(object).reshape(1, -1)
+        df = pd.DataFrame(data)
+        assert df.shape == (1, 3)
+        assert (df.dtypes == dti.dtype).all()
+        assert (df == dti).all().all()
+
+    def test_from_tzaware_mixed_object_array(self):
+        arr = np.array([
+            [Timestamp('2013-01-01 00:00:00'),
+             Timestamp('2013-01-02 00:00:00'),
+             Timestamp('2013-01-03 00:00:00')],
+            [Timestamp('2013-01-01 00:00:00-0500', tz='US/Eastern'),
+             pd.NaT,
+             Timestamp('2013-01-03 00:00:00-0500', tz='US/Eastern')],
+            [Timestamp('2013-01-01 00:00:00+0100', tz='CET'),
+             pd.NaT,
+             Timestamp('2013-01-03 00:00:00+0100', tz='CET')]],
+            dtype=object).T
+        res = DataFrame(arr, columns=['A', 'B', 'C'])
+
+        expected_dtypes = ['datetime64[ns]',
+                           'datetime64[ns, US/Eastern]',
+                           'datetime64[ns, CET]']
+        assert (res.dtypes == expected_dtypes).all()
+
+
+class TestTranspose:
+    # FIXME: belongs somewhere else, but im not sure where
+    def test_transpose_tzaware_1col_single_tz(self):
+        dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
+
+        df = pd.DataFrame(dti)
+        assert (df.dtypes == dti.dtype).all()
+        res = df.T
+        assert (res.dtypes == dti.dtype).all()
+
+    def test_transpose_tzaware_2col_single_tz(self):
+        dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
+
+        df3 = pd.DataFrame({'A': dti, 'B': dti})
+        assert (df3.dtypes == dti.dtype).all()
+        res3 = df3.T
+        assert (res3.dtypes == dti.dtype).all()
+
+    def test_transpose_tzaware_2col_mixed_tz(self):
+        dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
+        dti2 = dti.tz_convert('US/Pacific')
+
+        df4 = pd.DataFrame({'A': dti, 'B': dti2})
+        assert (df4.dtypes == [dti.dtype, dti2.dtype]).all()
+        assert (df4.T.dtypes == object).all()
+        tm.assert_frame_equal(df4.T.T, df4)
+
+    def test_transpose_object_to_tzaware_mixed_tz(self):
+        dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
+        dti2 = dti.tz_convert('US/Pacific')
+
+        # mixed all-tzaware dtypes
+        df2 = pd.DataFrame([dti, dti2])
+        assert (df2.dtypes == object).all()
+        res2 = df2.T
+        assert (res2.dtypes == [dti.dtype, dti2.dtype]).all()

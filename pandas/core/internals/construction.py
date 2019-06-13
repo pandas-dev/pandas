@@ -160,7 +160,29 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
     if dtype is None and is_object_dtype(values):
-        values = maybe_infer_to_datetimelike(values)
+
+        if values.ndim == 2 and values.shape[0] != 1:
+            # kludge to transpose and separate blocks
+            # unnecessary if we ever allow 2D DatetimeArray
+
+            dvals_list = [maybe_infer_to_datetimelike(values[n, :])
+                          for n in range(len(values))]
+            for n in range(len(dvals_list)):
+                if isinstance(dvals_list[n], np.ndarray):
+                    dvals_list[n] = dvals_list[n].reshape(1, -1)
+
+            from pandas.core.internals.blocks import make_block
+
+            # TODO: What about re-joining object columns?
+            bdvals = [make_block(dvals_list[n], placement=[n])
+                      for n in range(len(dvals_list))]
+            return create_block_manager_from_blocks(bdvals,
+                                                    [columns, index])
+
+        else:
+            dvals = maybe_infer_to_datetimelike(values)
+
+        values = dvals
 
     return create_block_manager_from_blocks([values], [columns, index])
 

@@ -288,7 +288,6 @@ class NDFrameGroupBy(GroupBy):
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         from pandas.core.index import _all_indexes_same
-        from pandas.core.tools.numeric import to_numeric
 
         if len(keys) == 0:
             return DataFrame(index=keys)
@@ -360,7 +359,6 @@ class NDFrameGroupBy(GroupBy):
                     # provide a reduction (Frame -> Series) if groups are
                     # unique
                     if self.squeeze:
-
                         # assign the name to this series
                         if singular_series:
                             values[0].name = keys[0]
@@ -434,15 +432,22 @@ class NDFrameGroupBy(GroupBy):
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
-                if (so.ndim == 2 and so.dtypes.apply(is_datetimelike).any()):
-                    result = result.apply(
-                        lambda x: to_numeric(x, errors='ignore'))
-                    date_cols = self._selected_obj.select_dtypes(
-                        include=['datetime', 'timedelta']).columns
-                    date_cols = date_cols.intersection(result.columns)
-                    result[date_cols] = (result[date_cols]
-                                         ._convert(datetime=True,
-                                                   coerce=True))
+                if so.ndim == 2 and so.dtypes.apply(is_datetimelike).any():
+                    ocols = [idx for idx in range(len(result.columns))
+                             if result.dtypes[idx] == object]
+                    for cidx in ocols:
+                        # TODO: get maybe_convert_objects working here
+                        # TODO: should we use skipna=True?
+                        cvals = result.iloc[:, cidx]
+                        exdtype = lib.infer_dtype(cvals.values,
+                                                  skipna=False)
+                        if exdtype == 'integer':
+                            result.iloc[:, cidx] = cvals.astype(int)
+                        if exdtype in ['float', 'mixed-integer-float']:
+                            result.iloc[:, cidx] = cvals.astype(float)
+                        if exdtype == 'datetime':
+                            # TODO: what about z-aware?
+                            result.iloc[:, cidx] = cvals.astype('M8[ns]')
                 else:
                     result = result._convert(datetime=True)
 
