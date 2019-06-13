@@ -442,9 +442,9 @@ class NDFrameGroupBy(GroupBy):
                         exdtype = lib.infer_dtype(cvals.values,
                                                   skipna=False)
                         if exdtype == 'integer':
-                            result.iloc[:, cidx] = cvals.astype(int)
+                            result.iloc[:, cidx] = cvals.astype(np.int64)
                         if exdtype in ['float', 'mixed-integer-float']:
-                            result.iloc[:, cidx] = cvals.astype(float)
+                            result.iloc[:, cidx] = cvals.astype(np.float64)
                         if exdtype == 'datetime':
                             # TODO: what about z-aware?
                             result.iloc[:, cidx] = cvals.astype('M8[ns]')
