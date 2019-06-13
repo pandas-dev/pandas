@@ -190,6 +190,9 @@ Numeric Index
 .. autosummary::
    :toctree: api/
 
+   RangeIndex.start
+   RangeIndex.stop
+   RangeIndex.step
    RangeIndex.from_range
 
 .. _api.categoricalindex:

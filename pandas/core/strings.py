@@ -2360,13 +2360,13 @@ class StringMethods(NoNewAttributesMixin):
 
     See Also
     --------
-     Series.str.split : Split strings around given separator/delimiter.
-     Series.str.rsplit : Splits string around given separator/delimiter,
-     starting from the right.
-     Series.str.join : Join lists contained as elements in the Series/Index
-     with passed delimiter.
-     str.split : Standard library version for split.
-     str.rsplit : Standard library version for rsplit.
+    Series.str.split : Split strings around given separator/delimiter.
+    Series.str.rsplit : Splits string around given separator/delimiter,
+        starting from the right.
+    Series.str.join : Join lists contained as elements in the Series/Index
+        with passed delimiter.
+    str.split : Standard library version for split.
+    str.rsplit : Standard library version for rsplit.
 
     Notes
     -----
@@ -2383,7 +2383,12 @@ class StringMethods(NoNewAttributesMixin):
     Examples
     --------
     >>> s = pd.Series(["this is a regular sentence",
-    "https://docs.python.org/3/tutorial/index.html", np.nan])
+    ...                "https://docs.python.org/3/tutorial/index.html",
+    ...                np.nan])
+    0                       this is a regular sentence
+    1    https://docs.python.org/3/tutorial/index.html
+    2                                              NaN
+    dtype: object
 
     In the default setting, the string is split by whitespace.
 
@@ -2434,7 +2439,6 @@ class StringMethods(NoNewAttributesMixin):
     0                                           this    is     a  regular
     1  https://docs.python.org/3/tutorial/index.html  None  None     None
     2                                            NaN   NaN   NaN      NaN \
-
                  4
     0     sentence
     1         None

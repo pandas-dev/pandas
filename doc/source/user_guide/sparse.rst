@@ -77,6 +77,8 @@ A sparse array can be converted to a regular (dense) ndarray with :meth:`numpy.a
    np.asarray(sparr)
 
 
+.. _sparse.dtype:
+
 SparseDtype
 -----------
 

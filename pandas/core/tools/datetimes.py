@@ -456,7 +456,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         - If False returns ndarray of values.
 
         .. deprecated:: 0.25.0
-            Use :meth:`.to_numpy` or :meth:`Timestamp.to_datetime64`
+            Use :meth:`Series.to_numpy` or :meth:`Timestamp.to_datetime64`
             instead to get an ndarray of values or numpy.datetime64,
             respectively.
 
