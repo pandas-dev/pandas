@@ -231,11 +231,20 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         result = np.take(result, [0, 0, 2, 0])
 
         colors = kwds.pop('color', None)
-        if colors and isinstance(colors, dict):
-            valid_keys = ['boxes', 'whiskers', 'medians', 'caps']
-            for i in range(4):
-                if valid_keys[i] in colors:
-                    result[i] = colors[valid_keys[i]]
+        if colors:
+            if isinstance(colors, dict):
+                valid_keys = ['boxes', 'whiskers', 'medians', 'caps']
+                key_to_index = dict(zip(valid_keys, range(4)))
+                for key, value in colors.items():
+                    if key in valid_keys:
+                        result[key_to_index[key]] = value
+                    else:
+                        raise ValueError("color dict contains invalid "
+                                         "key '{0}' "
+                                         "The key must be either {1}"
+                                         .format(key, valid_keys))
+            else:
+                raise ValueError("color should be a dict")
 
         return result
 
