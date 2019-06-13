@@ -19,6 +19,12 @@ def dropna(request):
     return request.param
 
 
+@pytest.fixture(params=[([0] * 4, [1] * 4), (range(0, 3), range(1, 4))])
+def interval_values(request, closed):
+    left, right = request.param
+    return Categorical(pd.IntervalIndex.from_arrays(left, right, closed))
+
+
 class TestPivotTable:
 
     def setup_method(self, method):
@@ -196,6 +202,18 @@ class TestPivotTable:
                                           ordered=True),
                 name='A'))
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_with_interval_index(self, interval_values, dropna):
+        # GH 25814
+        df = DataFrame(
+            {'A': interval_values,
+             'B': 1})
+        result = df.pivot_table(index='A', values='B', dropna=dropna)
+        expected = DataFrame(
+            {'B': 1},
+            index=Index(interval_values.unique(),
+                        name='A'))
         tm.assert_frame_equal(result, expected)
 
     def test_pass_array(self):
