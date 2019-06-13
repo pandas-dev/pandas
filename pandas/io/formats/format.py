@@ -849,7 +849,7 @@ class DataFrameFormatter(TableFormatter):
 # Array formatters
 
 
-def format_array(values, formatter, float_format=None, na_rep='NaN',
+def format_array(values, formatter=None, float_format=None, na_rep='NaN',
                  digits=None, space=None, justify='right', decimal='.',
                  leading_space=None):
     """
@@ -879,14 +879,23 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
     List[str]
     """
 
+    if is_extension_array_dtype(values.dtype):
+        if isinstance(values, (ABCIndexClass, ABCSeries)):
+            values = values._values
+
+        if is_categorical_dtype(values.dtype):
+            # Categorical is special for now, so that we can preserve tzinfo
+            values = values.get_values()
+
+        if not is_datetime64tz_dtype(values.dtype):
+            values = np.asarray(values)
+
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
     elif is_datetime64tz_dtype(values):
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
-    elif is_extension_array_dtype(values.dtype):
-        fmt_klass = ExtensionArrayFormatter
     elif is_float_dtype(values.dtype) or is_complex_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
     elif is_integer_dtype(values.dtype):
@@ -1179,29 +1188,6 @@ class Datetime64Formatter(GenericArrayFormatter):
                                                       self.date_format),
             na_rep=self.nat_rep).reshape(values.shape)
         return fmt_values.tolist()
-
-
-class ExtensionArrayFormatter(GenericArrayFormatter):
-    def _format_strings(self):
-        values = self.values
-        if isinstance(values, (ABCIndexClass, ABCSeries)):
-            values = values._values
-
-        formatter = values._formatter(boxed=True)
-
-        if is_categorical_dtype(values.dtype):
-            # Categorical is special for now, so that we can preserve tzinfo
-            array = values.get_values()
-        else:
-            array = np.asarray(values)
-
-        fmt_values = format_array(array,
-                                  formatter,
-                                  float_format=self.float_format,
-                                  na_rep=self.na_rep, digits=self.digits,
-                                  space=self.space, justify=self.justify,
-                                  leading_space=self.leading_space)
-        return fmt_values
 
 
 def format_percentiles(percentiles):
