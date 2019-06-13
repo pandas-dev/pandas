@@ -72,7 +72,7 @@ column selection, the values can just be the functions to apply
 This type of aggregation is the recommended alternative to the deprecated behavior when passing
 a dict to a Series groupby aggregation (:ref:`whatsnew_0200.api_breaking.deprecate_group_agg_dict`).
 
-See :ref:`_groupby.aggregate.named` for more.
+See :ref:`groupby.aggregate.named` for more.
 
 .. _whatsnew_0250.enhancements.other:
 
@@ -401,6 +401,8 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | pytz            | 2015.4          |    X     |
 +-----------------+-----------------+----------+
+| python-dateutil | 2.6.1           |    X     |
++-----------------+-----------------+----------+
 | bottleneck      | 1.2.1           |          |
 +-----------------+-----------------+----------+
 | numexpr         | 2.6.2           |          |
@@ -415,11 +417,13 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+
 | Package         | Minimum Version |
 +=================+=================+
+| beautifulsoup4  | 4.6.0           |
++-----------------+-----------------+
 | fastparquet     | 0.2.1           |
 +-----------------+-----------------+
 | matplotlib      | 2.2.2           |
 +-----------------+-----------------+
-| openpyxl        | 2.4.0           |
+| openpyxl        | 2.4.8           |
 +-----------------+-----------------+
 | pyarrow         | 0.9.0           |
 +-----------------+-----------------+
@@ -431,12 +435,14 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+
 | xarray          | 0.8.2           |
 +-----------------+-----------------+
-| xlrd            | 1.0.0           |
+| xlrd            | 1.1.0           |
 +-----------------+-----------------+
-| xlsxwriter      | 0.7.7           |
+| xlsxwriter      | 0.9.8           |
 +-----------------+-----------------+
-| xlwt            | 1.0.0           |
+| xlwt            | 1.2.0           |
 +-----------------+-----------------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
 .. _whatsnew_0250.api.other:
 
@@ -667,6 +673,7 @@ I/O
 - Bug in :func:`read_json` where date strings with ``Z`` were not converted to a UTC timezone (:issue:`26168`)
 - Added ``cache_dates=True`` parameter to :meth:`read_csv`, which allows to cache unique dates when they are parsed (:issue:`25990`)
 - :meth:`DataFrame.to_excel` now raises a ``ValueError`` when the caller's dimensions exceed the limitations of Excel (:issue:`26051`)
+- Fixed bug in :func:`pandas.read_csv` where a BOM would result in incorrect parsing using engine='python' (:issue:`26545`)
 - :func:`read_excel` now raises a ``ValueError`` when input is of type :class:`pandas.io.excel.ExcelFile` and ``engine`` param is passed since :class:`pandas.io.excel.ExcelFile` has an engine defined (:issue:`26566`)
 - Bug while selecting from :class:`HDFStore` with ``where=''`` specified (:issue:`26610`).
 
@@ -719,6 +726,7 @@ Reshaping
 - Bug in :func:`pandas.cut` where large bins could incorrectly raise an error due to an integer overflow (:issue:`26045`)
 - Bug in :func:`DataFrame.sort_index` where an error is thrown when a multi-indexed ``DataFrame`` is sorted on all levels with the initial level sorted last (:issue:`26053`)
 - Bug in :meth:`Series.nlargest` treats ``True`` as smaller than ``False`` (:issue:`26154`)
+- Bug in :func:`DataFrame.pivot_table` with a :class:`IntervalIndex` as pivot index would raise ``TypeError`` (:issue:`25814`)
 
 Sparse
 ^^^^^^
