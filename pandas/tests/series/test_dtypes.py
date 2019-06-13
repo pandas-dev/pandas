@@ -165,7 +165,7 @@ class TestSeriesDtypes:
         expected = Series([str("2010-01-04 00:00:00-05:00")])
         tm.assert_series_equal(s, expected)
 
-        td = Series([Timedelta(1, unit="d")])
+        td = Series([Timedelta(1, unit="D")])
         s = td.astype(str)
 
         expected = Series([str("1 days 00:00:00.000000000")])

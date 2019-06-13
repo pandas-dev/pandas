@@ -1361,6 +1361,98 @@ class TestToDatetimeUnit:
         expected = DatetimeIndex(["1970-01-01 00:00:01"], tz="UTC")
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "unitl,unitr",
+        [
+            ("D", "24h"),
+            ("2D", "48H"),
+            ("3D", "72H"),
+            ("4D", "96H"),
+            ("7D", "168H"),
+            ("86400000000000N", "D"),
+            ("60T", "H"),
+            ("120m", "2H"),
+            ("60min", "H"),
+            ("3600S", "h"),
+            ("3600000ms", "H"),
+            ("3600000L", "H"),
+            ("3600000000U", "H"),
+            ("60s", "m"),
+            ("60S", "T"),
+            ("60S", "min"),
+            ("1000ms", "S"),
+            ("1000L", "S"),
+            ("1000000U", "S"),
+            ("1000000000N", "S"),
+        ],
+    )
+    def test_to_datetime_stride(self, unitl, unitr):
+        result = pd.to_datetime([1, 2, 3, 5], unit=unitl)
+        expected = pd.to_datetime([1, 2, 3, 5], unit=unitr)
+        tm.assert_index_equal(result, expected)
+
+        result = pd.to_datetime(2, unit=unitl)
+        expected = pd.to_datetime(2, unit=unitr)
+        assert result == expected
+
+    # Can't use 'm' for minutes and 'M' for months in the following test
+    # since tested against pd.date_range which sees both 'm' and 'M' as
+    # months.
+    @pytest.mark.parametrize(
+        "unit,epoch",
+        [
+            ("D", "1980-01-02"),
+            ("D", "2018-05-18"),
+            ("D", "2018-05-18T11"),
+            ("D", "2018-05-18T11:04"),
+            ("D", "2018-05-18T11:04:52"),
+            ("2D", "1970-01-01"),
+            ("2D", "1970-01-01T21:12:43"),
+            ("2D", "2019-05-03"),
+            ("2D", "2019-05-03T12:11"),
+            ("3D", "1970-01-01"),
+            ("3D", "2019-05-03T14"),
+            ("4D", "1970-05-03"),
+            ("4D", "2019-05-03T11"),
+            ("5D", "2019-05-03T11"),
+            ("6D", "2019-05-03T11"),
+            ("7D", "2019-05-03T11"),
+            ("14D", "2019-05-03T11"),
+            ("H", "2018-05-18"),
+            ("H", "2018-05-18T11"),
+            ("H", "2018-05-18T11:04"),
+            ("H", "2018-05-18T11:04:52"),
+            ("12h", "1990-05-03T12:00:00"),
+            ("24H", "1980-12-31"),
+            ("48h", "1980-12-31"),
+            ("96h", "1980-12-31"),
+            ("2H", "2019-12-31T11:59"),
+            ("24h", "2001-08-15"),
+            ("5T", "2001-08-15"),
+            ("5min", "2001-08-15"),
+            ("10T", "2001-08-15"),
+            ("5S", "1970-01-01T01:10"),
+            ("60S", "1970-01-01T01:10:12"),
+            ("5T", "1980-12-31"),
+            ("1000T", "1980-12-31"),
+            ("100N", "1980-12-31"),
+            ("N", "1980-12-31"),
+        ],
+    )
+    def test_to_datetime_stride_epoch(self, unit, epoch):
+        result = pd.to_datetime(list(range(100)), unit=unit, origin=epoch)
+        expected = pd.date_range(start=epoch, freq=unit, periods=100)
+        tm.assert_index_equal(result, expected)
+
+        result = pd.to_datetime(2, unit=unit, origin=epoch)
+        expected = pd.date_range(start=epoch, freq=unit, periods=100)[2]
+        assert result == expected
+
+    @pytest.mark.parametrize("unit", ["Y", "A", "M", "W"])
+    def test_to_datetime_unit_code_deprecated(self, unit):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            _ = pd.to_datetime(list(range(100)), unit=unit, origin="unix")
+
 
 class TestToDatetimeMisc:
     def test_to_datetime_barely_out_of_bounds(self):

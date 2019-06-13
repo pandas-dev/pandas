@@ -8,8 +8,8 @@ from pandas import Timedelta, offsets, to_timedelta
 
 def test_construction():
     expected = np.timedelta64(10, "D").astype("m8[ns]").view("i8")
-    assert Timedelta(10, unit="d").value == expected
-    assert Timedelta(10.0, unit="d").value == expected
+    assert Timedelta(10, unit="D").value == expected
+    assert Timedelta(10.0, unit="D").value == expected
     assert Timedelta("10 days").value == expected
     assert Timedelta(days=10).value == expected
     assert Timedelta(days=10.0).value == expected
