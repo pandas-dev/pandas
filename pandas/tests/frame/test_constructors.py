@@ -2401,7 +2401,7 @@ class TestDataFrameConstructorWithDatetimeTZ(TestData):
         tm.assert_frame_equal(result, expected)
 
     def test_from_tzaware_object_array(self):
-        # 2D object array of tzaware timestamps should not raise
+        # GH#26825 2D object array of tzaware timestamps should not raise
         dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
         data = dti._data.astype(object).reshape(1, -1)
         df = pd.DataFrame(data)
@@ -2410,6 +2410,7 @@ class TestDataFrameConstructorWithDatetimeTZ(TestData):
         assert (df == dti).all().all()
 
     def test_from_tzaware_mixed_object_array(self):
+        # GH#26825
         arr = np.array([
             [Timestamp('2013-01-01 00:00:00'),
              Timestamp('2013-01-02 00:00:00'),

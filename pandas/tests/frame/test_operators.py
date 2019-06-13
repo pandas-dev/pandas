@@ -797,6 +797,7 @@ class TestDataFrameOperators:
 
 class TestTranspose:
     def test_transpose_tzaware_1col_single_tz(self):
+        # GH#26825
         dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
 
         df = pd.DataFrame(dti)
@@ -805,6 +806,7 @@ class TestTranspose:
         assert (res.dtypes == dti.dtype).all()
 
     def test_transpose_tzaware_2col_single_tz(self):
+        # GH#26825
         dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
 
         df3 = pd.DataFrame({'A': dti, 'B': dti})
@@ -813,6 +815,7 @@ class TestTranspose:
         assert (res3.dtypes == dti.dtype).all()
 
     def test_transpose_tzaware_2col_mixed_tz(self):
+        # GH#26825
         dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
         dti2 = dti.tz_convert('US/Pacific')
 
@@ -822,6 +825,7 @@ class TestTranspose:
         tm.assert_frame_equal(df4.T.T, df4)
 
     def test_transpose_object_to_tzaware_mixed_tz(self):
+        # GH#26825
         dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
         dti2 = dti.tz_convert('US/Pacific')
 
