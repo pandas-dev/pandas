@@ -16,7 +16,7 @@ from pandas.tseries.offsets import BMonthEnd, Minute, MonthEnd
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-class TestDatetimeIndexSetOps(object):
+class TestDatetimeIndexSetOps:
     tz = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/Asia/Singapore',
           'dateutil/US/Pacific']
 
@@ -29,11 +29,20 @@ class TestDatetimeIndexSetOps(object):
         union = first.union(second, sort=sort)
         tm.assert_index_equal(union, everything)
 
+    @pytest.mark.parametrize("box", [np.array, Series, list])
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_union3(self, sort, box):
+        everything = tm.makeDateIndex(10)
+        first = everything[:5]
+        second = everything[5:]
+
         # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            result = first.union(case, sort=sort)
-            tm.assert_index_equal(result, everything)
+        expected = first.astype('O').union(
+            pd.Index(second.values, dtype='O')
+        ).astype('O')
+        case = box(second.values)
+        result = first.union(case, sort=sort)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("tz", tz)
     @pytest.mark.parametrize("sort", [None, False])
@@ -303,11 +312,12 @@ class TestDatetimeIndexSetOps(object):
         empty = Index([])
 
         result = dti.union(empty, sort=sort)
-        assert isinstance(result, DatetimeIndex)
-        assert result is result
+        expected = dti.astype('O')
+        tm.assert_index_equal(result, expected)
 
         result = dti.join(empty)
         assert isinstance(result, DatetimeIndex)
+        tm.assert_index_equal(result, dti)
 
     def test_join_nonunique(self):
         idx1 = to_datetime(['2012-11-06 16:00:11.477563',
@@ -318,7 +328,7 @@ class TestDatetimeIndexSetOps(object):
         assert rs.is_monotonic
 
 
-class TestBusinessDatetimeIndex(object):
+class TestBusinessDatetimeIndex:
 
     def setup_method(self, method):
         self.rng = bdate_range(START, END)
@@ -472,7 +482,7 @@ class TestBusinessDatetimeIndex(object):
         early_dr.union(late_dr, sort=sort)
 
 
-class TestCustomDatetimeIndex(object):
+class TestCustomDatetimeIndex:
 
     def setup_method(self, method):
         self.rng = bdate_range(START, END, freq='C')

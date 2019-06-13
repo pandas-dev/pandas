@@ -41,12 +41,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
-from textwrap import dedent
 import warnings
 
 from dateutil.parser import parse
 import numpy as np
 
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
 from pandas.util._move import (
     BadMove as _BadMove, move_into_mutable_buffer as _move_into_mutable_buffer)
@@ -68,47 +68,6 @@ from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 
 from pandas.io.common import _stringify_path, get_filepath_or_buffer
 from pandas.io.msgpack import ExtType, Packer as _Packer, Unpacker as _Unpacker
-
-# check which compression libs we have installed
-try:
-    import zlib
-
-    def _check_zlib():
-        pass
-except ImportError:
-    def _check_zlib():
-        raise ImportError('zlib is not installed')
-
-_check_zlib.__doc__ = dedent(
-    """\
-    Check if zlib is installed.
-
-    Raises
-    ------
-    ImportError
-        Raised when zlib is not installed.
-    """,
-)
-
-try:
-    import blosc
-
-    def _check_blosc():
-        pass
-except ImportError:
-    def _check_blosc():
-        raise ImportError('blosc is not installed')
-
-_check_blosc.__doc__ = dedent(
-    """\
-    Check if blosc is installed.
-
-    Raises
-    ------
-    ImportError
-        Raised when blosc is not installed.
-    """,
-)
 
 # until we can pass this into our conversion functions,
 # this is pretty hacky
@@ -274,7 +233,10 @@ def convert(values):
     v = values.ravel()
 
     if compressor == 'zlib':
-        _check_zlib()
+        zlib = import_optional_dependency(
+            "zlib",
+            extra="zlib is required when `compress='zlib'`."
+        )
 
         # return string arrays like they are
         if dtype == np.object_:
@@ -285,7 +247,10 @@ def convert(values):
         return ExtType(0, zlib.compress(v))
 
     elif compressor == 'blosc':
-        _check_blosc()
+        blosc = import_optional_dependency(
+            "blosc",
+            extra="zlib is required when `compress='blosc'`."
+        )
 
         # return string arrays like they are
         if dtype == np.object_:
@@ -319,10 +284,16 @@ def unconvert(values, dtype, compress=None):
 
     if compress:
         if compress == 'zlib':
-            _check_zlib()
+            zlib = import_optional_dependency(
+                "zlib",
+                extra="zlib is required when `compress='zlib'`."
+            )
             decompress = zlib.decompress
         elif compress == 'blosc':
-            _check_blosc()
+            blosc = import_optional_dependency(
+                "blosc",
+                extra="zlib is required when `compress='blosc'`."
+            )
             decompress = blosc.decompress
         else:
             raise ValueError("compress must be one of 'zlib' or 'blosc'")
@@ -367,9 +338,10 @@ def encode(obj):
             return {'typ': 'range_index',
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
-                    'start': getattr(obj, '_start', None),
-                    'stop': getattr(obj, '_stop', None),
-                    'step': getattr(obj, '_step', None)}
+                    'start': obj._range.start,
+                    'stop': obj._range.stop,
+                    'step': obj._range.step,
+                    }
         elif isinstance(obj, PeriodIndex):
             return {'typ': 'period_index',
                     'klass': obj.__class__.__name__,
@@ -462,7 +434,7 @@ def encode(obj):
             # for f in ['default_fill_value', 'default_kind']:
             #    d[f] = getattr(obj, f, None)
             # d['data'] = dict([(name, ss)
-            #                 for name, ss in compat.iteritems(obj)])
+            #                 for name, ss in obj.items()])
             # return d
         else:
 
@@ -751,12 +723,11 @@ class Packer(_Packer):
                  use_single_float=False,
                  autoreset=1,
                  use_bin_type=1):
-        super(Packer, self).__init__(default=default,
-                                     encoding=encoding,
-                                     unicode_errors=unicode_errors,
-                                     use_single_float=use_single_float,
-                                     autoreset=autoreset,
-                                     use_bin_type=use_bin_type)
+        super().__init__(default=default, encoding=encoding,
+                         unicode_errors=unicode_errors,
+                         use_single_float=use_single_float,
+                         autoreset=autoreset,
+                         use_bin_type=use_bin_type)
 
 
 class Unpacker(_Unpacker):
@@ -765,19 +736,19 @@ class Unpacker(_Unpacker):
                  object_hook=decode,
                  object_pairs_hook=None, list_hook=None, encoding='utf-8',
                  unicode_errors='strict', max_buffer_size=0, ext_hook=ExtType):
-        super(Unpacker, self).__init__(file_like=file_like,
-                                       read_size=read_size,
-                                       use_list=use_list,
-                                       object_hook=object_hook,
-                                       object_pairs_hook=object_pairs_hook,
-                                       list_hook=list_hook,
-                                       encoding=encoding,
-                                       unicode_errors=unicode_errors,
-                                       max_buffer_size=max_buffer_size,
-                                       ext_hook=ext_hook)
+        super().__init__(file_like=file_like,
+                         read_size=read_size,
+                         use_list=use_list,
+                         object_hook=object_hook,
+                         object_pairs_hook=object_pairs_hook,
+                         list_hook=list_hook,
+                         encoding=encoding,
+                         unicode_errors=unicode_errors,
+                         max_buffer_size=max_buffer_size,
+                         ext_hook=ext_hook)
 
 
-class Iterator(object):
+class Iterator:
 
     """ manage the unpacking iteration,
         close the file on completion """

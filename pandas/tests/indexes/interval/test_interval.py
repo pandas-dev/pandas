@@ -4,8 +4,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import lzip
-
 import pandas as pd
 from pandas import (
     Index, Interval, IntervalIndex, Timedelta, Timestamp, date_range,
@@ -358,11 +356,11 @@ class TestIntervalIndex(Base):
 
     @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr_max_seq_item_setting(self):
-        super(TestIntervalIndex, self).test_repr_max_seq_item_setting()
+        super().test_repr_max_seq_item_setting()
 
     @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr_roundtrip(self):
-        super(TestIntervalIndex, self).test_repr_roundtrip()
+        super().test_repr_roundtrip()
 
     def test_frame_repr(self):
         # https://github.com/pandas-dev/pandas/pull/24134/files
@@ -566,12 +564,12 @@ class TestIntervalIndex(Base):
         value = index[0].mid + Timedelta('12 hours')
         result = np.sort(index.get_loc(value))
         expected = np.array([0, 1], dtype='intp')
-        assert tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         interval = Interval(index[0].left, index[1].right)
         result = np.sort(index.get_loc(interval))
         expected = np.array([0, 1, 2], dtype='intp')
-        assert tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_indexer(self):
@@ -796,137 +794,6 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(actual, expected)
 
         assert 1.5 not in index
-
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_union(self, closed, sort):
-        index = self.create_index(closed=closed)
-        other = IntervalIndex.from_breaks(range(5, 13), closed=closed)
-
-        expected = IntervalIndex.from_breaks(range(13), closed=closed)
-        result = index[::-1].union(other, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(result, expected)
-        assert tm.equalContents(result, expected)
-
-        result = other[::-1].union(index, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(result, expected)
-        assert tm.equalContents(result, expected)
-
-        tm.assert_index_equal(index.union(index, sort=sort), index)
-        tm.assert_index_equal(index.union(index[:1], sort=sort), index)
-
-        # GH 19101: empty result, same dtype
-        index = IntervalIndex(np.array([], dtype='int64'), closed=closed)
-        result = index.union(index, sort=sort)
-        tm.assert_index_equal(result, index)
-
-        # GH 19101: empty result, different dtypes
-        other = IntervalIndex(np.array([], dtype='float64'), closed=closed)
-        result = index.union(other, sort=sort)
-        tm.assert_index_equal(result, index)
-
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_intersection(self, closed, sort):
-        index = self.create_index(closed=closed)
-        other = IntervalIndex.from_breaks(range(5, 13), closed=closed)
-
-        expected = IntervalIndex.from_breaks(range(5, 11), closed=closed)
-        result = index[::-1].intersection(other, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(result, expected)
-        assert tm.equalContents(result, expected)
-
-        result = other[::-1].intersection(index, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(result, expected)
-        assert tm.equalContents(result, expected)
-
-        tm.assert_index_equal(index.intersection(index, sort=sort), index)
-
-        # GH 19101: empty result, same dtype
-        other = IntervalIndex.from_breaks(range(300, 314), closed=closed)
-        expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
-        result = index.intersection(other, sort=sort)
-        tm.assert_index_equal(result, expected)
-
-        # GH 19101: empty result, different dtypes
-        breaks = np.arange(300, 314, dtype='float64')
-        other = IntervalIndex.from_breaks(breaks, closed=closed)
-        result = index.intersection(other, sort=sort)
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_difference(self, closed, sort):
-        index = IntervalIndex.from_arrays([1, 0, 3, 2],
-                                          [1, 2, 3, 4],
-                                          closed=closed)
-        result = index.difference(index[:1], sort=sort)
-        expected = index[1:]
-        if sort is None:
-            expected = expected.sort_values()
-        tm.assert_index_equal(result, expected)
-
-        # GH 19101: empty result, same dtype
-        result = index.difference(index, sort=sort)
-        expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
-        tm.assert_index_equal(result, expected)
-
-        # GH 19101: empty result, different dtypes
-        other = IntervalIndex.from_arrays(index.left.astype('float64'),
-                                          index.right, closed=closed)
-        result = index.difference(other, sort=sort)
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_symmetric_difference(self, closed, sort):
-        index = self.create_index(closed=closed)
-        result = index[1:].symmetric_difference(index[:-1], sort=sort)
-        expected = IntervalIndex([index[0], index[-1]])
-        if sort is None:
-            tm.assert_index_equal(result, expected)
-        assert tm.equalContents(result, expected)
-
-        # GH 19101: empty result, same dtype
-        result = index.symmetric_difference(index, sort=sort)
-        expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
-        if sort is None:
-            tm.assert_index_equal(result, expected)
-        assert tm.equalContents(result, expected)
-
-        # GH 19101: empty result, different dtypes
-        other = IntervalIndex.from_arrays(index.left.astype('float64'),
-                                          index.right, closed=closed)
-        result = index.symmetric_difference(other, sort=sort)
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize('op_name', [
-        'union', 'intersection', 'difference', 'symmetric_difference'])
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_set_operation_errors(self, closed, op_name, sort):
-        index = self.create_index(closed=closed)
-        set_op = getattr(index, op_name)
-
-        # non-IntervalIndex
-        msg = ('the other index needs to be an IntervalIndex too, but '
-               'was type Int64Index')
-        with pytest.raises(TypeError, match=msg):
-            set_op(Index([1, 2, 3]), sort=sort)
-
-        # mixed closed
-        msg = ('can only do set operations between two IntervalIndex objects '
-               'that are closed on the same side')
-        for other_closed in {'right', 'left', 'both', 'neither'} - {closed}:
-            other = self.create_index(closed=other_closed)
-            with pytest.raises(ValueError, match=msg):
-                set_op(other, sort=sort)
-
-        # GH 19016: incompatible dtypes
-        other = interval_range(Timestamp('20180101'), periods=9, closed=closed)
-        msg = ('can only do {op} between two IntervalIndex objects that have '
-               'compatible dtypes').format(op=op_name)
-        with pytest.raises(TypeError, match=msg):
-            set_op(other, sort=sort)
 
     def test_isin(self, closed):
         index = self.create_index(closed=closed)
@@ -1192,11 +1059,11 @@ class TestIntervalIndex(Base):
         assert result is expected
 
     @pytest.mark.parametrize('tuples', [
-        lzip(range(10), range(1, 11)),
-        lzip(date_range('20170101', periods=10),
-             date_range('20170101', periods=10)),
-        lzip(timedelta_range('0 days', periods=10),
-             timedelta_range('1 day', periods=10))])
+        list(zip(range(10), range(1, 11))),
+        list(zip(date_range('20170101', periods=10),
+             date_range('20170101', periods=10))),
+        list(zip(timedelta_range('0 days', periods=10),
+             timedelta_range('1 day', periods=10)))])
     def test_to_tuples(self, tuples):
         # GH 18756
         idx = IntervalIndex.from_tuples(tuples)
@@ -1205,11 +1072,11 @@ class TestIntervalIndex(Base):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tuples', [
-        lzip(range(10), range(1, 11)) + [np.nan],
-        lzip(date_range('20170101', periods=10),
-             date_range('20170101', periods=10)) + [np.nan],
-        lzip(timedelta_range('0 days', periods=10),
-             timedelta_range('1 day', periods=10)) + [np.nan]])
+        list(zip(range(10), range(1, 11))) + [np.nan],
+        list(zip(date_range('20170101', periods=10),
+             date_range('20170101', periods=10))) + [np.nan],
+        list(zip(timedelta_range('0 days', periods=10),
+             timedelta_range('1 day', periods=10))) + [np.nan]])
     @pytest.mark.parametrize('na_tuple', [True, False])
     def test_to_tuples_na(self, tuples, na_tuple):
         # GH 18756

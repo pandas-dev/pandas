@@ -13,7 +13,7 @@ import sys
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import DeepChainMap
+from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.base import StringMixin
 import pandas.core.computation as compu
@@ -135,7 +135,7 @@ class Scope(StringMixin):
         self.resolvers = DeepChainMap(*resolvers)
         self.temps = {}
 
-    def __unicode__(self):
+    def __str__(self):
         scope_keys = _get_pretty_string(list(self.scope.keys()))
         res_keys = _get_pretty_string(list(self.resolvers.keys()))
         unicode_str = '{name}(scope={scope_keys}, resolvers={res_keys})'

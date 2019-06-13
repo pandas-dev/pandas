@@ -14,8 +14,6 @@ import subprocess
 import sys
 from typing import Callable, Dict
 
-from pandas.compat import PY3
-
 
 def get_keywords():
     # these strings will be replaced by git during git-archive.
@@ -28,7 +26,7 @@ def get_keywords():
     return keywords
 
 
-class VersioneerConfig(object):
+class VersioneerConfig:
     pass
 
 
@@ -84,9 +82,7 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False):
         if verbose:
             print("unable to find command, tried %s" % (commands,))
         return None
-    stdout = p.communicate()[0].strip()
-    if PY3:
-        stdout = stdout.decode()
+    stdout = p.communicate()[0].strip().decode()
     if p.returncode != 0:
         if verbose:
             print("unable to run {dispcmd} (error)".format(dispcmd=dispcmd))

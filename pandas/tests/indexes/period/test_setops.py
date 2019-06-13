@@ -11,7 +11,7 @@ def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestPeriodIndex(object):
+class TestPeriodIndex:
 
     def test_joins(self, join_type):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
@@ -126,10 +126,6 @@ class TestPeriodIndex(object):
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
         with pytest.raises(period.IncompatibleFrequency):
             index.union(index2, sort=sort)
-
-        msg = 'can only call with other PeriodIndex-ed objects'
-        with pytest.raises(ValueError, match=msg):
-            index.join(index.to_timestamp())
 
         index3 = period_range('1/1/2000', '1/20/2000', freq='2D')
         with pytest.raises(period.IncompatibleFrequency):

@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.ccalendar import MONTHS
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -14,7 +13,7 @@ import pandas.core.indexes.period as period
 import pandas.util.testing as tm
 
 
-class TestPeriodRepresentation(object):
+class TestPeriodRepresentation:
     """
     Wish to match NumPy units
     """
@@ -54,7 +53,7 @@ class TestPeriodRepresentation(object):
         repr(period)
 
 
-class TestPeriodIndex(object):
+class TestPeriodIndex:
     def test_to_timestamp(self):
         index = period_range(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index, name='foo')
@@ -227,7 +226,7 @@ class TestPeriodIndex(object):
             pidx.searchsorted(pd.Period('2014-01-01', freq='5D'))
 
 
-class TestPeriodIndexConversion(object):
+class TestPeriodIndexConversion:
     def test_tolist(self):
         index = period_range(freq='A', start='1/1/2001', end='12/1/2009')
         rs = index.tolist()
@@ -273,7 +272,7 @@ class TestPeriodIndexConversion(object):
 
     def test_to_timestamp_quarterly_bug(self):
         years = np.arange(1960, 2000).repeat(4)
-        quarters = np.tile(lrange(1, 5), 40)
+        quarters = np.tile(list(range(1, 5)), 40)
 
         pindex = PeriodIndex(year=years, quarter=quarters)
 

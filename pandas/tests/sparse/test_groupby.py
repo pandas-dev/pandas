@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
@@ -6,7 +5,8 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestSparseGroupBy(object):
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+class TestSparseGroupBy:
 
     def setup_method(self, method):
         self.dense = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
@@ -60,6 +60,7 @@ class TestSparseGroupBy(object):
 
 
 @pytest.mark.parametrize("fill_value", [0, np.nan])
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_groupby_includes_fill_value(fill_value):
     # https://github.com/pandas-dev/pandas/issues/5078
     df = pd.DataFrame({'a': [fill_value, 1, fill_value, fill_value],

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-# pylint: disable=W0102
 from collections import OrderedDict
 from datetime import date, datetime
 from distutils.version import LooseVersion
@@ -12,7 +10,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.internals import BlockPlacement
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -194,7 +191,7 @@ def create_mgr(descr, item_shape=None):
                         [mgr_items] + [np.arange(n) for n in item_shape])
 
 
-class TestBlock(object):
+class TestBlock:
 
     def setup_method(self, method):
         # self.fblock = get_float_ex()  # a,c,e
@@ -296,7 +293,7 @@ class TestBlock(object):
                                         dtype=block.values.dtype)
 
 
-class TestDatetimeBlock(object):
+class TestDatetimeBlock:
 
     def test_try_coerce_arg(self):
         block = create_block('datetime', [0])
@@ -314,7 +311,7 @@ class TestDatetimeBlock(object):
             assert pd.Timestamp('2010-10-10') == pd.Timestamp(coerced)
 
 
-class TestBlockManager(object):
+class TestBlockManager:
 
     def test_constructor_corner(self):
         pass
@@ -835,7 +832,7 @@ class TestBlockManager(object):
                 bm1.replace_list([1], [2], inplace=value)
 
 
-class TestIndexing(object):
+class TestIndexing:
     # Nosetests-style data-driven tests.
     #
     # This test applies different indexing routines to block managers and
@@ -909,7 +906,7 @@ class TestIndexing(object):
 
                 # fancy indexer
                 assert_slice_ok(mgr, ax, [])
-                assert_slice_ok(mgr, ax, lrange(mgr.shape[ax]))
+                assert_slice_ok(mgr, ax, list(range(mgr.shape[ax])))
 
                 if mgr.shape[ax] >= 3:
                     assert_slice_ok(mgr, ax, [0, 1, 2])
@@ -927,13 +924,13 @@ class TestIndexing(object):
         for mgr in self.MANAGERS:
             for ax in range(mgr.ndim):
                 # take/fancy indexer
-                assert_take_ok(mgr, ax, [])
-                assert_take_ok(mgr, ax, [0, 0, 0])
-                assert_take_ok(mgr, ax, lrange(mgr.shape[ax]))
+                assert_take_ok(mgr, ax, indexer=[])
+                assert_take_ok(mgr, ax, indexer=[0, 0, 0])
+                assert_take_ok(mgr, ax, indexer=list(range(mgr.shape[ax])))
 
                 if mgr.shape[ax] >= 3:
-                    assert_take_ok(mgr, ax, [0, 1, 2])
-                    assert_take_ok(mgr, ax, [-1, -2, -3])
+                    assert_take_ok(mgr, ax, indexer=[0, 1, 2])
+                    assert_take_ok(mgr, ax, indexer=[-1, -2, -3])
 
     def test_reindex_axis(self):
         def assert_reindex_axis_is_ok(mgr, axis, new_labels, fill_value):
@@ -1038,7 +1035,7 @@ class TestIndexing(object):
     # reindex_indexer(new_labels, indexer, axis)
 
 
-class TestBlockPlacement(object):
+class TestBlockPlacement:
 
     def test_slice_len(self):
         assert len(BlockPlacement(slice(0, 4))) == 4
@@ -1180,7 +1177,7 @@ class TestBlockPlacement(object):
                 BlockPlacement(slice(2, None, -1)).add(-1)
 
 
-class DummyElement(object):
+class DummyElement:
     def __init__(self, value, dtype):
         self.value = value
         self.dtype = np.dtype(dtype)
@@ -1205,7 +1202,7 @@ class DummyElement(object):
         return bool(self.value)
 
 
-class TestCanHoldElement(object):
+class TestCanHoldElement:
     @pytest.mark.parametrize('value, dtype', [
         (1, 'i8'),
         (1.0, 'f8'),
@@ -1293,3 +1290,23 @@ def test_block_shape():
 
     assert (a._data.blocks[0].mgr_locs.indexer ==
             b._data.blocks[0].mgr_locs.indexer)
+
+
+def test_make_block_no_pandas_array():
+    # https://github.com/pandas-dev/pandas/pull/24866
+    arr = pd.array([1, 2])
+
+    # PandasArray, no dtype
+    result = make_block(arr, slice(len(arr)))
+    assert result.is_integer is True
+    assert result.is_extension is False
+
+    # PandasArray, PandasDtype
+    result = make_block(arr, slice(len(arr)), dtype=arr.dtype)
+    assert result.is_integer is True
+    assert result.is_extension is False
+
+    # ndarray, PandasDtype
+    result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype)
+    assert result.is_integer is True
+    assert result.is_extension is False

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
@@ -13,7 +11,6 @@ import pytest
 
 import pandas._libs.parsers as parser
 from pandas._libs.parsers import TextReader
-import pandas.compat as compat
 
 from pandas import DataFrame
 import pandas.util.testing as tm
@@ -22,7 +19,7 @@ from pandas.util.testing import assert_frame_equal
 from pandas.io.parsers import TextFileReader, read_csv
 
 
-class TestTextReader(object):
+class TestTextReader:
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
@@ -347,6 +344,6 @@ a,b,c
 
 
 def assert_array_dicts_equal(left, right):
-    for k, v in compat.iteritems(left):
-        assert tm.assert_numpy_array_equal(np.asarray(v),
-                                           np.asarray(right[k]))
+    for k, v in left.items():
+        tm.assert_numpy_array_equal(np.asarray(v),
+                                    np.asarray(right[k]))

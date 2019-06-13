@@ -8,7 +8,7 @@ import pytest
 from pandas.io.msgpack import Packer, Unpacker, packb, unpackb
 
 
-class TestPack(object):
+class TestPack:
 
     def check(self, data, use_list=False):
         re = unpackb(packb(data), use_list=use_list)
@@ -64,7 +64,7 @@ class TestPack(object):
             unpackb(packb(b'abc\xeddef'), encoding='utf-8', use_list=1)
 
     def testStrictUnicodePack(self):
-        msg = (r"'ascii' codec can't encode character u*'\\xed' in position 3:"
+        msg = (r"'ascii' codec can't encode character '\\xed' in position 3:"
                r" ordinal not in range\(128\)")
         with pytest.raises(UnicodeEncodeError, match=msg):
             packb("abc\xeddef", encoding='ascii', unicode_errors='strict')

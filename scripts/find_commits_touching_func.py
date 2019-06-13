@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # copyright 2013, y-p @ github
 """
 Search the git history for all commits touching a named method
@@ -16,7 +15,9 @@ import re
 import os
 import argparse
 from collections import namedtuple
-from pandas.compat import lrange, parse_date
+
+from dateutil.parser import parse
+
 try:
     import sh
 except ImportError:
@@ -107,7 +108,7 @@ def get_commit_info(c, fmt, sep='\t'):
 
 def get_commit_vitals(c, hlen=HASH_LEN):
     h, s, d = get_commit_info(c, '%H\t%s\t%ci', "\t")
-    return h[:hlen], s, parse_date(d)
+    return h[:hlen], s, parse(d)
 
 
 def file_filter(state, dirname, fnames):
@@ -173,7 +174,7 @@ def pprint_hits(hits):
 
     print(('\nThese commits touched the %s method in these files '
            'on these dates:\n') % args.funcname)
-    for i in sorted(lrange(len(hits)), key=sorter):
+    for i in sorted(range(len(hits)), key=sorter):
         hit = hits[i]
         h, s, d = get_commit_vitals(hit.commit)
         p = hit.path.split(os.path.realpath(os.curdir) + os.path.sep)[-1]

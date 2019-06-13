@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
@@ -24,7 +23,7 @@ def left_right_dtypes(request):
     return request.param
 
 
-class TestMethods(object):
+class TestMethods:
 
     @pytest.mark.parametrize('new_closed', [
         'left', 'right', 'both', 'neither'])
@@ -47,7 +46,7 @@ class TestMethods(object):
             ser.where([True, False, True], other=other)
 
 
-class TestSetitem(object):
+class TestSetitem:
 
     def test_set_na(self, left_right_dtypes):
         left, right = left_right_dtypes

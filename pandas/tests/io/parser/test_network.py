@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests parsers ability to read and parse non-local files
 and hence require a network connection to be read.
@@ -54,7 +52,7 @@ def tips_df(datapath):
 
 @pytest.mark.usefixtures("s3_resource")
 @td.skip_if_not_us_locale()
-class TestS3(object):
+class TestS3:
 
     def test_parse_public_s3_bucket(self, tips_df):
         pytest.importorskip('s3fs')
@@ -198,3 +196,8 @@ class TestS3(object):
             read_csv("s3://pandas-test/large-file.csv", nrows=5)
             # log of fetch_range (start, stop)
             assert ((0, 5505024) in {x.args[-2:] for x in caplog.records})
+
+    def test_read_s3_with_hash_in_key(self, tips_df):
+        # GH 25945
+        result = read_csv('s3://pandas-test/tips#1.csv')
+        tm.assert_frame_equal(tips_df, result)

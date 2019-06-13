@@ -1,21 +1,23 @@
 """ s3 support for remote file interactivity """
-try:
-    import s3fs
-    from botocore.exceptions import NoCredentialsError
-except ImportError:
-    raise ImportError("The s3fs library is required to handle s3 files")
-
 from urllib.parse import urlparse as parse_url
+
+from pandas.compat._optional import import_optional_dependency
+
+s3fs = import_optional_dependency(
+    "s3fs",
+    extra="The s3fs package is required to handle s3 files."
+)
 
 
 def _strip_schema(url):
     """Returns the url without the s3:// part"""
-    result = parse_url(url)
+    result = parse_url(url, allow_fragments=False)
     return result.netloc + result.path
 
 
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
                            compression=None, mode=None):
+    from botocore.exceptions import NoCredentialsError
 
     if mode is None:
         mode = 'rb'
@@ -32,5 +34,5 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
         # for that bucket.
         fs = s3fs.S3FileSystem(anon=True)
         filepath_or_buffer = fs.open(
-            _strip_schema(filepath_or_buffer), mode)  # type: s3fs.S3File
+            _strip_schema(filepath_or_buffer), mode)
     return filepath_or_buffer, None, compression, True

@@ -1,4 +1,3 @@
-# pylint: disable-msg=E1101,W0613,W0603
 from io import StringIO
 from itertools import islice
 import os
@@ -7,12 +6,11 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas.compat import to_str
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
-from pandas import DataFrame, MultiIndex, Series, compat, isna, to_datetime
+from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
@@ -77,7 +75,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
         path_or_buf.write(s)
 
 
-class Writer(object):
+class Writer:
     def __init__(self, obj, orient, date_format, double_precision,
                  ensure_ascii, date_unit, index, default_handler=None):
         self.obj = obj
@@ -129,10 +127,8 @@ class SeriesWriter(Writer):
                date_unit, iso_dates, default_handler):
         if not self.index and orient == 'split':
             obj = {"name": obj.name, "data": obj.values}
-        return super(SeriesWriter, self)._write(obj, orient,
-                                                double_precision,
-                                                ensure_ascii, date_unit,
-                                                iso_dates, default_handler)
+        return super()._write(obj, orient, double_precision, ensure_ascii,
+                              date_unit, iso_dates, default_handler)
 
 
 class FrameWriter(Writer):
@@ -156,10 +152,8 @@ class FrameWriter(Writer):
         if not self.index and orient == 'split':
             obj = obj.to_dict(orient='split')
             del obj["index"]
-        return super(FrameWriter, self)._write(obj, orient,
-                                               double_precision,
-                                               ensure_ascii, date_unit,
-                                               iso_dates, default_handler)
+        return super()._write(obj, orient, double_precision, ensure_ascii,
+                              date_unit, iso_dates, default_handler)
 
 
 class JSONTableWriter(FrameWriter):
@@ -173,9 +167,9 @@ class JSONTableWriter(FrameWriter):
         to know what the index is, forces orient to records, and forces
         date_format to 'iso'.
         """
-        super(JSONTableWriter, self).__init__(
-            obj, orient, date_format, double_precision, ensure_ascii,
-            date_unit, index, default_handler=default_handler)
+        super().__init__(obj, orient, date_format, double_precision,
+                         ensure_ascii, date_unit, index,
+                         default_handler=default_handler)
 
         if date_format != 'iso':
             msg = ("Trying to write with `orient='table'` and "
@@ -217,11 +211,8 @@ class JSONTableWriter(FrameWriter):
 
     def _write(self, obj, orient, double_precision, ensure_ascii,
                date_unit, iso_dates, default_handler):
-        data = super(JSONTableWriter, self)._write(obj, orient,
-                                                   double_precision,
-                                                   ensure_ascii, date_unit,
-                                                   iso_dates,
-                                                   default_handler)
+        data = super()._write(obj, orient, double_precision, ensure_ascii,
+                              date_unit, iso_dates, default_handler)
         serialized = '{{"schema": {schema}, "data": {data}}}'.format(
                      schema=dumps(self.schema), data=data)
         return serialized
@@ -338,8 +329,8 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
 
     chunksize : integer, default None
         Return JsonReader object for iteration.
-        See the `line-delimted json docs
-        <http://pandas.pydata.org/pandas-docs/stable/io.html#io-jsonl>`_
+        See the `line-delimited json docs
+        <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
@@ -553,8 +544,7 @@ class JsonReader(BaseIterator):
         if self.lines and self.chunksize:
             obj = concat(self)
         elif self.lines:
-
-            data = to_str(self.data)
+            data = ensure_str(self.data)
             obj = self._get_object_parser(
                 self._combine_lines(data.split('\n'))
             )
@@ -616,7 +606,7 @@ class JsonReader(BaseIterator):
         raise StopIteration
 
 
-class Parser(object):
+class Parser:
 
     _STAMP_UNITS = ('s', 'ms', 'us', 'ns')
     _MIN_STAMPS = {
@@ -822,8 +812,8 @@ class SeriesParser(Parser):
         json = self.json
         orient = self.orient
         if orient == "split":
-            decoded = {str(k): v for k, v in compat.iteritems(
-                loads(json, precise_float=self.precise_float))}
+            decoded = {str(k): v for k, v in loads(
+                json, precise_float=self.precise_float).items()}
             self.check_keys_split(decoded)
             self.obj = Series(dtype=None, **decoded)
         else:
@@ -837,7 +827,7 @@ class SeriesParser(Parser):
         if orient == "split":
             decoded = loads(json, dtype=None, numpy=True,
                             precise_float=self.precise_float)
-            decoded = {str(k): v for k, v in compat.iteritems(decoded)}
+            decoded = {str(k): v for k, v in decoded.items()}
             self.check_keys_split(decoded)
             self.obj = Series(**decoded)
         elif orient == "columns" or orient == "index":
@@ -875,7 +865,7 @@ class FrameParser(Parser):
         elif orient == "split":
             decoded = loads(json, dtype=None, numpy=True,
                             precise_float=self.precise_float)
-            decoded = {str(k): v for k, v in compat.iteritems(decoded)}
+            decoded = {str(k): v for k, v in decoded.items()}
             self.check_keys_split(decoded)
             self.obj = DataFrame(**decoded)
         elif orient == "values":
@@ -895,8 +885,8 @@ class FrameParser(Parser):
             self.obj = DataFrame(
                 loads(json, precise_float=self.precise_float), dtype=None)
         elif orient == "split":
-            decoded = {str(k): v for k, v in compat.iteritems(
-                loads(json, precise_float=self.precise_float))}
+            decoded = {str(k): v for k, v in loads(
+                json, precise_float=self.precise_float).items()}
             self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":

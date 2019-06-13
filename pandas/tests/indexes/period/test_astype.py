@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
@@ -8,7 +6,7 @@ from pandas import Index, Int64Index, NaT, Period, PeriodIndex, period_range
 import pandas.util.testing as tm
 
 
-class TestPeriodIndexAsType(object):
+class TestPeriodIndexAsType:
     @pytest.mark.parametrize('dtype', [
         float, 'timedelta64', 'timedelta64[ns]'])
     def test_astype_raises(self, dtype):

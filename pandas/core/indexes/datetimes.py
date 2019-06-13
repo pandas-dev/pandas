@@ -1,12 +1,11 @@
-# pylint: disable=E1101
 from datetime import datetime, time, timedelta
 import operator
 import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    Timestamp, index as libindex, join as libjoin, lib, tslib as libts)
+from pandas._libs import Timestamp, index as libindex, lib, tslib as libts
+import pandas._libs.join as libjoin
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -204,22 +203,23 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     to_frame
     month_name
     day_name
-
-    Notes
-    -----
-    To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    Creating a DatetimeIndex based on `start`, `periods`, and `end` has
-    been deprecated in favor of :func:`date_range`.
+    mean
 
     See Also
-    ---------
+    --------
     Index : The base pandas Index type.
     TimedeltaIndex : Index of timedelta64 data.
     PeriodIndex : Index of Period data.
     to_datetime : Convert argument to datetime.
     date_range : Create a fixed-frequency DatetimeIndex.
+
+    Notes
+    -----
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+
+    Creating a DatetimeIndex based on `start`, `periods`, and `end` has
+    been deprecated in favor of :func:`date_range`.
     """
     _typ = 'datetimeindex'
     _join_precedence = 10
@@ -241,13 +241,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _comparables = ['name', 'freqstr', 'tz']
     _attributes = ['name', 'tz', 'freq']
 
-    # dummy attribute so that datetime.__eq__(DatetimeArray) defers
-    # by returning NotImplemented
-    timetuple = None
-
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
+    # Use faster implementation given we know we have DatetimeArrays
+    __iter__ = DatetimeArray.__iter__
     # some things like freq inference make use of these attributes.
     _bool_ops = DatetimeArray._bool_ops
     _object_ops = DatetimeArray._object_ops
@@ -388,7 +386,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         if isinstance(state, dict):
-            super(DatetimeIndex, self).__setstate__(state)
+            super().__setstate__(state)
 
         elif isinstance(state, tuple):
 
@@ -456,38 +454,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    def union(self, other, sort=None):
-        """
-        Specialized union for DatetimeIndex objects. If combine
-        overlapping ranges with the same DateOffset, will be much
-        faster than Index.union
-
-        Parameters
-        ----------
-        other : DatetimeIndex or array-like
-        sort : bool or None, default None
-            Whether to sort the resulting Index.
-
-            * None : Sort the result, except when
-
-              1. `self` and `other` are equal.
-              2. `self` or `other` has length 0.
-              3. Some values in `self` or `other` cannot be compared.
-                 A RuntimeWarning is issued in this case.
-
-            * False : do not sort the result
-
-            .. versionadded:: 0.25.0
-
-        Returns
-        -------
-        y : Index or DatetimeIndex
-        """
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
+    def _union(self, other, sort):
+        if not len(other) or self.equals(other) or not len(self):
+            return super()._union(other, sort=sort)
 
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super(DatetimeIndex, self).union(other, sort=sort)
+            return super().union(other, sort=sort)
 
         if not isinstance(other, DatetimeIndex):
             try:
@@ -500,7 +472,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if this._can_fast_union(other):
             return this._fast_union(other, sort=sort)
         else:
-            result = Index.union(this, other, sort=sort)
+            result = Index._union(this, other, sort=sort)
             if isinstance(result, DatetimeIndex):
                 # TODO: we shouldn't be setting attributes like this;
                 #  in all the tests this equality already holds
@@ -612,14 +584,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         else:
             return left
 
-    def _wrap_setop_result(self, other, result):
-        name = get_op_result_name(self, other)
-        return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
-
     def intersection(self, other, sort=False):
         """
-        Specialized intersection for DatetimeIndex objects. May be much faster
-        than Index.intersection
+        Specialized intersection for DatetimeIndex objects.
+        May be much faster than Index.intersection
 
         Parameters
         ----------
@@ -636,58 +604,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         Returns
         -------
-        y : Index or DatetimeIndex
+        y : Index or DatetimeIndex or TimedeltaIndex
         """
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
+        return super().intersection(other, sort=sort)
 
-        if self.equals(other):
-            return self._get_reconciled_name_object(other)
-
-        if not isinstance(other, DatetimeIndex):
-            try:
-                other = DatetimeIndex(other)
-            except (TypeError, ValueError):
-                pass
-            result = Index.intersection(self, other, sort=sort)
-            if isinstance(result, DatetimeIndex):
-                if result.freq is None:
-                    result.freq = to_offset(result.inferred_freq)
-            return result
-
-        elif (other.freq is None or self.freq is None or
-              other.freq != self.freq or
-              not other.freq.isAnchored() or
-              (not self.is_monotonic or not other.is_monotonic)):
-            result = Index.intersection(self, other, sort=sort)
-            # Invalidate the freq of `result`, which may not be correct at
-            # this point, depending on the values.
-            result.freq = None
-            result = self._shallow_copy(result._values, name=result.name,
-                                        tz=result.tz, freq=None)
-            if result.freq is None:
-                result.freq = to_offset(result.inferred_freq)
-            return result
-
-        if len(self) == 0:
-            return self
-        if len(other) == 0:
-            return other
-        # to make our life easier, "sort" the two ranges
-        if self[0] <= other[0]:
-            left, right = self, other
-        else:
-            left, right = other, self
-
-        end = min(left[-1], right[-1])
-        start = right[0]
-
-        if end < start:
-            return type(self)(data=[])
-        else:
-            lslice = slice(*left.slice_locs(start, end))
-            left_chunk = left.values[lslice]
-            return self._shallow_copy(left_chunk)
+    def _wrap_setop_result(self, other, result):
+        name = get_op_result_name(self, other)
+        return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
 
     # --------------------------------------------------------------------
 
@@ -743,7 +666,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             name = self.name
 
         if keep_tz is None and self.tz is not None:
-            warnings.warn("The default of the 'keep_tz' keyword will change "
+            warnings.warn("The default of the 'keep_tz' keyword in "
+                          "DatetimeIndex.to_series will change "
                           "to True in a future release. You can set "
                           "'keep_tz=True' to obtain the future behaviour and "
                           "silence this warning.", FutureWarning, stacklevel=2)
@@ -766,6 +690,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def snap(self, freq='S'):
         """
         Snap time stamps to nearest occurring frequency
+
+        Returns
+        -------
+        DatetimeIndex
         """
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
@@ -1162,9 +1090,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
-    _timezone = cache_readonly(DatetimeArray._timezone.fget)
-    is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
-    _resolution = cache_readonly(DatetimeArray._resolution.fget)
+    _timezone = cache_readonly(DatetimeArray._timezone.fget)  # type: ignore
+    is_normalized = cache_readonly(
+        DatetimeArray.is_normalized.fget)  # type: ignore
+    _resolution = cache_readonly(
+        DatetimeArray._resolution.fget)  # type: ignore
 
     strftime = ea_passthrough(DatetimeArray.strftime)
     _has_same_tz = ea_passthrough(DatetimeArray._has_same_tz)
@@ -1450,7 +1380,7 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     ``start`` and ``end`` (closed on both sides).
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
@@ -1606,7 +1536,7 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     desired.
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
@@ -1678,7 +1608,7 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
     must be specified.
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Returns
     -------

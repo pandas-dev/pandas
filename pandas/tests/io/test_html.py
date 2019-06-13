@@ -77,11 +77,9 @@ def test_same_ordering(datapath):
 
 
 @pytest.mark.parametrize("flavor", [
-    pytest.param('bs4', marks=pytest.mark.skipif(
-        not td.safe_import('lxml'), reason='No bs4')),
-    pytest.param('lxml', marks=pytest.mark.skipif(
-        not td.safe_import('lxml'), reason='No lxml'))], scope="class")
-class TestReadHtml(object):
+    pytest.param('bs4', marks=td.skip_if_no('lxml')),
+    pytest.param('lxml', marks=td.skip_if_no('lxml'))], scope="class")
+class TestReadHtml:
 
     @pytest.fixture(autouse=True)
     def set_files(self, datapath):
@@ -1109,7 +1107,7 @@ class TestReadHtml(object):
     def test_parse_failure_rewinds(self):
         # Issue #17975
 
-        class MockFile(object):
+        class MockFile:
             def __init__(self, data):
                 self.data = data
                 self.at_end = False
@@ -1138,7 +1136,7 @@ class TestReadHtml(object):
         class ErrorThread(threading.Thread):
             def run(self):
                 try:
-                    super(ErrorThread, self).run()
+                    super().run()
                 except Exception as e:
                     self.err = e
                 else:

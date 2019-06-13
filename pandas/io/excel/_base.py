@@ -1,14 +1,13 @@
 import abc
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
+from io import BytesIO
 import os
 from textwrap import fill
-import warnings
+from urllib.request import urlopen
 
 from pandas._config import config
 
-import pandas.compat as compat
-from pandas.compat import add_metaclass
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
@@ -17,7 +16,9 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import _NA_VALUES, _stringify_path, _validate_header_arg
+from pandas.io.common import (
+    _NA_VALUES, _is_url, _stringify_path, _validate_header_arg,
+    get_filepath_or_buffer)
 from pandas.io.excel._util import (
     _fill_mi_header, _get_default_writer, _maybe_convert_usecols,
     _pop_header_name, get_writer)
@@ -63,12 +64,6 @@ index_col : int, list of int, default None
     those columns will be combined into a ``MultiIndex``.  If a
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
-parse_cols : int or list, default None
-    Alias of `usecols`.
-
-    .. deprecated:: 0.21.0
-       Use `usecols` instead.
-
 usecols : int, str, list-like, or callable default None
     Return a subset of the columns.
 
@@ -144,12 +139,12 @@ parse_dates : bool, list-like, or dict, default False
       each as a separate date column.
     * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
       a single date column.
-    * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+    * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
       result 'foo'
 
     If a column or index contains an unparseable date, the entire column or
     index will be returned unaltered as an object data type. For non-standard
-    datetime parsing, use ``pd.to_datetime`` after ``pd.read_csv``
+    datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_parser : function, optional
@@ -259,14 +254,12 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 
 
 @Appender(_read_excel_doc)
-@deprecate_kwarg("parse_cols", "usecols")
 @deprecate_kwarg("skip_footer", "skipfooter")
 def read_excel(io,
                sheet_name=0,
                header=0,
                names=None,
                index_col=None,
-               parse_cols=None,
                usecols=None,
                squeeze=False,
                dtype=None,
@@ -289,18 +282,16 @@ def read_excel(io,
                mangle_dupe_cols=True,
                **kwds):
 
-    # Can't use _deprecate_kwarg since sheetname=None has a special meaning
-    if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
-        warnings.warn("The `sheetname` keyword is deprecated, use "
-                      "`sheet_name` instead", FutureWarning, stacklevel=2)
-        sheet_name = kwds.pop("sheetname")
-
-    if 'sheet' in kwds:
-        raise TypeError("read_excel() got an unexpected keyword argument "
-                        "`sheet`")
+    for arg in ('sheet', 'sheetname', 'parse_cols'):
+        if arg in kwds:
+            raise TypeError("read_excel() got an unexpected keyword argument "
+                            "`{}`".format(arg))
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
+    elif engine and engine != io.engine:
+        raise ValueError("Engine should not be specified when passing "
+                         "an ExcelFile - ExcelFile already has the engine set")
 
     return io.parse(
         sheet_name=sheet_name,
@@ -328,8 +319,37 @@ def read_excel(io,
         **kwds)
 
 
-@add_metaclass(abc.ABCMeta)
-class _BaseExcelReader(object):
+class _BaseExcelReader(metaclass=abc.ABCMeta):
+
+    def __init__(self, filepath_or_buffer):
+        # If filepath_or_buffer is a url, load the data into a BytesIO
+        if _is_url(filepath_or_buffer):
+            filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
+        elif not isinstance(filepath_or_buffer,
+                            (ExcelFile, self._workbook_class)):
+            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
+                filepath_or_buffer)
+
+        if isinstance(filepath_or_buffer, self._workbook_class):
+            self.book = filepath_or_buffer
+        elif hasattr(filepath_or_buffer, "read"):
+            # N.B. xlrd.Book has a read attribute too
+            filepath_or_buffer.seek(0)
+            self.book = self.load_workbook(filepath_or_buffer)
+        elif isinstance(filepath_or_buffer, str):
+            self.book = self.load_workbook(filepath_or_buffer)
+        else:
+            raise ValueError('Must explicitly set engine if not passing in'
+                             ' buffer or path for io.')
+
+    @property
+    @abc.abstractmethod
+    def _workbook_class(self):
+        pass
+
+    @abc.abstractmethod
+    def load_workbook(self, filepath_or_buffer):
+        pass
 
     @property
     @abc.abstractmethod
@@ -487,8 +507,7 @@ class _BaseExcelReader(object):
             return output[asheetname]
 
 
-@add_metaclass(abc.ABCMeta)
-class ExcelWriter(object):
+class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets, default is to use
     xlwt for xls, openpyxl for xlsx.  See DataFrame.to_excel for typical usage.
@@ -506,7 +525,7 @@ class ExcelWriter(object):
     datetime_format : string, default None
         Format string for datetime objects written into Excel files
         (e.g. 'YYYY-MM-DD HH:MM:SS')
-    mode : {'w' or 'a'}, default 'w'
+    mode : {'w', 'a'}, default 'w'
         File mode to use (write or append).
 
         .. versionadded:: 0.24.0
@@ -575,7 +594,7 @@ class ExcelWriter(object):
     def __new__(cls, path, engine=None, **kwargs):
         # only switch class if generic(ExcelWriter)
 
-        if issubclass(cls, ExcelWriter):
+        if cls is ExcelWriter:
             if engine is None or (isinstance(engine, str) and
                                   engine == 'auto'):
                 if isinstance(path, str):
@@ -600,14 +619,16 @@ class ExcelWriter(object):
     curr_sheet = None
     path = None
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def supported_extensions(self):
-        "extensions that writer engine supports"
+        """Extensions that writer engine supports."""
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def engine(self):
-        "name of engine"
+        """Name of engine."""
         pass
 
     @abc.abstractmethod
@@ -702,7 +723,7 @@ class ExcelWriter(object):
             val = val.total_seconds() / float(86400)
             fmt = '0'
         else:
-            val = compat.to_str(val)
+            val = str(val)
 
         return val, fmt
 
@@ -732,7 +753,7 @@ class ExcelWriter(object):
         return self.save()
 
 
-class ExcelFile(object):
+class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
     Uses xlrd. See read_excel for more documentation
@@ -759,6 +780,7 @@ class ExcelFile(object):
         if engine not in self._engines:
             raise ValueError("Unknown engine: {engine}".format(engine=engine))
 
+        self.engine = engine
         # could be a str, ExcelFile, Book, etc.
         self.io = io
         # Always a string
@@ -795,17 +817,12 @@ class ExcelFile(object):
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
         docstring for more info on accepted parameters
+
+        Returns
+        -------
+        DataFrame or dict of DataFrames
+            DataFrame from the passed in Excel file.
         """
-
-        # Can't use _deprecate_kwarg since sheetname=None has a special meaning
-        if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
-            warnings.warn("The `sheetname` keyword is deprecated, use "
-                          "`sheet_name` instead", FutureWarning, stacklevel=2)
-            sheet_name = kwds.pop("sheetname")
-        elif 'sheetname' in kwds:
-            raise TypeError("Cannot specify both `sheet_name` "
-                            "and `sheetname`. Use just `sheet_name`")
-
         if 'chunksize' in kwds:
             raise NotImplementedError("chunksize keyword of read_excel "
                                       "is not implemented")

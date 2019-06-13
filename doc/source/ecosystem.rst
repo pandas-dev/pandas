@@ -285,6 +285,11 @@ provides a familiar ``DataFrame`` interface for out-of-core, parallel and distri
 
 Dask-ML enables parallel and distributed machine learning using Dask alongside existing machine learning libraries like Scikit-Learn, XGBoost, and TensorFlow.
 
+`Koalas <https://koalas.readthedocs.io/en/latest/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Koalas provides a familiar pandas DataFrame interface on top of Apache Spark. It enables users to leverage multi-cores on one machine or a cluster of machines to speed up or scale their DataFrame code.
+
 `Odo <http://odo.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -358,4 +363,5 @@ Library        Accessor   Classes
 ============== ========== =========================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
-.. _pdvega: https://jakevdp.github.io/pdvega/
+.. _pdvega: https://altair-viz.github.io/pdvega/
+

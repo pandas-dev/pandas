@@ -1,14 +1,8 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime
 
 import numpy as np
 from numpy import nan
 import pytest
-
-import pandas.compat as compat
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import Categorical, Series, date_range, isna
@@ -171,13 +165,13 @@ def test_reindex(test_data):
     subIndex = test_data.series.index[10:20]
     subSeries = test_data.series.reindex(subIndex)
 
-    for idx, val in compat.iteritems(subSeries):
+    for idx, val in subSeries.items():
         assert val == test_data.series[idx]
 
     subIndex2 = test_data.ts.index[10:20]
     subTS = test_data.ts.reindex(subIndex2)
 
-    for idx, val in compat.iteritems(subTS):
+    for idx, val in subTS.items():
         assert val == test_data.ts[idx]
     stuffSeries = test_data.ts.reindex(subIndex)
 
@@ -186,7 +180,7 @@ def test_reindex(test_data):
     # This is extremely important for the Cython code to not screw up
     nonContigIndex = test_data.ts.index[::2]
     subNonContig = test_data.ts.reindex(nonContigIndex)
-    for idx, val in compat.iteritems(subNonContig):
+    for idx, val in subNonContig.items():
         assert val == test_data.ts[idx]
 
     # return a copy the same index here
@@ -210,7 +204,7 @@ def test_reindex_series_add_nat():
     rng = date_range('1/1/2000 00:00:00', periods=10, freq='10s')
     series = Series(rng)
 
-    result = series.reindex(lrange(15))
+    result = series.reindex(range(15))
     assert np.issubdtype(result.dtype, np.dtype('M8[ns]'))
 
     mask = result.isna()
@@ -284,9 +278,9 @@ def test_reindex_pad():
     assert_series_equal(result, expected)
 
     # GH4618 shifted series downcasting
-    s = Series(False, index=lrange(0, 5))
+    s = Series(False, index=range(0, 5))
     result = s.shift(1).fillna(method='bfill')
-    expected = Series(False, index=lrange(0, 5))
+    expected = Series(False, index=range(0, 5))
     assert_series_equal(result, expected)
 
 

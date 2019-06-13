@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101,W0141
 import datetime
 from io import StringIO
 import itertools
@@ -10,8 +8,6 @@ import numpy as np
 from numpy.random import randn
 import pytest
 import pytz
-
-from pandas.compat import lrange, lzip
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
@@ -24,7 +20,7 @@ AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
                  'std', 'var', 'sem']
 
 
-class Base(object):
+class Base:
 
     def setup_method(self, method):
 
@@ -42,7 +38,7 @@ class Base(object):
         # create test series object
         arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        tuples = lzip(*arrays)
+        tuples = zip(*arrays)
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
         s[3] = np.NaN
@@ -129,8 +125,8 @@ class TestMultiLevel(Base):
         multi = Series(1., index=[['a', 'a', 'b', 'b'], ['x', 'y', 'x', 'y']])
         assert isinstance(multi.index, MultiIndex)
 
-        multi = Series(lrange(4), index=[['a', 'a', 'b', 'b'],
-                                         ['x', 'y', 'x', 'y']])
+        multi = Series(range(4), index=[['a', 'a', 'b', 'b'],
+                                        ['x', 'y', 'x', 'y']])
         assert isinstance(multi.index, MultiIndex)
 
     def test_reindex_level(self):
@@ -192,7 +188,7 @@ class TestMultiLevel(Base):
         tm.assert_frame_equal(reindexed, expected)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             reindexed = self.frame.ix[[('foo', 'one'), ('bar', 'one')]]
         tm.assert_frame_equal(reindexed, expected)
 
@@ -205,7 +201,7 @@ class TestMultiLevel(Base):
         assert chunk.index is new_index
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             chunk = self.ymd.ix[new_index]
         assert chunk.index is new_index
 
@@ -1018,7 +1014,7 @@ Thur,Lunch,Yes,51.51,17"""
         df['Totals', ''] = df.sum(1)
         df = df._consolidate()
 
-    def test_ix_preserve_names(self):
+    def test_loc_preserve_names(self):
         result = self.ymd.loc[2000]
         result2 = self.ymd['A'].loc[2000]
         assert result.index.names == self.ymd.index.names[1:]
@@ -1319,7 +1315,7 @@ Thur,Lunch,Yes,51.51,17"""
         index = MultiIndex.from_tuples([(0, 0), (1, 1)],
                                        names=['\u0394', 'i1'])
 
-        s = Series(lrange(2), index=index)
+        s = Series(range(2), index=index)
         df = DataFrame(np.random.randn(2, 4), index=index)
         repr(s)
         repr(df)
@@ -2040,7 +2036,7 @@ class TestSorted(Base):
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two'],
                   [4, 3, 2, 1, 4, 3, 2, 1]]
-        tuples = lzip(*arrays)
+        tuples = zip(*arrays)
         mi = MultiIndex.from_tuples(tuples, names=['first', 'second', 'third'])
         s = Series(range(8), index=mi)
 

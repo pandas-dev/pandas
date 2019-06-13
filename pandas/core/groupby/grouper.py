@@ -3,6 +3,7 @@ Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
 
+from typing import Tuple
 import warnings
 
 import numpy as np
@@ -25,7 +26,7 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 
-class Grouper(object):
+class Grouper:
     """
     A Grouper allows the user to specify a groupby instruction for a target
     object
@@ -48,7 +49,7 @@ class Grouper(object):
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see `here
-        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`_.
+        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
     axis : number/name of the axis, defaults to 0
     sort : boolean, default to False
         whether to sort the resulting labels
@@ -84,13 +85,14 @@ class Grouper(object):
 
     >>> df.groupby(Grouper(level='date', freq='60s', axis=1))
     """
-    _attributes = ('key', 'level', 'freq', 'axis', 'sort')
+    _attributes = ('key', 'level', 'freq', 'axis',
+                   'sort')  # type: Tuple[str, ...]
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get('freq') is not None:
             from pandas.core.resample import TimeGrouper
             cls = TimeGrouper
-        return super(Grouper, cls).__new__(cls)
+        return super().__new__(cls)
 
     def __init__(self, key=None, level=None, freq=None, axis=0, sort=False):
         self.key = key
@@ -204,7 +206,7 @@ class Grouper(object):
         return "{}({})".format(cls_name, attrs)
 
 
-class Grouping(object):
+class Grouping:
 
     """
     Holds the grouping information for a single key
@@ -278,7 +280,7 @@ class Grouping(object):
             if self.name is None:
                 self.name = grouper.result_index.name
             self.obj = self.grouper.obj
-            self.grouper = grouper
+            self.grouper = grouper._get_grouper()
 
         else:
             if self.grouper is None and self.name is not None:
@@ -522,21 +524,17 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     any_arraylike = any(isinstance(g, (list, tuple, Series, Index, np.ndarray))
                         for g in keys)
 
-    try:
+    # is this an index replacement?
+    if (not any_callable and not any_arraylike and not any_groupers and
+            match_axis_length and level is None):
         if isinstance(obj, DataFrame):
-            all_in_columns_index = all(g in obj.columns or g in obj.index.names
-                                       for g in keys)
+            all_in_columns_index = all(g in obj.columns or g in
+                                       obj.index.names for g in keys)
         elif isinstance(obj, Series):
             all_in_columns_index = all(g in obj.index.names for g in keys)
-        else:
-            all_in_columns_index = False
-    except Exception:
-        all_in_columns_index = False
 
-    if (not any_callable and not all_in_columns_index and
-            not any_arraylike and not any_groupers and
-            match_axis_length and level is None):
-        keys = [com.asarray_tuplesafe(keys)]
+        if not all_in_columns_index:
+            keys = [com.asarray_tuplesafe(keys)]
 
     if isinstance(level, (tuple, list)):
         if key is None:

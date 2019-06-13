@@ -22,18 +22,15 @@ from dateutil.relativedelta import relativedelta
 import numpy as np
 
 from pandas._libs.lib import infer_dtype
-from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
-from pandas.compat import lmap, lrange, lzip
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_datetime64_dtype)
 
 from pandas import (
-    DatetimeIndex, compat, concat, isna, to_datetime, to_timedelta)
-from pandas.core.arrays import Categorical
-from pandas.core.base import StringMixin
+    Categorical, DatetimeIndex, NaT, Timestamp, concat, isna, to_datetime,
+    to_timedelta)
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
@@ -593,12 +590,12 @@ def _cast_to_stata_types(data):
     return data
 
 
-class StataValueLabel(object):
+class StataValueLabel:
     """
     Parse a categorical column and prepare formatted output
 
     Parameters
-    -----------
+    ----------
     value : int8, int16, int32, float32 or float64
         The Stata missing value code
 
@@ -714,12 +711,12 @@ class StataValueLabel(object):
         return bio.read()
 
 
-class StataMissingValue(StringMixin):
+class StataMissingValue:
     """
     An observation's missing value.
 
     Parameters
-    -----------
+    ----------
     value : int8, int16, int32, float32 or float64
         The Stata missing value code
 
@@ -806,7 +803,7 @@ class StataMissingValue(StringMixin):
     value = property(lambda self: self._value,
                      doc='The binary representation of the missing value.')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.string
 
     def __repr__(self):
@@ -834,7 +831,7 @@ class StataMissingValue(StringMixin):
         return value
 
 
-class StataParser(object):
+class StataParser:
 
     def __init__(self):
 
@@ -853,17 +850,16 @@ class StataParser(object):
         # NOTE: the byte type seems to be reserved for categorical variables
         # with a label, but the underlying variable is -127 to 100
         # we're going to drop the label and cast to int
-        self.DTYPE_MAP = \
-            dict(
-                lzip(range(1, 245), ['a' + str(i) for i in range(1, 245)]) +
-                [
-                    (251, np.int8),
-                    (252, np.int16),
-                    (253, np.int32),
-                    (254, np.float32),
-                    (255, np.float64)
-                ]
-            )
+        self.DTYPE_MAP = dict(
+            list(zip(range(1, 245), ['a' + str(i) for i in range(1, 245)])) +
+            [
+                (251, np.int8),
+                (252, np.int16),
+                (253, np.int32),
+                (254, np.float32),
+                (255, np.float64)
+            ]
+        )
         self.DTYPE_MAP_XML = \
             dict(
                 [
@@ -875,7 +871,7 @@ class StataParser(object):
                     (65530, np.int8)
                 ]
             )
-        self.TYPE_MAP = lrange(251) + list('bhlfd')
+        self.TYPE_MAP = list(range(251)) + list('bhlfd')
         self.TYPE_MAP_XML = \
             dict(
                 [
@@ -956,7 +952,7 @@ class StataReader(StataParser, BaseIterator):
                  convert_missing=False, preserve_dtypes=True,
                  columns=None, order_categoricals=True,
                  encoding=None, chunksize=None):
-        super(StataReader, self).__init__()
+        super().__init__()
         self.col_sizes = ()
 
         # Arguments to the reader (can be temporarily overridden in
@@ -1032,7 +1028,7 @@ class StataReader(StataParser, BaseIterator):
                                     if type(x) is int]) > 0
 
         # calculate size of a data record
-        self.col_sizes = lmap(lambda x: self._calcsize(x), self.typlist)
+        self.col_sizes = [self._calcsize(typ) for typ in self.typlist]
 
     def _read_new_header(self, first_char):
         # The first part of the header is common to 117 and 118.
@@ -1050,7 +1046,7 @@ class StataReader(StataParser, BaseIterator):
 
         self.nobs = self._get_nobs()
         self.path_or_buf.read(11)  # </N><label>
-        self.data_label = self._get_data_label()
+        self._data_label = self._get_data_label()
         self.path_or_buf.read(19)  # </label><timestamp>
         self.time_stamp = self._get_time_stamp()
         self.path_or_buf.read(26)  # </timestamp></header><map>
@@ -1237,7 +1233,7 @@ class StataReader(StataParser, BaseIterator):
                                   self.path_or_buf.read(2))[0]
         self.nobs = self._get_nobs()
 
-        self.data_label = self._get_data_label()
+        self._data_label = self._get_data_label()
 
         self.time_stamp = self._get_time_stamp()
 
@@ -1575,9 +1571,9 @@ the string values returned are correct."""
         data = self._do_convert_missing(data, convert_missing)
 
         if convert_dates:
-            cols = np.where(lmap(lambda x: any(x.startswith(fmt)
-                                               for fmt in _date_formats),
-                                 self.fmtlist))[0]
+            def any_startswith(x: str) -> bool:
+                return any(x.startswith(fmt) for fmt in _date_formats)
+            cols = np.where([any_startswith(x) for x in self.fmtlist])[0]
             for i in cols:
                 col = data.columns[i]
                 try:
@@ -1701,7 +1697,7 @@ the string values returned are correct."""
         """
         Converts categorical columns to Categorical type.
         """
-        value_labels = list(compat.iterkeys(value_label_dict))
+        value_labels = list(value_label_dict.keys())
         cat_converted_data = []
         for col, label in zip(data, lbllist):
             if label in value_labels:
@@ -1740,16 +1736,21 @@ The repeated labels are:
         data = DataFrame.from_dict(OrderedDict(cat_converted_data))
         return data
 
+    @property
     def data_label(self):
         """
         Return data label of Stata file.
         """
-        return self.data_label
+        return self._data_label
 
     def variable_labels(self):
         """
         Return variable labels as a dict, associating each variable name
         with corresponding label.
+
+        Returns
+        -------
+        dict
         """
         return dict(zip(self.varlist, self._variable_labels))
 
@@ -1757,6 +1758,10 @@ The repeated labels are:
         """
         Return a dict, associating each variable name a dict, associating
         each value its corresponding label.
+
+        Returns
+        -------
+        dict
         """
         if not self._value_labels_read:
             self._read_value_labels()
@@ -1997,7 +2002,7 @@ class StataWriter(StataParser):
     def __init__(self, fname, data, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
                  data_label=None, variable_labels=None):
-        super(StataWriter, self).__init__()
+        super().__init__()
         self._convert_dates = {} if convert_dates is None else convert_dates
         self._write_index = write_index
         self._encoding = 'latin-1'
@@ -2483,7 +2488,7 @@ def _pad_bytes_new(name, length):
     return name + b'\x00' * (length - len(name))
 
 
-class StataStrLWriter(object):
+class StataStrLWriter:
     """
     Converter for Stata StrLs
 
@@ -2750,11 +2755,10 @@ class StataWriter117(StataWriter):
         # Shallow copy since convert_strl might be modified later
         self._convert_strl = [] if convert_strl is None else convert_strl[:]
 
-        super(StataWriter117, self).__init__(fname, data, convert_dates,
-                                             write_index, byteorder=byteorder,
-                                             time_stamp=time_stamp,
-                                             data_label=data_label,
-                                             variable_labels=variable_labels)
+        super().__init__(fname, data, convert_dates, write_index,
+                         byteorder=byteorder, time_stamp=time_stamp,
+                         data_label=data_label,
+                         variable_labels=variable_labels)
         self._map = None
         self._strl_blob = None
 
