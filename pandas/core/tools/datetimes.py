@@ -12,7 +12,6 @@ from pandas._libs.tslibs.parsing import (  # noqa
 from pandas._libs.tslibs.strptime import array_strptime
 from pandas.util._decorators import deprecate_kwarg
 
-from pandas.core.algorithms import unique
 from pandas.core.dtypes.common import (
     ensure_object, is_datetime64_dtype, is_datetime64_ns_dtype,
     is_datetime64tz_dtype, is_float, is_integer, is_integer_dtype,
@@ -23,6 +22,14 @@ from pandas.core.dtypes.missing import notna
 
 from pandas._typing import ArrayLike
 from pandas.core import algorithms
+from pandas.core.algorithms import unique
+
+# ---------------------------------------------------------------------
+# types used in annotations
+
+ArrayConvertible = Union[list, tuple, ArrayLike, ABCSeries]
+
+# ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -43,7 +50,8 @@ def _guess_datetime_format_for_array(arr, **kwargs):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 
-def should_cache(arg, unique_share=0.7, check_count=None):
+def should_cache(arg: ArrayConvertible, unique_share: float = 0.7,
+                 check_count: Optional[int] = None) -> bool:
     """
     Decides whether to do caching.
 
@@ -53,14 +61,22 @@ def should_cache(arg, unique_share=0.7, check_count=None):
     Parameters
     ----------
     arg: listlike, tuple, 1-d array, Series
-    unique_share: float or None
+    unique_share: float, default=0.7, optional
         0 < unique_share < 1
-    check_count: int or None
+    check_count: int, optional
         0 <= check_count <= len(arg)
 
     Returns
     -------
     do_caching: bool
+
+    Notes
+    -----
+    By default for a sequence of less than 50 items in size, we don't do
+    caching; for the number of elements less than 5000, we take ten percent of
+    all elements to check for a uniqueness share; if the sequence size is more
+    than 5000, then we check only the first 500 elements.
+    All constants were chosen empirically by.
     """
     do_caching = True
 
