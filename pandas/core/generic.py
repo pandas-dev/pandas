@@ -4483,8 +4483,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def filter(self, items=None, like=None, regex=None, axis=None):
         """
-        Subset rows or columns of dataframe according to labels in
-        the specified index.
+        Filter columns or rows according to labels in the specified index.
+
+        .. deprecated:: 0.25.0
+            Use .select instead.
 
         Note that this routine does not filter a dataframe on its
         contents. The filter is applied to the labels of the index.
@@ -4540,10 +4542,76 @@ class NDFrame(PandasObject, SelectionMixin):
                  one  two  three
         rabbit    4    5      6
         """
+        msg = (".filter is deprecated and will be removed in the"
+               " future. Use .select instead.")
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        return self.select(items=items, like=like, regex=regex, axis=axis)
+
+    def select(self, items=None, like=None, regex=None, flags=0, axis=None):
+        """
+        Select columns or rows according to labels in the specified index.
+
+        Note that this routine does not filter a dataframe on its
+        contents. The filter is applied to the labels of the info axis.
+
+        Parameters
+        ----------
+        items : list-like
+            Keep labels from axis which are in items.
+        like : str
+            Keep labels from axis for which "like in label == True".
+        regex : str (regular expression)
+            Keep labels from axis for which re.search(regex, label) == True.
+        flags : int, default 0
+            re module flags, e.g. re.IGNORECASE. Can only be combined with
+            regex.
+        axis : int or string axis name
+            The axis to filter on.  By default this is the info axis,
+            'index' for Series, 'columns' for DataFrame.
+
+        Returns
+        -------
+        same type as input object
+
+        See Also
+        --------
+        DataFrame.loc
+
+        Notes
+        -----
+        The ``items``, ``like``, and ``regex`` parameters are
+        enforced to be mutually exclusive.
+
+        ``axis`` defaults to the info axis that is used when indexing
+        with ``[]``.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.array(([1, 2, 3], [4, 5, 6])),
+        ...                   index=['mouse', 'rabbit'],
+        ...                   columns=['one', 'two', 'three'])
+
+        >>> # select columns by name
+        >>> df.select(items=['one', 'three'])
+                 one  three
+        mouse     1      3
+        rabbit    4      6
+
+        >>> # select columns by regular expression
+        >>> df.select(regex='e$', axis=1)
+                 one  three
+        mouse     1      3
+        rabbit    4      6
+
+        >>> # select rows containing 'bbi'
+        >>> df.select(like='bbi', axis=0)
+                 one  two  three
+        rabbit    4    5      6
+        """
         import re
 
-        nkw = com.count_not_none(items, like, regex)
-        if nkw > 1:
+        num_not_none = com.count_not_none(items, like, regex)
+        if num_not_none > 1:
             raise TypeError('Keyword arguments `items`, `like`, or `regex` '
                             'are mutually exclusive')
 
@@ -4563,7 +4631,7 @@ class NDFrame(PandasObject, SelectionMixin):
         elif regex:
             def f(x):
                 return matcher.search(ensure_str(x)) is not None
-            matcher = re.compile(regex)
+            matcher = re.compile(regex, flags=flags)
             values = labels.map(f)
             return self.loc(axis=axis)[values]
         else:

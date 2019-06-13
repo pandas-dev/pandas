@@ -13,6 +13,11 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
 
+def test_filter_deprecated(int_frame):
+    with tm.assert_produces_warning(FutureWarning):
+        int_frame.filter(like='A')
+
+
 class TestDataFrameSelectReindex(TestData):
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
@@ -775,85 +780,92 @@ class TestDataFrameSelectReindex(TestData):
         tm.assert_series_equal(res1, exp2)
         tm.assert_frame_equal(res2, exp1)
 
-    def test_filter(self):
+    def test_select(self):
         # Items
-        filtered = self.frame.filter(['A', 'B', 'E'])
-        assert len(filtered.columns) == 2
-        assert 'E' not in filtered
+        selected = self.frame.select(['A', 'B', 'E'])
+        assert len(selected.columns) == 2
+        assert 'E' not in selected
 
-        filtered = self.frame.filter(['A', 'B', 'E'], axis='columns')
-        assert len(filtered.columns) == 2
-        assert 'E' not in filtered
+        selected = self.frame.select(['A', 'B', 'E'], axis='columns')
+        assert len(selected.columns) == 2
+        assert 'E' not in selected
 
         # Other axis
         idx = self.frame.index[0:4]
-        filtered = self.frame.filter(idx, axis='index')
+        selected = self.frame.select(idx, axis='index')
         expected = self.frame.reindex(index=idx)
-        tm.assert_frame_equal(filtered, expected)
+        tm.assert_frame_equal(selected, expected)
 
         # like
         fcopy = self.frame.copy()
         fcopy['AA'] = 1
 
-        filtered = fcopy.filter(like='A')
-        assert len(filtered.columns) == 2
-        assert 'AA' in filtered
+        selected = fcopy.select(like='A')
+        assert len(selected.columns) == 2
+        assert 'AA' in selected
 
         # like with ints in column names
         df = DataFrame(0., index=[0, 1, 2], columns=[0, 1, '_A', '_B'])
-        filtered = df.filter(like='_')
-        assert len(filtered.columns) == 2
+        selected = df.select(like='_')
+        assert len(selected.columns) == 2
 
         # regex with ints in column names
         # from PR #10384
         df = DataFrame(0., index=[0, 1, 2], columns=['A1', 1, 'B', 2, 'C'])
         expected = DataFrame(
             0., index=[0, 1, 2], columns=pd.Index([1, 2], dtype=object))
-        filtered = df.filter(regex='^[0-9]+$')
-        tm.assert_frame_equal(filtered, expected)
+        selected = df.select(regex='^[0-9]+$')
+        tm.assert_frame_equal(selected, expected)
 
         expected = DataFrame(0., index=[0, 1, 2], columns=[0, '0', 1, '1'])
         # shouldn't remove anything
-        filtered = expected.filter(regex='^[0-9]+$')
-        tm.assert_frame_equal(filtered, expected)
+        selected = expected.select(regex='^[0-9]+$')
+        tm.assert_frame_equal(selected, expected)
 
         # pass in None
         with pytest.raises(TypeError, match='Must pass'):
-            self.frame.filter()
+            self.frame.select()
         with pytest.raises(TypeError, match='Must pass'):
-            self.frame.filter(items=None)
+            self.frame.select(items=None)
         with pytest.raises(TypeError, match='Must pass'):
-            self.frame.filter(axis=1)
+            self.frame.select(axis=1)
 
         # test mutually exclusive arguments
         with pytest.raises(TypeError, match='mutually exclusive'):
-            self.frame.filter(items=['one', 'three'], regex='e$', like='bbi')
+            self.frame.select(items=['one', 'three'], regex='e$', like='bbi')
         with pytest.raises(TypeError, match='mutually exclusive'):
-            self.frame.filter(items=['one', 'three'], regex='e$', axis=1)
+            self.frame.select(items=['one', 'three'], regex='e$', axis=1)
         with pytest.raises(TypeError, match='mutually exclusive'):
-            self.frame.filter(items=['one', 'three'], regex='e$')
+            self.frame.select(items=['one', 'three'], regex='e$')
         with pytest.raises(TypeError, match='mutually exclusive'):
-            self.frame.filter(items=['one', 'three'], like='bbi', axis=0)
+            self.frame.select(items=['one', 'three'], like='bbi', axis=0)
         with pytest.raises(TypeError, match='mutually exclusive'):
-            self.frame.filter(items=['one', 'three'], like='bbi')
+            self.frame.select(items=['one', 'three'], like='bbi')
 
         # objects
-        filtered = self.mixed_frame.filter(like='foo')
-        assert 'foo' in filtered
+        selected = self.mixed_frame.select(like='foo')
+        assert 'foo' in selected
 
         # unicode columns, won't ascii-encode
         df = self.frame.rename(columns={'B': '\u2202'})
-        filtered = df.filter(like='C')
-        assert 'C' in filtered
+        selected = df.select(like='C')
+        assert 'C' in selected
 
-    def test_filter_regex_search(self):
+    def test_select_regex_search(self):
+        import re
+
         fcopy = self.frame.copy()
         fcopy['AA'] = 1
 
         # regex
-        filtered = fcopy.filter(regex='[A]+')
-        assert len(filtered.columns) == 2
-        assert 'AA' in filtered
+        selected = fcopy.select(regex='[A]+')
+        assert len(selected.columns) == 2
+        assert 'AA' in selected
+
+        # regex, ignore case
+        selected = fcopy.select(regex='[a]+', flags=re.IGNORECASE)
+        assert len(selected.columns) == 2
+        assert 'AA' in selected
 
         # doesn't have to be at beginning
         df = DataFrame({'aBBa': [1, 2],
@@ -861,7 +873,12 @@ class TestDataFrameSelectReindex(TestData):
                         'aCCa': [1, 2],
                         'aCCaBB': [1, 2]})
 
-        result = df.filter(regex='BB')
+        result = df.select(regex='BB')
+        exp = df[[x for x in df.columns if 'BB' in x]]
+        assert_frame_equal(result, exp)
+
+        # ignore case
+        result = df.select(regex='bb', flags=re.IGNORECASE)
         exp = df[[x for x in df.columns if 'BB' in x]]
         assert_frame_equal(result, exp)
 
@@ -870,29 +887,29 @@ class TestDataFrameSelectReindex(TestData):
         ('a', DataFrame({'a': [1, 2]})),
         ('あ', DataFrame({'あ': [3, 4]}))
     ])
-    def test_filter_unicode(self, name, expected):
+    def test_select_unicode(self, name, expected):
         # GH13101
         df = DataFrame({'a': [1, 2], 'あ': [3, 4]})
 
-        assert_frame_equal(df.filter(like=name), expected)
-        assert_frame_equal(df.filter(regex=name), expected)
+        assert_frame_equal(df.select(like=name), expected)
+        assert_frame_equal(df.select(regex=name), expected)
 
     @pytest.mark.parametrize('name', ['a', 'a'])
-    def test_filter_bytestring(self, name):
+    def test_select_bytestring(self, name):
         # GH13101
         df = DataFrame({b'a': [1, 2], b'b': [3, 4]})
         expected = DataFrame({b'a': [1, 2]})
 
-        assert_frame_equal(df.filter(like=name), expected)
-        assert_frame_equal(df.filter(regex=name), expected)
+        assert_frame_equal(df.select(like=name), expected)
+        assert_frame_equal(df.select(regex=name), expected)
 
-    def test_filter_corner(self):
+    def test_select_corner(self):
         empty = DataFrame()
 
-        result = empty.filter([])
+        result = empty.select([])
         assert_frame_equal(result, empty)
 
-        result = empty.filter(like='foo')
+        result = empty.select(like='foo')
         assert_frame_equal(result, empty)
 
     def test_take(self):
