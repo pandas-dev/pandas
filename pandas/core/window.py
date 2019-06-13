@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.window as libwindow
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -595,11 +596,11 @@ class Window(_Window):
         elif is_integer(window):
             if window <= 0:
                 raise ValueError("window must be > 0 ")
-            try:
-                import scipy.signal as sig
-            except ImportError:
-                raise ImportError('Please install scipy to generate window '
-                                  'weight')
+            import_optional_dependency(
+                "scipy",
+                extra="Scipy is required to generate window weight."
+            )
+            import scipy.signal as sig
 
             if not isinstance(self.win_type, str):
                 raise ValueError('Invalid win_type {0}'.format(self.win_type))
