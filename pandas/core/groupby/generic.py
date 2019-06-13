@@ -433,21 +433,7 @@ class NDFrameGroupBy(GroupBy):
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
                 if so.ndim == 2 and so.dtypes.apply(is_datetimelike).any():
-                    ocols = [idx for idx in range(len(result.columns))
-                             if result.dtypes[idx] == object]
-                    for cidx in ocols:
-                        # TODO: get maybe_convert_objects working here
-                        # TODO: should we use skipna=True?
-                        cvals = result.iloc[:, cidx]
-                        exdtype = lib.infer_dtype(cvals.values,
-                                                  skipna=False)
-                        if exdtype == 'integer':
-                            result.iloc[:, cidx] = cvals.astype(np.int64)
-                        if exdtype in ['float', 'mixed-integer-float']:
-                            result.iloc[:, cidx] = cvals.astype(np.float64)
-                        if exdtype == 'datetime':
-                            # TODO: what about z-aware?
-                            result.iloc[:, cidx] = cvals.astype('M8[ns]')
+                    _recast_datetimelike_result(result)
                 else:
                     result = result._convert(datetime=True)
 
@@ -1669,3 +1655,36 @@ def _normalize_keyword_aggregation(kwargs):
         order.append((column,
                       com.get_callable_name(aggfunc) or aggfunc))
     return aggspec, columns, order
+
+
+def _recast_datetimelike_result(result):
+    """
+    If we have date/time like in the original, then coerce dates
+    as we are stacking can easily have object dtypes here.
+
+    Parameters
+    ----------
+    result : DataFrame
+
+    Notes
+    -----
+    - Assumes Groupby._selected_obj has ndim==2 and at least one
+    datetimelike column
+    - Modifies `result` inplace
+    """
+    ocols = [idx for idx in range(len(result.columns))
+             if result.dtypes[idx] == object]
+
+    for cidx in ocols:
+        # TODO: get maybe_convert_objects working here
+        cvals = result.iloc[:, cidx]
+
+        # TODO: should we use skipna=True?
+        exdtype = lib.infer_dtype(cvals.values, skipna=False)
+        if exdtype == 'integer':
+            result.iloc[:, cidx] = cvals.astype(np.int64)
+        if exdtype in ['float', 'mixed-integer-float']:
+            result.iloc[:, cidx] = cvals.astype(np.float64)
+        if exdtype == 'datetime':
+            # TODO: what about z-aware?
+            result.iloc[:, cidx] = cvals.astype('M8[ns]')
