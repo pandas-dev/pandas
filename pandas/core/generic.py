@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Callable, FrozenSet, List, Set
+from typing import Any, Callable, FrozenSet, List, Optional, Set, Union
 import warnings
 import weakref
 
@@ -2458,8 +2458,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return packers.to_msgpack(path_or_buf, self, encoding=encoding,
                                   **kwargs)
 
-    def to_sql(self, name, con, schema=None, if_exists='fail', index=True,
-               index_label=None, chunksize=None, dtype=None, method=None):
+    def to_sql(self, name: str,
+        con,
+        schema: Optional[str]=None, if_exists: str='fail', index: bool=True,
+        index_label: Optional[Union[str, List[str]]]=None,
+        chunksize: Optional[int]=None, dtype: Union[dict]=None,
+        method: Union[str, Callable]=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -2496,8 +2500,8 @@ class NDFrame(PandasObject, SelectionMixin):
         dtype : dict or scalar, optional
             Specifying the datatype for columns. If a dictionary is used, the
             keys should be the column names and the values should be the
-            SQLAlchemy types or strings for the sqlite3 legacy mode. If all
-            If a scalar is provided it will be applied to all columns.
+            SQLAlchemy types or strings for the sqlite3 legacy mode. If a
+            scalar is provided, it will be applied to all columns.
         method : {None, 'multi', callable}, default None
             Controls the SQL insertion clause used:
 
