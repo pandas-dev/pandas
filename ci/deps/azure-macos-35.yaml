@@ -16,13 +16,13 @@ dependencies:
   - pyarrow
   - pytables
   - python=3.5.*
+  - python-dateutil==2.6.1
   - pytz
   - xarray
   - xlrd
   - xlsxwriter
   - xlwt
   - pip:
-    - python-dateutil==2.5.3
     # universal
     - pytest==4.5.0
     - pytest-xdist

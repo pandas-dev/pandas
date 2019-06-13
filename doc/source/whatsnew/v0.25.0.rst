@@ -401,6 +401,8 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | pytz            | 2015.4          |    X     |
 +-----------------+-----------------+----------+
+| python-dateutil | 2.6.1           |    X     |
++-----------------+-----------------+----------+
 | bottleneck      | 1.2.1           |          |
 +-----------------+-----------------+----------+
 | numexpr         | 2.6.2           |          |
@@ -415,11 +417,13 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+
 | Package         | Minimum Version |
 +=================+=================+
+| beautifulsoup4  | 4.6.0           |
++-----------------+-----------------+
 | fastparquet     | 0.2.1           |
 +-----------------+-----------------+
 | matplotlib      | 2.2.2           |
 +-----------------+-----------------+
-| openpyxl        | 2.4.0           |
+| openpyxl        | 2.4.8           |
 +-----------------+-----------------+
 | pyarrow         | 0.9.0           |
 +-----------------+-----------------+
@@ -431,12 +435,14 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+
 | xarray          | 0.8.2           |
 +-----------------+-----------------+
-| xlrd            | 1.0.0           |
+| xlrd            | 1.1.0           |
 +-----------------+-----------------+
-| xlsxwriter      | 0.7.7           |
+| xlsxwriter      | 0.9.8           |
 +-----------------+-----------------+
-| xlwt            | 1.0.0           |
+| xlwt            | 1.2.0           |
 +-----------------+-----------------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
 .. _whatsnew_0250.api.other:
 
