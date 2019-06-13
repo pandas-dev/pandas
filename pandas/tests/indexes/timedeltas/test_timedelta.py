@@ -35,7 +35,7 @@ class TestTimedeltaIndex(DatetimeLike):
         self.setup_indices()
 
     def create_index(self):
-        return pd.to_timedelta(range(5), unit="d") + pd.offsets.Hour(1)
+        return pd.to_timedelta(range(5), unit="D") + pd.offsets.Hour(1)
 
     def test_numeric_compat(self):
         # Dummy method to override super's version; this test is now done

@@ -144,8 +144,13 @@ def to_offset(freq):
     else:
         delta = None
         stride_sign = None
+
+        # hack to handle WOM-1MON
+        opattern = re.compile(
+            r"([+\-]?\d*|[+\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)"
+        )
         try:
-            splitted = re.split(libfreqs.opattern, freq)
+            splitted = re.split(opattern, freq)
             if splitted[-1] != "" and not splitted[-1].isspace():
                 # the last element must be blank
                 raise ValueError("last element must be blank")

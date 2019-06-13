@@ -23,9 +23,9 @@ class TestSAS7BDAT:
             fname = os.path.join(self.dirpath, "test_sas7bdat_{j}.csv".format(j=j))
             df = pd.read_csv(fname)
             epoch = pd.datetime(1960, 1, 1)
-            t1 = pd.to_timedelta(df["Column4"], unit="d")
+            t1 = pd.to_timedelta(df["Column4"], unit="D")
             df["Column4"] = epoch + t1
-            t2 = pd.to_timedelta(df["Column12"], unit="d")
+            t2 = pd.to_timedelta(df["Column12"], unit="D")
             df["Column12"] = epoch + t2
             for k in range(df.shape[1]):
                 col = df.iloc[:, k]

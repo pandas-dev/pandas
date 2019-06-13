@@ -7,6 +7,7 @@ import numpy as np
 
 from pandas._libs import tslib, tslibs
 from pandas._libs.tslibs import Timestamp, conversion, parsing
+from pandas._libs.tslibs.frequencies import _base_and_stride
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError,
     _format_is_iso,
@@ -375,7 +376,6 @@ def _convert_listlike_datetimes(
 
     arg = ensure_object(arg)
     require_iso8601 = False
-
     if infer_datetime_format and format is None:
         format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
 
@@ -489,15 +489,18 @@ def _adjust_to_origin(arg, origin, unit):
     origin : 'julian' or Timestamp
         origin offset for the arg
     unit : string
-        passed unit from to_datetime, must be 'D'
+        passed unit from to_datetime, must be 'D' if origin is 'julian'
 
     Returns
     -------
     ndarray or scalar of adjusted date(s)
     """
+    from pandas import DatetimeIndex
+
     if origin == "julian":
         original = arg
         j0 = Timestamp(0).to_julian_date()
+        unit, stride = _base_and_stride(unit)
         if unit != "D":
             raise ValueError("unit must be 'D' for origin='julian'")
         try:
@@ -526,7 +529,8 @@ def _adjust_to_origin(arg, origin, unit):
                 )
             )
 
-        # we are going to offset back to unix / epoch time
+        # test the origin to make sure within valid range and no time
+        # zone
         try:
             offset = Timestamp(origin)
         except tslibs.OutOfBoundsDatetime:
@@ -541,18 +545,28 @@ def _adjust_to_origin(arg, origin, unit):
 
         if offset.tz is not None:
             raise ValueError("origin offset {} must be tz-naive".format(offset))
-        offset -= Timestamp(0)
 
-        # convert the offset to the unit of the arg
-        # this should be lossless in terms of precision
-        offset = offset // tslibs.Timedelta(1, unit=unit)
+        unit, stride = _base_and_stride(unit)
 
-        # scalars & ndarray-like can handle the addition
+        delta = tslibs.Timedelta(stride, unit=unit)
+
+        # scalars & ndarray-like can handle the multiplication and addition
         if is_list_like(arg) and not isinstance(
             arg, (ABCSeries, ABCIndexClass, np.ndarray)
         ):
             arg = np.asarray(arg)
-        arg = arg + offset
+
+        if stride == 1 and (offset - offset.floor("D")) == tslibs.Timedelta(0):
+            arg = arg + (offset.value // delta.value)
+        else:
+            # convert any integer type to int64 to prevent overflow
+            if is_integer_dtype(arg):
+                arg = arg.astype("int64", copy=False)
+            try:
+                arg = DatetimeIndex((arg * delta.value) + offset.value)
+            except TypeError:
+                arg = Timestamp((arg * delta.value) + offset.value)
+
     return arg
 
 
@@ -627,25 +641,26 @@ def to_datetime(
         - If False, allow the format to match anywhere in the target string.
 
     unit : string, default is 'N'
-        The unit of the arg. Uses a subset of the pandas offset aliases.
+        The unit code for the value(s) in `arg`.  Used when `arg` is
+        a numeric value or ordered collection of numeric values.
+        The unit code is a subset of pandas offset aliases, ISO 8601
+        codes, and legacy codes.
 
-        - 'Y', 'A' for yearly (long term average of 365.2425 days)
-        - 'M' for monthly (long term average of 30.436875 days)
-        - 'W' for weekly
-        - 'D' for daily
-        - 'H' for hourly
-        - 'T', 'min' for minutely
-        - 'S' for seconds
-        - 'L', 'ms' for milliseconds
-        - 'U', 'us' for microseconds
-        - 'N' for nanoseconds
+        - 'D', for daily
+        - 'H' or 'h' for hourly
+        - 'T', 'm', or 'min' for minutely
+        - 'S' or 's' for seconds
+        - 'L' or 'ms' for milliseconds
+        - 'U' or 'us' for microseconds
+        - 'N' or 'ns' for nanoseconds
 
-        This will be based off the origin.  Example, with unit='L' and
-        origin='unix' (the default), this would calculate the number of
-        milliseconds to the unix epoch start.
+        The resulting DatetimeIndex will be based off the `origin`.
+        For example, with unit='L' and origin='unix' (the default) then
+        the values in `arg` would represent the number of milliseconds
+        from the unix epoch start.
 
-        The offset alias can be prefixed with a stride. For example, results
-        would be equivalent between unit='7D' and unit='W'.
+        The unit code can be prefixed with a stride. For example,
+        results would be equivalent between unit='24H' and unit='D'.
     infer_datetime_format : boolean, default False
         If True and no `format` is given, attempt to infer the format of the
         datetime strings, and if it can be inferred, switch to a faster
@@ -899,7 +914,7 @@ def _assemble_from_unit_mappings(arg, errors, box, tz):
         # we allow coercion to if errors allows
         values = to_numeric(values, errors=errors)
 
-        # prevent overflow in case of int8 or int16
+        # convert any integer type to int64 to prevent overflow
         if is_integer_dtype(values):
             values = values.astype("int64", copy=False)
         return values

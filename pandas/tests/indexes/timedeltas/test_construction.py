@@ -182,7 +182,7 @@ class TestTimedeltaIndex:
         # NumPy string array
         strings = np.array(["1 days", "2 days", "3 days"])
         result = TimedeltaIndex(strings)
-        expected = to_timedelta([1, 2, 3], unit="d")
+        expected = to_timedelta([1, 2, 3], unit="D")
         tm.assert_index_equal(result, expected)
 
         from_ints = TimedeltaIndex(expected.asi8)

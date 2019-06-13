@@ -24,8 +24,6 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
-from pandas._libs.tslibs.ccalendar import DAY_SECONDS
-
 from pandas._libs.tslibs.frequencies import _base_and_stride
 
 from pandas._libs.tslibs.np_datetime cimport (
@@ -232,6 +230,7 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
         for i in range(n):
             result[i] = parse_timedelta_string(values[i])
     except:
+        unit, stride = _base_and_stride(unit)
         unit = parse_timedelta_unit(unit)
         for i in range(n):
             try:
@@ -261,48 +260,45 @@ cpdef inline object precision_from_unit(object unit):
 
     unit, stride = _base_and_stride(unit)
 
-    # Normalize old or lowercase codes to standard offset aliases.
-    if unit in ['min', 'm']:
-        unit = 'T'
-    elif unit == 'ns':
-        unit = 'N'
-    elif unit == 'ms':
-        unit = 'L'
-    elif unit == 'us':
-        unit = 'U'
+    if unit in ['Y', 'A', 'M', 'W']:
+        warnings.warn("Y, A, M, and W units are deprecated and "
+                      "will be removed in a future version.",
+                      FutureWarning)
 
-    unit = unit.upper()
-
-    if unit in ['Y', 'A']:
+    # Don't know why previous implementation used the multiplication in the
+    # in-line comment instead of the value.  Current approach saves an
+    # operation.
+    if unit in ['D', 'd']:
+        m = stride * 86400000000000L # 1000000000L * DAY_SECONDS
+        p = 9
+    elif unit in ['H', 'h']:
+        m = stride * 3600000000000L # 1000000000L * 3600
+        p = 9
+    elif unit in ['T', 'min', 'm']:
+        m = stride * 60000000000L # 1000000000L * 60
+        p = 9
+    elif unit in ['S', 's']:
+        m = stride * 1000000000L
+        p = 9
+    elif unit in ['L', 'ms']:
+        m = stride * 1000000L
+        p = 6
+    elif unit in ['U', 'us']:
+        m = stride * 1000L
+        p = 3
+    elif unit in ['N', 'ns']:
+        m = stride * 1L
+        p = 0
+    # deprecated units at end because rarely evaluated
+    elif unit in ['Y', 'A']:
         m = stride * 1000000000L * 31556952
         p = 9
     elif unit == 'M':
         m = stride * 1000000000L * 2629746
         p = 9
     elif unit == 'W':
-        m = stride * 1000000000L * DAY_SECONDS * 7
+        m = stride * 1000000000L * 86400 * 7
         p = 9
-    elif unit == 'D':
-        m = stride * 1000000000L * DAY_SECONDS
-        p = 9
-    elif unit == 'H':
-        m = stride * 1000000000L * 3600
-        p = 9
-    elif unit == 'T':
-        m = stride * 1000000000L * 60
-        p = 9
-    elif unit == 'S':
-        m = stride * 1000000000L
-        p = 9
-    elif unit == 'L':
-        m = stride * 1000000L
-        p = 6
-    elif unit == 'U':
-        m = stride * 1000L
-        p = 3
-    elif unit == 'N':
-        m = stride * 1L
-        p = 0
     else:
         raise ValueError("cannot cast unit {unit}".format(unit=unit))
     return m, p
@@ -521,8 +517,9 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
 
     try:
         unit = ''.join(unit)
+        unit, stride = _base_and_stride(unit)
         if unit == 'M':
-            # To parse ISO 8601 string, 'M' should be treated as minute,
+            # To parse ISO 8601 string, 'm' should be treated as minute,
             # not month
             unit = 'm'
         unit = parse_timedelta_unit(unit)
@@ -1270,6 +1267,9 @@ class Timedelta(_Timedelta):
                                  "passed arguments, allowed keywords are "
                                  "[weeks, days, hours, minutes, seconds, "
                                  "milliseconds, microseconds, nanoseconds]")
+
+        if unit is not None:
+            unit, stride = _base_and_stride(unit)
 
         if unit in {'Y', 'y', 'M'}:
             warnings.warn("M and Y units are deprecated and "

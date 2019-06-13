@@ -62,17 +62,17 @@ class TestTimedeltaArithmetic:
         assert td.__floordiv__(other) is NotImplemented
 
     def test_unary_ops(self):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
 
         # __neg__, __pos__
-        assert -td == Timedelta(-10, unit="d")
-        assert -td == Timedelta("-10d")
-        assert +td == Timedelta(10, unit="d")
+        assert -td == Timedelta(-10, unit="D")
+        assert -td == Timedelta("-10D")
+        assert +td == Timedelta(10, unit="D")
 
         # __abs__, __abs__(__neg__)
         assert abs(td) == td
         assert abs(-td) == td
-        assert abs(-td) == Timedelta("10d")
+        assert abs(-td) == Timedelta("10D")
 
 
 class TestTimedeltaComparison:
@@ -198,7 +198,7 @@ class TestTimedeltas:
 
     def test_conversion(self):
 
-        for td in [Timedelta(10, unit="d"), Timedelta("1 days, 10:11:12.012345")]:
+        for td in [Timedelta(10, unit="D"), Timedelta("1 days, 10:11:12.012345")]:
             pydt = td.to_pytimedelta()
             assert td == Timedelta(pydt)
             assert td == pydt
@@ -454,7 +454,7 @@ class TestTimedeltas:
         assert Timedelta(10, unit="us") == np.timedelta64(10, "us")
         assert Timedelta(10, unit="ms") == np.timedelta64(10, "ms")
         assert Timedelta(10, unit="s") == np.timedelta64(10, "s")
-        assert Timedelta(10, unit="d") == np.timedelta64(10, "D")
+        assert Timedelta(10, unit="D") == np.timedelta64(10, "D")
 
     def test_timedelta_conversions(self):
         assert Timedelta(timedelta(seconds=1)) == np.timedelta64(1, "s").astype(
@@ -574,7 +574,7 @@ class TestTimedeltas:
     def test_contains(self):
         # Checking for any NaT-like objects
         # GH 13603
-        td = to_timedelta(range(5), unit="d") + pd.offsets.Hour(1)
+        td = to_timedelta(range(5), unit="D") + pd.offsets.Hour(1)
         for v in [pd.NaT, None, float("nan"), np.nan]:
             assert not (v in td)
 
@@ -584,7 +584,7 @@ class TestTimedeltas:
 
     def test_identity(self):
 
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         assert isinstance(td, Timedelta)
         assert isinstance(td, timedelta)
 

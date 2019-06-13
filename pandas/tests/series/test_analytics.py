@@ -780,7 +780,7 @@ class TestSeriesAnalytics:
         assert_series_equal(result, expected)
 
         # timedelta64[ns]
-        s = Series(pd.to_timedelta(range(5), unit="d"))
+        s = Series(pd.to_timedelta(range(5), unit="D"))
         result = s.isin(s[0:2])
         assert_series_equal(result, expected)
 

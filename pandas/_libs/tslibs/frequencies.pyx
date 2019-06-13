@@ -1,19 +1,9 @@
-import re
-
 cimport numpy as cnp
 cnp.import_array()
 
 from pandas._libs.tslibs.util cimport is_integer_object
 
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
-
-# ----------------------------------------------------------------------
-# Constants
-
-# hack to handle WOM-1MON
-opattern = re.compile(
-    r'([+\-]?\d*|[+\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)'
-)
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
@@ -190,19 +180,18 @@ cpdef _base_and_stride(freqstr):
     --------
     _freq_and_stride('5Min') -> 'Min', 5
     """
-    groups = opattern.match(freqstr)
+    base = freqstr.lstrip('+-. 0123456789')
+    stride = freqstr[:freqstr.index(base)]
 
-    if not groups:
+    if not base:
         raise ValueError("Could not evaluate {freq}".format(freq=freqstr))
 
-    stride = groups.group(1)
-
+    # Possible for stride to be float at this point.  Should it fail or floor?
+    # Right now it fails.
     if len(stride):
         stride = int(stride)
     else:
         stride = 1
-
-    base = groups.group(2)
 
     return base, stride
 
