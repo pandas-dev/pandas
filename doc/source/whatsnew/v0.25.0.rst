@@ -401,7 +401,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | pytz            | 2015.4          |    X     |
 +-----------------+-----------------+----------+
-| python-dateutil | 2.6.1           +   X
+| python-dateutil | 2.6.1           |    X     |
 +-----------------+-----------------+----------+
 | bottleneck      | 1.2.1           |          |
 +-----------------+-----------------+----------+
@@ -417,7 +417,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+
 | Package         | Minimum Version |
 +=================+=================+
-| BeautifulSoup4  | 4.6.0           |
+| beautifulsoup4  | 4.6.0           |
 +-----------------+-----------------+
 | fastparquet     | 0.2.1           |
 +-----------------+-----------------+
