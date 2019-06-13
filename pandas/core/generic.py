@@ -2493,7 +2493,7 @@ class NDFrame(PandasObject, SelectionMixin):
         chunksize : int, optional
             Rows will be written in batches of this size at a time. By default,
             all rows will be written at once.
-        dtype : dict or a SQLAchemy type, optional
+        dtype : dict or scalar, optional
             Specifying the datatype for columns. If a dictionary is used, the
             keys should be the column names and the values should be the
             SQLAlchemy types or strings for the sqlite3 legacy mode. If all
