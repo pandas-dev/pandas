@@ -12,6 +12,7 @@ from shutil import rmtree
 import string
 import tempfile
 import traceback
+from typing import Union, cast
 import warnings
 import zipfile
 
@@ -515,9 +516,14 @@ def equalContents(arr1, arr2):
     return frozenset(arr1) == frozenset(arr2)
 
 
-def assert_index_equal(left, right, exact='equiv', check_names=True,
-                       check_less_precise=False, check_exact=True,
-                       check_categorical=True, obj='Index'):
+def assert_index_equal(left: Index,
+                       right: Index,
+                       exact: Union[bool, str] = 'equiv',
+                       check_names: bool = True,
+                       check_less_precise: Union[bool, int] = False,
+                       check_exact: bool = True,
+                       check_categorical: bool = True,
+                       obj: str = 'Index') -> None:
     """Check that left and right Index are equal.
 
     Parameters
@@ -588,6 +594,9 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
+        left = cast(MultiIndex, left)
+        right = cast(MultiIndex, right)
+
         for level in range(left.nlevels):
             # cannot use get_level_values here because it can change dtype
             llevel = _get_ilevel_values(left, level)

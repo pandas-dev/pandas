@@ -456,7 +456,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         - If False returns ndarray of values.
 
         .. deprecated:: 0.25.0
-            Use :meth:`.to_numpy` or :meth:`Timestamp.to_datetime64`
+            Use :meth:`Series.to_numpy` or :meth:`Timestamp.to_datetime64`
             instead to get an ndarray of values or numpy.datetime64,
             respectively.
 
@@ -775,21 +775,21 @@ def _attempt_YYYYMMDD(arg, errors):
     # try intlike / strings that are ints
     try:
         return calc(arg.astype(np.int64))
-    except ValueError:
+    except (ValueError, OverflowError):
         pass
 
     # a float with actual np.nan
     try:
         carg = arg.astype(np.float64)
         return calc_with_mask(carg, notna(carg))
-    except ValueError:
+    except (ValueError, OverflowError):
         pass
 
     # string with NaN-like
     try:
         mask = ~algorithms.isin(arg, list(tslib.nat_strings))
         return calc_with_mask(arg, mask)
-    except ValueError:
+    except (ValueError, OverflowError):
         pass
 
     return None

@@ -190,6 +190,9 @@ Numeric Index
 .. autosummary::
    :toctree: api/
 
+   RangeIndex.start
+   RangeIndex.stop
+   RangeIndex.step
    RangeIndex.from_range
 
 .. _api.categoricalindex:
@@ -403,6 +406,13 @@ Conversion
    DatetimeIndex.to_series
    DatetimeIndex.to_frame
 
+Methods
+~~~~~~~
+.. autosummary::
+    :toctree: api/
+
+    DatetimeIndex.mean
+
 TimedeltaIndex
 --------------
 .. autosummary::
@@ -434,6 +444,13 @@ Conversion
    TimedeltaIndex.floor
    TimedeltaIndex.ceil
    TimedeltaIndex.to_frame
+
+Methods
+~~~~~~~
+.. autosummary::
+    :toctree: api/
+
+    TimedeltaIndex.mean
 
 .. currentmodule:: pandas
 

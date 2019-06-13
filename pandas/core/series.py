@@ -49,7 +49,7 @@ from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
-import pandas.plotting._core as gfx
+import pandas.plotting
 
 __all__ = ['Series']
 
@@ -419,14 +419,30 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def ftype(self):
         """
         Return if the data is sparse|dense.
+
+        .. deprecated:: 0.25.0
+           Use :func:`dtype` instead.
         """
+        warnings.warn("Series.ftype is deprecated and will "
+                      "be removed in a future version. "
+                      "Use Series.dtype instead.",
+                      FutureWarning, stacklevel=2)
+
         return self._data.ftype
 
     @property
     def ftypes(self):
         """
         Return if the data is sparse|dense.
+
+        .. deprecated:: 0.25.0
+           Use :func:`dtypes` instead.
         """
+        warnings.warn("Series.ftypes is deprecated and will "
+                      "be removed in a future version. "
+                      "Use Series.dtype instead.",
+                      FutureWarning, stacklevel=2)
+
         return self._data.ftype
 
     @property
@@ -3729,6 +3745,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif is_datetime64_dtype(delegate):
             # use DatetimeIndex implementation to handle skipna correctly
             delegate = DatetimeIndex(delegate)
+        elif is_timedelta64_dtype(delegate) and hasattr(TimedeltaIndex, name):
+            # use TimedeltaIndex to handle skipna correctly
+            # TODO: remove hasattr check after TimedeltaIndex has `std` method
+            delegate = TimedeltaIndex(delegate)
 
         # dispatch to numpy arrays
         elif isinstance(delegate, np.ndarray):
@@ -4010,7 +4030,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         >>> s = pd.Series(range(3))
         >>> s.memory_usage()
-        104
+        152
 
         Not including the index gives the size of the rest of the data, which
         is necessarily smaller:
@@ -4024,9 +4044,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.values
         array(['a', 'b'], dtype=object)
         >>> s.memory_usage()
-        96
+        144
         >>> s.memory_usage(deep=True)
-        212
+        260
         """
         v = super().memory_usage(deep=deep)
         if index:
@@ -4502,12 +4522,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     str = CachedAccessor("str", StringMethods)
     dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
     cat = CachedAccessor("cat", CategoricalAccessor)
-    plot = CachedAccessor("plot", gfx.SeriesPlotMethods)
+    plot = CachedAccessor("plot", pandas.plotting.SeriesPlotMethods)
     sparse = CachedAccessor("sparse", SparseAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
-    hist = gfx.hist_series
+    hist = pandas.plotting.hist_series
 
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0},

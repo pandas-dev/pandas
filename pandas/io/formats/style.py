@@ -14,6 +14,7 @@ import numpy as np
 
 from pandas._config import get_option
 
+from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_float, is_string_like
@@ -25,14 +26,9 @@ import pandas.core.common as com
 from pandas.core.generic import _shared_docs
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 
-try:
-    from jinja2 import (
-        PackageLoader, Environment, ChoiceLoader, FileSystemLoader
-    )
-except ImportError:
-    raise ImportError("pandas.Styler requires jinja2. "
-                      "Please install with `conda install Jinja2`\n"
-                      "or `pip install Jinja2`")
+jinja2 = import_optional_dependency(
+    "jinja2", extra="DataFrame.style requires jinja2."
+)
 
 
 try:
@@ -75,7 +71,7 @@ class Styler:
 
     Attributes
     ----------
-    env : Jinja2 Environment
+    env : Jinja2 jinja2.Environment
     template : Jinja2 Template
     loader : Jinja2 Loader
 
@@ -112,8 +108,8 @@ class Styler:
     * Blank cells include ``blank``
     * Data cells include ``data``
     """
-    loader = PackageLoader("pandas", "io/formats/templates")
-    env = Environment(
+    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    env = jinja2.Environment(
         loader=loader,
         trim_blocks=True,
     )
@@ -1231,13 +1227,13 @@ class Styler:
         MyStyler : subclass of Styler
             Has the correct ``env`` and ``template`` class attributes set.
         """
-        loader = ChoiceLoader([
-            FileSystemLoader(searchpath),
+        loader = jinja2.ChoiceLoader([
+            jinja2.FileSystemLoader(searchpath),
             cls.loader,
         ])
 
         class MyStyler(cls):
-            env = Environment(loader=loader)
+            env = jinja2.Environment(loader=loader)
             template = env.get_template(name)
 
         return MyStyler
