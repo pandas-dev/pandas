@@ -269,6 +269,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     <IntegerArray>
     [1, NaN, 3]
     Length: 3, dtype: UInt16
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
 
     @cache_readonly
