@@ -729,12 +729,14 @@ Sparse
 - Bug in :class:`SparseDataFrame` when adding a column in which the length of values does not match length of index, ``AssertionError`` is raised instead of raising ``ValueError`` (:issue:`25484`)
 - Introduce a better error message in :meth:`Series.sparse.from_coo` so it returns a ``TypeError`` for inputs that are not coo matrices (:issue:`26554`)
 
+
 Other
 ^^^^^
 
 - Removed unused C functions from vendored UltraJSON implementation (:issue:`26198`)
 - Bug in :func:`factorize` when passing an ``ExtensionArray`` with a custom ``na_sentinel`` (:issue:`25696`).
 - Allow :class:`Index` and :class:`RangeIndex` to be passed to numpy ``min`` and ``max`` functions (:issue:`26125`)
+- :meth:`Series.count` miscounts NA values in ExtensionArrays (:issue:`26835`)
 
 .. _whatsnew_0.250.contributors:
 
