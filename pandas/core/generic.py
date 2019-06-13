@@ -2497,7 +2497,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Specifying the datatype for columns. If a dictionary is used, the
             keys should be the column names and the values should be the
             SQLAlchemy types or strings for the sqlite3 legacy mode. If all
-            columns are of the same type, one single value can be used.
+            If a scalar is provided it will be applied to all columns.
         method : {None, 'multi', callable}, default None
             Controls the SQL insertion clause used:
 
