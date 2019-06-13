@@ -3,7 +3,13 @@ Provide basic components for groupby. These defintiions
 hold the whitelist of methods that are exposed on the
 SeriesGroupBy and the DataFrameGroupBy objects.
 """
+from typing import TYPE_CHECKING, FrozenSet, Iterator, Type, Union
+
 from pandas.core.dtypes.common import is_list_like, is_scalar
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series
+    from .groupby import GroupBy
 
 
 class GroupByMixin:
@@ -88,19 +94,21 @@ cython_cast_blacklist = frozenset(['rank', 'count', 'size', 'idxmin',
                                    'idxmax'])
 
 
-def whitelist_method_generator(base, klass, whitelist):
+def whitelist_method_generator(base: 'Type[GroupBy]',
+                               klass: 'Union[Type[DataFrame], Type[Series]]',
+                               whitelist: FrozenSet[str],
+                               ) -> Iterator[str]:
     """
     Yields all GroupBy member defs for DataFrame/Series names in whitelist.
 
     Parameters
     ----------
-    base : class
+    base : Groupby class
         base class
-    klass : class
+    klass : DataFrame or Series class
         class where members are defined.
-        Should be Series or DataFrame
-    whitelist : list
-        list of names of klass methods to be constructed
+    whitelist : frozenset
+        Set of names of klass methods to be constructed
 
     Returns
     -------
