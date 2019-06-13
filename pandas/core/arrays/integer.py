@@ -244,6 +244,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     copy : bool, default False
         Whether to copy the `values` and `mask`.
 
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
+
     Returns
     -------
     IntegerArray
@@ -269,14 +277,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     <IntegerArray>
     [1, NaN, 3]
     Length: 3, dtype: UInt16
-
-    Attributes
-    ----------
-    None
-
-    Methods
-    -------
-    None
     """
 
     @cache_readonly

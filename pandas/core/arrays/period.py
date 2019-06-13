@@ -112,6 +112,14 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     copy : bool, default False
         Whether to copy the ordinals before storing.
 
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
+
     See Also
     --------
     period_array : Create a new PeriodArray.
@@ -129,14 +137,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     The `freq` indicates the span covered by each element of the array.
     All elements in the PeriodArray have the same `freq`.
-
-    Attributes
-    ----------
-    None
-
-    Methods
-    -------
-    None
     """
     # array priority higher than numpy scalars
     __array_priority__ = 1000
