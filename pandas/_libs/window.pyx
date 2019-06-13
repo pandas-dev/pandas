@@ -1827,7 +1827,7 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
         Py_ssize_t i, nobs
         ndarray[float64_t] output
 
-    if len(input_y) != N:
+    if <Py_ssize_t>len(input_y) != N:
         raise ValueError("arrays are of different lengths "
                          "({N} and {len_y})".format(N=N, len_y=len(input_y)))
 
