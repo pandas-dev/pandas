@@ -434,7 +434,7 @@ class NDFrameGroupBy(GroupBy):
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
                 if so.ndim == 2 and so.dtypes.apply(is_datetimelike).any():
-                    _recast_datetimelike_result(result)
+                    result = _recast_datetimelike_result(result)
                 else:
                     result = result._convert(datetime=True)
 
@@ -1658,7 +1658,7 @@ def _normalize_keyword_aggregation(kwargs):
     return aggspec, columns, order
 
 
-def _recast_datetimelike_result(result: DataFrame):
+def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
     """
     If we have date/time like in the original, then coerce dates
     as we are stacking can easily have object dtypes here.
@@ -1667,12 +1667,17 @@ def _recast_datetimelike_result(result: DataFrame):
     ----------
     result : DataFrame
 
+    Returns
+    -------
+    DataFrame
+
     Notes
     -----
     - Assumes Groupby._selected_obj has ndim==2 and at least one
     datetimelike column
-    - Modifies `result` inplace
     """
+    result = result.copy()
+
     ocols = [idx for idx in range(len(result.columns))
              if is_object_dtype(result.dtypes[idx])]
 
@@ -1689,3 +1694,5 @@ def _recast_datetimelike_result(result: DataFrame):
         if exdtype == 'datetime':
             # TODO: what about tz-aware?
             result.iloc[:, cidx] = cvals.astype('M8[ns]')
+
+    return result
