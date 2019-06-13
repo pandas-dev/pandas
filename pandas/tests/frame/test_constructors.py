@@ -2430,7 +2430,6 @@ class TestDataFrameConstructorWithDatetimeTZ(TestData):
 
 
 class TestTranspose:
-    # FIXME: belongs somewhere else, but im not sure where
     def test_transpose_tzaware_1col_single_tz(self):
         dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
 
