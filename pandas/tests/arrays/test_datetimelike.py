@@ -652,3 +652,26 @@ class TestPeriodArray(SharedTests):
         result = np.asarray(arr, dtype='S20')
         expected = np.asarray(arr).astype('S20')
         tm.assert_numpy_array_equal(result, expected)
+
+
+def test_reshape():
+    # Basic tests for reshape, transpose, ravel, and support for 2D
+    #  datetimelike arrays
+    dtarr = pd.date_range('2016-01-02', periods=4, tz='US/Pacific')._data
+    tdarr = pd.timedelta_range('1D', periods=4, freq='D')._data
+    parr = dtarr.tz_localize(None).to_period('D')
+
+    for arr in [dtarr, tdarr, parr]:
+        assert arr.T.shape == arr.shape
+        assert (arr.T == arr).all()
+
+        arr2 = arr.reshape((1, 4))
+        assert arr2.T.shape == (4, 1)
+
+        for shape in [(4,), (1, 4), (4, 1), (2, 2)]:
+            # TODO: order = 'C' vs 'F'?
+            res = arr.reshape(shape)
+            assert res.shape == shape
+
+            flat = res.ravel()
+            assert (flat == arr).all()

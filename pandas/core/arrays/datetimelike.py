@@ -36,7 +36,7 @@ import pandas.core.common as com
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
 
-from .base import ExtensionArray, ExtensionOpsMixin
+from .base import ExtensionArray, ExtensionOpsMixin, ReshapeMixin
 
 
 class AttributesMixin:
@@ -324,7 +324,7 @@ default 'raise'
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
 
-class DatetimeLikeArrayMixin(ExtensionOpsMixin,
+class DatetimeLikeArrayMixin(ReshapeMixin, ExtensionOpsMixin,
                              AttributesMixin,
                              ExtensionArray):
     """
@@ -337,6 +337,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
     and that the inheriting class has methods:
         _generate_range
     """
+
+    @property
+    def _wrap_data(self) -> np.ndarray:
+        return self._data
 
     @property
     def _box_func(self):
@@ -402,16 +406,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         return self._data
 
     @property
-    def shape(self):
-        return (len(self),)
-
-    @property
     def size(self) -> int:
         """The number of elements in this array."""
         return np.prod(self.shape)
-
-    def __len__(self):
-        return len(self._data)
 
     def __getitem__(self, key):
         """

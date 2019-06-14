@@ -1119,3 +1119,62 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     @classmethod
     def _create_comparison_method(cls, op):
         return cls._create_method(op, coerce_to_dtype=False)
+
+
+class ReshapeMixin:
+    """
+    Mixin for ExtensionArray subclasses that secretly define `reshape`
+    and related methods.
+
+    Subclass must implement _wrap_data property.
+
+    NB: we assume that the constructor will accept:
+
+        type(self)(self._wrap_data.reshape(shape), dtype=self.dtype)
+
+    If not, then the methods below will need to be overriden.
+    """
+
+    @property
+    def _wrap_data(self):
+        """
+        The underlying reshape-able array that we are wrapping.
+        """
+        raise AbstractMethodError(self)
+
+    # --------------------------------------------------
+    # Shape Attributes
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        """
+        Return a tuple of the array dimensions.
+        """
+        return self._wrap_data.shape
+
+    def __len__(self) -> int:
+        return self.shape[0]
+
+    @property
+    def ndim(self) -> int:
+        return len(self.shape)
+
+    # --------------------------------------------------
+    # Reshape Methods
+
+    def reshape(self, shape):
+        data = self._wrap_data.reshape(shape)
+        return type(self)(data, dtype=self.dtype)
+
+    def transpose(self, axes):
+        data = self._wrap_data.transpose(axes)
+        return type(self)(data, dtype=self.dtype)
+
+    @property
+    def T(self):
+        data = self._wrap_data.T
+        return type(self)(data, dtype=self.dtype)
+
+    def ravel(self, order=None):
+        data = self._wrap_data.ravel(order=order)
+        return type(self)(data, dtype=self.dtype)

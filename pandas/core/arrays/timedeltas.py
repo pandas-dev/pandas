@@ -188,8 +188,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 "ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg.format(type(values).__name__))
-        if values.ndim != 1:
-            raise ValueError("Only 1-dimensional input arrays are supported.")
+        if values.ndim == 0:
+            raise ValueError("zero-dimensional arrays are not supported.")
 
         if values.dtype == 'i8':
             # for compat with datetime/timedelta/period shared methods,
