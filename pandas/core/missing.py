@@ -6,6 +6,7 @@ import operator
 import numpy as np
 
 from pandas._libs import algos, lib
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
@@ -246,13 +247,9 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
     Returns an array interpolated at new_x.  Add any new methods to
     the list in _clean_interp_method.
     """
-    try:
-        from scipy import interpolate
-        # TODO: Why is DatetimeIndex being imported here?
-        from pandas import DatetimeIndex  # noqa
-    except ImportError:
-        raise ImportError('{method} interpolation requires SciPy'
-                          .format(method=method))
+    extra = '{method} interpolation requires SciPy.'.format(method=method)
+    import_optional_dependency('scipy', extra=extra)
+    from scipy import interpolate
 
     new_x = np.asarray(new_x)
 
@@ -275,12 +272,7 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
             raise ImportError("Your version of Scipy does not support "
                               "PCHIP interpolation.")
     elif method == 'akima':
-        try:
-            from scipy.interpolate import Akima1DInterpolator  # noqa
-            alt_methods['akima'] = _akima_interpolate
-        except ImportError:
-            raise ImportError("Your version of Scipy does not support "
-                              "Akima interpolation.")
+        alt_methods['akima'] = _akima_interpolate
 
     interp1d_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                         'polynomial']
@@ -392,11 +384,8 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
     """
     from scipy import interpolate
-    try:
-        P = interpolate.Akima1DInterpolator(xi, yi, axis=axis)
-    except TypeError:
-        # Scipy earlier than 0.17.0 missing axis
-        P = interpolate.Akima1DInterpolator(xi, yi)
+    P = interpolate.Akima1DInterpolator(xi, yi, axis=axis)
+
     if der == 0:
         return P(x)
     elif interpolate._isscalar(der):
