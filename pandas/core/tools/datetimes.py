@@ -1,7 +1,7 @@
 from collections import abc
 from datetime import datetime, time
 from functools import partial
-from typing import Union
+from typing import Union, TypeVar
 
 import numpy as np
 
@@ -27,7 +27,7 @@ from pandas.core import algorithms
 # types used in annotations
 
 Scalar = Union[int, float, str]
-DatetimeScalar = Union[Scalar, datetime]
+DatetimeScalar = TypeVar('DatetimeScalar', Scalar, datetime)
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, list, tuple,
                                          ArrayLike, ABCSeries]
 
