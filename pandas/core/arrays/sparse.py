@@ -15,6 +15,7 @@ import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
 import pandas.compat as compat
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 
@@ -571,9 +572,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         this determines ``self.sp_values`` and ``self.fill_value``.
     copy : bool, default False
         Whether to explicitly copy the incoming `data` array.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
 
-    __array_priority__ = 15
     _pandas_ftype = 'sparse'
     _subtyp = 'sparse_array'  # register ABCSparseArray
 
@@ -1639,14 +1647,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # Ufuncs
     # ------------------------------------------------------------------------
 
-    def __array_wrap__(self, array, context=None):
-        from pandas.core.dtypes.generic import ABCSparseSeries
-
-        ufunc, inputs, _ = context
-        inputs = tuple(x.to_dense() if isinstance(x, ABCSparseSeries) else x
-                       for x in inputs)
-        return self.__array_ufunc__(ufunc, '__call__', *inputs)
-
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
@@ -2014,9 +2014,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         from pandas.core.sparse.scipy_sparse import _coo_to_sparse_series
         from pandas import Series
 
-        result = _coo_to_sparse_series(A, dense_index=dense_index)
-        # SparseSeries -> Series[sparse]
-        result = Series(result.values, index=result.index, copy=False)
+        result = _coo_to_sparse_series(A, dense_index=dense_index,
+                                       sparse_series=False)
+        result = Series(result.array, index=result.index, copy=False)
 
         return result
 
@@ -2214,10 +2214,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         float32. By numpy.find_common_type convention, mixing int64 and
         and uint64 will result in a float64 dtype.
         """
-        try:
-            from scipy.sparse import coo_matrix
-        except ImportError:
-            raise ImportError('Scipy is not installed')
+        import_optional_dependency("scipy")
+        from scipy.sparse import coo_matrix
 
         dtype = find_common_type(self._parent.dtypes)
         if isinstance(dtype, SparseDtype):

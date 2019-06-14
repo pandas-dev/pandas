@@ -78,17 +78,6 @@ class _IntegerDtype(ExtensionDtype):
         """
         return IntegerArray
 
-    @classmethod
-    def construct_from_string(cls, string):
-        """
-        Construction from a string, raise a TypeError if not
-        possible
-        """
-        if string == cls.name:
-            return cls()
-        raise TypeError("Cannot construct a '{}' from "
-                        "'{}'".format(cls, string))
-
 
 def integer_array(values, dtype=None, copy=False):
     """
@@ -254,6 +243,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         A 1-d boolean-dtype array indicating missing values.
     copy : bool, default False
         Whether to copy the `values` and `mask`.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
 
     Returns
     -------

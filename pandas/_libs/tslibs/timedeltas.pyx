@@ -117,7 +117,7 @@ def ints_to_pytimedelta(int64_t[:] arr, box=False):
 
         value = arr[i]
         if value == NPY_NAT:
-            result[i] = NaT
+            result[i] = <object>NaT
         else:
             if box:
                 result[i] = Timedelta(value)

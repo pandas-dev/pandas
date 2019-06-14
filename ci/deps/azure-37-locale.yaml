@@ -28,7 +28,6 @@ dependencies:
   - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
-  - isort
   - pip
   - pip:
     - hypothesis>=3.58.0

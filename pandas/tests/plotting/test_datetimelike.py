@@ -26,8 +26,9 @@ class TestTSPlot(TestPlotBase):
     def setup_method(self, method):
         TestPlotBase.setup_method(self, method)
 
-        freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
-        idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
+        self.freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
+        idx = [
+            period_range('12/31/1999', freq=x, periods=100) for x in self.freq]
         self.period_ser = [Series(np.random.randn(len(x)), x) for x in idx]
         self.period_df = [DataFrame(np.random.randn(len(x), 3), index=x,
                                     columns=['A', 'B', 'C'])
@@ -160,7 +161,7 @@ class TestTSPlot(TestPlotBase):
             _check_plot_works(ser.plot, ax=ax)
 
     def test_get_datevalue(self):
-        from pandas.plotting._converter import get_datevalue
+        from pandas.plotting._matplotlib.converter import get_datevalue
         assert get_datevalue(None, 'D') is None
         assert get_datevalue(1987, 'A') == 1987
         assert (get_datevalue(Period(1987, 'A'), 'M') ==
@@ -210,6 +211,16 @@ class TestTSPlot(TestPlotBase):
             _check_plot_works(s.plot, s.index.freq)
 
     @pytest.mark.slow
+    @pytest.mark.parametrize(
+        'frqncy', ['1S', '3S', '5T', '7H', '4D', '8W', '11M', '3A'])
+    def test_line_plot_period_mlt_series(self, frqncy):
+        # test period index line plot for series with multiples (`mlt`) of the
+        # frequency (`frqncy`) rule code. tests resolution of issue #14763
+        idx = period_range('12/31/1999', freq=frqncy, periods=100)
+        s = Series(np.random.randn(len(idx)), idx)
+        _check_plot_works(s.plot, s.index.freq.rule_code)
+
+    @pytest.mark.slow
     def test_line_plot_datetime_series(self):
         for s in self.datetime_ser:
             _check_plot_works(s.plot, s.index.freq.rule_code)
@@ -218,6 +229,19 @@ class TestTSPlot(TestPlotBase):
     def test_line_plot_period_frame(self):
         for df in self.period_df:
             _check_plot_works(df.plot, df.index.freq)
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
+        'frqncy', ['1S', '3S', '5T', '7H', '4D', '8W', '11M', '3A'])
+    def test_line_plot_period_mlt_frame(self, frqncy):
+        # test period index line plot for DataFrames with multiples (`mlt`)
+        # of the frequency (`frqncy`) rule code. tests resolution of issue
+        # #14763
+        idx = period_range('12/31/1999', freq=frqncy, periods=100)
+        df = DataFrame(np.random.randn(len(idx), 3), index=idx,
+                       columns=['A', 'B', 'C'])
+        freq = df.index.asfreq(df.index.freq.rule_code).freq
+        _check_plot_works(df.plot, freq)
 
     @pytest.mark.slow
     def test_line_plot_datetime_frame(self):
@@ -261,7 +285,7 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_uhf(self):
-        import pandas.plotting._converter as conv
+        import pandas.plotting._matplotlib.converter as conv
         idx = date_range('2012-6-22 21:59:51.960928', freq='L', periods=500)
         df = DataFrame(np.random.randn(len(idx), 2), index=idx)
 
@@ -392,7 +416,7 @@ class TestTSPlot(TestPlotBase):
             _test(ax)
 
     def test_get_finder(self):
-        import pandas.plotting._converter as conv
+        import pandas.plotting._matplotlib.converter as conv
 
         assert conv.get_finder('B') == conv._daily_finder
         assert conv.get_finder('D') == conv._daily_finder

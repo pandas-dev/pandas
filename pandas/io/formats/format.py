@@ -729,7 +729,7 @@ class DataFrameFormatter(TableFormatter):
             Whether the generated HTML is for IPython Notebook.
         border : int
             A ``border=border`` attribute is included in the opening
-            ``<table>`` tag. Default ``pd.options.html.border``.
+            ``<table>`` tag. Default ``pd.options.display.html.border``.
 
             .. versionadded:: 0.19.0
          """
@@ -1246,7 +1246,7 @@ def format_percentiles(percentiles):
             raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
-    int_idx = (percentiles.astype(int) == percentiles)
+    int_idx = np.isclose(percentiles.astype(int), percentiles)
 
     if np.all(int_idx):
         out = percentiles.astype(int).astype(str)

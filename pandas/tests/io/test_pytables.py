@@ -50,6 +50,7 @@ _default_compressor = ('blosc' if LooseVersion(tables.__version__) >=
 ignore_natural_naming_warning = pytest.mark.filterwarnings(
     "ignore:object name:tables.exceptions.NaturalNameWarning"
 )
+ignore_sparse = pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 
 # contextmanager to ensure the file cleanup
 
@@ -2243,6 +2244,7 @@ class TestHDFStore(Base):
         self._check_roundtrip(ts3, tm.assert_series_equal,
                               check_index_type=False)
 
+    @ignore_sparse
     def test_sparse_series(self):
 
         s = tm.makeStringSeries()
@@ -2259,6 +2261,7 @@ class TestHDFStore(Base):
         self._check_roundtrip(ss3, tm.assert_series_equal,
                               check_series_type=True)
 
+    @ignore_sparse
     def test_sparse_frame(self):
 
         s = tm.makeDataFrame()
@@ -2597,6 +2600,7 @@ class TestHDFStore(Base):
 
             tm.assert_series_equal(store['a'], ts)
 
+    @ignore_sparse
     def test_sparse_with_compression(self):
 
         # GH 2931
@@ -3741,6 +3745,7 @@ class TestHDFStore(Base):
             expected = df.loc[[0], ['foo', 'bar']]
             tm.assert_frame_equal(result, expected)
 
+    @ignore_sparse
     def test_start_stop_fixed(self):
 
         with ensure_clean_store(self.path) as store:
@@ -4725,6 +4730,21 @@ class TestHDFStore(Base):
                 mode='r') as store:
             result = store['p']
             assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("where", ["", (), (None, ), [], [None]])
+    def test_select_empty_where(self, where):
+        # GH26610
+
+        # Using keyword `where` as '' or (), or [None], etc
+        # while reading from HDF store raises
+        # "SyntaxError: only a single expression is allowed"
+
+        df = pd.DataFrame([1, 2, 3])
+        with ensure_clean_path("empty_where.h5") as path:
+            with pd.HDFStore(path) as store:
+                store.put("df", df, "t")
+                result = pd.read_hdf(store, "df", where=where)
+                assert_frame_equal(result, df)
 
 
 class TestHDFComplexValues(Base):

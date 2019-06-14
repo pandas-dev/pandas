@@ -52,6 +52,7 @@ _unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
 _index_doc_kwargs = dict(klass='Index', inplace='',
                          target_klass='Index',
+                         raises_section='',
                          unique='Index', duplicated='np.ndarray')
 _index_shared_docs = dict()
 
@@ -272,8 +273,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(data, RangeIndex):
             return RangeIndex(start=data, copy=copy, dtype=dtype, name=name)
         elif isinstance(data, range):
-            return RangeIndex.from_range(data, copy=copy, dtype=dtype,
-                                         name=name)
+            return RangeIndex.from_range(data, dtype=dtype, name=name)
 
         # categorical
         elif is_categorical_dtype(data) or is_categorical_dtype(dtype):
@@ -1410,6 +1410,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def nlevels(self):
+        """
+        Number of levels.
+        """
         return 1
 
     def _sort_levels_monotonic(self):
@@ -1739,6 +1742,9 @@ class Index(IndexOpsMixin, PandasObject):
         return self.inferred_type in ['mixed']
 
     def holds_integer(self):
+        """
+        Whether the type is an integer type.
+        """
         return self.inferred_type in ['integer', 'mixed-integer']
 
     @cache_readonly
@@ -2439,9 +2445,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _wrap_setop_result(self, other, result):
         return self._constructor(result, name=get_op_result_name(self, other))
 
-    # TODO: standardize return type of non-union setops type(self vs other)
-    def intersection(self, other, sort=False):
-        """
+    _index_shared_docs['intersection'] = """
         Form the intersection of two Index objects.
 
         This returns a new Index with elements common to the index and `other`.
@@ -2475,6 +2479,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.intersection(idx2)
         Int64Index([3, 4], dtype='int64')
         """
+
+    # TODO: standardize return type of non-union setops type(self vs other)
+    @Appender(_index_shared_docs['intersection'])
+    def intersection(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other = ensure_index(other)
@@ -2787,7 +2795,7 @@ class Index(IndexOpsMixin, PandasObject):
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
-
+        %(raises_section)s
         Examples
         --------
         >>> index = pd.Index(['c', 'a', 'b'])
@@ -3963,6 +3971,9 @@ class Index(IndexOpsMixin, PandasObject):
         return self.is_object()
 
     def is_type_compatible(self, kind):
+        """
+        Whether the index type is compatible with the provided type.
+        """
         return kind == self.inferred_type
 
     _index_shared_docs['contains'] = """
@@ -4012,11 +4023,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
-        hash(key)
-        try:
-            return key in self._engine
-        except (TypeError, ValueError):
-            return False
+        return key in self
 
     def __hash__(self):
         raise TypeError("unhashable type: %r" % type(self).__name__)
@@ -4339,6 +4346,9 @@ class Index(IndexOpsMixin, PandasObject):
             return sorted_index
 
     def sort(self, *args, **kwargs):
+        """
+        Use sort_values instead.
+        """
         raise TypeError("cannot sort an Index object in-place, use "
                         "sort_values instead")
 
