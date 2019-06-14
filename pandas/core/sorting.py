@@ -256,13 +256,15 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
         return sorted_idx
 
     mask = isna(items)
-    with warnings.catch_warnings():
-        # https://github.com/pandas-dev/pandas/issues/25439
-        # can be removed once ExtensionArrays are properly handled by nargsort
-        warnings.filterwarnings(
-            "ignore", category=FutureWarning,
-            message="Converting timezone-aware DatetimeArray to")
-        items = np.asanyarray(items)
+    if not isinstance(items, np.ndarray):
+        with warnings.catch_warnings():
+            # https://github.com/pandas-dev/pandas/issues/25439
+            # can be removed once ExtensionArrays are properly handled by
+            # nargsort
+            warnings.filterwarnings(
+                "ignore", category=FutureWarning,
+                message="Converting timezone-aware DatetimeArray to")
+            items = np.asanyarray(items)
     idx = np.arange(len(items))
     non_nans = items[~mask]
     non_nan_idx = idx[~mask]

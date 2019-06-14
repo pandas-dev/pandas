@@ -501,6 +501,19 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         return Series(array, index=index)
 
+    def _values_for_argsort(self) -> np.ndarray:
+        """Return values for sorting.
+        Returns
+        -------
+        ndarray
+            The transformed values should maintain the ordering between values
+            within the array.
+        See Also
+        --------
+        ExtensionArray.argsort
+        """
+        return self
+
     @classmethod
     def _create_comparison_method(cls, op):
         def cmp_method(self, other):
