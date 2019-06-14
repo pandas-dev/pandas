@@ -3,13 +3,7 @@ Provide basic components for groupby. These defintiions
 hold the whitelist of methods that are exposed on the
 SeriesGroupBy and the DataFrameGroupBy objects.
 """
-from typing import TYPE_CHECKING, FrozenSet, Iterator, Type, Union
-
 from pandas.core.dtypes.common import is_list_like, is_scalar
-
-if TYPE_CHECKING:
-    from pandas import DataFrame, Series
-    from .groupby import GroupBy
 
 
 class GroupByMixin:
@@ -92,48 +86,3 @@ cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
 
 cython_cast_blacklist = frozenset(['rank', 'count', 'size', 'idxmin',
                                    'idxmax'])
-
-
-def whitelist_method_generator(base: 'Type[GroupBy]',
-                               klass: 'Union[Type[DataFrame], Type[Series]]',
-                               whitelist: FrozenSet[str],
-                               ) -> Iterator[str]:
-    """
-    Yields all GroupBy member defs for DataFrame/Series names in whitelist.
-
-    Parameters
-    ----------
-    base : Groupby class
-        base class
-    klass : DataFrame or Series class
-        class where members are defined.
-    whitelist : frozenset
-        Set of names of klass methods to be constructed
-
-    Returns
-    -------
-    The generator yields a sequence of strings, each suitable for exec'ing,
-    that define implementations of the named methods for DataFrameGroupBy
-    or SeriesGroupBy.
-
-    Since we don't want to override methods explicitly defined in the
-    base class, any such name is skipped.
-    """
-    property_wrapper_template = \
-        """@property
-def %(name)s(self) :
-    \"""%(doc)s\"""
-    return self.__getattr__('%(name)s')"""
-
-    for name in whitelist:
-        # don't override anything that was explicitly defined
-        # in the base class
-        if hasattr(base, name):
-            continue
-        # ugly, but we need the name string itself in the method.
-        f = getattr(klass, name)
-        doc = f.__doc__
-        doc = doc if type(doc) == str else ''
-        wrapper_template = property_wrapper_template
-        params = {'name': name, 'doc': doc}
-        yield wrapper_template % params
