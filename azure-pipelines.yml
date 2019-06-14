@@ -133,9 +133,9 @@ jobs:
     displayName: 'Setup environment and build pandas'
 
   - script: |
-      sudo apt-get install -y xsel
+      set -x
+      sudo apt-get install -y xsel xvfb
       export DISPLAY=":99.0"
-      echo "sh -e /etc/init.d/xvfb start"
       sh -e /etc/init.d/xvfb start
       sleep 3
     displayName: 'Setup clipboard'
