@@ -13,7 +13,7 @@ dependencies:
   - ipython
   - jinja2
   - lxml=3.7.0
-  - matplotlib=3.0.0
+  - matplotlib=3.0.2
   - nomkl
   - numexpr
   - numpy
@@ -25,7 +25,7 @@ dependencies:
   - python-dateutil
   # cannot go past python=3.6.6 for matplotlib=3.0.0 due to
   # https://github.com/matplotlib/matplotlib/issues/12626
-  - python=3.6.6
+  - python=3.6.*
   - pytz
   - s3fs=0.0.8
   - scipy
