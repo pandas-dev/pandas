@@ -1,7 +1,7 @@
 from collections import abc
 from datetime import datetime, time
 from functools import partial
-from typing import Union, TypeVar
+from typing import TypeVar, Union
 
 import numpy as np
 
