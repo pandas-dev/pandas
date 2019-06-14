@@ -1624,7 +1624,7 @@ class IndexCol:
         new_self.read_metadata(handler)
         return new_self
 
-    def convert(self, values, nan_rep, encoding, errors, **kwargs):
+    def convert(self, values, nan_rep, encoding, errors, start=None, stop=None):
         """ set the values from this selection: take = take ownership """
 
         # values is a recarray
@@ -1813,11 +1813,21 @@ class GenericIndexCol(IndexCol):
     def is_indexed(self):
         return False
 
-    def convert(self, values, nan_rep, encoding, errors, **kwargs):
-        """ set the values from this selection: take = take ownership """
+    def convert(self, values, nan_rep, encoding, errors, start=None, stop=None):
+        """ set the values from this selection: take = take ownership
 
-        start = kwargs.get('start', 0)
-        stop = kwargs.get('stop', self.table.nrows)
+        Parameters
+        ----------
+
+        start : int, optional
+            Table row number: the start of the sub-selection.
+        stop : int, optional
+            Table row number: the end of the sub-selection. Values larger than
+            the underlying table's row count are normalized to that.
+        """
+
+        start = start if start is not None else 0
+        stop = stop if stop is not None else self.table.nrows
         stop = min(stop, self.table.nrows)
         self.values = Int64Index(np.arange(stop - start))
 
@@ -2163,7 +2173,7 @@ class DataCol(IndexCol):
                 raise ValueError("appended items dtype do not match existing "
                                  "items dtype in table!")
 
-    def convert(self, values, nan_rep, encoding, errors, **kwargs):
+    def convert(self, values, nan_rep, encoding, errors, start=None, stop=None):
         """set the data from this selection (and convert to the correct dtype
         if we can)
         """
