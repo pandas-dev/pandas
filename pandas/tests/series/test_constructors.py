@@ -909,6 +909,11 @@ class TestSeriesConstructors:
         expected = Series(pd.Timestamp(arg)).dt.tz_localize('CET')
         assert_series_equal(result, expected)
 
+    def test_constructor_datetime64_outofbound(self):
+        # GH-26206 out of bound non-ns unit
+        with pytest.raises(pd.errors.OutOfBoundsDatetime):
+            pd.Series(np.array(['2262-04-12'], dtype='datetime64[D]'))
+
     def test_construction_interval(self):
         # construction from interval & array of intervals
         index = IntervalIndex.from_breaks(np.arange(3), closed='right')
