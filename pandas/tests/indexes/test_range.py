@@ -94,9 +94,9 @@ class TestRangeIndex(Numeric):
 
     def test_constructor_range(self):
 
-        result = RangeIndex(range(1, 5, 2))
-        expected = RangeIndex(1, 5, 2)
-        tm.assert_index_equal(result, expected, exact=True)
+        msg = "Value needs to be a scalar value, was type <class 'range'>"
+        with pytest.raises(TypeError, match=msg):
+            result = RangeIndex(range(1, 5, 2))
 
         result = RangeIndex.from_range(range(1, 5, 2))
         expected = RangeIndex(1, 5, 2)

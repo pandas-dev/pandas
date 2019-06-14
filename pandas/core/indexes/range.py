@@ -40,7 +40,7 @@ class RangeIndex(Int64Index):
 
     Parameters
     ----------
-    start : int (default: 0), range or RangeIndex instance
+    start : int (default: 0), or other RangeIndex instance
         If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
     step : int (default: 1)
@@ -84,11 +84,12 @@ class RangeIndex(Int64Index):
             if fastpath:
                 return cls._simple_new(range(start, stop, step), name=name)
 
-        # RangeIndex, range
-        if isinstance(start, (RangeIndex, range)):
-            if isinstance(start, RangeIndex):
-                name = start.name if name is None else name
-                start = start._range
+        cls._validate_dtype(dtype)
+
+        # RangeIndex
+        if isinstance(start, RangeIndex):
+            name = start.name if name is None else name
+            start = start._range
             return cls._simple_new(start, dtype=dtype, name=name)
 
         # validate the arguments
@@ -122,13 +123,13 @@ class RangeIndex(Int64Index):
             raise TypeError(
                 '{0}(...) must be called with object coercible to a '
                 'range, {1} was passed'.format(cls.__name__, repr(data)))
+
+        cls._validate_dtype(dtype)
         return cls._simple_new(data, dtype=dtype, name=name)
 
     @classmethod
     def _simple_new(cls, values, name=None, dtype=None, **kwargs):
         result = object.__new__(cls)
-
-        cls._validate_dtype(dtype)
 
         # handle passed None, non-integers
         if values is None:
