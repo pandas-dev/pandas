@@ -24,7 +24,7 @@ class ODFReader:
 
     @property
     def sheet_names(self):
-        """Return table names is the document"""
+        """Return a list of sheet names present in the document"""
         from odf.namespaces import TABLENS
         return [t.attributes[(TABLENS, 'name')] for t in self.tables]
 
