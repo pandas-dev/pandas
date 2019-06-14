@@ -1255,6 +1255,10 @@ def format_percentiles(percentiles):
 
 def _is_dates_only(values):
     # return a boolean if we are only dates (and don't have a timezone)
+    if values.ndim == 2:
+        # 2D DatetimeArray
+        values = values.ravel()
+
     values = DatetimeIndex(values)
     if values.tz is not None:
         return False

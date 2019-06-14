@@ -28,11 +28,18 @@ class TestDataFrameBlockInternals:
         dti = date_range('20130101', periods=3, tz='US/Eastern')
         ts = dti[1]
 
+        # On assigning to a DataFrame, the array inside the Block
+        #  will be reshaped, and so will lose its freq.
         df = DataFrame({'B': dti})
-        assert df['B']._values.freq == 'D'
-
-        df.iloc[1, 0] = pd.NaT
         assert df['B']._values.freq is None
+
+        # By contrast, it will not be reshaped when being entered into a Series
+        #  and so the freq will be retained
+        ser = pd.Series(dti)
+        assert ser._values.freq == 'D'
+
+        ser.iloc[1] = pd.NaT
+        assert ser._values.freq is None
 
         # check that the DatetimeIndex was not altered in place
         assert dti.freq == 'D'
