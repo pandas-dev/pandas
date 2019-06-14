@@ -283,7 +283,7 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
     s
     s.str.startswith(b'a')
 
-.. _whatsnew_0250.api_breaking.incompatible_index_unions
+.. _whatsnew_0250.api_breaking.incompatible_index_unions:
 
 Incompatible Index Type Unions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
