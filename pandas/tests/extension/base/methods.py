@@ -44,6 +44,15 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
         self.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('na_position, expected', [
+        ('last', np.array([2, 0, 1])),
+        ('first', np.array([1, 2, 0]))
+    ])
+    def test_nargsort(self, data_missing_for_sorting, na_position, expected):
+        from pandas.core.sorting import nargsort
+        result = nargsort(data_missing_for_sorting, na_position=na_position)
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize('ascending', [True, False])
     def test_sort_values(self, data_for_sorting, ascending):
         ser = pd.Series(data_for_sorting)
