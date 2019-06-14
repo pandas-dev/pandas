@@ -5180,73 +5180,69 @@ class TestTimezones(Base):
                 assert_frame_equal(result, df)
 
 
+@pytest.fixture(scope='module')
+def pytables_hdf5_file():
+    """Use PyTables to create a simple HDF5 file."""
+
+    table_schema = {
+        'c0': tables.Time64Col(pos=0),
+        'c1': tables.StringCol(5, pos=1),
+        'c2': tables.Int64Col(pos=2),
+    }
+
+    t0 = time.time()
+
+    testsamples = [
+        {'c0': t0, 'c1': 'aaaaa', 'c2': 1},
+        {'c0': t0 + 1, 'c1': 'bbbbb', 'c2': 2},
+        {'c0': t0 + 2, 'c1': 'ccccc', 'c2': 10**5},
+        {'c0': t0 + 3, 'c1': 'ddddd', 'c2': 4294967295},
+    ]
+
+    # This returns a path and does not open the file.
+    tmpfilepath = create_tempfile('pytables_hdf5_file')
+    objectname = 'pandas_test_timeseries'
+
+    with tables.open_file(tmpfilepath, mode='w') as hf:
+        t = hf.create_table('/', name=objectname, description=table_schema)
+        for sample in testsamples:
+            for key, value in sample.items():
+                t.row[key] = value
+            t.row.append()
+
+    return tmpfilepath, objectname, pd.DataFrame(testsamples)
+
+
 class TestReadPyTablesHDF5(Base):
     """
     A group of tests which covers reading HDF5 files written by plain PyTables
     (not written by pandas).
     """
 
-    def _create_simple_hdf5_file_with_pytables(self):
+    def test_read_complete(self, pytables_hdf5_file):
+        path, objname, expected_df = pytables_hdf5_file
+        assert_frame_equal(pd.read_hdf(path, key=objname), expected_df)
 
-        table_schema = {
-            'c0': tables.Time64Col(pos=0),
-            'c1': tables.StringCol(5, pos=1),
-            'c2': tables.UInt32Col(pos=2),
-        }
-
-        t0 = time.time()
-
-        testsamples = [
-            {'c0': t0, 'c1': 'aaaaa', 'c2': 1},
-            {'c0': t0 + 1, 'c1': 'bbbbb', 'c2': 2},
-            {'c0': t0 + 2, 'c1': 'ccccc', 'c2': 10**5},
-            {'c0': t0 + 3, 'c1': 'ddddd', 'c2': 4294967295},
-        ]
-
-        # This returns a path and does not open the file.
-        tmpfilepath = create_tempfile(self.path)
-        objectname = 'pandas_test_timeseries'
-
-        with tables.open_file(tmpfilepath, mode='w') as hf:
-            t = hf.create_table('/', name=objectname, description=table_schema)
-            for sample in testsamples:
-                for key, value in sample.items():
-                    t.row[key] = value
-                t.row.append()
-
-        return tmpfilepath, objectname, testsamples
-
-    def _compare(self, df, samples):
-        """Compare the reference `samples` with the contents in DataFrame `df`.
-        """
-        for idx, row in df.iterrows():
-            # Compare Time64Col values with tolerance.
-            tm.assert_almost_equal(samples[idx]['c0'], row['c0'])
-
-            # Compare a short string.
-            assert samples[idx]['c1'] == row['c1']
-
-            # Compare an unsigned 32 bit integer.
-            assert samples[idx]['c2'] == row['c2']
-
-    def test_read_complete(self):
-        path, objname, samples = self._create_simple_hdf5_file_with_pytables()
-        self._compare(pd.read_hdf(path, key=objname), samples)
-
-    def test_read_with_start(self):
-        path, objname, samples = self._create_simple_hdf5_file_with_pytables()
+    def test_read_with_start(self, pytables_hdf5_file):
+        path, objname, expected_df = pytables_hdf5_file
         # This is a regression test for pandas-dev/pandas/issues/11188
-        self._compare(pd.read_hdf(path, key=objname, start=1), samples[1:])
+        assert_frame_equal(
+            pd.read_hdf(path, key=objname, start=1),
+            expected_df[1:].reset_index(drop=True)
+        )
 
-    def test_read_with_stop(self):
-        path, objname, samples = self._create_simple_hdf5_file_with_pytables()
+    def test_read_with_stop(self, pytables_hdf5_file):
+        path, objname, expected_df = pytables_hdf5_file
         # This is a regression test for pandas-dev/pandas/issues/11188
-        self._compare(pd.read_hdf(path, key=objname, stop=1), samples[0:1])
+        assert_frame_equal(
+            pd.read_hdf(path, key=objname, stop=1),
+            expected_df[:1].reset_index(drop=True)
+        )
 
-    def test_read_with_startstop(self):
-        path, objname, samples = self._create_simple_hdf5_file_with_pytables()
+    def test_read_with_startstop(self, pytables_hdf5_file):
+        path, objname, expected_df = pytables_hdf5_file
         # This is a regression test for pandas-dev/pandas/issues/11188
-        self._compare(
+        assert_frame_equal(
             pd.read_hdf(path, key=objname, start=1, stop=2),
-            samples[1:2]
+            expected_df[1:2].reset_index(drop=True)
         )
