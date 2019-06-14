@@ -236,6 +236,14 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     freq : str or Offset, optional
     copy : bool, default False
         Whether to copy the underlying array of values.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _typ = "datetimearray"
     _scalar_type = Timestamp

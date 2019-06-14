@@ -244,6 +244,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     copy : bool, default False
         Whether to copy the `values` and `mask`.
 
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
+
     Returns
     -------
     IntegerArray

@@ -19,4 +19,9 @@ objects.
    api.extensions.register_index_accessor
    api.extensions.ExtensionDtype
    api.extensions.ExtensionArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
    arrays.PandasArray

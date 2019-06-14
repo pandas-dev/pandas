@@ -572,6 +572,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         this determines ``self.sp_values`` and ``self.fill_value``.
     copy : bool, default False
         Whether to explicitly copy the incoming `data` array.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
 
     _pandas_ftype = 'sparse'
