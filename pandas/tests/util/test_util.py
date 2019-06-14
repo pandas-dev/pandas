@@ -5,8 +5,6 @@ import pytest
 
 import pandas.compat as compat
 from pandas.compat import raise_with_traceback
-from pandas.util._decorators import deprecate_kwarg, make_signature
-from pandas.util._validators import validate_kwargs
 
 import pandas.util.testing as tm
 
@@ -35,22 +33,6 @@ def test_numpy_err_state_is_default():
 
     # The error state should be unchanged after that import.
     assert np.geterr() == expected
-
-
-@pytest.mark.parametrize("func,expected", [
-    # Case where the func does not have default kwargs.
-    (validate_kwargs, (["fname", "kwargs", "compat_args"],
-                       ["fname", "kwargs", "compat_args"])),
-
-    # Case where the func does have default kwargs.
-    (deprecate_kwarg, (["old_arg_name", "new_arg_name",
-                        "mapping=None", "stacklevel=2"],
-                       ["old_arg_name", "new_arg_name",
-                        "mapping", "stacklevel"]))
-])
-def test_make_signature(func, expected):
-    # see gh-17608
-    assert make_signature(func) == expected
 
 
 def test_raise_with_traceback():
