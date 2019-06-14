@@ -5,6 +5,7 @@ jobs:
   parameters:
     name: macOS
     vmImage: xcode9-macos10.13
+
 - template: ci/azure/posix.yml
   parameters:
     name: Linux
@@ -127,7 +128,7 @@ jobs:
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
-      sudo apt-get install -y libc6-dev-i386
+      sudo apt-get install -y libc6-dev-i386 xsel
       ci/setup_env.sh
     displayName: 'Setup environment and build pandas'
 
@@ -135,7 +136,7 @@ jobs:
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       # Next we should simply have `doc/make.py --warnings-are-errors`, everything else is required because the ipython directive doesn't fail the build on errors (https://github.com/ipython/ipython/issues/11547)
-      doc/make.py --warnings-are-errors | tee -a sphinx.log ; SPHINX_RET=${PIPESTATUS[0]}
+      doc/make.py --warnings-are-errors | tee sphinx.log ; SPHINX_RET=${PIPESTATUS[0]}
       grep -B1 "^<<<-------------------------------------------------------------------------$" sphinx.log ; IPY_RET=$(( $? != 1 ))
       exit $(( $SPHINX_RET + $IPY_RET ))
     displayName: 'Build documentation'
