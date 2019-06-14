@@ -613,7 +613,7 @@ Strings
 ^^^^^^^
 
 - Bug in the ``__name__`` attribute of several methods of :class:`Series.str`, which were set incorrectly (:issue:`23551`)
--
+- Improved error message when passing :class:`Series` of wrong dtype to :meth:`Series.str.cat` (:issue:`22722`)
 -
 
 
