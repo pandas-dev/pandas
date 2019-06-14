@@ -50,6 +50,7 @@ public functions related to data types in pandas.
         api/pandas.DataFrame.blocks
         api/pandas.DataFrame.as_matrix
         api/pandas.DataFrame.ix
+        api/pandas.Index.asi8
         api/pandas.Index.data
         api/pandas.Index.flags
         api/pandas.Index.holds_integer
@@ -62,3 +63,12 @@ public functions related to data types in pandas.
         api/pandas.Series.ix
         api/pandas.Series.imag
         api/pandas.Series.real
+
+
+.. Can't convince sphinx to generate toctree for this class attribute.
+.. So we do it manually to avoid a warning
+
+..
+    .. toctree::
+
+        api/pandas.api.extensions.ExtensionDtype.na_value
