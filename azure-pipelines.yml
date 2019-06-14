@@ -128,9 +128,17 @@ jobs:
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
-      sudo apt-get install -y libc6-dev-i386 xclip
+      sudo apt-get install -y libc6-dev-i386
       ci/setup_env.sh
     displayName: 'Setup environment and build pandas'
+
+  - script: |
+      sudo apt-get install -y xsel
+      export DISPLAY=":99.0"
+      echo "sh -e /etc/init.d/xvfb start"
+      sh -e /etc/init.d/xvfb start
+      sleep 3
+    displayName: 'Setup clipboard'
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
