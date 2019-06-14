@@ -1,6 +1,4 @@
 """ miscellaneous sorting / groupby utilities """
-import warnings
-
 import numpy as np
 
 from pandas._libs import algos, hashtable, lib
@@ -10,9 +8,8 @@ from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_platform_int, is_categorical_dtype,
     is_extension_array_dtype, is_list_like, is_sparse)
-from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCIndexClass
-
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algorithms
 
