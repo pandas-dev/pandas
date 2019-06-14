@@ -1456,11 +1456,6 @@ class TableIterator:
                 stop = nrows
             stop = min(nrows, stop)
 
-            # Piggy-back normalized `nrows` (considering start and stop) onto
-            # PyTables tables object so that the GenericIndexCol constructor
-            # knows how large the index should be.
-            self.s.table._nrows_to_read = stop - start
-
         self.nrows = nrows
         self.start = start
         self.stop = stop
@@ -1629,7 +1624,7 @@ class IndexCol:
         new_self.read_metadata(handler)
         return new_self
 
-    def convert(self, values, nan_rep, encoding, errors):
+    def convert(self, values, nan_rep, encoding, errors, **kwargs):
         """ set the values from this selection: take = take ownership """
 
         # values is a recarray
@@ -1818,18 +1813,13 @@ class GenericIndexCol(IndexCol):
     def is_indexed(self):
         return False
 
-    def convert(self, values, nan_rep, encoding, errors):
+    def convert(self, values, nan_rep, encoding, errors, **kwargs):
         """ set the values from this selection: take = take ownership """
 
-        if hasattr(self.table, '_nrows_to_read'):
-            # The `_nrows_to_read` property is set on the table object by the
-            # code path invoked by the top-level `read_hdf()`, and calculated
-            # based on the start` and `stop` integer values. These values allow
-            # for a sub-selection and likewise the index size needs to be
-            # adjusted to the size of this sub-selection.
-            self.values = Int64Index(np.arange(self.table._nrows_to_read))
-        else:
-            self.values = Int64Index(np.arange(self.table.nrows))
+        start = kwargs.get('start', 0)
+        stop = kwargs.get('stop', self.table.nrows)
+        stop = min(stop, self.table.nrows)
+        self.values = Int64Index(np.arange(stop - start))
 
         return self
 
@@ -2173,7 +2163,7 @@ class DataCol(IndexCol):
                 raise ValueError("appended items dtype do not match existing "
                                  "items dtype in table!")
 
-    def convert(self, values, nan_rep, encoding, errors):
+    def convert(self, values, nan_rep, encoding, errors, **kwargs):
         """set the data from this selection (and convert to the correct dtype
         if we can)
         """
@@ -3445,8 +3435,10 @@ class Table(Fixed):
         # convert the data
         for a in self.axes:
             a.set_info(self.info)
+            # `kwargs` may contain `start` and `stop` arguments if passed to
+            # `store.select()`. If set they determine the index size.
             a.convert(values, nan_rep=self.nan_rep, encoding=self.encoding,
-                      errors=self.errors)
+                      errors=self.errors, **kwargs)
 
         return True
 
