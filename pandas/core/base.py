@@ -638,7 +638,9 @@ class SelectionMixin:
 
 
 class IndexOpsMixin:
-    """\nCommon ops mixin to support a unified interface / docs for Series / Index\n"""
+    """
+    Common ops mixin to support a unified interface / docs for Series / Index
+    """
 
     # ndarray compatibility
     __array_priority__ = 1000
