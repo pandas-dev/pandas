@@ -1,7 +1,7 @@
 from collections import abc
 from datetime import datetime, time
 from functools import partial
-from typing import Optional, Union
+from typing import Union
 
 import numpy as np
 
@@ -76,8 +76,8 @@ def _maybe_cache(arg, format, cache, convert_listlike):
 
 def _box_as_indexlike(
     dt_array: ArrayLike,
-    tz: Optional[object] = None,
-    name: Optional[str] = None
+    tz=None,
+    name: str = None
 ) -> Union[ABCIndex, ABCDatetimeIndex]:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
@@ -108,7 +108,7 @@ def _convert_and_box_cache(
     arg: DatetimeScalarOrArrayConvertible,
     cache_array: ABCSeries,
     box: bool,
-    name: Optional[str] = None
+    name: str = None
 ) -> Union[ABCIndex, np.ndarray]:
     """
     Convert array of dates with a cache and box the result
