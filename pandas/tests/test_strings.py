@@ -428,6 +428,23 @@ class TestStringMethods:
             result = s.str.cat(t, sep=sep)
             assert_series_or_index_equal(result, expected)
 
+    # test integer/float dtypes (inferred by constructor) and mixed
+    @pytest.mark.parametrize('data', [[1, 2, 3], [.1, .2, .3], [1, 2, 'b']],
+                             ids=['integers', 'floats', 'mixed'])
+    # without dtype=object, np.array would cast [1, 2, 'b'] to ['1', '2', 'b']
+    @pytest.mark.parametrize('box', [Series, Index, list,
+                                     lambda x: np.array(x, dtype=object)],
+                             ids=['Series', 'Index', 'list', 'np.array'])
+    def test_str_cat_wrong_dtype_raises(self, box, data):
+        # GH 22722
+        s = Series(['a', 'b', 'c'])
+        t = box(data)
+
+        msg = 'Concatenation requires list-likes containing only strings.*'
+        with pytest.raises(TypeError, match=msg):
+            # need to use outer and na_rep, as otherwise Index would not raise
+            s.str.cat(t, join='outer', na_rep='-')
+
     @pytest.mark.parametrize('box', [Series, Index])
     def test_str_cat_mixed_inputs(self, box):
         s = Index(['a', 'b', 'c', 'd'])
