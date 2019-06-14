@@ -5,10 +5,6 @@ v0.17.1 (November 21, 2015)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-
 
 .. note::
 

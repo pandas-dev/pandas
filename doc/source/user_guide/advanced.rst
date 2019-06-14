@@ -703,6 +703,8 @@ faster than fancy indexing.
    %timeit arr[indexer]
    %timeit arr.take(indexer, axis=0)
 
+.. ipython:: python
+
    ser = pd.Series(arr[:, 0])
    %timeit ser.iloc[indexer]
    %timeit ser.take(indexer)
