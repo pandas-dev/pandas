@@ -2098,7 +2098,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: float64
         """
         nv.validate_round(args, kwargs)
-        result = com.values_from_object(self).round(decimals)
+        result = np.round(self.array, decimals=decimals)
         result = self._constructor(result, index=self.index).__finalize__(self)
 
         return result
