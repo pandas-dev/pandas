@@ -5,6 +5,8 @@ import operator
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas.tests.extension import base
 import pandas.util.testing as tm
@@ -378,6 +380,26 @@ def test_divmod_array(reverse, expected_div, expected_mod):
 
     tm.assert_extension_array_equal(div, expected_div)
     tm.assert_extension_array_equal(mod, expected_mod)
+
+
+# numpy 1.17 has NEP-18 on by default
+# for numpy 1.16 set shell variable with
+# "export NUMPY_EXPERIMENTAL_ARRAY_FUNCTION=1"
+# before running pytest/python.
+# verify by checking value of `np.core.overrides.ENABLE_ARRAY_FUNCTION`
+@td.skip_if_no_NEP18
+def test_series_round():
+    ser = pd.Series(to_decimal([1.1, 2.4, 3.1])).round()
+    expected = pd.Series(to_decimal([1, 2, 3]))
+    tm.assert_extension_array_equal(ser.array, expected.array)
+    tm.assert_series_equal(ser, expected)
+
+
+@td.skip_if_no_NEP18
+def test_series_round_then_sum():
+    result = pd.Series(to_decimal([1.1, 2.4, 3.1])).round().sum(skipna=False)
+    expected = decimal.Decimal("6")
+    assert result == expected
 
 
 def test_formatting_values_deprecated():
