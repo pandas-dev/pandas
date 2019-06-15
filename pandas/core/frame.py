@@ -358,7 +358,7 @@ class DataFrame(NDFrame):
     """
 
     @property
-    def _constructor(self) -> Type[DataFrame]:
+    def _constructor(self) -> Type['DataFrame']:
         return DataFrame
 
     _constructor_sliced = Series  # type: Type[Series]
@@ -376,10 +376,10 @@ class DataFrame(NDFrame):
 
     def __init__(self,
                  data=None,
-                 index: Index=None,
-                 columns: Index=None,
+                 index: Index = None,
+                 columns: Index = None,
                  dtype=None,
-                 copy: bool=False) -> None:
+                 copy: bool = False) -> None:
         if data is None:
             data = {}
         if dtype is not None:
