@@ -483,7 +483,7 @@ class TestDataFrameConstructors(TestData):
             dct.update(v.to_dict())
             data[k] = dct
         frame = DataFrame(data)
-        tm.assert_frame_equal(self.frame.sort_index(), frame)
+        tm.assert_frame_equal(self.frame, frame)
 
     def test_constructor_dict_block(self):
         expected = np.array([[4., 3., 2., 1.]])
@@ -1153,7 +1153,7 @@ class TestDataFrameConstructors(TestData):
 
         sdict = OrderedDict(zip(['x', 'Unnamed 0'], data))
         expected = DataFrame.from_dict(sdict, orient='index')
-        tm.assert_frame_equal(result.sort_index(), expected)
+        tm.assert_frame_equal(result, expected)
 
         # none named
         data = [OrderedDict([['a', 1.5], ['b', 3], ['c', 4], ['d', 6]]),
@@ -1288,7 +1288,7 @@ class TestDataFrameConstructors(TestData):
     def test_constructor_orient(self):
         data_dict = self.mixed_frame.T._series
         recons = DataFrame.from_dict(data_dict, orient='index')
-        expected = self.mixed_frame.sort_index()
+        expected = self.mixed_frame.reindex(recons.index)
         tm.assert_frame_equal(recons, expected)
 
         # dict of sequence
@@ -1297,6 +1297,16 @@ class TestDataFrameConstructors(TestData):
         rs = DataFrame.from_dict(a, orient='index')
         xp = DataFrame.from_dict(a).T.reindex(list(a.keys()))
         tm.assert_frame_equal(rs, xp)
+
+    def test_constructor_from_ordered_dict(self):
+        # GH8425
+        a = OrderedDict([
+            ('one', OrderedDict([('col_a', 'foo1'), ('col_b', 'bar1')])),
+            ('two', OrderedDict([('col_a', 'foo2'), ('col_b', 'bar2')])),
+            ('three', OrderedDict([('col_a', 'foo3'), ('col_b', 'bar3')]))])
+        expected = DataFrame.from_dict(a, orient='columns').T
+        result = DataFrame.from_dict(a, orient='index')
+        tm.assert_frame_equal(result, expected)
 
     def test_from_dict_columns_parameter(self):
         # GH 18529

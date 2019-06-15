@@ -301,8 +301,10 @@ def extract_index(data):
             raise ValueError('If using all scalar values, you must pass'
                              ' an index')
 
-        if have_series or have_dicts:
+        if have_series:
             index = _union_indexes(indexes)
+        elif have_dicts:
+            index = _union_indexes(indexes, sort=False)
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))

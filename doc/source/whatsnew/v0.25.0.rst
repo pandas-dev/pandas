@@ -633,6 +633,7 @@ Indexing
 - Bug in which :meth:`DataFrame.to_csv` caused a segfault for a reindexed data frame, when the indices were single-level :class:`MultiIndex` (:issue:`26303`).
 - Fixed bug where assigning a :class:`arrays.PandasArray` to a :class:`pandas.core.frame.DataFrame` would raise error (:issue:`26390`)
 - Allow keyword arguments for callable local reference used in the :meth:`DataFrame.query` string (:issue:`26426`)
+- Bug in which :meth:`DataFrame.from_dict` ignored order of OrderedDict when orient='index' (:issue:`8425`).
 
 
 Missing
