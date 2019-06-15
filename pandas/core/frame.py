@@ -25,6 +25,8 @@ from pandas._config import get_option
 
 from pandas._libs import lib, algos as libalgos
 
+from pandas._typing import ArrayLike, Dtype
+
 from pandas.util._decorators import (Appender, Substitution,
                                      rewrite_axis_style_signature,
                                      deprecate_kwarg)
@@ -368,7 +370,7 @@ class DataFrame(NDFrame):
     _accessors = set()  # type: Set[str]
 
     @property
-    def _constructor_expanddim(self) -> None:
+    def _constructor_expanddim(self):
         raise NotImplementedError("Not supported for DataFrames!")
 
     # ----------------------------------------------------------------------
@@ -376,9 +378,9 @@ class DataFrame(NDFrame):
 
     def __init__(self,
                  data=None,
-                 index: Index = None,
-                 columns: Index = None,
-                 dtype=None,
+                 index: ArrayLike = None,
+                 columns: ArrayLike = None,
+                 dtype: Dtype = None,
                  copy: bool = False) -> None:
         if data is None:
             data = {}
@@ -475,7 +477,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def axes(self) -> List[Index]:
+    def axes(self) -> List[ArrayLike]:
         """
         Return a list representing the axes of the DataFrame.
 
