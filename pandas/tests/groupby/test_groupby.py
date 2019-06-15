@@ -1779,9 +1779,17 @@ def test_groupby_indices():
     })
     from itertools import combinations
 
+    dts = [
+        np.datetime64('2018-01-01T00:00:00.000000000'),
+        np.datetime64('2018-04-01T00:00:00.000000000'),
+        np.datetime64('2018-07-01T00:00:00.000000000')
+    ]
+    pers = [pd.Period(dt, freq='Q') for dt in dts]
+
     target_key_choices = [
-        df.iloc[i]
-        for i in range(df.shape[0])
+        [1, 1, 1.0, 1.0, dts[0], dts[0], pers[0], pers[0]],
+        [2, 2, 2.0, 2.0, dts[1], dts[1], pers[1], pers[1]],
+        [3, 3, 3.0, 3.0, dts[2], dts[2], pers[2], pers[2]]
     ]
     target_indices_values = [
         np.array([i])
@@ -1789,26 +1797,24 @@ def test_groupby_indices():
     ]
     n_choices = len(df.columns)
 
-    for i in range(1, n_choices + 1):
-        for combo in combinations(list(range(n_choices)), i):
-            print(combo)
+    for n in range(1, n_choices + 1):
+        for combo in combinations(list(range(n_choices)), n):
             combo = list(combo)
             cols = list(df.columns[combo])
-            if i == 1:
-                target_indices_keys = [
-                    key_choice.iloc[combo[0]]
-                    for key_choice in target_key_choices
-                ]
+            if n == 1:
+                target_indices = {}
+                for i, key_choice in enumerate(target_key_choices):
+                    key = key_choice[combo[0]]
+                    if pd.api.types.is_datetime64_any_dtype(key):
+                        key = pd.Timestamp(key)
+                    target_indices[key] = target_indices_values[i]
             else:
-                target_indices_keys = [
-                    tuple(key_choice.iloc[combo])
-                    for key_choice in target_key_choices
-                ]
+                target_indices = {}
+                for i, key_choice in enumerate(target_key_choices):
+                    key = tuple(key_choice[j] for j in combo)
+                    target_indices[key] = target_indices_values[i]
 
             indices = df.groupby(cols).indices
-            it = zip(target_indices_keys, indices.keys())
-            for target_key, key in it:
-                assert target_key == key
-            it = zip(target_indices_values, indices.values())
-            for target_val, val in it:
-                assert target_val == val
+            assert set(target_indices.keys()) == set(indices.keys())
+            for key in target_indices.keys():
+                np.testing.assert_array_equal(target_indices[key], indices[key])
