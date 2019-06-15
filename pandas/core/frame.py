@@ -16,7 +16,7 @@ import itertools
 import sys
 import warnings
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Set, Type, Union
+from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
 import numpy.ma as ma
@@ -358,7 +358,7 @@ class DataFrame(NDFrame):
     """
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Type[DataFrame]:
         return DataFrame
 
     _constructor_sliced = Series  # type: Type[Series]
@@ -368,14 +368,18 @@ class DataFrame(NDFrame):
     _accessors = set()  # type: Set[str]
 
     @property
-    def _constructor_expanddim(self):
+    def _constructor_expanddim(self) -> None:
         raise NotImplementedError("Not supported for DataFrames!")
 
     # ----------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, data=None, index=None, columns=None, dtype=None,
-                 copy=False):
+    def __init__(self,
+                 data=None,
+                 index: Index=None,
+                 columns: Index=None,
+                 dtype=None,
+                 copy: bool=False) -> None:
         if data is None:
             data = {}
         if dtype is not None:
@@ -471,7 +475,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def axes(self):
+    def axes(self) -> List[Index]:
         """
         Return a list representing the axes of the DataFrame.
 
@@ -488,7 +492,7 @@ class DataFrame(NDFrame):
         return [self.index, self.columns]
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, int]:
         """
         Return a tuple representing the dimensionality of the DataFrame.
 
@@ -510,7 +514,7 @@ class DataFrame(NDFrame):
         return len(self.index), len(self.columns)
 
     @property
-    def _is_homogeneous_type(self):
+    def _is_homogeneous_type(self) -> bool:
         """
         Whether all the columns in a DataFrame have the same type.
 
