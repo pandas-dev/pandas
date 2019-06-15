@@ -1763,3 +1763,18 @@ def test_merge_equal_cat_dtypes2():
 
     # Categorical is unordered, so don't check ordering.
     tm.assert_frame_equal(result, expected, check_categorical=False)
+
+
+def test_merge_correct_exception():
+    # GH26824
+    df1 = DataFrame({
+        'A': [1, 2, 3, 4, 5, 6],
+        'B': ['P', 'Q', 'R', 'S', 'T', 'U']
+    })
+    df2 = DataFrame({
+        'A': [1, 2, 4, 5, 7, 8],
+        'C': ['L', 'M', 'N', 'O', 'P', 'Q']
+    })
+    msg = 'both left_on and right_on should be passed'
+    with pytest.raises(ValueError, match=msg):
+        pd.merge(df1, df2, how='left', left_on='A')
