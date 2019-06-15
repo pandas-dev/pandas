@@ -1753,11 +1753,11 @@ def test_groupby_groups_in_BaseGrouper():
     expected = df.groupby(['beta', 'alpha'])
     assert(result.groups == expected.groups)
 
-    
+
 def test_groupby_indices():
     # GH 26860
     # Test if DataFrame Groupby builds gb.indices correctly.
-    
+
     int_series = pd.Series([1, 2, 3])
     int_series_cat = int_series.astype('category')
     float_series = pd.Series([1., 2., 3.])
@@ -1805,18 +1805,10 @@ def test_groupby_indices():
                     for key_choice in target_key_choices
                 ]
 
-
             indices = df.groupby(cols).indices
-            for target_key, key in zip(target_indices_keys, indices.keys()):
+            it = zip(target_indices_keys, indices.keys())
+            for target_key, key in it:
                 assert target_key == key
-
-            for target_val, val in zip(target_indices_values, indices.values()):
+            it = zip(target_indices_values, indices.values())
+            for target_val, val in it:
                 assert target_val == val
-            
-            
-            
-            
-        
-
-    
-    
