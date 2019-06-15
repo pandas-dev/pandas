@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Any, Callable, Dict, FrozenSet, Iterator, List, Set, Union
+from typing import Any, Callable, FrozenSet, Iterator, List, Set, Union
 import warnings
 import weakref
 
@@ -2474,7 +2474,7 @@ class NDFrame(PandasObject, SelectionMixin):
                index: _bool = True,
                index_label: Union[str, List[str]] = None,
                chunksize: int = None,
-               dtype: Union[Dict[str, Dtype], Dtype] = None,
+               dtype: Dtype = None,
                method: Union[str, Callable[[Any, Any, List[str],
                                             Iterator[List]], None]] = None
                ) -> None:
