@@ -1777,6 +1777,17 @@ def test_groupby_indices():
         'period_series': period_series,
         'period_series_cat': period_series_cat
     })
+    col_order = [
+        'int_series',
+        'int_series_cat',
+        'float_series',
+        'float_series_cat',
+        'dt_series',
+        'dt_series_cat',
+        'period_series',
+        'period_series_cat'
+    ]
+    df = df[col_order]
     from itertools import combinations
 
     dts = [
@@ -1817,4 +1828,5 @@ def test_groupby_indices():
             indices = df.groupby(cols).indices
             assert set(target_indices.keys()) == set(indices.keys())
             for key in target_indices.keys():
-                np.testing.assert_array_equal(target_indices[key], indices[key])
+                assert pd.core.dtypes.missing.array_equivalent(
+                    target_indices[key], indices[key])
