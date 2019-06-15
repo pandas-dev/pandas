@@ -1752,3 +1752,71 @@ def test_groupby_groups_in_BaseGrouper():
     result = df.groupby(['beta', pd.Grouper(level='alpha')])
     expected = df.groupby(['beta', 'alpha'])
     assert(result.groups == expected.groups)
+
+    
+def test_groupby_indices():
+    # GH 26860
+    # Test if DataFrame Groupby builds gb.indices correctly.
+    
+    int_series = pd.Series([1, 2, 3])
+    int_series_cat = int_series.astype('category')
+    float_series = pd.Series([1., 2., 3.])
+    float_series_cat = float_series.astype('category')
+    dt_series = pd.to_datetime(['2018Q1', '2018Q2', '2018Q3'])
+    dt_series_cat = dt_series.astype('category')
+    period_series = dt_series.to_period('Q')
+    period_series_cat = period_series.astype('category')
+
+    df = pd.DataFrame({
+        'int_series': int_series,
+        'int_series_cat': int_series_cat,
+        'float_series': float_series,
+        'float_series_cat': float_series_cat,
+        'dt_series': dt_series,
+        'dt_series_cat': dt_series_cat,
+        'period_series': period_series,
+        'period_series_cat': period_series_cat
+    })
+    from itertools import combinations
+
+    target_key_choices = [
+        df.iloc[i]
+        for i in range(df.shape[0])
+    ]
+    target_indices_values = [
+        np.array([i])
+        for i in range(df.shape[0])
+    ]
+    n_choices = len(df.columns)
+
+    for i in range(1, n_choices + 1):
+        for combo in combinations(list(range(n_choices)), i):
+            print(combo)
+            combo = list(combo)
+            cols = list(df.columns[combo])
+            if i == 1:
+                target_indices_keys = [
+                    key_choice.iloc[combo[0]]
+                    for key_choice in target_key_choices
+                ]
+            else:
+                target_indices_keys = [
+                    tuple(key_choice.iloc[combo])
+                    for key_choice in target_key_choices
+                ]
+
+
+            indices = df.groupby(cols).indices
+            for target_key, key in zip(target_indices_keys, indices.keys()):
+                assert target_key == key
+
+            for target_val, val in zip(target_indices_values, indices.values()):
+                assert target_val == val
+            
+            
+            
+            
+        
+
+    
+    
