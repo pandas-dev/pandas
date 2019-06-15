@@ -131,11 +131,21 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
         index, columns = _get_axes(len(values), 1, index, columns)
         return arrays_to_mgr([values], columns, index, columns,
                              dtype=dtype)
+
     elif (is_datetime64tz_dtype(values) or
           is_extension_array_dtype(values)):
+        # TODO: isn't this now redundant?
         # GH#19157
         if columns is None:
             columns = [0]
+        if index is None:
+            index = ibase.default_index(len(values))
+        if is_datetime64tz_dtype(values) and values.ndim == 1:
+            if isinstance(values, ABCDatetimeIndex):
+                values = values._data
+            if isinstance(values, ABCSeries):
+                values = values._values
+            values = values.reshape((len(values), 1))  # TODO: better place to do this?
         return arrays_to_mgr([values], columns, index, columns,
                              dtype=dtype)
 

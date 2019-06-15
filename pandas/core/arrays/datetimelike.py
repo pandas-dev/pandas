@@ -392,6 +392,15 @@ class DatetimeLikeArrayMixin(ReshapeMixin, ExtensionOpsMixin,
         # TODO: Remove Datetime & DatetimeTZ formatters.
         return "'{}'".format
 
+    def __repr__(self):
+        # kludge
+        if self.ndim == 1:
+            return super().__repr__()
+        elif self.ndim == 2 and self.shape[0] == 1:
+            out = repr(self.ravel()).replace('[', '[[').replace(']', ']]')
+            return out
+        raise NotImplementedError
+
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
@@ -423,6 +432,29 @@ class DatetimeLikeArrayMixin(ReshapeMixin, ExtensionOpsMixin,
                              "arrays are valid indices")
 
         getitem = self._data.__getitem__
+
+        if self.ndim == 2:
+            # Because we are only "faking" allowing 2D DatetimeArray,
+            #  we only support a limited selection of indexers for 2D case
+            res = getitem(key)
+            if lib.is_scalar(res):
+                return self._box_func(res)
+
+            # Note: we drop `freq` attributes for all 2D cases
+            return type(self)(res, dtype=self.dtype)
+            if not (isinstance(key, tuple) and len(key)) == 2:
+                raise ValueError("Indexer {indexer} not supported for 2D {typ}"
+                                 .format(indexer=key, typ=type(self).__name__))
+
+            if all(lib.is_integer(entry) for entry in key):
+                val = getitem(key)
+                return self._box_func(val)
+
+            elif all(isinstance(entry, slice) for entry in key):
+                return type(self)(self._data[key], dtype=self.dtype)
+
+            raise NotImplementedError
+
         if is_int:
             val = getitem(key)
             return self._box_func(val)
@@ -454,6 +486,7 @@ class DatetimeLikeArrayMixin(ReshapeMixin, ExtensionOpsMixin,
             # To support MPL which performs slicing with 2 dim
             # even though it only has 1 dim by definition
             if is_period:
+                # TODO: is this needed?  wont dtype imply freq?
                 return self._simple_new(result, dtype=self.dtype, freq=freq)
             return result
 

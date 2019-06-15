@@ -132,7 +132,7 @@ def _concat_compat(to_concat, axis=0):
     _contains_period = any(typ.startswith('period') for typ in typs)
 
     if 'category' in typs:
-        # this must be priort to _concat_datetime,
+        # this must be prior to _concat_datetime,
         # to support Categorical + datetime-like
         return _concat_categorical(to_concat, axis=axis)
 
@@ -199,7 +199,7 @@ def _concat_categorical(to_concat, axis=0):
     # extract the categoricals & coerce to object if needed
     to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
                  else np.asarray(x).ravel() if not is_datetime64tz_dtype(x)
-                 else np.asarray(x.astype(object)) for x in to_concat]
+                 else np.asarray(x.astype(object)).ravel() for x in to_concat]
     result = _concat_compat(to_concat)
     if axis == 1:
         result = result.reshape(1, len(result))
@@ -470,7 +470,8 @@ def _concat_datetimetz(to_concat, name=None):
     if isinstance(sample, ABCIndexClass):
         return sample._concat_same_dtype(to_concat, name=name)
     elif isinstance(sample, ABCDatetimeArray):
-        return sample._concat_same_type(to_concat)
+        tc = [x.ravel() for x in to_concat]
+        return sample.ravel()._concat_same_type(tc)
 
 
 def _concat_index_same_dtype(indexes, klass=None):

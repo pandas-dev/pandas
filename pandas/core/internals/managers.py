@@ -14,8 +14,9 @@ from pandas.core.dtypes.cast import (
     find_common_type, infer_dtype_from_scalar, maybe_convert_objects,
     maybe_promote)
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, is_datetimelike_v_numeric, is_extension_array_dtype,
-    is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar)
+    _NS_DTYPE, is_datetime64tz_dtype, is_datetimelike_v_numeric,
+    is_extension_array_dtype, is_extension_type, is_list_like,
+    is_numeric_v_string_like, is_scalar)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
@@ -336,7 +337,6 @@ class BlockManager(PandasObject):
         Block Manager (new object)
 
         """
-
         result_blocks = []
 
         # filter kwarg is used in replace-* family of methods
@@ -770,7 +770,7 @@ class BlockManager(PandasObject):
         Return ndarray from blocks with specified item order
         Items must be contained in the blocks
         """
-        from pandas.core.dtypes.common import is_sparse
+        from pandas.core.dtypes.common import is_sparse  # TODO: does this need to be a runtime import?
         dtype = _interleaved_dtype(self.blocks)
 
         # TODO: https://github.com/pandas-dev/pandas/issues/22791
@@ -1026,7 +1026,7 @@ class BlockManager(PandasObject):
                                    is_extension_array_dtype(value))
 
         # categorical/spares/datetimetz
-        if value_is_extension_type:
+        if value_is_extension_type and not is_datetime64tz_dtype(value):
 
             def value_getitem(placement):
                 return value

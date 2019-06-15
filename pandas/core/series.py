@@ -217,6 +217,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             elif is_extension_array_dtype(data):
                 pass
+                #if isinstance(data, ABCDatetimeArray):
+                #    # TODO: kludge, not the right place for this is it?
+                #    if data.ndim == 2:
+                #        assert data.shape[0] == 1, data.shape
+                #        # TODO: squeeze?
+                #        data = data.ravel()
             elif isinstance(data, (set, frozenset)):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))

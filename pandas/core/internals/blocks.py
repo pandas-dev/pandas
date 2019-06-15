@@ -229,6 +229,9 @@ class Block(PandasObject):
                           "in a future release.", DeprecationWarning)
         if placement is None:
             placement = self.mgr_locs
+        if isinstance(self, DatetimeTZBlock) and isinstance(values, np.ndarray):
+            # FIXME:this doesnt belong here
+            dtype = self.dtype
         return make_block(values, placement=placement, ndim=ndim,
                           klass=self.__class__, dtype=dtype)
 
@@ -729,7 +732,6 @@ class Block(PandasObject):
         blocks here this is just a call to putmask. regex is not used here.
         It is used in ObjectBlocks.  It is here for API compatibility.
         """
-
         inplace = validate_bool_kwarg(inplace, 'inplace')
         original_to_replace = to_replace
 
@@ -743,6 +745,18 @@ class Block(PandasObject):
                 filtered_out = ~self.mgr_locs.isin(filter)
                 mask[filtered_out.nonzero()[0]] = False
 
+            if not mask.any():
+                # TODO: is this the right copy semantics?
+                if convert:
+                    # NB: this check must come before the "if inplace" check
+                    out = self.convert(by_item=True, numeric=False,
+                                       copy=not inplace)
+                elif inplace:
+                    out = self
+                else:
+                    out = self.copy()
+                return [out]
+
             blocks = self.putmask(mask, value, inplace=inplace)
             if convert:
                 blocks = [b.convert(by_item=True, numeric=False,
@@ -754,6 +768,7 @@ class Block(PandasObject):
             if is_object_dtype(self):
                 raise
 
+            # TODO: try harder to avoid casting to object, e.g. in test_replace_string_with_number
             # try again with a compatible block
             block = self.astype(object)
             return block.replace(to_replace=original_to_replace,
@@ -791,6 +806,7 @@ class Block(PandasObject):
             if self.is_numeric:
                 value = np.nan
 
+        # TODO: For each DatetimeTZBlock can we just call values__setitem__ directly?
         # coerce if block dtype can store value
         values = self.values
         try:
@@ -1281,6 +1297,11 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
+        #if isinstance(other, ABCDataFrame) and (other.dtypes == self.dtype).all():
+        #    # TODO: Belongs elsewhere
+        #    # avoid casting to object dtype
+        #    other = other._data.blocks[0].values
+        #else:
         other = getattr(other, '_values', getattr(other, 'values', other))
         cond = getattr(cond, 'values', cond)
 
@@ -1420,8 +1441,8 @@ class Block(PandasObject):
 
             # TODO: NonConsolidatableMixin shape
             # Usual shape inconsistencies for ExtensionBlocks
-            if self.ndim > 1:
-                values = values[None, :]
+            #if self.ndim > 1:
+            #    values = values[None, :]
         else:
             values = self.get_values()
             values, _ = self._try_coerce_args(values, values)
@@ -1737,8 +1758,12 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         # axis doesn't matter; we are really a single-dim object
         # but are passed the axis depending on the calling routing
         # if its REALLY axis 0, then this will be a reindex and not a take
-        new_values = self.values.take(indexer, fill_value=fill_value,
-                                      allow_fill=True)
+        tvals = self.values
+        if isinstance(tvals, DatetimeArray):
+            # TODO: Better to just override directly on DatetimeTZBlock?
+            tvals = tvals.ravel()
+        new_values = tvals.take(indexer, fill_value=fill_value,
+                                allow_fill=True)
 
         if self.ndim == 1 and new_mgr_locs is None:
             new_mgr_locs = [0]
@@ -1891,10 +1916,18 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             unstacker, new_columns
         )
 
+        values = self.values
+        if isinstance(self, DatetimeTZBlock):
+            # FIXME: not the right place for this, also I think we can use
+            #  the base class implementation if DatetimeArray.reshape
+            #  signature matched ndarray.reshape signature more precisely
+            values = values.ravel()
+            # FIXME: should we be un-ravelling at the end?
+
         blocks = [
             self.make_block_same_class(
-                self.values.take(indices, allow_fill=True,
-                                 fill_value=fill_value),
+                values.take(indices, allow_fill=True,
+                            fill_value=fill_value),
                 [place])
             for indices, place in zip(new_values.T, new_placement)
         ]
@@ -2051,11 +2084,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         values = self._maybe_coerce_values(values)
         if ndim == 2 and values.ndim != ndim:
             # FIXME: This should be done before we get here
-            values = values.reshape((1, -1))
-        if ndim == 2 and values.ndim != ndim:
-            # FIXME: kludge
-            assert values.shape[0] == 1
-            values = values.ravel()
+            values = values.reshape((1, len(values)))
+            assert values.ndim == 2, values.ndim
+
         super().__init__(values, placement=placement, ndim=ndim)
 
     @property
@@ -2209,6 +2240,36 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     is_datetimetz = True
     is_extension = True
 
+    shape = Block.shape
+    _slice = Block._slice
+
+    def where(self, other, cond, align=True, errors='raise',
+              try_cast=False, axis=0, transpose=False):
+        result = Block.where(self, other, cond, align=align, errors=errors,
+                             try_cast=try_cast, axis=axis, transpose=transpose)
+
+        def cast_object_block(blk):
+            # base class may transform to object (TODO: try to avoid that)
+            #  so we may need to cast back
+
+            # TODO: is this redundant with one of the try_coerce methods?
+            if blk.dtype != np.object_:
+                return blk
+
+            from pandas import to_datetime
+
+            try:
+                dvals = to_datetime(blk.values.ravel())
+            except ValueError:
+                return blk
+            dvals = self._holder(dvals).reshape(blk.shape)
+            return self.make_block_same_class(dvals,
+                                              placement=blk.mgr_locs)
+
+        if isinstance(result, Block):
+            return cast_object_block(result)
+        return [cast_object_block(x) for x in result]
+
     @property
     def _holder(self):
         return DatetimeArray
@@ -2245,7 +2306,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         values = self.values
         if deep:
             values = values.copy(deep=True)
-        return self.make_block_same_class(values)
+        return self.make_block_same_class(values)#, ndim=self.values.ndim)
+        # TODO: now that ndim=self.ndim is added, this matches the base class
 
     def get_values(self, dtype=None):
         """
@@ -2270,9 +2332,10 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """
         values = self.values
         if is_object_dtype(dtype):
-            values = values._box_values(values._data)
+            # TODO: should we just make _box_values work for 2D?
+            values = values._box_values(values._data.ravel())
 
-        values = np.asarray(values)
+        values = np.asarray(values.ravel())
 
         if self.ndim == 2:
             # Ensure that our shape is correct for DataFrame.
@@ -2287,14 +2350,21 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # expects that behavior.
         return np.asarray(self.values, dtype=_NS_DTYPE)
 
-    def _slice(self, slicer):
-        """ return a slice of my values """
-        if isinstance(slicer, tuple):
-            col, loc = slicer
-            if not com.is_null_slice(col) and col != 0:
-                raise IndexError("{0} only contains one item".format(self))
-            return self.values[loc]
-        return self.values[slicer]
+    def iget(self, col):  # TODO: make sure this is... right
+        if self.ndim == 2 and is_integer(col):
+            # TOOD: make sure the col condition is right
+            return self.values.ravel()
+        elif (self.ndim == 2 and isinstance(col, tuple) and
+              len(col) == 2 and all(is_integer(entry) for entry in col)):
+            # kludge, need to get back to the base class version and not
+            #  NonConsolidatableMixin version
+            return self.values[col]
+        elif (self.ndim == 2 and isinstance(col, tuple) and
+              len(col) == 2 and col[0] == slice(None) and is_integer(col[1])):
+            # kludge
+            return self.values[:, col[1]]
+
+        return super().iget(col)
 
     def _try_coerce_args(self, values, other):
         """
@@ -2352,8 +2422,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         if isinstance(result, np.ndarray):
             # allow passing of > 1dim if its trivial
 
-            if result.ndim > 1:
-                result = result.reshape(np.prod(result.shape))
+            #if result.ndim > 1:
+            #    result = result.reshape(np.prod(result.shape))
             # GH#24096 new values invalidates a frequency
             result = self._holder._simple_new(result, freq=None,
                                               dtype=self.values.dtype)
@@ -2388,7 +2458,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
 
         # Reshape the new_values like how algos.diff does for timedelta data
-        new_values = new_values.reshape(1, len(new_values))
+        new_values = new_values.reshape(1, -1)
         new_values = new_values.astype('timedelta64[ns]')
         return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
 
@@ -2398,13 +2468,19 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # Instead of placing the condition here, it could also go into the
         # is_uniform_join_units check, but I'm not sure what is better.
         if len({x.dtype for x in to_concat}) > 1:
-            values = _concat._concat_datetime([x.values for x in to_concat])
+            values = _concat._concat_datetime([x.values.ravel()
+                                               for x in to_concat])
             placement = placement or slice(0, len(values), 1)
 
             if self.ndim > 1:
                 values = np.atleast_2d(values)
             return ObjectBlock(values, ndim=self.ndim, placement=placement)
-        return super().concat_same_type(to_concat, placement)
+
+        values = self._holder._concat_same_type(
+            [blk.values.ravel() for blk in to_concat])
+        placement = placement or slice(0, len(values), 1)
+        return self.make_block_same_class(values, ndim=self.ndim,
+                                          placement=placement)
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # We support filling a DatetimeTZ with a `value` whose timezone
@@ -2422,11 +2498,11 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # Need a dedicated setitem until #24020 (type promotion in setitem
         # for extension arrays) is designed and implemented.
         try:
-            return super().setitem(indexer, value)
+            return Block.setitem(self, indexer, value)
         except (ValueError, TypeError):
             newb = make_block(self.values.astype(object),
                               placement=self.mgr_locs,
-                              klass=ObjectBlock,)
+                              klass=ObjectBlock)
             return newb.setitem(indexer, value)
 
     def equals(self, other):
@@ -2434,6 +2510,34 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         if self.dtype != other.dtype or self.shape != other.shape:
             return False
         return (self.values.view('i8') == other.values.view('i8')).all()
+
+    def shift(self,
+              periods: int,
+              axis: libinternals.BlockPlacement = 0,
+              fill_value: Any = None) -> List['ExtensionBlock']:
+        """
+        Shift the block by `periods`.
+
+        Dispatches to underlying ExtensionArray and re-boxes in an
+        ExtensionBlock.
+        """
+        vals1d = self.values.ravel()
+        shifted_vals = vals1d.shift(periods=periods,
+                                    fill_value=fill_value)
+        outvals = shifted_vals.reshape(self.shape)
+        return [self.make_block_same_class(shifted_vals)]
+
+    def interpolate(self, method='pad', axis=0, inplace=False, limit=None,
+                    fill_value=None, **kwargs):
+
+        vals1d = self.values.ravel()
+        values = vals1d if inplace else vals1d.copy()
+        outvals = values.fillna(value=fill_value, method=method,
+                                limit=limit)
+        # NB: the reshape only makes sense with the 1row restriction
+        return self.make_block_same_class(
+            values=outvals.reshape(self.shape),
+            placement=self.mgr_locs)
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
@@ -3140,7 +3244,13 @@ def _safe_reshape(arr, new_shape):
     """
     if isinstance(arr, ABCSeries):
         arr = arr._values
+    if isinstance(arr, ABCDatetimeIndex):
+        # TODO: this should be done before we get here right?
+        arr = arr._data
     if not isinstance(arr, ABCExtensionArray):
+        arr = arr.reshape(new_shape)
+    if isinstance(arr, DatetimeArray):
+        # TODO: better place for this?
         arr = arr.reshape(new_shape)
     return arr
 

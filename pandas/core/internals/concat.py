@@ -207,6 +207,11 @@ class JoinUnit:
                 values = self.block.astype(np.object_).values
             elif self.block.is_extension:
                 values = self.block.values
+                if self.block.is_datetimetz:
+                    # so far the only extension block with ravel()
+                    values = values.ravel()
+                    # TODO: better to make algos.take_nd work directly
+                    #  on non-ravelled, right>?
             else:
                 # No dtype upcasting is done here, it will be performed during
                 # concatenation itself.

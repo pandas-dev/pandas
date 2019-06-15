@@ -422,6 +422,13 @@ class DataFrame(NDFrame):
                 mgr = init_ndarray(data, index, columns, dtype=dtype,
                                    copy=copy)
 
+        elif isinstance(data, ExtensionArray):
+            if isinstance(data, DatetimeLikeArray) and data.ndim == 1:
+                # kludge
+                data = data.reshape((len(data), 1))
+            mgr = init_ndarray(data, index, columns, dtype=dtype,
+                               copy=copy)
+
         # For data is list-like, or Iterable (will consume into list)
         elif (isinstance(data, abc.Iterable) and
               not isinstance(data, (str, bytes))):

@@ -190,7 +190,7 @@ class SeriesFormatter:
                 row_num = max_rows // 2
                 series = concat((series.iloc[:row_num],
                                  series.iloc[-row_num:]))
-            self.tr_row_num = row_num
+            self.tr_row_num = row_num  # FIXME: make this None otherwise
         self.tr_series = series
         self.truncate_v = truncate_v
 
@@ -1256,7 +1256,7 @@ def format_percentiles(percentiles):
 def _is_dates_only(values):
     # return a boolean if we are only dates (and don't have a timezone)
     if values.ndim == 2:
-        # 2D DatetimeArray
+        # 2D DatetimeArray; NB: DatetimeIndex.ravel() gives ndarray[int64]
         values = values.ravel()
 
     values = DatetimeIndex(values)
@@ -1321,7 +1321,13 @@ class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self):
         """ we by definition have a TZ """
 
-        values = self.values.astype(object)
+        # TODO: double-check that ravel() here is OK
+        values = self.values
+        if values.ndim > 1:
+            # 2D DatetimeArray; NB: DatetimeIndex.ravel() gives ndarray[int64]
+            values = values.ravel()
+
+        values = values.astype(object)
         is_dates_only = _is_dates_only(values)
         formatter = (self.formatter or
                      _get_format_datetime64(is_dates_only,
