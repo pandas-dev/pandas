@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas.core.sorting import nargsort
 import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
@@ -49,9 +50,9 @@ class BaseMethodsTests(BaseExtensionTests):
         ('first', np.array([1, 2, 0]))
     ])
     def test_nargsort(self, data_missing_for_sorting, na_position, expected):
-        from pandas.core.sorting import nargsort
+        # GH 25439
         result = nargsort(data_missing_for_sorting, na_position=na_position)
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
     @pytest.mark.parametrize('ascending', [True, False])
     def test_sort_values(self, data_for_sorting, ascending):

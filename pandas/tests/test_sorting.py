@@ -6,8 +6,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas import (
-    DataFrame, MultiIndex, Series, array, concat, merge, to_datetime)
+from pandas import DataFrame, MultiIndex, Series, array, concat, merge
 from pandas.core import common as com
 from pandas.core.sorting import (
     decons_group_index, get_group_index, is_int64_overflow_possible,
