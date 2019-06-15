@@ -258,7 +258,7 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
             and is_extension_array_dtype(items)):
 
         if is_sparse(items):
-            # The conversion to np.ndarray is the fact that
+            # The conversion to np.ndarray is due to the fact that
             # SparseArray.isna() is also a SparseArray
             mask = np.array(isna(items))
 
