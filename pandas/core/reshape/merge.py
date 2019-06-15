@@ -1089,7 +1089,7 @@ class _MergeOperation:
                     raise ValueError('len(left_on) must equal the number '
                                      'of levels in the index of "right"')
                 self.right_on = [None] * n
-            self.right_on = self.right_on or [None] * len(self.left_on)
+            self.right_on = self.right_on or [None] * (n + 1)
         elif self.right_on is not None:
             n = len(self.right_on)
             if self.left_index:
@@ -1097,7 +1097,7 @@ class _MergeOperation:
                     raise ValueError('len(right_on) must equal the number '
                                      'of levels in the index of "left"')
                 self.left_on = [None] * n
-            self.left_on = self.left_on or [None] * len(self.right_on)
+            self.left_on = self.left_on or [None] * (n + 1)
         if len(self.right_on) != len(self.left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
 
