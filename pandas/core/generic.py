@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Callable, FrozenSet, List, Optional, Set, Union
+from typing import Any, Callable, Dict, FrozenSet, Iterator, List, Set, Union
 import warnings
 import weakref
 
@@ -34,6 +34,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
+from pandas._typing import Dtype
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -48,7 +49,11 @@ from pandas.core.ops import _align_method_FRAME
 
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
+from pandas.io.sql import SQLTable
 from pandas.tseries.frequencies import to_offset
+
+# mypy confuses the `bool()`` method of NDFrame
+_bool = bool
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -2459,11 +2464,13 @@ class NDFrame(PandasObject, SelectionMixin):
                                   **kwargs)
 
     def to_sql(self, name: str, con,
-               schema: Optional[str] = None, if_exists: str = 'fail',
-               index: bool = True,
-               index_label: Optional[Union[str, List[str]]] = None,
-               chunksize: Optional[int] = None, dtype: Union[dict] = None,
-               method: Union[str, Callable] = None):
+               schema: str = None, if_exists: str = 'fail',
+               index: _bool = True, index_label: Union[str, List[str]] = None,
+               chunksize: int = None,
+               dtype: Union[Dict[str, Dtype], Dtype] = None,
+               method: Union[str, Callable[[SQLTable, Any, List[str],
+                                            Iterator[List]], None]] = None
+               ) -> None:
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -2472,12 +2479,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        name : string
+        name : str
             Name of SQL table.
         con : sqlalchemy.engine.Engine or sqlite3.Connection
             Using SQLAlchemy makes it possible to use any DB supported by that
             library. Legacy support is provided for sqlite3.Connection objects.
-        schema : string, optional
+        schema : str, optional
             Specify the schema (if database flavor supports this). If None, use
             default schema.
         if_exists : {'fail', 'replace', 'append'}, default 'fail'
@@ -2490,7 +2497,7 @@ class NDFrame(PandasObject, SelectionMixin):
         index : bool, default True
             Write DataFrame index as a column. Uses `index_label` as the column
             name in the table.
-        index_label : string or sequence, default None
+        index_label : string or sequence, optional
             Column label for index column(s). If None is given (default) and
             `index` is True, then the index names are used.
             A sequence should be given if the DataFrame uses MultiIndex.
@@ -2502,7 +2509,7 @@ class NDFrame(PandasObject, SelectionMixin):
             keys should be the column names and the values should be the
             SQLAlchemy types or strings for the sqlite3 legacy mode. If a
             scalar is provided, it will be applied to all columns.
-        method : {None, 'multi', callable}, default None
+        method : {None, 'multi', callable}, optional
             Controls the SQL insertion clause used:
 
             * None : Uses standard SQL ``INSERT`` clause (one per row).
