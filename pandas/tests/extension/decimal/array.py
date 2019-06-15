@@ -11,6 +11,8 @@ import pandas as pd
 from pandas.api.extensions import register_extension_dtype
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 
+_should_cast_results = [np.repeat]
+
 
 @register_extension_dtype
 class DecimalDtype(ExtensionDtype):
@@ -166,6 +168,40 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
             raise NotImplementedError("decimal does not support "
                                       "the {} operation".format(name))
         return op(axis=0)
+
+    # numpy experimental NEP-18 (opt-in numpy 1.16, enabled in in 1.17)
+    def __array_function__(self, func, types, args, kwargs):
+        def coerce_EA(coll):
+            # In order to delegate to numpy, we have to coerce any
+            # ExtensionArrays to the best numpy-friendly dtype approximation
+            # Different functions take different arguments, which may be
+            # nested collections, so we look at everything. Sigh.
+            for i in range(len(coll)):
+                if isinstance(coll[i], (tuple, list)):
+                    coll[i] = coerce_EA(list(coll[i]))
+                else:
+                    if isinstance(coll[i], DecimalArray):
+                        # TODO: how to check for any ndarray-like with
+                        # non-numpy dtype?
+                        coll[i] = np.array(coll[i], dtype=object)
+
+            return coll
+
+        if func is np.round_:
+            values = [decimal.Decimal(round(_))
+                      for _ in self._data]
+            return DecimalArray(values, dtype=self.dtype)
+
+        elif True:  # just assume we can handle all functions
+            args = coerce_EA(list(args))
+            result = func(*args, **kwargs)
+
+            if func in _should_cast_results:
+                result = pd.array(result, dtype=self.dtype)
+
+            return result
+        else:
+            return NotImplemented
 
 
 def to_decimal(values, context=None):
