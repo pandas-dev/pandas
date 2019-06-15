@@ -1765,7 +1765,8 @@ def test_merge_equal_cat_dtypes2():
     tm.assert_frame_equal(result, expected, check_categorical=False)
 
 
-def test_merge_correct_exception():
+@pytest.mark.parametrize('merge_type', ['left_on', 'right_on'])
+def test_merge_correct_exception(merge_type):
     # GH26824
     df1 = DataFrame({
         'A': [1, 2, 3, 4, 5, 6],
@@ -1776,5 +1777,9 @@ def test_merge_correct_exception():
         'C': ['L', 'M', 'N', 'O', 'P', 'Q']
     })
     msg = 'both left_on and right_on should be passed'
-    with pytest.raises(ValueError, match=msg):
-        pd.merge(df1, df2, how='left', left_on='A')
+    if merge_type == 'left_on':
+        with pytest.raises(ValueError, match=msg):
+            pd.merge(df1, df2, how='left', left_on='A')
+    if merge_type == 'right_on':
+        with pytest.raises(ValueError, match=msg):
+            pd.merge(df1, df2, how='left', right_on='A')
