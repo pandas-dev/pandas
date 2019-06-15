@@ -31,7 +31,7 @@ from _pytest.mark.structures import MarkDecorator
 import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
-from pandas.compat.numpy import _np_version
+from pandas.compat.numpy import _NEP18_enabled, _np_version
 
 from pandas.core.computation.expressions import (
     _NUMEXPR_INSTALLED, _USE_NUMEXPR)
@@ -165,6 +165,8 @@ skip_if_no_ne = pytest.mark.skipif(not _USE_NUMEXPR,
                                    "installed->{installed}".format(
                                        enabled=_USE_NUMEXPR,
                                        installed=_NUMEXPR_INSTALLED))
+skip_if_no_NEP18 = pytest.mark.skipif(not _NEP18_enabled,
+                                      reason="numpy NEP-18 disabled")
 
 
 def skip_if_np_lt(ver_str, reason=None, *args, **kwds):

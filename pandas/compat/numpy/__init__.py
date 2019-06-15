@@ -13,7 +13,10 @@ _np_version_under1p15 = _nlv < LooseVersion('1.15')
 _np_version_under1p16 = _nlv < LooseVersion('1.16')
 _np_version_under1p17 = _nlv < LooseVersion('1.17')
 _is_numpy_dev = '.dev' in str(_nlv)
-
+try:
+    _NEP18_enabled = np.core.overrides.ENABLE_ARRAY_FUNCTION
+except Exception:
+    _NEP18_enabled = False
 
 if _nlv < '1.13.3':
     raise ImportError('this version of pandas is incompatible with '
