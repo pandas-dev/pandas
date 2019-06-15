@@ -396,14 +396,14 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
     Parameters
     ----------
     frame : DataFrame, Series
-    name : string
+    name : str
         Name of SQL table.
     con : SQLAlchemy connectable(engine/connection) or database string URI
         or sqlite3 DBAPI2 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    schema : string, default None
+    schema : str, optional
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
     if_exists : {'fail', 'replace', 'append'}, default 'fail'
@@ -412,19 +412,19 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
         - append: If table exists, insert data. Create if does not exist.
     index : boolean, default True
         Write DataFrame index as a column.
-    index_label : string or sequence, default None
+    index_label : str or sequence, optional
         Column label for index column(s). If None is given (default) and
         `index` is True, then the index names are used.
         A sequence should be given if the DataFrame uses MultiIndex.
-    chunksize : int, default None
+    chunksize : int, optional
         If not None, then rows will be written in batches of this size at a
         time.  If None, all rows will be written at once.
     dtype : dict or scalar, optional
         Specifying the datatype for columns. If a dictionary is used, the
         keys should be the column names and the values should be the
-        SQLAlchemy types or strings for the sqlite3 legacy mode. If a
+        SQLAlchemy types or strings for the sqlite3 fallback mode. If a
         scalar is provided, it will be applied to all columns.
-    method : {None, 'multi', callable}, default None
+    method : {None, 'multi', callable}, optional
         Controls the SQL insertion clause used:
 
         - None : Uses standard SQL ``INSERT`` clause (one per row).
