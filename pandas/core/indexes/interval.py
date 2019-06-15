@@ -1140,10 +1140,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     @Appender(_index_shared_docs['intersection'])
     @SetopCheck(op_name='intersection')
-    def intersection(self,
-                     other: IntervalIndex,
-                     sort: bool = False
-                     ) -> IntervalIndex:
+    def intersection(self, other, sort: bool = False):
         if self.left.is_unique and self.right.is_unique:
             taken = self._intersection_unique(other)
         elif (other.left.is_unique and other.right.is_unique and
@@ -1160,9 +1157,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         return taken
 
-    def _intersection_unique(self,
-                             other: IntervalIndex
-                             ) -> IntervalIndex:
+    def _intersection_unique(self, other):
         """
         Used when the IntervalIndex does not have any common endpoint,
         no mater left or right.
@@ -1184,9 +1179,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         return self.take(indexer)
 
-    def _intersection_non_unique(self,
-                                 other: IntervalIndex
-                                 ) -> IntervalIndex:
+    def _intersection_non_unique(self, other):
         """
         Used when the IntervalIndex does have some common endpoints,
         on either sides.
