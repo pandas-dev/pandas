@@ -1776,7 +1776,7 @@ def test_missing_on_raises(merge_type):
         'A': [1, 2, 4, 5, 7, 8],
         'C': ['L', 'M', 'N', 'O', 'P', 'Q']
     })
-    msg = 'both left_on and right_on should be passed'
+    msg = 'must equal'
     kwargs = {merge_type: 'A'}
     with pytest.raises(ValueError, match=msg):
         pd.merge(df1, df2, how='left', **kwargs)
