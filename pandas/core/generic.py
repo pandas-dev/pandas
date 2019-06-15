@@ -49,7 +49,6 @@ from pandas.core.ops import _align_method_FRAME
 
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
-from pandas.io.sql import SQLTable
 from pandas.tseries.frequencies import to_offset
 
 # mypy confuses the `bool()`` method of NDFrame
@@ -2463,12 +2462,15 @@ class NDFrame(PandasObject, SelectionMixin):
         return packers.to_msgpack(path_or_buf, self, encoding=encoding,
                                   **kwargs)
 
+    # TODO: Replace `Callable[[Any, Any, ...` when SQLTable and sqlalchemy
+    # can be imported. SQLTable can't be imported due to circular import.
+    # sqlalchemy can't be imported since it's an optional dependency.
     def to_sql(self, name: str, con,
                schema: str = None, if_exists: str = 'fail',
                index: _bool = True, index_label: Union[str, List[str]] = None,
                chunksize: int = None,
                dtype: Union[Dict[str, Dtype], Dtype] = None,
-               method: Union[str, Callable[[SQLTable, Any, List[str],
+               method: Union[str, Callable[[Any, Any, List[str],
                                             Iterator[List]], None]] = None
                ) -> None:
         """
