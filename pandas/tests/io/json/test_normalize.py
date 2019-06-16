@@ -548,7 +548,6 @@ class TestNestedToRecord:
             'Image.a': 'b'
         }]
         output = nested_to_record(data, max_level=1)
-        print (output, expected_output)
         assert output == expected_output
 
     def test_with_large_max_level(self):
