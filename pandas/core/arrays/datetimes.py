@@ -265,7 +265,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                              'normalize', 'strftime', 'round', 'floor',
                              'ceil', 'month_name', 'day_name']
 
-    # ndim is inherited from superclass, must exist to ensure
+    # ndim is inherited from ExtensionArray, must exist to ensure
     #  Timestamp.__richcmp__(DateTimeArray) operates pointwise
 
     # ensure that operations with numpy arrays defer to our implementation

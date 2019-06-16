@@ -285,6 +285,7 @@ pandas-gbq                0.8.0              Google Big Query access
 psycopg2                                     PostgreSQL engine for sqlalchemy
 pyarrow                   0.9.0              Parquet and feather reading / writing
 pymysql                                      MySQL engine for sqlalchemy
+pyreadstat                                   SPSS files (.sav) reading
 qtpy                                         Clipboard I/O
 s3fs                      0.0.8              Amazon S3 access
 xarray                    0.8.2              pandas-like API for N-dimensional data

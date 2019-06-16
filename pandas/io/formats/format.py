@@ -190,7 +190,9 @@ class SeriesFormatter:
                 row_num = max_rows // 2
                 series = concat((series.iloc[:row_num],
                                  series.iloc[-row_num:]))
-            self.tr_row_num = row_num  # FIXME: make this None otherwise
+            self.tr_row_num = row_num
+        else:
+            self.tr_row_num = None
         self.tr_series = series
         self.truncate_v = truncate_v
 
@@ -499,6 +501,8 @@ class DataFrameFormatter(TableFormatter):
                 frame = concat((frame.iloc[:row_num, :],
                                 frame.iloc[-row_num:, :]))
             self.tr_row_num = row_num
+        else:
+            self.tr_row_num = None
 
         self.tr_frame = frame
         self.truncate_h = truncate_h
