@@ -61,27 +61,13 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         values = np.asarray(values, dtype=object)
 
         self._data = values
+        # Some aliases for common attribute names to ensure pandas supports
+        # these
+        self._items = self.data = self._data
+        # those aliases are currently not working due to assumptions
+        # in internal code (GH-20735)
+        # self._values = self.values = self.data
         self._dtype = DecimalDtype(context)
-
-    # aliases for common attribute names, to ensure pandas supports these
-    @property
-    def _items(self):
-        return self._data
-
-    @property
-    def data(self):
-        return self._data
-
-    # those aliases are currently not working due to assumptions
-    # in internal code (GH-20735)
-    # @property
-    # def _values(self):
-    #     return self._data
-
-    # @property
-    # def values(self):
-    #     return self._data
-    # end aliases
 
     @property
     def dtype(self):
