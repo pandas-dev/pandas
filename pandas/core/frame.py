@@ -425,7 +425,9 @@ class DataFrame(NDFrame):
         elif isinstance(data, DatetimeLikeArray):#ExtensionArray
             if isinstance(data, DatetimeLikeArray) and data.ndim == 1:
                 # kludge
-                data = data.reshape((len(data), 1))
+                data = data.reshape((1, len(data)))#(len(data), 1))
+            assert data.ndim == 2
+            assert data.shape[0] == 1, data.shape
             mgr = init_ndarray(data, index, columns, dtype=dtype,
                                copy=copy)
 

@@ -1321,9 +1321,9 @@ class Block(PandasObject):
         def func(cond, values, other):
             if cond.ravel().all():
                 return values
-
+            #
             values, other = self._try_coerce_args(values, other)
-
+            #
             try:
                 return self._try_coerce_result(expressions.where(
                     cond, values, other))
@@ -2242,6 +2242,11 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
     shape = Block.shape
     _slice = Block._slice
+
+    def __init__(self, values, placement, ndim=None):
+        super().__init__(values, placement, ndim=ndim)
+        assert self.shape == self.values.shape, (self.shape, self.values.shape)
+        assert self.ndim == 1 or self.shape[0] == 1, (self.shape, self.values.shape, values.shape)
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
