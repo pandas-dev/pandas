@@ -3,7 +3,7 @@ from functools import partial
 import itertools
 import operator
 import re
-from typing import List, Optional, Union, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -1461,7 +1461,7 @@ class SingleBlockManager(BlockManager):
         if not isinstance(block, Block):
             block = make_block(block, placement=slice(0, len(axis)), ndim=1)
 
-        self.blocks = [block]  # type: List[Block]
+        self.blocks = tuple([block])
 
     def _post_setstate(self):
         pass
