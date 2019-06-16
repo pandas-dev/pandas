@@ -99,6 +99,7 @@ Other Enhancements
 - Error message for missing required imports now includes the original import error's text (:issue:`23868`)
 - :class:`DatetimeIndex` and :class:`TimedeltaIndex` now have a ``mean`` method (:issue:`24757`)
 - :meth:`DataFrame.describe` now formats integer percentiles without decimal point (:issue:`26660`)
+- Added support for reading SPSS .sav files using :func:`read_spss` (:issue:`26537`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -283,7 +284,7 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
     s
     s.str.startswith(b'a')
 
-.. _whatsnew_0250.api_breaking.incompatible_index_unions
+.. _whatsnew_0250.api_breaking.incompatible_index_unions:
 
 Incompatible Index Type Unions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -401,6 +402,8 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | pytz            | 2015.4          |    X     |
 +-----------------+-----------------+----------+
+| python-dateutil | 2.6.1           |    X     |
++-----------------+-----------------+----------+
 | bottleneck      | 1.2.1           |          |
 +-----------------+-----------------+----------+
 | numexpr         | 2.6.2           |          |
@@ -415,11 +418,13 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+
 | Package         | Minimum Version |
 +=================+=================+
+| beautifulsoup4  | 4.6.0           |
++-----------------+-----------------+
 | fastparquet     | 0.2.1           |
 +-----------------+-----------------+
 | matplotlib      | 2.2.2           |
 +-----------------+-----------------+
-| openpyxl        | 2.4.0           |
+| openpyxl        | 2.4.8           |
 +-----------------+-----------------+
 | pyarrow         | 0.9.0           |
 +-----------------+-----------------+
@@ -431,12 +436,14 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+
 | xarray          | 0.8.2           |
 +-----------------+-----------------+
-| xlrd            | 1.0.0           |
+| xlrd            | 1.1.0           |
 +-----------------+-----------------+
-| xlsxwriter      | 0.7.7           |
+| xlsxwriter      | 0.9.8           |
 +-----------------+-----------------+
-| xlwt            | 1.0.0           |
+| xlwt            | 1.2.0           |
 +-----------------+-----------------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
 .. _whatsnew_0250.api.other:
 
@@ -519,7 +526,7 @@ Performance Improvements
 - Improved performance of :meth:`Series.searchsorted`. The speedup is especially large when the dtype is
   int8/int16/int32 and the searched key is within the integer bounds for the dtype (:issue:`22034`)
 - Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
-- Improved performance of slicing and other selected operation on a :class:`RangeIndex` (:issue:`26565`, :issue:`26617`)
+- Improved performance of slicing and other selected operation on a :class:`RangeIndex` (:issue:`26565`, :issue:`26617`, :issue:`26722`)
 - Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
 - Improved performance of :meth:`read_csv` by faster parsing of N/A and boolean values (:issue:`25804`)
 - Improved performance of :attr:`IntervalIndex.is_monotonic`, :attr:`IntervalIndex.is_monotonic_increasing` and :attr:`IntervalIndex.is_monotonic_decreasing` by removing conversion to :class:`MultiIndex` (:issue:`24813`)
@@ -607,7 +614,7 @@ Strings
 ^^^^^^^
 
 - Bug in the ``__name__`` attribute of several methods of :class:`Series.str`, which were set incorrectly (:issue:`23551`)
--
+- Improved error message when passing :class:`Series` of wrong dtype to :meth:`Series.str.cat` (:issue:`22722`)
 -
 
 
@@ -720,6 +727,7 @@ Reshaping
 - Bug in :func:`pandas.cut` where large bins could incorrectly raise an error due to an integer overflow (:issue:`26045`)
 - Bug in :func:`DataFrame.sort_index` where an error is thrown when a multi-indexed ``DataFrame`` is sorted on all levels with the initial level sorted last (:issue:`26053`)
 - Bug in :meth:`Series.nlargest` treats ``True`` as smaller than ``False`` (:issue:`26154`)
+- Bug in :func:`DataFrame.pivot_table` with a :class:`IntervalIndex` as pivot index would raise ``TypeError`` (:issue:`25814`)
 - Bug in :meth:`DataFrame.transpose` where transposing a DataFrame with a timezone-aware datetime column would incorrectly raise ``ValueError`` (:issue:`26825`)
 
 Sparse

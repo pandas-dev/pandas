@@ -2,7 +2,7 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import Dict
+from typing import Dict, List
 import warnings
 
 import numpy as np
@@ -31,7 +31,7 @@ _cpython_optimized_decoders = _cpython_optimized_encoders + (
 _shared_docs = dict()  # type: Dict[str, str]
 
 
-def cat_core(list_of_columns, sep):
+def cat_core(list_of_columns: List, sep: str):
     """
     Auxiliary function for :meth:`str.cat`
 
@@ -51,6 +51,41 @@ def cat_core(list_of_columns, sep):
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
     return np.sum(list_with_sep, axis=0)
+
+
+def cat_safe(list_of_columns: List, sep: str):
+    """
+    Auxiliary function for :meth:`str.cat`.
+
+    Same signature as cat_core, but handles TypeErrors in concatenation, which
+    happen if the arrays in list_of columns have the wrong dtypes or content.
+
+    Parameters
+    ----------
+    list_of_columns : list of numpy arrays
+        List of arrays to be concatenated with sep;
+        these arrays may not contain NaNs!
+    sep : string
+        The separator string for concatenating the columns
+
+    Returns
+    -------
+    nd.array
+        The concatenation of list_of_columns with sep
+    """
+    try:
+        result = cat_core(list_of_columns, sep)
+    except TypeError:
+        # if there are any non-string values (wrong dtype or hidden behind
+        # object dtype), np.sum will fail; catch and return with better message
+        for column in list_of_columns:
+            dtype = lib.infer_dtype(column, skipna=True)
+            if dtype not in ['string', 'empty']:
+                raise TypeError(
+                    'Concatenation requires list-likes containing only '
+                    'strings (or missing values). Offending values found in '
+                    'column {}'.format(dtype)) from None
+    return result
 
 
 def _na_map(f, arr, na_result=np.nan, dtype=object):
@@ -2314,16 +2349,16 @@ class StringMethods(NoNewAttributesMixin):
             np.putmask(result, union_mask, np.nan)
 
             not_masked = ~union_mask
-            result[not_masked] = cat_core([x[not_masked] for x in all_cols],
+            result[not_masked] = cat_safe([x[not_masked] for x in all_cols],
                                           sep)
         elif na_rep is not None and union_mask.any():
             # fill NaNs with na_rep in case there are actually any NaNs
             all_cols = [np.where(nm, na_rep, col)
                         for nm, col in zip(na_masks, all_cols)]
-            result = cat_core(all_cols, sep)
+            result = cat_safe(all_cols, sep)
         else:
             # no NaNs - can just concatenate
-            result = cat_core(all_cols, sep)
+            result = cat_safe(all_cols, sep)
 
         if isinstance(self._orig, Index):
             # add dtype for case that result is all-NA
