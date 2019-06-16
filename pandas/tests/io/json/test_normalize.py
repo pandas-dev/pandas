@@ -519,9 +519,9 @@ class TestNestedToRecord:
             'Lookup.TextField': 'Some text',
             'Lookup.UserField.Id': 'ID001',
             'Lookup.UserField.Name': 'Name001',
-            'Image': {'a': 'b'}
+            'Image.a': 'b'
         }]
-        output = nested_to_record(data, ignore_keys=["Image"])
+        output = nested_to_record(data)
         assert output == expected_output
 
     def test_with_max_level_zero(self):
@@ -529,9 +529,9 @@ class TestNestedToRecord:
             'CreatedBy': {'Name': 'User001'},
             'Lookup': {'TextField': 'Some text',
                        'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
-            'Image': {'a': 'b'}
+            'Image': {"a": 'b'}
         }]
-        output = nested_to_record(data, max_level=0, ignore_keys=["Image"])
+        output = nested_to_record(data, max_level=0)
         assert output == data
 
     def test_with_max_level_one(self):
@@ -545,9 +545,10 @@ class TestNestedToRecord:
             'CreatedBy.Name': 'User001',
             'Lookup.TextField': 'Some text',
             'Lookup.UserField': {'Id': 'ID001', 'Name': 'Name001'},
-            'Image': {'a': 'b'}
+            'Image.a': 'b'
         }]
-        output = nested_to_record(data, max_level=1, ignore_keys=["Image"])
+        output = nested_to_record(data, max_level=1)
+        print (output, expected_output)
         assert output == expected_output
 
     def test_with_large_max_level(self):
@@ -586,13 +587,3 @@ class TestNestedToRecord:
 
         output = nested_to_record(data, max_level=100)
         assert output == expected_output
-
-    def test_with_all_keys_to_ignore(self):
-        data = [{
-            'CreatedBy': {'Name': 'User001'},
-            'Lookup': {'TextField': 'Some text',
-                       'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
-            'Image': {'a': 'b'}
-        }]
-        output = nested_to_record(data, ignore_keys=list(data[0].keys()))
-        assert output == data

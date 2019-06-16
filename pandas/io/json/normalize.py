@@ -26,7 +26,7 @@ def _convert_to_line_delimits(s):
 
 
 def nested_to_record(ds, prefix="", sep=".", level=0,
-                     max_level=None, ignore_keys=None):
+                     max_level=None):
     """
 
     A simplified json_normalize
@@ -52,11 +52,6 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
 
         .. versionadded:: 0.25.0
 
-    ignore_keys: list, optional, default None
-        keys to ignore
-
-         .. versionadded:: 0.25.0
-
     Returns
     -------
     d - dict or list of dicts, matching `ds`
@@ -78,7 +73,6 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
     if isinstance(ds, dict):
         ds = [ds]
         singleton = True
-    ignore_keys = ignore_keys if ignore_keys else []
     new_ds = []
     for d in ds:
         new_d = copy.deepcopy(d)
@@ -93,11 +87,9 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
 
             # flatten if type is dict and
             # current dict level  < maximum level provided and
-            # current dict key not in ignore keys list flatten it
             # only at level>1 do we rename the rest of the keys
             if (not isinstance(v, dict) or
-                    (max_level is not None and level >= max_level) or
-                    (k in ignore_keys)):
+                    (max_level is not None and level >= max_level)):
                 if level != 0:  # so we skip copying for top level, common case
                     v = new_d.pop(k)
                     new_d[newkey] = v
@@ -105,7 +97,7 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
             else:
                 v = new_d.pop(k)
                 new_d.update(nested_to_record(v, newkey, sep, level + 1,
-                                              max_level, ignore_keys))
+                                              max_level))
         new_ds.append(new_d)
 
     if singleton:
@@ -118,8 +110,7 @@ def json_normalize(data, record_path=None, meta=None,
                    record_prefix=None,
                    errors='raise',
                    sep='.',
-                   max_level=None,
-                   ignore_keys=None):
+                   max_level=None):
     """
     Normalize semi-structured JSON data into a flat table.
 
@@ -159,11 +150,6 @@ def json_normalize(data, record_path=None, meta=None,
 
         .. versionadded:: 0.25.0
 
-    ignore_keys : list, keys to ignore, default None
-        List of keys that you do not want to normalize.
-
-        .. versionadded:: 0.25.0
-
     Returns
     -------
     frame : DataFrame
@@ -190,7 +176,7 @@ def json_normalize(data, record_path=None, meta=None,
     ...          'fitness': {'height': 130, 'weight': 60}},
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
-    >>> json_normalize(data, max_level=1, ignore_keys=['name'])
+    >>> json_normalize(data, max_level=1)
       fitness.height  fitness.weight   id                  name
     0   130              60          1.0    {'first': 'Cole', 'last': 'Volk'}
     1   130              60          NaN    {'given': 'Mose', 'family': 'Reg'}
@@ -244,8 +230,6 @@ def json_normalize(data, record_path=None, meta=None,
     if isinstance(data, dict):
         data = [data]
 
-    ignore_keys = ignore_keys if ignore_keys else []
-
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):
             # naive normalization, this is idempotent for flat records
@@ -256,8 +240,7 @@ def json_normalize(data, record_path=None, meta=None,
             # TODO: handle record value which are lists, at least error
             #       reasonably
             data = nested_to_record(data, sep=sep,
-                                    max_level=max_level,
-                                    ignore_keys=ignore_keys)
+                                    max_level=max_level)
         return DataFrame(data)
     elif not isinstance(record_path, list):
         record_path = [record_path]
@@ -293,8 +276,7 @@ def json_normalize(data, record_path=None, meta=None,
             for obj in data:
                 recs = _pull_field(obj, path[0])
                 recs = [nested_to_record(r, sep=sep,
-                                         max_level=max_level,
-                                         ignore_keys=ignore_keys)
+                                         max_level=max_level)
                         if isinstance(r, dict) else r for r in recs]
 
                 # For repeating the metadata later
