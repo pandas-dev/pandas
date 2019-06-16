@@ -606,7 +606,7 @@ list of regex -> list of regex:
 
 .. ipython:: python
 
-   df.replace([r'\.', r'(a)'], ['dot', '\1stuff'], regex=True)
+   df.replace([r'\.', r'(a)'], ['dot', r'\1stuff'], regex=True)
 
 Only search in column ``'b'`` (dict -> dict):
 
