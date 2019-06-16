@@ -129,9 +129,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     floor
     ceil
     to_frame
+    mean
 
     See Also
-    ---------
+    --------
     Index : The base pandas Index type.
     Timedelta : Represents a duration between two dates or times.
     DatetimeIndex : Index of datetime64 data.
@@ -141,7 +142,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     Notes
     -----
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Creating a TimedeltaIndex based on `start`, `periods`, and `end` has
     been deprecated in favor of :func:`timedelta_range`.
@@ -329,24 +330,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
             return Index(result.astype('i8'), name=self.name)
         return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
-    def union(self, other):
-        """
-        Specialized union for TimedeltaIndex objects. If combine
-        overlapping ranges with the same DateOffset, will be much
-        faster than Index.union
-
-        Parameters
-        ----------
-        other : TimedeltaIndex or array-like
-
-        Returns
-        -------
-        y : Index or TimedeltaIndex
-        """
-        self._assert_can_do_setop(other)
-
+    def _union(self, other, sort):
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super().union(other)
+            return super()._union(other, sort=sort)
 
         if not isinstance(other, TimedeltaIndex):
             try:
@@ -358,7 +344,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         if this._can_fast_union(other):
             return this._fast_union(other)
         else:
-            result = Index.union(this, other)
+            result = Index._union(this, other, sort=sort)
             if isinstance(result, TimedeltaIndex):
                 if result.freq is None:
                     result.freq = to_offset(result.inferred_freq)
@@ -378,6 +364,34 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         return Index.join(self, other, how=how, level=level,
                           return_indexers=return_indexers,
                           sort=sort)
+
+    def intersection(self, other, sort=False):
+        """
+        Specialized intersection for TimedeltaIndex objects.
+        May be much faster than Index.intersection
+
+        Parameters
+        ----------
+        other : TimedeltaIndex or array-like
+        sort : False or None, default False
+            Sort the resulting index if possible.
+
+            .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default to ``False`` to match the behaviour
+               from before 0.24.0.
+
+            .. versionchanged:: 0.25.0
+
+               The `sort` keyword is added
+
+        Returns
+        -------
+        y : Index or  TimedeltaIndex
+        """
+        return super().intersection(other, sort=sort)
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
@@ -439,52 +453,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
             return self._shallow_copy(dates)
         else:
             return left
-
-    def intersection(self, other):
-        """
-        Specialized intersection for TimedeltaIndex objects. May be much faster
-        than Index.intersection
-
-        Parameters
-        ----------
-        other : TimedeltaIndex or array-like
-
-        Returns
-        -------
-        y : Index or TimedeltaIndex
-        """
-        self._assert_can_do_setop(other)
-
-        if self.equals(other):
-            return self._get_reconciled_name_object(other)
-
-        if not isinstance(other, TimedeltaIndex):
-            try:
-                other = TimedeltaIndex(other)
-            except (TypeError, ValueError):
-                pass
-            result = Index.intersection(self, other)
-            return result
-
-        if len(self) == 0:
-            return self
-        if len(other) == 0:
-            return other
-        # to make our life easier, "sort" the two ranges
-        if self[0] <= other[0]:
-            left, right = self, other
-        else:
-            left, right = other, self
-
-        end = min(left[-1], right[-1])
-        start = right[0]
-
-        if end < start:
-            return type(self)(data=[])
-        else:
-            lslice = slice(*left.slice_locs(start, end))
-            left_chunk = left.values[lslice]
-            return self._shallow_copy(left_chunk)
 
     def _maybe_promote(self, other):
         if other.inferred_type == 'timedelta':
@@ -763,7 +731,7 @@ def timedelta_range(start=None, end=None, periods=None, freq=None,
     ``start`` and ``end`` (closed on both sides).
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------

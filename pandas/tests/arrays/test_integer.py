@@ -159,7 +159,7 @@ class TestArithmeticOps(BaseOpsUtil):
 
         # integer result type
         else:
-            rs = pd.Series(s.values._data)
+            rs = pd.Series(s.values._data, name=s.name)
             expected = op(rs, other)
             self._check_op_integer(result, expected, mask, s, op_name, other)
 
@@ -611,6 +611,19 @@ def test_to_integer_array_float():
     # for float dtypes, the itemsize is not preserved
     result = integer_array(np.array([1., 2.], dtype='float32'))
     assert result.dtype == Int64Dtype()
+
+
+@pytest.mark.parametrize(
+    'bool_values, int_values, target_dtype, expected_dtype',
+    [([False, True], [0, 1], Int64Dtype(), Int64Dtype()),
+     ([False, True], [0, 1], 'Int64', Int64Dtype()),
+     ([False, True, np.nan], [0, 1, np.nan], Int64Dtype(), Int64Dtype())])
+def test_to_integer_array_bool(bool_values, int_values, target_dtype,
+                               expected_dtype):
+    result = integer_array(bool_values, dtype=target_dtype)
+    assert result.dtype == expected_dtype
+    expected = integer_array(int_values, dtype=target_dtype)
+    tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(

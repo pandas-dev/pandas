@@ -271,6 +271,12 @@ date_parser : function, default ``None``
   (corresponding to the columns defined by parse_dates) as arguments.
 dayfirst : boolean, default ``False``
   DD/MM format dates, international and European format.
+cache_dates : boolean, default True
+  If True, use a cache of unique, converted dates to apply the datetime
+  conversion. May produce significant speed-up when parsing duplicate
+  date strings, especially ones with timezone offsets.
+
+  .. versionadded:: 0.25.0
 
 Iteration
 +++++++++
@@ -2335,10 +2341,10 @@ round-trippable manner.
   .. ipython:: python
 
    df = pd.DataFrame({'foo': [1, 2, 3, 4],
-		      'bar': ['a', 'b', 'c', 'd'],
-		      'baz': pd.date_range('2018-01-01', freq='d', periods=4),
-		      'qux': pd.Categorical(['a', 'b', 'c', 'c'])
-		      }, index=pd.Index(range(4), name='idx'))
+          'bar': ['a', 'b', 'c', 'd'],
+          'baz': pd.date_range('2018-01-01', freq='d', periods=4),
+          'qux': pd.Categorical(['a', 'b', 'c', 'c'])
+          }, index=pd.Index(range(4), name='idx'))
    df
    df.dtypes
 
@@ -2858,6 +2864,19 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
     data = pd.read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'],
                          index_col=None, na_values=['NA'])
 
+``ExcelFile`` can also be called with a ``xlrd.book.Book`` object
+as a parameter. This allows the user to control how the excel file is read.
+For example, sheets can be loaded on demand by calling ``xlrd.open_workbook()``
+with ``on_demand=True``.
+
+.. code-block:: python
+
+    import xlrd
+    xlrd_book = xlrd.open_workbook('path_to_file.xls', on_demand=True)
+    with pd.ExcelFile(xlrd_book) as xls:
+        df1 = pd.read_excel(xls, 'Sheet1')
+        df2 = pd.read_excel(xls, 'Sheet2')
+
 .. _io.excel.specifying_sheets:
 
 Specifying Sheets
@@ -3253,7 +3272,7 @@ We can see that we got the same content back, which we had earlier written to th
 
 .. note::
 
-   You may need to install xclip or xsel (with gtk, PyQt5, PyQt4 or qtpy) on Linux to use these methods.
+   You may need to install xclip or xsel (with PyQt5, PyQt4 or qtpy) on Linux to use these methods.
 
 .. _io.pickle:
 
@@ -4684,6 +4703,7 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
 Write to a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    df.to_parquet('example_pa.parquet', engine='pyarrow')
    df.to_parquet('example_fp.parquet', engine='fastparquet')
@@ -4701,6 +4721,7 @@ Read from a parquet file.
 Read only certain columns of a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_parquet('example_fp.parquet',
                             engine='fastparquet', columns=['a', 'b'])
@@ -4723,6 +4744,7 @@ Serializing a ``DataFrame`` to parquet may include the implicit index as one or
 more columns in the output file. Thus, this code:
 
 .. ipython:: python
+   :okwarning:
 
     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     df.to_parquet('test.parquet', engine='pyarrow')
@@ -4739,6 +4761,7 @@ If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
 :func:`~pandas.DataFrame.to_parquet`:
 
 .. ipython:: python
+   :okwarning:
 
     df.to_parquet('test.parquet', index=False)
 

@@ -5,11 +5,13 @@ similar to how we have a Groupby object.
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
+from typing import Set
 import warnings
 
 import numpy as np
 
 import pandas._libs.window as libwindow
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -42,7 +44,7 @@ _doc_template = """
 class _Window(PandasObject, SelectionMixin):
     _attributes = ['window', 'min_periods', 'center', 'win_type',
                    'axis', 'on', 'closed']
-    exclusions = set()
+    exclusions = set()  # type: Set[str]
 
     def __init__(self, obj, window=None, min_periods=None,
                  center=False, win_type=None, axis=0, on=None, closed=None,
@@ -156,7 +158,7 @@ class _Window(PandasObject, SelectionMixin):
     def _window_type(self):
         return self.__class__.__name__
 
-    def __unicode__(self):
+    def __repr__(self):
         """
         Provide a nice str repr of our rolling object.
         """
@@ -305,10 +307,10 @@ class _Window(PandasObject, SelectionMixin):
                 result = np.copy(result[tuple(lead_indexer)])
         return result
 
-    def aggregate(self, arg, *args, **kwargs):
-        result, how = self._aggregate(arg, *args, **kwargs)
+    def aggregate(self, func, *args, **kwargs):
+        result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
-            return self.apply(arg, raw=False, args=args, kwargs=kwargs)
+            return self.apply(func, raw=False, args=args, kwargs=kwargs)
         return result
 
     agg = aggregate
@@ -461,7 +463,7 @@ class Window(_Window):
         See the notes below for further information.
     on : str, optional
         For a DataFrame, column on which to calculate
-        the rolling window, rather than the index
+        the rolling window, rather than the index.
     axis : int or str, default 0
     closed : str, default None
         Make the interval closed on the 'right', 'left', 'both' or
@@ -487,7 +489,7 @@ class Window(_Window):
     changed to the center of the window by setting ``center=True``.
 
     To learn more about the offsets & frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     The recognized win_types are:
 
@@ -504,7 +506,8 @@ class Window(_Window):
     * ``kaiser`` (needs beta)
     * ``gaussian`` (needs std)
     * ``general_gaussian`` (needs power, width)
-    * ``slepian`` (needs width).
+    * ``slepian`` (needs width)
+    * ``exponential`` (needs tau), center is set to None.
 
     If ``win_type=None`` all points are evenly weighted. To learn more about
     different window types see `scipy.signal window functions
@@ -528,8 +531,8 @@ class Window(_Window):
     >>> df.rolling(2, win_type='triang').sum()
          B
     0  NaN
-    1  1.0
-    2  2.5
+    1  0.5
+    2  1.5
     3  NaN
     4  NaN
 
@@ -593,11 +596,11 @@ class Window(_Window):
         elif is_integer(window):
             if window <= 0:
                 raise ValueError("window must be > 0 ")
-            try:
-                import scipy.signal as sig
-            except ImportError:
-                raise ImportError('Please install scipy to generate window '
-                                  'weight')
+            import_optional_dependency(
+                "scipy",
+                extra="Scipy is required to generate window weight."
+            )
+            import scipy.signal as sig
 
             if not isinstance(self.win_type, str):
                 raise ValueError('Invalid win_type {0}'.format(self.win_type))
@@ -623,11 +626,19 @@ class Window(_Window):
                 arg_map = {'kaiser': ['beta'],
                            'gaussian': ['std'],
                            'general_gaussian': ['power', 'width'],
-                           'slepian': ['width']}
+                           'slepian': ['width'],
+                           'exponential': ['tau'],
+                           }
+
                 if win_type in arg_map:
-                    return tuple([win_type] + _pop_args(win_type,
-                                                        arg_map[win_type],
-                                                        kwargs))
+                    win_args = _pop_args(win_type, arg_map[win_type], kwargs)
+                    if win_type == 'exponential':
+                        # exponential window requires the first arg (center)
+                        # to be set to None (necessary for symmetric window)
+                        win_args.insert(0, None)
+
+                    return tuple([win_type] + win_args)
+
                 return win_type
 
             def _pop_args(win_type, arg_names, kwargs):
@@ -779,7 +790,7 @@ class _GroupByMixin(GroupByMixin):
     corr = GroupByMixin._dispatch('corr', other=None, pairwise=None)
     cov = GroupByMixin._dispatch('cov', other=None, pairwise=None)
 
-    def _apply(self, func, name, window=None, center=None,
+    def _apply(self, func, name=None, window=None, center=None,
                check_minp=None, **kwargs):
         """
         Dispatch to apply; we are stripping all of the _apply kwargs and
@@ -2178,7 +2189,7 @@ class EWM(_Rolling):
     (if adjust is True), and 1-alpha and alpha (if adjust is False).
 
     More details can be found at
-    http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-windows
+    http://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
 
     Examples
     --------

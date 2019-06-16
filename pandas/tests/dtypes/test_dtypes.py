@@ -82,7 +82,7 @@ class TestCategoricalDtype(Base):
     def test_construction_from_string(self):
         result = CategoricalDtype.construct_from_string('category')
         assert is_dtype_equal(self.dtype, result)
-        msg = "cannot construct a CategoricalDtype"
+        msg = "Cannot construct a 'CategoricalDtype' from 'foo'"
         with pytest.raises(TypeError, match=msg):
             CategoricalDtype.construct_from_string('foo')
 
@@ -870,13 +870,18 @@ def test_registry_find(dtype, expected):
     (pd.Series([1, 2]), False),
     (np.array([True, False]), True),
     (pd.Series([True, False]), True),
-    (pd.SparseSeries([True, False]), True),
     (pd.SparseArray([True, False]), True),
     (SparseDtype(bool), True)
 ])
 def test_is_bool_dtype(dtype, expected):
     result = is_bool_dtype(dtype)
     assert result is expected
+
+
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+def test_is_bool_dtype_sparse():
+    result = is_bool_dtype(pd.SparseSeries([True, False]))
+    assert result is True
 
 
 @pytest.mark.parametrize("check", [

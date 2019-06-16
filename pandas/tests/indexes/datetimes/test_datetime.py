@@ -4,8 +4,6 @@ import dateutil
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import (
     DataFrame, DatetimeIndex, Index, Timestamp, date_range, offsets)
@@ -102,7 +100,7 @@ class TestDatetimeIndex:
         # GH#2658
         start = '2013-01-07'
         idx = date_range(start=start, freq="1d", periods=10, tz='US/Eastern')
-        df = DataFrame(lrange(10), index=idx)
+        df = DataFrame(np.arange(10), index=idx)
         df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
 
     def test_append_join_nondatetimeindex(self):
@@ -300,9 +298,9 @@ class TestDatetimeIndex:
             c_idx_type='p', r_idx_type='dt')
         s = df.iloc[:5, 0]
 
-        msg = 'can only call with other PeriodIndex-ed objects'
-        with pytest.raises(ValueError, match=msg):
-            df.columns.join(s.index, how=join_type)
+        expected = df.columns.astype('O').join(s.index, how=join_type)
+        result = df.columns.join(s.index, how=join_type)
+        tm.assert_index_equal(expected, result)
 
     def test_factorize(self):
         idx1 = DatetimeIndex(['2014-01', '2014-01', '2014-02', '2014-02',

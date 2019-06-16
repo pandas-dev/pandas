@@ -3,11 +3,11 @@
 from collections import abc
 from numbers import Number
 import re
+from typing import Pattern
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat import re_type
 
 is_bool = lib.is_bool
 
@@ -209,8 +209,7 @@ def is_re(obj):
     >>> is_re("foo")
     False
     """
-
-    return isinstance(obj, re_type)
+    return isinstance(obj, Pattern)
 
 
 def is_re_compilable(obj):
@@ -435,6 +434,10 @@ def is_hashable(obj):
 
     Distinguish between these and other types by trying the call to hash() and
     seeing if they raise TypeError.
+
+    Returns
+    -------
+    bool
 
     Examples
     --------

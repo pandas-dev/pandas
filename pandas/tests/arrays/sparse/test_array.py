@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
+from pandas.compat.numpy import _np_version_under1p16
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -171,6 +172,33 @@ class TestSparseArray:
         else:
             assert result == fill_value
 
+    @pytest.mark.parametrize('format', ['coo', 'csc', 'csr'])
+    @pytest.mark.parametrize('size', [
+        pytest.param(0,
+                     marks=pytest.mark.skipif(_np_version_under1p16,
+                                              reason='NumPy-11383')),
+        10
+    ])
+    @td.skip_if_no_scipy
+    def test_from_spmatrix(self, size, format):
+        import scipy.sparse
+
+        mat = scipy.sparse.random(size, 1, density=0.5, format=format)
+        result = SparseArray.from_spmatrix(mat)
+
+        result = np.asarray(result)
+        expected = mat.toarray().ravel()
+        tm.assert_numpy_array_equal(result, expected)
+
+    @td.skip_if_no_scipy
+    def test_from_spmatrix_raises(self):
+        import scipy.sparse
+
+        mat = scipy.sparse.eye(5, 4, format='csc')
+
+        with pytest.raises(ValueError, match="not '4'"):
+            SparseArray.from_spmatrix(mat)
+
     @pytest.mark.parametrize('scalar,dtype', [
         (False, SparseDtype(bool, False)),
         (0.0, SparseDtype('float64', 0)),
@@ -187,6 +215,7 @@ class TestSparseArray:
         assert exp.dtype == dtype
 
     @pytest.mark.parametrize("fill", [1, np.nan, 0])
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse_series_round_trip(self, kind, fill):
         # see gh-13999
         arr = SparseArray([np.nan, 1, np.nan, 2, 3],
@@ -203,6 +232,7 @@ class TestSparseArray:
         tm.assert_sp_array_equal(arr, res)
 
     @pytest.mark.parametrize("fill", [True, False, np.nan])
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse_series_round_trip2(self, kind, fill):
         # see gh-13999
         arr = SparseArray([True, False, True, True], dtype=np.bool,
@@ -405,9 +435,9 @@ class TestSparseArray:
         tm.assert_numpy_array_equal(arr.sp_index.indices,
                                     np.array([2, 3], np.int32))
 
-        for dense in [arr.to_dense(), arr.values]:
-            assert dense.dtype == bool
-            tm.assert_numpy_array_equal(dense, data)
+        dense = arr.to_dense()
+        assert dense.dtype == bool
+        tm.assert_numpy_array_equal(dense, data)
 
     def test_constructor_bool_fill_value(self):
         arr = SparseArray([True, False, True], dtype=None)
@@ -435,9 +465,9 @@ class TestSparseArray:
         tm.assert_numpy_array_equal(arr.sp_index.indices,
                                     np.array([0, 2], dtype=np.int32))
 
-        for dense in [arr.to_dense(), arr.values]:
-            assert dense.dtype == np.float32
-            tm.assert_numpy_array_equal(dense, data)
+        dense = arr.to_dense()
+        assert dense.dtype == np.float32
+        tm.assert_numpy_array_equal(dense, data)
 
     def test_astype(self):
         # float -> float
@@ -486,7 +516,7 @@ class TestSparseArray:
         assert res.dtype == SparseDtype(typ, 1)
         assert res.sp_values.dtype == typ
 
-        tm.assert_numpy_array_equal(np.asarray(res.values),
+        tm.assert_numpy_array_equal(np.asarray(res.to_dense()),
                                     vals.astype(typ))
 
     @pytest.mark.parametrize('array, dtype, expected', [
@@ -568,7 +598,6 @@ class TestSparseArray:
         assert arr2.sp_index is self.arr.sp_index
 
     def test_values_asarray(self):
-        assert_almost_equal(self.arr.values, self.arr_data)
         assert_almost_equal(self.arr.to_dense(), self.arr_data)
 
     @pytest.mark.parametrize('data,shape,dtype', [
@@ -599,7 +628,7 @@ class TestSparseArray:
 
     def test_getitem(self):
         def _checkit(i):
-            assert_almost_equal(self.arr[i], self.arr.values[i])
+            assert_almost_equal(self.arr[i], self.arr.to_dense()[i])
 
         for i in range(len(self.arr)):
             _checkit(i)
@@ -613,11 +642,11 @@ class TestSparseArray:
 
     def test_getslice(self):
         result = self.arr[:-3]
-        exp = SparseArray(self.arr.values[:-3])
+        exp = SparseArray(self.arr.to_dense()[:-3])
         tm.assert_sp_array_equal(result, exp)
 
         result = self.arr[-4:]
-        exp = SparseArray(self.arr.values[-4:])
+        exp = SparseArray(self.arr.to_dense()[-4:])
         tm.assert_sp_array_equal(result, exp)
 
         # two corner cases from Series
@@ -626,7 +655,7 @@ class TestSparseArray:
         tm.assert_sp_array_equal(result, exp)
 
         result = self.arr[:-12]
-        exp = SparseArray(self.arr.values[:0])
+        exp = SparseArray(self.arr.to_dense()[:0])
         tm.assert_sp_array_equal(result, exp)
 
     def test_getslice_tuple(self):
@@ -674,16 +703,16 @@ class TestSparseArray:
 
         def _check_op(op, first, second):
             res = op(first, second)
-            exp = SparseArray(op(first.values, second.values),
+            exp = SparseArray(op(first.to_dense(), second.to_dense()),
                               fill_value=first.fill_value)
             assert isinstance(res, SparseArray)
-            assert_almost_equal(res.values, exp.values)
+            assert_almost_equal(res.to_dense(), exp.to_dense())
 
-            res2 = op(first, second.values)
+            res2 = op(first, second.to_dense())
             assert isinstance(res2, SparseArray)
             tm.assert_sp_array_equal(res, res2)
 
-            res3 = op(first.values, second)
+            res3 = op(first.to_dense(), second)
             assert isinstance(res3, SparseArray)
             tm.assert_sp_array_equal(res, res3)
 
@@ -692,13 +721,13 @@ class TestSparseArray:
 
             # Ignore this if the actual op raises (e.g. pow).
             try:
-                exp = op(first.values, 4)
+                exp = op(first.to_dense(), 4)
                 exp_fv = op(first.fill_value, 4)
             except ValueError:
                 pass
             else:
                 assert_almost_equal(res4.fill_value, exp_fv)
-                assert_almost_equal(res4.values, exp)
+                assert_almost_equal(res4.to_dense(), exp)
 
         with np.errstate(all="ignore"):
             for first_arr, second_arr in [(arr1, arr2), (farr1, farr2)]:
@@ -1071,6 +1100,7 @@ class TestSparseArrayAnalytics:
         assert arr.npoints == 1
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestAccessor:
 
     @pytest.mark.parametrize('attr', [
@@ -1084,27 +1114,29 @@ class TestAccessor:
         expected = getattr(arr, attr)
         assert result == expected
 
+    @td.skip_if_no_scipy
     def test_from_coo(self):
-        sparse = pytest.importorskip("scipy.sparse")
+        import scipy.sparse
 
         row = [0, 3, 1, 0]
         col = [0, 3, 1, 2]
         data = [4, 5, 7, 9]
-        sp_array = sparse.coo_matrix((data, (row, col)))
+        sp_array = scipy.sparse.coo_matrix((data, (row, col)))
         result = pd.Series.sparse.from_coo(sp_array)
 
         index = pd.MultiIndex.from_arrays([[0, 0, 1, 3], [0, 2, 1, 3]])
         expected = pd.Series([4, 9, 7, 5], index=index, dtype='Sparse[int]')
         tm.assert_series_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_to_coo(self):
-        sparse = pytest.importorskip("scipy.sparse")
+        import scipy.sparse
         ser = pd.Series([1, 2, 3],
                         index=pd.MultiIndex.from_product([[0], [1, 2, 3]],
                                                          names=['a', 'b']),
                         dtype='Sparse[int]')
         A, _, _ = ser.sparse.to_coo()
-        assert isinstance(A, sparse.coo.coo_matrix)
+        assert isinstance(A, scipy.sparse.coo.coo_matrix)
 
     def test_non_sparse_raises(self):
         ser = pd.Series([1, 2, 3])
@@ -1200,3 +1232,12 @@ def test_map_missing():
 
     result = arr.map({0: 10, 1: 11})
     tm.assert_sp_array_equal(result, expected)
+
+
+def test_deprecated_values():
+    arr = SparseArray([0, 1, 2])
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = arr.values
+
+    tm.assert_numpy_array_equal(result, arr.to_dense())

@@ -4,8 +4,6 @@ from itertools import chain
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
 from pandas.conftest import _get_cython_table_params
@@ -13,7 +11,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestSeriesApply():
+class TestSeriesApply:
 
     def test_apply(self, datetime_series):
         with np.errstate(all='ignore'):
@@ -172,7 +170,7 @@ class TestSeriesApply():
         tm.assert_series_equal(result, expected)
 
 
-class TestSeriesAggregate():
+class TestSeriesAggregate:
 
     def test_transform(self, string_series):
         # transforming functions
@@ -418,7 +416,7 @@ class TestSeriesAggregate():
             series.agg(func)
 
 
-class TestSeriesMap():
+class TestSeriesMap:
 
     def test_map(self, datetime_series):
         index, data = tm.getMixedTypeDict()
@@ -500,7 +498,7 @@ class TestSeriesMap():
         assert not isna(merged['c'])
 
     def test_map_type_inference(self):
-        s = Series(lrange(3))
+        s = Series(range(3))
         s2 = s.map(lambda x: np.where(x == 0, 0, 1))
         assert issubclass(s2.dtype.type, np.integer)
 
@@ -673,3 +671,23 @@ class TestSeriesMap():
         result = s.map(mapping)
 
         tm.assert_series_equal(result, pd.Series(exp))
+
+    @pytest.mark.parametrize("dti,exp", [
+        (Series([1, 2], index=pd.DatetimeIndex([0, 31536000000])),
+            DataFrame(np.repeat([[1, 2]], 2, axis=0), dtype='int64')),
+        (tm.makeTimeSeries(nper=30),
+            DataFrame(np.repeat([[1, 2]], 30, axis=0), dtype='int64'))
+    ])
+    def test_apply_series_on_date_time_index_aware_series(self, dti, exp):
+        # GH 25959
+        # Calling apply on a localized time series should not cause an error
+        index = dti.tz_localize('UTC').index
+        result = pd.Series(index).apply(lambda x: pd.Series([1, 2]))
+        assert_frame_equal(result, exp)
+
+    def test_apply_scaler_on_date_time_index_aware_series(self):
+        # GH 25959
+        # Calling apply on a localized time series should not cause an error
+        series = tm.makeTimeSeries(nper=30).tz_localize('UTC')
+        result = pd.Series(series.index).apply(lambda x: 1)
+        assert_series_equal(result, pd.Series(np.ones(30), dtype='int64'))

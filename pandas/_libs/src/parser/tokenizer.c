@@ -45,7 +45,7 @@ void coliter_setup(coliter_t *self, parser_t *parser, int i, int start) {
     self->line_start = parser->line_start + start;
 }
 
-coliter_t *coliter_new(register parser_t *self, int i) {
+coliter_t *coliter_new(parser_t *self, int i) {
     // column i, starting at 0
     coliter_t *iter = (coliter_t *)malloc(sizeof(coliter_t));
 
@@ -97,7 +97,7 @@ static void *grow_buffer(void *buffer, int64_t length, int64_t *capacity,
     return newbuffer;
 }
 
-void parser_set_default_options(register parser_t *self) {
+void parser_set_default_options(parser_t *self) {
     self->decimal = '.';
     self->sci = 'E';
 
@@ -131,11 +131,9 @@ void parser_set_default_options(register parser_t *self) {
     self->skip_footer = 0;
 }
 
-int get_parser_memory_footprint(register parser_t *self) { return 0; }
-
 parser_t *parser_new() { return (parser_t *)calloc(1, sizeof(parser_t)); }
 
-int parser_clear_data_buffers(register parser_t *self) {
+int parser_clear_data_buffers(parser_t *self) {
     free_if_not_null((void *)&self->stream);
     free_if_not_null((void *)&self->words);
     free_if_not_null((void *)&self->word_starts);
@@ -144,7 +142,7 @@ int parser_clear_data_buffers(register parser_t *self) {
     return 0;
 }
 
-int parser_cleanup(register parser_t *self) {
+int parser_cleanup(parser_t *self) {
     int status = 0;
 
     // XXX where to put this
@@ -170,7 +168,7 @@ int parser_cleanup(register parser_t *self) {
     return status;
 }
 
-int parser_init(register parser_t *self) {
+int parser_init(parser_t *self) {
     int64_t sz;
 
     /*
@@ -240,16 +238,16 @@ int parser_init(register parser_t *self) {
     return 0;
 }
 
-void parser_free(register parser_t *self) {
+void parser_free(parser_t *self) {
     // opposite of parser_init
     parser_cleanup(self);
 }
 
-void parser_del(register parser_t *self) {
+void parser_del(parser_t *self) {
     free(self);
 }
 
-static int make_stream_space(register parser_t *self, size_t nbytes) {
+static int make_stream_space(parser_t *self, size_t nbytes) {
     int64_t i, cap, length;
     int status;
     void *orig_ptr, *newptr;
@@ -363,7 +361,7 @@ static int make_stream_space(register parser_t *self, size_t nbytes) {
     return 0;
 }
 
-static int push_char(register parser_t *self, char c) {
+static int push_char(parser_t *self, char c) {
     TRACE(("push_char: self->stream[%zu] = %x, stream_cap=%zu\n",
            self->stream_len + 1, c, self->stream_cap))
     if (self->stream_len >= self->stream_cap) {
@@ -381,7 +379,7 @@ static int push_char(register parser_t *self, char c) {
     return 0;
 }
 
-int PANDAS_INLINE end_field(register parser_t *self) {
+int PANDAS_INLINE end_field(parser_t *self) {
     // XXX cruft
     if (self->words_len >= self->words_cap) {
         TRACE(
@@ -419,7 +417,7 @@ int PANDAS_INLINE end_field(register parser_t *self) {
     return 0;
 }
 
-static void append_warning(register parser_t *self, const char *msg) {
+static void append_warning(parser_t *self, const char *msg) {
     int64_t ex_length;
     int64_t length = strlen(msg);
     void *newptr;
@@ -437,7 +435,7 @@ static void append_warning(register parser_t *self, const char *msg) {
     }
 }
 
-static int end_line(register parser_t *self) {
+static int end_line(parser_t *self) {
     char *msg;
     int64_t fields;
     int ex_fields = self->expected_fields;
@@ -556,7 +554,7 @@ static int end_line(register parser_t *self) {
     return 0;
 }
 
-int parser_add_skiprow(register parser_t *self, int64_t row) {
+int parser_add_skiprow(parser_t *self, int64_t row) {
     khiter_t k;
     kh_int64_t *set;
     int ret = 0;
@@ -573,7 +571,7 @@ int parser_add_skiprow(register parser_t *self, int64_t row) {
     return 0;
 }
 
-int parser_set_skipfirstnrows(register parser_t *self, int64_t nrows) {
+int parser_set_skipfirstnrows(parser_t *self, int64_t nrows) {
     // self->file_lines is zero based so subtract 1 from nrows
     if (nrows > 0) {
         self->skip_first_N_rows = nrows - 1;
@@ -582,7 +580,7 @@ int parser_set_skipfirstnrows(register parser_t *self, int64_t nrows) {
     return 0;
 }
 
-static int parser_buffer_bytes(register parser_t *self, size_t nbytes) {
+static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     int status;
     size_t bytes_read;
 
@@ -708,7 +706,7 @@ static int parser_buffer_bytes(register parser_t *self, size_t nbytes) {
         self->datapos += 3;                                               \
     }
 
-int skip_this_line(register parser_t *self, int64_t rownum) {
+int skip_this_line(parser_t *self, int64_t rownum) {
     int should_skip;
     PyObject *result;
     PyGILState_STATE state;
@@ -737,7 +735,7 @@ int skip_this_line(register parser_t *self, int64_t rownum) {
     }
 }
 
-int tokenize_bytes(register parser_t *self,
+int tokenize_bytes(parser_t *self,
                    size_t line_limit, int64_t start_lines) {
     int64_t i, slen;
     int should_skip;
@@ -1159,7 +1157,7 @@ linelimit:
     return 0;
 }
 
-static int parser_handle_eof(register parser_t *self) {
+static int parser_handle_eof(parser_t *self) {
     int64_t bufsize = 100;
 
     TRACE(
@@ -1204,7 +1202,7 @@ static int parser_handle_eof(register parser_t *self) {
         return 0;
 }
 
-int parser_consume_rows(register parser_t *self, size_t nrows) {
+int parser_consume_rows(parser_t *self, size_t nrows) {
     int64_t i, offset, word_deletions, char_count;
 
     if (nrows > self->lines) {
@@ -1260,7 +1258,7 @@ static size_t _next_pow2(size_t sz) {
     return result;
 }
 
-int parser_trim_buffers(register parser_t *self) {
+int parser_trim_buffers(parser_t *self) {
     /*
       Free memory
      */
@@ -1363,7 +1361,7 @@ int parser_trim_buffers(register parser_t *self) {
   all : tokenize all the data vs. certain number of rows
  */
 
-int _tokenize_helper(register parser_t *self, size_t nrows, int all) {
+int _tokenize_helper(parser_t *self, size_t nrows, int all) {
     int status = 0;
     int64_t start_lines = self->lines;
 
@@ -1412,33 +1410,18 @@ int _tokenize_helper(register parser_t *self, size_t nrows, int all) {
     return status;
 }
 
-int tokenize_nrows(register parser_t *self, size_t nrows) {
+int tokenize_nrows(parser_t *self, size_t nrows) {
     int status = _tokenize_helper(self, nrows, 0);
     return status;
 }
 
-int tokenize_all_rows(register parser_t *self) {
+int tokenize_all_rows(parser_t *self) {
     int status = _tokenize_helper(self, -1, 1);
     return status;
 }
 
 PANDAS_INLINE void uppercase(char *p) {
     for (; *p; ++p) *p = toupper_ascii(*p);
-}
-
-int PANDAS_INLINE to_longlong(char *item, long long *p_value) {
-    char *p_end;
-
-    // Try integer conversion.  We explicitly give the base to be 10. If
-    // we used 0, strtoll() would convert '012' to 10, because the leading 0 in
-    // '012' signals an octal number in C.  For a general purpose reader, that
-    // would be a bug, not a feature.
-    *p_value = strtoll(item, &p_end, 10);
-
-    // Allow trailing spaces.
-    while (isspace_ascii(*p_end)) ++p_end;
-
-    return (errno == 0) && (!*p_end);
 }
 
 int to_boolean(const char *item, uint8_t *val) {
@@ -1473,24 +1456,6 @@ done:
     free(tmp);
     return status;
 }
-
-#ifdef TEST
-
-int main(int argc, char *argv[]) {
-    double x, y;
-    long long xi;
-    int status;
-    char *s;
-
-    s = "123,789";
-    status = to_longlong_thousands(s, &xi, ',');
-    printf("s = '%s'\n", s);
-    printf("status = %d\n", status);
-    printf("x = %d\n", (int)xi);
-
-    return 0;
-}
-#endif  // TEST
 
 // ---------------------------------------------------------------------------
 // Implementation of xstrtod

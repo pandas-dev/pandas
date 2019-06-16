@@ -5,7 +5,6 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -73,11 +72,11 @@ class TestSeriesAnalytics:
         assert isna(shifted[4])
 
         result = s.argsort()
-        expected = Series(lrange(5), dtype='int64')
+        expected = Series(range(5), dtype='int64')
         assert_series_equal(result, expected)
 
         result = shifted.argsort()
-        expected = Series(lrange(4) + [-1], dtype='int64')
+        expected = Series(list(range(4)) + [-1], dtype='int64')
         assert_series_equal(result, expected)
 
     def test_argsort_stable(self):
@@ -92,7 +91,7 @@ class TestSeriesAnalytics:
                                check_dtype=False)
         tm.assert_series_equal(qindexer, Series(qexpected),
                                check_dtype=False)
-        msg = (r"ndarray Expected type <(class|type) 'numpy\.ndarray'>,"
+        msg = (r"ndarray Expected type <class 'numpy\.ndarray'>,"
                r" found <class 'pandas\.core\.series\.Series'> instead")
         with pytest.raises(AssertionError, match=msg):
             tm.assert_numpy_array_equal(qindexer, mindexer)
@@ -289,18 +288,18 @@ class TestSeriesAnalytics:
         assert_series_equal(result, expected)
 
     def test_built_in_round(self):
-        s = Series([1.123, 2.123, 3.123], index=lrange(3))
+        s = Series([1.123, 2.123, 3.123], index=range(3))
         result = round(s)
-        expected_rounded0 = Series([1., 2., 3.], index=lrange(3))
+        expected_rounded0 = Series([1., 2., 3.], index=range(3))
         tm.assert_series_equal(result, expected_rounded0)
 
         decimals = 2
-        expected_rounded = Series([1.12, 2.12, 3.12], index=lrange(3))
+        expected_rounded = Series([1.12, 2.12, 3.12], index=range(3))
         result = round(s, decimals)
         tm.assert_series_equal(result, expected_rounded)
 
     def test_prod_numpy16_bug(self):
-        s = Series([1., 1., 1.], index=lrange(3))
+        s = Series([1., 1., 1.], index=range(3))
         result = s.prod()
 
         assert not isinstance(result, Series)
@@ -471,7 +470,7 @@ class TestSeriesAnalytics:
         assert_almost_equal(a.dot(b['1']), expected['1'])
         assert_almost_equal(a.dot(b2['1']), expected['1'])
 
-        msg = r"Dot product shape mismatch, \(4L?,\) vs \(3L?,\)"
+        msg = r"Dot product shape mismatch, \(4,\) vs \(3,\)"
         # exception raised is of type Exception
         with pytest.raises(Exception, match=msg):
             a.dot(a.values[:3])
@@ -738,7 +737,7 @@ class TestSeriesAnalytics:
         assert_series_equal(result, expected)
 
         # timedelta64[ns]
-        s = Series(pd.to_timedelta(lrange(5), unit='d'))
+        s = Series(pd.to_timedelta(range(5), unit='d'))
         result = s.isin(s[0:2])
         assert_series_equal(result, expected)
 
@@ -1145,6 +1144,15 @@ class TestSeriesAnalytics:
                r"implementation of sum\(\)")
         with pytest.raises(ValueError, match=msg):
             np.sum(s, keepdims=True)
+
+    def test_compound_deprecated(self):
+        s = Series([.1, .2, .3, .4])
+        with tm.assert_produces_warning(FutureWarning):
+            s.compound()
+
+        df = pd.DataFrame({'s': s})
+        with tm.assert_produces_warning(FutureWarning):
+            df.compound()
 
 
 main_dtypes = [

@@ -1,7 +1,8 @@
 import codecs
+from functools import wraps
 import re
 import textwrap
-from typing import Dict
+from typing import Dict, List
 import warnings
 
 import numpy as np
@@ -12,8 +13,8 @@ from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_object, is_bool_dtype, is_categorical_dtype, is_integer,
-    is_list_like, is_object_dtype, is_re, is_scalar, is_string_like)
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+    is_list_like, is_re, is_scalar, is_string_like)
+from pandas.core.dtypes.generic import ABCIndexClass, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
@@ -30,7 +31,7 @@ _cpython_optimized_decoders = _cpython_optimized_encoders + (
 _shared_docs = dict()  # type: Dict[str, str]
 
 
-def cat_core(list_of_columns, sep):
+def cat_core(list_of_columns: List, sep: str):
     """
     Auxiliary function for :meth:`str.cat`
 
@@ -50,6 +51,41 @@ def cat_core(list_of_columns, sep):
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
     return np.sum(list_with_sep, axis=0)
+
+
+def cat_safe(list_of_columns: List, sep: str):
+    """
+    Auxiliary function for :meth:`str.cat`.
+
+    Same signature as cat_core, but handles TypeErrors in concatenation, which
+    happen if the arrays in list_of columns have the wrong dtypes or content.
+
+    Parameters
+    ----------
+    list_of_columns : list of numpy arrays
+        List of arrays to be concatenated with sep;
+        these arrays may not contain NaNs!
+    sep : string
+        The separator string for concatenating the columns
+
+    Returns
+    -------
+    nd.array
+        The concatenation of list_of_columns with sep
+    """
+    try:
+        result = cat_core(list_of_columns, sep)
+    except TypeError:
+        # if there are any non-string values (wrong dtype or hidden behind
+        # object dtype), np.sum will fail; catch and return with better message
+        for column in list_of_columns:
+            dtype = lib.infer_dtype(column, skipna=True)
+            if dtype not in ['string', 'empty']:
+                raise TypeError(
+                    'Concatenation requires list-likes containing only '
+                    'strings (or missing values). Offending values found in '
+                    'column {}'.format(dtype)) from None
+    return result
 
 
 def _na_map(f, arr, na_result=np.nan, dtype=object):
@@ -1037,7 +1073,7 @@ def str_join(arr, sep):
         delimiter.
 
     Raises
-    -------
+    ------
     AttributeError
         If the supplied Series contains neither strings nor lists.
 
@@ -1720,12 +1756,78 @@ def str_encode(arr, encoding, errors="strict"):
     return _na_map(f, arr)
 
 
-def _noarg_wrapper(f, docstring=None, **kargs):
+def forbid_nonstring_types(forbidden, name=None):
+    """
+    Decorator to forbid specific types for a method of StringMethods.
+
+    For calling `.str.{method}` on a Series or Index, it is necessary to first
+    initialize the :class:`StringMethods` object, and then call the method.
+    However, different methods allow different input types, and so this can not
+    be checked during :meth:`StringMethods.__init__`, but must be done on a
+    per-method basis. This decorator exists to facilitate this process, and
+    make it explicit which (inferred) types are disallowed by the method.
+
+    :meth:`StringMethods.__init__` allows the *union* of types its different
+    methods allow (after skipping NaNs; see :meth:`StringMethods._validate`),
+    namely: ['string', 'empty', 'bytes', 'mixed', 'mixed-integer'].
+
+    The default string types ['string', 'empty'] are allowed for all methods.
+    For the additional types ['bytes', 'mixed', 'mixed-integer'], each method
+    then needs to forbid the types it is not intended for.
+
+    Parameters
+    ----------
+    forbidden : list-of-str or None
+        List of forbidden non-string types, may be one or more of
+        `['bytes', 'mixed', 'mixed-integer']`.
+    name : str, default None
+        Name of the method to use in the error message. By default, this is
+        None, in which case the name from the method being wrapped will be
+        copied. However, for working with further wrappers (like _pat_wrapper
+        and _noarg_wrapper), it is necessary to specify the name.
+
+    Returns
+    -------
+    func : wrapper
+        The method to which the decorator is applied, with an added check that
+        enforces the inferred type to not be in the list of forbidden types.
+
+    Raises
+    ------
+    TypeError
+        If the inferred type of the underlying data is in `forbidden`.
+    """
+
+    # deal with None
+    forbidden = [] if forbidden is None else forbidden
+
+    allowed_types = {'string', 'empty', 'bytes',
+                     'mixed', 'mixed-integer'} - set(forbidden)
+
+    def _forbid_nonstring_types(func):
+        func_name = func.__name__ if name is None else name
+
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if self._inferred_dtype not in allowed_types:
+                msg = ('Cannot use .str.{name} with values of inferred dtype '
+                       '{inf_type!r}.'.format(name=func_name,
+                                              inf_type=self._inferred_dtype))
+                raise TypeError(msg)
+            return func(self, *args, **kwargs)
+        wrapper.__name__ = func_name
+        return wrapper
+    return _forbid_nonstring_types
+
+
+def _noarg_wrapper(f, name=None, docstring=None, forbidden_types=['bytes'],
+                   **kargs):
+    @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper(self):
         result = _na_map(f, self._parent, **kargs)
         return self._wrap_result(result)
 
-    wrapper.__name__ = f.__name__
+    wrapper.__name__ = f.__name__ if name is None else name
     if docstring is not None:
         wrapper.__doc__ = docstring
     else:
@@ -1734,22 +1836,26 @@ def _noarg_wrapper(f, docstring=None, **kargs):
     return wrapper
 
 
-def _pat_wrapper(f, flags=False, na=False, **kwargs):
+def _pat_wrapper(f, flags=False, na=False, name=None,
+                 forbidden_types=['bytes'], **kwargs):
+    @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper1(self, pat):
         result = f(self._parent, pat)
         return self._wrap_result(result)
 
+    @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper2(self, pat, flags=0, **kwargs):
         result = f(self._parent, pat, flags=flags, **kwargs)
         return self._wrap_result(result)
 
+    @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper3(self, pat, na=np.nan):
         result = f(self._parent, pat, na=na)
         return self._wrap_result(result)
 
     wrapper = wrapper3 if na else wrapper2 if flags else wrapper1
 
-    wrapper.__name__ = f.__name__
+    wrapper.__name__ = f.__name__ if name is None else name
     if f.__doc__:
         wrapper.__doc__ = f.__doc__
 
@@ -1780,7 +1886,7 @@ class StringMethods(NoNewAttributesMixin):
     """
 
     def __init__(self, data):
-        self._validate(data)
+        self._inferred_dtype = self._validate(data)
         self._is_categorical = is_categorical_dtype(data)
 
         # .values.categories works for both Series/Index
@@ -1791,38 +1897,44 @@ class StringMethods(NoNewAttributesMixin):
 
     @staticmethod
     def _validate(data):
-        from pandas.core.index import Index
+        """
+        Auxiliary function for StringMethods, infers and checks dtype of data.
 
-        if (isinstance(data, ABCSeries) and
-                not ((is_categorical_dtype(data.dtype) and
-                      is_object_dtype(data.values.categories)) or
-                     (is_object_dtype(data.dtype)))):
-            # it's neither a string series not a categorical series with
-            # strings inside the categories.
-            # this really should exclude all series with any non-string values
-            # (instead of test for object dtype), but that isn't practical for
-            # performance reasons until we have a str dtype (GH 9343)
+        This is a "first line of defence" at the creation of the StringMethods-
+        object (see _make_accessor), and just checks that the dtype is in the
+        *union* of the allowed types over all string methods below; this
+        restriction is then refined on a per-method basis using the decorator
+        @forbid_nonstring_types (more info in the corresponding docstring).
+
+        This really should exclude all series/index with any non-string values,
+        but that isn't practical for performance reasons until we have a str
+        dtype (GH 9343 / 13877)
+
+        Parameters
+        ----------
+        data : The content of the Series
+
+        Returns
+        -------
+        dtype : inferred dtype of data
+        """
+        if isinstance(data, ABCMultiIndex):
+            raise AttributeError('Can only use .str accessor with Index, '
+                                 'not MultiIndex')
+
+        # see _libs/lib.pyx for list of inferred types
+        allowed_types = ['string', 'empty', 'bytes', 'mixed', 'mixed-integer']
+
+        values = getattr(data, 'values', data)  # Series / Index
+        values = getattr(values, 'categories', values)  # categorical / normal
+
+        # missing values obfuscate type inference -> skip
+        inferred_dtype = lib.infer_dtype(values, skipna=True)
+
+        if inferred_dtype not in allowed_types:
             raise AttributeError("Can only use .str accessor with string "
-                                 "values, which use np.object_ dtype in "
-                                 "pandas")
-        elif isinstance(data, Index):
-            # can't use ABCIndex to exclude non-str
-
-            # see src/inference.pyx which can contain string values
-            allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
-            if is_categorical_dtype(data.dtype):
-                inf_type = data.categories.inferred_type
-            else:
-                inf_type = data.inferred_type
-            if inf_type not in allowed_types:
-                message = ("Can only use .str accessor with string values "
-                           "(i.e. inferred_type is 'string', 'unicode' or "
-                           "'mixed')")
-                raise AttributeError(message)
-            if data.nlevels > 1:
-                message = ("Can only use .str accessor with Index, not "
-                           "MultiIndex")
-                raise AttributeError(message)
+                                 "values!")
+        return inferred_dtype
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -2025,12 +2137,13 @@ class StringMethods(NoNewAttributesMixin):
                     warnings.warn('list-likes other than Series, Index, or '
                                   'np.ndarray WITHIN another list-like are '
                                   'deprecated and will be removed in a future '
-                                  'version.', FutureWarning, stacklevel=3)
+                                  'version.', FutureWarning, stacklevel=4)
                 return (los, join_warn)
             elif all(not is_list_like(x) for x in others):
                 return ([Series(others, index=idx)], False)
         raise TypeError(err_msg)
 
+    @forbid_nonstring_types(['bytes', 'mixed', 'mixed-integer'])
     def cat(self, others=None, sep=None, na_rep=None, join=None):
         """
         Concatenate strings in the Series/Index with given separator.
@@ -2211,7 +2324,7 @@ class StringMethods(NoNewAttributesMixin):
                           "Index/DataFrame in `others`. To enable alignment "
                           "and silence this warning, pass `join='left'|"
                           "'outer'|'inner'|'right'`. The future default will "
-                          "be `join='left'`.", FutureWarning, stacklevel=2)
+                          "be `join='left'`.", FutureWarning, stacklevel=3)
 
         # if join is None, _get_series_list already force-aligned indexes
         join = 'left' if join is None else join
@@ -2236,16 +2349,16 @@ class StringMethods(NoNewAttributesMixin):
             np.putmask(result, union_mask, np.nan)
 
             not_masked = ~union_mask
-            result[not_masked] = cat_core([x[not_masked] for x in all_cols],
+            result[not_masked] = cat_safe([x[not_masked] for x in all_cols],
                                           sep)
         elif na_rep is not None and union_mask.any():
             # fill NaNs with na_rep in case there are actually any NaNs
             all_cols = [np.where(nm, na_rep, col)
                         for nm, col in zip(na_masks, all_cols)]
-            result = cat_core(all_cols, sep)
+            result = cat_safe(all_cols, sep)
         else:
             # no NaNs - can just concatenate
-            result = cat_core(all_cols, sep)
+            result = cat_safe(all_cols, sep)
 
         if isinstance(self._orig, Index):
             # add dtype for case that result is all-NA
@@ -2255,7 +2368,7 @@ class StringMethods(NoNewAttributesMixin):
                             name=self._orig.name)
         return result
 
-    _shared_docs['str_split'] = ("""
+    _shared_docs['str_split'] = (r"""
     Split strings around given separator/delimiter.
 
     Splits the string in the Series/Index from the %(side)s,
@@ -2282,13 +2395,13 @@ class StringMethods(NoNewAttributesMixin):
 
     See Also
     --------
-     Series.str.split : Split strings around given separator/delimiter.
-     Series.str.rsplit : Splits string around given separator/delimiter,
-     starting from the right.
-     Series.str.join : Join lists contained as elements in the Series/Index
-     with passed delimiter.
-     str.split : Standard library version for split.
-     str.rsplit : Standard library version for rsplit.
+    Series.str.split : Split strings around given separator/delimiter.
+    Series.str.rsplit : Splits string around given separator/delimiter,
+        starting from the right.
+    Series.str.join : Join lists contained as elements in the Series/Index
+        with passed delimiter.
+    str.split : Standard library version for split.
+    str.rsplit : Standard library version for rsplit.
 
     Notes
     -----
@@ -2305,7 +2418,12 @@ class StringMethods(NoNewAttributesMixin):
     Examples
     --------
     >>> s = pd.Series(["this is a regular sentence",
-    "https://docs.python.org/3/tutorial/index.html", np.nan])
+    ...                "https://docs.python.org/3/tutorial/index.html",
+    ...                np.nan])
+    0                       this is a regular sentence
+    1    https://docs.python.org/3/tutorial/index.html
+    2                                              NaN
+    dtype: object
 
     In the default setting, the string is split by whitespace.
 
@@ -2356,7 +2474,6 @@ class StringMethods(NoNewAttributesMixin):
     0                                           this    is     a  regular
     1  https://docs.python.org/3/tutorial/index.html  None  None     None
     2                                            NaN   NaN   NaN      NaN \
-
                  4
     0     sentence
     1         None
@@ -2370,11 +2487,21 @@ class StringMethods(NoNewAttributesMixin):
     0          this is a regular sentence        None
     1  https://docs.python.org/3/tutorial  index.html
     2                                 NaN         NaN
+
+    Remember to escape special characters when explicitly using regular
+    expressions.
+
+    >>> s = pd.Series(["1+1=2"])
+
+    >>> s.str.split(r"\+|=", expand=True)
+         0    1    2
+    0    1    1    2
     """)
 
     @Appender(_shared_docs['str_split'] % {
         'side': 'beginning',
         'method': 'split'})
+    @forbid_nonstring_types(['bytes'])
     def split(self, pat=None, n=-1, expand=False):
         result = str_split(self._parent, pat, n=n)
         return self._wrap_result(result, expand=expand)
@@ -2382,6 +2509,7 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs['str_split'] % {
         'side': 'end',
         'method': 'rsplit'})
+    @forbid_nonstring_types(['bytes'])
     def rsplit(self, pat=None, n=-1, expand=False):
         result = str_rsplit(self._parent, pat, n=n)
         return self._wrap_result(result, expand=expand)
@@ -2476,6 +2604,7 @@ class StringMethods(NoNewAttributesMixin):
                 '`sep`.'
     })
     @deprecate_kwarg(old_arg_name='pat', new_arg_name='sep')
+    @forbid_nonstring_types(['bytes'])
     def partition(self, sep=' ', expand=True):
         f = lambda x: x.partition(sep)
         result = _na_map(f, self._parent)
@@ -2489,6 +2618,7 @@ class StringMethods(NoNewAttributesMixin):
                 '`sep`.'
     })
     @deprecate_kwarg(old_arg_name='pat', new_arg_name='sep')
+    @forbid_nonstring_types(['bytes'])
     def rpartition(self, sep=' ', expand=True):
         f = lambda x: x.rpartition(sep)
         result = _na_map(f, self._parent)
@@ -2500,33 +2630,39 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @copy(str_join)
+    @forbid_nonstring_types(['bytes'])
     def join(self, sep):
         result = str_join(self._parent, sep)
         return self._wrap_result(result)
 
     @copy(str_contains)
+    @forbid_nonstring_types(['bytes'])
     def contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
         result = str_contains(self._parent, pat, case=case, flags=flags, na=na,
                               regex=regex)
         return self._wrap_result(result, fill_value=na)
 
     @copy(str_match)
+    @forbid_nonstring_types(['bytes'])
     def match(self, pat, case=True, flags=0, na=np.nan):
         result = str_match(self._parent, pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na)
 
     @copy(str_replace)
+    @forbid_nonstring_types(['bytes'])
     def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
         result = str_replace(self._parent, pat, repl, n=n, case=case,
                              flags=flags, regex=regex)
         return self._wrap_result(result)
 
     @copy(str_repeat)
+    @forbid_nonstring_types(['bytes'])
     def repeat(self, repeats):
         result = str_repeat(self._parent, repeats)
         return self._wrap_result(result)
 
     @copy(str_pad)
+    @forbid_nonstring_types(['bytes'])
     def pad(self, width, side='left', fillchar=' '):
         result = str_pad(self._parent, width, side=side, fillchar=fillchar)
         return self._wrap_result(result)
@@ -2550,17 +2686,21 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs['str_pad'] % dict(side='left and right',
                                              method='center'))
+    @forbid_nonstring_types(['bytes'])
     def center(self, width, fillchar=' '):
         return self.pad(width, side='both', fillchar=fillchar)
 
     @Appender(_shared_docs['str_pad'] % dict(side='right', method='ljust'))
+    @forbid_nonstring_types(['bytes'])
     def ljust(self, width, fillchar=' '):
         return self.pad(width, side='right', fillchar=fillchar)
 
     @Appender(_shared_docs['str_pad'] % dict(side='left', method='rjust'))
+    @forbid_nonstring_types(['bytes'])
     def rjust(self, width, fillchar=' '):
         return self.pad(width, side='left', fillchar=fillchar)
 
+    @forbid_nonstring_types(['bytes'])
     def zfill(self, width):
         """
         Pad strings in the Series/Index by prepending '0' characters.
@@ -2630,16 +2770,19 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @copy(str_slice_replace)
+    @forbid_nonstring_types(['bytes'])
     def slice_replace(self, start=None, stop=None, repl=None):
         result = str_slice_replace(self._parent, start, stop, repl)
         return self._wrap_result(result)
 
     @copy(str_decode)
     def decode(self, encoding, errors="strict"):
+        # need to allow bytes here
         result = str_decode(self._parent, encoding, errors)
         return self._wrap_result(result)
 
     @copy(str_encode)
+    @forbid_nonstring_types(['bytes'])
     def encode(self, encoding, errors="strict"):
         result = str_encode(self._parent, encoding, errors)
         return self._wrap_result(result)
@@ -2709,28 +2852,33 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs['str_strip'] % dict(side='left and right sides',
                                                method='strip'))
+    @forbid_nonstring_types(['bytes'])
     def strip(self, to_strip=None):
         result = str_strip(self._parent, to_strip, side='both')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['str_strip'] % dict(side='left side',
                                                method='lstrip'))
+    @forbid_nonstring_types(['bytes'])
     def lstrip(self, to_strip=None):
         result = str_strip(self._parent, to_strip, side='left')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['str_strip'] % dict(side='right side',
                                                method='rstrip'))
+    @forbid_nonstring_types(['bytes'])
     def rstrip(self, to_strip=None):
         result = str_strip(self._parent, to_strip, side='right')
         return self._wrap_result(result)
 
     @copy(str_wrap)
+    @forbid_nonstring_types(['bytes'])
     def wrap(self, width, **kwargs):
         result = str_wrap(self._parent, width, **kwargs)
         return self._wrap_result(result)
 
     @copy(str_get_dummies)
+    @forbid_nonstring_types(['bytes'])
     def get_dummies(self, sep='|'):
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
@@ -2740,20 +2888,23 @@ class StringMethods(NoNewAttributesMixin):
                                  name=name, expand=True)
 
     @copy(str_translate)
+    @forbid_nonstring_types(['bytes'])
     def translate(self, table):
         result = str_translate(self._parent, table)
         return self._wrap_result(result)
 
-    count = _pat_wrapper(str_count, flags=True)
-    startswith = _pat_wrapper(str_startswith, na=True)
-    endswith = _pat_wrapper(str_endswith, na=True)
-    findall = _pat_wrapper(str_findall, flags=True)
+    count = _pat_wrapper(str_count, flags=True, name='count')
+    startswith = _pat_wrapper(str_startswith, na=True, name='startswith')
+    endswith = _pat_wrapper(str_endswith, na=True, name='endswith')
+    findall = _pat_wrapper(str_findall, flags=True, name='findall')
 
     @copy(str_extract)
+    @forbid_nonstring_types(['bytes'])
     def extract(self, pat, flags=0, expand=True):
         return str_extract(self, pat, flags=flags, expand=expand)
 
     @copy(str_extractall)
+    @forbid_nonstring_types(['bytes'])
     def extractall(self, pat, flags=0):
         return str_extractall(self._orig, pat, flags=flags)
 
@@ -2783,6 +2934,7 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs['find'] %
               dict(side='lowest', method='find',
                    also='rfind : Return highest indexes in each strings.'))
+    @forbid_nonstring_types(['bytes'])
     def find(self, sub, start=0, end=None):
         result = str_find(self._parent, sub, start=start, end=end, side='left')
         return self._wrap_result(result)
@@ -2790,11 +2942,13 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs['find'] %
               dict(side='highest', method='rfind',
                    also='find : Return lowest indexes in each strings.'))
+    @forbid_nonstring_types(['bytes'])
     def rfind(self, sub, start=0, end=None):
         result = str_find(self._parent, sub,
                           start=start, end=end, side='right')
         return self._wrap_result(result)
 
+    @forbid_nonstring_types(['bytes'])
     def normalize(self, form):
         """
         Return the Unicode normal form for the strings in the Series/Index.
@@ -2842,6 +2996,7 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs['index'] %
               dict(side='lowest', similar='find', method='index',
                    also='rindex : Return highest indexes in each strings.'))
+    @forbid_nonstring_types(['bytes'])
     def index(self, sub, start=0, end=None):
         result = str_index(self._parent, sub,
                            start=start, end=end, side='left')
@@ -2850,6 +3005,7 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs['index'] %
               dict(side='highest', similar='rfind', method='rindex',
                    also='index : Return lowest indexes in each strings.'))
+    @forbid_nonstring_types(['bytes'])
     def rindex(self, sub, start=0, end=None):
         result = str_index(self._parent, sub,
                            start=start, end=end, side='right')
@@ -2899,7 +3055,8 @@ class StringMethods(NoNewAttributesMixin):
     5    3.0
     dtype: float64
     """)
-    len = _noarg_wrapper(len, docstring=_shared_docs['len'], dtype=int)
+    len = _noarg_wrapper(len, docstring=_shared_docs['len'],
+                         forbidden_types=None, dtype=int)
 
     _shared_docs['casemethods'] = ("""
     Convert strings in the Series/Index to %(type)s.
@@ -2980,21 +3137,27 @@ class StringMethods(NoNewAttributesMixin):
     _doc_args['casefold'] = dict(type='be casefolded', method='casefold',
                                  version='\n    .. versionadded:: 0.25.0\n')
     lower = _noarg_wrapper(lambda x: x.lower(),
+                           name='lower',
                            docstring=_shared_docs['casemethods'] %
                            _doc_args['lower'])
     upper = _noarg_wrapper(lambda x: x.upper(),
+                           name='upper',
                            docstring=_shared_docs['casemethods'] %
                            _doc_args['upper'])
     title = _noarg_wrapper(lambda x: x.title(),
+                           name='title',
                            docstring=_shared_docs['casemethods'] %
                            _doc_args['title'])
     capitalize = _noarg_wrapper(lambda x: x.capitalize(),
+                                name='capitalize',
                                 docstring=_shared_docs['casemethods'] %
                                 _doc_args['capitalize'])
     swapcase = _noarg_wrapper(lambda x: x.swapcase(),
+                              name='swapcase',
                               docstring=_shared_docs['casemethods'] %
                               _doc_args['swapcase'])
     casefold = _noarg_wrapper(lambda x: x.casefold(),
+                              name='casefold',
                               docstring=_shared_docs['casemethods'] %
                               _doc_args['casefold'])
 
@@ -3148,30 +3311,39 @@ class StringMethods(NoNewAttributesMixin):
     _doc_args['isnumeric'] = dict(type='numeric', method='isnumeric')
     _doc_args['isdecimal'] = dict(type='decimal', method='isdecimal')
     isalnum = _noarg_wrapper(lambda x: x.isalnum(),
+                             name='isalnum',
                              docstring=_shared_docs['ismethods'] %
                              _doc_args['isalnum'])
     isalpha = _noarg_wrapper(lambda x: x.isalpha(),
+                             name='isalpha',
                              docstring=_shared_docs['ismethods'] %
                              _doc_args['isalpha'])
     isdigit = _noarg_wrapper(lambda x: x.isdigit(),
+                             name='isdigit',
                              docstring=_shared_docs['ismethods'] %
                              _doc_args['isdigit'])
     isspace = _noarg_wrapper(lambda x: x.isspace(),
+                             name='isspace',
                              docstring=_shared_docs['ismethods'] %
                              _doc_args['isspace'])
     islower = _noarg_wrapper(lambda x: x.islower(),
+                             name='islower',
                              docstring=_shared_docs['ismethods'] %
                              _doc_args['islower'])
     isupper = _noarg_wrapper(lambda x: x.isupper(),
+                             name='isupper',
                              docstring=_shared_docs['ismethods'] %
                              _doc_args['isupper'])
     istitle = _noarg_wrapper(lambda x: x.istitle(),
+                             name='istitle',
                              docstring=_shared_docs['ismethods'] %
                              _doc_args['istitle'])
     isnumeric = _noarg_wrapper(lambda x: x.isnumeric(),
+                               name='isnumeric',
                                docstring=_shared_docs['ismethods'] %
                                _doc_args['isnumeric'])
     isdecimal = _noarg_wrapper(lambda x: x.isdecimal(),
+                               name='isdecimal',
                                docstring=_shared_docs['ismethods'] %
                                _doc_args['isdecimal'])
 

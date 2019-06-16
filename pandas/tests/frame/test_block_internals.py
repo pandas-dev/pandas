@@ -10,6 +10,7 @@ from pandas import (
     Categorical, DataFrame, Series, Timestamp, compat, date_range,
     option_context)
 from pandas.core.arrays import IntervalArray, integer_array
+from pandas.core.internals import ObjectBlock
 from pandas.core.internals.blocks import IntBlock
 import pandas.util.testing as tm
 from pandas.util.testing import (
@@ -19,7 +20,7 @@ from pandas.util.testing import (
 # structure
 
 
-class TestDataFrameBlockInternals():
+class TestDataFrameBlockInternals:
     def test_setitem_invalidates_datetime_index_freq(self):
         # GH#24096 altering a datetime64tz column inplace invalidates the
         #  `freq` attribute on the underlying DatetimeIndex
@@ -584,3 +585,13 @@ starting,ending,measure
         expected = pd.DataFrame({"A": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
         assert isinstance(result._data.blocks[0], IntBlock)
+
+    def test_add_column_with_pandas_array(self):
+        # GH 26390
+        df = pd.DataFrame({'a': [1, 2, 3, 4], 'b': ['a', 'b', 'c', 'd']})
+        df['c'] = pd.array([1, 2, None, 3])
+        df2 = pd.DataFrame({'a': [1, 2, 3, 4], 'b': ['a', 'b', 'c', 'd'],
+                            'c': pd.array([1, 2, None, 3])})
+        assert type(df['c']._data.blocks[0]) == ObjectBlock
+        assert type(df2['c']._data.blocks[0]) == ObjectBlock
+        assert_frame_equal(df, df2)

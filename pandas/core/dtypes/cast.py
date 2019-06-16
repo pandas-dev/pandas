@@ -6,20 +6,18 @@ import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
-from pandas.compat import to_str
 
 from .common import (
     _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE, ensure_int8,
-    ensure_int16, ensure_int32, ensure_int64, ensure_object, is_bool,
-    is_bool_dtype, is_categorical_dtype, is_complex, is_complex_dtype,
+    ensure_int16, ensure_int32, ensure_int64, ensure_object, ensure_str,
+    is_bool, is_bool_dtype, is_categorical_dtype, is_complex, is_complex_dtype,
     is_datetime64_dtype, is_datetime64_ns_dtype, is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype, is_datetimelike, is_dtype_equal,
     is_extension_array_dtype, is_extension_type, is_float, is_float_dtype,
     is_integer, is_integer_dtype, is_object_dtype, is_scalar, is_string_dtype,
     is_timedelta64_dtype, is_timedelta64_ns_dtype, is_unsigned_integer_dtype,
     pandas_dtype)
-from .dtypes import (
-    DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype, PeriodDtype)
+from .dtypes import DatetimeTZDtype, ExtensionDtype, PeriodDtype
 from .generic import (
     ABCDatetimeArray, ABCDatetimeIndex, ABCPeriodArray, ABCPeriodIndex,
     ABCSeries)
@@ -35,8 +33,8 @@ _int64_max = np.iinfo(np.int64).max
 def maybe_convert_platform(values):
     """ try to do platform conversion, allow ndarray or list here """
 
-    if isinstance(values, (list, tuple)):
-        values = construct_1d_object_array_from_listlike(list(values))
+    if isinstance(values, (list, tuple, range)):
+        values = construct_1d_object_array_from_listlike(values)
     if getattr(values, 'dtype', None) == np.object_:
         if hasattr(values, '_values'):
             values = values._values
@@ -1108,8 +1106,7 @@ def find_common_type(types):
     if all(is_dtype_equal(first, t) for t in types[1:]):
         return first
 
-    if any(isinstance(t, (PandasExtensionDtype, ExtensionDtype))
-           for t in types):
+    if any(isinstance(t, ExtensionDtype) for t in types):
         return np.object
 
     # take lowest unit
@@ -1191,7 +1188,7 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
             # to allow numpy to take our string as a scalar value
             dtype = object
             if not isna(value):
-                value = to_str(value)
+                value = ensure_str(value)
 
         subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)

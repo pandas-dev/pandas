@@ -4,14 +4,10 @@ compat
 
 Cross-compatible functions for different versions of Python.
 
-Key items to import for compatible code:
-* lists: lrange(), lmap(), lzip()
-
 Other items:
 * platform checker
 """
 import platform
-import re
 import struct
 import sys
 
@@ -20,36 +16,12 @@ PY37 = sys.version_info >= (3, 7)
 PYPY = platform.python_implementation() == 'PyPy'
 
 
-# list-producing versions of the major Python iterating functions
-def lrange(*args, **kwargs):
-    return list(range(*args, **kwargs))
-
-
-def lzip(*args, **kwargs):
-    return list(zip(*args, **kwargs))
-
-
-def lmap(*args, **kwargs):
-    return list(map(*args, **kwargs))
-
-
 # ----------------------------------------------------------------------------
 # functions largely based / taken from the six module
 
 # Much of the code in this module comes from Benjamin Peterson's six library.
 # The license for this library can be found in LICENSES/SIX and the code can be
 # found at https://bitbucket.org/gutworth/six
-
-
-def to_str(s):
-    """
-    Convert bytes and non-string into Python 3 str
-    """
-    if isinstance(s, bytes):
-        s = s.decode('utf-8')
-    elif not isinstance(s, str):
-        s = str(s)
-    return s
 
 
 def set_function_name(f, name, cls):
@@ -72,15 +44,6 @@ def raise_with_traceback(exc, traceback=Ellipsis):
     if traceback == Ellipsis:
         _, _, traceback = sys.exc_info()
     raise exc.with_traceback(traceback)
-
-
-# In Python 3.7, the private re._pattern_type is removed.
-# Python 3.5+ have typing.re.Pattern
-if PY36:
-    import typing
-    re_type = typing.re.Pattern
-else:
-    re_type = type(re.compile(''))
 
 
 # https://github.com/pandas-dev/pandas/pull/9123

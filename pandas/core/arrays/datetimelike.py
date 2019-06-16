@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Sequence, Tuple, Type, Union
+from typing import Any, Sequence, Type, Union, cast
 import warnings
 
 import numpy as np
@@ -27,6 +27,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import DatetimeLikeScalar
 from pandas.core import missing, nanops
 from pandas.core.algorithms import (
     checked_add_with_arr, take, unique1d, value_counts)
@@ -39,6 +40,7 @@ from .base import ExtensionArray, ExtensionOpsMixin
 
 
 class AttributesMixin:
+    _data = None  # type: np.ndarray
 
     @property
     def _attributes(self):
@@ -56,7 +58,7 @@ class AttributesMixin:
         return {k: getattr(self, k, None) for k in self._attributes}
 
     @property
-    def _scalar_type(self) -> Union[Type, Tuple[Type]]:
+    def _scalar_type(self) -> Type[DatetimeLikeScalar]:
         """The scalar associated with this datelike
 
         * PeriodArray : Period
@@ -210,7 +212,7 @@ class TimelikeOps:
 
             .. versionadded:: 0.24.0
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
 default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
@@ -477,14 +479,16 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             if lib.is_scalar(key):
                 raise ValueError("setting an array element with a sequence.")
 
-            if (not is_slice
-                    and len(key) != len(value)
-                    and not com.is_bool_indexer(key)):
-                msg = ("shape mismatch: value array of length '{}' does not "
-                       "match indexing result of length '{}'.")
-                raise ValueError(msg.format(len(key), len(value)))
-            if not is_slice and len(key) == 0:
-                return
+            if not is_slice:
+                key = cast(Sequence, key)
+                if (len(key) != len(value)
+                        and not com.is_bool_indexer(key)):
+                    msg = ("shape mismatch: value array of length '{}' does "
+                           "not match indexing result of length '{}'.")
+                    raise ValueError(msg.format(
+                        len(key), len(value)))
+                elif not len(key):
+                    return
 
             value = type(self)._from_sequence(value, dtype=self.dtype)
             self._check_compatible_with(value)
@@ -1378,7 +1382,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
     def _reduce(self, name, axis=0, skipna=True, **kwargs):
         op = getattr(self, name, None)
         if op:
-            return op(axis=axis, skipna=skipna, **kwargs)
+            return op(skipna=skipna, **kwargs)
         else:
             return super()._reduce(name, skipna, **kwargs)
 
@@ -1431,6 +1435,54 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             return NaT
 
         result = nanops.nanmax(values, skipna=skipna)
+        # Don't have to worry about NA `result`, since no NA went in.
+        return self._box_func(result)
+
+    def mean(self, skipna=True):
+        """
+        Return the mean value of the Array.
+
+        .. versionadded:: 0.25.0
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Whether to ignore any NaT elements
+
+        Returns
+        -------
+        scalar (Timestamp or Timedelta)
+
+        See Also
+        --------
+        numpy.ndarray.mean
+        Series.mean : Return the mean value in a Series.
+
+        Notes
+        -----
+        mean is only defined for Datetime and Timedelta dtypes, not for Period.
+        """
+        if is_period_dtype(self):
+            # See discussion in GH#24757
+            raise TypeError(
+                "mean is not implemented for {cls} since the meaning is "
+                "ambiguous.  An alternative is "
+                "obj.to_timestamp(how='start').mean()"
+                .format(cls=type(self).__name__))
+
+        mask = self.isna()
+        if skipna:
+            values = self[~mask]
+        elif mask.any():
+            return NaT
+        else:
+            values = self
+
+        if not len(values):
+            # short-circut for empty max / min
+            return NaT
+
+        result = nanops.nanmean(values.view('i8'), skipna=skipna)
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
 

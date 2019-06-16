@@ -8,19 +8,14 @@ from pandas import DataFrame, Series
 from pandas.util import testing as tm
 
 
-@pytest.fixture
-def frame():
-    return DataFrame(tm.getSeriesData())
-
-
 class TestToLatex:
 
-    def test_to_latex_filename(self, frame):
+    def test_to_latex_filename(self, float_frame):
         with tm.ensure_clean('test.tex') as path:
-            frame.to_latex(path)
+            float_frame.to_latex(path)
 
             with open(path, 'r') as f:
-                assert frame.to_latex() == f.read()
+                assert float_frame.to_latex() == f.read()
 
         # test with utf-8 and encoding option (GH 7061)
         df = DataFrame([['au\xdfgangen']])
@@ -35,9 +30,9 @@ class TestToLatex:
             with codecs.open(path, 'r', encoding='utf-8') as f:
                 assert df.to_latex() == f.read()
 
-    def test_to_latex(self, frame):
+    def test_to_latex(self, float_frame):
         # it works!
-        frame.to_latex()
+        float_frame.to_latex()
 
         df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
         withindex_result = df.to_latex()
@@ -66,9 +61,9 @@ class TestToLatex:
 
         assert withoutindex_result == withoutindex_expected
 
-    def test_to_latex_format(self, frame):
+    def test_to_latex_format(self, float_frame):
         # GH Bug #9402
-        frame.to_latex(column_format='ccc')
+        float_frame.to_latex(column_format='ccc')
 
         df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
         withindex_result = df.to_latex(column_format='ccc')
@@ -389,8 +384,8 @@ b &       b &     b \\
 """
         assert escaped_result == escaped_expected
 
-    def test_to_latex_longtable(self, frame):
-        frame.to_latex(longtable=True)
+    def test_to_latex_longtable(self, float_frame):
+        float_frame.to_latex(longtable=True)
 
         df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
         withindex_result = df.to_latex(longtable=True)
@@ -535,9 +530,9 @@ AA &  BB \\
         with pytest.raises(ValueError):
             df.to_latex(header=['A'])
 
-    def test_to_latex_decimal(self, frame):
+    def test_to_latex_decimal(self, float_frame):
         # GH 12031
-        frame.to_latex()
+        float_frame.to_latex()
 
         df = DataFrame({'a': [1.0, 2.1], 'b': ['b1', 'b2']})
         withindex_result = df.to_latex(decimal=',')

@@ -1,6 +1,6 @@
 import warnings
 
-from pandas.compat import lrange
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_integer, is_list_like
 
@@ -38,11 +38,11 @@ def _get_default_writer(ext):
         The default engine for the extension.
     """
     _default_writers = {'xlsx': 'openpyxl', 'xlsm': 'openpyxl', 'xls': 'xlwt'}
-    try:
-        import xlsxwriter  # noqa
+    xlsxwriter = import_optional_dependency("xlsxwriter",
+                                            raise_on_missing=False,
+                                            on_version="warn")
+    if xlsxwriter:
         _default_writers['xlsx'] = 'xlsxwriter'
-    except ImportError:
-        pass
     return _default_writers[ext]
 
 
@@ -112,7 +112,7 @@ def _range2cols(areas):
     for rng in areas.split(","):
         if ":" in rng:
             rng = rng.split(":")
-            cols.extend(lrange(_excel2num(rng[0]), _excel2num(rng[1]) + 1))
+            cols.extend(range(_excel2num(rng[0]), _excel2num(rng[1]) + 1))
         else:
             cols.append(_excel2num(rng))
 
@@ -141,7 +141,7 @@ def _maybe_convert_usecols(usecols):
                        "deprecated. Please pass in a list of int from "
                        "0 to `usecols` inclusive instead."),
                       FutureWarning, stacklevel=2)
-        return lrange(usecols + 1)
+        return list(range(usecols + 1))
 
     if isinstance(usecols, str):
         return _range2cols(usecols)
@@ -187,7 +187,7 @@ def _fill_mi_header(row, control_row):
         different indexes.
 
     Returns
-    ----------
+    -------
     Returns changed row and control_row
     """
     last = row[0]
