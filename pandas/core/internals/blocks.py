@@ -2306,7 +2306,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         values = self.values
         if deep:
             values = values.copy(deep=True)
-        return self.make_block_same_class(values)#, ndim=self.values.ndim)
+        return self.make_block_same_class(values, ndim=self.values.ndim)
         # TODO: now that ndim=self.ndim is added, this matches the base class
 
     def get_values(self, dtype=None):
