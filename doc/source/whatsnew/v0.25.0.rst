@@ -617,13 +617,12 @@ Strings
 - Improved error message when passing :class:`Series` of wrong dtype to :meth:`Series.str.cat` (:issue:`22722`)
 -
 
-
 Interval
 ^^^^^^^^
 
 - Construction of :class:`Interval` is restricted to numeric, :class:`Timestamp` and :class:`Timedelta` endpoints (:issue:`23013`)
 - Fixed bug in :class:`Series`/:class:`DataFrame` not displaying ``NaN`` in :class:`IntervalIndex` with missing values (:issue:`25984`)
--
+- :class:Interval will complain when creating point interval with an inconsistent `closed` value (:issue:`26893`)
 
 Indexing
 ^^^^^^^^
