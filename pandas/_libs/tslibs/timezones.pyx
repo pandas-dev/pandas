@@ -79,6 +79,8 @@ cpdef inline object get_timezone(object tz):
                 zone = tz.zone
                 if zone is None:
                     return tz
+
+                # UTC and Etc/GMT are the same timezones
                 if zone == UTC_EQ or zone == UTC_EQ_STR:
                     return UTC
                 return zone
