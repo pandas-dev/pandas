@@ -2074,7 +2074,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if ndim == 2 and values.ndim != ndim:
             # FIXME: This should be done before we get here
             values = values.reshape((1, len(values)))
-            assert values.ndim == 2, values.ndim
 
         super().__init__(values, placement=placement, ndim=ndim)
 
