@@ -476,9 +476,7 @@ class BaseGrouper:
             if axis > 0:
                 swapped = True
                 assert axis == 1, axis
-                # TODO: can we just use values.T here?
-                #  i.e. will axis ever by greater than 1?
-                values = values.swapaxes(0, axis)
+                values = values.T
             if arity > 1:
                 raise NotImplementedError("arity of more than 1 is not "
                                           "supported for the 'how' argument")

@@ -539,7 +539,6 @@ class DatetimeLikeArrayMixin(ReshapeMixin, ExtensionOpsMixin,
         dtype = pandas_dtype(dtype)
 
         if is_object_dtype(dtype):
-            # TODO: Do we need to worry about order for ravel/reshape?
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
         elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
             return self._format_native_types()

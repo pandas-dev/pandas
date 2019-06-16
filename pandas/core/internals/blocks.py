@@ -744,7 +744,6 @@ class Block(PandasObject):
                 mask[filtered_out.nonzero()[0]] = False
 
             if not mask.any():
-                # TODO: is this the right copy semantics?
                 if convert:
                     # NB: this check must come before the "if inplace" check
                     out = self.convert(by_item=True, numeric=False,
@@ -804,7 +803,7 @@ class Block(PandasObject):
             if self.is_numeric:
                 value = np.nan
 
-        # TODO: For each DatetimeTZBlock can we just call values__setitem__ directly?
+        # TODO: For DatetimeTZBlock can we call values.__setitem__ directly?
         # coerce if block dtype can store value
         values = self.values
         try:
@@ -1431,7 +1430,6 @@ class Block(PandasObject):
             # but `Block.get_values()` returns an ndarray of objects
             # right now. We need an API for "values to do numeric-like ops on"
             values = self.values.asi8
-            # TODO: is the above still needed?
         else:
             values = self.get_values()
             values, _ = self._try_coerce_args(values, values)
@@ -3156,7 +3154,11 @@ def _block_shape(values, ndim=1, shape=None):
     if values.ndim < ndim:
         if shape is None:
             shape = values.shape
-        if not is_extension_array_dtype(values):
+        if isinstance(values, ABCDatetimeIndex):
+            # DatetimeArray can be reshaped; DatetimeIndex cannot
+            values = values._data
+        if (not is_extension_array_dtype(values)
+                or is_datetime64tz_dtype(values)):
             # TODO: https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
