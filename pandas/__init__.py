@@ -105,7 +105,7 @@ from pandas.io.api import (
 
     # misc
     read_clipboard, read_parquet, read_feather, read_gbq,
-    read_html, read_json, read_stata, read_sas)
+    read_html, read_json, read_stata, read_sas, read_spss)
 
 from pandas.util._tester import test
 import pandas.testing

@@ -23,6 +23,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   - pip:
+    - pyreadstat
     # universal
     - pytest==4.5.0
     - pytest-xdist
