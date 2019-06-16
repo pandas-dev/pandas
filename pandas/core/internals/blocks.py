@@ -36,7 +36,6 @@ from pandas.core.arrays import (
     Categorical, DatetimeArray, ExtensionArray, PandasDtype, TimedeltaArray)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexing import check_setitem_lengths
 from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
@@ -2091,7 +2090,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if is_datetime64tz_dtype(dtype):
             values = self.values
             if getattr(values, 'tz', None) is None:
-                values = DatetimeIndex(values).tz_localize('UTC')
+                values = DatetimeArray(values).tz_localize('UTC')
             values = values.tz_convert(dtype.tz)
             return self.make_block(values)
 
@@ -2420,7 +2419,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         except (ValueError, TypeError):
             newb = make_block(self.values.astype(object),
                               placement=self.mgr_locs,
-                              klass=ObjectBlock,)
+                              klass=ObjectBlock)
             return newb.setitem(indexer, value)
 
     def equals(self, other):
