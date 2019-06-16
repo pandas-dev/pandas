@@ -348,7 +348,8 @@ that, by default, performs linear interpolation at missing data points.
    np.random.seed(123456)
    idx = pd.date_range('1/1/2000', periods=100, freq='BM')
    ts = pd.Series(np.random.randn(100), index=idx)
-   ts[1:20] = np.nan
+   ts[1:5] = np.nan
+   ts[20:30] = np.nan
    ts[60:80] = np.nan
    ts = ts.cumsum()
 
@@ -356,6 +357,12 @@ that, by default, performs linear interpolation at missing data points.
 
    ts
    ts.count()
+   @savefig series_before_interpolate.png
+   ts.plot()
+
+.. ipython:: python
+
+   ts.interpolate()
    ts.interpolate().count()
 
    @savefig series_interpolate.png
@@ -435,9 +442,9 @@ Compare several methods:
 
    np.random.seed(2)
 
-   ser = pd.Series(np.arange(1, 10.1, .25)**2 + np.random.randn(37))
-   bad = np.array([4, 13, 14, 15, 16, 17, 18, 20, 29])
-   ser[bad] = np.nan
+   ser = pd.Series(np.arange(1, 10.1, .25) ** 2 + np.random.randn(37))
+   missing = np.array([4, 13, 14, 15, 16, 17, 18, 20, 29])
+   ser[missing] = np.nan
    methods = ['linear', 'quadratic', 'cubic']
 
    df = pd.DataFrame({m: ser.interpolate(method=m) for m in methods})
@@ -451,6 +458,7 @@ You can mix pandas' ``reindex`` and ``interpolate`` methods to interpolate
 at the new values.
 
 .. ipython:: python
+   :okexcept:
 
    ser = pd.Series(np.sort(np.random.uniform(size=100)))
 
@@ -476,6 +484,7 @@ filled since the last valid observation:
 
    ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan,
                     np.nan, 13, np.nan, np.nan])
+   ser
 
    # fill all consecutive values in a forward direction
    ser.interpolate()
