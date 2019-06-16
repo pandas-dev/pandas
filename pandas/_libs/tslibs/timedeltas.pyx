@@ -950,7 +950,7 @@ cdef class _Timedelta(timedelta):
         return np.int64(self.value).view('m8[ns]')
 
     @property
-    def reso_str(self):
+    def resolution_string(self):
         """
         Return a string representing the lowest timedelta resolution.
 
@@ -1053,9 +1053,9 @@ cdef class _Timedelta(timedelta):
         warnings.warn("Timedelta.resolution is deprecated, in a future "
                       "version will behave like the standard library "
                       "datetime.timedelta.resolution attribute.  "
-                      "Use Timedelta.reso_str instead.",
+                      "Use Timedelta.resolution_string instead.",
                       FutureWarning)
-        return self.reso_str
+        return self.resolution_string
 
     @property
     def nanoseconds(self):
