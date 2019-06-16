@@ -229,9 +229,6 @@ class Block(PandasObject):
                           "in a future release.", DeprecationWarning)
         if placement is None:
             placement = self.mgr_locs
-        if isinstance(self, DatetimeTZBlock) and isinstance(values, np.ndarray):
-            # FIXME:this doesnt belong here
-            dtype = self.dtype
         return make_block(values, placement=placement, ndim=ndim,
                           klass=self.__class__, dtype=dtype)
 
@@ -2234,6 +2231,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
     shape = Block.shape
     _slice = Block._slice
+    iget = Block.iget
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
@@ -2293,14 +2291,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # check the ndarray values of the DatetimeIndex values
         return self.values._data.base is not None
 
-    #def copy(self, deep=True):
-    #    """ copy constructor """
-    #    values = self.values
-    #    if deep:
-    #        values = values.copy(deep=True)
-    #    return self.make_block_same_class(values, ndim=self.values.ndim)
-    #    # TODO: now that ndim=self.ndim is added, this matches the base class
-
     def get_values(self, dtype=None):
         """
         Returns an ndarray of values.
@@ -2342,21 +2332,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # expects that behavior.
         return np.asarray(self.values, dtype=_NS_DTYPE)
 
-    def iget(self, col):  # TODO: make sure this is... right
-        if self.ndim == 2 and is_integer(col):
-            # TOOD: make sure the col condition is right
-            return self.values.ravel()
-        elif (self.ndim == 2 and isinstance(col, tuple) and
-              len(col) == 2 and all(is_integer(entry) for entry in col)):
-            # kludge, need to get back to the base class version and not
-            #  NonConsolidatableMixin version
-            return self.values[col]
-        elif (self.ndim == 2 and isinstance(col, tuple) and
-              len(col) == 2 and col[0] == slice(None) and is_integer(col[1])):
-            # kludge
-            return self.values[:, col[1]]
-
-        return super().iget(col)
 
     def _try_coerce_args(self, values, other):
         """
