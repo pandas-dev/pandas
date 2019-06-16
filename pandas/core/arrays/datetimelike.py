@@ -442,18 +442,6 @@ class DatetimeLikeArrayMixin(ReshapeMixin, ExtensionOpsMixin,
 
             # Note: we drop `freq` attributes for all 2D cases
             return type(self)(res, dtype=self.dtype)
-            if not (isinstance(key, tuple) and len(key)) == 2:
-                raise ValueError("Indexer {indexer} not supported for 2D {typ}"
-                                 .format(indexer=key, typ=type(self).__name__))
-
-            if all(lib.is_integer(entry) for entry in key):
-                val = getitem(key)
-                return self._box_func(val)
-
-            elif all(isinstance(entry, slice) for entry in key):
-                return type(self)(self._data[key], dtype=self.dtype)
-
-            raise NotImplementedError
 
         if is_int:
             val = getitem(key)
