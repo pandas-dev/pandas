@@ -1178,3 +1178,10 @@ class ReshapeMixin:
     def ravel(self, order=None):
         data = self._wrap_data.ravel(order=order)
         return type(self)(data, dtype=self.dtype)
+
+    def swapaxes(self, axis1, axis2):  # TODO: needs test
+        data = self._wrap_data.swapaxes(axis1, axis2)
+        return type(self)(data, dtype=self.dtype)
+
+    # TODO: Squeeze
+    # TODO: comments about reshape/ravel order

@@ -1434,11 +1434,7 @@ class Block(PandasObject):
             # but `Block.get_values()` returns an ndarray of objects
             # right now. We need an API for "values to do numeric-like ops on"
             values = self.values.asi8
-
-            # TODO: NonConsolidatableMixin shape
-            # Usual shape inconsistencies for ExtensionBlocks
-            #if self.ndim > 1:
-            #    values = values[None, :]
+            # TODO: is the above still needed?
         else:
             values = self.get_values()
             values, _ = self._try_coerce_args(values, values)
@@ -2239,11 +2235,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     shape = Block.shape
     _slice = Block._slice
 
-    #def __init__(self, values, placement, ndim=None):
-    #    super().__init__(values, placement, ndim=ndim)
-    #    assert self.shape == self.values.shape, (self.shape, self.values.shape)
-    #    assert self.ndim == 1 or self.shape[0] == 1, (self.shape, self.values.shape, values.shape)
-
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
         result = Block.where(self, other, cond, align=align, errors=errors,
@@ -2302,13 +2293,13 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # check the ndarray values of the DatetimeIndex values
         return self.values._data.base is not None
 
-    def copy(self, deep=True):
-        """ copy constructor """
-        values = self.values
-        if deep:
-            values = values.copy(deep=True)
-        return self.make_block_same_class(values, ndim=self.values.ndim)
-        # TODO: now that ndim=self.ndim is added, this matches the base class
+    #def copy(self, deep=True):
+    #    """ copy constructor """
+    #    values = self.values
+    #    if deep:
+    #        values = values.copy(deep=True)
+    #    return self.make_block_same_class(values, ndim=self.values.ndim)
+    #    # TODO: now that ndim=self.ndim is added, this matches the base class
 
     def get_values(self, dtype=None):
         """
@@ -2423,8 +2414,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         if isinstance(result, np.ndarray):
             # allow passing of > 1dim if its trivial
 
-            #if result.ndim > 1:
-            #    result = result.reshape(np.prod(result.shape))
             # GH#24096 new values invalidates a frequency
             result = self._holder._simple_new(result, freq=None,
                                               dtype=self.values.dtype)

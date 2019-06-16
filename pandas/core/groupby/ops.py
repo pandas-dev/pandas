@@ -475,14 +475,10 @@ class BaseGrouper:
         else:
             if axis > 0:
                 swapped = True
+                assert axis == 1, axis
                 # TODO: can we just use values.T here?
                 #  i.e. will axis ever by greater than 1?
-                if is_datetime64_any_dtype(values):
-                    assert axis == 1
-                    # TODO: better to just implement swapaxes on DatetimeArray?
-                    values = values.T
-                else:
-                    values = values.swapaxes(0, axis)
+                values = values.swapaxes(0, axis)
             if arity > 1:
                 raise NotImplementedError("arity of more than 1 is not "
                                           "supported for the 'how' argument")
