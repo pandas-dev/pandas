@@ -132,7 +132,7 @@ def _concat_compat(to_concat, axis=0):
     _contains_period = any(typ.startswith('period') for typ in typs)
 
     if 'category' in typs:
-        # this must be priort to _concat_datetime,
+        # this must be prior to _concat_datetime,
         # to support Categorical + datetime-like
         return _concat_categorical(to_concat, axis=axis)
 

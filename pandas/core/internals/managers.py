@@ -15,7 +15,8 @@ from pandas.core.dtypes.cast import (
     maybe_promote)
 from pandas.core.dtypes.common import (
     _NS_DTYPE, is_datetimelike_v_numeric, is_extension_array_dtype,
-    is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar)
+    is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar,
+    is_sparse)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
@@ -770,7 +771,6 @@ class BlockManager(PandasObject):
         Return ndarray from blocks with specified item order
         Items must be contained in the blocks
         """
-        from pandas.core.dtypes.common import is_sparse
         dtype = _interleaved_dtype(self.blocks)
 
         # TODO: https://github.com/pandas-dev/pandas/issues/22791

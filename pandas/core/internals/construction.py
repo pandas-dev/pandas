@@ -131,8 +131,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
         index, columns = _get_axes(len(values), 1, index, columns)
         return arrays_to_mgr([values], columns, index, columns,
                              dtype=dtype)
-    elif (is_datetime64tz_dtype(values) or
-          is_extension_array_dtype(values)):
+    elif is_extension_array_dtype(values):
         # GH#19157
         if columns is None:
             columns = [0]
