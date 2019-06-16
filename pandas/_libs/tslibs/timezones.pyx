@@ -18,6 +18,9 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
+UTC_EQ_STR = 'Etc/GMT'
+UTC_EQ = pytz.timezone(UTC_EQ_STR)
+
 # ----------------------------------------------------------------------
 from pandas._libs.tslibs.util cimport is_integer_object, get_nat
 
@@ -76,6 +79,8 @@ cpdef inline object get_timezone(object tz):
                 zone = tz.zone
                 if zone is None:
                     return tz
+                if zone == UTC_EQ or zone == UTC_EQ_STR:
+                    return UTC
                 return zone
             except AttributeError:
                 return tz
