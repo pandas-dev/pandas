@@ -153,7 +153,8 @@ def json_normalize(data, record_path=None, meta=None,
     Returns
     -------
     frame : DataFrame
-        Returns a JSON normalized Dataframe.
+
+    Returns a JSON normalized Dataframe.
 
     Examples
     --------
@@ -170,35 +171,31 @@ def json_normalize(data, record_path=None, meta=None,
 
     >>> from pandas.io.json import json_normalize
     >>> data = [{'id': 1,
-    ...          'name': {'first': 'Cole', 'last': 'Volk'},
+    ...          'name': "Cole Volk",
     ...          'fitness': {'height': 130, 'weight': 60}},
-    ...         {'name': {'given': 'Mose', 'family': 'Reg'},
+    ...         {'name': "Mose Reg",
     ...          'fitness': {'height': 130, 'weight': 60}},
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
     >>> json_normalize(data, max_level=1)
-      fitness.height  fitness.weight   id                  name
-    0   130              60          1.0    {'first': 'Cole', 'last': 'Volk'}
-    1   130              60          NaN    {'given': 'Mose', 'family': 'Reg'}
-    2   130              60          2.0               Faye Raker
+      fitness.height  fitness.weight   id    name
+    0   130              60          1.0    Cole Volk
+    1   130              60          NaN    Mose Reg
+    2   130              60          2.0    Faye Raker
 
     >>> data = [{'state': 'Florida',
     ...          'shortname': 'FL',
-    ...          'info': {
-    ...               'governor': 'Rick Scott'
-    ...          },
+    ...          'info': {'governor': 'Rick Scott'},
     ...          'counties': [{'name': 'Dade', 'population': 12345},
-    ...                      {'name': 'Broward', 'population': 40000},
-    ...                      {'name': 'Palm Beach', 'population': 60000}]},
+    ...                       {'name': 'Broward', 'population': 40000},
+    ...                       {'name': 'Palm Beach', 'population': 60000}]},
     ...         {'state': 'Ohio',
     ...          'shortname': 'OH',
-    ...          'info': {
-    ...               'governor': 'John Kasich'
-    ...          },
+    ...          'info': {'governor': 'John Kasich'},
     ...          'counties': [{'name': 'Summit', 'population': 1234},
     ...                       {'name': 'Cuyahoga', 'population': 1337}]}]
     >>> result = json_normalize(data, 'counties', ['state', 'shortname',
-    ...                                           ['info', 'governor']])
+    ...                                            ['info', 'governor']])
     >>> result
              name  population    state shortname info.governor
     0        Dade       12345   Florida    FL    Rick Scott
