@@ -1002,15 +1002,11 @@ def str_get_dummies(arr, sep='|'):
     from pandas.core.reshape.reshape import get_dummies
     from pandas import Series
 
-    if len(arr) == 0:
-        empty = np.empty(0, dtype='object')
-        return empty, empty
-
     arr = arr.fillna('').astype('str')
 
     arr_split = arr.str.split(sep)
 
-    stacked = Series(np.concatenate(arr_split))
+    stacked = Series(np.concatenate(arr_split)) if len(arr) > 0 else Series()
     stacked[stacked == ''] = np.nan
     stacked_idx = np.repeat(np.arange(len(arr)), arr_split.str.len())
 
