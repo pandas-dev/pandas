@@ -486,7 +486,6 @@ class DatetimeLikeArrayMixin(ReshapeMixin, ExtensionOpsMixin,
             # To support MPL which performs slicing with 2 dim
             # even though it only has 1 dim by definition
             if is_period:
-                # TODO: is this needed?  wont dtype imply freq?
                 return self._simple_new(result, dtype=self.dtype, freq=freq)
             return result
 

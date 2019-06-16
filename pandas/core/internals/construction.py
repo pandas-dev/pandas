@@ -144,7 +144,8 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
                 values = values._data
             if isinstance(values, ABCSeries):
                 values = values._values
-            values = values.reshape((1, len(values)))#(len(values), 1))  # TODO: better place to do this?
+            values = values.reshape((1, len(values)))
+            # TODO: better place to do this?
         return arrays_to_mgr([values], columns, index, columns,
                              dtype=dtype)
 

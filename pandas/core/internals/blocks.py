@@ -732,6 +732,7 @@ class Block(PandasObject):
         blocks here this is just a call to putmask. regex is not used here.
         It is used in ObjectBlocks.  It is here for API compatibility.
         """
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
         original_to_replace = to_replace
 
@@ -1297,11 +1298,6 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        #if isinstance(other, ABCDataFrame) and (other.dtypes == self.dtype).all():
-        #    # TODO: Belongs elsewhere
-        #    # avoid casting to object dtype
-        #    other = other._data.blocks[0].values
-        #else:
         other = getattr(other, '_values', getattr(other, 'values', other))
         cond = getattr(cond, 'values', cond)
 
@@ -2243,10 +2239,10 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     shape = Block.shape
     _slice = Block._slice
 
-    def __init__(self, values, placement, ndim=None):
-        super().__init__(values, placement, ndim=ndim)
-        assert self.shape == self.values.shape, (self.shape, self.values.shape)
-        assert self.ndim == 1 or self.shape[0] == 1, (self.shape, self.values.shape, values.shape)
+    #def __init__(self, values, placement, ndim=None):
+    #    super().__init__(values, placement, ndim=ndim)
+    #    assert self.shape == self.values.shape, (self.shape, self.values.shape)
+    #    assert self.ndim == 1 or self.shape[0] == 1, (self.shape, self.values.shape, values.shape)
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
