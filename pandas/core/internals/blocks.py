@@ -1321,9 +1321,9 @@ class Block(PandasObject):
         def func(cond, values, other):
             if cond.ravel().all():
                 return values
-            #
+
             values, other = self._try_coerce_args(values, other)
-            #
+
             try:
                 return self._try_coerce_result(expressions.where(
                     cond, values, other))

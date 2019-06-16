@@ -1178,8 +1178,6 @@ class GroupBy(_GroupBy):
             Median of values within each group.
         """
         try:
-            # TODO: this _might_ work on DatetimeArray
-            #  if values = values.swapaxes(0, axis) worked
             return self._cython_agg_general('median', **kwargs)
         except GroupByError:
             raise
