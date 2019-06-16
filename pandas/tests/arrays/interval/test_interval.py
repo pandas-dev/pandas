@@ -65,3 +65,23 @@ def test_repr_matches():
     a = repr(idx)
     b = repr(idx.values)
     assert a.replace("Index", "Array") == b
+
+
+def test_point_interval():
+    match = "both/neither sides must be closed when left == right"
+    for closed in ('left', 'right'):
+        with pytest.raises(ValueError, match=match):
+            pd.Interval(0, 0, closed)
+
+    pd.Interval(0, 0, 'neither')  # no exception
+    pd.Interval(0, 0, 'both')  # no exception
+
+    assert not pd.Interval(0, 1, "left").overlaps(pd.Interval(0, 0, "neither"))
+    assert pd.Interval(0, 1, "left").overlaps(pd.Interval(0, 0, "both"))
+    assert not pd.Interval(0, 1, "right").overlaps(
+        pd.Interval(1, 1, "neither"))
+    assert pd.Interval(0, 1, "right").overlaps(pd.Interval(1, 1, "both"))
+    assert not pd.Interval(0, 1, "both").overlaps(pd.Interval(0, 0, "neither"))
+    assert not pd.Interval(0, 1, "both").overlaps(pd.Interval(0, 0, "neither"))
+    assert not pd.Interval(0, 1, "neither").overlaps(pd.Interval(1, 1, "both"))
+    assert not pd.Interval(0, 1, "neither").overlaps(pd.Interval(1, 1, "both"))
