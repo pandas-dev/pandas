@@ -142,6 +142,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Override cache_readonly bc Series is mutable
     hasnans = property(base.IndexOpsMixin.hasnans.func,
                        doc=base.IndexOpsMixin.hasnans.__doc__)
+    _data = None  # type: SingleBlockManager
 
     # ----------------------------------------------------------------------
     # Constructors

@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Callable, FrozenSet, List, Set
+from typing import Callable, FrozenSet, List, Optional, Set
 import warnings
 import weakref
 
@@ -35,6 +35,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
+from pandas._typing import Dtype
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -118,12 +119,17 @@ class NDFrame(PandasObject, SelectionMixin):
     ])  # type: FrozenSet[str]
     _metadata = []  # type: List[str]
     _is_copy = None
+    _data = None  # type: BlockManager
 
     # ----------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, data, axes=None, copy=False, dtype=None,
-                 fastpath=False):
+    def __init__(self,
+                 data: BlockManager,
+                 axes: Optional[List[Index]] = None,
+                 copy: bool = False,
+                 dtype: Optional[Dtype] = None,
+                 fastpath: bool = False):
 
         if not fastpath:
             if dtype is not None:
