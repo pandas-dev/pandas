@@ -18,9 +18,6 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
-UTC_EQ_STR = 'Etc/GMT'
-UTC_EQ = pytz.timezone(UTC_EQ_STR)
-
 # ----------------------------------------------------------------------
 from pandas._libs.tslibs.util cimport is_integer_object, get_nat
 
@@ -80,8 +77,13 @@ cpdef inline object get_timezone(object tz):
                 if zone is None:
                     return tz
 
-                # UTC and Etc/GMT are the same timezones
-                if zone == UTC_EQ or zone == UTC_EQ_STR:
+                # UTC and Etc/GMT or Etc/GMT+0 are the same timezones
+                if not isinstance(zone, str):
+                    str_zone = str(zone)
+                else:
+                    str_zone = zone
+
+                if str_zone == 'Etc/GMT' or str_zone == 'Etc/GMT+0':
                     return UTC
                 return zone
             except AttributeError:
