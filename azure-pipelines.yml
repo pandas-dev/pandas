@@ -133,14 +133,6 @@ jobs:
     displayName: 'Setup environment and build pandas'
 
   - script: |
-      set -x
-      sudo apt-get install -y xsel xvfb
-      export DISPLAY=":99.0"
-      sh -e /etc/init.d/xvfb start
-      sleep 3
-    displayName: 'Setup clipboard'
-
-  - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       # Next we should simply have `doc/make.py --warnings-are-errors`, everything else is required because the ipython directive doesn't fail the build on errors (https://github.com/ipython/ipython/issues/11547)
