@@ -1904,12 +1904,10 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             unstacker, new_columns
         )
 
-        values = self.values
-
         blocks = [
             self.make_block_same_class(
-                values.take(indices, allow_fill=True,
-                            fill_value=fill_value),
+                self.values.take(indices, allow_fill=True,
+                                 fill_value=fill_value),
                 [place])
             for indices, place in zip(new_values.T, new_placement)
         ]
