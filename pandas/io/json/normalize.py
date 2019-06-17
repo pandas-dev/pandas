@@ -154,7 +154,7 @@ def json_normalize(data:dict, record_path: Union[str, list]=None, meta:Union[str
     -------
     frame : DataFrame
 
-    Returns a JSON normalized Dataframe.
+    Normalize semi-structured JSON data into a flat table.
 
     Examples
     --------
@@ -168,6 +168,20 @@ def json_normalize(data:dict, record_path: Union[str, list]=None, meta:Union[str
     0  1.0         NaN         NaN     Coleen        NaN      Volk
     1  NaN         NaN      Regner        NaN       Mose       NaN
     2  2.0  Faye Raker         NaN        NaN        NaN       NaN
+
+    >>> from pandas.io.json import json_normalize
+    >>> data = [{'id': 1,
+    ...          'name': "Cole Volk",
+    ...          'fitness': {'height': 130, 'weight': 60}},
+    ...         {'name': "Mose Reg",
+    ...          'fitness': {'height': 130, 'weight': 60}},
+    ...         {'id': 2, 'name': 'Faye Raker',
+    ...          'fitness': {'height': 130, 'weight': 60}}]
+    >>> json_normalize(data, max_level=0)
+                fitness                 id        name
+    0   {'height': 130, 'weight': 60}  1.0   Cole Volk
+    1   {'height': 130, 'weight': 60}  NaN    Mose Reg
+    2   {'height': 130, 'weight': 60}  2.0  Faye Raker
 
     >>> from pandas.io.json import json_normalize
     >>> data = [{'id': 1,
@@ -195,7 +209,7 @@ def json_normalize(data:dict, record_path: Union[str, list]=None, meta:Union[str
     ...          'counties': [{'name': 'Summit', 'population': 1234},
     ...                       {'name': 'Cuyahoga', 'population': 1337}]}]
     >>> result = json_normalize(data, 'counties', ['state', 'shortname',
-    ...                                            ['info', 'governor']])
+    ...                                           ['info', 'governor']])
     >>> result
              name  population    state shortname info.governor
     0        Dade       12345   Florida    FL    Rick Scott
