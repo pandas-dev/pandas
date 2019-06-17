@@ -667,6 +667,7 @@ def test_reshape():
 
         arr2 = arr.reshape((1, 4))
         assert arr2.T.shape == (4, 1)
+        assert (arr2.swapaxes(1, 0)._data == arr2.T._data).all()
 
         for shape in [(4,), (1, 4), (4, 1), (2, 2)]:
             # TODO: order = 'C' vs 'F'?
@@ -675,3 +676,45 @@ def test_reshape():
 
             flat = res.ravel()
             assert (flat == arr).all()
+
+
+class Test2D:
+    def test_dta_box_values_2d(self):
+        dtarr = pd.date_range('2016-01-02', periods=4, tz='US/Pacific')._data
+
+        arr = dtarr.reshape(2, 2)
+
+        expected = dtarr.astype(object).reshape(2, 2)
+
+        result = arr.astype(object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result2 = arr._box_values(arr.asi8)
+        tm.assert_numpy_array_equal(result2, expected)
+
+    def test_dta_repr_2d(self):
+        dtarr = pd.date_range('2016-01-02', periods=4, tz='US/Pacific')._data
+
+        expected = (
+            "<DatetimeArray>\n"
+            "['2016-01-02 00:00:00-08:00', '2016-01-03 00:00:00-08:00',\n"
+            " '2016-01-04 00:00:00-08:00', '2016-01-05 00:00:00-08:00']\n"
+            "Length: 4, dtype: datetime64[ns, US/Pacific]"
+        )
+        assert repr(dtarr) == expected
+
+        expected2 = (
+            "<DatetimeArray>\n"
+            "[['2016-01-02 00:00:00-08:00', '2016-01-03 00:00:00-08:00',\n"
+            " '2016-01-04 00:00:00-08:00', '2016-01-05 00:00:00-08:00']]\n"
+            "Length: 4, dtype: datetime64[ns, US/Pacific]"
+        )
+        assert repr(dtarr.reshape(1, -1)) == expected2
+
+        expected3 = (
+            "<DatetimeArray>\n"
+            "[['2016-01-02 00:00:00-08:00'], ['2016-01-03 00:00:00-08:00'],\n"
+            " ['2016-01-04 00:00:00-08:00'], ['2016-01-05 00:00:00-08:00']]\n"
+            "Length: 4, dtype: datetime64[ns, US/Pacific]"
+        )
+        assert repr(dtarr.reshape(4, 1)) == expected3

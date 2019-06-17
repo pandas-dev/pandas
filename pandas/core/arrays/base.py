@@ -1165,8 +1165,9 @@ class ReshapeMixin:
     # --------------------------------------------------
     # Reshape Methods
 
-    def reshape(self, shape):
-        data = self._wrap_data.reshape(shape)
+    def reshape(self, *shape):
+        # numpy accepts either a single tuple or an expanded tuple
+        data = self._wrap_data.reshape(*shape)
         return type(self)(data, dtype=self.dtype)
 
     def transpose(self, axes):
@@ -1180,4 +1181,8 @@ class ReshapeMixin:
 
     def ravel(self, order=None):
         data = self._wrap_data.ravel(order=order)
+        return type(self)(data, dtype=self.dtype)
+
+    def swapaxes(self, *axes):
+        data = self._wrap_data.swapaxes(*axes)
         return type(self)(data, dtype=self.dtype)

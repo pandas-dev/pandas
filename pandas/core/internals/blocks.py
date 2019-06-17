@@ -765,7 +765,8 @@ class Block(PandasObject):
             if is_object_dtype(self):
                 raise
 
-            # TODO: try harder to avoid casting to object, e.g. in test_replace_string_with_number
+            # TODO: try harder to avoid casting to object, e.g. in
+            #  test_replace_string_with_number
             # try again with a compatible block
             block = self.astype(object)
             return block.replace(to_replace=original_to_replace,
@@ -803,7 +804,6 @@ class Block(PandasObject):
             if self.is_numeric:
                 value = np.nan
 
-        # TODO: For DatetimeTZBlock can we call values.__setitem__ directly?
         # coerce if block dtype can store value
         values = self.values
         try:
@@ -1407,7 +1407,8 @@ class Block(PandasObject):
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
-        blocks = [make_block(new_values, placement=new_placement)]
+        blocks = [make_block(new_values, placement=new_placement,
+                             ndim=new_values.ndim)]
         return blocks, mask
 
     def quantile(self, qs, interpolation='linear', axis=0):
@@ -1904,12 +1905,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         )
 
         values = self.values
-        if isinstance(self, DatetimeTZBlock):
-            # FIXME: not the right place for this, also I think we can use
-            #  the base class implementation if DatetimeArray.reshape
-            #  signature matched ndarray.reshape signature more precisely
-            values = values.ravel()
-            # FIXME: should we be un-ravelling at the end?
 
         blocks = [
             self.make_block_same_class(
@@ -2072,6 +2067,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if ndim == 2 and values.ndim != ndim:
             # FIXME: This should be done before we get here
             values = values.reshape((1, len(values)))
+        if ndim == 1 and values.ndim == 2:
+            raise ValueError(values.shape)
 
         super().__init__(values, placement=placement, ndim=ndim)
 
@@ -2330,7 +2327,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # expects that behavior.
         return np.asarray(self.values, dtype=_NS_DTYPE)
 
-
     def _try_coerce_args(self, values, other):
         """
         localize and return i8 for the values
@@ -2489,6 +2485,34 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
                                     fill_value=fill_value)
         outvals = shifted_vals.reshape(self.shape)
         return [self.make_block_same_class(shifted_vals)]
+
+    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
+        # TODO: We can use the base class directly if there ever comes a time
+        #  when we don't restruct DatetimeTZBlock to single-column.
+        blocks, mask = Block._unstack(self, unstacker_func, new_columns,
+                                      n_rows, fill_value)
+        assert len(blocks) == 1
+        nbs = blocks[0]._deconsolidate_block()
+        return nbs, mask
+
+    def _deconsolidate_block(self):
+        """
+        Because (for now) DatetimeTZBlock can only hold single-column blocks,
+        we may need to split multi-column blocks returned by e.g.
+        Block._unstack.
+
+        Returns
+        -------
+        list[DatetimeTZBlock]
+        """
+        if self.ndim == 1 or self.shape[0] == 1:
+            return [self]
+
+        values = self.values
+        nbs = [self.make_block_same_class(values[n, :].reshape(1, -1),
+                                          placement=self.mgr_locs[[n]])
+               for n in range(len(values))]
+        return nbs
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):

@@ -353,7 +353,8 @@ class DatetimeLikeArrayMixin(ReshapeMixin, ExtensionOpsMixin,
         """
         apply box func to passed values
         """
-        return lib.map_infer(values, self._box_func)
+        vals1d = values.ravel()
+        return lib.map_infer(vals1d, self._box_func).reshape(values.shape)
 
     def __iter__(self):
         return (self._box_func(v) for v in self.asi8)
@@ -393,12 +394,18 @@ class DatetimeLikeArrayMixin(ReshapeMixin, ExtensionOpsMixin,
         return "'{}'".format
 
     def __repr__(self):
-        # kludge
+        # 2D compat
         if self.ndim == 1:
             return super().__repr__()
-        elif self.ndim == 2 and self.shape[0] == 1:
-            out = repr(self.ravel()).replace('[', '[[').replace(']', ']]')
-            return out
+        elif self.ndim == 2:
+            out = repr(self.ravel())
+            head, tail = out.split(', dtype: ')
+            head = head.replace('[', '[[').replace(']', ']]')
+            if self.shape[0] != 1:
+                head = head.replace(', ', '], [')
+                head = head.replace(',\n ', '],\n [')
+            return head + ', dtype: ' + tail
+
         raise NotImplementedError
 
     # ----------------------------------------------------------------
@@ -539,7 +546,7 @@ class DatetimeLikeArrayMixin(ReshapeMixin, ExtensionOpsMixin,
         dtype = pandas_dtype(dtype)
 
         if is_object_dtype(dtype):
-            return self._box_values(self.asi8.ravel()).reshape(self.shape)
+            return self._box_values(self.asi8)
         elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
             return self._format_native_types()
         elif is_integer_dtype(dtype):
