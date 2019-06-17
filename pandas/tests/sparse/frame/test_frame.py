@@ -383,10 +383,7 @@ class TestSparseDataFrame(SharedWithSparse):
             dense_result = op(da, db)
 
             fill = sparse_result.default_fill_value
-            # GH 26557: DEPR
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                dense_result = dense_result.to_sparse(fill_value=fill)
+            dense_result = dense_result.to_sparse(fill_value=fill)
             tm.assert_sp_frame_equal(sparse_result, dense_result,
                                      exact_indices=False)
 
@@ -1131,20 +1128,14 @@ class TestSparseDataFrame(SharedWithSparse):
 
             shifted = frame.shift(2, freq='B')
             exp = orig.shift(2, freq='B')
-            # GH 26557: DEPR
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                exp = exp.to_sparse(frame.default_fill_value,
-                                    kind=frame.default_kind)
+            exp = exp.to_sparse(frame.default_fill_value,
+                                kind=frame.default_kind)
             tm.assert_frame_equal(shifted, exp)
 
             shifted = frame.shift(2, freq=BDay())
             exp = orig.shift(2, freq=BDay())
-            # GH 26557: DEPR
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                exp = exp.to_sparse(frame.default_fill_value,
-                                    kind=frame.default_kind)
+            exp = exp.to_sparse(frame.default_fill_value,
+                                kind=frame.default_kind)
             tm.assert_frame_equal(shifted, exp)
 
         _check(float_frame, float_frame_dense)

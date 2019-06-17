@@ -87,7 +87,6 @@ class SharedWithSparse:
             result = getattr(s, op)(cp)
             assert result.name is None
 
-    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_combine_first_name(self):
         result = self.ts.combine_first(self.ts[:5])
         assert result.name == self.ts.name

@@ -3755,6 +3755,7 @@ class TestHDFStore(Base):
             tm.assert_frame_equal(result, expected)
 
     @ignore_sparse
+    @ignore_dataframe_tosparse
     def test_start_stop_fixed(self):
 
         with ensure_clean_store(self.path) as store:
@@ -3796,10 +3797,7 @@ class TestHDFStore(Base):
             df = tm.makeDataFrame()
             df.iloc[3:5, 1:3] = np.nan
             df.iloc[8:10, -2] = np.nan
-            # GH 26557: DEPR
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                dfs = df.to_sparse()
+            dfs = df.to_sparse()
             store.put('dfs', dfs)
             with pytest.raises(NotImplementedError):
                 store.select('dfs', start=0, stop=5)
