@@ -2229,6 +2229,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     shape = Block.shape
     _slice = Block._slice
     iget = Block.iget
+    interpolate = Block.interpolate
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
@@ -2488,18 +2489,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
                                     fill_value=fill_value)
         outvals = shifted_vals.reshape(self.shape)
         return [self.make_block_same_class(shifted_vals)]
-
-    def interpolate(self, method='pad', axis=0, inplace=False, limit=None,
-                    fill_value=None, **kwargs):
-
-        vals1d = self.values.ravel()
-        values = vals1d if inplace else vals1d.copy()
-        outvals = values.fillna(value=fill_value, method=method,
-                                limit=limit)
-        # NB: the reshape only makes sense with the 1row restriction
-        return self.make_block_same_class(
-            values=outvals.reshape(self.shape),
-            placement=self.mgr_locs)
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
