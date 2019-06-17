@@ -886,8 +886,7 @@ class TestSparseDataFrame(SharedWithSparse):
     def test_corr(self, float_frame):
         res = float_frame.corr()
         # XXX: this stays sparse
-        tm.assert_frame_equal(res,
-                              float_frame.to_dense().corr().to_sparse())
+        tm.assert_frame_equal(res, float_frame.to_dense().corr().to_sparse())
 
     def test_describe(self, float_frame):
         float_frame['foo'] = np.nan
@@ -1204,8 +1203,7 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_sp_frame_equal(result, expected)
 
     def test_isin(self):
-        sparse_df = DataFrame({'flag': [1., 0., 1.]})
-        sparse_df = sparse_df.to_sparse(fill_value=0.)
+        sparse_df = DataFrame({'flag': [1., 0., 1.]}).to_sparse(fill_value=0.)
         xp = sparse_df[sparse_df.flag == 1.]
         rs = sparse_df[sparse_df.flag.isin([1.])]
         tm.assert_frame_equal(xp, rs)

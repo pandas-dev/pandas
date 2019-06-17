@@ -976,9 +976,8 @@ class TestSparseSeries(SharedWithSparse):
         tm.assert_sp_series_equal(sparse.shift(0), orig.shift(0).to_sparse())
 
         sparse = orig.to_sparse(fill_value=np.nan)
-        tm.assert_sp_series_equal(sparse.shift(0), orig.shift(0).
-                                  to_sparse(fill_value=np.nan))
-
+        tm.assert_sp_series_equal(sparse.shift(0),
+                                  orig.shift(0).to_sparse(fill_value=np.nan))
         # shift(1) or more span changes dtype to float64
         # XXX: SparseSeries doesn't need to shift dtype here.
         # Do we want to astype in shift, for backwards compat?
@@ -1012,6 +1011,7 @@ class TestSparseSeries(SharedWithSparse):
     def test_shift_dtype_fill_value(self, fill_value, periods):
         # GH 12908
         orig = pd.Series([1, 0, 0, 4], dtype=np.dtype('int64'))
+
         sparse = orig.to_sparse(fill_value=fill_value)
 
         result = sparse.shift(periods)
