@@ -163,8 +163,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
         if values.ndim == 2 and values.shape[0] != 1:
             # transpose and separate blocks
 
-            dvals_list = [maybe_infer_to_datetimelike(values[n, :])
-                          for n in range(len(values))]
+            dvals_list = [maybe_infer_to_datetimelike(row) for row in values]
             for n in range(len(dvals_list)):
                 if isinstance(dvals_list[n], np.ndarray):
                     dvals_list[n] = dvals_list[n].reshape(1, -1)
