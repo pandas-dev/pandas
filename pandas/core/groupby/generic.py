@@ -21,7 +21,8 @@ from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    maybe_convert_objects, maybe_downcast_to_dtype)
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_platform_int, is_bool, is_datetimelike,
     is_integer_dtype, is_interval_dtype, is_numeric_dtype, is_object_dtype,
@@ -1728,17 +1729,8 @@ def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
              if is_object_dtype(result.dtypes[idx])]
 
     for cidx in ocols:
-        # TODO: get maybe_convert_objects working here
-        cvals = result.iloc[:, cidx]
-
-        # TODO: should we use skipna=True?
-        exdtype = lib.infer_dtype(cvals.values, skipna=False)
-        if exdtype == 'integer':
-            result.iloc[:, cidx] = cvals.astype(np.int64)
-        if exdtype in ['float', 'mixed-integer-float']:
-            result.iloc[:, cidx] = cvals.astype(np.float64)
-        if exdtype == 'datetime':
-            # TODO: what about tz-aware?
-            result.iloc[:, cidx] = cvals.astype('M8[ns]')
+        cvals = result.iloc[:, cidx].values
+        result.iloc[:, cidx] = maybe_convert_objects(cvals,
+                                                     convert_numeric=False)
 
     return result

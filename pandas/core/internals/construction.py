@@ -161,8 +161,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     if dtype is None and is_object_dtype(values):
 
         if values.ndim == 2 and values.shape[0] != 1:
-            # kludge to transpose and separate blocks
-            # unnecessary if we ever allow 2D DatetimeArray
+            # transpose and separate blocks
 
             dvals_list = [maybe_infer_to_datetimelike(values[n, :])
                           for n in range(len(values))]
