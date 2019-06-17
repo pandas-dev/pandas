@@ -112,6 +112,14 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     copy : bool, default False
         Whether to copy the ordinals before storing.
 
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
+
     See Also
     --------
     period_array : Create a new PeriodArray.
