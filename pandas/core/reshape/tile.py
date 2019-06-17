@@ -476,11 +476,6 @@ def _format_labels(bins, precision, right=True,
     if right and include_lowest:
         # we will adjust the left hand side by precision to
         # account that we are all right closed
-        #
-        # We cannot access labels[0].left because that
-        # calls Interval(left, right, closed='right')
-        # and before adjusting we may have left == right
-        # so it will raise.
         v = adjust(labels.left[0])
 
         i = IntervalIndex([Interval(v, labels.right[0], closed='right')])
