@@ -265,6 +265,19 @@ class TestiLoc(Base):
                           typs=['labels', 'mixed', 'ts', 'floats', 'empty'],
                           fails=IndexError)
 
+    def test_iloc_getitem_bool_diff_len(self):
+        # GH26658
+        too_short = [True, False]
+        too_long = [True, False, True, False, False]
+        self.check_result('bool', 'iloc', too_short, 'ix', too_short,
+                          typs=['ints', 'uints', 'labels',
+                                'mixed', 'ts', 'floats'],
+                          fails=ValueError)
+        self.check_result('bool', 'iloc', too_long, 'ix', too_long,
+                          typs=['ints', 'uints', 'labels',
+                                'mixed', 'ts', 'floats'],
+                          fails=ValueError)
+
     def test_iloc_getitem_slice(self):
 
         # slices

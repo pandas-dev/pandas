@@ -1441,6 +1441,9 @@ class _LocationIndexer(_NDFrameIndexer):
             axis = self.axis or 0
         labels = self.obj._get_axis(axis)
         key = check_bool_indexer(labels, key)
+        if 0 < len(labels) != len(key):
+            raise ValueError('Item wrong length %d instead of %d.' %
+                             (len(key), len(labels)))
         inds, = key.nonzero()
         try:
             return self.obj._take(inds, axis=axis)
