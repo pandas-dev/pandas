@@ -191,7 +191,6 @@ class TestCasting(BaseDecimal, base.BaseCastingTests):
     pass
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
     pass
 
