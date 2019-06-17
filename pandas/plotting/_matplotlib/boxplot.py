@@ -1,7 +1,6 @@
 from collections import namedtuple
 import warnings
 
-from matplotlib import pyplot as plt
 from matplotlib.artist import setp
 import numpy as np
 
@@ -216,6 +215,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True, figsize=None, layout=None, return_type=None,
             **kwds):
 
+    import matplotlib.pyplot as plt
     # validate return_type:
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {'axes', 'dict', 'both'}")
@@ -297,6 +297,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
                   grid=True, figsize=None, layout=None,
                   return_type=None, **kwds):
+    import matplotlib.pyplot as plt
     converter._WARN = False  # no warning for pandas plots
     ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
                  grid=grid, rot=rot, figsize=figsize, layout=layout,

@@ -1,6 +1,5 @@
 import warnings
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from pandas.core.dtypes.common import is_integer, is_list_like
@@ -222,6 +221,7 @@ def _grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
 def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
                 xrot=None, ylabelsize=None, yrot=None, figsize=None,
                 bins=10, **kwds):
+    import matplotlib.pyplot as plt
     if by is None:
         if kwds.get('layout', None) is not None:
             raise ValueError("The 'layout' keyword is not supported when "
