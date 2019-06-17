@@ -1122,13 +1122,6 @@ def roll_median_c(ndarray[float64_t] values, int64_t win, int64_t minp,
 
             else:
 
-                # calculate deletes
-                for j in range(start[i - 1], s):
-                    val = values[j]
-                    if notnan(val):
-                        skiplist_remove(sl, val)
-                        nobs -= 1
-
                 # calculate adds
                 for j in range(end[i - 1], e):
                     val = values[j]
@@ -1137,6 +1130,13 @@ def roll_median_c(ndarray[float64_t] values, int64_t win, int64_t minp,
                         err = skiplist_insert(sl, val) != 1
                         if err:
                             break
+
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = values[j]
+                    if notnan(val):
+                        skiplist_remove(sl, val)
+                        nobs -= 1
 
             if nobs >= minp:
                 midpoint = <int>(nobs / 2)
