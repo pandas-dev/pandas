@@ -385,9 +385,9 @@ class TestSparseSeries(SharedWithSparse):
     def test_astype(self):
         result = self.bseries.astype(SparseDtype(np.int64, 0))
         expected = (self.bseries.to_dense()
-                        .fillna(0)
-                        .astype(np.int64)
-                        .to_sparse(fill_value=0))
+                    .fillna(0)
+                    .astype(np.int64)
+                    .to_sparse(fill_value=0))
         tm.assert_sp_series_equal(result, expected)
 
     def test_astype_all(self):
@@ -576,7 +576,6 @@ class TestSparseSeries(SharedWithSparse):
                                Series(7., index=range(5, 10),
                                       name=self.bseries.name))
 
-    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_operators(self):
 
         def _check_op(a, b, op):
@@ -703,10 +702,7 @@ class TestSparseSeries(SharedWithSparse):
 
             series = sps.to_dense()
             seriesre = series.reindex(new_index)
-            # GH 26557: DEPR
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                seriesre = seriesre.to_sparse(fill_value=sps.fill_value)
+            seriesre = seriesre.to_sparse(fill_value=sps.fill_value)
 
             tm.assert_sp_series_equal(spsre, seriesre)
             tm.assert_series_equal(spsre.to_dense(), seriesre.to_dense())
@@ -839,7 +835,6 @@ class TestSparseSeries(SharedWithSparse):
         nonna2 = Series(np.random.randn(20)).to_sparse(fill_value=0)
         _compare_all(nonna2)
 
-    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_dropna(self):
         sp = SparseSeries([0, 0, 0, nan, nan, 5, 6], fill_value=0)
 
@@ -931,27 +926,19 @@ class TestSparseSeries(SharedWithSparse):
         orig = pd.Series([np.nan, 2, np.nan, 4, 0, np.nan, 0])
         sparse = orig.to_sparse()
 
-        tm.assert_sp_series_equal(sparse.shift(0),
-                                  orig.shift(0).to_sparse(),
+        tm.assert_sp_series_equal(sparse.shift(0), orig.shift(0).to_sparse(),
                                   check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(1),
-                                  orig.shift(1).to_sparse(),
+        tm.assert_sp_series_equal(sparse.shift(1), orig.shift(1).to_sparse(),
                                   check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(2),
-                                  orig.shift(2).to_sparse(),
+        tm.assert_sp_series_equal(sparse.shift(2), orig.shift(2).to_sparse(),
                                   check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(3),
-                                  orig.shift(3).to_sparse(),
+        tm.assert_sp_series_equal(sparse.shift(3), orig.shift(3).to_sparse(),
                                   check_kind=False)
 
-        tm.assert_sp_series_equal(sparse.shift(-1),
-                                  orig.shift(-1).to_sparse())
-        tm.assert_sp_series_equal(sparse.shift(-2),
-                                  orig.shift(-2).to_sparse())
-        tm.assert_sp_series_equal(sparse.shift(-3),
-                                  orig.shift(-3).to_sparse())
-        tm.assert_sp_series_equal(sparse.shift(-4),
-                                  orig.shift(-4).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(-1), orig.shift(-1).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(-2), orig.shift(-2).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(-3), orig.shift(-3).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(-4), orig.shift(-4).to_sparse())
 
         sparse = orig.to_sparse(fill_value=0)
         tm.assert_sp_series_equal(
@@ -986,12 +973,10 @@ class TestSparseSeries(SharedWithSparse):
         orig = pd.Series([1, 2, 3, 4], dtype=np.int64)
 
         sparse = orig.to_sparse()
-        tm.assert_sp_series_equal(sparse.shift(0),
-                                  orig.shift(0).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(0), orig.shift(0).to_sparse())
 
         sparse = orig.to_sparse(fill_value=np.nan)
-        tm.assert_sp_series_equal(sparse.shift(0),
-                                  orig.shift(0).
+        tm.assert_sp_series_equal(sparse.shift(0), orig.shift(0).
                                   to_sparse(fill_value=np.nan))
 
         # shift(1) or more span changes dtype to float64
@@ -1036,7 +1021,6 @@ class TestSparseSeries(SharedWithSparse):
                                   check_kind=False,
                                   consolidate_block_indices=True)
 
-    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_combine_first(self):
         s = self.bseries
 
@@ -1558,13 +1542,11 @@ def test_constructor_dict_datetime64_index(datetime_type):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 def test_to_sparse():
     # https://github.com/pandas-dev/pandas/issues/22389
     arr = pd.SparseArray([1, 2, None, 3])
-    # GH 26557: DEPR
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        result = pd.Series(arr).to_sparse()
+    result = pd.Series(arr).to_sparse()
     assert len(result) == 4
     tm.assert_sp_array_equal(result.values, arr, check_kind=False)
 

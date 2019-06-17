@@ -179,8 +179,8 @@ def test_index_names_multiple_nones():
     # https://github.com/pandas-dev/pandas/pull/24092
     sparse = pytest.importorskip("scipy.sparse")
 
-    s = (pd.Series(1, index=pd.MultiIndex
-                   .from_product([['A', 'B'], [0, 1]])).to_sparse())
+    s = (pd.Series(1, index=pd.MultiIndex.from_product([['A', 'B'], [0, 1]]))
+           .to_sparse())
     result, _, _ = s.to_coo()
     assert isinstance(result, sparse.coo_matrix)
     result = result.toarray()

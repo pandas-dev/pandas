@@ -51,13 +51,14 @@ def test_apply(frame):
         broadcasted = frame.apply(np.sum, broadcast=True)
     assert isinstance(broadcasted, SparseDataFrame)
 
-    exp = frame.to_dense().apply(np.sum, broadcast=True)
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        exp = frame.to_dense().apply(np.sum, broadcast=True)
     tm.assert_frame_equal(broadcasted.to_dense(), exp)
 
     applied = frame.apply(np.sum)
     tm.assert_series_equal(applied,
-                           frame.to_dense().apply(nanops.nansum)
-                           .to_sparse())
+                           frame.to_dense().apply(nanops.nansum).to_sparse())
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
