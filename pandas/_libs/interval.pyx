@@ -256,7 +256,8 @@ cdef class Interval(IntervalMixin):
         if not left <= right:
             raise ValueError('left side of interval must be <= right side')
         if left == right and closed not in ('both', 'neither'):
-            raise ValueError('both/neither sides must be closed when left == right')
+            msg='both/neither sides must be closed when left == right'
+            raise ValueError(msg)
         if (isinstance(left, Timestamp) and
                 not tz_compare(left.tzinfo, right.tzinfo)):
             # GH 18538
