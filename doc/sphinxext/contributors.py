@@ -21,12 +21,15 @@ class ContributorsDirective(Directive):
 
     def run(self):
         range_ = self.arguments[0]
+        if range_.endswith('x..HEAD'):
+            return [nodes.paragraph(), nodes.bullet_list()]
         try:
             components = build_components(range_)
-        except git.GitCommandError:
+        except git.GitCommandError as exc:
             return [
                 self.state.document.reporter.warning(
-                    "Cannot find contributors for range '{}'".format(range_),
+                    "Cannot find contributors for range '{}': {}".format(
+                        range_, exc),
                     line=self.lineno)
             ]
         else:

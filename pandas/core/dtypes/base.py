@@ -68,11 +68,6 @@ class ExtensionDtype:
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
     provided for registering virtual subclasses.
     """
-    # na_value is the default NA value to use for this type. This is used in
-    # e.g. ExtensionArray.take. This should be the user-facing "boxed" version
-    # of the NA value, not the physical NA value for storage.
-    # e.g. for JSONArray, this is an empty dictionary.
-    na_value = np.nan
     _metadata = ()  # type: Tuple[str, ...]
 
     def __str__(self):
@@ -113,6 +108,17 @@ class ExtensionDtype:
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    @property
+    def na_value(self):
+        """
+        Default NA value to use for this type.
+
+        This is used in e.g. ExtensionArray.take. This should be the
+        user-facing "boxed" version of the NA value, not the physical NA value
+        for storage.  e.g. for JSONArray, this is an empty dictionary.
+        """
+        return np.nan
 
     @property
     def type(self) -> Type:
