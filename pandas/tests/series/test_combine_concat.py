@@ -10,7 +10,6 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSeriesCombine:
 
     def test_append(self, datetime_series, string_series, object_series):
@@ -245,20 +244,29 @@ class TestSeriesCombine:
 
         # sparse
         # TODO: move?
-        result = pd.concat([Series(dtype='float64').to_sparse(), Series(
-            dtype='float64').to_sparse()])
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = pd.concat([Series(dtype='float64').to_sparse(), Series(
+                dtype='float64').to_sparse()])
         assert result.dtype == 'Sparse[float64]'
         assert result.ftype == 'float64:sparse'
 
-        result = pd.concat([Series(dtype='float64').to_sparse(), Series(
-            dtype='float64')])
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = pd.concat([Series(dtype='float64').to_sparse(), Series(
+                dtype='float64')])
         # TODO: release-note: concat sparse dtype
         expected = pd.core.sparse.api.SparseDtype(np.float64)
         assert result.dtype == expected
         assert result.ftype == 'float64:sparse'
 
-        result = pd.concat([Series(dtype='float64').to_sparse(), Series(
-            dtype='object')])
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = pd.concat([Series(dtype='float64').to_sparse(), Series(
+                dtype='object')])
         # TODO: release-note: concat sparse dtype
         expected = pd.core.sparse.api.SparseDtype('object')
         assert result.dtype == expected

@@ -20,7 +20,6 @@ ignore_matrix_warning = pytest.mark.filterwarnings(
 @pytest.mark.parametrize('dtype', [bool, int, float, np.uint16])
 @ignore_matrix_warning
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     # GH 4343
     # Make one ndarray and from it one sparse matrix, both to be used for
@@ -72,7 +71,6 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
 @ignore_matrix_warning
 @pytest.mark.filterwarnings("ignore:object dtype is not supp:UserWarning")
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_from_to_scipy_object(spmatrix, fill_value):
     # GH 4343
     dtype = object
@@ -122,7 +120,6 @@ def test_from_to_scipy_object(spmatrix, fill_value):
 
 @ignore_matrix_warning
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_from_scipy_correct_ordering(spmatrix):
     # GH 16179
     arr = np.arange(1, 5).reshape(2, 2)
@@ -143,7 +140,6 @@ def test_from_scipy_correct_ordering(spmatrix):
 
 @ignore_matrix_warning
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_from_scipy_fillna(spmatrix):
     # GH 16112
     arr = np.eye(3)
@@ -183,8 +179,11 @@ def test_index_names_multiple_nones():
     # https://github.com/pandas-dev/pandas/pull/24092
     sparse = pytest.importorskip("scipy.sparse")
 
-    s = (pd.Series(1, index=pd.MultiIndex.from_product([['A', 'B'], [0, 1]]))
-           .to_sparse())
+    # GH 26557: DEPR
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        s = (pd.Series(1, index=pd.MultiIndex
+                       .from_product([['A', 'B'], [0, 1]])).to_sparse())
     result, _, _ = s.to_coo()
     assert isinstance(result, sparse.coo_matrix)
     result = result.toarray()

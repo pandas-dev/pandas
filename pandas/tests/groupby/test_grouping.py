@@ -93,7 +93,6 @@ class TestSelection:
 # grouping
 # --------------------------------
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 class TestGrouping:
 
     def test_grouper_index_types(self):
@@ -705,7 +704,6 @@ class TestIteration:
         for g in grouped.grouper.groupings[0]:
             pass
 
-    @pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
     def test_multi_iter(self):
         s = Series(np.arange(6))
         k1 = np.array(['a', 'a', 'a', 'b', 'b', 'b'])
@@ -758,7 +756,6 @@ class TestIteration:
         for key, group in grouped:
             pass
 
-    @pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
     def test_dictify(self, df):
         dict(iter(df.groupby('A')))
         dict(iter(df.groupby(['A', 'B'])))

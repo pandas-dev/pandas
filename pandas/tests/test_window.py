@@ -316,7 +316,6 @@ class TestApi(Base):
         assert s2.name == 'foo'
         assert s3.name == 'foo'
 
-    @pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
     @pytest.mark.parametrize("func,window_size,expected_vals", [
         ('rolling', 2, [[np.nan, np.nan, np.nan, np.nan],
                         [15., 20., 25., 20.],
@@ -419,7 +418,6 @@ class TestWindow(Base):
             getattr(w, method)(dtype=np.float64)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 class TestRolling(Base):
 
     def setup_method(self, method):
@@ -3295,7 +3293,6 @@ class TestMomentsConsistency(Base):
             assert result.dtypes[0] == np.dtype("f8")
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 class TestGrouperGrouping:
 
     def setup_method(self, method):
@@ -3465,7 +3462,6 @@ class TestGrouperGrouping:
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 class TestRollingTS:
 
     # rolling time-series friendly

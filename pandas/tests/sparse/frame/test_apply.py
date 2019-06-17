@@ -38,8 +38,6 @@ def fill_frame(frame):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 def test_apply(frame):
     applied = frame.apply(np.sqrt)
     assert isinstance(applied, SparseDataFrame)
@@ -58,8 +56,11 @@ def test_apply(frame):
     tm.assert_frame_equal(broadcasted.to_dense(), exp)
 
     applied = frame.apply(np.sum)
-    tm.assert_series_equal(applied,
-                           frame.to_dense().apply(nanops.nansum).to_sparse())
+    # GH 26557: DEPR
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        tm.assert_series_equal(applied,
+                               frame.to_dense().apply(nanops.nansum)
+                               .to_sparse())
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
@@ -74,11 +75,12 @@ def test_apply_empty(empty):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 def test_apply_nonuq():
     orig = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                      index=['a', 'a', 'c'])
-    sparse = orig.to_sparse()
+    # GH 26557: DEPR
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        sparse = orig.to_sparse()
     res = sparse.apply(lambda s: s[0], axis=1)
     exp = orig.apply(lambda s: s[0], axis=1)
 
@@ -89,8 +91,10 @@ def test_apply_nonuq():
     assert isinstance(res, Series)
     tm.assert_series_equal(res.to_dense(), exp)
 
-    # df.T breaks
-    sparse = orig.T.to_sparse()
+    # GH 26557: DEPR
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        # df.T breaks
+        sparse = orig.T.to_sparse()
     res = sparse.apply(lambda s: s[0], axis=0)  # noqa
     exp = orig.T.apply(lambda s: s[0], axis=0)
 

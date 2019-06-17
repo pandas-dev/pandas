@@ -6,7 +6,6 @@ from pandas import DataFrame, Series, Timestamp
 import pandas.util.testing as tm
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_series():
     s = pd.Series([1, 3, 20, 5, 22, 24, 7])
     expected_odd = pd.Series([1, 3, 5, 7], index=[0, 1, 3, 6])
@@ -64,7 +63,6 @@ def test_filter_mixed_df():
         grouped.filter(lambda x: x['A'].sum() > 10), expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_out_all_groups():
     s = pd.Series([1, 3, 20, 5, 22, 24, 7])
     grouper = s.apply(lambda x: x % 2)
@@ -77,7 +75,6 @@ def test_filter_out_all_groups():
         grouped.filter(lambda x: x['A'].sum() > 1000), df.loc[[]])
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_out_no_groups():
     s = pd.Series([1, 3, 20, 5, 22, 24, 7])
     grouper = s.apply(lambda x: x % 2)
@@ -106,7 +103,6 @@ def test_filter_out_all_groups_in_df():
     tm.assert_frame_equal(expected, res)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_condition_raises():
     def raise_if_sum_is_zero(x):
         if x.sum() == 0:
@@ -133,7 +129,6 @@ def test_filter_with_axis_in_groupby():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_bad_shapes():
     df = DataFrame({'A': np.arange(8),
                     'B': list('aabbbbcc'),
@@ -167,7 +162,6 @@ def test_filter_bad_shapes():
         g_s.filter(f)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_nan_is_false():
     df = DataFrame({'A': np.arange(8),
                     'B': list('aabbbbcc'),
@@ -181,7 +175,6 @@ def test_filter_nan_is_false():
     tm.assert_series_equal(g_s.filter(f), s[[]])
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_against_workaround():
     np.random.seed(0)
     # Series of ints
@@ -235,7 +228,6 @@ def test_filter_against_workaround():
     tm.assert_frame_equal(new_way, old_way)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_using_len():
     # BUG GH4447
     df = DataFrame({'A': np.arange(8),
@@ -265,7 +257,6 @@ def test_filter_using_len():
     tm.assert_series_equal(actual, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_maintains_ordering():
     # Simple case: index is sequential. #4621
     df = DataFrame({'pid': [1, 1, 1, 2, 2, 3, 3, 3],
@@ -309,7 +300,6 @@ def test_filter_maintains_ordering():
     tm.assert_series_equal(actual, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_multiple_timestamp():
     # GH 10114
     df = DataFrame({'A': np.arange(5, dtype='int64'),
@@ -337,7 +327,6 @@ def test_filter_multiple_timestamp():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_and_transform_with_non_unique_int_index():
     # GH4620
     index = [1, 1, 1, 2, 1, 1, 0, 1]
@@ -379,7 +368,6 @@ def test_filter_and_transform_with_non_unique_int_index():
     tm.assert_series_equal(actual, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_and_transform_with_multiple_non_unique_int_index():
     # GH4620
     index = [1, 1, 1, 2, 0, 0, 0, 1]
@@ -421,7 +409,6 @@ def test_filter_and_transform_with_multiple_non_unique_int_index():
     tm.assert_series_equal(actual, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_and_transform_with_non_unique_float_index():
     # GH4620
     index = np.array([1, 1, 1, 2, 1, 1, 0, 1], dtype=float)
@@ -463,7 +450,6 @@ def test_filter_and_transform_with_non_unique_float_index():
     tm.assert_series_equal(actual, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_and_transform_with_non_unique_timestamp_index():
     # GH4620
     t0 = Timestamp('2013-09-30 00:05:00')
@@ -508,7 +494,6 @@ def test_filter_and_transform_with_non_unique_timestamp_index():
     tm.assert_series_equal(actual, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_and_transform_with_non_unique_string_index():
     # GH4620
     index = list('bbbcbbab')
@@ -586,7 +571,6 @@ def test_filter_non_bool_raises():
         df.groupby('a').filter(lambda g: g.c.mean())
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_filter_dropna_with_empty_groups():
     # GH 10780
     data = pd.Series(np.random.rand(9), index=np.repeat([1, 2, 3], 3))

@@ -25,7 +25,6 @@ def test_deprecated():
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSparseDataFrame(SharedWithSparse):
     klass = SparseDataFrame
@@ -182,7 +181,9 @@ class TestSparseDataFrame(SharedWithSparse):
 
         # GH 2873
         x = Series(np.random.randn(10000), name='a')
-        x = x.to_sparse(fill_value=0)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            x = x.to_sparse(fill_value=0)
         assert isinstance(x, SparseSeries)
         df = SparseDataFrame(x)
         assert isinstance(df, SparseDataFrame)
@@ -192,14 +193,18 @@ class TestSparseDataFrame(SharedWithSparse):
         x2 = x.astype(float)
         x2.loc[:9998] = np.NaN
         # TODO: x_sparse is unused...fix
-        x_sparse = x2.to_sparse(fill_value=np.NaN)  # noqa
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            x_sparse = x2.to_sparse(fill_value=np.NaN)  # noqa
 
         # Currently fails too with weird ufunc error
         # df1 = SparseDataFrame([x_sparse, y])
 
         y.loc[:9998] = 0
         # TODO: y_sparse is unsused...fix
-        y_sparse = y.to_sparse(fill_value=0)  # noqa
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+                y_sparse = y.to_sparse(fill_value=0)  # noqa
         # without sparse value raises error
         # df2 = SparseDataFrame([x2_sparse, y])
 
@@ -208,13 +213,17 @@ class TestSparseDataFrame(SharedWithSparse):
         # series with name
         x = Series(np.random.randn(10000), name='a')
         result = SparseDataFrame(x)
-        expected = x.to_frame().to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = x.to_frame().to_sparse()
         tm.assert_sp_frame_equal(result, expected)
 
         # series with no name
         x = Series(np.random.randn(10000))
         result = SparseDataFrame(x)
-        expected = x.to_frame().to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = x.to_frame().to_sparse()
         tm.assert_sp_frame_equal(result, expected)
 
     def test_constructor_from_unknown_type(self):
@@ -258,7 +267,9 @@ class TestSparseDataFrame(SharedWithSparse):
         matrix = np.empty((len(index), len(trains)))
         matrix.fill(np.nan)
         df = pd.DataFrame(matrix, index=index, columns=trains, dtype=float)
-        result = df.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.to_sparse()
         expected = pd.SparseDataFrame(matrix, index=index, columns=trains,
                                       dtype=float)
         tm.assert_sp_frame_equal(result, expected)
@@ -291,7 +302,9 @@ class TestSparseDataFrame(SharedWithSparse):
     def test_dtypes(self):
         df = DataFrame(np.random.randn(10000, 4))
         df.loc[:9998] = np.nan
-        sdf = df.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            sdf = df.to_sparse()
 
         result = sdf.get_dtype_counts()
         expected = Series({'Sparse[float64, nan]': 4})
@@ -309,7 +322,9 @@ class TestSparseDataFrame(SharedWithSparse):
         df = DataFrame(np.random.randn(10000, 4))
         df.loc[:9998] = np.nan
 
-        sdf = df.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            sdf = df.to_sparse()
         str(sdf)
 
     def test_array_interface(self, float_frame):
@@ -335,18 +350,24 @@ class TestSparseDataFrame(SharedWithSparse):
     def test_dense_to_sparse(self):
         df = DataFrame({'A': [nan, nan, nan, 1, 2],
                         'B': [1, 2, nan, nan, nan]})
-        sdf = df.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            sdf = df.to_sparse()
         assert isinstance(sdf, SparseDataFrame)
         assert np.isnan(sdf.default_fill_value)
         assert isinstance(sdf['A'].sp_index, BlockIndex)
         tm.assert_frame_equal(sdf.to_dense(), df)
 
-        sdf = df.to_sparse(kind='integer')
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            sdf = df.to_sparse(kind='integer')
         assert isinstance(sdf['A'].sp_index, IntIndex)
 
         df = DataFrame({'A': [0, 0, 0, 1, 2],
                         'B': [1, 2, 0, 0, 0]}, dtype=float)
-        sdf = df.to_sparse(fill_value=0)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            sdf = df.to_sparse(fill_value=0)
         assert sdf.default_fill_value == 0
         tm.assert_frame_equal(sdf.to_dense(), df)
 
@@ -383,7 +404,10 @@ class TestSparseDataFrame(SharedWithSparse):
             dense_result = op(da, db)
 
             fill = sparse_result.default_fill_value
-            dense_result = dense_result.to_sparse(fill_value=fill)
+            # GH 26557: DEPR
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                dense_result = dense_result.to_sparse(fill_value=fill)
             tm.assert_sp_frame_equal(sparse_result, dense_result,
                                      exact_indices=False)
 
@@ -779,16 +803,20 @@ class TestSparseDataFrame(SharedWithSparse):
 
         result = df.fillna(0)
         expected = dense.fillna(0)
-        tm.assert_sp_frame_equal(result, expected.to_sparse(fill_value=0),
-                                 exact_indices=False)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            tm.assert_sp_frame_equal(result, expected.to_sparse(fill_value=0),
+                                     exact_indices=False)
         tm.assert_frame_equal(result.to_dense(), expected)
 
         result = df.copy()
         result.fillna(0, inplace=True)
         expected = dense.fillna(0)
 
-        tm.assert_sp_frame_equal(result, expected.to_sparse(fill_value=0),
-                                 exact_indices=False)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            tm.assert_sp_frame_equal(result, expected.to_sparse(fill_value=0),
+                                     exact_indices=False)
         tm.assert_frame_equal(result.to_dense(), expected)
 
         result = df.copy()
@@ -814,7 +842,10 @@ class TestSparseDataFrame(SharedWithSparse):
     def test_sparse_frame_pad_backfill_limit(self):
         index = np.arange(10)
         df = DataFrame(np.random.randn(10, 4), index=index)
-        sdf = df.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            sdf = df.to_sparse()
 
         result = sdf[:2].reindex(index, method='pad', limit=5)
 
@@ -823,7 +854,10 @@ class TestSparseDataFrame(SharedWithSparse):
             expected = sdf[:2].reindex(index).fillna(method='pad')
         expected = expected.to_dense()
         expected.values[-3:] = np.nan
-        expected = expected.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = expected.to_sparse()
         tm.assert_frame_equal(result, expected)
 
         result = sdf[-2:].reindex(index, method='backfill', limit=5)
@@ -833,13 +867,19 @@ class TestSparseDataFrame(SharedWithSparse):
             expected = sdf[-2:].reindex(index).fillna(method='backfill')
         expected = expected.to_dense()
         expected.values[:3] = np.nan
-        expected = expected.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = expected.to_sparse()
         tm.assert_frame_equal(result, expected)
 
     def test_sparse_frame_fillna_limit(self):
         index = np.arange(10)
         df = DataFrame(np.random.randn(10, 4), index=index)
-        sdf = df.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            sdf = df.to_sparse()
 
         result = sdf[:2].reindex(index)
         with tm.assert_produces_warning(PerformanceWarning,
@@ -851,7 +891,10 @@ class TestSparseDataFrame(SharedWithSparse):
             expected = sdf[:2].reindex(index).fillna(method='pad')
         expected = expected.to_dense()
         expected.values[-3:] = np.nan
-        expected = expected.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = expected.to_sparse()
         tm.assert_frame_equal(result, expected)
 
         result = sdf[-2:].reindex(index)
@@ -864,7 +907,10 @@ class TestSparseDataFrame(SharedWithSparse):
             expected = sdf[-2:].reindex(index).fillna(method='backfill')
         expected = expected.to_dense()
         expected.values[:3] = np.nan
-        expected = expected.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = expected.to_sparse()
         tm.assert_frame_equal(result, expected)
 
     def test_rename(self, float_frame):
@@ -886,7 +932,11 @@ class TestSparseDataFrame(SharedWithSparse):
     def test_corr(self, float_frame):
         res = float_frame.corr()
         # XXX: this stays sparse
-        tm.assert_frame_equal(res, float_frame.to_dense().corr().to_sparse())
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            tm.assert_frame_equal(res,
+                                  float_frame.to_dense().corr().to_sparse())
 
     def test_describe(self, float_frame):
         float_frame['foo'] = np.nan
@@ -974,7 +1024,10 @@ class TestSparseDataFrame(SharedWithSparse):
 
         result = float_frame_fill0.reindex(rng, fill_value=0)
         exp = float_frame_fill0_dense.reindex(rng, fill_value=0)
-        exp = exp.to_sparse(float_frame_fill0.default_fill_value)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            exp = exp.to_sparse(float_frame_fill0.default_fill_value)
         tm.assert_sp_frame_equal(result, exp)
 
     def test_reindex_method(self):
@@ -1127,14 +1180,20 @@ class TestSparseDataFrame(SharedWithSparse):
 
             shifted = frame.shift(2, freq='B')
             exp = orig.shift(2, freq='B')
-            exp = exp.to_sparse(frame.default_fill_value,
-                                kind=frame.default_kind)
+            # GH 26557: DEPR
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                exp = exp.to_sparse(frame.default_fill_value,
+                                    kind=frame.default_kind)
             tm.assert_frame_equal(shifted, exp)
 
             shifted = frame.shift(2, freq=BDay())
             exp = orig.shift(2, freq=BDay())
-            exp = exp.to_sparse(frame.default_fill_value,
-                                kind=frame.default_kind)
+            # GH 26557: DEPR
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                exp = exp.to_sparse(frame.default_fill_value,
+                                    kind=frame.default_kind)
             tm.assert_frame_equal(shifted, exp)
 
         _check(float_frame, float_frame_dense)
@@ -1175,7 +1234,10 @@ class TestSparseDataFrame(SharedWithSparse):
         result = df[::2].combine_first(df)
 
         expected = df[::2].to_dense().combine_first(df.to_dense())
-        expected = expected.to_sparse(fill_value=df.default_fill_value)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = expected.to_sparse(fill_value=df.default_fill_value)
 
         tm.assert_sp_frame_equal(result, expected)
 
@@ -1188,7 +1250,10 @@ class TestSparseDataFrame(SharedWithSparse):
 
         result = df[::2].combine_first(df.to_dense())
         expected = df[::2].to_dense().combine_first(df.to_dense())
-        expected = expected.to_sparse(fill_value=df.default_fill_value)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = expected.to_sparse(fill_value=df.default_fill_value)
 
         tm.assert_sp_frame_equal(result, expected)
 
@@ -1198,12 +1263,19 @@ class TestSparseDataFrame(SharedWithSparse):
         df2['C'][:3] = np.nan
         df['A'][:3] = 5.7
 
-        result = df.to_sparse().add(df2.to_sparse(), fill_value=0)
-        expected = df.add(df2, fill_value=0).to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = df.to_sparse().add(df2.to_sparse(), fill_value=0)
+            expected = df.add(df2, fill_value=0).to_sparse()
         tm.assert_sp_frame_equal(result, expected)
 
     def test_isin(self):
-        sparse_df = DataFrame({'flag': [1., 0., 1.]}).to_sparse(fill_value=0.)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            sparse_df = DataFrame({'flag': [1., 0., 1.]})
+            sparse_df = sparse_df.to_sparse(fill_value=0.)
         xp = sparse_df[sparse_df.flag == 1.]
         rs = sparse_df[sparse_df.flag.isin([1.])]
         tm.assert_frame_equal(xp, rs)
@@ -1239,7 +1311,10 @@ class TestSparseDataFrame(SharedWithSparse):
     def test_nan_columnname(self):
         # GH 8822
         nan_colname = DataFrame(Series(1.0, index=[0]), columns=[nan])
-        nan_colname_sparse = nan_colname.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            nan_colname_sparse = nan_colname.to_sparse()
         assert np.isnan(nan_colname_sparse.columns[0])
 
     def test_isna(self):
@@ -1296,7 +1371,6 @@ class TestSparseDataFrame(SharedWithSparse):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseDataFrameArithmetic:
 
     def test_numeric_op_scalar(self):
@@ -1304,9 +1378,12 @@ class TestSparseDataFrameArithmetic:
                            'B': [0, 1, 2, nan],
                            'C': [1., 2., 3., 4.],
                            'D': [nan, nan, nan, nan]})
-        sparse = df.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            sparse = df.to_sparse()
 
-        tm.assert_sp_frame_equal(sparse + 1, (df + 1).to_sparse())
+            tm.assert_sp_frame_equal(sparse + 1, (df + 1).to_sparse())
 
     def test_comparison_op_scalar(self):
         # GH 13001
@@ -1314,7 +1391,10 @@ class TestSparseDataFrameArithmetic:
                            'B': [0, 1, 2, nan],
                            'C': [1., 2., 3., 4.],
                            'D': [nan, nan, nan, nan]})
-        sparse = df.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            sparse = df.to_sparse()
 
         # comparison changes internal repr, compare with dense
         res = sparse > 1
@@ -1327,7 +1407,6 @@ class TestSparseDataFrameArithmetic:
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseDataFrameAnalytics:
 
     def test_cumsum(self, float_frame):
@@ -1399,8 +1478,10 @@ class TestSparseDataFrameAnalytics:
     def test_assign_with_sparse_frame(self):
         # GH 19163
         df = pd.DataFrame({"a": [1, 2, 3]})
-        res = df.to_sparse(fill_value=False).assign(newcol=False)
-        exp = df.assign(newcol=False).to_sparse(fill_value=False)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            res = df.to_sparse(fill_value=False).assign(newcol=False)
+            exp = df.assign(newcol=False).to_sparse(fill_value=False)
 
         tm.assert_sp_frame_equal(res, exp)
 

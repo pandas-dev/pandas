@@ -39,7 +39,6 @@ def _simple_ts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
-@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSeriesMissingData:
 
     def test_remove_na_deprecation(self):
@@ -786,7 +785,10 @@ class TestSeriesMissingData:
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)
 
-        ss = s[:2].reindex(index).to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ss = s[:2].reindex(index).to_sparse()
         # TODO: what is this test doing? why are result an expected
         # the same call to fillna?
         with tm.assert_produces_warning(PerformanceWarning,
@@ -796,24 +798,36 @@ class TestSeriesMissingData:
             expected = ss.fillna(method='pad', limit=5)
         expected = expected.to_dense()
         expected[-3:] = np.nan
-        expected = expected.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = expected.to_sparse()
         assert_series_equal(result, expected)
 
-        ss = s[-2:].reindex(index).to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ss = s[-2:].reindex(index).to_sparse()
         with tm.assert_produces_warning(PerformanceWarning,
                                         raise_on_extra_warnings=False):
             result = ss.fillna(method='backfill', limit=5)
             expected = ss.fillna(method='backfill')
         expected = expected.to_dense()
         expected[:3] = np.nan
-        expected = expected.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = expected.to_sparse()
         assert_series_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse_series_pad_backfill_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)
-        s = s.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            s = s.to_sparse()
 
         result = s[:2].reindex(index, method='pad', limit=5)
         with tm.assert_produces_warning(PerformanceWarning,
@@ -821,7 +835,10 @@ class TestSeriesMissingData:
             expected = s[:2].reindex(index).fillna(method='pad')
         expected = expected.to_dense()
         expected[-3:] = np.nan
-        expected = expected.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = expected.to_sparse()
         assert_series_equal(result, expected)
 
         result = s[-2:].reindex(index, method='backfill', limit=5)
@@ -830,7 +847,10 @@ class TestSeriesMissingData:
             expected = s[-2:].reindex(index).fillna(method='backfill')
         expected = expected.to_dense()
         expected[:3] = np.nan
-        expected = expected.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = expected.to_sparse()
         assert_series_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")

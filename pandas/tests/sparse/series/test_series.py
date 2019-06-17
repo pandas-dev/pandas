@@ -61,7 +61,6 @@ def _test_data2_zero():
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSparseSeries(SharedWithSparse):
 
     series_klass = SparseSeries
@@ -181,7 +180,10 @@ class TestSparseSeries(SharedWithSparse):
         # GH2803
         ts = Series(np.random.randn(10))
         ts[2:-2] = nan
-        sts = ts.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            sts = ts.to_sparse()
         density = sts.density  # don't die
         assert density == 4 / 10.0
 
@@ -225,8 +227,11 @@ class TestSparseSeries(SharedWithSparse):
 
     def test_dense_to_sparse(self):
         series = self.bseries.to_dense()
-        bseries = series.to_sparse(kind='block')
-        iseries = series.to_sparse(kind='integer')
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            bseries = series.to_sparse(kind='block')
+            iseries = series.to_sparse(kind='integer')
         tm.assert_sp_series_equal(bseries, self.bseries)
         tm.assert_sp_series_equal(iseries, self.iseries, check_names=False)
         assert iseries.name == self.bseries.name
@@ -238,8 +243,11 @@ class TestSparseSeries(SharedWithSparse):
 
         # non-NaN fill value
         series = self.zbseries.to_dense()
-        zbseries = series.to_sparse(kind='block', fill_value=0)
-        ziseries = series.to_sparse(kind='integer', fill_value=0)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            zbseries = series.to_sparse(kind='block', fill_value=0)
+            ziseries = series.to_sparse(kind='integer', fill_value=0)
         tm.assert_sp_series_equal(zbseries, self.zbseries)
         tm.assert_sp_series_equal(ziseries, self.ziseries, check_names=False)
         assert ziseries.name == self.zbseries.name
@@ -381,10 +389,13 @@ class TestSparseSeries(SharedWithSparse):
 
     def test_astype(self):
         result = self.bseries.astype(SparseDtype(np.int64, 0))
-        expected = (self.bseries.to_dense()
-                    .fillna(0)
-                    .astype(np.int64)
-                    .to_sparse(fill_value=0))
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = (self.bseries.to_dense()
+                        .fillna(0)
+                        .astype(np.int64)
+                        .to_sparse(fill_value=0))
         tm.assert_sp_series_equal(result, expected)
 
     def test_astype_all(self):
@@ -537,7 +548,10 @@ class TestSparseSeries(SharedWithSparse):
         # XXX: changed test. Why wsa this considered a corner case?
         sp = SparseSeries(np.ones(10) * nan)
         exp = pd.Series(np.repeat(nan, 5))
-        tm.assert_series_equal(sp.take([0, 1, 2, 3, 4]), exp.to_sparse())
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            tm.assert_series_equal(sp.take([0, 1, 2, 3, 4]), exp.to_sparse())
 
         # multiple FutureWarnings, can't check stacklevel
         with tm.assert_produces_warning(FutureWarning,
@@ -699,7 +713,10 @@ class TestSparseSeries(SharedWithSparse):
 
             series = sps.to_dense()
             seriesre = series.reindex(new_index)
-            seriesre = seriesre.to_sparse(fill_value=sps.fill_value)
+            # GH 26557: DEPR
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                seriesre = seriesre.to_sparse(fill_value=sps.fill_value)
 
             tm.assert_sp_series_equal(spsre, seriesre)
             tm.assert_series_equal(spsre.to_dense(), seriesre.to_dense())
@@ -826,12 +843,19 @@ class TestSparseSeries(SharedWithSparse):
         series.fill_value = 2
         _compare_all(series)
 
-        nonna = Series(np.random.randn(20)).to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            nonna = Series(np.random.randn(20)).to_sparse()
         _compare_all(nonna)
 
-        nonna2 = Series(np.random.randn(20)).to_sparse(fill_value=0)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            nonna2 = Series(np.random.randn(20)).to_sparse(fill_value=0)
         _compare_all(nonna2)
 
+    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_dropna(self):
         sp = SparseSeries([0, 0, 0, nan, nan, 5, 6], fill_value=0)
 
@@ -921,83 +945,106 @@ class TestSparseSeries(SharedWithSparse):
     def test_shift_nan(self):
         # GH 12908
         orig = pd.Series([np.nan, 2, np.nan, 4, 0, np.nan, 0])
-        sparse = orig.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            sparse = orig.to_sparse()
 
-        tm.assert_sp_series_equal(sparse.shift(0), orig.shift(0).to_sparse(),
-                                  check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(1), orig.shift(1).to_sparse(),
-                                  check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(2), orig.shift(2).to_sparse(),
-                                  check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(3), orig.shift(3).to_sparse(),
-                                  check_kind=False)
+            tm.assert_sp_series_equal(sparse.shift(0),
+                                      orig.shift(0).to_sparse(),
+                                      check_kind=False)
+            tm.assert_sp_series_equal(sparse.shift(1),
+                                      orig.shift(1).to_sparse(),
+                                      check_kind=False)
+            tm.assert_sp_series_equal(sparse.shift(2),
+                                      orig.shift(2).to_sparse(),
+                                      check_kind=False)
+            tm.assert_sp_series_equal(sparse.shift(3),
+                                      orig.shift(3).to_sparse(),
+                                      check_kind=False)
 
-        tm.assert_sp_series_equal(sparse.shift(-1), orig.shift(-1).to_sparse())
-        tm.assert_sp_series_equal(sparse.shift(-2), orig.shift(-2).to_sparse())
-        tm.assert_sp_series_equal(sparse.shift(-3), orig.shift(-3).to_sparse())
-        tm.assert_sp_series_equal(sparse.shift(-4), orig.shift(-4).to_sparse())
+            tm.assert_sp_series_equal(sparse.shift(-1),
+                                      orig.shift(-1).to_sparse())
+            tm.assert_sp_series_equal(sparse.shift(-2),
+                                      orig.shift(-2).to_sparse())
+            tm.assert_sp_series_equal(sparse.shift(-3),
+                                      orig.shift(-3).to_sparse())
+            tm.assert_sp_series_equal(sparse.shift(-4),
+                                      orig.shift(-4).to_sparse())
 
-        sparse = orig.to_sparse(fill_value=0)
-        tm.assert_sp_series_equal(
-            sparse.shift(0),
-            orig.shift(0).to_sparse(fill_value=sparse.fill_value)
-        )
-        tm.assert_sp_series_equal(sparse.shift(1),
-                                  orig.shift(1).to_sparse(fill_value=0),
-                                  check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(2),
-                                  orig.shift(2).to_sparse(fill_value=0),
-                                  check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(3),
-                                  orig.shift(3).to_sparse(fill_value=0),
-                                  check_kind=False)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            sparse = orig.to_sparse(fill_value=0)
+            tm.assert_sp_series_equal(
+                sparse.shift(0),
+                orig.shift(0).to_sparse(fill_value=sparse.fill_value)
+            )
+            tm.assert_sp_series_equal(sparse.shift(1),
+                                      orig.shift(1).to_sparse(fill_value=0),
+                                      check_kind=False)
+            tm.assert_sp_series_equal(sparse.shift(2),
+                                      orig.shift(2).to_sparse(fill_value=0),
+                                      check_kind=False)
+            tm.assert_sp_series_equal(sparse.shift(3),
+                                      orig.shift(3).to_sparse(fill_value=0),
+                                      check_kind=False)
 
-        tm.assert_sp_series_equal(sparse.shift(-1),
-                                  orig.shift(-1).to_sparse(fill_value=0),
-                                  check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(-2),
-                                  orig.shift(-2).to_sparse(fill_value=0),
-                                  check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(-3),
-                                  orig.shift(-3).to_sparse(fill_value=0),
-                                  check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(-4),
-                                  orig.shift(-4).to_sparse(fill_value=0),
-                                  check_kind=False)
+            tm.assert_sp_series_equal(sparse.shift(-1),
+                                      orig.shift(-1).to_sparse(fill_value=0),
+                                      check_kind=False)
+            tm.assert_sp_series_equal(sparse.shift(-2),
+                                      orig.shift(-2).to_sparse(fill_value=0),
+                                      check_kind=False)
+            tm.assert_sp_series_equal(sparse.shift(-3),
+                                      orig.shift(-3).to_sparse(fill_value=0),
+                                      check_kind=False)
+            tm.assert_sp_series_equal(sparse.shift(-4),
+                                      orig.shift(-4).to_sparse(fill_value=0),
+                                      check_kind=False)
 
     def test_shift_dtype(self):
         # GH 12908
         orig = pd.Series([1, 2, 3, 4], dtype=np.int64)
 
-        sparse = orig.to_sparse()
-        tm.assert_sp_series_equal(sparse.shift(0), orig.shift(0).to_sparse())
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            sparse = orig.to_sparse()
+            tm.assert_sp_series_equal(sparse.shift(0),
+                                      orig.shift(0).to_sparse())
 
-        sparse = orig.to_sparse(fill_value=np.nan)
-        tm.assert_sp_series_equal(sparse.shift(0),
-                                  orig.shift(0).to_sparse(fill_value=np.nan))
-        # shift(1) or more span changes dtype to float64
-        # XXX: SparseSeries doesn't need to shift dtype here.
-        # Do we want to astype in shift, for backwards compat?
-        # If not, document it.
-        tm.assert_sp_series_equal(sparse.shift(1).astype('f8'),
-                                  orig.shift(1).to_sparse(kind='integer'))
-        tm.assert_sp_series_equal(sparse.shift(2).astype('f8'),
-                                  orig.shift(2).to_sparse(kind='integer'))
-        tm.assert_sp_series_equal(sparse.shift(3).astype('f8'),
-                                  orig.shift(3).to_sparse(kind='integer'))
+            sparse = orig.to_sparse(fill_value=np.nan)
+            tm.assert_sp_series_equal(sparse.shift(0),
+                                      orig.shift(0).
+                                      to_sparse(fill_value=np.nan))
 
-        tm.assert_sp_series_equal(sparse.shift(-1).astype('f8'),
-                                  orig.shift(-1).to_sparse(),
-                                  check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(-2).astype('f8'),
-                                  orig.shift(-2).to_sparse(),
-                                  check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(-3).astype('f8'),
-                                  orig.shift(-3).to_sparse(),
-                                  check_kind=False)
-        tm.assert_sp_series_equal(sparse.shift(-4).astype('f8'),
-                                  orig.shift(-4).to_sparse(),
-                                  check_kind=False)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            # shift(1) or more span changes dtype to float64
+            # XXX: SparseSeries doesn't need to shift dtype here.
+            # Do we want to astype in shift, for backwards compat?
+            # If not, document it.
+            tm.assert_sp_series_equal(sparse.shift(1).astype('f8'),
+                                      orig.shift(1).to_sparse(kind='integer'))
+            tm.assert_sp_series_equal(sparse.shift(2).astype('f8'),
+                                      orig.shift(2).to_sparse(kind='integer'))
+            tm.assert_sp_series_equal(sparse.shift(3).astype('f8'),
+                                      orig.shift(3).to_sparse(kind='integer'))
+
+            tm.assert_sp_series_equal(sparse.shift(-1).astype('f8'),
+                                      orig.shift(-1).to_sparse(),
+                                      check_kind=False)
+            tm.assert_sp_series_equal(sparse.shift(-2).astype('f8'),
+                                      orig.shift(-2).to_sparse(),
+                                      check_kind=False)
+            tm.assert_sp_series_equal(sparse.shift(-3).astype('f8'),
+                                      orig.shift(-3).to_sparse(),
+                                      check_kind=False)
+            tm.assert_sp_series_equal(sparse.shift(-4).astype('f8'),
+                                      orig.shift(-4).to_sparse(),
+                                      check_kind=False)
 
     @pytest.mark.parametrize("fill_value", [
         0,
@@ -1008,16 +1055,22 @@ class TestSparseSeries(SharedWithSparse):
     def test_shift_dtype_fill_value(self, fill_value, periods):
         # GH 12908
         orig = pd.Series([1, 0, 0, 4], dtype=np.dtype('int64'))
-
-        sparse = orig.to_sparse(fill_value=fill_value)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            sparse = orig.to_sparse(fill_value=fill_value)
 
         result = sparse.shift(periods)
-        expected = orig.shift(periods).to_sparse(fill_value=fill_value)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = orig.shift(periods).to_sparse(fill_value=fill_value)
 
         tm.assert_sp_series_equal(result, expected,
                                   check_kind=False,
                                   consolidate_block_indices=True)
 
+    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_combine_first(self):
         s = self.bseries
 
@@ -1025,7 +1078,10 @@ class TestSparseSeries(SharedWithSparse):
         result2 = s[::2].combine_first(s.to_dense())
 
         expected = s[::2].to_dense().combine_first(s.to_dense())
-        expected = expected.to_sparse(fill_value=s.fill_value)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = expected.to_sparse(fill_value=s.fill_value)
 
         tm.assert_sp_series_equal(result, result2)
         tm.assert_sp_series_equal(result, expected)
@@ -1043,8 +1099,6 @@ class TestSparseSeries(SharedWithSparse):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseHandlingMultiIndexes:
 
     def setup_method(self, method):
@@ -1057,13 +1111,19 @@ class TestSparseHandlingMultiIndexes:
         self.dense_multiindex_frame = dense_multiindex_frame.fillna(value=3.14)
 
     def test_to_sparse_preserve_multiindex_names_columns(self):
-        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
         sparse_multiindex_frame = sparse_multiindex_frame.copy()
         tm.assert_index_equal(sparse_multiindex_frame.columns,
                               self.dense_multiindex_frame.columns)
 
     def test_round_trip_preserve_multiindex_names(self):
-        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
         round_trip_multiindex_frame = sparse_multiindex_frame.to_dense()
         tm.assert_frame_equal(self.dense_multiindex_frame,
                               round_trip_multiindex_frame,
@@ -1092,17 +1152,23 @@ class TestSparseSeriesScipyInteraction:
                                              (2, 1, 'b', 0),
                                              (2, 1, 'b', 1)],
                                             names=['A', 'B', 'C', 'D'])
-        self.sparse_series.append(s.to_sparse())
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            self.sparse_series.append(s.to_sparse())
 
         ss = self.sparse_series[0].copy()
         ss.index.names = [3, 0, 1, 2]
         self.sparse_series.append(ss)
 
-        ss = pd.Series([
-            nan
-        ] * 12, index=cartesian_product((range(3), range(4)))).to_sparse()
-        for k, v in zip([(0, 0), (1, 2), (1, 3)], [3.0, 1.0, 2.0]):
-            ss[k] = v
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ss = pd.Series([
+                nan
+            ] * 12, index=cartesian_product((range(3), range(4)))).to_sparse()
+            for k, v in zip([(0, 0), (1, 2), (1, 3)], [3.0, 1.0, 2.0]):
+                ss[k] = v
         self.sparse_series.append(ss)
 
         # results used in tests
@@ -1176,8 +1242,11 @@ class TestSparseSeriesScipyInteraction:
             ss.to_coo(['A', 'B'], ['C', 'D', 'E'])
 
     def test_to_coo_duplicate_index_entries(self):
-        ss = pd.concat([self.sparse_series[0],
-                        self.sparse_series[0]]).to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ss = pd.concat([self.sparse_series[0],
+                            self.sparse_series[0]]).to_sparse()
         msg = ("Duplicate index entries are not allowed in to_coo"
                " transformation")
         with pytest.raises(ValueError, match=msg):
@@ -1191,7 +1260,10 @@ class TestSparseSeriesScipyInteraction:
     def test_from_coo_nodense_index(self):
         ss = SparseSeries.from_coo(self.coo_matrices[0], dense_index=False)
         check = self.sparse_series[2]
-        check = check.dropna().to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            check = check.dropna().to_sparse()
         tm.assert_sp_series_equal(ss, check)
 
     def test_from_coo_long_repr(self):
@@ -1445,7 +1517,6 @@ def _dense_series_compare(s, f):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSparseSeriesAnalytics:
 
     def setup_method(self, method):
@@ -1463,7 +1534,10 @@ class TestSparseSeriesAnalytics:
         tm.assert_sp_series_equal(result, expected)
 
         result = self.zbseries.cumsum()
-        expected = self.zbseries.to_dense().cumsum().to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = self.zbseries.to_dense().cumsum().to_sparse()
         tm.assert_series_equal(result, expected)
 
         axis = 1  # Series is 1-D, so only axis = 0 is valid.
@@ -1477,7 +1551,10 @@ class TestSparseSeriesAnalytics:
         tm.assert_sp_series_equal(result, expected)
 
         result = np.cumsum(self.zbseries)
-        expected = self.zbseries.to_dense().cumsum().to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = self.zbseries.to_dense().cumsum().to_sparse()
         tm.assert_series_equal(result, expected)
 
         msg = "the 'dtype' parameter is not supported"
@@ -1540,11 +1617,13 @@ def test_constructor_dict_datetime64_index(datetime_type):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 def test_to_sparse():
     # https://github.com/pandas-dev/pandas/issues/22389
     arr = pd.SparseArray([1, 2, None, 3])
-    result = pd.Series(arr).to_sparse()
+    # GH 26557: DEPR
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        result = pd.Series(arr).to_sparse()
     assert len(result) == 4
     tm.assert_sp_array_equal(result.values, arr, check_kind=False)
 

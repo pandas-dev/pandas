@@ -55,7 +55,6 @@ class Base:
         self.ymd.index.set_names(['year', 'month', 'day'], inplace=True)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 class TestMultiLevel(Base):
 
     def test_append(self):
@@ -675,7 +674,6 @@ Thur,Lunch,Yes,51.51,17"""
         # it works!
         df.unstack(['b', 'c'])
 
-    @pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
     def test_groupby_transform(self):
         s = self.frame['A']
         grouper = s.index.get_level_values(0)
@@ -891,7 +889,6 @@ Thur,Lunch,Yes,51.51,17"""
         with pytest.raises(KeyError, match=msg):
             frame.count(level='x')
 
-    @pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
     @pytest.mark.parametrize('op', AGG_FUNCTIONS)
     @pytest.mark.parametrize('level', [0, 1])
     @pytest.mark.parametrize('skipna', [True, False])
@@ -966,7 +963,6 @@ Thur,Lunch,Yes,51.51,17"""
         ex = DataFrame({'data': [False, False]}, index=['one', 'two'])
         tm.assert_frame_equal(result, ex)
 
-    @pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
     def test_std_var_pass_ddof(self):
         index = MultiIndex.from_arrays([np.arange(5).repeat(10), np.tile(
             np.arange(10), 5)])

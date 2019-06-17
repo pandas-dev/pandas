@@ -4,7 +4,6 @@
 
 
 import numpy as np
-import pytest
 
 import pandas.util._test_decorators as td
 
@@ -14,7 +13,6 @@ import pandas.util.testing as tm
 
 
 @td.skip_if_no_mpl
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     def test_series_groupby_plotting_nominally_works(self):

@@ -19,7 +19,6 @@ import pandas.plotting as plotting
 
 
 @td.skip_if_no_mpl
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
@@ -34,22 +33,18 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.boxplot, column=[
                           'one', 'two'], return_type='dict')
         # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(Warning,
-                                        check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.boxplot, column=['one', 'two'],
                               by='indic')
         _check_plot_works(df.boxplot, column='one', by=['indic', 'indic2'])
-        with tm.assert_produces_warning(Warning,
-                                        check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.boxplot, by='indic')
-        with tm.assert_produces_warning(Warning,
-                                        check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.boxplot, by=['indic', 'indic2'])
         _check_plot_works(plotting._core.boxplot, data=df['one'],
                           return_type='dict')
         _check_plot_works(df.boxplot, notch=1, return_type='dict')
-        with tm.assert_produces_warning(Warning,
-                                        check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.boxplot, by='indic', notch=1)
 
     @pytest.mark.slow
@@ -57,8 +52,7 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.rand(10, 2), columns=['Col1', 'Col2'])
         df['X'] = Series(['A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'B'])
         df['Y'] = Series(['A'] * 10)
-        with tm.assert_produces_warning(Warning,
-                                        check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.boxplot, by='X')
 
         # When ax is supplied and required number of axes is 1,
@@ -75,8 +69,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # Multiple columns with an ax argument should use same figure
         fig, ax = self.plt.subplots()
-        with tm.assert_produces_warning(Warning,
-                                        check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             axes = df.boxplot(column=['Col1', 'Col2'],
                               by='X', ax=ax, return_type='axes')
         assert axes['Col1'].get_figure() is fig
@@ -169,7 +162,6 @@ class TestDataFramePlots(TestPlotBase):
 
 
 @td.skip_if_no_mpl
-@pytest.mark.filterwarnings("ignore:NDFrame:FutureWarning")
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @pytest.mark.slow
@@ -369,8 +361,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                    axes_num=4, layout=(2, 2))
 
         fig, axes = self.plt.subplots(2, 3)
-        with tm.assert_produces_warning(Warning,
-                                        check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             returned = df.boxplot(column=['height', 'weight', 'category'],
                                   by='gender', return_type='axes', ax=axes[0])
         returned = np.array(list(returned.values))

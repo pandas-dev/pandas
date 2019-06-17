@@ -551,8 +551,6 @@ class TestNDFrame(TestPackers):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSparse(TestPackers):
 
     def _check_roundtrip(self, obj, comparator, **kwargs):
@@ -568,15 +566,24 @@ class TestSparse(TestPackers):
 
         s = tm.makeStringSeries()
         s[3:5] = np.nan
-        ss = s.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ss = s.to_sparse()
         self._check_roundtrip(ss, tm.assert_series_equal,
                               check_series_type=True)
 
-        ss2 = s.to_sparse(kind='integer')
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ss2 = s.to_sparse(kind='integer')
         self._check_roundtrip(ss2, tm.assert_series_equal,
                               check_series_type=True)
 
-        ss3 = s.to_sparse(fill_value=0)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ss3 = s.to_sparse(fill_value=0)
         self._check_roundtrip(ss3, tm.assert_series_equal,
                               check_series_type=True)
 
@@ -585,16 +592,25 @@ class TestSparse(TestPackers):
         s = tm.makeDataFrame()
         s.loc[3:5, 1:3] = np.nan
         s.loc[8:10, -2] = np.nan
-        ss = s.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ss = s.to_sparse()
 
         self._check_roundtrip(ss, tm.assert_frame_equal,
                               check_frame_type=True)
 
-        ss2 = s.to_sparse(kind='integer')
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ss2 = s.to_sparse(kind='integer')
         self._check_roundtrip(ss2, tm.assert_frame_equal,
                               check_frame_type=True)
 
-        ss3 = s.to_sparse(fill_value=0)
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ss3 = s.to_sparse(fill_value=0)
         self._check_roundtrip(ss3, tm.assert_frame_equal,
                               check_frame_type=True)
 

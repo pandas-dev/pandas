@@ -50,7 +50,6 @@ for seed_nans in [True, False]:
 
 
 @pytest.mark.slow
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize("df, keys, bins, n, m", binned, ids=ids)
 def test_series_groupby_value_counts(df, keys, bins, n, m):
 

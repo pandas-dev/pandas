@@ -659,7 +659,6 @@ def test_cross_type_arithmetic():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize('op', ['sum', 'min', 'max', 'prod'])
 def test_preserve_dtypes(op):
     # TODO(#22346): preserve Int64 dtype
@@ -685,7 +684,6 @@ def test_preserve_dtypes(op):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize('op', ['mean'])
 def test_reduce_to_float(op):
     # some reduce ops always return float, even if the result

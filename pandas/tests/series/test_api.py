@@ -124,7 +124,10 @@ class SharedWithSparse:
 
     @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_to_sparse_pass_name(self):
-        result = self.ts.to_sparse()
+        # GH 26557: DEPR
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = self.ts.to_sparse()
         assert result.name == self.ts.name
 
     def test_constructor_dict(self):
@@ -209,7 +212,6 @@ class SharedWithSparse:
         assert s.sparse.density == 1.0
 
 
-@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSeriesMisc(TestData, SharedWithSparse):
 
     series_klass = Series

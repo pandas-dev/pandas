@@ -90,7 +90,6 @@ def test_first_last_nth_dtypes(df_mixed_floats):
     assert f.dtype == 'int64'
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_nth():
     df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
     g = df.groupby('A')
@@ -277,7 +276,6 @@ def test_first_last_tz(data, expected_first, expected_last):
     assert_frame_equal(result, expected[['id', 'time']])
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize('method, ts, alpha', [
     ['first', Timestamp('2013-01-01', tz='US/Eastern'), 'a'],
     ['last', Timestamp('2013-01-02', tz='US/Eastern'), 'b']

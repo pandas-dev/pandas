@@ -159,7 +159,6 @@ def raw_frame():
     return raw_frame
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize('op', AGG_FUNCTIONS)
 @pytest.mark.parametrize('level', [0, 1])
 @pytest.mark.parametrize('axis', [0, 1])

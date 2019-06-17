@@ -30,7 +30,6 @@ def cartesian_product_for_groupers(result, args, names):
     return result.reindex(index).sort_index()
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_apply_use_categorical_name(df):
     cats = qcut(df.C, 4)
 
@@ -44,7 +43,6 @@ def test_apply_use_categorical_name(df):
     assert result.index.names[0] == 'C'
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 def test_basic():
 
     cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"],
@@ -993,7 +991,6 @@ def df_cat(df):
     return df_cat
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize('operation, kwargs', [
     ('agg', dict(dtype='category')),
     ('apply', dict())])
@@ -1009,7 +1006,6 @@ def test_seriesgroupby_observed_true(df_cat, operation, kwargs):
     assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize('operation', ['agg', 'apply'])
 @pytest.mark.parametrize('observed', [False, None])
 def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
@@ -1026,7 +1022,6 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
     assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:NDFrame.to_dense:FutureWarning")
 @pytest.mark.parametrize("observed, index, data", [
     (True, MultiIndex.from_tuples(
         [('foo', 'one', 'min'), ('foo', 'one', 'max'),
