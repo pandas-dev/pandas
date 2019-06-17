@@ -261,7 +261,6 @@ class TestDataFramePlots(TestPlotBase):
 
 
 @td.skip_if_no_mpl
-@pytest.mark.filterwarnings('ignore::FutureWarning')
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @pytest.mark.slow
