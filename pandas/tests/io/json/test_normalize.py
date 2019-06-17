@@ -60,9 +60,9 @@ def author_missing_data():
     return [
         {'info': None},
         {'info':
-             {'created_at': '11/08/1993', 'last_updated': '26/05/2012'},
-         'author_name':
-             {'first': 'Jane', 'last_name': 'Doe'}
+            {'created_at': '11/08/1993', 'last_updated': '26/05/2012'},
+            'author_name':
+         {'first': 'Jane', 'last_name': 'Doe'}
          }]
 
 
@@ -262,8 +262,8 @@ class TestJSONNormalize:
 
     def test_non_ascii_key(self):
         testjson = (
-                b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' +
-                b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
+            b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' +
+            b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
         ).decode('utf8')
 
         testdata = {
@@ -300,9 +300,11 @@ class TestJSONNormalize:
 
         test_input = [{'CreatedBy': {'Name': 'User001'},
                        'Lookup': [{'TextField': 'Some text',
-                                   'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+                                   'UserField': {'Id': 'ID001',
+                                                 'Name': 'Name001'}},
                                   {'TextField': 'Some text',
-                                   'UserField': {'Id': 'ID001', 'Name': 'Name001'}}
+                                   'UserField': {'Id': 'ID001',
+                                                 'Name': 'Name001'}}
                                   ],
                        'Image': {'a': 'b'},
                        'tags': [{'foo': 'something', 'bar': 'else'},
@@ -385,20 +387,20 @@ class TestNestedToRecord:
                " is not always present")
         with pytest.raises(KeyError, match=msg):
             json_normalize(
-                    data=missing_metadata,
-                    record_path='addresses',
-                    meta='name',
-                    errors='raise')
+                data=missing_metadata,
+                record_path='addresses',
+                meta='name',
+                errors='raise')
 
     def test_missing_meta(self, missing_metadata):
         # GH25468
         # If metadata is nullable with errors set to ignore, the null values
         # should be numpy.nan values
         result = json_normalize(
-                data=missing_metadata,
-                record_path='addresses',
-                meta='name',
-                errors='ignore')
+            data=missing_metadata,
+            record_path='addresses',
+            meta='name',
+            errors='ignore')
         ex_data = [
             {'city': 'Massillon',
              'number': 9562,
@@ -422,12 +424,12 @@ class TestNestedToRecord:
         data = [
             {'info': None,
              'author_name':
-                 {'first': 'Smith', 'last_name': 'Appleseed'}
+             {'first': 'Smith', 'last_name': 'Appleseed'}
              },
             {'info':
-                 {'created_at': '11/08/1993', 'last_updated': '26/05/2012'},
+                {'created_at': '11/08/1993', 'last_updated': '26/05/2012'},
              'author_name':
-                 {'first': 'Jane', 'last_name': 'Doe'}
+                {'first': 'Jane', 'last_name': 'Doe'}
              }
         ]
         result = nested_to_record(data)
