@@ -587,6 +587,7 @@ class TestSparseSeries(SharedWithSparse):
                                Series(7., index=range(5, 10),
                                       name=self.bseries.name))
 
+    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_operators(self):
 
         def _check_op(a, b, op):
