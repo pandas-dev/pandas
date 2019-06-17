@@ -101,7 +101,7 @@ from pandas.io.formats import console
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
-import pandas.plotting._core as gfx
+import pandas.plotting
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -610,9 +610,9 @@ class DataFrame(NDFrame):
         return info_repr_option and not (self._repr_fits_horizontal_() and
                                          self._repr_fits_vertical_())
 
-    def __unicode__(self):
+    def __repr__(self):
         """
-        Return a unicode string representation for a particular DataFrame.
+        Return a string representation for a particular DataFrame.
         """
         buf = StringIO("")
         if self._info_repr():
@@ -918,7 +918,7 @@ class DataFrame(NDFrame):
 
     def dot(self, other):
         """
-        Compute the matrix mutiplication between the DataFrame and other.
+        Compute the matrix multiplication between the DataFrame and other.
 
         This method computes the matrix product between the DataFrame and the
         values of an other Series, DataFrame or a numpy array.
@@ -944,7 +944,9 @@ class DataFrame(NDFrame):
         Notes
         -----
         The dimensions of DataFrame and other must be compatible in order to
-        compute the matrix multiplication.
+        compute the matrix multiplication. In addition, the column names of
+        DataFrame and the index of other must contain the same values, as they
+        will be aligned prior to the multiplication.
 
         The dot method for Series computes the inner product, instead of the
         matrix product here.
@@ -982,6 +984,14 @@ class DataFrame(NDFrame):
             0   1
         0   1   4
         1   2   2
+
+        Note how shuffling of the objects does not change the result.
+
+        >>> s2 = s.reindex([1, 0, 2, 3])
+        >>> df.dot(s2)
+        0    -4
+        1     5
+        dtype: int64
         """
         if isinstance(other, (Series, DataFrame)):
             common = self.columns.union(other.index)
@@ -1920,13 +1930,13 @@ class DataFrame(NDFrame):
         >>> type(df)
         <class 'pandas.core.frame.DataFrame'>
 
-        >>> sdf = df.to_sparse()
-        >>> sdf
+        >>> sdf = df.to_sparse()  # doctest: +SKIP
+        >>> sdf  # doctest: +SKIP
              0    1
         0  NaN  NaN
         1  1.0  NaN
         2  NaN  1.0
-        >>> type(sdf)
+        >>> type(sdf)  # doctest: +SKIP
         <class 'pandas.core.sparse.frame.SparseDataFrame'>
         """
         from pandas.core.sparse.api import SparseDataFrame
@@ -2150,7 +2160,7 @@ class DataFrame(NDFrame):
             Whether the generated HTML is for IPython Notebook.
         border : int
             A ``border=border`` attribute is included in the opening
-            `<table>` tag. Default ``pd.options.html.border``.
+            `<table>` tag. Default ``pd.options.display.html.border``.
 
             .. versionadded:: 0.19.0
 
@@ -2272,7 +2282,7 @@ class DataFrame(NDFrame):
         text_col     5 non-null object
         float_col    5 non-null float64
         dtypes: float64(1), int64(1), object(1)
-        memory usage: 200.0+ bytes
+        memory usage: 248.0+ bytes
 
         Prints a summary of columns count and its dtypes but not per column
         information:
@@ -2282,7 +2292,7 @@ class DataFrame(NDFrame):
         RangeIndex: 5 entries, 0 to 4
         Columns: 3 entries, int_col to float_col
         dtypes: float64(1), int64(1), object(1)
-        memory usage: 200.0+ bytes
+        memory usage: 248.0+ bytes
 
         Pipe output of DataFrame.info to buffer instead of sys.stdout, get
         buffer content and writes to a text file:
@@ -2484,7 +2494,7 @@ class DataFrame(NDFrame):
         4      1      1.0    1.0+0.0j       1  True
 
         >>> df.memory_usage()
-        Index            80
+        Index           128
         int64         40000
         float64       40000
         complex128    80000
@@ -2503,7 +2513,7 @@ class DataFrame(NDFrame):
         The memory footprint of `object` dtype columns is ignored by default:
 
         >>> df.memory_usage(deep=True)
-        Index             80
+        Index            128
         int64          40000
         float64        40000
         complex128     80000
@@ -2515,7 +2525,7 @@ class DataFrame(NDFrame):
         many repeated values.
 
         >>> df['object'].astype('category').memory_usage(deep=True)
-        5168
+        5216
         """
         result = Series([c.memory_usage(index=False, deep=deep)
                          for col, c in self.iteritems()], index=self.columns)
@@ -2694,13 +2704,19 @@ class DataFrame(NDFrame):
 
         try:
             return engine.get_value(series._values, index)
+        except KeyError:
+            # GH 20629
+            if self.index.nlevels > 1:
+                # partial indexing forbidden
+                raise
         except (TypeError, ValueError):
+            pass
 
-            # we cannot handle direct indexing
-            # use positional
-            col = self.columns.get_loc(col)
-            index = self.index.get_loc(index)
-            return self._get_value(index, col, takeable=True)
+        # we cannot handle direct indexing
+        # use positional
+        col = self.columns.get_loc(col)
+        index = self.index.get_loc(index)
+        return self._get_value(index, col, takeable=True)
     _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, index, col, value, takeable=False):
@@ -3984,6 +4000,7 @@ class DataFrame(NDFrame):
         intent.
 
         Rename columns using a mapping:
+
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> df.rename(columns={"A": "a", "B": "c"})
            a  c
@@ -3992,6 +4009,7 @@ class DataFrame(NDFrame):
         2  3  6
 
         Rename index using a mapping:
+
         >>> df.rename(index={0: "x", 1: "y", 2: "z"})
            A  B
         x  1  4
@@ -3999,6 +4017,7 @@ class DataFrame(NDFrame):
         z  3  6
 
         Cast index labels to a different type:
+
         >>> df.index
         RangeIndex(start=0, stop=3, step=1)
         >>> df.rename(index=str).index
@@ -6265,8 +6284,8 @@ class DataFrame(NDFrame):
     index (default) or the column axis. This behavior is different from
     `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
     `var`), where the default is to compute the aggregation of the flattened
-    array, e.g., ``numpy.mean(arr_2d)`` as opposed to ``numpy.mean(arr_2d,
-    axis=0)``.
+    array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+    ``numpy.mean(arr_2d, axis=0)``.
 
     `agg` is an alias for `aggregate`. Use the alias.
 
@@ -8025,9 +8044,9 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = CachedAccessor("plot", gfx.FramePlotMethods)
-    hist = gfx.hist_frame
-    boxplot = gfx.boxplot_frame
+    plot = CachedAccessor("plot", pandas.plotting.FramePlotMethods)
+    hist = pandas.plotting.hist_frame
+    boxplot = pandas.plotting.boxplot_frame
     sparse = CachedAccessor("sparse", SparseFrameAccessor)
 
 

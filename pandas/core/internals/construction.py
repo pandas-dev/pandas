@@ -131,8 +131,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
         index, columns = _get_axes(len(values), 1, index, columns)
         return arrays_to_mgr([values], columns, index, columns,
                              dtype=dtype)
-    elif (is_datetime64tz_dtype(values) or
-          is_extension_array_dtype(values)):
+    elif is_extension_array_dtype(values):
         # GH#19157
         if columns is None:
             columns = [0]
@@ -197,10 +196,11 @@ def init_dict(data, index, columns, dtype=None):
     else:
         keys = com.dict_keys_to_ordered_list(data)
         columns = data_names = Index(keys)
+        arrays = (com.maybe_iterable_to_list(data[k]) for k in keys)
         # GH#24096 need copy to be deep for datetime64tz case
         # TODO: See if we can avoid these copies
-        arrays = [data[k] if not is_datetime64tz_dtype(data[k]) else
-                  data[k].copy(deep=True) for k in keys]
+        arrays = [arr if not is_datetime64tz_dtype(arr) else
+                  arr.copy(deep=True) for arr in arrays]
     return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)
 
 
@@ -424,8 +424,13 @@ def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
     else:
         # list of lists
         content = list(lib.to_object_array(data).T)
-    return _convert_object_array(content, columns, dtype=dtype,
-                                 coerce_float=coerce_float)
+    # gh-26429 do not raise user-facing AssertionError
+    try:
+        result = _convert_object_array(content, columns, dtype=dtype,
+                                       coerce_float=coerce_float)
+    except AssertionError as e:
+        raise ValueError(e) from e
+    return result
 
 
 def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):

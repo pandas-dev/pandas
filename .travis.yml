@@ -86,6 +86,14 @@ install:
   - ci/submit_cython_cache.sh
   - echo "install done"
 
+before_script:
+  # display server (for clipboard functionality) needs to be started here,
+  # does not work if done in install:setup_env.sh (GH-26103)
+  - export DISPLAY=":99.0"
+  - echo "sh -e /etc/init.d/xvfb start"
+  - sh -e /etc/init.d/xvfb start
+  - sleep 3
+
 script:
   - echo "script start"
   - source activate pandas-dev
@@ -95,10 +103,5 @@ script:
 after_script:
   - echo "after_script start"
   - source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
-  - if [ -e test-data-single.xml ]; then
-        ci/print_skipped.py test-data-single.xml;
-    fi
-  - if [ -e test-data-multiple.xml ]; then
-        ci/print_skipped.py test-data-multiple.xml;
-    fi
+  - ci/print_skipped.py 
   - echo "after_script done"

@@ -3,6 +3,7 @@ Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
 
+from typing import Tuple
 import warnings
 
 import numpy as np
@@ -48,7 +49,7 @@ class Grouper:
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see `here
-        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`_.
+        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
     axis : number/name of the axis, defaults to 0
     sort : boolean, default to False
         whether to sort the resulting labels
@@ -84,7 +85,8 @@ class Grouper:
 
     >>> df.groupby(Grouper(level='date', freq='60s', axis=1))
     """
-    _attributes = ('key', 'level', 'freq', 'axis', 'sort')
+    _attributes = ('key', 'level', 'freq', 'axis',
+                   'sort')  # type: Tuple[str, ...]
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get('freq') is not None:
@@ -278,7 +280,7 @@ class Grouping:
             if self.name is None:
                 self.name = grouper.result_index.name
             self.obj = self.grouper.obj
-            self.grouper = grouper
+            self.grouper = grouper._get_grouper()
 
         else:
             if self.grouper is None and self.name is not None:

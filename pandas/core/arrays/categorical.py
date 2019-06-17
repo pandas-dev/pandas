@@ -89,18 +89,23 @@ def _cat_compare_op(op):
             else:
                 other_codes = other._codes
 
-            na_mask = (self._codes == -1) | (other_codes == -1)
+            mask = (self._codes == -1) | (other_codes == -1)
             f = getattr(self._codes, op)
             ret = f(other_codes)
-            if na_mask.any():
+            if mask.any():
                 # In other series, the leads to False, so do that here too
-                ret[na_mask] = False
+                ret[mask] = False
             return ret
 
         if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
-                return getattr(self._codes, op)(i)
+                ret = getattr(self._codes, op)(i)
+
+                # check for NaN in self
+                mask = (self._codes == -1)
+                ret[mask] = False
+                return ret
             else:
                 if op == '__eq__':
                     return np.repeat(False, len(self))
@@ -176,7 +181,7 @@ def contains(cat, key, container):
     #  can't be in container either.
     try:
         loc = cat.categories.get_loc(key)
-    except KeyError:
+    except (KeyError, TypeError):
         return False
 
     # loc is the location of key in categories, but also the *value*
@@ -272,7 +277,8 @@ class Categorical(ExtensionArray, PandasObject):
     Notes
     -----
     See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/categorical.html>`_ for more.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html>`_
+    for more.
 
     Examples
     --------
@@ -1477,7 +1483,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         if dropna or clean:
             obs = code if clean else code[mask]
-            count = bincount(obs, minlength=ncat or None)
+            count = bincount(obs, minlength=ncat or 0)
         else:
             count = bincount(np.where(mask, code, ncat))
             ix = np.append(ix, -1)
@@ -2025,9 +2031,9 @@ class Categorical(ExtensionArray, PandasObject):
         result = formatter.to_string()
         return str(result)
 
-    def __unicode__(self):
+    def __repr__(self):
         """
-        Unicode representation.
+        String representation.
         """
         _maxlen = 10
         if len(self._codes) > _maxlen:
@@ -2039,10 +2045,6 @@ class Categorical(ExtensionArray, PandasObject):
             result = ('[], {repr_msg}'.format(repr_msg=msg))
 
         return result
-
-    def __repr__(self):
-        # We want to bypass the ExtensionArray.__repr__
-        return str(self)
 
     def _maybe_coerce_indexer(self, indexer):
         """
@@ -2667,9 +2669,11 @@ def _factorize_from_iterable(values):
         raise TypeError("Input must be list-like")
 
     if is_categorical(values):
-        if isinstance(values, (ABCCategoricalIndex, ABCSeries)):
-            values = values._values
-        categories = CategoricalIndex(values.categories, dtype=values.dtype)
+        values = CategoricalIndex(values)
+        # The CategoricalIndex level we want to build has the same categories
+        # as values but its codes are by def [0, ..., len(n_categories) - 1]
+        cat_codes = np.arange(len(values.categories), dtype=values.codes.dtype)
+        categories = values._create_from_codes(cat_codes)
         codes = values.codes
     else:
         # The value of ordered is irrelevant since we don't use cat as such,

@@ -7,7 +7,8 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, lib, tslib, tslibs
+from pandas._libs import lib, tslib, tslibs
+import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
 from pandas.util._validators import validate_bool_kwarg
 
@@ -35,7 +36,6 @@ from pandas.core.arrays import (
     Categorical, DatetimeArray, ExtensionArray, PandasDtype, TimedeltaArray)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexing import check_setitem_lengths
 from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
@@ -235,8 +235,7 @@ class Block(PandasObject):
         return make_block(values, placement=placement, ndim=ndim,
                           klass=self.__class__, dtype=dtype)
 
-    def __unicode__(self):
-
+    def __repr__(self):
         # don't want to print out all of the items here
         name = pprint_thing(self.__class__.__name__)
         if self._is_single_block:
@@ -420,17 +419,14 @@ class Block(PandasObject):
         new_values = self.values
 
         def make_a_block(nv, ref_loc):
-            if isinstance(nv, Block):
-                block = nv
-            elif isinstance(nv, list):
+            if isinstance(nv, list):
+                assert len(nv) == 1, nv
+                assert isinstance(nv[0], Block)
                 block = nv[0]
             else:
                 # Put back the dimension that was taken from it and make
                 # a block out of the result.
-                try:
-                    nv = _block_shape(nv, ndim=self.ndim)
-                except (AttributeError, NotImplementedError):
-                    pass
+                nv = _block_shape(nv, ndim=self.ndim)
                 block = self.make_block(values=nv,
                                         placement=ref_loc)
             return block
@@ -2053,11 +2049,14 @@ class DatetimeLikeBlockMixin:
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
     is_datetime = True
-    _can_hold_na = True
 
     def __init__(self, values, placement, ndim=None):
         values = self._maybe_coerce_values(values)
         super().__init__(values, placement=placement, ndim=ndim)
+
+    @property
+    def _can_hold_na(self):
+        return True
 
     def _maybe_coerce_values(self, values):
         """Input validation for values passed to __init__. Ensure that
@@ -2094,7 +2093,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if is_datetime64tz_dtype(dtype):
             values = self.values
             if getattr(values, 'tz', None) is None:
-                values = DatetimeIndex(values).tz_localize('UTC')
+                values = DatetimeArray(values).tz_localize('UTC')
             values = values.tz_convert(dtype.tz)
             return self.make_block(values)
 
@@ -2423,7 +2422,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         except (ValueError, TypeError):
             newb = make_block(self.values.astype(object),
                               placement=self.mgr_locs,
-                              klass=ObjectBlock,)
+                              klass=ObjectBlock)
             return newb.setitem(indexer, value)
 
     def equals(self, other):
@@ -2629,10 +2628,10 @@ class ObjectBlock(Block):
             values = fn(v.ravel(), **fn_kwargs)
             try:
                 values = values.reshape(shape)
-                values = _block_shape(values, ndim=self.ndim)
             except (AttributeError, NotImplementedError):
                 pass
 
+            values = _block_shape(values, ndim=self.ndim)
             return values
 
         if by_item and not self._is_single_block:
@@ -3038,6 +3037,9 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):
         values = values.to_numpy()
+        if ndim and ndim > 1:
+            values = np.atleast_2d(values)
+
     if isinstance(dtype, PandasDtype):
         dtype = dtype.numpy_dtype
 
@@ -3165,8 +3167,6 @@ def _putmask_smart(v, m, n):
     # n should be the length of the mask or a scalar here
     if not is_list_like(n):
         n = np.repeat(n, len(m))
-    elif isinstance(n, np.ndarray) and n.ndim == 0:  # numpy scalar
-        n = np.repeat(np.array(n, ndmin=1), len(m))
 
     # see if we are only masking values that if putted
     # will work in the current dtype

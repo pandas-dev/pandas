@@ -83,13 +83,8 @@ API changes
     ``iloc`` API to be *purely* positional based.
 
     .. ipython:: python
-       :suppress:
 
-       from pandas.compat import lrange
-
-    .. ipython:: python
-
-       df = pd.DataFrame(lrange(5), list('ABCDE'), columns=['a'])
+       df = pd.DataFrame(range(5), index=list('ABCDE'), columns=['a'])
        mask = (df.a % 2 == 0)
        mask
 

@@ -244,12 +244,6 @@ def test_to_html_border(option, result, expected):
     assert expected in result
 
 
-def test_display_option_warning():
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        pd.options.html.border
-
-
 @pytest.mark.parametrize('biggie_df_fixture', ['mixed'], indirect=True)
 def test_to_html(biggie_df_fixture):
     # TODO: split this test
@@ -293,9 +287,8 @@ def test_to_html_with_no_bold():
     assert '<strong' not in result
 
 
-def test_to_html_columns_arg():
-    df = DataFrame(tm.getSeriesData())
-    result = df.to_html(columns=['A'])
+def test_to_html_columns_arg(float_frame):
+    result = float_frame.to_html(columns=['A'])
     assert '<th>B</th>' not in result
 
 
