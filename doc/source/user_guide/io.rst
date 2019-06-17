@@ -3263,10 +3263,6 @@ applications (CTRL-V on many operating systems). Here we illustrate writing a
 
 .. code-block:: python
 
-    df = pd.DataFrame(np.random.randn(5, 3))
-    df
-    df.to_clipboard()
-    pd.read_clipboard()
     >>> df = pd.DataFrame({'A': [1, 2, 3],
     ...                    'B': [4, 5, 6],
     ...                    'C': ['p', 'q', 'r']},
