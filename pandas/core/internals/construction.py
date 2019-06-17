@@ -702,8 +702,8 @@ def _try_cast(arr, take_fast_path, dtype, copy, raise_cast_failure):
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype,
                                                         copy=copy)
     except OutOfBoundsDatetime:
-        if raise_cast_failure:
-            raise
+        # in case of out of bound datetime64 -> always raise
+        raise
     except (ValueError, TypeError):
         if is_categorical_dtype(dtype):
             # We *do* allow casting to categorical, since we know
