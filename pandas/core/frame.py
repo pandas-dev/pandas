@@ -25,7 +25,7 @@ from pandas._config import get_option
 
 from pandas._libs import lib, algos as libalgos
 
-from pandas._typing import ArrayLike, Dtype
+from pandas._typing import ArrayLike, Axes, Dtype
 
 from pandas.util._decorators import (Appender, Substitution,
                                      rewrite_axis_style_signature,
@@ -378,10 +378,10 @@ class DataFrame(NDFrame):
 
     def __init__(self,
                  data=None,
-                 index: ArrayLike = None,
-                 columns: ArrayLike = None,
-                 dtype: Dtype = None,
-                 copy: bool = False) -> None:
+                 index: Optional[Axes] = None,
+                 columns: Optional[Axes] = None,
+                 dtype: Optional[Dtype] = None,
+                 copy: Optional[bool] = False) -> None:
         if data is None:
             data = {}
         if dtype is not None:
@@ -477,7 +477,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def axes(self) -> List[ArrayLike]:
+    def axes(self) -> List[Index]:
         """
         Return a list representing the axes of the DataFrame.
 

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import IO, AnyStr, TypeVar, Union
+from typing import IO, AnyStr, Iterable, TypeVar, Union
 
 import numpy as np
 
@@ -22,3 +22,6 @@ DatetimeLikeScalar = TypeVar('DatetimeLikeScalar', Period, Timestamp,
                              Timedelta)
 Dtype = Union[str, np.dtype, ExtensionDtype]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
+
+# Type for index and columns of DataFrame
+Axes = Iterable[Union[ABCIndexClass, Iterable[str]]]
