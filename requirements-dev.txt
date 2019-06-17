@@ -54,3 +54,4 @@ xlrd
 xlsxwriter
 xlwt
 pyreadstat
+PyQt4
