@@ -204,7 +204,7 @@ class TestSparseDataFrame(SharedWithSparse):
         # TODO: y_sparse is unsused...fix
         # GH 26557: DEPR
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                y_sparse = y.to_sparse(fill_value=0)  # noqa
+            y_sparse = y.to_sparse(fill_value=0)  # noqa
         # without sparse value raises error
         # df2 = SparseDataFrame([x2_sparse, y])
 
