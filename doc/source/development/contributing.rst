@@ -221,7 +221,7 @@ You'll need to have at least python3.5 installed on your system.
    # Use an ENV_DIR of your choice. We'll use ~/virtualenvs/pandas-dev
    # Any parent directories should already exist
    python3 -m venv ~/virtualenvs/pandas-dev
-   # Activate the virtulaenv
+   # Activate the virtualenv
    . ~/virtualenvs/pandas-dev/bin/activate
 
    # Install the build dependencies
@@ -498,6 +498,21 @@ as possible to avoid mass breakages.
 
 Additional standards are outlined on the `code style wiki
 page <https://github.com/pandas-dev/pandas/wiki/Code-Style-and-Conventions>`_.
+
+Optional dependencies
+---------------------
+
+Optional dependencies (e.g. matplotlib) should be imported with the private helper
+``pandas.compat._optional.import_optional_dependency``. This ensures a
+consistent error message when the dependency is not met.
+
+All methods using an optional dependency should include a test asserting that an
+``ImportError`` is raised when the optional dependency is not found. This test
+should be skipped if the library is present.
+
+All optional dependencies should be documented in
+:ref:`install.optional_dependencies` and the minimum required version should be
+set in the ``pandas.compat._optional.VERSIONS`` dict.
 
 C (cpplint)
 ~~~~~~~~~~~

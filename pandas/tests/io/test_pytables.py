@@ -4731,6 +4731,21 @@ class TestHDFStore(Base):
             result = store['p']
             assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("where", ["", (), (None, ), [], [None]])
+    def test_select_empty_where(self, where):
+        # GH26610
+
+        # Using keyword `where` as '' or (), or [None], etc
+        # while reading from HDF store raises
+        # "SyntaxError: only a single expression is allowed"
+
+        df = pd.DataFrame([1, 2, 3])
+        with ensure_clean_path("empty_where.h5") as path:
+            with pd.HDFStore(path) as store:
+                store.put("df", df, "t")
+                result = pd.read_hdf(store, "df", where=where)
+                assert_frame_equal(result, df)
+
 
 class TestHDFComplexValues(Base):
     # GH10447

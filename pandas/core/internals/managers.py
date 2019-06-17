@@ -15,7 +15,8 @@ from pandas.core.dtypes.cast import (
     maybe_promote)
 from pandas.core.dtypes.common import (
     _NS_DTYPE, is_datetimelike_v_numeric, is_extension_array_dtype,
-    is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar)
+    is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar,
+    is_sparse)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
@@ -433,11 +434,11 @@ class BlockManager(PandasObject):
             self._consolidate_inplace()
 
         def get_axe(block, qs, axes):
+            # Because Series dispatches to DataFrame, we will always have
+            #  block.ndim == 2
             from pandas import Float64Index
             if is_list_like(qs):
                 ax = Float64Index(qs)
-            elif block.ndim == 1:
-                ax = Float64Index([qs])
             else:
                 ax = axes[0]
             return ax
@@ -770,7 +771,6 @@ class BlockManager(PandasObject):
         Return ndarray from blocks with specified item order
         Items must be contained in the blocks
         """
-        from pandas.core.dtypes.common import is_sparse
         dtype = _interleaved_dtype(self.blocks)
 
         # TODO: https://github.com/pandas-dev/pandas/issues/22791
@@ -1345,27 +1345,6 @@ class BlockManager(PandasObject):
         return self.reindex_indexer(new_axis=new_labels, indexer=indexer,
                                     axis=axis, allow_dups=True)
 
-    def merge(self, other, lsuffix='', rsuffix=''):
-        # We assume at this point that the axes of self and other match.
-        # This is only called from Panel.join, which reindexes prior
-        # to calling to ensure this assumption holds.
-        l, r = items_overlap_with_suffix(left=self.items, lsuffix=lsuffix,
-                                         right=other.items, rsuffix=rsuffix)
-        new_items = _concat_indexes([l, r])
-
-        new_blocks = [blk.copy(deep=False) for blk in self.blocks]
-
-        offset = self.shape[0]
-        for blk in other.blocks:
-            blk = blk.copy(deep=False)
-            blk.mgr_locs = blk.mgr_locs.add(offset)
-            new_blocks.append(blk)
-
-        new_axes = list(self.axes)
-        new_axes[0] = new_items
-
-        return self.__class__(_consolidate(new_blocks), new_axes)
-
     def equals(self, other):
         self_axes, other_axes = self.axes, other.axes
         if len(self_axes) != len(other_axes):
@@ -1552,14 +1531,6 @@ class SingleBlockManager(BlockManager):
     def get_values(self):
         """ return a dense type view """
         return np.array(self._block.to_dense(), copy=False)
-
-    @property
-    def asobject(self):
-        """
-        return a object dtype array. datetime/timedelta like values are boxed
-        to Timestamp/Timedelta instances.
-        """
-        return self._block.get_values(dtype=object)
 
     @property
     def _can_hold_na(self):
@@ -1949,10 +1920,7 @@ def _compare_or_regex_search(a, b, regex=False):
     return result
 
 
-def _concat_indexes(indexes):
-    return indexes[0].append(indexes[1:])
-
-
+# TODO: this is no longer used in this module, could be moved to concat
 def items_overlap_with_suffix(left, lsuffix, right, rsuffix):
     """
     If two indices overlap, add suffixes to overlapping entries.

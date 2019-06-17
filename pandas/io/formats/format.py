@@ -191,6 +191,8 @@ class SeriesFormatter:
                 series = concat((series.iloc[:row_num],
                                  series.iloc[-row_num:]))
             self.tr_row_num = row_num
+        else:
+            self.tr_row_num = None
         self.tr_series = series
         self.truncate_v = truncate_v
 
@@ -499,6 +501,8 @@ class DataFrameFormatter(TableFormatter):
                 frame = concat((frame.iloc[:row_num, :],
                                 frame.iloc[-row_num:, :]))
             self.tr_row_num = row_num
+        else:
+            self.tr_row_num = None
 
         self.tr_frame = frame
         self.truncate_h = truncate_h
@@ -1246,7 +1250,7 @@ def format_percentiles(percentiles):
             raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
-    int_idx = (percentiles.astype(int) == percentiles)
+    int_idx = np.isclose(percentiles.astype(int), percentiles)
 
     if np.all(int_idx):
         out = percentiles.astype(int).astype(str)

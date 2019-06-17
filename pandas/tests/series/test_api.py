@@ -361,7 +361,8 @@ class TestSeriesMisc(TestData, SharedWithSparse):
                 assert np.isnan(s2[0])
                 assert np.isnan(s[0])
 
-        # GH 11794
+    def test_copy_tzaware(self):
+        # GH#11794
         # copy of tz-aware
         expected = Series([Timestamp('2012/01/01', tz='UTC')])
         expected2 = Series([Timestamp('1999/01/01', tz='UTC')])

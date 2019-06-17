@@ -144,6 +144,7 @@ If the data are tz-aware, then every value in the array must have the same timez
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
    arrays.DatetimeArray
 
@@ -204,6 +205,7 @@ A collection of timedeltas may be stored in a :class:`TimedeltaArray`.
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
    arrays.TimedeltaArray
 
@@ -263,6 +265,7 @@ Every period in a ``PeriodArray`` must have the same ``freq``.
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
    arrays.PeriodArray
 
@@ -304,6 +307,7 @@ A collection of intervals may be stored in an :class:`arrays.IntervalArray`.
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
    arrays.IntervalArray
 
@@ -312,6 +316,29 @@ A collection of intervals may be stored in an :class:`arrays.IntervalArray`.
    :template: autosummary/class_without_autosummary.rst
 
    IntervalDtype
+
+
+.. Those attributes and methods are included in the API because the docstrings
+.. of IntervalIndex and IntervalArray are shared. Including it here to make
+.. sure a docstring page is built for them to avoid warnings
+
+..
+    .. autosummary::
+      :toctree: api/
+
+      arrays.IntervalArray.left
+      arrays.IntervalArray.right
+      arrays.IntervalArray.closed
+      arrays.IntervalArray.mid
+      arrays.IntervalArray.length
+      arrays.IntervalArray.is_non_overlapping_monotonic
+      arrays.IntervalArray.from_arrays
+      arrays.IntervalArray.from_tuples
+      arrays.IntervalArray.from_breaks
+      arrays.IntervalArray.overlaps
+      arrays.IntervalArray.set_closed
+      arrays.IntervalArray.to_tuples
+
 
 .. _api.arrays.integer_na:
 
@@ -323,6 +350,7 @@ Pandas provides this through :class:`arrays.IntegerArray`.
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
    arrays.IntegerArray
 
@@ -414,6 +442,7 @@ be stored efficiently as a :class:`SparseArray`.
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
    SparseArray
 
