@@ -9,7 +9,7 @@ import numpy as np
 from pandas._libs.writers import convert_json_to_lines
 
 from pandas import DataFrame
-
+from typing import Union
 
 def _convert_to_line_delimits(s):
     """
@@ -25,8 +25,8 @@ def _convert_to_line_delimits(s):
     return convert_json_to_lines(s)
 
 
-def nested_to_record(ds, prefix="", sep=".", level=0,
-                     max_level=None):
+def nested_to_record(ds, prefix: str="", sep: str=".", level: int=0,
+                     max_level: int=None):
     """
 
     A simplified json_normalize
@@ -105,12 +105,12 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
     return new_ds
 
 
-def json_normalize(data, record_path=None, meta=None,
-                   meta_prefix=None,
-                   record_prefix=None,
+def json_normalize(data:dict, record_path: Union[str, list]=None, meta:Union[str, list]=None,
+                   meta_prefix: str=None,
+                   record_prefix: str=None,
                    errors='raise',
-                   sep='.',
-                   max_level=None):
+                   sep: str ='.',
+                   max_level: int=None):
     """
     Normalize semi-structured JSON data into a flat table.
 
