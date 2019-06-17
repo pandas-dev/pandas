@@ -221,7 +221,7 @@ You'll need to have at least python3.5 installed on your system.
    # Use an ENV_DIR of your choice. We'll use ~/virtualenvs/pandas-dev
    # Any parent directories should already exist
    python3 -m venv ~/virtualenvs/pandas-dev
-   # Activate the virtulaenv
+   # Activate the virtualenv
    . ~/virtualenvs/pandas-dev/bin/activate
 
    # Install the build dependencies
