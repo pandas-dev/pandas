@@ -142,8 +142,8 @@ def test_nat_iso_format(get_nat):
 
 @pytest.mark.parametrize("klass,expected", [
     (Timestamp, ["freqstr", "normalize", "to_julian_date", "to_period", "tz"]),
-    (Timedelta, ["components", "delta", "is_populated", "to_pytimedelta",
-                 "to_timedelta64", "view"])
+    (Timedelta, ["components", "delta", "is_populated", "resolution_string",
+                 "to_pytimedelta", "to_timedelta64", "view"])
 ])
 def test_missing_public_nat_methods(klass, expected):
     # see gh-17327
