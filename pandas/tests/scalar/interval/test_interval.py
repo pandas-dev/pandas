@@ -77,7 +77,7 @@ class TestInterval:
         (Timedelta('5S'), Timedelta('1H'), Timedelta('59M55S'))])
     def test_length(self, left, right, expected):
         # GH 18789
-        iv = Interval(left, right)
+        iv = Interval(left, right, 'both')
         result = iv.length
         assert result == expected
 
@@ -89,7 +89,7 @@ class TestInterval:
     @pytest.mark.parametrize('tz', (None, 'UTC', 'CET', 'US/Eastern'))
     def test_length_timestamp(self, tz, left, right, expected):
         # GH 18789
-        iv = Interval(Timestamp(left, tz=tz), Timestamp(right, tz=tz))
+        iv = Interval(Timestamp(left, tz=tz), Timestamp(right, tz=tz), 'both')
         result = iv.length
         expected = Timedelta(expected)
         assert result == expected
