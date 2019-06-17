@@ -910,12 +910,12 @@ class TestSeriesConstructors:
         assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("a", [
-            np.array(['2263-01-01'], dtype='datetime64[D]'),
-            np.array([datetime(2263, 1, 1)], dtype=object),
-            np.array([np.datetime64('2263-01-01', 'D')], dtype=object),
-            np.array(["2263-01-01"], dtype=object)
-        ], ids=['datetime64[D]', 'object-datetime.datetime',
-                'object-numpy-scalar', 'object-string'])
+        np.array(['2263-01-01'], dtype='datetime64[D]'),
+        np.array([datetime(2263, 1, 1)], dtype=object),
+        np.array([np.datetime64('2263-01-01', 'D')], dtype=object),
+        np.array(["2263-01-01"], dtype=object)
+    ], ids=['datetime64[D]', 'object-datetime.datetime',
+            'object-numpy-scalar', 'object-string'])
     def test_constructor_datetime_outofbound(self, a):
         # GH-26853 (+ bug GH-26206 out of bound non-ns unit)
 
