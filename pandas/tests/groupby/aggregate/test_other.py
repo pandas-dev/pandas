@@ -225,6 +225,7 @@ def test_agg_dict_renaming_deprecation():
     with tm.assert_produces_warning(FutureWarning) as w:
         df.groupby('A').B.agg({'foo': 'count'})
         assert "using a dict on a Series for aggregation" in str(w[0].message)
+        assert "named aggregation instead." in str(w[0].message)
 
 
 def test_agg_compat():

@@ -164,7 +164,10 @@ class TestSparseSeries(SharedWithSparse):
 
         # blocking
         expected = Series({'col': 'float64:sparse'})
-        result = df.ftypes
+
+        # GH 26705 - Assert .ftypes is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.ftypes
         tm.assert_series_equal(expected, result)
 
     def test_constructor_preserve_attr(self):

@@ -98,7 +98,7 @@ def _ensure_term(where, scope_level):
         where = wlist
     elif maybe_expression(where):
         where = Term(where, scope_level=level)
-    return where
+    return where if where is None or len(where) else None
 
 
 class PossibleDataLossError(Exception):

@@ -511,8 +511,10 @@ class TestDataFrameReprInfoEtc(TestData):
 3 2011-01-01 12:00:00-05:00  2011-04
 4 2011-01-01 13:00:00-05:00  2011-05"""
 
-        df = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
         assert repr(df) == exp
+
+        df2 = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
+        assert repr(df2) == exp
 
     @pytest.mark.parametrize('arg', [np.datetime64, np.timedelta64])
     @pytest.mark.parametrize('box, expected', [

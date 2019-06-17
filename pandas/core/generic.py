@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Callable, FrozenSet, List, Set
+from typing import Callable, FrozenSet, List, Optional, Set
 import warnings
 import weakref
 
@@ -15,7 +15,8 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import Timestamp, iNaT, properties
-from pandas.compat import set_function_name, to_str
+from pandas.compat import set_function_name
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -24,7 +25,7 @@ from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
-    ensure_int64, ensure_object, is_bool, is_bool_dtype,
+    ensure_int64, ensure_object, ensure_str, is_bool, is_bool_dtype,
     is_datetime64_any_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
     is_dict_like, is_extension_array_dtype, is_integer, is_list_like,
     is_number, is_numeric_dtype, is_object_dtype, is_period_arraylike,
@@ -34,6 +35,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
+from pandas._typing import Dtype
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -117,12 +119,17 @@ class NDFrame(PandasObject, SelectionMixin):
     ])  # type: FrozenSet[str]
     _metadata = []  # type: List[str]
     _is_copy = None
+    _data = None  # type: BlockManager
 
     # ----------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, data, axes=None, copy=False, dtype=None,
-                 fastpath=False):
+    def __init__(self,
+                 data: BlockManager,
+                 axes: Optional[List[Index]] = None,
+                 copy: bool = False,
+                 dtype: Optional[Dtype] = None,
+                 fastpath: bool = False):
 
         if not fastpath:
             if dtype is not None:
@@ -1570,11 +1577,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         axis = self._get_axis_number(axis)
 
-        if self.ndim > 2:
-            raise NotImplementedError(
-                "_is_level_reference is not implemented for {type}"
-                .format(type=type(self)))
-
         return (key is not None and
                 is_hashable(key) and
                 key in self.axes[axis].names and
@@ -1600,11 +1602,6 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         is_label: bool
         """
-        if self.ndim > 2:
-            raise NotImplementedError(
-                "_is_label_reference is not implemented for {type}"
-                .format(type=type(self)))
-
         axis = self._get_axis_number(axis)
         other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
 
@@ -1632,12 +1629,6 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         is_label_or_level: bool
         """
-
-        if self.ndim > 2:
-            raise NotImplementedError(
-                "_is_label_or_level_reference is not implemented for {type}"
-                .format(type=type(self)))
-
         return (self._is_level_reference(key, axis=axis) or
                 self._is_label_reference(key, axis=axis))
 
@@ -1659,11 +1650,6 @@ class NDFrame(PandasObject, SelectionMixin):
         ------
         ValueError: `key` is ambiguous
         """
-        if self.ndim > 2:
-            raise NotImplementedError(
-                "_check_label_or_level_ambiguity is not implemented for {type}"
-                .format(type=type(self)))
-
         axis = self._get_axis_number(axis)
         other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
 
@@ -1724,11 +1710,6 @@ class NDFrame(PandasObject, SelectionMixin):
             if `key` is ambiguous. This will become an ambiguity error in a
             future version
         """
-        if self.ndim > 2:
-            raise NotImplementedError(
-                "_get_label_or_level_values is not implemented for {type}"
-                .format(type=type(self)))
-
         axis = self._get_axis_number(axis)
         other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
 
@@ -1787,11 +1768,6 @@ class NDFrame(PandasObject, SelectionMixin):
         ValueError
             if any `keys` match neither a label nor a level
         """
-        if self.ndim > 2:
-            raise NotImplementedError(
-                "_drop_labels_or_levels is not implemented for {type}"
-                .format(type=type(self)))
-
         axis = self._get_axis_number(axis)
 
         # Validate keys
@@ -2786,27 +2762,12 @@ class NDFrame(PandasObject, SelectionMixin):
         Data variables:
             speed    (date, animal) int64 350 18 361 15
         """
-
-        try:
-            import xarray
-        except ImportError:
-            # Give a nice error message
-            raise ImportError("the xarray library is not installed\n"
-                              "you can install via conda\n"
-                              "conda install xarray\n"
-                              "or via pip\n"
-                              "pip install xarray\n")
+        xarray = import_optional_dependency("xarray")
 
         if self.ndim == 1:
             return xarray.DataArray.from_series(self)
-        elif self.ndim == 2:
+        else:
             return xarray.Dataset.from_dataframe(self)
-
-        # > 2 dims
-        coords = [(a, self._get_axis(a)) for a in self._AXIS_ORDERS]
-        return xarray.DataArray(self,
-                                coords=coords,
-                                )
 
     def to_latex(self, buf=None, columns=None, col_space=None, header=True,
                  index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -4607,12 +4568,12 @@ class NDFrame(PandasObject, SelectionMixin):
                 **{name: [r for r in items if r in labels]})
         elif like:
             def f(x):
-                return like in to_str(x)
+                return like in ensure_str(x)
             values = labels.map(f)
             return self.loc(axis=axis)[values]
         elif regex:
             def f(x):
-                return matcher.search(to_str(x)) is not None
+                return matcher.search(ensure_str(x)) is not None
             matcher = re.compile(regex)
             values = labels.map(f)
             return self.loc(axis=axis)[values]
@@ -5530,6 +5491,9 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return the ftypes (indication of sparse/dense and dtype) in DataFrame.
 
+        .. deprecated:: 0.25.0
+           Use :func:`dtypes` instead.
+
         This returns a Series with the data type of each column.
         The result's index is the original DataFrame's columns. Columns
         with mixed types are stored with the ``object`` dtype.  See
@@ -5567,6 +5531,11 @@ class NDFrame(PandasObject, SelectionMixin):
         3    float64:sparse
         dtype: object
         """
+        warnings.warn("DataFrame.ftypes is deprecated and will "
+                      "be removed in a future version. "
+                      "Use DataFrame.dtypes instead.",
+                      FutureWarning, stacklevel=2)
+
         from pandas import Series
         return Series(self._data.get_ftypes(), index=self._info_axis,
                       dtype=np.object_)
@@ -5697,11 +5666,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                    'the key in Series dtype mappings.')
                 new_type = dtype[self.name]
                 return self.astype(new_type, copy, errors, **kwargs)
-            elif self.ndim > 2:
-                raise NotImplementedError(
-                    'astype() only accepts a dtype arg of type dict when '
-                    'invoked on Series and DataFrames.'
-                )
+
             for col_name in dtype.keys():
                 if col_name not in self:
                     raise KeyError('Only a column name can be used for the '
@@ -6056,26 +6021,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 return result
 
-            # > 3d
-            if self.ndim > 3:
-                raise NotImplementedError('Cannot fillna with a method for > '
-                                          '3dims')
-
-            # 3d
-            elif self.ndim == 3:
-                # fill in 2d chunks
-                result = {col: s.fillna(method=method, value=value)
-                          for col, s in self.iteritems()}
-                prelim_obj = self._constructor.from_dict(result)
-                new_obj = prelim_obj.__finalize__(self)
-                new_data = new_obj._data
-
-            else:
-                # 2d or less
-                new_data = self._data.interpolate(method=method, axis=axis,
-                                                  limit=limit, inplace=inplace,
-                                                  coerce=True,
-                                                  downcast=downcast)
+            new_data = self._data.interpolate(method=method, axis=axis,
+                                              limit=limit, inplace=inplace,
+                                              coerce=True,
+                                              downcast=downcast)
         else:
             if len(self._get_axis(axis)) == 0:
                 return self
@@ -6787,9 +6736,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
-        if self.ndim > 2:
-            raise NotImplementedError("Interpolate has not been implemented ")
-
         if axis == 0:
             ax = self._info_axis_name
             _maybe_transposed_self = self
@@ -6969,9 +6915,6 @@ class NDFrame(PandasObject, SelectionMixin):
         if is_series:
             if subset is not None:
                 raise ValueError("subset is not valid for Series")
-        elif self.ndim > 2:
-            raise NotImplementedError("asof is not implemented "
-                                      "for {type}".format(type=type(self)))
         else:
             if subset is None:
                 subset = self.columns
@@ -7545,7 +7488,7 @@ class NDFrame(PandasObject, SelectionMixin):
             aligned; see ``.align()`` method). If an ndarray is passed, the
             values are used as-is determine the groups. A label or list of
             labels may be passed to group by the columns in ``self``. Notice
-            that a tuple is interpreted a (single) key.
+            that a tuple is interpreted as a (single) key.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Split along rows (0) or columns (1).
         level : int, level name, or sequence of such, default None
@@ -8377,10 +8320,6 @@ class NDFrame(PandasObject, SelectionMixin):
         4    snake          NaN           NaN       NaN        5.0       NaN
         """
         axis = self._get_axis_number(axis)
-
-        if self.ndim > 2:
-            msg = "rank does not make sense when ndim > 2"
-            raise NotImplementedError(msg)
 
         if na_option not in {'keep', 'top', 'bottom'}:
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
@@ -10348,8 +10287,8 @@ numeric_only : bool, default None
 Returns
 -------
 %(name1)s or %(name2)s (if level specified)\
-%(see_also)s
-%(examples)s\
+%(see_also)s\
+%(examples)s
 """
 
 _num_ddof_doc = """
@@ -10492,7 +10431,8 @@ skipna : boolean, default True
 
 Returns
 -------
-%(name1)s or %(name2)s\n
+%(name1)s or %(name2)s
+
 See Also
 --------
 core.window.Expanding.%(accum_func_name)s : Similar functionality
@@ -10853,10 +10793,10 @@ True
 Series([], dtype: bool)
 """
 
-_shared_docs['stat_func_example'] = """\
+_shared_docs['stat_func_example'] = """
+
 Examples
 --------
-
 >>> idx = pd.MultiIndex.from_arrays([
 ...     ['warm', 'warm', 'cold', 'cold'],
 ...     ['dog', 'falcon', 'fish', 'spider']],
@@ -10885,8 +10825,7 @@ Name: legs, dtype: int64
 blooded
 warm    {level_output_0}
 cold    {level_output_1}
-Name: legs, dtype: int64
-"""
+Name: legs, dtype: int64"""
 
 _sum_examples = _shared_docs['stat_func_example'].format(
     stat_func='sum',
@@ -10896,6 +10835,7 @@ _sum_examples = _shared_docs['stat_func_example'].format(
     level_output_1=8)
 
 _sum_examples += """
+
 By default, the sum of an empty or all-NA Series is ``0``.
 
 >>> pd.Series([]).sum()  # min_count=0 is the default
@@ -10914,8 +10854,7 @@ empty series identically.
 0.0
 
 >>> pd.Series([np.nan]).sum(min_count=1)
-nan
-"""
+nan"""
 
 _max_examples = _shared_docs['stat_func_example'].format(
     stat_func='max',
@@ -10932,6 +10871,7 @@ _min_examples = _shared_docs['stat_func_example'].format(
     level_output_1=0)
 
 _stat_func_see_also = """
+
 See Also
 --------
 Series.sum : Return the sum.
@@ -10943,10 +10883,10 @@ DataFrame.sum : Return the sum over the requested axis.
 DataFrame.min : Return the minimum over the requested axis.
 DataFrame.max : Return the maximum over the requested axis.
 DataFrame.idxmin : Return the index of the minimum over the requested axis.
-DataFrame.idxmax : Return the index of the maximum over the requested axis.
-"""
+DataFrame.idxmax : Return the index of the maximum over the requested axis."""
 
-_prod_examples = """\
+_prod_examples = """
+
 Examples
 --------
 By default, the product of an empty or all-NA Series is ``1``
@@ -10966,8 +10906,7 @@ empty series identically.
 1.0
 
 >>> pd.Series([np.nan]).prod(min_count=1)
-nan
-"""
+nan"""
 
 _min_count_stub = """\
 min_count : int, default 0

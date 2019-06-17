@@ -1306,12 +1306,12 @@ def test_skip_group_keys():
     assert_series_equal(result, expected)
 
 
-def test_no_nonsense_name(frame):
+def test_no_nonsense_name(float_frame):
     # GH #995
-    s = frame['C'].copy()
+    s = float_frame['C'].copy()
     s.name = None
 
-    result = s.groupby(frame['A']).agg(np.sum)
+    result = s.groupby(float_frame['A']).agg(np.sum)
     assert result.name is None
 
 
