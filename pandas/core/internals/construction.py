@@ -549,59 +549,39 @@ def sanitize_array(data, index, dtype=None, copy=False,
         else:
             data = data.copy()
 
+    # extract ndarray or ExtensionArray, ensure we have no PandasArray
     data = extract_array(data, extract_numpy=True)
 
     # GH#846
     if isinstance(data, np.ndarray):
 
-        if dtype is not None:
-            subarr = np.array(data, copy=False)
-
+        if (dtype is not None
+                and is_float_dtype(data.dtype) and is_integer_dtype(dtype)):
             # possibility of nan -> garbage
-            if is_float_dtype(data.dtype) and is_integer_dtype(dtype):
-                try:
-                    subarr = _try_cast(data, True, dtype, copy,
-                                       True)
-                except ValueError:
-                    if copy:
-                        subarr = data.copy()
-            else:
-                subarr = _try_cast(data, True, dtype, copy, raise_cast_failure)
-        elif isinstance(data, Index):
-            # don't coerce Index types
-            # e.g. indexes can have different conversions (so don't fast path
-            # them)
-            # GH#6140
-            subarr = sanitize_index(data, index, copy=copy)
+            try:
+                subarr = _try_cast(data, dtype, copy, True)
+            except ValueError:
+                if copy:
+                    subarr = data.copy()
+                else:
+                    subarr = np.array(data, copy=False)
         else:
-
             # we will try to copy be-definition here
-            subarr = _try_cast(data, True, dtype, copy, raise_cast_failure)
+            subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
     elif isinstance(data, ExtensionArray):
-        if isinstance(data, ABCPandasArray):
-            # We don't want to let people put our PandasArray wrapper
-            # (the output of Series/Index.array), into a Series. So
-            # we explicitly unwrap it here.
-            subarr = data.to_numpy()
-        else:
-            subarr = data
-
-        # everything else in this block must also handle ndarray's,
-        # becuase we've unwrapped PandasArray into an ndarray.
-
+        # it is already ensured above this is not a PandasArray
+        subarr = data
         if dtype is not None:
-            subarr = data.astype(dtype)
-
+            subarr = subarr.astype(dtype)
         if copy:
-            subarr = data.copy()
+            subarr = subarr.copy()
         return subarr
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:
         if dtype is not None:
             try:
-                subarr = _try_cast(data, False, dtype, copy,
-                                   raise_cast_failure)
+                subarr = _try_cast(data, dtype, copy, raise_cast_failure)
             except Exception:
                 if raise_cast_failure:  # pragma: no cover
                     raise
@@ -616,9 +596,9 @@ def sanitize_array(data, index, dtype=None, copy=False,
     elif isinstance(data, range):
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype='int64')
-        subarr = _try_cast(arr, False, dtype, copy, raise_cast_failure)
+        subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
     else:
-        subarr = _try_cast(data, False, dtype, copy, raise_cast_failure)
+        subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
     # scalar like, GH
     if getattr(subarr, 'ndim', 0) == 0:
@@ -677,10 +657,10 @@ def sanitize_array(data, index, dtype=None, copy=False,
     return subarr
 
 
-def _try_cast(arr, take_fast_path, dtype, copy, raise_cast_failure):
+def _try_cast(arr, dtype, copy, raise_cast_failure):
 
     # perf shortcut as this is the most common case
-    if take_fast_path:
+    if isinstance(arr, np.ndarray):
         if maybe_castable(arr) and not copy and dtype is None:
             return arr
 
