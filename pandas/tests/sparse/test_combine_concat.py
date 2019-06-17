@@ -311,7 +311,7 @@ class TestSparseDataFrameConcat:
 
         res = pd.concat([sparse, sparse3], sort=True)
         exp = (pd.concat([self.dense1, self.dense3], sort=True)
-               .to_sparse(fill_value=0))
+                 .to_sparse(fill_value=0))
         exp._default_fill_value = np.nan
 
         tm.assert_sp_frame_equal(res, exp, check_kind=False,
@@ -319,7 +319,7 @@ class TestSparseDataFrameConcat:
 
         res = pd.concat([sparse3, sparse], sort=True)
         exp = (pd.concat([self.dense3, self.dense1], sort=True)
-               .to_sparse(fill_value=0))
+                 .to_sparse(fill_value=0))
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp, check_kind=False,
                                  consolidate_block_indices=True)
@@ -345,17 +345,11 @@ class TestSparseDataFrameConcat:
 
         for col in ['A', 'D']:
             res = pd.concat([sparse, sparse2[col]])
-            # GH 26557: DEPR
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                exp = pd.concat([self.dense1, self.dense2[col]]).to_sparse()
+            exp = pd.concat([self.dense1, self.dense2[col]]).to_sparse()
             tm.assert_sp_frame_equal(res, exp, check_kind=False)
 
             res = pd.concat([sparse2[col], sparse])
-            # GH 26557: DEPR
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                exp = pd.concat([self.dense2[col], self.dense1]).to_sparse()
+            exp = pd.concat([self.dense2[col], self.dense1]).to_sparse()
             tm.assert_sp_frame_equal(res, exp, check_kind=False)
 
         # fill_value = 0
@@ -364,21 +358,15 @@ class TestSparseDataFrameConcat:
 
         for col in ['C', 'D']:
             res = pd.concat([sparse, sparse2[col]])
-            # GH 26557: DEPR
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                exp = pd.concat([self.dense1,
-                                 self.dense2[col]]).to_sparse(fill_value=0)
+            exp = pd.concat([self.dense1,
+                             self.dense2[col]]).to_sparse(fill_value=0)
             exp._default_fill_value = np.nan
             tm.assert_sp_frame_equal(res, exp, check_kind=False,
                                      consolidate_block_indices=True)
 
             res = pd.concat([sparse2[col], sparse])
-            # GH 26557: DEPR
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                exp = pd.concat([self.dense2[col],
-                                 self.dense1]).to_sparse(fill_value=0)
+            exp = pd.concat([self.dense2[col],
+                             self.dense1]).to_sparse(fill_value=0)
             exp['C'] = res['C']
             exp._default_fill_value = np.nan
             tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True,
@@ -435,8 +423,7 @@ class TestSparseDataFrameConcat:
     def test_concat_sparse_dense_rows(self, fill_value, sparse_idx, dense_idx):
         frames = [self.dense1, self.dense2]
         sparse_frame = [frames[dense_idx],
-                        frames[sparse_idx]
-                        .to_sparse(fill_value=fill_value)]
+                        frames[sparse_idx].to_sparse(fill_value=fill_value)]
         dense_frame = [frames[dense_idx], frames[sparse_idx]]
 
         # This will try both directions sparse + dense and dense + sparse
@@ -463,8 +450,7 @@ class TestSparseDataFrameConcat:
         frames = [self.dense1, self.dense3]
 
         sparse_frame = [frames[dense_idx],
-                        frames[sparse_idx]
-                        .to_sparse(fill_value=fill_value)]
+                        frames[sparse_idx].to_sparse(fill_value=fill_value)]
         dense_frame = [frames[dense_idx], frames[sparse_idx]]
 
         # This will try both directions sparse + dense and dense + sparse

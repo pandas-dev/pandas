@@ -13,6 +13,7 @@ use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSparseSeriesFormatting:
 
     @property
@@ -20,10 +21,7 @@ class TestSparseSeriesFormatting:
         return '' if use_32bit_repr else ', dtype=int32'
 
     def test_sparse_max_row(self):
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            s = pd.Series([1, np.nan, np.nan, 3, np.nan]).to_sparse()
+        s = pd.Series([1, np.nan, np.nan, 3, np.nan]).to_sparse()
         result = repr(s)
         dfm = self.dtype_format_for_platform
         exp = ("0    1.0\n1    NaN\n2    NaN\n3    3.0\n"
@@ -33,10 +31,7 @@ class TestSparseSeriesFormatting:
         assert result == exp
 
     def test_sparsea_max_row_truncated(self):
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            s = pd.Series([1, np.nan, np.nan, 3, np.nan]).to_sparse()
+        s = pd.Series([1, np.nan, np.nan, 3, np.nan]).to_sparse()
         dfm = self.dtype_format_for_platform
 
         with option_context("display.max_rows", 3):
@@ -51,11 +46,8 @@ class TestSparseSeriesFormatting:
     def test_sparse_mi_max_row(self):
         idx = pd.MultiIndex.from_tuples([('A', 0), ('A', 1), ('B', 0),
                                          ('C', 0), ('C', 1), ('C', 2)])
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            s = pd.Series([1, np.nan, np.nan, 3, np.nan, np.nan],
-                          index=idx).to_sparse()
+        s = pd.Series([1, np.nan, np.nan, 3, np.nan, np.nan],
+                      index=idx).to_sparse()
         result = repr(s)
         dfm = self.dtype_format_for_platform
         exp = ("A  0    1.0\n   1    NaN\nB  0    NaN\n"
@@ -119,6 +111,7 @@ class TestSparseSeriesFormatting:
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseDataFrameFormatting:
 
     def test_sparse_frame(self):
@@ -127,10 +120,7 @@ class TestSparseDataFrameFormatting:
                            'B': [True, False, True, False, True],
                            'C': [0, 0, 3, 0, 5],
                            'D': [np.nan, np.nan, np.nan, 1, 2]})
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse = df.to_sparse()
+        sparse = df.to_sparse()
         assert repr(sparse) == repr(df)
 
         with option_context("display.max_rows", 3):

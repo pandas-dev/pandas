@@ -62,17 +62,12 @@ class TestSparseGroupBy:
 
 @pytest.mark.parametrize("fill_value", [0, np.nan])
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 def test_groupby_includes_fill_value(fill_value):
     # https://github.com/pandas-dev/pandas/issues/5078
     df = pd.DataFrame({'a': [fill_value, 1, fill_value, fill_value],
                        'b': [fill_value, 1, fill_value, fill_value]})
-    # GH 26557: DEPR
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        sdf = df.to_sparse(fill_value=fill_value)
+    sdf = df.to_sparse(fill_value=fill_value)
     result = sdf.groupby('a').sum()
-    # GH 26557: DEPR
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        expected = df.groupby('a').sum().to_sparse(fill_value=fill_value)
+    expected = df.groupby('a').sum().to_sparse(fill_value=fill_value)
     tm.assert_frame_equal(result, expected, check_index_type=False)

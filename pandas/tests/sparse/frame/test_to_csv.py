@@ -6,6 +6,7 @@ from pandas.util import testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseDataFrameToCsv:
     fill_values = [np.nan, 0, None, 1]
 
@@ -19,8 +20,5 @@ class TestSparseDataFrameToCsv:
             sdf.to_csv(path, index=False)
             df = read_csv(path, skip_blank_lines=False)
 
-            # GH 26557: DEPR
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                tm.assert_sp_frame_equal(df.to_sparse(fill_value=fill_value),
-                                         sdf)
+            tm.assert_sp_frame_equal(df.to_sparse(fill_value=fill_value),
+                                     sdf)
