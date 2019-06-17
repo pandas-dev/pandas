@@ -6,7 +6,8 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Any, Callable, FrozenSet, Iterator, List, Set, Union
+from typing import (
+    TYPE_CHECKING, Callable, FrozenSet, Iterator, List, Set, Union)
 import warnings
 import weakref
 
@@ -50,6 +51,12 @@ from pandas.core.ops import _align_method_FRAME
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
+
+if TYPE_CHECKING:
+    import sqlalchemy  # noqa: F401
+    import sqlite3  # noqa: F401
+
+    from pandas.io.sql import SQLTable  # noqa: F401
 
 # mypy confuses the `bool()`` method of NDFrame
 _bool = bool
@@ -2468,15 +2475,19 @@ class NDFrame(PandasObject, SelectionMixin):
     # dependency.
     def to_sql(self,
                name: str,
-               con: Any,
+               con: Union['sqlalchemy.engine.Engine', 'sqlite3.Connection'],
                schema: str = None,
                if_exists: str = 'fail',
                index: _bool = True,
                index_label: Union[str, List[str]] = None,
                chunksize: int = None,
                dtype: Dtype = None,
-               method: Union[str, Callable[[Any, Any, List[str],
-                                            Iterator[List]], None]] = None
+               method: Union[str,
+                             Callable[['SQLTable',
+                                       Union['sqlalchemy.engine.Engine',
+                                             'sqlite3.Connection'],
+                                       List[str], Iterator[List]], None]
+                             ] = None
                ) -> None:
         """
         Write records stored in a DataFrame to a SQL database.
@@ -2521,7 +2532,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             * None : Uses standard SQL ``INSERT`` clause (one per row).
             * 'multi': Pass multiple values in a single ``INSERT`` clause.
-            * callable with signature ``(pd_table, conn, keys, data_iter)``.
+            * callable with signature ``(pd_table, con, keys, data_iter)``.
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
