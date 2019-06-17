@@ -1112,12 +1112,13 @@ def roll_median_c(ndarray[float64_t] values, int64_t win, int64_t minp,
             if i == 0:
 
                 # setup
-                val = values[i]
-                if notnan(val):
-                    nobs += 1
-                    err = skiplist_insert(sl, val) != 1
-                    if err:
-                        break
+                for j in range(s, e):
+                    val = values[j]
+                    if notnan(val):
+                        nobs += 1
+                        err = skiplist_insert(sl, val) != 1
+                        if err:
+                            break
 
             else:
 
