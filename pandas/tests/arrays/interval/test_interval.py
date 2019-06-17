@@ -67,21 +67,28 @@ def test_repr_matches():
     assert a.replace("Index", "Array") == b
 
 
-def test_point_interval():
+def test_point_interval_illegal():
     match = "both/neither sides must be closed when left == right"
     for closed in ('left', 'right'):
         with pytest.raises(ValueError, match=match):
             pd.Interval(0, 0, closed)
 
+
+@pytest.mark.parametrize('left_interval, right_interval, result',
+                         [
+                             ((0, 1, "left"), (0, 0, "neither"), False),
+                             ((0, 1, "left"), (0, 0, "both"), True),
+                             ((0, 1, "right"), (1, 1, "neither"), False),
+                             ((0, 1, "right"), (1, 1, "both"), True),
+                             ((0, 1, "both"), (0, 0, "neither"), False),
+                             ((0, 1, "both"), (0, 0, "neither"), False),
+                             ((0, 1, "neither"), (1, 1, "both"), False),
+                             ((0, 1, "neither"), (1, 1, "both"), False),
+                         ])
+def test_point_interval(left_interval, right_interval, result):
     pd.Interval(0, 0, 'neither')  # no exception
     pd.Interval(0, 0, 'both')  # no exception
 
-    assert not pd.Interval(0, 1, "left").overlaps(pd.Interval(0, 0, "neither"))
-    assert pd.Interval(0, 1, "left").overlaps(pd.Interval(0, 0, "both"))
-    assert not pd.Interval(0, 1, "right").overlaps(
-        pd.Interval(1, 1, "neither"))
-    assert pd.Interval(0, 1, "right").overlaps(pd.Interval(1, 1, "both"))
-    assert not pd.Interval(0, 1, "both").overlaps(pd.Interval(0, 0, "neither"))
-    assert not pd.Interval(0, 1, "both").overlaps(pd.Interval(0, 0, "neither"))
-    assert not pd.Interval(0, 1, "neither").overlaps(pd.Interval(1, 1, "both"))
-    assert not pd.Interval(0, 1, "neither").overlaps(pd.Interval(1, 1, "both"))
+    a = Interval(*left_interval)
+    b = Interval(*right_interval)
+    assert result == a.overlaps(b)
