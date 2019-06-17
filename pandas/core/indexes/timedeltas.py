@@ -551,11 +551,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
 
         if isinstance(label, str):
             parsed = Timedelta(label)
-            lbound = parsed.round(parsed.resolution)
+            lbound = parsed.round(parsed.resolution_string)
             if side == 'left':
                 return lbound
             else:
-                return (lbound + to_offset(parsed.resolution) -
+                return (lbound + to_offset(parsed.resolution_string) -
                         Timedelta(1, 'ns'))
         elif ((is_integer(label) or is_float(label)) and
               not is_timedelta64_dtype(label)):

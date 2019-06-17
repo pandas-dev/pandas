@@ -16,5 +16,6 @@ from pandas.io.parsers import read_csv, read_fwf, read_table
 from pandas.io.pickle import read_pickle, to_pickle
 from pandas.io.pytables import HDFStore, read_hdf
 from pandas.io.sas import read_sas
+from pandas.io.spss import read_spss
 from pandas.io.sql import read_sql, read_sql_query, read_sql_table
 from pandas.io.stata import read_stata

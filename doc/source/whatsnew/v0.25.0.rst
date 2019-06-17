@@ -100,6 +100,7 @@ Other Enhancements
 - :class:`DatetimeIndex` and :class:`TimedeltaIndex` now have a ``mean`` method (:issue:`24757`)
 - :meth:`DataFrame.describe` now formats integer percentiles without decimal point (:issue:`26660`)
 - :func:`pandas.merge` now raises ``ValueError`` when either of ``left_on`` or ``right_on`` is not provided (:issue:`26855`)
+- Added support for reading SPSS .sav files using :func:`read_spss` (:issue:`26537`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -502,7 +503,7 @@ Other Deprecations
   Use the public attributes :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop` and :attr:`~RangeIndex.step` instead (:issue:`26581`).
 - The :meth:`Series.ftype`, :meth:`Series.ftypes` and :meth:`DataFrame.ftypes` methods are deprecated and will be removed in a future version.
   Instead, use :meth:`Series.dtype` and :meth:`DataFrame.dtypes` (:issue:`26705`).
-
+- :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
 
 .. _whatsnew_0250.prior_deprecations:
 
