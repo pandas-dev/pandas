@@ -10,6 +10,7 @@ VERSIONS = {
     "bottleneck": "1.2.1",
     "fastparquet": "0.2.1",
     "gcsfs": "0.1.0",
+    "lxml.etree": "3.8.0",
     "matplotlib": "2.2.2",
     "numexpr": "2.6.2",
     "openpyxl": "2.4.8",

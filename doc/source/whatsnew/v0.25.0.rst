@@ -422,6 +422,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+
 | fastparquet     | 0.2.1           |
 +-----------------+-----------------+
+| lxml            | 3.8.0           |
++-----------------+-----------------+
 | matplotlib      | 2.2.2           |
 +-----------------+-----------------+
 | openpyxl        | 2.4.8           |

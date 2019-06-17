@@ -12,8 +12,8 @@ dependencies:
   - html5lib
   - ipython
   - jinja2
-  - lxml=3.7.0
-  - matplotlib=3.0.2
+  - lxml=3.8.0
+  - matplotlib=3.0.*
   - nomkl
   - numexpr
   - numpy
