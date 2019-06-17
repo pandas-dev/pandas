@@ -1339,7 +1339,6 @@ class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self):
         """ we by definition have a TZ """
 
-        # TODO: double-check that ravel() here is OK
         values = self.values
         if values.ndim > 1:
             # 2D DatetimeArray; NB: DatetimeIndex.ravel() gives ndarray[int64]

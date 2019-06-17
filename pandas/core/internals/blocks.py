@@ -2307,8 +2307,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """
         values = self.values
         if is_object_dtype(dtype):
-            # TODO: should we just make _box_values work for 2D?
-            values = values._box_values(values._data.ravel())
+            values = values._box_values(values._data)
 
         values = np.asarray(values.ravel())
 
