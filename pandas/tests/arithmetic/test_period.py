@@ -16,9 +16,9 @@ import pandas.util.testing as tm
 
 from pandas.tseries.frequencies import to_offset
 
-
 # ------------------------------------------------------------------
 # Comparisons
+
 
 class TestPeriodArrayLikeComparisons:
     # Comparison tests for PeriodDtype vectors fully parametrized over
@@ -27,7 +27,6 @@ class TestPeriodArrayLikeComparisons:
 
     def test_compare_zerodim(self, box_with_array):
         # GH#26689 make sure we unbox zero-dimensional arrays
-        box = box_with_array
         xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
 
         pi = pd.period_range('2000', periods=4)
