@@ -6,6 +6,7 @@ import pandas.util.testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestPivotTable:
 
     def setup_method(self, method):
@@ -17,9 +18,7 @@ class TestPivotTable:
                                    'D': np.random.randn(8),
                                    'E': [np.nan, np.nan, 1, 2,
                                          np.nan, 1, np.nan, np.nan]})
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.sparse = self.dense.to_sparse()
+        self.sparse = self.dense.to_sparse()
 
     def test_pivot_table(self):
         res_sparse = pd.pivot_table(self.sparse, index='A', columns='B',

@@ -180,6 +180,7 @@ class TestSparseSeriesConcat:
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseDataFrameConcat:
 
     def setup_method(self, method):
@@ -201,112 +202,70 @@ class TestSparseDataFrameConcat:
 
     def test_concat(self):
         # fill_value = np.nan
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse = self.dense1.to_sparse()
-            sparse2 = self.dense2.to_sparse()
+        sparse = self.dense1.to_sparse()
+        sparse2 = self.dense2.to_sparse()
 
         res = pd.concat([sparse, sparse])
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense1, self.dense1]).to_sparse()
+        exp = pd.concat([self.dense1, self.dense1]).to_sparse()
         tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
         res = pd.concat([sparse2, sparse2])
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense2, self.dense2]).to_sparse()
+        exp = pd.concat([self.dense2, self.dense2]).to_sparse()
         tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
         res = pd.concat([sparse, sparse2])
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense1, self.dense2]).to_sparse()
+        exp = pd.concat([self.dense1, self.dense2]).to_sparse()
         tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
         res = pd.concat([sparse2, sparse])
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense2, self.dense1]).to_sparse()
+        exp = pd.concat([self.dense2, self.dense1]).to_sparse()
         tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
         # fill_value = 0
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse = self.dense1.to_sparse(fill_value=0)
-            sparse2 = self.dense2.to_sparse(fill_value=0)
+        sparse = self.dense1.to_sparse(fill_value=0)
+        sparse2 = self.dense2.to_sparse(fill_value=0)
 
         res = pd.concat([sparse, sparse])
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense1, self.dense1]).to_sparse(fill_value=0)
+        exp = pd.concat([self.dense1, self.dense1]).to_sparse(fill_value=0)
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
         res = pd.concat([sparse2, sparse2])
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense2, self.dense2]).to_sparse(fill_value=0)
+        exp = pd.concat([self.dense2, self.dense2]).to_sparse(fill_value=0)
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
         res = pd.concat([sparse, sparse2])
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense1, self.dense2]).to_sparse(fill_value=0)
+        exp = pd.concat([self.dense1, self.dense2]).to_sparse(fill_value=0)
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
         res = pd.concat([sparse2, sparse])
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense2, self.dense1]).to_sparse(fill_value=0)
+        exp = pd.concat([self.dense2, self.dense1]).to_sparse(fill_value=0)
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
     def test_concat_different_fill_value(self):
         # 1st fill_value will be used
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse = self.dense1.to_sparse()
-            sparse2 = self.dense2.to_sparse(fill_value=0)
+        sparse = self.dense1.to_sparse()
+        sparse2 = self.dense2.to_sparse(fill_value=0)
 
         with tm.assert_produces_warning(PerformanceWarning,
                                         raise_on_extra_warnings=False):
             res = pd.concat([sparse, sparse2])
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense1, self.dense2]).to_sparse()
+        exp = pd.concat([self.dense1, self.dense2]).to_sparse()
         tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
         with tm.assert_produces_warning(PerformanceWarning,
                                         raise_on_extra_warnings=False):
             res = pd.concat([sparse2, sparse])
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense2, self.dense1]).to_sparse(fill_value=0)
+        exp = pd.concat([self.dense2, self.dense1]).to_sparse(fill_value=0)
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
     def test_concat_different_columns_sort_warns(self):
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse = self.dense1.to_sparse()
-            sparse3 = self.dense3.to_sparse()
+        sparse = self.dense1.to_sparse()
+        sparse3 = self.dense3.to_sparse()
 
         # stacklevel is wrong since we have two FutureWarnings,
         # one for depr, one for sorting.
@@ -319,32 +278,20 @@ class TestSparseDataFrameConcat:
                                         raise_on_extra_warnings=False,):
             exp = pd.concat([self.dense1, self.dense3])
 
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = exp.to_sparse()
+        exp = exp.to_sparse()
         tm.assert_sp_frame_equal(res, exp, check_kind=False)
 
     def test_concat_different_columns(self):
         # fill_value = np.nan
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse = self.dense1.to_sparse()
-            sparse3 = self.dense3.to_sparse()
+        sparse = self.dense1.to_sparse()
+        sparse3 = self.dense3.to_sparse()
 
         res = pd.concat([sparse, sparse3], sort=True)
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense1, self.dense3], sort=True).to_sparse()
+        exp = pd.concat([self.dense1, self.dense3], sort=True).to_sparse()
         tm.assert_sp_frame_equal(res, exp, check_kind=False)
 
         res = pd.concat([sparse3, sparse], sort=True)
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense3, self.dense1], sort=True).to_sparse()
+        exp = pd.concat([self.dense3, self.dense1], sort=True).to_sparse()
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp, check_kind=False)
 
@@ -359,39 +306,27 @@ class TestSparseDataFrameConcat:
         tm.assert_frame_equal(res, exp)
 
     def test_concat_different_columns_buggy(self):
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse = self.dense1.to_sparse(fill_value=0)
-            sparse3 = self.dense3.to_sparse(fill_value=0)
+        sparse = self.dense1.to_sparse(fill_value=0)
+        sparse3 = self.dense3.to_sparse(fill_value=0)
 
         res = pd.concat([sparse, sparse3], sort=True)
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = (pd.concat([self.dense1, self.dense3], sort=True)
-                     .to_sparse(fill_value=0))
+        exp = (pd.concat([self.dense1, self.dense3], sort=True)
+               .to_sparse(fill_value=0))
         exp._default_fill_value = np.nan
 
         tm.assert_sp_frame_equal(res, exp, check_kind=False,
                                  consolidate_block_indices=True)
 
         res = pd.concat([sparse3, sparse], sort=True)
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = (pd.concat([self.dense3, self.dense1], sort=True)
-                     .to_sparse(fill_value=0))
+        exp = (pd.concat([self.dense3, self.dense1], sort=True)
+               .to_sparse(fill_value=0))
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp, check_kind=False,
                                  consolidate_block_indices=True)
 
         # different fill values
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse = self.dense1.to_sparse()
-            sparse3 = self.dense3.to_sparse(fill_value=0)
+        sparse = self.dense1.to_sparse()
+        sparse3 = self.dense3.to_sparse(fill_value=0)
         # each columns keeps its fill_value, thus compare in dense
         res = pd.concat([sparse, sparse3], sort=True)
         exp = pd.concat([self.dense1, self.dense3], sort=True)
@@ -405,11 +340,8 @@ class TestSparseDataFrameConcat:
 
     def test_concat_series(self):
         # fill_value = np.nan
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse = self.dense1.to_sparse()
-            sparse2 = self.dense2.to_sparse()
+        sparse = self.dense1.to_sparse()
+        sparse2 = self.dense2.to_sparse()
 
         for col in ['A', 'D']:
             res = pd.concat([sparse, sparse2[col]])
@@ -427,11 +359,8 @@ class TestSparseDataFrameConcat:
             tm.assert_sp_frame_equal(res, exp, check_kind=False)
 
         # fill_value = 0
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse = self.dense1.to_sparse(fill_value=0)
-            sparse2 = self.dense2.to_sparse(fill_value=0)
+        sparse = self.dense1.to_sparse(fill_value=0)
+        sparse2 = self.dense2.to_sparse(fill_value=0)
 
         for col in ['C', 'D']:
             res = pd.concat([sparse, sparse2[col]])
@@ -456,59 +385,38 @@ class TestSparseDataFrameConcat:
                                      check_kind=False)
 
     def test_concat_axis1(self):
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            # fill_value = np.nan
-            sparse = self.dense1.to_sparse()
-            sparse3 = self.dense3.to_sparse()
+        # fill_value = np.nan
+        sparse = self.dense1.to_sparse()
+        sparse3 = self.dense3.to_sparse()
 
         res = pd.concat([sparse, sparse3], axis=1)
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense1, self.dense3], axis=1).to_sparse()
+        exp = pd.concat([self.dense1, self.dense3], axis=1).to_sparse()
         tm.assert_sp_frame_equal(res, exp)
 
         res = pd.concat([sparse3, sparse], axis=1)
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense3, self.dense1], axis=1).to_sparse()
+        exp = pd.concat([self.dense3, self.dense1], axis=1).to_sparse()
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
         # fill_value = 0
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse = self.dense1.to_sparse(fill_value=0)
-            sparse3 = self.dense3.to_sparse(fill_value=0)
+        sparse = self.dense1.to_sparse(fill_value=0)
+        sparse3 = self.dense3.to_sparse(fill_value=0)
 
         res = pd.concat([sparse, sparse3], axis=1)
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense1, self.dense3],
-                            axis=1).to_sparse(fill_value=0)
+        exp = pd.concat([self.dense1, self.dense3],
+                        axis=1).to_sparse(fill_value=0)
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
         res = pd.concat([sparse3, sparse], axis=1)
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            exp = pd.concat([self.dense3, self.dense1],
-                            axis=1).to_sparse(fill_value=0)
+        exp = pd.concat([self.dense3, self.dense1],
+                        axis=1).to_sparse(fill_value=0)
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
         # different fill values
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse = self.dense1.to_sparse()
-            sparse3 = self.dense3.to_sparse(fill_value=0)
+        sparse = self.dense1.to_sparse()
+        sparse3 = self.dense3.to_sparse(fill_value=0)
         # each columns keeps its fill_value, thus compare in dense
         res = pd.concat([sparse, sparse3], axis=1)
         exp = pd.concat([self.dense1, self.dense3], axis=1)
@@ -526,12 +434,9 @@ class TestSparseDataFrameConcat:
                                                [1, 0]))
     def test_concat_sparse_dense_rows(self, fill_value, sparse_idx, dense_idx):
         frames = [self.dense1, self.dense2]
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse_frame = [frames[dense_idx],
-                            frames[sparse_idx]
-                            .to_sparse(fill_value=fill_value)]
+        sparse_frame = [frames[dense_idx],
+                        frames[sparse_idx]
+                        .to_sparse(fill_value=fill_value)]
         dense_frame = [frames[dense_idx], frames[sparse_idx]]
 
         # This will try both directions sparse + dense and dense + sparse
@@ -557,12 +462,9 @@ class TestSparseDataFrameConcat:
 
         frames = [self.dense1, self.dense3]
 
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sparse_frame = [frames[dense_idx],
-                            frames[sparse_idx]
-                            .to_sparse(fill_value=fill_value)]
+        sparse_frame = [frames[dense_idx],
+                        frames[sparse_idx]
+                        .to_sparse(fill_value=fill_value)]
         dense_frame = [frames[dense_idx], frames[sparse_idx]]
 
         # This will try both directions sparse + dense and dense + sparse

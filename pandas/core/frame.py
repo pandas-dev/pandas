@@ -1945,9 +1945,11 @@ class DataFrame(NDFrame):
                       "in a future version", FutureWarning, stacklevel=2)
 
         from pandas.core.sparse.api import SparseDataFrame
-        return SparseDataFrame(self._series, index=self.index,
-                               columns=self.columns, default_kind=kind,
-                               default_fill_value=fill_value)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="SparseDataFrame")
+            return SparseDataFrame(self._series, index=self.index,
+                                   columns=self.columns, default_kind=kind,
+                                   default_fill_value=fill_value)
 
     @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def to_stata(self, fname, convert_dates=None, write_index=True,

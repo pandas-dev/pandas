@@ -1503,9 +1503,11 @@ class TestSparseDataFrameAnalytics:
 
 
 def test_deprecated_to_dense():
+    # GH 26557
+    # Deprecated 0.25.0
+
     df = pd.DataFrame({"A": [1, np.nan, 3]})
 
-    # Deprecated 0.25.0
     with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
         sparse_df = pd.SparseDataFrame({"A": [1, np.nan, 3]})

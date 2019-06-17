@@ -431,7 +431,9 @@ class SparseSeries(Series):
     def to_dense(self):
         """
         Convert SparseSeries to a Series.
+
         .. deprecated:: 0.25.0
+
         Returns
         -------
         s : Series

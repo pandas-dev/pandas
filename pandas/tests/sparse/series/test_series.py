@@ -1648,6 +1648,9 @@ def test_block_deprecated():
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_deprecate_to_dense():
+    # GH 26557
+    # Deprecated 0.25.0
+
     ser = pd.Series([1, 2, 3])
     sparse_ser = pd.SparseSeries([1, 2, 3])
 

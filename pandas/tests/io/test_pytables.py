@@ -51,6 +51,12 @@ ignore_natural_naming_warning = pytest.mark.filterwarnings(
     "ignore:object name:tables.exceptions.NaturalNameWarning"
 )
 ignore_sparse = pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+ignore_dataframe_tosparse = pytest.mark.filterwarnings(
+    "ignore:DataFrame.to_sparse:FutureWarning"
+)
+ignore_series_tosparse = pytest.mark.filterwarnings(
+    "ignore:Series.to_sparse:FutureWarning"
+)
 
 # contextmanager to ensure the file cleanup
 
@@ -2245,56 +2251,40 @@ class TestHDFStore(Base):
                               check_index_type=False)
 
     @ignore_sparse
+    @ignore_series_tosparse
     def test_sparse_series(self):
 
         s = tm.makeStringSeries()
         s.iloc[3:5] = np.nan
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            ss = s.to_sparse()
+        ss = s.to_sparse()
         self._check_roundtrip(ss, tm.assert_series_equal,
                               check_series_type=True)
 
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            ss2 = s.to_sparse(kind='integer')
+        ss2 = s.to_sparse(kind='integer')
         self._check_roundtrip(ss2, tm.assert_series_equal,
                               check_series_type=True)
 
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            ss3 = s.to_sparse(fill_value=0)
+        ss3 = s.to_sparse(fill_value=0)
         self._check_roundtrip(ss3, tm.assert_series_equal,
                               check_series_type=True)
 
     @ignore_sparse
+    @ignore_dataframe_tosparse
     def test_sparse_frame(self):
 
         s = tm.makeDataFrame()
         s.iloc[3:5, 1:3] = np.nan
         s.iloc[8:10, -2] = np.nan
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            ss = s.to_sparse()
+        ss = s.to_sparse()
 
         self._check_double_roundtrip(ss, tm.assert_frame_equal,
                                      check_frame_type=True)
 
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            ss2 = s.to_sparse(kind='integer')
+        ss2 = s.to_sparse(kind='integer')
         self._check_double_roundtrip(ss2, tm.assert_frame_equal,
                                      check_frame_type=True)
 
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            ss3 = s.to_sparse(fill_value=0)
+        ss3 = s.to_sparse(fill_value=0)
         self._check_double_roundtrip(ss3, tm.assert_frame_equal,
                                      check_frame_type=True)
 
@@ -2619,16 +2609,14 @@ class TestHDFStore(Base):
             tm.assert_series_equal(store['a'], ts)
 
     @ignore_sparse
+    @ignore_dataframe_tosparse
     def test_sparse_with_compression(self):
 
         # GH 2931
 
         # make sparse dataframe
         arr = np.random.binomial(n=1, p=.01, size=(1000, 10))
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            df = DataFrame(arr).to_sparse(fill_value=0)
+        df = DataFrame(arr).to_sparse(fill_value=0)
 
         # case 1: store uncompressed
         self._check_double_roundtrip(df, tm.assert_frame_equal,

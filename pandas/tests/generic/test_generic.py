@@ -920,6 +920,7 @@ class TestNDFrame:
                 box._get_block_manager_axis(v)
 
     def test_deprecated_to_dense(self):
+        # GH 26557: DEPR
         # Deprecated 0.25.0
 
         df = pd.DataFrame({"A": [1, 2, 3]})

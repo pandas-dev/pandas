@@ -6,6 +6,7 @@ import pandas.util.testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseGroupBy:
 
     def setup_method(self, method):
@@ -17,10 +18,7 @@ class TestSparseGroupBy:
                                    'D': np.random.randn(8),
                                    'E': [np.nan, np.nan, 1, 2,
                                          np.nan, 1, np.nan, np.nan]})
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            self.sparse = self.dense.to_sparse()
+        self.sparse = self.dense.to_sparse()
 
     def test_first_last_nth(self):
         # tests for first / last / nth
@@ -31,12 +29,9 @@ class TestSparseGroupBy:
         sparse_grouped_last = sparse_grouped.last()
         sparse_grouped_nth = sparse_grouped.nth(1)
 
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            dense_grouped_first = dense_grouped.first().to_sparse()
-            dense_grouped_last = dense_grouped.last().to_sparse()
-            dense_grouped_nth = dense_grouped.nth(1).to_sparse()
+        dense_grouped_first = dense_grouped.first().to_sparse()
+        dense_grouped_last = dense_grouped.last().to_sparse()
+        dense_grouped_nth = dense_grouped.nth(1).to_sparse()
 
         # TODO: shouldn't these all be spares or not?
         tm.assert_frame_equal(sparse_grouped_first,
@@ -50,11 +45,8 @@ class TestSparseGroupBy:
         sparse_grouped = self.sparse.groupby('A')
         dense_grouped = self.dense.groupby('A')
 
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = sparse_grouped.mean().to_sparse()
-            expected = dense_grouped.mean().to_sparse()
+        result = sparse_grouped.mean().to_sparse()
+        expected = dense_grouped.mean().to_sparse()
 
         tm.assert_frame_equal(result, expected)
 
@@ -62,11 +54,8 @@ class TestSparseGroupBy:
         # tm.assert_frame_equal(sparse_grouped.sum(),
         #                       dense_grouped.sum())
 
-        # GH 26557: DEPR
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = sparse_grouped.count().to_sparse()
-            expected = dense_grouped.count().to_sparse()
+        result = sparse_grouped.count().to_sparse()
+        expected = dense_grouped.count().to_sparse()
 
         tm.assert_frame_equal(result, expected)
 
