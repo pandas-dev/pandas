@@ -1971,7 +1971,7 @@ class NDFrame(PandasObject, SelectionMixin):
         %(klass)s
             Dense %(klass)s.
         """
-        warnings.warn("NDFrame.to_dense is deprecated "
+        warnings.warn("DataFrame/Series.to_dense is deprecated "
                       "and will be removed in a future version",
                       FutureWarning, stacklevel=2)
         # compat
