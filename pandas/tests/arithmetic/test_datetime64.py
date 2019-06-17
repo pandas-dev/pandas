@@ -586,7 +586,50 @@ class TestDatetimeIndexComparisons:
     @pytest.mark.parametrize('op', [operator.eq, operator.ne,
                                     operator.gt, operator.ge,
                                     operator.lt, operator.le])
-    def test_comparison_tzawareness_compat(self, op, box_with_array):
+    def test_comparison_tzawareness_compat(self, op, box_df_fail):
+        # GH#18162
+        box = box_df_fail
+
+        dr = pd.date_range('2016-01-01', periods=6)
+        dz = dr.tz_localize('US/Pacific')
+
+        dr = tm.box_expected(dr, box)
+        dz = tm.box_expected(dz, box)
+
+        msg = 'Cannot compare tz-naive and tz-aware'
+        with pytest.raises(TypeError, match=msg):
+            op(dr, dz)
+
+        # FIXME: DataFrame case fails to raise for == and !=, wrong
+        #  message for inequalities
+        with pytest.raises(TypeError, match=msg):
+            op(dr, list(dz))
+        with pytest.raises(TypeError, match=msg):
+            op(dr, np.array(list(dz), dtype=object))
+        with pytest.raises(TypeError, match=msg):
+            op(dz, dr)
+
+        # FIXME: DataFrame case fails to raise for == and !=, wrong
+        #  message for inequalities
+        with pytest.raises(TypeError, match=msg):
+            op(dz, list(dr))
+        with pytest.raises(TypeError, match=msg):
+            op(dz, np.array(list(dr), dtype=object))
+
+        # Check that there isn't a problem aware-aware and naive-naive do not
+        # raise
+        assert_all(dr == dr)
+        assert_all(dz == dz)
+
+        # FIXME: DataFrame case fails to raise for == and !=, wrong
+        #  message for inequalities
+        assert (dr == list(dr)).all()
+        assert (dz == list(dz)).all()
+
+    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
+                                    operator.gt, operator.ge,
+                                    operator.lt, operator.le])
+    def test_comparison_tzawareness_compat_scalars(self, op, box_with_array):
         # GH#18162
         dr = pd.date_range('2016-01-01', periods=6)
         dz = dr.tz_localize('US/Pacific')
@@ -594,42 +637,12 @@ class TestDatetimeIndexComparisons:
         dr = tm.box_expected(dr, box_with_array)
         dz = tm.box_expected(dz, box_with_array)
 
-        msg = 'Cannot compare tz-naive and tz-aware'
-        with pytest.raises(TypeError, match=msg):
-            op(dr, dz)
-        if box_with_array is not pd.DataFrame:
-            # FIXME: DataFrame case fails to raise for == and !=, wrong
-            #  message for inequalities
-            with pytest.raises(TypeError, match=msg):
-                op(dr, list(dz))
-            with pytest.raises(TypeError, match=msg):
-                op(dr, np.array(list(dz), dtype=object))
-
-        with pytest.raises(TypeError, match=msg):
-            op(dz, dr)
-        if box_with_array is not pd.DataFrame:
-            # FIXME: DataFrame case fails to raise for == and !=, wrong
-            #  message for inequalities
-            with pytest.raises(TypeError, match=msg):
-                op(dz, list(dr))
-            with pytest.raises(TypeError, match=msg):
-                op(dz, np.array(list(dr), dtype=object))
-
-        # Check that there isn't a problem aware-aware and naive-naive do not
-        # raise
-        assert_all(dr == dr)
-        assert_all(dz == dz)
-        if box_with_array is not pd.DataFrame:
-            # FIXME: DataFrame case fails to raise for == and !=, wrong
-            #  message for inequalities
-            assert (dr == list(dr)).all()
-            assert (dz == list(dz)).all()
-
         # Check comparisons against scalar Timestamps
         ts = pd.Timestamp('2000-03-14 01:59')
         ts_tz = pd.Timestamp('2000-03-14 01:59', tz='Europe/Amsterdam')
 
         assert_all(dr > ts)
+        msg = 'Cannot compare tz-naive and tz-aware'
         with pytest.raises(TypeError, match=msg):
             op(dr, ts_tz)
 
