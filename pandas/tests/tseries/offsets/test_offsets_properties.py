@@ -71,7 +71,6 @@ def test_on_offset_implementations(dt, offset):
     assert offset.onOffset(dt) == (compare == dt)
 
 
-@pytest.mark.xfail  # TODO: reason?
 @given(gen_yqm_offset, gen_date_range)
 def test_apply_index_implementations(offset, rng):
     # offset.apply_index(dti)[i] should match dti[i] + offset
