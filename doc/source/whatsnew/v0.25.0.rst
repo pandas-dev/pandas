@@ -568,6 +568,7 @@ Datetimelike
 - Bug in :func:`to_datetime` which raises ``TypeError`` for ``format='%Y%m%d'`` when called for invalid integer dates with length >= 6 digits with ``errors='ignore'``
 - Bug when comparing a :class:`PeriodIndex` against a zero-dimensional numpy array (:issue:`26689`)
 - Bug where adding :class:`Timestamp` to a ``np.timedelta64`` object would raise instead of returning a :class:`Timestamp` (:issue:`24775`)
+- Bug where comparing a zero-dimensional numpy array containing a ``np.datetime64`` object to a :class:`Timestamp` would incorrect raise ``TypeError`` (:issue:`26916`)
 
 Timedelta
 ^^^^^^^^^
