@@ -137,13 +137,6 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
             columns = [0]
         if index is None:
             index = ibase.default_index(len(values))
-        if is_datetime64tz_dtype(values) and values.ndim == 1:
-            if isinstance(values, ABCDatetimeIndex):
-                values = values._data
-            if isinstance(values, ABCSeries):
-                values = values._values
-            values = values.reshape((1, len(values)))
-            # TODO: better place to do this?
         return arrays_to_mgr([values], columns, index, columns,
                              dtype=dtype)
 

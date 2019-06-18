@@ -3218,12 +3218,9 @@ def _safe_reshape(arr, new_shape):
     if isinstance(arr, ABCSeries):
         arr = arr._values
     if isinstance(arr, ABCDatetimeIndex):
-        # TODO: this should be done before we get here right?
         arr = arr._data
-    if not isinstance(arr, ABCExtensionArray):
-        arr = arr.reshape(new_shape)
-    if isinstance(arr, DatetimeArray):
-        # TODO: better place for this?
+    if (not isinstance(arr, ABCExtensionArray)
+            or isinstance(arr, DatetimeArray)):
         arr = arr.reshape(new_shape)
     return arr
 
