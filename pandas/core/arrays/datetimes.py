@@ -1066,7 +1066,8 @@ default 'raise'
         -------
         datetimes : ndarray
         """
-        return tslib.ints_to_pydatetime(self.asi8, tz=self.tz)
+        i8vals = self.asi8.ravel()
+        return tslib.ints_to_pydatetime(i8vals, tz=self.tz).reshape(self.shape)
 
     def normalize(self):
         """

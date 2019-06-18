@@ -135,8 +135,6 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
         # GH#19157
         if columns is None:
             columns = [0]
-        if index is None:
-            index = ibase.default_index(len(values))
         return arrays_to_mgr([values], columns, index, columns,
                              dtype=dtype)
 

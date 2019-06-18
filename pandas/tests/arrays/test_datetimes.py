@@ -239,6 +239,16 @@ class TestDatetimeArray:
         tm.assert_numpy_array_equal(result, expected)
 
 
+class Test2D:
+    def test_to_pydatetime_2d(self):
+        dti = pd.date_range('2000', periods=4, freq='D', tz='US/Central')
+        arr = dti._data
+
+        result = arr.reshape(2, 2).to_pydatetime()
+        expected = arr.to_pydatetime().reshape(2, 2)
+        tm.assert_numpy_array_equal(result, expected)
+
+
 class TestSequenceToDT64NS:
 
     def test_tz_dtype_mismatch_raises(self):
