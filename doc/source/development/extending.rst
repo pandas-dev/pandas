@@ -375,6 +375,15 @@ With this overview in hand, you hopefully have the necessary information in orde
 to develop rich, full-featured ExtensionArrays that seamlessly plug in to pandas.
 
 .. important::
+    You are not required to provide implementations for the full complemnt of Series
+    operations in your ExtensionArray. In fact, some of them may not even make sense
+    within your context. You amay also choose to ass implementations incrementally,
+    as the need arised.
+
+    TBD: should we have a standard way of signalling not supported instead of a
+    random AttributeError exception being thrown.
+
+.. important::
 
 The above description currently leads the state of the code considerably. Many Series
 methods need to be updated to conform to this model of EA support. If you find a
