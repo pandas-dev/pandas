@@ -742,6 +742,22 @@ class TestTimedeltas:
         assert not result.iloc[0].isna().all()
         assert result.iloc[1].isna().all()
 
+    def test_resolution_string(self):
+        assert Timedelta(days=1).resolution_string == 'D'
+        assert Timedelta(days=1, hours=6).resolution_string == 'H'
+        assert Timedelta(days=1, minutes=6).resolution_string == 'T'
+        assert Timedelta(days=1, seconds=6).resolution_string == 'S'
+        assert Timedelta(days=1, milliseconds=6).resolution_string == 'L'
+        assert Timedelta(days=1, microseconds=6).resolution_string == 'U'
+        assert Timedelta(days=1, nanoseconds=6).resolution_string == 'N'
+
+    def test_resolution_deprecated(self):
+        # GH#21344
+        td = Timedelta(days=4, hours=3)
+        with tm.assert_produces_warning(FutureWarning) as w:
+            td.resolution
+        assert "Use Timedelta.resolution_string instead" in str(w[0].message)
+
 
 @pytest.mark.parametrize('value, expected', [
     (Timedelta('10S'), True),
