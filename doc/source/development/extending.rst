@@ -341,8 +341,17 @@ most ufuncs without having to provide a special case for each. For an example, s
     def round(self, decimals=0, **kwds):
         pass
 
+An alternative approach to implementing individual functions, is to override
+`__getattr__` in your ExtensionArray, and to intercept requests for method
+names which you wish to support (such as `round`). For most functions,
+you can return a dynamiclly generated function, which simply calls
+the numpy function on your existing backing numeric array, wraps
+the result in your ExtensionArray, and returns it. This approach can
+reduce boilerplate significantly, but you do have to maintain a whitelist,
+and may require more than one case, based on signature.
 
-An alternative to providing individual functions, is to use the `__array_function__`
+
+A third possible approach, is to use the `__array_function__`
 mechanism introduced by [NEP18](https://www.numpy.org/neps/nep-0018-array-function-protocol.html).
 This is an opt-in mechanism in numpy 1.16 (by setting an environment variable), and
 is enabled by default starting with numpy 1.17. As of 1.17 it is still considered
