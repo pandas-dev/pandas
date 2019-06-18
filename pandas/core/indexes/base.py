@@ -229,7 +229,6 @@ class Index(IndexOpsMixin, PandasObject):
     _data = None
     _id = None
     name = None
-    asi8 = None
     _comparables = ['name']
     _attributes = ['name']
     _is_numeric_dtype = False
@@ -500,6 +499,18 @@ class Index(IndexOpsMixin, PandasObject):
 
     See each method's docstring.
     """
+
+    @property
+    def asi8(self):
+        """
+        Integer representation of the values.
+
+        Returns
+        -------
+        ndarray
+            An ndarray with int64 dtype.
+        """
+        return None
 
     @classmethod
     def _simple_new(cls, values, name=None, dtype=None, **kwargs):
