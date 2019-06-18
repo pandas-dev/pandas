@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
-from pandas.compat.numpy import _np_version_under1p16
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -175,8 +174,8 @@ class TestSparseArray:
     @pytest.mark.parametrize('format', ['coo', 'csc', 'csr'])
     @pytest.mark.parametrize('size', [
         pytest.param(0,
-                     marks=pytest.mark.skipif(_np_version_under1p16,
-                                              reason='NumPy-11383')),
+                     marks=td.skip_if_np_lt("1.16",
+                                            reason='NumPy-11383')),
         10
     ])
     @td.skip_if_no_scipy
@@ -870,7 +869,7 @@ class TestSparseArrayAnalytics:
         ([1, 2, 1], 1, 0),
         ([1.0, 2.0, 1.0], 1.0, 0.0)
     ])
-    @td.skip_if_np_lt_115  # prior didn't dispatch
+    @td.skip_if_np_lt("1.15")  # prior didn't dispatch
     def test_numpy_all(self, data, pos, neg):
         # GH 17570
         out = np.all(SparseArray(data))
@@ -916,7 +915,7 @@ class TestSparseArrayAnalytics:
         ([0, 2, 0], 2, 0),
         ([0.0, 2.0, 0.0], 2.0, 0.0)
     ])
-    @td.skip_if_np_lt_115  # prior didn't dispatch
+    @td.skip_if_np_lt("1.15")  # prior didn't dispatch
     def test_numpy_any(self, data, pos, neg):
         # GH 17570
         out = np.any(SparseArray(data))
