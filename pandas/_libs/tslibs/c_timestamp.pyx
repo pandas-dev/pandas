@@ -55,6 +55,9 @@ def maybe_integer_op_deprecated(obj):
 
 cdef class _Timestamp(datetime):
 
+    # higher than np.ndarray and np.matrix
+    __array_priority__ = 100
+
     def __hash__(_Timestamp self):
         if self.nanosecond:
             return hash(self.value)

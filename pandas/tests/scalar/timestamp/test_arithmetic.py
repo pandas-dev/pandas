@@ -112,3 +112,9 @@ class TestTimestampArithmetic:
         td64 = np.timedelta64(1, 'D')
         assert (ts + td64).freq == original_freq
         assert (ts - td64).freq == original_freq
+
+    def test_radd_timedelta64(self):
+        # GH#24775 timedelta64+Timestamp should not raise
+        ts = Timestamp.now()
+        td = np.timedelta64(3, 'h')
+        assert td + ts == ts + td
