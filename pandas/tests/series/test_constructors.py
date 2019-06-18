@@ -912,7 +912,8 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize("klass", [
         Series,
         lambda x, **kwargs: DataFrame({'a': x}, **kwargs)['a'],
-        lambda x, **kwargs: DataFrame(x, **kwargs)[0],
+        pytest.param(lambda x, **kwargs: DataFrame(x, **kwargs)[0],
+                     marks=pytest.mark.xfail),
         Index,
     ])
     @pytest.mark.parametrize("a", [
