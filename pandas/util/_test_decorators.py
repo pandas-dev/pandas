@@ -23,6 +23,7 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
+from distutils.version import LooseVersion
 import locale
 from typing import Optional
 
@@ -30,7 +31,7 @@ from _pytest.mark.structures import MarkDecorator
 import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
-from pandas.compat.numpy import _np_version_under1p15
+from pandas.compat.numpy import _np_version
 
 from pandas.core.computation.expressions import (
     _NUMEXPR_INSTALLED, _USE_NUMEXPR)
@@ -142,8 +143,6 @@ def skip_if_no(
 
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
-skip_if_np_lt_115 = pytest.mark.skipif(_np_version_under1p15,
-                                       reason="NumPy 1.15 or greater required")
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(),
                                  reason="matplotlib is present")
 skip_if_32bit = pytest.mark.skipif(is_platform_32bit(),
@@ -166,6 +165,13 @@ skip_if_no_ne = pytest.mark.skipif(not _USE_NUMEXPR,
                                    "installed->{installed}".format(
                                        enabled=_USE_NUMEXPR,
                                        installed=_NUMEXPR_INSTALLED))
+
+
+def skip_if_np_lt(ver_str, reason=None, *args, **kwds):
+    if reason is None:
+        reason = "NumPy %s or greater required" % ver_str
+    return pytest.mark.skipif(_np_version < LooseVersion(ver_str),
+                              reason=reason, *args, **kwds)
 
 
 def parametrize_fixture_doc(*args):

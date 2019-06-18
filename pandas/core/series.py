@@ -142,6 +142,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Override cache_readonly bc Series is mutable
     hasnans = property(base.IndexOpsMixin.hasnans.func,
                        doc=base.IndexOpsMixin.hasnans.__doc__)
+    _data = None  # type: SingleBlockManager
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -419,14 +420,30 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def ftype(self):
         """
         Return if the data is sparse|dense.
+
+        .. deprecated:: 0.25.0
+           Use :func:`dtype` instead.
         """
+        warnings.warn("Series.ftype is deprecated and will "
+                      "be removed in a future version. "
+                      "Use Series.dtype instead.",
+                      FutureWarning, stacklevel=2)
+
         return self._data.ftype
 
     @property
     def ftypes(self):
         """
         Return if the data is sparse|dense.
+
+        .. deprecated:: 0.25.0
+           Use :func:`dtypes` instead.
         """
+        warnings.warn("Series.ftypes is deprecated and will "
+                      "be removed in a future version. "
+                      "Use Series.dtype instead.",
+                      FutureWarning, stacklevel=2)
+
         return self._data.ftype
 
     @property
@@ -3729,6 +3746,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif is_datetime64_dtype(delegate):
             # use DatetimeIndex implementation to handle skipna correctly
             delegate = DatetimeIndex(delegate)
+        elif is_timedelta64_dtype(delegate) and hasattr(TimedeltaIndex, name):
+            # use TimedeltaIndex to handle skipna correctly
+            # TODO: remove hasattr check after TimedeltaIndex has `std` method
+            delegate = TimedeltaIndex(delegate)
 
         # dispatch to numpy arrays
         elif isinstance(delegate, np.ndarray):
