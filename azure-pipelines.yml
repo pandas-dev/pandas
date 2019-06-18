@@ -176,7 +176,6 @@ jobs:
       cd doc/build/html
       git remote add origin git@github.com:pandas-dev/pandas-dev.github.io.git
       git push -f origin master
-      exit 0  # FIXME this will leave the build green even if the step fails. To be removed when we are confident with this.
     displayName: 'Publish docs to GitHub pages'
     condition : |
       and(not(eq(variables['Build.Reason'], 'PullRequest')),
