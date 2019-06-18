@@ -1624,7 +1624,8 @@ class IndexCol:
         new_self.read_metadata(handler)
         return new_self
 
-    def convert(self, values, nan_rep, encoding, errors, start=None, stop=None):
+    def convert(self, values, nan_rep, encoding, errors, start=None,
+                stop=None):
         """ set the values from this selection: take = take ownership """
 
         # values is a recarray
@@ -1813,7 +1814,8 @@ class GenericIndexCol(IndexCol):
     def is_indexed(self):
         return False
 
-    def convert(self, values, nan_rep, encoding, errors, start=None, stop=None):
+    def convert(self, values, nan_rep, encoding, errors, start=None,
+                stop=None):
         """ set the values from this selection: take = take ownership
 
         Parameters
@@ -2173,7 +2175,8 @@ class DataCol(IndexCol):
                 raise ValueError("appended items dtype do not match existing "
                                  "items dtype in table!")
 
-    def convert(self, values, nan_rep, encoding, errors, start=None, stop=None):
+    def convert(self, values, nan_rep, encoding, errors, start=None,
+                stop=None):
         """set the data from this selection (and convert to the correct dtype
         if we can)
         """
