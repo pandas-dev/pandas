@@ -305,7 +305,7 @@ class TestDataFrameMissingData:
 
     def test_fillna_tzaware_different_column(self):
         # with timezone in another column
-        # GH 15522
+        # GH#15522
         df = pd.DataFrame({'A': pd.date_range('20130101', periods=4,
                                               tz='US/Eastern'),
                            'B': [1, 2, np.nan, np.nan]})

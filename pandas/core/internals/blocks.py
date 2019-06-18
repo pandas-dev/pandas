@@ -2411,12 +2411,9 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # Cannot currently calculate diff across multiple blocks since this
             # function is invoked via apply
             raise NotImplementedError
-        new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
-
-        # Reshape the new_values like how algos.diff does for timedelta data
-        new_values = new_values.reshape(1, -1)
-        new_values = new_values.astype('timedelta64[ns]')
-        return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
+        new_values = self.values - self.shift(n, axis=axis)[0].values
+        new_values = new_values.reshape(self.shape)
+        return [self.make_block(new_values)]
 
     def concat_same_type(self, to_concat, placement=None):
         # need to handle concat([tz1, tz2]) here, since DatetimeArray
@@ -2481,7 +2478,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         shifted_vals = vals1d.shift(periods=periods,
                                     fill_value=fill_value)
         outvals = shifted_vals.reshape(self.shape)
-        return [self.make_block_same_class(shifted_vals)]
+        return [self.make_block_same_class(outvals)]
 
     def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
         # TODO: We can use the base class directly if there ever comes a time
