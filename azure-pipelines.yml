@@ -146,6 +146,7 @@ jobs:
       git init
       touch .nojekyll
       echo "dev.pandas.io" > CNAME
+      printf "User-agent: *\nDisallow: /" > robots.txt
       git add --all .
       git config user.email "pandas-dev@python.org"
       git config user.name "pandas-docs-bot"
