@@ -181,7 +181,7 @@ def contains(cat, key, container):
     #  can't be in container either.
     try:
         loc = cat.categories.get_loc(key)
-    except KeyError:
+    except (KeyError, TypeError):
         return False
 
     # loc is the location of key in categories, but also the *value*

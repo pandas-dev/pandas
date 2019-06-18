@@ -229,7 +229,6 @@ class Index(IndexOpsMixin, PandasObject):
     _data = None
     _id = None
     name = None
-    asi8 = None
     _comparables = ['name']
     _attributes = ['name']
     _is_numeric_dtype = False
@@ -273,8 +272,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(data, RangeIndex):
             return RangeIndex(start=data, copy=copy, dtype=dtype, name=name)
         elif isinstance(data, range):
-            return RangeIndex.from_range(data, copy=copy, dtype=dtype,
-                                         name=name)
+            return RangeIndex.from_range(data, dtype=dtype, name=name)
 
         # categorical
         elif is_categorical_dtype(data) or is_categorical_dtype(dtype):
@@ -501,6 +499,18 @@ class Index(IndexOpsMixin, PandasObject):
 
     See each method's docstring.
     """
+
+    @property
+    def asi8(self):
+        """
+        Integer representation of the values.
+
+        Returns
+        -------
+        ndarray
+            An ndarray with int64 dtype.
+        """
+        return None
 
     @classmethod
     def _simple_new(cls, values, name=None, dtype=None, **kwargs):
@@ -1411,6 +1421,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def nlevels(self):
+        """
+        Number of levels.
+        """
         return 1
 
     def _sort_levels_monotonic(self):
@@ -1740,6 +1753,9 @@ class Index(IndexOpsMixin, PandasObject):
         return self.inferred_type in ['mixed']
 
     def holds_integer(self):
+        """
+        Whether the type is an integer type.
+        """
         return self.inferred_type in ['integer', 'mixed-integer']
 
     @cache_readonly
@@ -3966,6 +3982,9 @@ class Index(IndexOpsMixin, PandasObject):
         return self.is_object()
 
     def is_type_compatible(self, kind):
+        """
+        Whether the index type is compatible with the provided type.
+        """
         return kind == self.inferred_type
 
     _index_shared_docs['contains'] = """
@@ -4338,6 +4357,9 @@ class Index(IndexOpsMixin, PandasObject):
             return sorted_index
 
     def sort(self, *args, **kwargs):
+        """
+        Use sort_values instead.
+        """
         raise TypeError("cannot sort an Index object in-place, use "
                         "sort_values instead")
 
