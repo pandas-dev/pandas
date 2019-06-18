@@ -220,7 +220,7 @@ Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow cert
 
 .. _whatsnew_0150.memory:
 
-Memory Usage
+Memory usage
 ^^^^^^^^^^^^
 
 Implemented methods to find memory usage of a DataFrame. See the :ref:`FAQ <df-memory-usage>` for more. (:issue:`6852`).
@@ -339,7 +339,7 @@ Timezone handling improvements
 
 .. _whatsnew_0150.roll:
 
-Rolling/Expanding Moments improvements
+Rolling/expanding moments improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - :func:`rolling_min`, :func:`rolling_max`, :func:`rolling_cov`, and :func:`rolling_corr`
@@ -412,7 +412,7 @@ Rolling/Expanding Moments improvements
 
     s = pd.Series([10.5, 8.8, 11.4, 9.7, 9.3])
 
-  Behavior prior to 0.15.0:
+  behavior prior to 0.15.0:
 
   .. code-block:: ipython
 
@@ -770,7 +770,7 @@ Other notable API changes:
      s2 = s
      s += 1.5
 
-  Behavior prior to v0.15.0
+  behavior prior to v0.15.0
 
   .. code-block:: ipython
 
@@ -879,7 +879,7 @@ Other notable API changes:
 
 .. _whatsnew_0150.refactoring:
 
-Internal Refactoring
+Internal refactoring
 ^^^^^^^^^^^^^^^^^^^^
 
 In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
@@ -1109,7 +1109,7 @@ Performance
 
 .. _whatsnew_0150.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in pivot_table, when using margins and a dict aggfunc (:issue:`8349`)

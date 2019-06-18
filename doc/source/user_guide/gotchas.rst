@@ -75,10 +75,10 @@ See also :ref:`Categorical Memory Usage <categorical.memory>`.
 
 .. _gotchas.truth:
 
-Using If/Truth Statements with pandas
+Using if/truth statements with Pandas
 -------------------------------------
 
-pandas follows the NumPy convention of raising an error when you try to convert
+Pandas follows the NumPy convention of raising an error when you try to convert
 something to a ``bool``. This happens in an ``if``-statement or when using the
 boolean operations: ``and``, ``or``, and ``not``. It is not clear what the result
 of the following code should be:
@@ -317,7 +317,7 @@ See `this link <https://stackoverflow.com/questions/13592618/python-pandas-dataf
 for more information.
 
 
-Byte-Ordering Issues
+Byte-Ordering issues
 --------------------
 Occasionally you may have to deal with data that were created on a machine with
 a different byte order than the one on which you are running Python. A common

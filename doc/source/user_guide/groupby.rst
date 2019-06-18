@@ -146,7 +146,7 @@ columns:
 
     In [5]: grouped = df.groupby(get_letter_type, axis=1)
 
-pandas :class:`~pandas.Index` objects support duplicate values. If a
+Pandas :class:`~pandas.Index` objects support duplicate values. If a
 non-unique index is used as the group key in a groupby operation, all values
 for the same index value will be considered to be in one group and thus the
 output of aggregation functions will only contain unique index values:
@@ -321,7 +321,7 @@ Index level names may be supplied as keys.
 
 More on the ``sum`` function and aggregation later.
 
-Grouping DataFrame with Index Levels and Columns
+Grouping DataFrame with index levels and columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 A DataFrame may be grouped by a combination of columns and index levels by
 specifying the column names as strings and the index levels as ``pd.Grouper``
@@ -570,7 +570,7 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
 
 .. _groupby.aggregate.named:
 
-Named Aggregation
+Named aggregation
 ~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.25.0
@@ -1122,7 +1122,7 @@ can be used as group keys. If so, the order of the levels will be preserved:
 
 .. _groupby.specify:
 
-Grouping with a Grouper specification
+Grouping with a grouper specification
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You may need to specify a bit more data to properly group. You can
@@ -1404,7 +1404,7 @@ introduction <categorical>` and the
 
     dfg.groupby(["A", [0, 0, 0, 1, 1]]).ngroup()
 
-Groupby by Indexer to 'resample' data
+Groupby by indexer to 'resample' data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.
@@ -1422,7 +1422,7 @@ In the following examples, **df.index // 5** returns a binary array which is use
    df.index // 5
    df.groupby(df.index // 5).std()
 
-Returning a Series to propagate names
+Returning a series to propagate names
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Group DataFrame columns, compute a set of metrics and return a named Series.
