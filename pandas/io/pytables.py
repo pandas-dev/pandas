@@ -1829,8 +1829,8 @@ class GenericIndexCol(IndexCol):
         """
 
         start = start if start is not None else 0
-        stop = stop if stop is not None else self.table.nrows
-        stop = min(stop, self.table.nrows)
+        stop = min(stop, self.table.nrows) \
+            if stop is not None else self.table.nrows
         self.values = Int64Index(np.arange(stop - start))
 
         return self
