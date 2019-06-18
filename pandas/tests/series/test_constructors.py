@@ -909,6 +909,12 @@ class TestSeriesConstructors:
         expected = Series(pd.Timestamp(arg)).dt.tz_localize('CET')
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("klass", [
+        Series,
+        lambda x, **kwargs: DataFrame({'a': x}, **kwargs)['a'],
+        lambda x, **kwargs: DataFrame(x, **kwargs)[0],
+        Index,
+    ])
     @pytest.mark.parametrize("a", [
         np.array(['2263-01-01'], dtype='datetime64[D]'),
         np.array([datetime(2263, 1, 1)], dtype=object),
@@ -916,7 +922,7 @@ class TestSeriesConstructors:
         np.array(["2263-01-01"], dtype=object)
     ], ids=['datetime64[D]', 'object-datetime.datetime',
             'object-numpy-scalar', 'object-string'])
-    def test_constructor_datetime_outofbound(self, a):
+    def test_constructor_datetime_outofbound(self, a, klass):
         # GH-26853 (+ bug GH-26206 out of bound non-ns unit)
 
         # No dtype specified (dtype inference)
@@ -924,16 +930,16 @@ class TestSeriesConstructors:
         # and preserve original data
         if a.dtype.kind == 'M':
             with pytest.raises(pd.errors.OutOfBoundsDatetime):
-                pd.Series(a)
+                klass(a)
         else:
-            result = pd.Series(a)
+            result = klass(a)
             assert result.dtype == 'object'
             tm.assert_numpy_array_equal(result.to_numpy(), a)
 
         # Explicit dtype specified
         # Forced conversion fails for all -> all cases raise error
         with pytest.raises(pd.errors.OutOfBoundsDatetime):
-            pd.Series(a, dtype='datetime64[ns]')
+            klass(a, dtype='datetime64[ns]')
 
     def test_construction_interval(self):
         # construction from interval & array of intervals
