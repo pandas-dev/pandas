@@ -208,6 +208,176 @@ will
 2. call ``result = op(values, ExtensionArray)``
 3. re-box the result in a ``Series``
 
+:class:`~pandas.api.extensions.ExtensionArray` Series Operations Support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 0.25.0
+
+In addition to operators like `__mul__` and `__add__`, the pandas Series
+namespace provides a long list of useful operations such as :meth:`Series.round`,
+:meth:`Series.sum`, :meth:`Series.abs`, etc'. Some of these are handled by
+pandas own algorithm implementations (via a dispatch function), while others
+simply call an equivalent numpy function with data from the underlying array.
+In order to support this operations in a new ExtensionArray, you must provide
+an implementation for them.
+
+.. note::
+
+    There is a third category of operation which live on the `pandas`
+    namespace, for example `:meth:pd.concat`. There is an equivalent
+    numpy function `:meth:np.concatenate`, but this is not used. n
+    general, these function should just work with your EA, you do not
+    need to impelment more than the general EA interface.
+
+As of 0.25.0, the list of series operations which pandas' provides its own
+implementations are: :meth:`Series.any`, :meth:`Series.all`,
+:meth:`Series.min`, :meth:`Series.max`, :meth:`Series.sum`,
+:meth:`Series.mean`, :meth:`Series.median`, :meth:`Series.prod`
+(and its alias :meth:`Series.product`), :meth:`Series.std`,
+:meth:`Series.var`, :meth:`Series.sem`,
+:meth:`Series.kurt`, and :meth:`Series.skew`.
+
+In order to implement any of this functions, your ExtensionArray must include
+an Implementation of :meth:`ExtensionArray._reduce`. Once you provide an
+implementation of :meth:`ExtensionArray._reduce` which handles a particular
+method, calling the method on the Series will invoke the implementation
+on your ExtensionArray. All these methods are reduction functions, and
+so are expected to return a scalr value of some type. However it is perfectly
+acceptable to return some instance of an :class:`pandas.api.extensions.ExtensionDtype`.
+
+Series operations which are not handled by :meth:`ExtensionArray._reduce`,
+such as :meth:`Series.round`, will generally invoke an equivalent numpy
+function with your extension array as the argument. Pandas only guarantees
+that your array will be passed to a numpy function, it does not dictate
+how your ExtensionArray should interact with numpy's dispatch logic
+in order to achieve its goal, since there are several alternative ways
+of achieving similar results.
+
+However, the details of numpy's dispatch logic are not entirely simple, and
+there nuances which you should be aware of. For that reason, and in order to
+make it easier to create new pandas extensions, we will now cover some of
+possible approaches of dealing with numpy.
+
+The first alternative, and the simplest, is to simply provide an `__array__`
+method for your ExtensionArray. This is a standard numpy function documented
+here (TBD), which must return a numpy array equivalent of your ExtensionArray.
+This will usually be an array whose dtype is `object` and whose values are
+instances of some class which your ExtensionArray wraps into an array. For
+example, the pandas tests include an ExtensionArray example called
+`DecimalArray`, if it used this method, its `__array__` method would return an
+ndarray of `decimal.Decimal` objects.
+
+Implementing `__array__`  is easy, but it usually isn't satisfactory because
+it means most Series operations will return a Series of object dtype, instead
+of maintaining your ExtensionArray's dtype.
+
+The second approach is more involved, but it does a proper job of maintaining
+the ExtensionArray's dtype through operations. It requires a detailed
+understanding of how numpy functions operate on non ndarray objects.
+
+Just as pandas handles some operation via :meth:`ExtensionArray._reduce`
+and others by delegating to numpy, numpy makes a distinction between
+between two types of opersions: ufuncs (such as `np.floor`, `np.ceil`,
+and `np.abs`), and non-ufuncs (for example `np.round`, and `np.repeat`).
+
+We will deal with ufuncs first. You can find a list of numpy's ufuncs here
+(TBD). In order to support numpy ufuncs, a convenient approach is to implement
+numpy's `__array_ufunc__` interface, specified in
+[NEP13](https://www.numpy.org/neps/nep-0013-ufunc-overrides.html). In brief,
+if your ExtensionArray implements a compliant `__array_ufunc__` interface,
+when a numpy ufunc such as `np.floor` is invoked on your array, its
+implementation of `__array_ufunc__`  will bec called first and given the
+opportunity to compute the function. The return value needn't be a numpy
+ndarray (though it can be). In general, you want the return value to be an
+instance of your ExtensionArray. In some cases, your implementation can
+calculate the result itself (see for example TBD), or, if your ExtensionArray
+already has a numeric ndarray backing it, your implementation will itself
+invoke the numpy ufunc itself on it (see for example TBD). In either case,
+after computing the values, you will usually want to wrap the result as a new
+ExtensionArray instance and return it to the caller. Pandas will automatically
+use that Array as the backing ExtensionArray for a new Series object.
+
+.. note::
+    Before [NEP13](https://www.numpy.org/neps/nep-0013-ufunc-overrides.html),
+    numpy already provides a way of wrapping ufunc functions via `__array_prepare__`
+    and `__array_wrap__`, as documented in the Numpy docuemntation section
+    ["Subclassing Numpy"](http://docs.python.org/doc/numpy/user/basics.subclassing.html).
+    However, NEP13 seems to have largely superceded that mechanism.
+
+
+With ufuncs out of the way, we turn to the remaining numpy operations, such
+as `np.round`. The simplest way to support these operations is to simply
+implement a compatible method on your ExtensionArray. For example, if your
+ExtensionArray has a compatible `round` method on your ExtensionArray,
+When python involes `ser.round()`, :meth:``Series.round` will invoke
+`np.round(self.array)`, which will pass your ExtensionArray to the `np.round`
+method. Numpy will detect that your EA implements a compatible `round`
+and will invoke it to perform the operation. As in the ufunc case,
+your implemntation will generally perform the calculaion itself,
+or call numpy on its own acking numeric array, and in either case
+will wrap the result as a new instance of ExtensionArray and return that
+as a result. It is usually possible to write generic code to handle
+most ufuncs without having to provide a special case for each. For an example, see TBD.
+
+.. important::
+
+  When providing implementations of numpy functions such as `np.round`,
+  It essential that function signature is compatible with the numpy original.
+  Otherwise,, numpy will ignore it.
+
+  For example, the signature for `np.round` is `np.round(a, decimals=0, out=None)`.
+  if you implement a round function which omits the `out` keyword:
+
+.. code-block:: python
+
+    def round(self, decimals=0):
+        pass
+
+
+  numpy will ignore it. The following will work however:
+
+.. code-block:: python
+
+    def round(self, decimals=0, **kwds):
+        pass
+
+
+An alternative to providing individual functions, is to use the `__array_function__`
+mechanism introduced by [NEP18](https://www.numpy.org/neps/nep-0018-array-function-protocol.html).
+This is an opt-in mechanism in numpy 1.16 (by setting an environment variable), and
+is enabled by default starting with numpy 1.17. As of 1.17 it is still considered
+experimental, and its design is actively being revised. We will not discuss it further
+here, but it is certainly possible to make use of it to achieve the same goal. Your
+mileage may vary.
+
+.. important::
+    Implementing `__array_function__` is not a substitute for implementing `__array_ufunc__`.
+    The `__array_function__` mechanism complements (and to a degree copies) the`__array_ufunc__`
+    mechanism, by providing the same flexibility for non-ufuncs.
+
+.. important::
+    `__array_function__` is an "all-in" solution. That means that if you cannot mix it with
+    explicit implementations for some methods and using `__array_function__` for some.
+    If you both `__array_function__` and also provide an implementation of `round`, numpy
+    will invoke `__array_function__` for all the operations in the specification, **including**
+     `round`.
+
+With this overview in hand, you hopefully have the necessary information in order
+to develop rich, full-featured ExtensionArrays that seamlessly plug in to pandas.
+
+.. important::
+
+The above description currently leads the state of the code considerably. Many Series
+methods need to be updated to conform to this model of EA support. If you find a
+bug, or something else which does not behave as described, please report it to
+the pandas team by opening an issue.
+
+
+Formatting Extension Arrays
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+TBD
+
 .. _extending.extension.testing:
 
 Testing Extension Arrays
