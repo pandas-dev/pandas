@@ -123,7 +123,7 @@ jobs:
   timeoutInMinutes: 90
   steps:
   - script: |
-      echo '##vso[task.setvariable variable=ENV_FILE]ci/deps/travis-36-doc.yaml'
+      echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
     displayName: 'Setting environment variables'
 
   - script: |
