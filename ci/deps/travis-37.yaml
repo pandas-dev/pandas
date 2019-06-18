@@ -19,5 +19,6 @@ dependencies:
   - hypothesis>=3.58.0
   - s3fs
   - pip
+  - pyreadstat
   - pip:
     - moto
