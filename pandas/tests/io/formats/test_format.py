@@ -498,10 +498,10 @@ class TestDataFrameFormatting:
                       ('object', lambda x: '-{x!s}-'.format(x=x))]
         result = df.to_string(formatters=dict(formatters))
         result2 = df.to_string(formatters=list(zip(*formatters))[1])
-        assert result == ('  int  float    object\n'
-                          '0 0x1 [ 1.0]  -(1, 2)-\n'
-                          '1 0x2 [ 2.0]    -True-\n'
-                          '2 0x3 [ 3.0]   -False-')
+        assert result == ('   int   float    object\n'
+                          '0  0x1  [ 1.0]  -(1, 2)-\n'
+                          '1  0x2  [ 2.0]    -True-\n'
+                          '2  0x3  [ 3.0]   -False-')
         assert result == result2
 
     def test_to_string_with_datetime64_monthformatter(self):
@@ -511,7 +511,7 @@ class TestDataFrameFormatting:
         def format_func(x):
             return x.strftime('%Y-%m')
         result = x.to_string(formatters={'months': format_func})
-        expected = 'months\n0 2016-01\n1 2016-02'
+        expected = 'months\n0  2016-01\n1  2016-02'
         assert result.strip() == expected
 
     def test_to_string_with_datetime64_hourformatter(self):
@@ -523,7 +523,7 @@ class TestDataFrameFormatting:
             return x.strftime('%H:%M')
 
         result = x.to_string(formatters={'hod': format_func})
-        expected = 'hod\n0 10:10\n1 12:12'
+        expected = 'hod\n0  10:10\n1  12:12'
         assert result.strip() == expected
 
     def test_to_string_with_formatters_unicode(self):
@@ -2547,19 +2547,19 @@ class TestDatetime64Formatter:
 
     def test_mixed(self):
         x = Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), pd.NaT])
-        result = fmt.Datetime64Formatter(x).get_result()
+        result = fmt.format_array(x)
         assert result[0].strip() == "2013-01-01 00:00:00"
         assert result[1].strip() == "2013-01-01 12:00:00"
 
     def test_dates(self):
         x = Series([datetime(2013, 1, 1), datetime(2013, 1, 2), pd.NaT])
-        result = fmt.Datetime64Formatter(x).get_result()
+        result = fmt.format_array(x)
         assert result[0].strip() == "2013-01-01"
         assert result[1].strip() == "2013-01-02"
 
     def test_date_nanos(self):
         x = Series([Timestamp(200)])
-        result = fmt.Datetime64Formatter(x).get_result()
+        result = fmt.format_array(x)
         assert result[0].strip() == "1970-01-01 00:00:00.000000200"
 
     def test_dates_display(self):
@@ -2568,35 +2568,35 @@ class TestDatetime64Formatter:
         # make sure that we are consistently display date formatting
         x = Series(date_range('20130101 09:00:00', periods=5, freq='D'))
         x.iloc[1] = np.nan
-        result = fmt.Datetime64Formatter(x).get_result()
+        result = fmt.format_array(x)
         assert result[0].strip() == "2013-01-01 09:00:00"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-05 09:00:00"
 
         x = Series(date_range('20130101 09:00:00', periods=5, freq='s'))
         x.iloc[1] = np.nan
-        result = fmt.Datetime64Formatter(x).get_result()
+        result = fmt.format_array(x)
         assert result[0].strip() == "2013-01-01 09:00:00"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:04"
 
         x = Series(date_range('20130101 09:00:00', periods=5, freq='ms'))
         x.iloc[1] = np.nan
-        result = fmt.Datetime64Formatter(x).get_result()
+        result = fmt.format_array(x)
         assert result[0].strip() == "2013-01-01 09:00:00.000"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:00.004"
 
         x = Series(date_range('20130101 09:00:00', periods=5, freq='us'))
         x.iloc[1] = np.nan
-        result = fmt.Datetime64Formatter(x).get_result()
+        result = fmt.format_array(x)
         assert result[0].strip() == "2013-01-01 09:00:00.000000"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:00.000004"
 
         x = Series(date_range('20130101 09:00:00', periods=5, freq='N'))
         x.iloc[1] = np.nan
-        result = fmt.Datetime64Formatter(x).get_result()
+        result = fmt.format_array(x)
         assert result[0].strip() == "2013-01-01 09:00:00.000000000"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:00.000000004"
@@ -2607,9 +2607,8 @@ class TestDatetime64Formatter:
         def format_func(x):
             return x.strftime('%Y-%m')
 
-        formatter = fmt.Datetime64Formatter(x, formatter=format_func)
-        result = formatter.get_result()
-        assert result == ['2016-01', '2016-02']
+        result = fmt.format_array(x, formatter=format_func)
+        assert result == [' 2016-01', ' 2016-02']
 
     def test_datetime64formatter_hoursecond(self):
 
@@ -2619,9 +2618,8 @@ class TestDatetime64Formatter:
         def format_func(x):
             return x.strftime('%H:%M')
 
-        formatter = fmt.Datetime64Formatter(x, formatter=format_func)
-        result = formatter.get_result()
-        assert result == ['10:10', '12:12']
+        result = fmt.format_array(x, formatter=format_func)
+        assert result == [' 10:10', ' 12:12']
 
 
 class TestNaTFormatting:

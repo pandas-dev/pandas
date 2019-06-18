@@ -489,6 +489,14 @@ def test_frame_repr(data_missing):
     assert result == expected
 
 
+def test_frame_to_string_na_rep(data_missing):
+
+    df = pd.DataFrame({'A': data_missing})
+    result = df.to_string(na_rep='foo')
+    expected = '     A\n0  foo\n1    1'
+    assert result == expected
+
+
 def test_conversions(data_missing):
 
     # astype to object series

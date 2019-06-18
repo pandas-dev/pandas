@@ -1973,11 +1973,11 @@ class Categorical(ExtensionArray, PandasObject):
         from pandas.io.formats import format as fmt
         if len(self.categories) > max_categories:
             num = max_categories // 2
-            head = fmt.format_array(self.categories[:num], None)
-            tail = fmt.format_array(self.categories[-num:], None)
+            head = fmt.format_array(self.categories[:num])
+            tail = fmt.format_array(self.categories[-num:])
             category_strs = head + ["..."] + tail
         else:
-            category_strs = fmt.format_array(self.categories, None)
+            category_strs = fmt.format_array(self.categories)
 
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]

@@ -129,7 +129,7 @@ class CategoricalFormatter:
         return str(footer)
 
     def _get_formatted_values(self):
-        return format_array(self.categorical.get_values(), None,
+        return format_array(self.categorical.get_values(),
                             float_format=None, na_rep=self.na_rep)
 
     def to_string(self):
@@ -249,7 +249,7 @@ class SeriesFormatter:
 
     def _get_formatted_values(self):
         values_to_format = self.tr_series._formatting_values()
-        return format_array(values_to_format, None,
+        return format_array(values_to_format,
                             float_format=self.float_format, na_rep=self.na_rep)
 
     def to_string(self):
@@ -853,7 +853,7 @@ class DataFrameFormatter(TableFormatter):
 # Array formatters
 
 
-def format_array(values, formatter, float_format=None, na_rep='NaN',
+def format_array(values, formatter=None, float_format=None, na_rep='NaN',
                  digits=None, space=None, justify='right', decimal='.',
                  leading_space=None):
     """
@@ -884,6 +884,17 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
     """
 
     if is_datetime64_dtype(values.dtype):
+        if not isinstance(values, DatetimeIndex):
+            values = DatetimeIndex(values)
+
+    # we apply an optional formatter function passed as a parameter before
+    # applying additional formatting parameters. This allows EA to control
+    # formatting and also honour additional formatting options.
+    # We specify dtype and dispatch to GenericArrayFormatter.
+    if formatter is not None and callable(formatter):
+        values = np.array([formatter(x) for x in values], dtype=object)
+
+    if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
     elif is_datetime64tz_dtype(values):
         fmt_klass = Datetime64TZFormatter
@@ -908,7 +919,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         digits = get_option("display.precision")
 
     fmt_obj = fmt_klass(values, digits=digits, na_rep=na_rep,
-                        float_format=float_format, formatter=formatter,
+                        float_format=float_format,
                         space=space, justify=justify, decimal=decimal,
                         leading_space=leading_space)
 
@@ -917,14 +928,13 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
 
 class GenericArrayFormatter:
 
-    def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
+    def __init__(self, values, digits=7, na_rep='NaN',
                  space=12, float_format=None, justify='right', decimal='.',
                  quoting=None, fixed_width=True, leading_space=None):
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
         self.space = space
-        self.formatter = formatter
         self.float_format = float_format
         self.justify = justify
         self.decimal = decimal
@@ -937,10 +947,6 @@ class GenericArrayFormatter:
         return _make_fixed_width(fmt_values, self.justify)
 
     def _format_strings(self):
-        # shortcut
-        if self.formatter is not None:
-            return [' {}'.format(self.formatter(x)) for x in self.values]
-
         if self.float_format is None:
             float_format = get_option("display.float_format")
             if float_format is None:
@@ -950,9 +956,7 @@ class GenericArrayFormatter:
         else:
             float_format = self.float_format
 
-        formatter = (
-            self.formatter if self.formatter is not None else
-            (lambda x: pprint_thing(x, escape_chars=('\t', '\r', '\n'))))
+        formatter = lambda x: pprint_thing(x, escape_chars=('\t', '\r', '\n'))
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
@@ -1008,7 +1012,8 @@ class FloatArrayFormatter(GenericArrayFormatter):
     """
 
     def __init__(self, *args, **kwargs):
-        GenericArrayFormatter.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self.formatter = None
 
         # float_format is expected to be a string
         # formatter should be used to pass a function
@@ -1065,9 +1070,6 @@ class FloatArrayFormatter(GenericArrayFormatter):
         Returns the float values converted into strings using
         the parameters given at initialisation, as a numpy array
         """
-
-        if self.formatter is not None:
-            return np.array([self.formatter(x) for x in self.values])
 
         if self.fixed_width:
             threshold = get_option("display.chop_threshold")
@@ -1158,7 +1160,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 class IntArrayFormatter(GenericArrayFormatter):
 
     def _format_strings(self):
-        formatter = self.formatter or (lambda x: '{x: d}'.format(x=x))
+        formatter = lambda x: '{x: d}'.format(x=x)
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
 
@@ -1174,12 +1176,6 @@ class Datetime64Formatter(GenericArrayFormatter):
         """ we by definition have DO NOT have a TZ """
 
         values = self.values
-
-        if not isinstance(values, DatetimeIndex):
-            values = DatetimeIndex(values)
-
-        if self.formatter is not None and callable(self.formatter):
-            return [self.formatter(x) for x in values]
 
         fmt_values = format_array_from_datetime(
             values.asi8.ravel(),
@@ -1341,9 +1337,8 @@ class Datetime64TZFormatter(Datetime64Formatter):
 
         values = self.values.astype(object)
         is_dates_only = _is_dates_only(values)
-        formatter = (self.formatter or
-                     _get_format_datetime64(is_dates_only,
-                                            date_format=self.date_format))
+        formatter = _get_format_datetime64(is_dates_only,
+                                           date_format=self.date_format)
         fmt_values = [formatter(x) for x in values]
 
         return fmt_values
@@ -1357,9 +1352,8 @@ class Timedelta64Formatter(GenericArrayFormatter):
         self.box = box
 
     def _format_strings(self):
-        formatter = (self.formatter or
-                     _get_format_timedelta64(self.values, nat_rep=self.nat_rep,
-                                             box=self.box))
+        formatter = _get_format_timedelta64(self.values, nat_rep=self.nat_rep,
+                                            box=self.box)
         fmt_values = np.array([formatter(x) for x in self.values])
         return fmt_values
 

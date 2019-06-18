@@ -1041,7 +1041,7 @@ class Index(IndexOpsMixin, PandasObject):
                 result = result.tolist()
 
         else:
-            result = _trim_front(format_array(values, None, justify='left'))
+            result = _trim_front(format_array(values, justify='left'))
         return header + result
 
     def to_native_types(self, slicer=None, **kwargs):

@@ -315,7 +315,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def _formatter(self, boxed=False):
         def fmt(x):
             if isna(x):
-                return 'NaN'
+                return np.nan if boxed else 'NaN'
             return str(x)
         return fmt
 
