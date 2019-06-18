@@ -670,7 +670,6 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
         # count, remove nulls (from the index), and but the bins
         result = ii.value_counts(dropna=dropna)
-        result = result[result.index.notna()]
         result.index = result.index.astype('interval')
         result = result.sort_index()
 
@@ -678,8 +677,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         if dropna and (result.values == 0).all():
             result = result.iloc[0:0]
 
-        # normalizing is by len of all (regardless of dropna)
-        counts = np.array([len(ii)])
+        counts = np.array([result.sum()])
 
     else:
 

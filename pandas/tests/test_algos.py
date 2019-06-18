@@ -967,21 +967,28 @@ class TestValueCounts:
             expected = Series([2, 1, 1], index=[5., 10.3, np.nan])
             tm.assert_series_equal(result, expected)
 
-    def test_value_counts_normalized(self):
+    @pytest.mark.parametrize('dropna, vals, index', [
+        (False, [0.6, 0.2, 0.2], [np.nan, 2.0, 1.0]),
+        (True, [0.5, 0.5], [2.0, 1.0])])
+    def test_value_counts_normalized(self, dropna, vals, index):
         # GH12558
         s = Series([1, 2, np.nan, np.nan, np.nan])
         dtypes = (np.float64, np.object, 'M8[ns]')
         for t in dtypes:
             s_typed = s.astype(t)
-            result = s_typed.value_counts(normalize=True, dropna=False)
-            expected = Series([0.6, 0.2, 0.2],
-                              index=Series([np.nan, 2.0, 1.0], dtype=t))
+            result = s_typed.value_counts(normalize=True, dropna=dropna)
+            expected = Series(vals, index=Series(index, dtype=t))
             tm.assert_series_equal(result, expected)
 
-            result = s_typed.value_counts(normalize=True, dropna=True)
-            expected = Series([0.5, 0.5],
-                              index=Series([2.0, 1.0], dtype=t))
-            tm.assert_series_equal(result, expected)
+    @pytest.mark.parametrize('dropna, vals, tuples', [
+        (False, [0.5, 0.3, 0.2], [(-0.005, 2.0), (2.0, 4.0), np.nan]),
+        (True, [0.625, 0.375], [(-0.005, 2.0), (2.0, 4.0)])])
+    def test_value_counts_normalized_bins(self, dropna, vals, tuples):
+        # GH25970
+        s = Series([1, 1, 2, 0, 1, np.nan, 4, 4, np.nan, 3])
+        result = s.value_counts(normalize=True, bins=2, dropna=dropna)
+        expected = Series(vals, index=IntervalIndex.from_tuples(tuples))
+        tm.assert_series_equal(result, expected)
 
     def test_value_counts_uint64(self):
         arr = np.array([2**63], dtype=np.uint64)
