@@ -432,16 +432,10 @@ class SparseSeries(Series):
         """
         Convert SparseSeries to a Series.
 
-        .. deprecated:: 0.25.0
-
         Returns
         -------
         s : Series
         """
-        warnings.warn("SparseSeries.to_dense is deprecated "
-                      "and will be removed in a future version",
-                      FutureWarning, stacklevel=2)
-
         return Series(self.values.to_dense(), index=self.index,
                       name=self.name)
 
