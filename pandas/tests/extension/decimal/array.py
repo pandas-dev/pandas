@@ -5,12 +5,14 @@ import sys
 
 import numpy as np
 
-import pandas as pd
-from pandas.core.arrays import (ExtensionArray,
-                                ExtensionScalarOpsMixin)
 from pandas.core.dtypes.base import ExtensionDtype
 
+import pandas as pd
+from pandas.api.extensions import register_extension_dtype
+from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 
+
+@register_extension_dtype
 class DecimalDtype(ExtensionDtype):
     type = decimal.Decimal
     name = 'decimal'
@@ -74,6 +76,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         return cls(scalars)
 
     @classmethod
+    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+        return cls._from_sequence([decimal.Decimal(x) for x in strings],
+                                  dtype, copy)
+
+    @classmethod
     def _from_factorized(cls, values, original):
         return cls(values)
 
@@ -102,10 +109,12 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def astype(self, dtype, copy=True):
         if isinstance(dtype, type(self.dtype)):
             return type(self)(self._data, context=dtype.context)
-        return super(DecimalArray, self).astype(dtype, copy)
+        return np.asarray(self, dtype=dtype)
 
     def __setitem__(self, key, value):
         if pd.api.types.is_list_like(value):
+            if pd.api.types.is_scalar(key):
+                raise ValueError("setting an array element with a sequence.")
             value = [decimal.Decimal(v) for v in value]
         else:
             value = decimal.Decimal(value)
@@ -113,9 +122,6 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     def __len__(self):
         return len(self._data)
-
-    def __repr__(self):
-        return 'DecimalArray({!r})'.format(self._data)
 
     @property
     def nbytes(self):
@@ -130,6 +136,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     @property
     def _na_value(self):
         return decimal.Decimal('NaN')
+
+    def _formatter(self, boxed=False):
+        if boxed:
+            return "Decimal: {0}".format
+        return repr
 
     @classmethod
     def _concat_same_type(cls, to_concat):

@@ -1,9 +1,12 @@
+import os
+
+import numpy as np
 import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
+
 from pandas.io.sas.sasreader import read_sas
-import numpy as np
-import os
 
 # CSV versions of test xpt files were obtained using the R foreign library
 
@@ -17,7 +20,7 @@ def numeric_as_float(data):
             data[v] = data[v].astype(np.float64)
 
 
-class TestXport(object):
+class TestXport:
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):

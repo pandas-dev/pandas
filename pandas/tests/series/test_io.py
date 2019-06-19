@@ -1,23 +1,20 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
-from datetime import datetime
 import collections
-import pytest
+from datetime import datetime
+from io import StringIO
 
 import numpy as np
+import pytest
+
 import pandas as pd
-
-from pandas import Series, DataFrame
-
-from pandas.compat import StringIO, u
-from pandas.io.common import _get_handle
-from pandas.util.testing import (assert_series_equal, assert_almost_equal,
-                                 assert_frame_equal, ensure_clean)
+from pandas import DataFrame, Series
 import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal, ensure_clean)
+
+from pandas.io.common import _get_handle
 
 
-class TestSeriesToCSV():
+class TestSeriesToCSV:
 
     def read_csv(self, path, **kwargs):
         params = dict(squeeze=True, index_col=0,
@@ -120,7 +117,7 @@ class TestSeriesToCSV():
 
     def test_to_csv_unicode_index(self):
         buf = StringIO()
-        s = Series([u("\u05d0"), "d2"], index=[u("\u05d0"), u("\u05d1")])
+        s = Series(["\u05d0", "d2"], index=["\u05d0", "\u05d1"])
 
         s.to_csv(buf, encoding="UTF-8", header=False)
         buf.seek(0)
@@ -159,8 +156,8 @@ class TestSeriesToCSV():
                 name='X'), None),
         # GH 21241, 21118
         (Series(['abc', 'def', 'ghi'], name='X'), 'ascii'),
-        (Series(["123", u"你好", u"世界"], name=u"中文"), 'gb2312'),
-        (Series(["123", u"Γειά σου", u"Κόσμε"], name=u"Ελληνικά"), 'cp737')
+        (Series(["123", "你好", "世界"], name="中文"), 'gb2312'),
+        (Series(["123", "Γειά σου", "Κόσμε"], name="Ελληνικά"), 'cp737')
     ])
     def test_to_csv_compression(self, s, encoding, compression):
 
@@ -194,7 +191,7 @@ class TestSeriesToCSV():
                                                    encoding=encoding))
 
 
-class TestSeriesIO():
+class TestSeriesIO:
 
     def test_to_frame(self, datetime_series):
         datetime_series.name = None

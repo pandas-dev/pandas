@@ -1,14 +1,14 @@
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (DataFrame, Series, DatetimeIndex, MultiIndex, Index,
-                    date_range)
+from pandas import (DataFrame, Series, MultiIndex, Index, date_range,
+                    period_range)
 from .pandas_vb_common import lib
 
 
-class Reindex(object):
+class Reindex:
 
     def setup(self):
-        rng = DatetimeIndex(start='1/1/1970', periods=10000, freq='1min')
+        rng = date_range(start='1/1/1970', periods=10000, freq='1min')
         self.df = DataFrame(np.random.rand(10000, 10), index=rng,
                             columns=range(10))
         self.df['foo'] = 'bar'
@@ -33,21 +33,21 @@ class Reindex(object):
         self.s.reindex(self.s_subset.index)
 
 
-class ReindexMethod(object):
+class ReindexMethod:
 
-    params = ['pad', 'backfill']
-    param_names = ['method']
+    params = [['pad', 'backfill'], [date_range, period_range]]
+    param_names = ['method', 'constructor']
 
-    def setup(self, method):
+    def setup(self, method, constructor):
         N = 100000
-        self.idx = date_range('1/1/2000', periods=N, freq='1min')
+        self.idx = constructor('1/1/2000', periods=N, freq='1min')
         self.ts = Series(np.random.randn(N), index=self.idx)[::2]
 
-    def time_reindex_method(self, method):
+    def time_reindex_method(self, method, constructor):
         self.ts.reindex(self.idx, method=method)
 
 
-class Fillna(object):
+class Fillna:
 
     params = ['pad', 'backfill']
     param_names = ['method']
@@ -66,14 +66,14 @@ class Fillna(object):
         self.ts_float32.fillna(method=method)
 
 
-class LevelAlign(object):
+class LevelAlign:
 
     def setup(self):
         self.index = MultiIndex(
             levels=[np.arange(10), np.arange(100), np.arange(100)],
-            labels=[np.arange(10).repeat(10000),
-                    np.tile(np.arange(100).repeat(100), 10),
-                    np.tile(np.tile(np.arange(100), 100), 10)])
+            codes=[np.arange(10).repeat(10000),
+                   np.tile(np.arange(100).repeat(100), 10),
+                   np.tile(np.tile(np.arange(100), 100), 10)])
         self.df = DataFrame(np.random.randn(len(self.index), 4),
                             index=self.index)
         self.df_level = DataFrame(np.random.randn(100, 4),
@@ -86,7 +86,7 @@ class LevelAlign(object):
         self.df_level.reindex(self.index, level=1)
 
 
-class DropDuplicates(object):
+class DropDuplicates:
 
     params = [True, False]
     param_names = ['inplace']
@@ -130,7 +130,7 @@ class DropDuplicates(object):
         self.df_bool.drop_duplicates(inplace=inplace)
 
 
-class Align(object):
+class Align:
     # blog "pandas escaped the zoo"
     def setup(self):
         n = 50000
@@ -145,7 +145,7 @@ class Align(object):
         self.x + self.y
 
 
-class LibFastZip(object):
+class LibFastZip:
 
     def setup(self):
         N = 10000

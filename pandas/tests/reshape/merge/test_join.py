@@ -1,26 +1,19 @@
-# pylint: disable=E1103
-
-from warnings import catch_warnings
-from numpy.random import randn
 import numpy as np
+from numpy.random import randn
 import pytest
 
-import pandas as pd
-from pandas.compat import lrange
-import pandas.compat as compat
-from pandas.util.testing import assert_frame_equal
-from pandas import DataFrame, MultiIndex, Series, Index, merge, concat
-
 from pandas._libs import join as libjoin
-import pandas.util.testing as tm
-from pandas.tests.reshape.merge.test_merge import get_test_data, N, NGROUPS
 
+import pandas as pd
+from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
+from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal
 
 a_ = np.array
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-class TestJoin(object):
+class TestJoin:
 
     def setup_method(self, method):
         # aggregate multiple columns
@@ -195,38 +188,47 @@ class TestJoin(object):
         assert np.isnan(joined['three']['c'])
 
         # merge column not p resent
-        pytest.raises(KeyError, target.join, source, on='E')
+        with pytest.raises(KeyError, match="^'E'$"):
+            target.join(source, on='E')
 
         # overlap
         source_copy = source.copy()
         source_copy['A'] = 0
-        pytest.raises(ValueError, target.join, source_copy, on='A')
+        msg = ("You are trying to merge on float64 and object columns. If"
+               " you wish to proceed you should use pd.concat")
+        with pytest.raises(ValueError, match=msg):
+            target.join(source_copy, on='A')
 
     def test_join_on_fails_with_different_right_index(self):
-        with pytest.raises(ValueError):
-            df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
-                            'b': np.random.randn(3)})
-            df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
-                             'b': np.random.randn(10)},
-                            index=tm.makeCustomIndex(10, 2))
+        df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
+                        'b': np.random.randn(3)})
+        df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
+                         'b': np.random.randn(10)},
+                        index=tm.makeCustomIndex(10, 2))
+        msg = (r'len\(left_on\) must equal the number of levels in the index'
+               ' of "right"')
+        with pytest.raises(ValueError, match=msg):
             merge(df, df2, left_on='a', right_index=True)
 
     def test_join_on_fails_with_different_left_index(self):
-        with pytest.raises(ValueError):
-            df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
-                            'b': np.random.randn(3)},
-                           index=tm.makeCustomIndex(10, 2))
-            df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
-                             'b': np.random.randn(10)})
+        df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
+                        'b': np.random.randn(3)},
+                       index=tm.makeCustomIndex(3, 2))
+        df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
+                         'b': np.random.randn(10)})
+        msg = (r'len\(right_on\) must equal the number of levels in the index'
+               ' of "left"')
+        with pytest.raises(ValueError, match=msg):
             merge(df, df2, right_on='b', left_index=True)
 
     def test_join_on_fails_with_different_column_counts(self):
-        with pytest.raises(ValueError):
-            df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
-                            'b': np.random.randn(3)})
-            df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
-                             'b': np.random.randn(10)},
-                            index=tm.makeCustomIndex(10, 2))
+        df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
+                        'b': np.random.randn(3)})
+        df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
+                         'b': np.random.randn(10)},
+                        index=tm.makeCustomIndex(10, 2))
+        msg = r"len\(right_on\) must equal len\(left_on\)"
+        with pytest.raises(ValueError, match=msg):
             merge(df, df2, right_on='a', left_on=['a', 'b'])
 
     @pytest.mark.parametrize("wrong_type", [2, 'str', None, np.array([0, 1])])
@@ -237,9 +239,11 @@ class TestJoin(object):
         # Edited test to remove the Series object from test parameters
 
         df = DataFrame({'a': [1, 1]})
-        with tm.assert_raises_regex(TypeError, str(type(wrong_type))):
+        msg = ("Can only merge Series or DataFrame objects, a {} was passed"
+               .format(str(type(wrong_type))))
+        with pytest.raises(TypeError, match=msg):
             merge(wrong_type, df, left_on='a', right_on='a')
-        with tm.assert_raises_regex(TypeError, str(type(wrong_type))):
+        with pytest.raises(TypeError, match=msg):
             merge(df, wrong_type, left_on='a', right_on='a')
 
     def test_join_on_pass_vector(self):
@@ -401,8 +405,8 @@ class TestJoin(object):
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
         to_join = DataFrame(np.random.randn(10, 3), index=index,
                             columns=['j_one', 'j_two', 'j_three'])
@@ -533,7 +537,7 @@ class TestJoin(object):
 
         # smoke test
         joined = left.join(right, on='key', sort=False)
-        tm.assert_index_equal(joined.index, pd.Index(lrange(4)))
+        tm.assert_index_equal(joined.index, pd.Index(list(range(4))))
 
     def test_join_mixed_non_unique_index(self):
         # GH 12814, unorderable types in py3 with a non-unique index
@@ -603,7 +607,9 @@ class TestJoin(object):
         joined = df_list[0].join(df_list[1:], how='inner')
         _check_diff_index(df_list, joined, df.index[2:8])
 
-        pytest.raises(ValueError, df_list[0].join, df_list[1:], on='a')
+        msg = "Joining multiple DataFrames only supported for joining on index"
+        with pytest.raises(ValueError, match=msg):
+            df_list[0].join(df_list[1:], on='a')
 
     def test_join_many_mixed(self):
         df = DataFrame(np.random.randn(8, 4), columns=['A', 'B', 'C', 'D'])
@@ -644,91 +650,55 @@ class TestJoin(object):
                             'y_y', 'x_x', 'y_x', 'x_y', 'y_y']
         assert_frame_equal(dta, expected)
 
-    def test_panel_join(self):
-        with catch_warnings(record=True):
-            panel = tm.makePanel()
-            tm.add_nans(panel)
+    def test_join_multi_to_multi(self, join_type):
+        # GH 20475
+        leftindex = MultiIndex.from_product([list('abc'), list('xy'), [1, 2]],
+                                            names=['abc', 'xy', 'num'])
+        left = DataFrame({'v1': range(12)}, index=leftindex)
 
-            p1 = panel.iloc[:2, :10, :3]
-            p2 = panel.iloc[2:, 5:, 2:]
+        rightindex = MultiIndex.from_product([list('abc'), list('xy')],
+                                             names=['abc', 'xy'])
+        right = DataFrame({'v2': [100 * i for i in range(1, 7)]},
+                          index=rightindex)
 
-            # left join
-            result = p1.join(p2)
-            expected = p1.copy()
-            expected['ItemC'] = p2['ItemC']
-            tm.assert_panel_equal(result, expected)
+        result = left.join(right, on=['abc', 'xy'], how=join_type)
+        expected = (left.reset_index()
+                        .merge(right.reset_index(),
+                               on=['abc', 'xy'], how=join_type)
+                        .set_index(['abc', 'xy', 'num'])
+                    )
+        assert_frame_equal(expected, result)
 
-            # right join
-            result = p1.join(p2, how='right')
-            expected = p2.copy()
-            expected['ItemA'] = p1['ItemA']
-            expected['ItemB'] = p1['ItemB']
-            expected = expected.reindex(items=['ItemA', 'ItemB', 'ItemC'])
-            tm.assert_panel_equal(result, expected)
+        msg = (r'len\(left_on\) must equal the number of levels in the index'
+               ' of "right"')
+        with pytest.raises(ValueError, match=msg):
+            left.join(right, on='xy', how=join_type)
 
-            # inner join
-            result = p1.join(p2, how='inner')
-            expected = panel.iloc[:, 5:10, 2:3]
-            tm.assert_panel_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            right.join(left, on=['abc', 'xy'], how=join_type)
 
-            # outer join
-            result = p1.join(p2, how='outer')
-            expected = p1.reindex(major=panel.major_axis,
-                                  minor=panel.minor_axis)
-            expected = expected.join(p2.reindex(major=panel.major_axis,
-                                                minor=panel.minor_axis))
-            tm.assert_panel_equal(result, expected)
+    def test_join_on_tz_aware_datetimeindex(self):
+        # GH 23931, 26335
+        df1 = pd.DataFrame(
+            {
+                'date': pd.date_range(start='2018-01-01', periods=5,
+                                      tz='America/Chicago'),
+                'vals': list('abcde')
+            }
+        )
 
-    def test_panel_join_overlap(self):
-        with catch_warnings(record=True):
-            panel = tm.makePanel()
-            tm.add_nans(panel)
-
-            p1 = panel.loc[['ItemA', 'ItemB', 'ItemC']]
-            p2 = panel.loc[['ItemB', 'ItemC']]
-
-            # Expected index is
-            #
-            # ItemA, ItemB_p1, ItemC_p1, ItemB_p2, ItemC_p2
-            joined = p1.join(p2, lsuffix='_p1', rsuffix='_p2')
-            p1_suf = p1.loc[['ItemB', 'ItemC']].add_suffix('_p1')
-            p2_suf = p2.loc[['ItemB', 'ItemC']].add_suffix('_p2')
-            no_overlap = panel.loc[['ItemA']]
-            expected = no_overlap.join(p1_suf.join(p2_suf))
-            tm.assert_panel_equal(joined, expected)
-
-    def test_panel_join_many(self):
-        with catch_warnings(record=True):
-            tm.K = 10
-            panel = tm.makePanel()
-            tm.K = 4
-
-            panels = [panel.iloc[:2], panel.iloc[2:6], panel.iloc[6:]]
-
-            joined = panels[0].join(panels[1:])
-            tm.assert_panel_equal(joined, panel)
-
-            panels = [panel.iloc[:2, :-5],
-                      panel.iloc[2:6, 2:],
-                      panel.iloc[6:, 5:-7]]
-
-            data_dict = {}
-            for p in panels:
-                data_dict.update(p.iteritems())
-
-            joined = panels[0].join(panels[1:], how='inner')
-            expected = pd.Panel.from_dict(data_dict, intersect=True)
-            tm.assert_panel_equal(joined, expected)
-
-            joined = panels[0].join(panels[1:], how='outer')
-            expected = pd.Panel.from_dict(data_dict, intersect=False)
-            tm.assert_panel_equal(joined, expected)
-
-            # edge cases
-            pytest.raises(ValueError, panels[0].join, panels[1:],
-                          how='outer', lsuffix='foo', rsuffix='bar')
-            pytest.raises(ValueError, panels[0].join, panels[1:],
-                          how='right')
+        df2 = pd.DataFrame(
+            {
+                'date': pd.date_range(start='2018-01-03', periods=5,
+                                      tz='America/Chicago'),
+                'vals_2': list('tuvwx')
+            }
+        )
+        result = df1.join(df2.set_index('date'), on='date')
+        expected = df1.copy()
+        expected['vals_2'] = pd.Series([np.nan] * 2 + list('tuv'),
+                                       dtype=object)
+        assert_frame_equal(result, expected)
 
 
 def _check_join(left, right, result, join_col, how='left',
@@ -810,6 +780,6 @@ def _join_by_hand(a, b, how='left'):
 
     result_columns = a.columns.append(b.columns)
 
-    for col, s in compat.iteritems(b_re):
+    for col, s in b_re.items():
         a_re[col] = s
     return a_re.reindex(columns=result_columns)

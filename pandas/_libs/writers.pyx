@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 
@@ -16,14 +14,13 @@ from numpy cimport ndarray, uint8_t
 
 ctypedef fused pandas_string:
     str
-    unicode
     bytes
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def write_csv_rows(list data, ndarray data_index,
-                   int nlevels, ndarray cols, object writer):
+                   Py_ssize_t nlevels, ndarray cols, object writer):
     """
     Write the given data to the writer object, pre-allocating where possible
     for performance improvements.
@@ -36,21 +33,16 @@ def write_csv_rows(list data, ndarray data_index,
     cols : ndarray
     writer : object
     """
-    cdef:
-        int N, j, i, ncols
-        list rows
-        object val
-
     # In crude testing, N>100 yields little marginal improvement
-    N = 100
+    cdef:
+        Py_ssize_t i, j, k = len(data_index), N = 100, ncols = len(cols)
+        list rows
 
     # pre-allocate rows
-    ncols = len(cols)
-    rows = [[None] * (nlevels + ncols) for x in range(N)]
+    rows = [[None] * (nlevels + ncols) for _ in range(N)]
 
-    j = -1
     if nlevels == 1:
-        for j in range(len(data_index)):
+        for j in range(k):
             row = rows[j % N]
             row[0] = data_index[j]
             for i in range(ncols):
@@ -59,7 +51,7 @@ def write_csv_rows(list data, ndarray data_index,
             if j >= N - 1 and j % N == N - 1:
                 writer.writerows(rows)
     elif nlevels > 1:
-        for j in range(len(data_index)):
+        for j in range(k):
             row = rows[j % N]
             row[:nlevels] = list(data_index[j])
             for i in range(ncols):
@@ -68,7 +60,7 @@ def write_csv_rows(list data, ndarray data_index,
             if j >= N - 1 and j % N == N - 1:
                 writer.writerows(rows)
     else:
-        for j in range(len(data_index)):
+        for j in range(k):
             row = rows[j % N]
             for i in range(ncols):
                 row[i] = data[i][j]
@@ -90,8 +82,9 @@ def convert_json_to_lines(object arr):
     cdef:
         Py_ssize_t i = 0, num_open_brackets_seen = 0, length
         bint in_quotes = 0, is_escaping = 0
-        ndarray[uint8_t] narr
-        unsigned char v, comma, left_bracket, right_brack, newline
+        ndarray[uint8_t, ndim=1] narr
+        unsigned char val, newline, comma, left_bracket, right_bracket, quote
+        unsigned char backslash
 
     newline = ord('\n')
     comma = ord(',')
@@ -103,18 +96,18 @@ def convert_json_to_lines(object arr):
     narr = np.frombuffer(arr.encode('utf-8'), dtype='u1').copy()
     length = narr.shape[0]
     for i in range(length):
-        v = narr[i]
-        if v == quote and i > 0 and not is_escaping:
+        val = narr[i]
+        if val == quote and i > 0 and not is_escaping:
             in_quotes = ~in_quotes
-        if v == backslash or is_escaping:
+        if val == backslash or is_escaping:
             is_escaping = ~is_escaping
-        if v == comma:  # commas that should be \n
+        if val == comma:  # commas that should be \n
             if num_open_brackets_seen == 0 and not in_quotes:
                 narr[i] = newline
-        elif v == left_bracket:
+        elif val == left_bracket:
             if not in_quotes:
                 num_open_brackets_seen += 1
-        elif v == right_bracket:
+        elif val == right_bracket:
             if not in_quotes:
                 num_open_brackets_seen -= 1
 
@@ -128,16 +121,16 @@ def max_len_string_array(pandas_string[:] arr) -> Py_ssize_t:
     """ return the maximum size of elements in a 1-dim string array """
     cdef:
         Py_ssize_t i, m = 0, l = 0, length = arr.shape[0]
-        pandas_string v
+        pandas_string val
 
     for i in range(length):
-        v = arr[i]
-        if isinstance(v, str):
-            l = PyString_GET_SIZE(v)
-        elif isinstance(v, bytes):
-            l = PyBytes_GET_SIZE(v)
-        elif isinstance(v, unicode):
-            l = PyUnicode_GET_SIZE(v)
+        val = arr[i]
+        if isinstance(val, str):
+            l = PyString_GET_SIZE(val)
+        elif isinstance(val, bytes):
+            l = PyBytes_GET_SIZE(val)
+        elif isinstance(val, unicode):
+            l = PyUnicode_GET_SIZE(val)
 
         if l > m:
             m = l
@@ -159,7 +152,7 @@ def string_array_replace_from_nan_rep(
     they are 'nan_rep'. Return the same array.
     """
     cdef:
-        int length = arr.shape[0], i = 0
+        Py_ssize_t length = len(arr), i = 0
 
     if replace is None:
         replace = np.nan

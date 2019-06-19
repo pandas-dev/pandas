@@ -1,16 +1,14 @@
-# -*- coding: utf-8 -*-
-
-import pytest
-import dateutil
-import pytz  # noqa  # a test below uses pytz but only inside a `eval` call
-
-import pprint
 from distutils.version import LooseVersion
+import pprint
+
+import dateutil
+import pytest
+import pytz  # noqa  # a test below uses pytz but only inside a `eval` call
 
 from pandas import Timestamp
 
 
-class TestTimestampRendering(object):
+class TestTimestampRendering:
 
     # dateutil zone change (only matters for repr)
     if LooseVersion(dateutil.__version__) >= LooseVersion('2.6.0'):

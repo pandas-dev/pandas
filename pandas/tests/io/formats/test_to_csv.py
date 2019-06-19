@@ -1,18 +1,15 @@
-# -*- coding: utf-8 -*-
-
+import os
 import sys
 
+import numpy as np
 import pytest
 
-import os
-import numpy as np
 import pandas as pd
-
 from pandas import DataFrame, compat
 from pandas.util import testing as tm
 
 
-class TestToCSV(object):
+class TestToCSV:
 
     @pytest.mark.xfail((3, 6, 5) > sys.version_info >= (3, 5),
                        reason=("Python csv library bug "
@@ -47,18 +44,12 @@ class TestToCSV(object):
 
     def test_to_csv_defualt_encoding(self):
         # GH17097
-        df = DataFrame({'col': [u"AAAAA", u"ÄÄÄÄÄ", u"ßßßßß", u"聞聞聞聞聞"]})
+        df = DataFrame({'col': ["AAAAA", "ÄÄÄÄÄ", "ßßßßß", "聞聞聞聞聞"]})
 
         with tm.ensure_clean('test.csv') as path:
-            # the default to_csv encoding in Python 2 is ascii, and that in
-            # Python 3 is uft-8.
-            if pd.compat.PY2:
-                # the encoding argument parameter should be utf-8
-                with tm.assert_raises_regex(UnicodeEncodeError, 'ascii'):
-                    df.to_csv(path)
-            else:
-                df.to_csv(path)
-                tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
+            # the default to_csv encoding is uft-8.
+            df.to_csv(path)
+            tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
 
     def test_to_csv_quotechar(self):
         df = DataFrame({'col': [1, 2]})
@@ -85,7 +76,7 @@ $1$,$2$
                 assert f.read() == expected
 
         with tm.ensure_clean('test.csv') as path:
-            with tm.assert_raises_regex(TypeError, 'quotechar'):
+            with pytest.raises(TypeError, match='quotechar'):
                 df.to_csv(path, quoting=1, quotechar=None)
 
     def test_to_csv_doublequote(self):
@@ -103,7 +94,7 @@ $1$,$2$
 
         from _csv import Error
         with tm.ensure_clean('test.csv') as path:
-            with tm.assert_raises_regex(Error, 'escapechar'):
+            with pytest.raises(Error, match='escapechar'):
                 df.to_csv(path, doublequote=False)  # no escapechar set
 
     def test_to_csv_escapechar(self):
@@ -325,6 +316,25 @@ $1$,$2$
         exp = tm.convert_rows_list_to_csv_str(exp_rows)
         assert df.to_csv(index=False) == exp
 
+    @pytest.mark.parametrize("ind,expected", [
+        (pd.MultiIndex(levels=[[1.0]],
+                       codes=[[0]],
+                       names=["x"]),
+         "x,data\n1.0,1\n"),
+        (pd.MultiIndex(levels=[[1.], [2.]],
+                       codes=[[0], [0]],
+                       names=["x", "y"]),
+         "x,y,data\n1.0,2.0,1\n")
+    ])
+    @pytest.mark.parametrize("klass", [
+        pd.DataFrame, pd.Series
+    ])
+    def test_to_csv_single_level_multi_index(self, ind, expected, klass):
+        # see gh-19589
+        result = klass(pd.Series([1], ind, name="data")).to_csv(
+            line_terminator="\n", header=True)
+        assert result == expected
+
     def test_to_csv_string_array_ascii(self):
         # GH 10813
         str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]
@@ -339,15 +349,15 @@ $1$,$2$
             with open(path, 'r') as f:
                 assert f.read() == expected_ascii
 
-    @pytest.mark.xfail(strict=True)
+    @pytest.mark.xfail(strict=False)
     def test_to_csv_string_array_utf8(self):
         # GH 10813
         str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]
         df = pd.DataFrame(str_array)
         expected_utf8 = '''\
 ,names
-0,"[u'foo', u'bar']"
-1,"[u'baz', u'qux']"
+0,"['foo', 'bar']"
+1,"['baz', 'qux']"
 '''
         with tm.ensure_clean('unicode_test.csv') as path:
             df.to_csv(path, encoding='utf-8')
@@ -440,8 +450,7 @@ $1$,$2$
             with open(path, 'rb') as f:
                 assert f.read() == expected_crlf
 
-    @tm.capture_stdout
-    def test_to_csv_stdout_file(self):
+    def test_to_csv_stdout_file(self, capsys):
         # GH 21561
         df = pd.DataFrame([['foo', 'bar'], ['baz', 'qux']],
                           columns=['name_1', 'name_2'])
@@ -451,9 +460,9 @@ $1$,$2$
         expected_ascii = tm.convert_rows_list_to_csv_str(expected_rows)
 
         df.to_csv(sys.stdout, encoding='ascii')
-        output = sys.stdout.getvalue()
+        captured = capsys.readouterr()
 
-        assert output == expected_ascii
+        assert captured.out == expected_ascii
         assert not sys.stdout.closed
 
     @pytest.mark.xfail(
@@ -477,7 +486,6 @@ z
             with open(path, 'r') as f:
                 assert f.read() == expected
 
-    @pytest.mark.skipif(compat.PY2, reason="Test case for python3")
     def test_to_csv_write_to_open_file_with_newline_py3(self):
         # see gh-21696
         # see gh-20353
@@ -494,24 +502,6 @@ z
 
             with open(path, 'rb') as f:
                 assert f.read() == bytes(expected, 'utf-8')
-
-    @pytest.mark.skipif(compat.PY3, reason="Test case for python2")
-    def test_to_csv_write_to_open_file_with_newline_py2(self):
-        # see gh-21696
-        # see gh-20353
-        df = pd.DataFrame({'a': ['x', 'y', 'z']})
-        expected_rows = ["x",
-                         "y",
-                         "z"]
-        expected = ("manual header\n" +
-                    tm.convert_rows_list_to_csv_str(expected_rows))
-        with tm.ensure_clean('test.txt') as path:
-            with open(path, 'wb') as f:
-                f.write('manual header\n')
-                df.to_csv(f, header=None, index=None)
-
-            with open(path, 'rb') as f:
-                assert f.read() == expected
 
     @pytest.mark.parametrize("to_infer", [True, False])
     @pytest.mark.parametrize("read_infer", [True, False])

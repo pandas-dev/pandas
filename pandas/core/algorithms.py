@@ -2,41 +2,30 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
-from __future__ import division
-from warnings import warn, catch_warnings, simplefilter
 from textwrap import dedent
+from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
 
+from pandas._libs import algos, hashtable as htable, lib
+from pandas._libs.tslib import iNaT
+from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
+
 from pandas.core.dtypes.cast import (
-    maybe_promote, construct_1d_object_array_from_listlike)
-from pandas.core.dtypes.generic import (
-    ABCSeries, ABCIndex,
-    ABCIndexClass)
+    construct_1d_object_array_from_listlike, maybe_promote)
 from pandas.core.dtypes.common import (
-    is_array_like,
-    is_unsigned_integer_dtype, is_signed_integer_dtype,
-    is_integer_dtype, is_complex_dtype,
-    is_object_dtype,
-    is_extension_array_dtype,
-    is_categorical_dtype, is_sparse,
-    is_period_dtype,
-    is_numeric_dtype, is_float_dtype,
-    is_bool_dtype, needs_i8_conversion,
-    is_datetimetz,
-    is_datetime64_any_dtype, is_datetime64tz_dtype,
-    is_timedelta64_dtype, is_datetimelike,
-    is_interval_dtype, is_scalar, is_list_like,
-    ensure_platform_int, ensure_object,
-    ensure_float64, ensure_uint64,
-    ensure_int64)
+    ensure_float64, ensure_int64, ensure_object, ensure_platform_int,
+    ensure_uint64, is_array_like, is_bool_dtype, is_categorical_dtype,
+    is_complex_dtype, is_datetime64_any_dtype, is_datetime64tz_dtype,
+    is_datetimelike, is_extension_array_dtype, is_float_dtype, is_integer,
+    is_integer_dtype, is_interval_dtype, is_list_like, is_numeric_dtype,
+    is_object_dtype, is_period_dtype, is_scalar, is_signed_integer_dtype,
+    is_sparse, is_timedelta64_dtype, is_unsigned_integer_dtype,
+    needs_i8_conversion)
+from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
-from pandas._libs import algos, lib, hashtable as htable
-from pandas._libs.tslib import iNaT
-from pandas.util._decorators import (Appender, Substitution,
-                                     deprecate_kwarg)
 
 _shared_docs = {}
 
@@ -174,7 +163,7 @@ def _ensure_arraylike(values):
     ensure that we are arraylike if not already
     """
     if not is_array_like(values):
-        inferred = lib.infer_dtype(values)
+        inferred = lib.infer_dtype(values, skipna=False)
         if inferred in ['mixed', 'string', 'unicode']:
             if isinstance(values, tuple):
                 values = list(values)
@@ -211,8 +200,10 @@ def _get_hashtable_algo(values):
 
     if ndtype == 'object':
 
-        # its cheaper to use a String Hash Table than Object
-        if lib.infer_dtype(values) in ['string']:
+        # it's cheaper to use a String Hash Table than Object; we infer
+        # including nulls because that is the only difference between
+        # StringHashTable and ObjectHashtable
+        if lib.infer_dtype(values, skipna=False) in ['string']:
             ndtype = 'string'
         else:
             ndtype = 'object'
@@ -229,8 +220,10 @@ def _get_data_algo(values, func_map):
     values, dtype, ndtype = _ensure_data(values)
     if ndtype == 'object':
 
-        # its cheaper to use a String Hash Table than Object
-        if lib.infer_dtype(values) in ['string']:
+        # it's cheaper to use a String Hash Table than Object; we infer
+        # including nulls because that is the only difference between
+        # StringHashTable and ObjectHashtable
+        if lib.infer_dtype(values, skipna=False) in ['string']:
             ndtype = 'string'
 
     f = func_map.get(ndtype, func_map['object'])
@@ -293,10 +286,20 @@ def unique(values):
 
     Returns
     -------
-    unique values.
-      - If the input is an Index, the return is an Index
-      - If the input is a Categorical dtype, the return is a Categorical
-      - If the input is a Series/ndarray, the return will be an ndarray
+    numpy.ndarray or ExtensionArray
+
+        The return can be:
+
+        * Index : when the input is an Index
+        * Categorical : when the input is a Categorical dtype
+        * ndarray : when the input is a Series/ndarray
+
+        Return numpy.ndarray or ExtensionArray.
+
+    See Also
+    --------
+    Index.unique
+    Series.unique
 
     Examples
     --------
@@ -347,12 +350,6 @@ def unique(values):
 
     >>> pd.unique([('a', 'b'), ('b', 'a'), ('a', 'c'), ('b', 'a')])
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
-
-    See Also
-    --------
-    pandas.Index.unique
-    pandas.Series.unique
-
     """
 
     values = _ensure_arraylike(values)
@@ -367,14 +364,6 @@ def unique(values):
     table = htable(len(values))
     uniques = table.unique(values)
     uniques = _reconstruct_data(uniques, dtype, original)
-
-    if isinstance(original, ABCSeries) and is_datetime64tz_dtype(dtype):
-        # we are special casing datetime64tz_dtype
-        # to return an object array of tz-aware Timestamps
-
-        # TODO: it must return DatetimeArray with tz in pandas 2.0
-        uniques = uniques.astype(object).values
-
     return uniques
 
 
@@ -387,8 +376,8 @@ def isin(comps, values):
 
     Parameters
     ----------
-    comps: array-like
-    values: array-like
+    comps : array-like
+    values : array-like
 
     Returns
     -------
@@ -470,7 +459,7 @@ def _factorize_array(values, na_sentinel=-1, size_hint=None,
     (hash_klass, _), values = _get_data_algo(values, _hashtables)
 
     table = hash_klass(size_hint or len(values))
-    labels, uniques = table.factorize(values, na_sentinel=na_sentinel,
+    uniques, labels = table.factorize(values, na_sentinel=na_sentinel,
                                       na_value=na_value)
 
     labels = ensure_platform_int(labels)
@@ -509,8 +498,8 @@ _shared_docs['factorize'] = """
 
     See Also
     --------
-    pandas.cut : Discretize continuous-valued array.
-    pandas.unique : Find the unique value in an array.
+    cut : Discretize continuous-valued array.
+    unique : Find the unique value in an array.
 
     Examples
     --------
@@ -577,7 +566,7 @@ _shared_docs['factorize'] = """
         coerced to ndarrays before factorization.
     """),
     order=dedent("""\
-    order
+    order : None
         .. deprecated:: 0.23.0
 
            This parameter has no effect and is deprecated.
@@ -628,16 +617,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
     if sort and len(uniques) > 0:
         from pandas.core.sorting import safe_sort
-        try:
-            order = uniques.argsort()
-            order2 = order.argsort()
-            labels = take_1d(order2, labels, fill_value=na_sentinel)
-            uniques = uniques.take(order)
-        except TypeError:
-            # Mixed types, where uniques.argsort fails.
-            uniques, labels = safe_sort(uniques, labels,
-                                        na_sentinel=na_sentinel,
-                                        assume_unique=True)
+        uniques, labels = safe_sort(uniques, labels, na_sentinel=na_sentinel,
+                                    assume_unique=True, verify=False)
 
     uniques = _reconstruct_data(uniques, dtype, original)
 
@@ -1052,7 +1033,7 @@ def quantile(x, q, interpolation_method='fraction'):
 # select n        #
 # --------------- #
 
-class SelectN(object):
+class SelectN:
 
     def __init__(self, obj, n, keep):
         self.obj = obj
@@ -1123,6 +1104,10 @@ class SelectNSeries(SelectN):
                 # GH 21426: ensure reverse ordering at boundaries
                 arr -= 1
 
+            elif is_bool_dtype(pandas_dtype):
+                # GH 26154: ensure False is smaller than True
+                arr = 1 - (-arr)
+
         if self.keep == 'last':
             arr = arr[::-1]
 
@@ -1160,8 +1145,8 @@ class SelectNFrame(SelectN):
     """
 
     def __init__(self, obj, n, keep, columns):
-        super(SelectNFrame, self).__init__(obj, n, keep)
-        if not is_list_like(columns):
+        super().__init__(obj, n, keep)
+        if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
         columns = list(columns)
         self.columns = columns
@@ -1591,7 +1576,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     # dispatch to internal type takes
     if is_extension_array_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
-    elif is_datetimetz(arr):
+    elif is_datetime64tz_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_interval_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
@@ -1736,6 +1721,89 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
 
     func(arr, indexer, out=out, fill_value=fill_value)
     return out
+
+
+# ------------ #
+# searchsorted #
+# ------------ #
+
+def searchsorted(arr, value, side="left", sorter=None):
+    """
+    Find indices where elements should be inserted to maintain order.
+
+    .. versionadded:: 0.25.0
+
+    Find the indices into a sorted array `arr` (a) such that, if the
+    corresponding elements in `value` were inserted before the indices,
+    the order of `arr` would be preserved.
+
+    Assuming that `arr` is sorted:
+
+    ======  ================================
+    `side`  returned index `i` satisfies
+    ======  ================================
+    left    ``arr[i-1] < value <= self[i]``
+    right   ``arr[i-1] <= value < self[i]``
+    ======  ================================
+
+    Parameters
+    ----------
+    arr: array-like
+        Input array. If `sorter` is None, then it must be sorted in
+        ascending order, otherwise `sorter` must be an array of indices
+        that sort it.
+    value : array_like
+        Values to insert into `arr`.
+    side : {'left', 'right'}, optional
+        If 'left', the index of the first suitable location found is given.
+        If 'right', return the last such index.  If there is no suitable
+        index, return either 0 or N (where N is the length of `self`).
+    sorter : 1-D array_like, optional
+        Optional array of integer indices that sort array a into ascending
+        order. They are typically the result of argsort.
+
+    Returns
+    -------
+    array of ints
+        Array of insertion points with the same shape as `value`.
+
+    See Also
+    --------
+    numpy.searchsorted : Similar method from NumPy.
+    """
+    if sorter is not None:
+        sorter = ensure_platform_int(sorter)
+
+    if isinstance(arr, np.ndarray) and is_integer_dtype(arr) and (
+            is_integer(value) or is_integer_dtype(value)):
+        from .arrays.array_ import array
+        # if `arr` and `value` have different dtypes, `arr` would be
+        # recast by numpy, causing a slow search.
+        # Before searching below, we therefore try to give `value` the
+        # same dtype as `arr`, while guarding against integer overflows.
+        iinfo = np.iinfo(arr.dtype.type)
+        value_arr = np.array([value]) if is_scalar(value) else np.array(value)
+        if (value_arr >= iinfo.min).all() and (value_arr <= iinfo.max).all():
+            # value within bounds, so no overflow, so can convert value dtype
+            # to dtype of arr
+            dtype = arr.dtype
+        else:
+            dtype = value_arr.dtype
+
+        if is_scalar(value):
+            value = dtype.type(value)
+        else:
+            value = array(value, dtype=dtype)
+    elif not (is_object_dtype(arr) or is_numeric_dtype(arr) or
+              is_categorical_dtype(arr)):
+        from pandas.core.series import Series
+        # E.g. if `arr` is an array with dtype='datetime64[ns]'
+        # and `value` is a pd.Timestamp, we may need to convert value
+        value_ser = Series(value)._values
+        value = value_ser[0] if is_scalar(value) else value_ser
+
+    result = arr.searchsorted(value, side=side, sorter=sorter)
+    return result
 
 
 # ---- #

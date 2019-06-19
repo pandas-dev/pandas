@@ -1,17 +1,18 @@
 """
 This module implements clipboard handling on Windows using ctypes.
 """
-import time
 import contextlib
 import ctypes
-from ctypes import c_size_t, sizeof, c_wchar_p, get_errno, c_wchar
+from ctypes import c_size_t, c_wchar, c_wchar_p, get_errno, sizeof
+import time
+
 from .exceptions import PyperclipWindowsException
 
 
-class CheckedCall(object):
+class CheckedCall:
 
     def __init__(self, f):
-        super(CheckedCall, self).__setattr__("f", f)
+        super().__setattr__("f", f)
 
     def __call__(self, *args):
         ret = self.f(*args)
@@ -28,6 +29,7 @@ def init_windows_clipboard():
                                  HINSTANCE, HMENU, BOOL, UINT, HANDLE)
 
     windll = ctypes.windll
+    msvcrt = ctypes.CDLL('msvcrt')
 
     safeCreateWindowExA = CheckedCall(windll.user32.CreateWindowExA)
     safeCreateWindowExA.argtypes = [DWORD, LPCSTR, LPCSTR, DWORD, INT, INT,
@@ -69,6 +71,10 @@ def init_windows_clipboard():
     safeGlobalUnlock = CheckedCall(windll.kernel32.GlobalUnlock)
     safeGlobalUnlock.argtypes = [HGLOBAL]
     safeGlobalUnlock.restype = BOOL
+
+    wcslen = CheckedCall(msvcrt.wcslen)
+    wcslen.argtypes = [c_wchar_p]
+    wcslen.restype = UINT
 
     GMEM_MOVEABLE = 0x0002
     CF_UNICODETEXT = 13
@@ -128,13 +134,13 @@ def init_windows_clipboard():
                     # If the hMem parameter identifies a memory object,
                     # the object must have been allocated using the
                     # function with the GMEM_MOVEABLE flag.
-                    count = len(text) + 1
+                    count = wcslen(text) + 1
                     handle = safeGlobalAlloc(GMEM_MOVEABLE,
                                              count * sizeof(c_wchar))
                     locked_handle = safeGlobalLock(handle)
 
-                    ctypes.memmove(c_wchar_p(locked_handle),
-                                   c_wchar_p(text), count * sizeof(c_wchar))
+                    ctypes.memmove(c_wchar_p(locked_handle), c_wchar_p(text),
+                                   count * sizeof(c_wchar))
 
                     safeGlobalUnlock(handle)
                     safeSetClipboardData(CF_UNICODETEXT, handle)

@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 
-from pandas import (Categorical, Series, CategoricalIndex, date_range,
-                    period_range, timedelta_range)
-from pandas.compat import u, PY3
-from pandas.core.config import option_context
+from pandas import (
+    Categorical, CategoricalIndex, Series, date_range, option_context,
+    period_range, timedelta_range)
 from pandas.tests.arrays.categorical.common import TestCategorical
 
 
@@ -19,7 +16,7 @@ class TestCategoricalReprWithFactor(TestCategorical):
         assert actual == expected
 
 
-class TestCategoricalRepr(object):
+class TestCategoricalRepr:
 
     def test_big_print(self):
         factor = Categorical([0, 1, 2, 0, 1, 2] * 100, ['a', 'b', 'c'],
@@ -35,7 +32,6 @@ class TestCategoricalRepr(object):
     def test_empty_print(self):
         factor = Categorical([], ["a", "b", "c"])
         expected = ("[], Categories (3, object): [a, b, c]")
-        # hack because array_repr changed in numpy > 1.6.x
         actual = repr(factor)
         assert actual == expected
 
@@ -52,44 +48,39 @@ class TestCategoricalRepr(object):
     def test_print_none_width(self):
         # GH10087
         a = Series(Categorical([1, 2, 3, 4]))
-        exp = u("0    1\n1    2\n2    3\n3    4\n" +
-                "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
+        exp = ("0    1\n1    2\n2    3\n3    4\n"
+               "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
 
         with option_context("display.width", None):
             assert exp == repr(a)
 
     def test_unicode_print(self):
-        if PY3:
-            _rep = repr
-        else:
-            _rep = unicode  # noqa
-
         c = Categorical(['aaaaa', 'bb', 'cccc'] * 20)
-        expected = u"""\
+        expected = """\
 [aaaaa, bb, cccc, aaaaa, bb, ..., bb, cccc, aaaaa, bb, cccc]
 Length: 60
 Categories (3, object): [aaaaa, bb, cccc]"""
 
-        assert _rep(c) == expected
+        assert repr(c) == expected
 
-        c = Categorical([u'ああああ', u'いいいいい', u'ううううううう'] * 20)
-        expected = u"""\
+        c = Categorical(['ああああ', 'いいいいい', 'ううううううう'] * 20)
+        expected = """\
 [ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
 Length: 60
 Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
 
-        assert _rep(c) == expected
+        assert repr(c) == expected
 
         # unicode option should not affect to Categorical, as it doesn't care
         # the repr width
         with option_context('display.unicode.east_asian_width', True):
 
-            c = Categorical([u'ああああ', u'いいいいい', u'ううううううう'] * 20)
-            expected = u"""[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
+            c = Categorical(['ああああ', 'いいいいい', 'ううううううう'] * 20)
+            expected = """[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
 Length: 60
 Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
 
-            assert _rep(c) == expected
+            assert repr(c) == expected
 
     def test_categorical_repr(self):
         c = Categorical([1, 2, 3])
@@ -238,6 +229,17 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01
                                              2011-01-01 13:00:00-05:00]"""  # noqa
 
         assert repr(c) == exp
+
+    def test_categorical_repr_int_with_nan(self):
+        c = Categorical([1, 2, np.nan])
+        c_exp = """[1, 2, NaN]\nCategories (2, int64): [1, 2]"""
+        assert repr(c) == c_exp
+
+        s = Series([1, 2, np.nan], dtype="object").astype("category")
+        s_exp = """0      1\n1      2\n2    NaN
+dtype: category
+Categories (2, int64): [1, 2]"""
+        assert repr(s) == s_exp
 
     def test_categorical_repr_period(self):
         idx = period_range('2011-01-01 09:00', freq='H', periods=5)

@@ -1,24 +1,22 @@
-import pytest
-from itertools import product
 from collections import defaultdict
-import warnings
 from datetime import datetime
+from itertools import product
 
 import numpy as np
 from numpy import nan
+import pytest
+
+from pandas import (
+    DataFrame, MultiIndex, Series, array, concat, merge, to_datetime)
 from pandas.core import common as com
-from pandas import DataFrame, MultiIndex, merge, concat, Series, compat
+from pandas.core.sorting import (
+    decons_group_index, get_group_index, is_int64_overflow_possible,
+    lexsort_indexer, nargsort, safe_sort)
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-from pandas.core.sorting import (is_int64_overflow_possible,
-                                 decons_group_index,
-                                 get_group_index,
-                                 nargsort,
-                                 lexsort_indexer,
-                                 safe_sort)
 
 
-class TestSorting(object):
+class TestSorting:
 
     @pytest.mark.slow
     def test_int64_overflow(self):
@@ -53,7 +51,7 @@ class TestSorting(object):
 
         expected = df.groupby(tups).sum()['values']
 
-        for k, v in compat.iteritems(expected):
+        for k, v in expected.items():
             assert left[k] == right[k[::-1]]
             assert left[k] == v
         assert len(left) == len(right)
@@ -127,13 +125,6 @@ class TestSorting(object):
         # np.argsort(items2) may not place NaNs first
         items2 = np.array(items, dtype='O')
 
-        try:
-            # GH 2785; due to a regression in NumPy1.6.2
-            np.argsort(np.array([[1, 2], [1, 3], [1, 2]], dtype='i'))
-            np.argsort(items2, kind='mergesort')
-        except TypeError:
-            pytest.skip('requested sort not available for type')
-
         # mergesort is the most difficult to get right because we want it to be
         # stable.
 
@@ -190,8 +181,15 @@ class TestSorting(object):
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
+    def test_nargsort_datetimearray_warning(self):
+        # https://github.com/pandas-dev/pandas/issues/25439
+        # can be removed once the FutureWarning for np.array(DTA) is removed
+        data = to_datetime([0, 2, 0, 1]).tz_localize('Europe/Brussels')
+        with tm.assert_produces_warning(None):
+            nargsort(data)
 
-class TestMerge(object):
+
+class TestMerge:
 
     @pytest.mark.slow
     def test_int64_overflow_issues(self):
@@ -343,7 +341,7 @@ def test_decons():
     testit(label_list, shape)
 
 
-class TestSafeSort(object):
+class TestSafeSort:
 
     def test_basic_sort(self):
         values = [3, 1, 2, 0, 4]
@@ -361,34 +359,43 @@ class TestSafeSort(object):
         expected = np.array([])
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_labels(self):
+    @pytest.mark.parametrize('verify', [True, False])
+    def test_labels(self, verify):
         values = [3, 1, 2, 0, 4]
         expected = np.array([0, 1, 2, 3, 4])
 
         labels = [0, 1, 1, 2, 3, 0, -1, 4]
-        result, result_labels = safe_sort(values, labels)
+        result, result_labels = safe_sort(values, labels, verify=verify)
         expected_labels = np.array([3, 1, 1, 2, 0, 3, -1, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
         # na_sentinel
         labels = [0, 1, 1, 2, 3, 0, 99, 4]
-        result, result_labels = safe_sort(values, labels,
-                                          na_sentinel=99)
+        result, result_labels = safe_sort(values, labels, na_sentinel=99,
+                                          verify=verify)
         expected_labels = np.array([3, 1, 1, 2, 0, 3, 99, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
-        # out of bound indices
-        labels = [0, 101, 102, 2, 3, 0, 99, 4]
-        result, result_labels = safe_sort(values, labels)
-        expected_labels = np.array([3, -1, -1, 2, 0, 3, -1, 4], dtype=np.intp)
+        labels = []
+        result, result_labels = safe_sort(values, labels, verify=verify)
+        expected_labels = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
-        labels = []
-        result, result_labels = safe_sort(values, labels)
-        expected_labels = np.array([], dtype=np.intp)
+    @pytest.mark.parametrize('na_sentinel', [-1, 99])
+    def test_labels_out_of_bound(self, na_sentinel):
+        values = [3, 1, 2, 0, 4]
+        expected = np.array([0, 1, 2, 3, 4])
+
+        # out of bound indices
+        labels = [0, 101, 102, 2, 3, 0, 99, 4]
+        result, result_labels = safe_sort(
+            values, labels, na_sentinel=na_sentinel)
+        expected_labels = np.array(
+            [3, na_sentinel, na_sentinel, 2, 0, 3, na_sentinel, 4],
+            dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
@@ -415,22 +422,40 @@ class TestSafeSort(object):
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
-        if compat.PY2:
-            # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
-            with warnings.catch_warnings():
-                pytest.raises(TypeError, safe_sort, arr)
-        else:
-            pytest.raises(TypeError, safe_sort, arr)
+        msg = ("unorderable types: .* [<>] .*"
+               "|"  # the above case happens for numpy < 1.14
+               "'[<>]' not supported between instances of .*")
+        with pytest.raises(TypeError, match=msg):
+            safe_sort(arr)
 
     def test_exceptions(self):
-        with tm.assert_raises_regex(TypeError,
-                                    "Only list-like objects are allowed"):
+        with pytest.raises(TypeError,
+                           match="Only list-like objects are allowed"):
             safe_sort(values=1)
 
-        with tm.assert_raises_regex(TypeError,
-                                    "Only list-like objects or None"):
+        with pytest.raises(TypeError,
+                           match="Only list-like objects or None"):
             safe_sort(values=[0, 1, 2], labels=1)
 
-        with tm.assert_raises_regex(ValueError,
-                                    "values should be unique"):
+        with pytest.raises(ValueError,
+                           match="values should be unique"):
             safe_sort(values=[0, 1, 2, 1], labels=[0, 1])
+
+    def test_extension_array(self):
+        # a = array([1, 3, np.nan, 2], dtype='Int64')
+        a = array([1, 3, 2], dtype='Int64')
+        result = safe_sort(a)
+        # expected = array([1, 2, 3, np.nan], dtype='Int64')
+        expected = array([1, 2, 3], dtype='Int64')
+        tm.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize('verify', [True, False])
+    @pytest.mark.parametrize('na_sentinel', [-1, 99])
+    def test_extension_array_labels(self, verify, na_sentinel):
+        a = array([1, 3, 2], dtype='Int64')
+        result, labels = safe_sort(a, [0, 1, na_sentinel, 2],
+                                   na_sentinel=na_sentinel, verify=verify)
+        expected_values = array([1, 2, 3], dtype='Int64')
+        expected_labels = np.array([0, 2, na_sentinel, 1], dtype=np.intp)
+        tm.assert_extension_array_equal(result, expected_values)
+        tm.assert_numpy_array_equal(labels, expected_labels)

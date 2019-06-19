@@ -1,44 +1,43 @@
-# -*- coding: utf-8 -*-
-from __future__ import division, print_function
-
-import warnings
 from functools import partial
+import warnings
 
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.core.nanops as nanops
 import pandas.util._test_decorators as td
-import pandas.util.testing as tm
-from pandas import Series, isna
-from pandas.compat.numpy import _np_version_under1p13
+
 from pandas.core.dtypes.common import is_integer_dtype
+
+import pandas as pd
+from pandas import Series, isna
+from pandas.core.arrays import DatetimeArray
+import pandas.core.nanops as nanops
+import pandas.util.testing as tm
 
 use_bn = nanops._USE_BOTTLENECK
 
 
-class TestnanopsDataFrame(object):
+class TestnanopsDataFrame:
 
     def setup_method(self, method):
         np.random.seed(11235)
         nanops._USE_BOTTLENECK = False
 
-        self.arr_shape = (11, 7, 5)
+        arr_shape = (11, 7, 5)
 
-        self.arr_float = np.random.randn(*self.arr_shape)
-        self.arr_float1 = np.random.randn(*self.arr_shape)
+        self.arr_float = np.random.randn(*arr_shape)
+        self.arr_float1 = np.random.randn(*arr_shape)
         self.arr_complex = self.arr_float + self.arr_float1 * 1j
-        self.arr_int = np.random.randint(-10, 10, self.arr_shape)
-        self.arr_bool = np.random.randint(0, 2, self.arr_shape) == 0
+        self.arr_int = np.random.randint(-10, 10, arr_shape)
+        self.arr_bool = np.random.randint(0, 2, arr_shape) == 0
         self.arr_str = np.abs(self.arr_float).astype('S')
         self.arr_utf = np.abs(self.arr_float).astype('U')
         self.arr_date = np.random.randint(0, 20000,
-                                          self.arr_shape).astype('M8[ns]')
+                                          arr_shape).astype('M8[ns]')
         self.arr_tdelta = np.random.randint(0, 20000,
-                                            self.arr_shape).astype('m8[ns]')
+                                            arr_shape).astype('m8[ns]')
 
-        self.arr_nan = np.tile(np.nan, self.arr_shape)
+        self.arr_nan = np.tile(np.nan, arr_shape)
         self.arr_float_nan = np.vstack([self.arr_float, self.arr_nan])
         self.arr_float1_nan = np.vstack([self.arr_float1, self.arr_nan])
         self.arr_nan_float1 = np.vstack([self.arr_nan, self.arr_float1])
@@ -46,22 +45,22 @@ class TestnanopsDataFrame(object):
 
         self.arr_inf = self.arr_float * np.inf
         self.arr_float_inf = np.vstack([self.arr_float, self.arr_inf])
-        self.arr_float1_inf = np.vstack([self.arr_float1, self.arr_inf])
-        self.arr_inf_float1 = np.vstack([self.arr_inf, self.arr_float1])
-        self.arr_inf_inf = np.vstack([self.arr_inf, self.arr_inf])
 
         self.arr_nan_inf = np.vstack([self.arr_nan, self.arr_inf])
         self.arr_float_nan_inf = np.vstack([self.arr_float, self.arr_nan,
                                             self.arr_inf])
-        self.arr_nan_float1_inf = np.vstack([self.arr_float, self.arr_inf,
-                                             self.arr_nan])
         self.arr_nan_nan_inf = np.vstack([self.arr_nan, self.arr_nan,
                                           self.arr_inf])
-        self.arr_obj = np.vstack([self.arr_float.astype(
-            'O'), self.arr_int.astype('O'), self.arr_bool.astype(
-                'O'), self.arr_complex.astype('O'), self.arr_str.astype(
-                    'O'), self.arr_utf.astype('O'), self.arr_date.astype('O'),
-            self.arr_tdelta.astype('O')])
+        self.arr_obj = np.vstack([
+            self.arr_float.astype('O'),
+            self.arr_int.astype('O'),
+            self.arr_bool.astype('O'),
+            self.arr_complex.astype('O'),
+            self.arr_str.astype('O'),
+            self.arr_utf.astype('O'),
+            self.arr_date.astype('O'),
+            self.arr_tdelta.astype('O')
+        ])
 
         with np.errstate(invalid='ignore'):
             self.arr_nan_nanj = self.arr_nan + self.arr_nan * 1j
@@ -74,51 +73,19 @@ class TestnanopsDataFrame(object):
 
         self.arr_float_2d = self.arr_float[:, :, 0]
         self.arr_float1_2d = self.arr_float1[:, :, 0]
-        self.arr_complex_2d = self.arr_complex[:, :, 0]
-        self.arr_int_2d = self.arr_int[:, :, 0]
-        self.arr_bool_2d = self.arr_bool[:, :, 0]
-        self.arr_str_2d = self.arr_str[:, :, 0]
-        self.arr_utf_2d = self.arr_utf[:, :, 0]
-        self.arr_date_2d = self.arr_date[:, :, 0]
-        self.arr_tdelta_2d = self.arr_tdelta[:, :, 0]
 
         self.arr_nan_2d = self.arr_nan[:, :, 0]
         self.arr_float_nan_2d = self.arr_float_nan[:, :, 0]
         self.arr_float1_nan_2d = self.arr_float1_nan[:, :, 0]
         self.arr_nan_float1_2d = self.arr_nan_float1[:, :, 0]
-        self.arr_nan_nan_2d = self.arr_nan_nan[:, :, 0]
-        self.arr_nan_nanj_2d = self.arr_nan_nanj[:, :, 0]
-        self.arr_complex_nan_2d = self.arr_complex_nan[:, :, 0]
-
-        self.arr_inf_2d = self.arr_inf[:, :, 0]
-        self.arr_float_inf_2d = self.arr_float_inf[:, :, 0]
-        self.arr_nan_inf_2d = self.arr_nan_inf[:, :, 0]
-        self.arr_float_nan_inf_2d = self.arr_float_nan_inf[:, :, 0]
-        self.arr_nan_nan_inf_2d = self.arr_nan_nan_inf[:, :, 0]
 
         self.arr_float_1d = self.arr_float[:, 0, 0]
         self.arr_float1_1d = self.arr_float1[:, 0, 0]
-        self.arr_complex_1d = self.arr_complex[:, 0, 0]
-        self.arr_int_1d = self.arr_int[:, 0, 0]
-        self.arr_bool_1d = self.arr_bool[:, 0, 0]
-        self.arr_str_1d = self.arr_str[:, 0, 0]
-        self.arr_utf_1d = self.arr_utf[:, 0, 0]
-        self.arr_date_1d = self.arr_date[:, 0, 0]
-        self.arr_tdelta_1d = self.arr_tdelta[:, 0, 0]
 
         self.arr_nan_1d = self.arr_nan[:, 0, 0]
         self.arr_float_nan_1d = self.arr_float_nan[:, 0, 0]
         self.arr_float1_nan_1d = self.arr_float1_nan[:, 0, 0]
         self.arr_nan_float1_1d = self.arr_nan_float1[:, 0, 0]
-        self.arr_nan_nan_1d = self.arr_nan_nan[:, 0, 0]
-        self.arr_nan_nanj_1d = self.arr_nan_nanj[:, 0, 0]
-        self.arr_complex_nan_1d = self.arr_complex_nan[:, 0, 0]
-
-        self.arr_inf_1d = self.arr_inf.ravel()
-        self.arr_float_inf_1d = self.arr_float_inf[:, 0, 0]
-        self.arr_nan_inf_1d = self.arr_nan_inf[:, 0, 0]
-        self.arr_float_nan_inf_1d = self.arr_float_nan_inf[:, 0, 0]
-        self.arr_nan_nan_inf_1d = self.arr_nan_nan_inf[:, 0, 0]
 
     def teardown_method(self, method):
         nanops._USE_BOTTLENECK = use_bn
@@ -141,12 +108,12 @@ class TestnanopsDataFrame(object):
             if axis != 0 and hasattr(
                     targ, 'shape') and targ.ndim and targ.shape != res.shape:
                 res = np.split(res, [targ.shape[0]], axis=0)[0]
-        except:
+        except (ValueError, IndexError):
             targ, res = _coerce_tds(targ, res)
 
         try:
             tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
-        except:
+        except AssertionError:
 
             # handle timedelta dtypes
             if hasattr(targ, 'dtype') and targ.dtype == 'm8[ns]':
@@ -167,11 +134,11 @@ class TestnanopsDataFrame(object):
                 else:
                     try:
                         res = res.astype('c16')
-                    except:
+                    except RuntimeError:
                         res = res.astype('f8')
                     try:
                         targ = targ.astype('c16')
-                    except:
+                    except RuntimeError:
                         targ = targ.astype('f8')
             # there should never be a case where numpy returns an object
             # but nanops doesn't, so make that an exception
@@ -376,7 +343,7 @@ class TestnanopsDataFrame(object):
                         allow_str=False, allow_date=False,
                         allow_tdelta=True, allow_obj='convert', ddof=ddof)
 
-    @td.skip_if_no('scipy', min_version='0.17.0')
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize('ddof', range(3))
     def test_nansem(self, ddof):
         from scipy.stats import sem
@@ -445,7 +412,7 @@ class TestnanopsDataFrame(object):
             return 0.
         return result
 
-    @td.skip_if_no('scipy', min_version='0.17.0')
+    @td.skip_if_no_scipy
     def test_nanskew(self):
         from scipy.stats import skew
         func = partial(self._skew_kurt_wrap, func=skew)
@@ -454,7 +421,7 @@ class TestnanopsDataFrame(object):
                             allow_str=False, allow_date=False,
                             allow_tdelta=False)
 
-    @td.skip_if_no('scipy', min_version='0.17.0')
+    @td.skip_if_no_scipy
     def test_nankurt(self):
         from scipy.stats import kurtosis
         func1 = partial(kurtosis, fisher=True)
@@ -464,7 +431,6 @@ class TestnanopsDataFrame(object):
                             allow_str=False, allow_date=False,
                             allow_tdelta=False)
 
-    @td.skip_if_no("numpy", min_version="1.10.0")
     def test_nanprod(self):
         self.check_funs(nanops.nanprod, np.prod, allow_str=False,
                         allow_date=False, allow_tdelta=False,
@@ -746,7 +712,7 @@ class TestnanopsDataFrame(object):
         assert not nanops._bn_ok_dtype(self.arr_obj.dtype, 'test')
 
 
-class TestEnsureNumeric(object):
+class TestEnsureNumeric:
 
     def test_numeric_values(self):
         # Test integer
@@ -773,7 +739,9 @@ class TestEnsureNumeric(object):
 
         # Test non-convertible string ndarray
         s_values = np.array(['foo', 'bar', 'baz'], dtype=object)
-        pytest.raises(ValueError, lambda: nanops._ensure_numeric(s_values))
+        msg = r"could not convert string to float: '(foo|baz)'"
+        with pytest.raises(ValueError, match=msg):
+            nanops._ensure_numeric(s_values)
 
     def test_convertable_values(self):
         assert np.allclose(nanops._ensure_numeric('1'), 1.0)
@@ -781,12 +749,18 @@ class TestEnsureNumeric(object):
         assert np.allclose(nanops._ensure_numeric('1+1j'), 1 + 1j)
 
     def test_non_convertable_values(self):
-        pytest.raises(TypeError, lambda: nanops._ensure_numeric('foo'))
-        pytest.raises(TypeError, lambda: nanops._ensure_numeric({}))
-        pytest.raises(TypeError, lambda: nanops._ensure_numeric([]))
+        msg = "Could not convert foo to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric('foo')
+        msg = "Could not convert {} to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric({})
+        msg = r"Could not convert \[\] to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric([])
 
 
-class TestNanvarFixedValues(object):
+class TestNanvarFixedValues:
 
     # xref GH10242
 
@@ -899,7 +873,7 @@ class TestNanvarFixedValues(object):
         return np.random.RandomState(1234)
 
 
-class TestNanskewFixedValues(object):
+class TestNanskewFixedValues:
 
     # xref GH 11974
 
@@ -949,7 +923,7 @@ class TestNanskewFixedValues(object):
         return np.random.RandomState(1234)
 
 
-class TestNankurtFixedValues(object):
+class TestNankurtFixedValues:
 
     # xref GH 11974
 
@@ -999,6 +973,26 @@ class TestNankurtFixedValues(object):
         return np.random.RandomState(1234)
 
 
+class TestDatetime64NaNOps:
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    @pytest.mark.xfail(reason="disabled")
+    # Enabling mean changes the behavior of DataFrame.mean
+    # See https://github.com/pandas-dev/pandas/issues/24752
+    def test_nanmean(self, tz):
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        expected = dti[1]
+
+        for obj in [dti, DatetimeArray(dti), Series(dti)]:
+            result = nanops.nanmean(obj)
+            assert result == expected
+
+        dti2 = dti.insert(1, pd.NaT)
+
+        for obj in [dti2, DatetimeArray(dti2), Series(dti2)]:
+            result = nanops.nanmean(obj)
+            assert result == expected
+
+
 def test_use_bottleneck():
 
     if nanops._BOTTLENECK_INSTALLED:
@@ -1021,26 +1015,13 @@ def test_use_bottleneck():
     (np.nanmedian, 2.5),
     (np.min, 1),
     (np.max, 4),
+    (np.nanmin, 1),
+    (np.nanmax, 4)
 ])
 def test_numpy_ops(numpy_op, expected):
     # GH8383
     result = numpy_op(pd.Series([1, 2, 3, 4]))
     assert result == expected
-
-
-@pytest.mark.parametrize("numpy_op, expected", [
-    (np.nanmin, 1),
-    (np.nanmax, 4),
-])
-def test_numpy_ops_np_version_under1p13(numpy_op, expected):
-    # GH8383
-    result = numpy_op(pd.Series([1, 2, 3, 4]))
-    if _np_version_under1p13:
-        # bug for numpy < 1.13, where result is a series, should be a scalar
-        with pytest.raises(ValueError):
-            assert result == expected
-    else:
-        assert result == expected
 
 
 @pytest.mark.parametrize("operation", [

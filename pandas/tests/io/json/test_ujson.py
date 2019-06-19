@@ -1,32 +1,26 @@
-# -*- coding: utf-8 -*-
-
 try:
     import json
 except ImportError:
     import simplejson as json
-import math
-import pytz
-import locale
-import pytest
-import time
-import datetime
 import calendar
-import re
+import datetime
 import decimal
+import locale
+import math
+import re
+import time
+
 import dateutil
-from functools import partial
-from pandas.compat import range, StringIO, u
-from pandas._libs.tslib import Timestamp
+import numpy as np
+import pytest
+import pytz
+
 import pandas._libs.json as ujson
+from pandas._libs.tslib import Timestamp
 import pandas.compat as compat
 
-import numpy as np
-from pandas import DataFrame, Series, Index, NaT, DatetimeIndex, date_range
+from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
 import pandas.util.testing as tm
-
-
-json_unicode = (json.dumps if compat.PY3
-                else partial(json.dumps, encoding="utf-8"))
 
 
 def _clean_dict(d):
@@ -43,7 +37,7 @@ def _clean_dict(d):
     cleaned_dict : dict
     """
 
-    return {str(k): v for k, v in compat.iteritems(d)}
+    return {str(k): v for k, v in d.items()}
 
 
 @pytest.fixture(params=[
@@ -61,7 +55,7 @@ def numpy(request):
     return request.param
 
 
-class TestUltraJSONTests(object):
+class TestUltraJSONTests:
 
     @pytest.mark.skipif(compat.is_platform_32bit(),
                         reason="not compliant on 32-bit, xref #15865")
@@ -150,7 +144,7 @@ class TestUltraJSONTests(object):
         -4342969734183514, -12345678901234.56789012, -528656961.4399388
     ])
     def test_double_long_numbers(self, long_number):
-        sut = {u("a"): long_number}
+        sut = {"a": long_number}
         encoded = ujson.encode(sut, double_precision=15)
 
         decoded = ujson.decode(encoded)
@@ -168,13 +162,11 @@ class TestUltraJSONTests(object):
                 break
 
     def test_decimal_decode_test_precise(self):
-        sut = {u("a"): 4.56}
+        sut = {"a": 4.56}
         encoded = ujson.encode(sut)
         decoded = ujson.decode(encoded, precise_float=True)
         assert sut == decoded
 
-    @pytest.mark.skipif(compat.is_platform_windows() and not compat.PY3,
-                        reason="buggy on win-64 for py2")
     def test_encode_double_tiny_exponential(self):
         num = 1e-40
         assert num == ujson.decode(ujson.encode(num))
@@ -186,10 +178,10 @@ class TestUltraJSONTests(object):
         assert np.allclose(num, ujson.decode(ujson.encode(num)))
 
     @pytest.mark.parametrize("unicode_key", [
-        u("key1"), u("بن")
+        "key1", "بن"
     ])
     def test_encode_dict_with_unicode_keys(self, unicode_key):
-        unicode_dict = {unicode_key: u("value1")}
+        unicode_dict = {unicode_key: "value1"}
         assert unicode_dict == ujson.decode(ujson.encode(unicode_dict))
 
     @pytest.mark.parametrize("double_input", [
@@ -271,7 +263,7 @@ class TestUltraJSONTests(object):
         enc = ujson.encode(unicode_input)
         dec = ujson.decode(enc)
 
-        assert enc == json_unicode(unicode_input)
+        assert enc == json.dumps(unicode_input)
         assert dec == json.loads(enc)
 
     def test_encode_control_escaping(self):
@@ -280,14 +272,14 @@ class TestUltraJSONTests(object):
         dec = ujson.decode(enc)
 
         assert escaped_input == dec
-        assert enc == json_unicode(escaped_input)
+        assert enc == json.dumps(escaped_input)
 
     def test_encode_unicode_surrogate_pair(self):
         surrogate_input = "\xf0\x90\x8d\x86"
         enc = ujson.encode(surrogate_input)
         dec = ujson.decode(enc)
 
-        assert enc == json_unicode(surrogate_input)
+        assert enc == json.dumps(surrogate_input)
         assert dec == json.loads(enc)
 
     def test_encode_unicode_4bytes_utf8(self):
@@ -295,7 +287,7 @@ class TestUltraJSONTests(object):
         enc = ujson.encode(four_bytes_input)
         dec = ujson.decode(enc)
 
-        assert enc == json_unicode(four_bytes_input)
+        assert enc == json.dumps(four_bytes_input)
         assert dec == json.loads(enc)
 
     def test_encode_unicode_4bytes_utf8highest(self):
@@ -304,7 +296,7 @@ class TestUltraJSONTests(object):
 
         dec = ujson.decode(enc)
 
-        assert enc == json_unicode(four_bytes_input)
+        assert enc == json.dumps(four_bytes_input)
         assert dec == json.loads(enc)
 
     def test_encode_array_in_array(self):
@@ -421,7 +413,9 @@ class TestUltraJSONTests(object):
         roundtrip = ujson.decode(ujson.encode(val, date_unit='ns'))
         assert roundtrip == stamp.value
 
-        pytest.raises(ValueError, ujson.encode, val, date_unit='foo')
+        msg = "Invalid value 'foo' for option 'date_unit'"
+        with pytest.raises(ValueError, match=msg):
+            ujson.encode(val, date_unit='foo')
 
     def test_encode_to_utf8(self):
         unencoded = "\xe6\x97\xa5\xd1\x88"
@@ -429,11 +423,11 @@ class TestUltraJSONTests(object):
         enc = ujson.encode(unencoded, ensure_ascii=False)
         dec = ujson.decode(enc)
 
-        assert enc == json_unicode(unencoded, ensure_ascii=False)
+        assert enc == json.dumps(unencoded, ensure_ascii=False)
         assert dec == json.loads(enc)
 
     def test_decode_from_unicode(self):
-        unicode_input = u("{\"obj\": 31337}")
+        unicode_input = "{\"obj\": 31337}"
 
         dec1 = ujson.decode(unicode_input)
         dec2 = ujson.decode(str(unicode_input))
@@ -443,11 +437,11 @@ class TestUltraJSONTests(object):
     def test_encode_recursion_max(self):
         # 8 is the max recursion depth
 
-        class O2(object):
+        class O2:
             member = 0
             pass
 
-        class O1(object):
+        class O1:
             member = 0
             pass
 
@@ -518,11 +512,6 @@ class TestUltraJSONTests(object):
     def test_decode_numeric_int(self, numeric_int_as_str):
         assert int(numeric_int_as_str) == ujson.decode(numeric_int_as_str)
 
-    @pytest.mark.skipif(compat.PY3, reason="only PY2")
-    def test_encode_unicode_4bytes_utf8_fail(self):
-        with pytest.raises(OverflowError):
-            ujson.encode("\xfd\xbf\xbf\xbf\xbf\xbf")
-
     def test_encode_null_character(self):
         wrapped_input = "31337 \x00 1337"
         output = ujson.encode(wrapped_input)
@@ -537,7 +526,7 @@ class TestUltraJSONTests(object):
         assert alone_input == json.loads(output)
         assert output == json.dumps(alone_input)
         assert alone_input == ujson.decode(output)
-        assert '"  \\u0000\\r\\n "' == ujson.dumps(u("  \u0000\r\n "))
+        assert '"  \\u0000\\r\\n "' == ujson.dumps("  \u0000\r\n ")
 
     def test_decode_null_character(self):
         wrapped_input = "\"31337 \\u0000 31337\""
@@ -570,61 +559,10 @@ class TestUltraJSONTests(object):
     def test_decode_numeric_int_exp(self, int_exp):
         assert ujson.decode(int_exp) == json.loads(int_exp)
 
-    def test_dump_to_file(self):
-        f = StringIO()
-        ujson.dump([1, 2, 3], f)
-        assert "[1,2,3]" == f.getvalue()
-
-    def test_dump_to_file_like(self):
-        class FileLike(object):
-
-            def __init__(self):
-                self.bytes = ''
-
-            def write(self, data_bytes):
-                self.bytes += data_bytes
-
-        f = FileLike()
-        ujson.dump([1, 2, 3], f)
-        assert "[1,2,3]" == f.bytes
-
-    def test_dump_file_args_error(self):
-        with pytest.raises(TypeError):
-            ujson.dump([], "")
-
-    def test_load_file(self):
-        data = "[1,2,3,4]"
-        exp_data = [1, 2, 3, 4]
-
-        f = StringIO(data)
-        assert exp_data == ujson.load(f)
-
-        f = StringIO(data)
-        tm.assert_numpy_array_equal(np.array(exp_data),
-                                    ujson.load(f, numpy=True))
-
-    def test_load_file_like(self):
-        class FileLike(object):
-
-            def read(self):
-                try:
-                    self.end
-                except AttributeError:
-                    self.end = True
-                    return "[1,2,3,4]"
-
-        exp_data = [1, 2, 3, 4]
-
-        f = FileLike()
-        assert exp_data == ujson.load(f)
-
-        f = FileLike()
-        tm.assert_numpy_array_equal(np.array(exp_data),
-                                    ujson.load(f, numpy=True))
-
-    def test_load_file_args_error(self):
-        with pytest.raises(TypeError):
-            ujson.load("[]")
+    def test_loads_non_str_bytes_raises(self):
+        msg = "Expected 'str' or 'bytes'"
+        with pytest.raises(TypeError, match=msg):
+            ujson.loads(None)
 
     def test_version(self):
         assert re.match(r'^\d+\.\d+(\.\d+)?$', ujson.__version__), \
@@ -635,7 +573,7 @@ class TestUltraJSONTests(object):
             ujson.encode(12839128391289382193812939)
 
     def test_encode_numeric_overflow_nested(self):
-        class Nested(object):
+        class Nested:
             x = 12839128391289382193812939
 
         for _ in range(0, 100):
@@ -654,23 +592,23 @@ class TestUltraJSONTests(object):
     def test_encode_big_escape(self):
         # Make sure no Exception is raised.
         for _ in range(10):
-            base = '\u00e5'.encode("utf-8") if compat.PY3 else "\xc3\xa5"
+            base = '\u00e5'.encode("utf-8")
             escape_input = base * 1024 * 1024 * 2
             ujson.encode(escape_input)
 
     def test_decode_big_escape(self):
         # Make sure no Exception is raised.
         for _ in range(10):
-            base = '\u00e5'.encode("utf-8") if compat.PY3 else "\xc3\xa5"
-            quote = compat.str_to_bytes("\"")
+            base = '\u00e5'.encode("utf-8")
+            quote = b'"'
 
             escape_input = quote + (base * 1024 * 1024 * 2) + quote
             ujson.decode(escape_input)
 
     def test_to_dict(self):
-        d = {u("key"): 31337}
+        d = {"key": 31337}
 
-        class DictTest(object):
+        class DictTest:
             def toDict(self):
                 return d
 
@@ -682,7 +620,7 @@ class TestUltraJSONTests(object):
 
     def test_default_handler(self):
 
-        class _TestObject(object):
+        class _TestObject:
 
             def __init__(self, val):
                 self.val = val
@@ -694,7 +632,9 @@ class TestUltraJSONTests(object):
             def __str__(self):
                 return str(self.val)
 
-        pytest.raises(OverflowError, ujson.encode, _TestObject("foo"))
+        msg = "Maximum recursion level reached"
+        with pytest.raises(OverflowError, match=msg):
+            ujson.encode(_TestObject("foo"))
         assert '"foo"' == ujson.encode(_TestObject("foo"),
                                        default_handler=str)
 
@@ -707,7 +647,7 @@ class TestUltraJSONTests(object):
         def my_handler_raises(_):
             raise TypeError("I raise for anything")
 
-        with tm.assert_raises_regex(TypeError, "I raise for anything"):
+        with pytest.raises(TypeError, match="I raise for anything"):
             ujson.encode(_TestObject("foo"), default_handler=my_handler_raises)
 
         def my_int_handler(_):
@@ -728,7 +668,7 @@ class TestUltraJSONTests(object):
                 ujson.decode(ujson.encode(obj_list, default_handler=str)))
 
 
-class TestNumpyJSONTests(object):
+class TestNumpyJSONTests:
 
     @pytest.mark.parametrize("bool_input", [True, False])
     def test_bool(self, bool_input):
@@ -866,7 +806,7 @@ class TestNumpyJSONTests(object):
         labelled_input = [{"a": 42}]
         output = ujson.loads(ujson.dumps(labelled_input),
                              numpy=True, labelled=True)
-        assert (np.array([u("a")]) == output[2]).all()
+        assert (np.array(["a"]) == output[2]).all()
         assert (np.array([42]) == output[0]).all()
         assert output[1] is None
 
@@ -879,7 +819,7 @@ class TestNumpyJSONTests(object):
             [42, 31, 24, 99, 2.4, 78], dtype=int).reshape((3, 2))
         assert (expected_vals == output[0]).all()
         assert output[1] is None
-        assert (np.array([u("a"), "b"]) == output[2]).all()
+        assert (np.array(["a", "b"]) == output[2]).all()
 
         input_dumps = ('{"1": {"a": 42, "b":31}, "2": {"a": 24, "c": 99}, '
                        '"3": {"a": 2.4, "b": 78}}')
@@ -891,7 +831,7 @@ class TestNumpyJSONTests(object):
         assert (np.array(["a", "b"]) == output[2]).all()
 
 
-class TestPandasJSONTests(object):
+class TestPandasJSONTests:
 
     def test_dataframe(self, orient, numpy):
         if orient == "records" and numpy:

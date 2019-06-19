@@ -2,12 +2,15 @@ import operator
 
 import numpy as np
 import pytest
+
 import pandas as pd
-import pandas.util.testing as tm
 from pandas.core.sparse.api import SparseDtype
+import pandas.util.testing as tm
 
 
-class TestSparseArrayArithmetics(object):
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
+class TestSparseArrayArithmetics:
 
     _base = np.array
     _klass = pd.SparseArray

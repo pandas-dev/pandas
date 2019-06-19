@@ -1,15 +1,15 @@
-import operator
 import decimal
+import math
+import operator
 
 import numpy as np
-import pandas as pd
-from pandas import compat
-import pandas.util.testing as tm
 import pytest
 
+import pandas as pd
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
-from .array import DecimalDtype, DecimalArray, make_data, to_decimal
+from .array import DecimalArray, DecimalDtype, make_data, to_decimal
 
 
 @pytest.fixture
@@ -20,6 +20,11 @@ def dtype():
 @pytest.fixture
 def data():
     return DecimalArray(make_data())
+
+
+@pytest.fixture
+def data_for_twos():
+    return DecimalArray([decimal.Decimal(2) for _ in range(100)])
 
 
 @pytest.fixture
@@ -60,12 +65,26 @@ def data_for_grouping():
     return DecimalArray([b, b, na, na, a, a, b, c])
 
 
-class BaseDecimal(object):
+class BaseDecimal:
 
     def assert_series_equal(self, left, right, *args, **kwargs):
+        def convert(x):
+            # need to convert array([Decimal(NaN)], dtype='object') to np.NaN
+            # because Series[object].isnan doesn't recognize decimal(NaN) as
+            # NA.
+            try:
+                return math.isnan(x)
+            except TypeError:
+                return False
 
-        left_na = left.isna()
-        right_na = right.isna()
+        if left.dtype == 'object':
+            left_na = left.apply(convert)
+        else:
+            left_na = left.isna()
+        if right.dtype == 'object':
+            right_na = right.apply(convert)
+        else:
+            right_na = right.isna()
 
         tm.assert_series_equal(left_na, right_na)
         return tm.assert_series_equal(left[~left_na],
@@ -94,15 +113,12 @@ class BaseDecimal(object):
 
 
 class TestDtype(BaseDecimal, base.BaseDtypeTests):
-    @pytest.mark.skipif(compat.PY2, reason="Context not hashable.")
     def test_hashable(self, dtype):
         pass
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):
-
-    pytestmark = pytest.mark.skipif(compat.PY2,
-                                    reason="Unhashble dtype in Py2.")
+    pass
 
 
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
@@ -114,8 +130,7 @@ class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
 
 
 class TestReshaping(BaseDecimal, base.BaseReshapingTests):
-    pytestmark = pytest.mark.skipif(compat.PY2,
-                                    reason="Unhashble dtype in Py2.")
+    pass
 
 
 class TestGetitem(BaseDecimal, base.BaseGetitemTests):
@@ -134,7 +149,7 @@ class TestMissing(BaseDecimal, base.BaseMissingTests):
     pass
 
 
-class Reduce(object):
+class Reduce:
 
     def check_reduce(self, s, op_name, skipna):
 
@@ -177,12 +192,21 @@ class TestCasting(BaseDecimal, base.BaseCastingTests):
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
-    pytestmark = pytest.mark.skipif(compat.PY2,
-                                    reason="Unhashble dtype in Py2.")
+    pass
 
 
 class TestSetitem(BaseDecimal, base.BaseSetitemTests):
     pass
+
+
+class TestPrinting(BaseDecimal, base.BasePrintingTests):
+
+    def test_series_repr(self, data):
+        # Overriding this base test to explicitly test that
+        # the custom _formatter is used
+        ser = pd.Series(data)
+        assert data.dtype.name in repr(ser)
+        assert "Decimal: " in repr(ser)
 
 
 # TODO(extension)
@@ -192,7 +216,7 @@ class TestSetitem(BaseDecimal, base.BaseSetitemTests):
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")
-    with tm.assert_raises_regex(ValueError, xpr):
+    with pytest.raises(ValueError, match=xpr):
         pd.Series([0, 1, 2], dtype=DecimalDtype())
 
 
@@ -244,8 +268,7 @@ def test_astype_dispatches(frame):
 class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
-        super(TestArithmeticOps, self).check_opname(s, op_name,
-                                                    other, exc=None)
+        super().check_opname(s, op_name, other, exc=None)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         op_name = all_arithmetic_operators
@@ -271,9 +294,7 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
         # We implement divmod
-        super(TestArithmeticOps, self)._check_divmod_op(
-            s, op, other, exc=None
-        )
+        super()._check_divmod_op(s, op, other, exc=None)
 
     def test_error(self):
         pass
@@ -282,8 +303,7 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
 class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
-        super(TestComparisonOps, self).check_opname(s, op_name,
-                                                    other, exc=None)
+        super().check_opname(s, op_name, other, exc=None)
 
     def _compare_other(self, s, data, op_name, other):
         self.check_opname(s, op_name, other)
@@ -372,3 +392,15 @@ def test_ufunc_fallback(data):
     result = np.abs(s)
     expected = pd.Series(np.abs(a.astype(object)), index=range(3, 8))
     tm.assert_series_equal(result, expected)
+
+
+def test_formatting_values_deprecated():
+    class DecimalArray2(DecimalArray):
+        def _formatting_values(self):
+            return np.array(self)
+
+    ser = pd.Series(DecimalArray2([decimal.Decimal('1.0')]))
+
+    with tm.assert_produces_warning(DeprecationWarning,
+                                    check_stacklevel=False):
+        repr(ser)

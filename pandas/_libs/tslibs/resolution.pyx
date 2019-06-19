@@ -1,30 +1,29 @@
-# -*- coding: utf-8 -*-
-
-from cython import Py_ssize_t
-
 import numpy as np
 from numpy cimport ndarray, int64_t, int32_t
 
-from util cimport is_string_object, get_nat
+from pandas._libs.tslibs.util cimport get_nat
 
-from np_datetime cimport npy_datetimestruct, dt64_to_dtstruct
-from frequencies cimport get_freq_code
-from timezones cimport is_utc, is_tzlocal, maybe_get_tz, get_dst_info
-from conversion cimport tz_convert_utc_to_tzlocal
-from ccalendar cimport get_days_in_month
+from pandas._libs.tslibs.np_datetime cimport (
+    npy_datetimestruct, dt64_to_dtstruct)
+from pandas._libs.tslibs.frequencies cimport get_freq_code
+from pandas._libs.tslibs.timezones cimport (
+    is_utc, is_tzlocal, maybe_get_tz, get_dst_info)
+from pandas._libs.tslibs.ccalendar cimport get_days_in_month
+from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 # ----------------------------------------------------------------------
 # Constants
 
-cdef int64_t NPY_NAT = get_nat()
+cdef:
+    int64_t NPY_NAT = get_nat()
 
-cdef int RESO_NS = 0
-cdef int RESO_US = 1
-cdef int RESO_MS = 2
-cdef int RESO_SEC = 3
-cdef int RESO_MIN = 4
-cdef int RESO_HR = 5
-cdef int RESO_DAY = 6
+    int RESO_NS = 0
+    int RESO_US = 1
+    int RESO_MS = 2
+    int RESO_SEC = 3
+    int RESO_MIN = 4
+    int RESO_HR = 5
+    int RESO_DAY = 6
 
 # ----------------------------------------------------------------------
 
@@ -122,7 +121,7 @@ def get_freq_group(freq):
     if getattr(freq, '_typ', None) == 'dateoffset':
         freq = freq.rule_code
 
-    if is_string_object(freq):
+    if isinstance(freq, str):
         base, mult = get_freq_code(freq)
         freq = base
     elif isinstance(freq, int):
@@ -132,7 +131,7 @@ def get_freq_group(freq):
     return (freq // 1000) * 1000
 
 
-class Resolution(object):
+class Resolution:
 
     # Note: cython won't allow us to reference the cdef versions at the
     # module level

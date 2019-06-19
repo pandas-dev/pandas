@@ -1,11 +1,8 @@
-from __future__ import division
-
 import numpy as np
-from pandas import Interval, Timestamp, Timedelta
-import pandas.core.common as com
-
 import pytest
-import pandas.util.testing as tm
+
+from pandas import Interval, Period, Timedelta, Timestamp
+import pandas.core.common as com
 
 
 @pytest.fixture
@@ -13,7 +10,7 @@ def interval():
     return Interval(0, 1)
 
 
-class TestInterval(object):
+class TestInterval:
 
     def test_properties(self, interval):
         assert interval.closed == 'right'
@@ -35,7 +32,7 @@ class TestInterval(object):
         assert 0 not in interval
 
         msg = "__contains__ not defined for two intervals"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval in interval
 
         interval_both = Interval(0, 1, closed='both')
@@ -53,7 +50,7 @@ class TestInterval(object):
         assert Interval(0, 1) != 0
 
     def test_comparison(self):
-        with tm.assert_raises_regex(TypeError, 'unorderable types'):
+        with pytest.raises(TypeError, match='unorderable types'):
             Interval(0, 1) < 2
 
         assert Interval(0, 1) < Interval(1, 2)
@@ -101,13 +98,14 @@ class TestInterval(object):
         ('a', 'z'),
         (('a', 'b'), ('c', 'd')),
         (list('AB'), list('ab')),
-        (Interval(0, 1), Interval(1, 2))])
-    def test_length_errors(self, left, right):
-        # GH 18789
-        iv = Interval(left, right)
-        msg = 'cannot compute length between .* and .*'
-        with tm.assert_raises_regex(TypeError, msg):
-            iv.length
+        (Interval(0, 1), Interval(1, 2)),
+        (Period('2018Q1', freq='Q'), Period('2018Q1', freq='Q'))
+    ])
+    def test_construct_errors(self, left, right):
+        # GH 23013
+        msg = "Only numeric, Timestamp and Timedelta endpoints are allowed"
+        with pytest.raises(ValueError, match=msg):
+            Interval(left, right)
 
     def test_math_add(self, closed):
         interval = Interval(0, 1, closed=closed)
@@ -124,10 +122,10 @@ class TestInterval(object):
         assert result == expected
 
         msg = r"unsupported operand type\(s\) for \+"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval + interval
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval + 'foo'
 
     def test_math_sub(self, closed):
@@ -142,10 +140,10 @@ class TestInterval(object):
         assert result == expected
 
         msg = r"unsupported operand type\(s\) for -"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval - interval
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval - 'foo'
 
     def test_math_mult(self, closed):
@@ -163,11 +161,11 @@ class TestInterval(object):
         assert result == expected
 
         msg = r"unsupported operand type\(s\) for \*"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval * interval
 
         msg = r"can\'t multiply sequence by non-int"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval * 'foo'
 
     def test_math_div(self, closed):
@@ -182,10 +180,10 @@ class TestInterval(object):
         assert result == expected
 
         msg = r"unsupported operand type\(s\) for /"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval / interval
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval / 'foo'
 
     def test_math_floordiv(self, closed):
@@ -200,19 +198,19 @@ class TestInterval(object):
         assert result == expected
 
         msg = r"unsupported operand type\(s\) for //"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval // interval
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval // 'foo'
 
     def test_constructor_errors(self):
         msg = "invalid option for 'closed': foo"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Interval(0, 1, closed='foo')
 
         msg = 'left side of interval must be <= right side'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Interval(1, 0)
 
     @pytest.mark.parametrize('tz_left, tz_right', [

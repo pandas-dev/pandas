@@ -1,8 +1,10 @@
 """ GCS support for remote file interactivity """
-try:
-    import gcsfs
-except ImportError:
-    raise ImportError("The gcsfs library is required to handle GCS files")
+from pandas.compat._optional import import_optional_dependency
+
+gcsfs = import_optional_dependency(
+    "gcsfs",
+    extra="The gcsfs library is required to handle GCS files"
+)
 
 
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
@@ -12,5 +14,6 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
         mode = 'rb'
 
     fs = gcsfs.GCSFileSystem()
-    filepath_or_buffer = fs.open(filepath_or_buffer, mode)
+    filepath_or_buffer = fs.open(
+        filepath_or_buffer, mode)
     return filepath_or_buffer, None, compression, True

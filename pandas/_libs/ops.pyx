@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import operator
 
 from cpython cimport (PyObject_RichCompareBool,
@@ -12,9 +11,9 @@ from numpy cimport ndarray, uint8_t, import_array
 import_array()
 
 
-from util cimport UINT8_MAX, is_nan
+from pandas._libs.util cimport UINT8_MAX, is_nan
 
-from missing cimport checknull
+from pandas._libs.missing cimport checknull
 
 
 @cython.wraparound(False)
@@ -123,7 +122,7 @@ def vec_compare(object[:] left, object[:] right, object op):
         ndarray[uint8_t, cast=True] result
         int flag
 
-    if n != len(right):
+    if n != <Py_ssize_t>len(right):
         raise ValueError('Arrays were different lengths: {n} vs {nright}'
                          .format(n=n, nright=len(right)))
 
@@ -224,7 +223,7 @@ def vec_binop(object[:] left, object[:] right, object op):
         Py_ssize_t i, n = len(left)
         object[:] result
 
-    if n != len(right):
+    if n != <Py_ssize_t>len(right):
         raise ValueError('Arrays were different lengths: {n} vs {nright}'
                          .format(n=n, nright=len(right)))
 

@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
-
 from itertools import product
-import pytest
 
 import numpy as np
+import pytest
 
-from pandas.compat import range, u
-from pandas import MultiIndex, DatetimeIndex
 from pandas._libs import hashtable
+
+from pandas import DatetimeIndex, MultiIndex
 import pandas.util.testing as tm
 
 
@@ -82,7 +80,7 @@ def test_get_unique_index(idx, dropna):
     tm.assert_index_equal(result, expected)
 
 
-def test_duplicate_multiindex_labels():
+def test_duplicate_multiindex_codes():
     # GH 17464
     # Make sure that a MultiIndex with duplicate levels throws a ValueError
     with pytest.raises(ValueError):
@@ -118,8 +116,8 @@ def test_duplicate_meta_data():
     # GH 10115
     mi = MultiIndex(
         levels=[[0, 1], [0, 1, 2]],
-        labels=[[0, 0, 0, 0, 1, 1, 1],
-                [0, 1, 2, 0, 0, 1, 2]])
+        codes=[[0, 0, 0, 0, 1, 1, 1],
+               [0, 1, 2, 0, 0, 1, 2]])
 
     for idx in [mi,
                 mi.set_names([None, None]),
@@ -131,38 +129,50 @@ def test_duplicate_meta_data():
 
 def test_has_duplicates(idx, idx_dup):
     # see fixtures
-    assert idx.is_unique
-    assert not idx.has_duplicates
-    assert not idx_dup.is_unique
-    assert idx_dup.has_duplicates
+    assert idx.is_unique is True
+    assert idx.has_duplicates is False
+    assert idx_dup.is_unique is False
+    assert idx_dup.has_duplicates is True
 
     mi = MultiIndex(levels=[[0, 1], [0, 1, 2]],
-                    labels=[[0, 0, 0, 0, 1, 1, 1],
-                            [0, 1, 2, 0, 0, 1, 2]])
-    assert not mi.is_unique
-    assert mi.has_duplicates
+                    codes=[[0, 0, 0, 0, 1, 1, 1],
+                           [0, 1, 2, 0, 0, 1, 2]])
+    assert mi.is_unique is False
+    assert mi.has_duplicates is True
+
+    # single instance of NaN
+    mi_nan = MultiIndex(levels=[['a', 'b'], [0, 1]],
+                        codes=[[-1, 0, 0, 1, 1], [-1, 0, 1, 0, 1]])
+    assert mi_nan.is_unique is True
+    assert mi_nan.has_duplicates is False
+
+    # multiple instances of NaN
+    mi_nan_dup = MultiIndex(levels=[['a', 'b'], [0, 1]],
+                            codes=[[-1, -1, 0, 0, 1, 1], [-1, -1, 0, 1, 0, 1]])
+    assert mi_nan_dup.is_unique is False
+    assert mi_nan_dup.has_duplicates is True
 
 
 def test_has_duplicates_from_tuples():
     # GH 9075
-    t = [(u('x'), u('out'), u('z'), 5, u('y'), u('in'), u('z'), 169),
-         (u('x'), u('out'), u('z'), 7, u('y'), u('in'), u('z'), 119),
-         (u('x'), u('out'), u('z'), 9, u('y'), u('in'), u('z'), 135),
-         (u('x'), u('out'), u('z'), 13, u('y'), u('in'), u('z'), 145),
-         (u('x'), u('out'), u('z'), 14, u('y'), u('in'), u('z'), 158),
-         (u('x'), u('out'), u('z'), 16, u('y'), u('in'), u('z'), 122),
-         (u('x'), u('out'), u('z'), 17, u('y'), u('in'), u('z'), 160),
-         (u('x'), u('out'), u('z'), 18, u('y'), u('in'), u('z'), 180),
-         (u('x'), u('out'), u('z'), 20, u('y'), u('in'), u('z'), 143),
-         (u('x'), u('out'), u('z'), 21, u('y'), u('in'), u('z'), 128),
-         (u('x'), u('out'), u('z'), 22, u('y'), u('in'), u('z'), 129),
-         (u('x'), u('out'), u('z'), 25, u('y'), u('in'), u('z'), 111),
-         (u('x'), u('out'), u('z'), 28, u('y'), u('in'), u('z'), 114),
-         (u('x'), u('out'), u('z'), 29, u('y'), u('in'), u('z'), 121),
-         (u('x'), u('out'), u('z'), 31, u('y'), u('in'), u('z'), 126),
-         (u('x'), u('out'), u('z'), 32, u('y'), u('in'), u('z'), 155),
-         (u('x'), u('out'), u('z'), 33, u('y'), u('in'), u('z'), 123),
-         (u('x'), u('out'), u('z'), 12, u('y'), u('in'), u('z'), 144)]
+    t = [('x', 'out', 'z', 5, 'y', 'in', 'z', 169),
+         ('x', 'out', 'z', 7, 'y', 'in', 'z', 119),
+         ('x', 'out', 'z', 9, 'y', 'in', 'z', 135),
+         ('x', 'out', 'z', 13, 'y', 'in', 'z', 145),
+         ('x', 'out', 'z', 14, 'y', 'in', 'z', 158),
+         ('x', 'out', 'z', 16, 'y', 'in', 'z', 122),
+         ('x', 'out', 'z', 17, 'y', 'in', 'z', 160),
+         ('x', 'out', 'z', 18, 'y', 'in', 'z', 180),
+         ('x', 'out', 'z', 20, 'y', 'in', 'z', 143),
+         ('x', 'out', 'z', 21, 'y', 'in', 'z', 128),
+         ('x', 'out', 'z', 22, 'y', 'in', 'z', 129),
+         ('x', 'out', 'z', 25, 'y', 'in', 'z', 111),
+         ('x', 'out', 'z', 28, 'y', 'in', 'z', 114),
+         ('x', 'out', 'z', 29, 'y', 'in', 'z', 121),
+         ('x', 'out', 'z', 31, 'y', 'in', 'z', 126),
+         ('x', 'out', 'z', 32, 'y', 'in', 'z', 155),
+         ('x', 'out', 'z', 33, 'y', 'in', 'z', 123),
+         ('x', 'out', 'z', 12, 'y', 'in', 'z', 144)]
 
     mi = MultiIndex.from_tuples(t)
     assert not mi.has_duplicates
@@ -171,31 +181,31 @@ def test_has_duplicates_from_tuples():
 def test_has_duplicates_overflow():
     # handle int64 overflow if possible
     def check(nlevels, with_nulls):
-        labels = np.tile(np.arange(500), 2)
+        codes = np.tile(np.arange(500), 2)
         level = np.arange(500)
 
         if with_nulls:  # inject some null values
-            labels[500] = -1  # common nan value
-            labels = [labels.copy() for i in range(nlevels)]
+            codes[500] = -1  # common nan value
+            codes = [codes.copy() for i in range(nlevels)]
             for i in range(nlevels):
-                labels[i][500 + i - nlevels // 2] = -1
+                codes[i][500 + i - nlevels // 2] = -1
 
-            labels += [np.array([-1, 1]).repeat(500)]
+            codes += [np.array([-1, 1]).repeat(500)]
         else:
-            labels = [labels] * nlevels + [np.arange(2).repeat(500)]
+            codes = [codes] * nlevels + [np.arange(2).repeat(500)]
 
         levels = [level] * nlevels + [[0, 1]]
 
         # no dups
-        mi = MultiIndex(levels=levels, labels=labels)
+        mi = MultiIndex(levels=levels, codes=codes)
         assert not mi.has_duplicates
 
         # with a dup
         if with_nulls:
             def f(a):
                 return np.insert(a, 1000, a[0])
-            labels = list(map(f, labels))
-            mi = MultiIndex(levels=levels, labels=labels)
+            codes = list(map(f, codes))
+            mi = MultiIndex(levels=levels, codes=codes)
         else:
             values = mi.values.tolist()
             mi = MultiIndex.from_tuples(values + [values[0]])
@@ -226,8 +236,8 @@ def test_duplicated_large(keep):
     # GH 9125
     n, k = 200, 5000
     levels = [np.arange(n), tm.makeStringIndex(n), 1000 + np.arange(n)]
-    labels = [np.random.choice(n, k * n) for lev in levels]
-    mi = MultiIndex(levels=levels, labels=labels)
+    codes = [np.random.choice(n, k * n) for lev in levels]
+    mi = MultiIndex(levels=levels, codes=codes)
 
     result = mi.duplicated(keep=keep)
     expected = hashtable.duplicated_object(mi.values, keep=keep)
@@ -250,9 +260,9 @@ def test_get_duplicates():
     for n in range(1, 6):  # 1st level shape
         for m in range(1, 5):  # 2nd level shape
             # all possible unique combinations, including nan
-            lab = product(range(-1, n), range(-1, m))
+            codes = product(range(-1, n), range(-1, m))
             mi = MultiIndex(levels=[list('abcde')[:n], list('WXYZ')[:m]],
-                            labels=np.random.permutation(list(lab)).T)
+                            codes=np.random.permutation(list(codes)).T)
             assert len(mi) == (n + 1) * (m + 1)
             assert not mi.has_duplicates
 

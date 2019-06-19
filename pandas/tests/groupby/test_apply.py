@@ -1,13 +1,16 @@
-import pytest
-import numpy as np
-import pandas as pd
 from datetime import datetime
+from io import StringIO
+
+import numpy as np
+import pytest
+
+import pandas as pd
+from pandas import DataFrame, Index, MultiIndex, Series, bdate_range
 from pandas.util import testing as tm
-from pandas import DataFrame, MultiIndex, compat, Series, bdate_range, Index
 
 
 def test_apply_issues():
-        # GH 5788
+    # GH 5788
 
     s = """2011.05.16,00:00,1.40893
 2011.05.16,01:00,1.40760
@@ -22,9 +25,8 @@ def test_apply_issues():
 2011.05.18,04:00,1.40750
 2011.05.18,05:00,1.40649"""
 
-    df = pd.read_csv(
-        compat.StringIO(s), header=None, names=['date', 'time', 'value'],
-        parse_dates=[['date', 'time']])
+    df = pd.read_csv(StringIO(s), header=None, names=['date', 'time', 'value'],
+                     parse_dates=[['date', 'time']])
     df = df.set_index('date_time')
 
     expected = df.groupby(df.index.date).idxmax()
@@ -33,8 +35,7 @@ def test_apply_issues():
 
     # GH 5789
     # don't auto coerce dates
-    df = pd.read_csv(
-        compat.StringIO(s), header=None, names=['date', 'time', 'value'])
+    df = pd.read_csv(StringIO(s), header=None, names=['date', 'time', 'value'])
     exp_idx = pd.Index(
         ['2011.05.16', '2011.05.17', '2011.05.18'
          ], dtype=object, name='date')
@@ -60,8 +61,7 @@ def test_apply_trivial():
 
 @pytest.mark.xfail(reason="GH#20066; function passed into apply "
                           "returns a DataFrame with the same index "
-                          "as the one to create GroupBy object.",
-                   strict=True)
+                          "as the one to create GroupBy object.")
 def test_apply_trivial_fail():
     # GH 20066
     # trivial apply fails if the constant dataframe has the same index
@@ -101,7 +101,78 @@ def test_fast_apply():
     group_keys = grouper._get_group_keys()
 
     values, mutated = splitter.fast_apply(f, group_keys)
+
     assert not mutated
+
+
+@pytest.mark.parametrize(
+    "df, group_names",
+    [
+        (DataFrame({"a": [1, 1, 1, 2, 3],
+                    "b": ["a", "a", "a", "b", "c"]}),
+         [1, 2, 3]),
+        (DataFrame({"a": [0, 0, 1, 1],
+                    "b": [0, 1, 0, 1]}),
+         [0, 1]),
+        (DataFrame({"a": [1]}),
+         [1]),
+        (DataFrame({"a": [1, 1, 1, 2, 2, 1, 1, 2],
+                    "b": range(8)}),
+         [1, 2]),
+        (DataFrame({"a": [1, 2, 3, 1, 2, 3],
+                    "two": [4, 5, 6, 7, 8, 9]}),
+         [1, 2, 3]),
+        (DataFrame({"a": list("aaabbbcccc"),
+                    "B": [3, 4, 3, 6, 5, 2, 1, 9, 5, 4],
+                    "C": [4, 0, 2, 2, 2, 7, 8, 6, 2, 8]}),
+         ["a", "b", "c"]),
+        (DataFrame([[1, 2, 3], [2, 2, 3]], columns=["a", "b", "c"]),
+         [1, 2]),
+    ], ids=['GH2936', 'GH7739 & GH10519', 'GH10519',
+            'GH2656', 'GH12155', 'GH20084', 'GH21417'])
+def test_group_apply_once_per_group(df, group_names):
+    # GH2936, GH7739, GH10519, GH2656, GH12155, GH20084, GH21417
+
+    # This test should ensure that a function is only evaluted
+    # once per group. Previously the function has been evaluated twice
+    # on the first group to check if the Cython index slider is safe to use
+    # This test ensures that the side effect (append to list) is only triggered
+    # once per group
+
+    names = []
+    # cannot parameterize over the functions since they need external
+    # `names` to detect side effects
+
+    def f_copy(group):
+        # this takes the fast apply path
+        names.append(group.name)
+        return group.copy()
+
+    def f_nocopy(group):
+        # this takes the slow apply path
+        names.append(group.name)
+        return group
+
+    def f_scalar(group):
+        # GH7739, GH2656
+        names.append(group.name)
+        return 0
+
+    def f_none(group):
+        # GH10519, GH12155, GH21417
+        names.append(group.name)
+        return None
+
+    def f_constant_df(group):
+        # GH2936, GH20084
+        names.append(group.name)
+        return DataFrame({"a": [1], "b": [1]})
+
+    for func in [f_copy, f_nocopy, f_scalar, f_none, f_constant_df]:
+        del names[:]
+
+        df.groupby("a").apply(func)
+        assert names == group_names
 
 
 def test_apply_with_mixed_dtype():
@@ -269,7 +340,7 @@ def test_apply_multikey_corner(tsframe):
 def test_apply_chunk_view():
     # Low level tinkering could be unsafe, make sure not
     df = DataFrame({'key': [1, 1, 1, 2, 2, 2, 3, 3, 3],
-                    'value': compat.lrange(9)})
+                    'value': range(9)})
 
     result = df.groupby('key', group_keys=False).apply(lambda x: x[:2])
     expected = df.take([0, 1, 3, 4, 6, 7])
@@ -279,7 +350,7 @@ def test_apply_chunk_view():
 def test_apply_no_name_column_conflict():
     df = DataFrame({'name': [1, 1, 1, 1, 1, 1, 2, 2, 2, 2],
                     'name2': [0, 0, 0, 1, 1, 1, 0, 0, 1, 1],
-                    'value': compat.lrange(10)[::-1]})
+                    'value': range(9, -1, -1)})
 
     # it works! #2605
     grouped = df.groupby(['name', 'name2'])

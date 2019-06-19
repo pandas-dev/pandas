@@ -196,8 +196,8 @@ def validate_args_and_kwargs(fname, args, kwargs,
 
     See Also
     --------
-    validate_args : purely args validation
-    validate_kwargs : purely kwargs validation
+    validate_args : Purely args validation.
+    validate_kwargs : Purely kwargs validation.
 
     """
     # Check that the total number of arguments passed in (i.e.
@@ -236,8 +236,8 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
 
     Parameters
     ----------
-    data : DataFrame or Panel
-    arg : tuple
+    data : DataFrame
+    args : tuple
         All positional arguments from the user
     kwargs : dict
         All keyword arguments from the user
@@ -261,7 +261,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     ...                              'mapper', 'rename')
     {'columns': <function id>, 'index': <method 'upper' of 'str' objects>}
     """
-    # TODO(PY3): Change to keyword-only args and remove all this
+    # TODO: Change to keyword-only args and remove all this
 
     out = {}
     # Goal: fill 'out' with index/columns-style arguments

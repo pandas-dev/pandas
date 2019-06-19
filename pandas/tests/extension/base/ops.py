@@ -1,9 +1,10 @@
-import pytest
-
 import operator
+
+import pytest
 
 import pandas as pd
 from pandas.core import ops
+
 from .base import BaseExtensionTests
 
 
@@ -71,8 +72,7 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         s = pd.Series(data)
         self.check_opname(s, op_name, s.iloc[0], exc=self.series_scalar_exc)
 
-    @pytest.mark.xfail(run=False, reason="_reduce needs implementation",
-                       strict=True)
+    @pytest.mark.xfail(run=False, reason="_reduce needs implementation")
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op_name = all_arithmetic_operators
@@ -91,9 +91,15 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         self._check_divmod_op(s, divmod, 1, exc=self.divmod_exc)
         self._check_divmod_op(1, ops.rdivmod, s, exc=self.divmod_exc)
 
-    def test_divmod_series_array(self, data):
+    def test_divmod_series_array(self, data, data_for_twos):
         s = pd.Series(data)
         self._check_divmod_op(s, divmod, data)
+
+        other = data_for_twos
+        self._check_divmod_op(other, ops.rdivmod, s)
+
+        other = pd.Series(other)
+        self._check_divmod_op(other, ops.rdivmod, s)
 
     def test_add_series_with_extension_array(self, data):
         s = pd.Series(data)

@@ -1,9 +1,10 @@
-import pytest
-import pandas as pd
 import numpy as np
+import pytest
 
-from pandas import SparseArray, SparseDtype
 from pandas.errors import PerformanceWarning
+
+import pandas as pd
+from pandas import SparseArray, SparseDtype
 from pandas.tests.extension import base
 import pandas.util.testing as tm
 
@@ -12,7 +13,9 @@ def make_data(fill_value):
     if np.isnan(fill_value):
         data = np.random.uniform(size=100)
     else:
-        data = np.random.randint(0, 100, size=100)
+        data = np.random.randint(1, 100, size=100)
+        if data[0] == data[1]:
+            data[0] += 1
 
     data[2::3] = fill_value
     return data
@@ -29,6 +32,11 @@ def data(request):
     res = SparseArray(make_data(request.param),
                       fill_value=request.param)
     return res
+
+
+@pytest.fixture
+def data_for_twos(request):
+    return SparseArray(np.ones(100) * 2)
 
 
 @pytest.fixture(params=[0, np.nan])
@@ -73,7 +81,7 @@ def data_for_grouping(request):
                        fill_value=request.param)
 
 
-class BaseSparseTests(object):
+class BaseSparseTests:
 
     def _check_unsupported(self, data):
         if data.dtype == SparseDtype(int, 0):
@@ -113,23 +121,23 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
 
     def test_concat_columns(self, data, na_value):
         self._check_unsupported(data)
-        super(TestReshaping, self).test_concat_columns(data, na_value)
+        super().test_concat_columns(data, na_value)
 
     def test_align(self, data, na_value):
         self._check_unsupported(data)
-        super(TestReshaping, self).test_align(data, na_value)
+        super().test_align(data, na_value)
 
     def test_align_frame(self, data, na_value):
         self._check_unsupported(data)
-        super(TestReshaping, self).test_align_frame(data, na_value)
+        super().test_align_frame(data, na_value)
 
     def test_align_series_frame(self, data, na_value):
         self._check_unsupported(data)
-        super(TestReshaping, self).test_align_series_frame(data, na_value)
+        super().test_align_series_frame(data, na_value)
 
     def test_merge(self, data, na_value):
         self._check_unsupported(data)
-        super(TestReshaping, self).test_merge(data, na_value)
+        super().test_merge(data, na_value)
 
 
 class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
@@ -144,7 +152,7 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
 
     def test_reindex(self, data, na_value):
         self._check_unsupported(data)
-        super(TestGetitem, self).test_reindex(data, na_value)
+        super().test_reindex(data, na_value)
 
 
 # Skipping TestSetitem, since we don't implement it.
@@ -170,15 +178,15 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
     def test_fillna_limit_pad(self, data_missing):
         with tm.assert_produces_warning(PerformanceWarning):
-            super(TestMissing, self).test_fillna_limit_pad(data_missing)
+            super().test_fillna_limit_pad(data_missing)
 
     def test_fillna_limit_backfill(self, data_missing):
         with tm.assert_produces_warning(PerformanceWarning):
-            super(TestMissing, self).test_fillna_limit_backfill(data_missing)
+            super().test_fillna_limit_backfill(data_missing)
 
     def test_fillna_series_method(self, data_missing):
         with tm.assert_produces_warning(PerformanceWarning):
-            super(TestMissing, self).test_fillna_limit_backfill(data_missing)
+            super().test_fillna_limit_backfill(data_missing)
 
     @pytest.mark.skip(reason="Unsupported")
     def test_fillna_series(self):
@@ -231,6 +239,63 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         ], fill_value=False))
         self.assert_series_equal(result, expected)
 
+    def test_fillna_copy_frame(self, data_missing):
+        arr = data_missing.take([1, 1])
+        df = pd.DataFrame({"A": arr})
+
+        filled_val = df.iloc[0, 0]
+        result = df.fillna(filled_val)
+
+        assert df.values.base is not result.values.base
+        assert df.A._values.to_dense() is arr.to_dense()
+
+    def test_fillna_copy_series(self, data_missing):
+        arr = data_missing.take([1, 1])
+        ser = pd.Series(arr)
+
+        filled_val = ser[0]
+        result = ser.fillna(filled_val)
+
+        assert ser._values is not result._values
+        assert ser._values.to_dense() is arr.to_dense()
+
+    @pytest.mark.skip(reason="Not Applicable")
+    def test_fillna_length_mismatch(self, data_missing):
+        pass
+
+    def test_where_series(self, data, na_value):
+        assert data[0] != data[1]
+        cls = type(data)
+        a, b = data[:2]
+
+        ser = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
+
+        cond = np.array([True, True, False, False])
+        result = ser.where(cond)
+
+        new_dtype = SparseDtype('float', 0.0)
+        expected = pd.Series(cls._from_sequence([a, a, na_value, na_value],
+                                                dtype=new_dtype))
+        self.assert_series_equal(result, expected)
+
+        other = cls._from_sequence([a, b, a, b], dtype=data.dtype)
+        cond = np.array([True, False, True, True])
+        result = ser.where(cond, other)
+        expected = pd.Series(cls._from_sequence([a, b, b, b],
+                                                dtype=data.dtype))
+        self.assert_series_equal(result, expected)
+
+    def test_combine_first(self, data):
+        if data.dtype.subtype == 'int':
+            # Right now this is upcasted to float, just like combine_first
+            # for Series[int]
+            pytest.skip("TODO(SparseArray.__setitem__ will preserve dtype.")
+        super().test_combine_first(data)
+
+    def test_searchsorted(self, data_for_sorting, as_series):
+        with tm.assert_produces_warning(PerformanceWarning):
+            super().test_searchsorted(data_for_sorting, as_series)
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     pass
@@ -254,17 +319,11 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
-        super(TestArithmeticOps, self).test_arith_series_with_scalar(
-            data,
-            all_arithmetic_operators
-        )
+        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
-        super(TestArithmeticOps, self).test_arith_series_with_array(
-            data,
-            all_arithmetic_operators
-        )
+        super().test_arith_series_with_array(data, all_arithmetic_operators)
 
 
 class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
@@ -292,3 +351,17 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
         s = pd.Series(data)
         result = op(s, other)
         tm.assert_series_equal(result, expected)
+
+
+class TestPrinting(BaseSparseTests, base.BasePrintingTests):
+    @pytest.mark.xfail(reason='Different repr', strict=True)
+    def test_array_repr(self, data, size):
+        super().test_array_repr(data, size)
+
+
+class TestParsing(BaseSparseTests, base.BaseParsingTests):
+    @pytest.mark.parametrize('engine', ['c', 'python'])
+    def test_EA_types(self, engine, data):
+        expected_msg = r'.*must implement _from_sequence_of_strings.*'
+        with pytest.raises(NotImplementedError, match=expected_msg):
+            super().test_EA_types(engine, data)

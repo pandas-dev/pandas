@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-
-
 import numpy as np
+import pytest
+
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import Index, MultiIndex, Series
-from pandas.compat import lrange, lzip, range
+import pandas.util.testing as tm
 
 
 def test_equals(idx):
@@ -33,7 +31,7 @@ def test_equals_op(idx):
     index_b = index_a[0:-1]
     index_c = index_a[0:-1].append(index_a[-2:-1])
     index_d = index_a[0:1]
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         index_a == index_b
     expected1 = np.array([True] * n)
     expected2 = np.array([True] * (n - 1) + [False])
@@ -45,7 +43,7 @@ def test_equals_op(idx):
     array_b = np.array(index_a[0:-1])
     array_c = np.array(index_a[0:-1].append(index_a[-2:-1]))
     array_d = np.array(index_a[0:1])
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         index_a == array_b
     tm.assert_numpy_array_equal(index_a == array_a, expected1)
     tm.assert_numpy_array_equal(index_a == array_c, expected2)
@@ -55,23 +53,23 @@ def test_equals_op(idx):
     series_b = Series(array_b)
     series_c = Series(array_c)
     series_d = Series(array_d)
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         index_a == series_b
 
     tm.assert_numpy_array_equal(index_a == series_a, expected1)
     tm.assert_numpy_array_equal(index_a == series_c, expected2)
 
     # cases where length is 1 for one of them
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         index_a == index_d
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         index_a == series_d
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         index_a == array_d
     msg = "Can only compare identically-labeled Series objects"
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         series_a == series_d
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         series_a == array_d
 
     # comparing with a scalar should broadcast; note that we are excluding
@@ -96,23 +94,27 @@ def test_equals_multi(idx):
     assert not idx.equals(idx[-1])
 
     # different number of levels
-    index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
-        lrange(4))], labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
-            [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
+    index = MultiIndex(levels=[Index(list(range(4))),
+                               Index(list(range(4))),
+                               Index(list(range(4)))],
+                       codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                              np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                              np.array([1, 0, 1, 1, 0, 0, 1, 0])],
+                       )
 
-    index2 = MultiIndex(levels=index.levels[:-1], labels=index.labels[:-1])
+    index2 = MultiIndex(levels=index.levels[:-1], codes=index.codes[:-1])
     assert not index.equals(index2)
     assert not index.equal_levels(index2)
 
     # levels are different
-    major_axis = Index(lrange(4))
-    minor_axis = Index(lrange(2))
+    major_axis = Index(list(range(4)))
+    minor_axis = Index(list(range(2)))
 
-    major_labels = np.array([0, 0, 1, 2, 2, 3])
-    minor_labels = np.array([0, 1, 0, 0, 1, 0])
+    major_codes = np.array([0, 0, 1, 2, 2, 3])
+    minor_codes = np.array([0, 1, 0, 0, 1, 0])
 
     index = MultiIndex(levels=[major_axis, minor_axis],
-                       labels=[major_labels, minor_labels])
+                       codes=[major_codes, minor_codes])
     assert not idx.equals(index)
     assert not idx.equal_levels(index)
 
@@ -120,11 +122,11 @@ def test_equals_multi(idx):
     major_axis = Index(['foo', 'bar', 'baz', 'qux'])
     minor_axis = Index(['one', 'two'])
 
-    major_labels = np.array([0, 0, 2, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 2, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
 
     index = MultiIndex(levels=[major_axis, minor_axis],
-                       labels=[major_labels, minor_labels])
+                       codes=[major_codes, minor_codes])
     assert not idx.equals(index)
 
 
@@ -163,7 +165,7 @@ def test_equals_missing_values():
 
 
 def test_is_():
-    mi = MultiIndex.from_tuples(lzip(range(10), range(10)))
+    mi = MultiIndex.from_tuples(zip(range(10), range(10)))
     assert mi.is_(mi)
     assert mi.is_(mi.view())
     assert mi.is_(mi.view().view().view().view())
@@ -178,14 +180,14 @@ def test_is_():
     mi2.set_names(["E", "F"], inplace=True)
     assert mi.is_(mi2)
     # levels are inherent properties, they change identity
-    mi3 = mi2.set_levels([lrange(10), lrange(10)])
+    mi3 = mi2.set_levels([list(range(10)), list(range(10))])
     assert not mi3.is_(mi2)
     # shouldn't change
     assert mi2.is_(mi)
     mi4 = mi3.view()
 
     # GH 17464 - Remove duplicate MultiIndex levels
-    mi4.set_levels([lrange(10), lrange(10)], inplace=True)
+    mi4.set_levels([list(range(10)), list(range(10))], inplace=True)
     assert not mi4.is_(mi3)
     mi5 = mi.view()
     mi5.set_levels(mi5.levels, inplace=True)

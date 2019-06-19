@@ -1,22 +1,22 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
 
+from dateutil.tz import gettz
 import pytest
 import pytz
 from pytz import utc
-from dateutil.tz import gettz
 
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-
-from pandas.compat import PY3
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
-from pandas import Timestamp, NaT
+from pandas.compat import PY36
+import pandas.util._test_decorators as td
+
+from pandas import NaT, Timestamp
+import pandas.util.testing as tm
+
 from pandas.tseries.frequencies import to_offset
 
 
-class TestTimestampUnaryOps(object):
+class TestTimestampUnaryOps:
 
     # --------------------------------------------------------------
     # Timestamp.round
@@ -76,7 +76,7 @@ class TestTimestampUnaryOps(object):
 
     def test_round_invalid_arg(self):
         stamp = Timestamp('2000-01-05 05:09:15.13')
-        with tm.assert_raises_regex(ValueError, INVALID_FREQ_ERR_MSG):
+        with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             stamp.round('foo')
 
     @pytest.mark.parametrize('test_input, rounder, freq, expected', [
@@ -134,8 +134,8 @@ class TestTimestampUnaryOps(object):
         assert result == expected
 
     @pytest.mark.parametrize('method', ['ceil', 'round', 'floor'])
-    def test_round_dst_border(self, method):
-        # GH 18946 round near DST
+    def test_round_dst_border_ambiguous(self, method):
+        # GH 18946 round near "fall back" DST
         ts = Timestamp('2017-10-29 00:00:00', tz='UTC').tz_convert(
             'Europe/Madrid'
         )
@@ -154,6 +154,24 @@ class TestTimestampUnaryOps(object):
 
         with pytest.raises(pytz.AmbiguousTimeError):
             getattr(ts, method)('H', ambiguous='raise')
+
+    @pytest.mark.parametrize('method, ts_str, freq', [
+        ['ceil', '2018-03-11 01:59:00-0600', '5min'],
+        ['round', '2018-03-11 01:59:00-0600', '5min'],
+        ['floor', '2018-03-11 03:01:00-0500', '2H']])
+    def test_round_dst_border_nonexistent(self, method, ts_str, freq):
+        # GH 23324 round near "spring forward" DST
+        ts = Timestamp(ts_str, tz='America/Chicago')
+        result = getattr(ts, method)(freq, nonexistent='shift_forward')
+        expected = Timestamp('2018-03-11 03:00:00', tz='America/Chicago')
+        assert result == expected
+
+        result = getattr(ts, method)(freq, nonexistent='NaT')
+        assert result is NaT
+
+        with pytest.raises(pytz.NonExistentTimeError,
+                           match='2018-03-11 02:00:00'):
+            getattr(ts, method)(freq, nonexistent='raise')
 
     @pytest.mark.parametrize('timestamp', [
         '2018-01-01 0:0:0.124999360',
@@ -262,10 +280,9 @@ class TestTimestampUnaryOps(object):
         result_dt = dt.replace(tzinfo=tzinfo)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo)
 
-        if PY3:
-            # datetime.timestamp() converts in the local timezone
-            with tm.set_timezone('UTC'):
-                assert result_dt.timestamp() == result_pd.timestamp()
+        # datetime.timestamp() converts in the local timezone
+        with tm.set_timezone('UTC'):
+            assert result_dt.timestamp() == result_pd.timestamp()
 
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
@@ -273,10 +290,9 @@ class TestTimestampUnaryOps(object):
         result_dt = dt.replace(tzinfo=tzinfo).replace(tzinfo=None)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo).replace(tzinfo=None)
 
-        if PY3:
-            # datetime.timestamp() converts in the local timezone
-            with tm.set_timezone('UTC'):
-                assert result_dt.timestamp() == result_pd.timestamp()
+        # datetime.timestamp() converts in the local timezone
+        with tm.set_timezone('UTC'):
+            assert result_dt.timestamp() == result_pd.timestamp()
 
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
@@ -310,6 +326,30 @@ class TestTimestampUnaryOps(object):
         expected = Timestamp('2013-11-3 03:00:00', tz='America/Chicago')
         assert result == expected
 
+    @pytest.mark.skipif(not PY36, reason='Fold not available until PY3.6')
+    @pytest.mark.parametrize('fold', [0, 1])
+    @pytest.mark.parametrize('tz', ['dateutil/Europe/London', 'Europe/London'])
+    def test_replace_dst_fold(self, fold, tz):
+        # GH 25017
+        d = datetime(2019, 10, 27, 2, 30)
+        ts = Timestamp(d, tz=tz)
+        result = ts.replace(hour=1, fold=fold)
+        expected = Timestamp(datetime(2019, 10, 27, 1, 30)).tz_localize(
+            tz, ambiguous=not fold
+        )
+        assert result == expected
+
+    # --------------------------------------------------------------
+    # Timestamp.normalize
+
+    @pytest.mark.parametrize('arg', ['2013-11-30', '2013-11-30 12:00:00'])
+    def test_normalize(self, tz_naive_fixture, arg):
+        tz = tz_naive_fixture
+        ts = Timestamp(arg, tz=tz)
+        result = ts.normalize()
+        expected = Timestamp('2013-11-30', tz=tz)
+        assert result == expected
+
     # --------------------------------------------------------------
 
     @td.skip_if_windows
@@ -326,9 +366,8 @@ class TestTimestampUnaryOps(object):
         # utsc is a different representation of the same time
         assert tsc.timestamp() == utsc.timestamp()
 
-        if PY3:
-            # datetime.timestamp() converts in the local timezone
-            with tm.set_timezone('UTC'):
-                # should agree with datetime.timestamp method
-                dt = ts.to_pydatetime()
-                assert dt.timestamp() == ts.timestamp()
+        # datetime.timestamp() converts in the local timezone
+        with tm.set_timezone('UTC'):
+            # should agree with datetime.timestamp method
+            dt = ts.to_pydatetime()
+            assert dt.timestamp() == ts.timestamp()

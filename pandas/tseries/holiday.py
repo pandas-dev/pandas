@@ -1,12 +1,15 @@
+from datetime import datetime, timedelta
+from typing import List
 import warnings
 
-from pandas import DateOffset, DatetimeIndex, Series, Timestamp
-from pandas.errors import PerformanceWarning
-from pandas.compat import add_metaclass
-from datetime import datetime, timedelta
-from dateutil.relativedelta import MO, TU, WE, TH, FR, SA, SU  # noqa
-from pandas.tseries.offsets import Easter, Day
+from dateutil.relativedelta import FR, MO, SA, SU, TH, TU, WE  # noqa
 import numpy as np
+
+from pandas.errors import PerformanceWarning
+
+from pandas import DateOffset, Series, Timestamp, date_range
+
+from pandas.tseries.offsets import Day, Easter
 
 
 def next_monday(dt):
@@ -118,7 +121,7 @@ def after_nearest_workday(dt):
     return next_workday(nearest_workday(dt))
 
 
-class Holiday(object):
+class Holiday:
     """
     Class that defines a holiday with start/end dates and rules
     for observance.
@@ -145,8 +148,8 @@ class Holiday(object):
         --------
         >>> from pandas.tseries.holiday import Holiday, nearest_workday
         >>> from dateutil.relativedelta import MO
-        >>> USMemorialDay = Holiday('MemorialDay', month=5, day=24,
-                                    offset=pd.DateOffset(weekday=MO(1)))
+        >>> USMemorialDay = Holiday('Memorial Day', month=5, day=31,
+                                    offset=pd.DateOffset(weekday=MO(-1)))
         >>> USLaborDay = Holiday('Labor Day', month=9, day=1,
                                 offset=pd.DateOffset(weekday=MO(1)))
         >>> July3rd = Holiday('July 3rd', month=7, day=3,)
@@ -251,9 +254,9 @@ class Holiday(object):
         reference_end_date = Timestamp(
             datetime(end_date.year + 1, self.month, self.day))
         # Don't process unnecessary holidays
-        dates = DatetimeIndex(start=reference_start_date,
-                              end=reference_end_date,
-                              freq=year_offset, tz=start_date.tz)
+        dates = date_range(start=reference_start_date,
+                           end=reference_end_date,
+                           freq=year_offset, tz=start_date.tz)
 
         return dates
 
@@ -314,19 +317,16 @@ def get_calendar(name):
 class HolidayCalendarMetaClass(type):
 
     def __new__(cls, clsname, bases, attrs):
-        calendar_class = super(HolidayCalendarMetaClass, cls).__new__(
-            cls, clsname, bases, attrs)
+        calendar_class = super().__new__(cls, clsname, bases, attrs)
         register(calendar_class)
         return calendar_class
 
 
-@add_metaclass(HolidayCalendarMetaClass)
-class AbstractHolidayCalendar(object):
+class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     """
     Abstract interface to create holidays following certain rules.
     """
-    __metaclass__ = HolidayCalendarMetaClass
-    rules = []
+    rules = []  # type: List[Holiday]
     start_date = Timestamp(datetime(1970, 1, 1))
     end_date = Timestamp(datetime(2030, 12, 31))
     _cache = None
@@ -343,7 +343,7 @@ class AbstractHolidayCalendar(object):
         rules : array of Holiday objects
             A set of rules used to create the holidays.
         """
-        super(AbstractHolidayCalendar, self).__init__()
+        super().__init__()
         if name is None:
             name = self.__class__.__name__
         self.name = name
@@ -464,7 +464,7 @@ class AbstractHolidayCalendar(object):
             return holidays
 
 
-USMemorialDay = Holiday('MemorialDay', month=5, day=31,
+USMemorialDay = Holiday('Memorial Day', month=5, day=31,
                         offset=DateOffset(weekday=MO(-1)))
 USLaborDay = Holiday('Labor Day', month=9, day=1,
                      offset=DateOffset(weekday=MO(1)))
@@ -472,10 +472,10 @@ USColumbusDay = Holiday('Columbus Day', month=10, day=1,
                         offset=DateOffset(weekday=MO(2)))
 USThanksgivingDay = Holiday('Thanksgiving', month=11, day=1,
                             offset=DateOffset(weekday=TH(4)))
-USMartinLutherKingJr = Holiday('Dr. Martin Luther King Jr.',
+USMartinLutherKingJr = Holiday('Martin Luther King Jr. Day',
                                start_date=datetime(1986, 1, 1), month=1, day=1,
                                offset=DateOffset(weekday=MO(3)))
-USPresidentsDay = Holiday('President''s Day', month=2, day=1,
+USPresidentsDay = Holiday('Presidents Day', month=2, day=1,
                           offset=DateOffset(weekday=MO(3)))
 GoodFriday = Holiday("Good Friday", month=1, day=1, offset=[Easter(), Day(-2)])
 

@@ -3,51 +3,38 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
-# necessary to enforce truediv in Python 2.X
-from __future__ import division
 import datetime
 import operator
 import textwrap
+from typing import Dict, Optional
 import warnings
 
 import numpy as np
-import pandas as pd
 
-from pandas._libs import lib, algos as libalgos, ops as libops
-
-from pandas import compat
+from pandas._libs import algos as libalgos, lib, ops as libops
+from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
-from pandas.compat import bind_method
-import pandas.core.missing as missing
-import pandas.core.common as com
-
-from pandas.errors import NullFrequencyError
-from pandas.core.dtypes.missing import notna, isna
-from pandas.core.dtypes.common import (
-    needs_i8_conversion,
-    is_datetimelike_v_numeric,
-    is_period_dtype,
-    is_integer_dtype, is_categorical_dtype,
-    is_object_dtype, is_timedelta64_dtype,
-    is_datetime64_dtype, is_datetime64tz_dtype,
-    is_bool_dtype,
-    is_list_like,
-    is_scalar,
-    is_extension_array_dtype,
-    ensure_object)
 from pandas.core.dtypes.cast import (
-    maybe_upcast_putmask, find_common_type,
-    construct_1d_object_array_from_listlike)
+    construct_1d_object_array_from_listlike, find_common_type,
+    maybe_upcast_putmask)
+from pandas.core.dtypes.common import (
+    ensure_object, is_bool_dtype, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_datetimelike_v_numeric, is_extension_array_dtype,
+    is_integer_dtype, is_list_like, is_object_dtype, is_period_dtype,
+    is_scalar, is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.generic import (
-    ABCSeries,
-    ABCDataFrame, ABCPanel,
-    ABCIndex, ABCIndexClass,
-    ABCSparseSeries, ABCSparseArray)
+    ABCDataFrame, ABCIndex, ABCIndexClass, ABCSeries, ABCSparseArray,
+    ABCSparseSeries)
+from pandas.core.dtypes.missing import isna, notna
 
+import pandas as pd
+import pandas.core.common as com
+import pandas.core.missing as missing
 
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities
+
 
 def get_op_result_name(left, right):
     """
@@ -88,7 +75,7 @@ def _maybe_match_name(a, b):
     -------
     name : str or None
 
-    See also
+    See Also
     --------
     pandas.core.common.consensus_name_attr
     """
@@ -130,6 +117,13 @@ def maybe_upcast_for_op(obj):
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
         return pd.Timedelta(obj)
+    elif isinstance(obj, np.timedelta64) and not isna(obj):
+        # In particular non-nanosecond timedelta64 needs to be cast to
+        #  nanoseconds, or else we get undesired behavior like
+        #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
+        # The isna check is to avoid casting timedelta64("NaT"), which would
+        #  return NaT and incorrectly be treated as a datetime-NaT.
+        return pd.Timedelta(obj)
     elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
         # GH#22390 Unfortunately we need to special-case right-hand
         # timedelta64 dtypes because numpy casts integer dtypes to
@@ -170,7 +164,7 @@ def rmod(left, right):
     # check if right is a string as % is the string
     # formatting operation; this is a TypeError
     # otherwise perform the op
-    if isinstance(right, compat.string_types):
+    if isinstance(right, str):
         raise TypeError("{typ} cannot perform the operation mod".format(
             typ=type(left).__name__))
 
@@ -237,11 +231,11 @@ def _gen_eval_kwargs(name):
     {}
 
     >>> _gen_eval_kwargs("rtruediv")
-    {"reversed": True, "truediv": True}
+    {'reversed': True, 'truediv': True}
     """
     kwargs = {}
 
-    # Series and Panel appear to only pass __add__, __radd__, ...
+    # Series appear to only pass __add__, __radd__, ...
     # but DataFrame gets both these dunder names _and_ non-dunder names
     # add, radd, ...
     name = name.replace('__', '')
@@ -386,198 +380,7 @@ def _get_op_name(op, special):
 # -----------------------------------------------------------------------------
 # Docstring Generation and Templates
 
-_add_example_FRAME = """
->>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
-...                  columns=['one'])
->>> a
-   one
-a  1.0
-b  1.0
-c  1.0
-d  NaN
->>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
-...                       two=[np.nan, 2, np.nan, 2]),
-...                  index=['a', 'b', 'd', 'e'])
->>> b
-   one  two
-a  1.0  NaN
-b  NaN  2.0
-d  1.0  NaN
-e  NaN  2.0
->>> a.add(b, fill_value=0)
-   one  two
-a  2.0  NaN
-b  1.0  2.0
-c  1.0  NaN
-d  1.0  NaN
-e  NaN  2.0
-"""
-
-_sub_example_FRAME = """
->>> a = pd.DataFrame([2, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
-...                  columns=['one'])
->>> a
-   one
-a  2.0
-b  1.0
-c  1.0
-d  NaN
->>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
-...                       two=[3, 2, np.nan, 2]),
-...                  index=['a', 'b', 'd', 'e'])
->>> b
-   one  two
-a  1.0  3.0
-b  NaN  2.0
-d  1.0  NaN
-e  NaN  2.0
->>> a.sub(b, fill_value=0)
-   one  two
-a  1.0  -3.0
-b  1.0  -2.0
-c  1.0  NaN
-d  -1.0  NaN
-e  NaN  -2.0
-"""
-
-_mod_example_FRAME = """
-**Using a scalar argument**
-
->>> df = pd.DataFrame([2, 4, np.nan, 6.2], index=["a", "b", "c", "d"],
-...                   columns=['one'])
->>> df
-    one
-a   2.0
-b   4.0
-c   NaN
-d   6.2
->>> df.mod(3, fill_value=-1)
-    one
-a   2.0
-b   1.0
-c   2.0
-d   0.2
-
-**Using a DataFrame argument**
-
->>> df = pd.DataFrame(dict(one=[np.nan, 2, 3, 14], two=[np.nan, 1, 1, 3]),
-...                   index=['a', 'b', 'c', 'd'])
->>> df
-    one   two
-a   NaN   NaN
-b   2.0   1.0
-c   3.0   1.0
-d   14.0  3.0
->>> other = pd.DataFrame(dict(one=[np.nan, np.nan, 6, np.nan],
-...                           three=[np.nan, 10, np.nan, -7]),
-...                      index=['a', 'b', 'd', 'e'])
->>> other
-    one three
-a   NaN NaN
-b   NaN 10.0
-d   6.0 NaN
-e   NaN -7.0
->>> df.mod(other, fill_value=3)
-    one   three two
-a   NaN   NaN   NaN
-b   2.0   3.0   1.0
-c   0.0   NaN   1.0
-d   2.0   NaN   0.0
-e   NaN  -4.0   NaN
-"""
-
-_op_descriptions = {
-    # Arithmetic Operators
-    'add': {'op': '+',
-            'desc': 'Addition',
-            'reverse': 'radd',
-            'df_examples': _add_example_FRAME},
-    'sub': {'op': '-',
-            'desc': 'Subtraction',
-            'reverse': 'rsub',
-            'df_examples': _sub_example_FRAME},
-    'mul': {'op': '*',
-            'desc': 'Multiplication',
-            'reverse': 'rmul',
-            'df_examples': None},
-    'mod': {'op': '%',
-            'desc': 'Modulo',
-            'reverse': 'rmod',
-            'df_examples': _mod_example_FRAME},
-    'pow': {'op': '**',
-            'desc': 'Exponential power',
-            'reverse': 'rpow',
-            'df_examples': None},
-    'truediv': {'op': '/',
-                'desc': 'Floating division',
-                'reverse': 'rtruediv',
-                'df_examples': None},
-    'floordiv': {'op': '//',
-                 'desc': 'Integer division',
-                 'reverse': 'rfloordiv',
-                 'df_examples': None},
-    'divmod': {'op': 'divmod',
-               'desc': 'Integer division and modulo',
-               'reverse': 'rdivmod',
-               'df_examples': None},
-
-    # Comparison Operators
-    'eq': {'op': '==',
-           'desc': 'Equal to',
-           'reverse': None,
-           'df_examples': None},
-    'ne': {'op': '!=',
-           'desc': 'Not equal to',
-           'reverse': None,
-           'df_examples': None},
-    'lt': {'op': '<',
-           'desc': 'Less than',
-           'reverse': None,
-           'df_examples': None},
-    'le': {'op': '<=',
-           'desc': 'Less than or equal to',
-           'reverse': None,
-           'df_examples': None},
-    'gt': {'op': '>',
-           'desc': 'Greater than',
-           'reverse': None,
-           'df_examples': None},
-    'ge': {'op': '>=',
-           'desc': 'Greater than or equal to',
-           'reverse': None,
-           'df_examples': None}}
-
-_op_names = list(_op_descriptions.keys())
-for key in _op_names:
-    _op_descriptions[key]['reversed'] = False
-    reverse_op = _op_descriptions[key]['reverse']
-    if reverse_op is not None:
-        _op_descriptions[reverse_op] = _op_descriptions[key].copy()
-        _op_descriptions[reverse_op]['reversed'] = True
-        _op_descriptions[reverse_op]['reverse'] = key
-
-_flex_doc_SERIES = """
-{desc} of series and other, element-wise (binary operator `{op_name}`).
-
-Equivalent to ``{equiv}``, but with support to substitute a fill_value for
-missing data in one of the inputs.
-
-Parameters
-----------
-other : Series or scalar value
-fill_value : None or float value, default None (NaN)
-    Fill existing missing (NaN) values, and any new element needed for
-    successful Series alignment, with this value before computation.
-    If data in both corresponding Series locations is missing
-    the result will be missing
-level : int or name
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level
-
-Returns
--------
-result : Series
-
+_add_example_SERIES = """
 Examples
 --------
 >>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
@@ -601,8 +404,261 @@ c    1.0
 d    1.0
 e    NaN
 dtype: float64
+"""
 
-See also
+_sub_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.subtract(b, fill_value=0)
+a    0.0
+b    1.0
+c    1.0
+d   -1.0
+e    NaN
+dtype: float64
+"""
+
+_mul_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.multiply(b, fill_value=0)
+a    1.0
+b    0.0
+c    0.0
+d    0.0
+e    NaN
+dtype: float64
+"""
+
+_div_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.divide(b, fill_value=0)
+a    1.0
+b    inf
+c    inf
+d    0.0
+e    NaN
+dtype: float64
+"""
+
+_floordiv_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.floordiv(b, fill_value=0)
+a    1.0
+b    NaN
+c    NaN
+d    0.0
+e    NaN
+dtype: float64
+"""
+
+_mod_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.mod(b, fill_value=0)
+a    0.0
+b    NaN
+c    NaN
+d    0.0
+e    NaN
+dtype: float64
+"""
+_pow_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.pow(b, fill_value=0)
+a    1.0
+b    1.0
+c    1.0
+d    0.0
+e    NaN
+dtype: float64
+"""
+
+_op_descriptions = {
+    # Arithmetic Operators
+    'add': {'op': '+',
+            'desc': 'Addition',
+            'reverse': 'radd',
+            'series_examples': _add_example_SERIES},
+    'sub': {'op': '-',
+            'desc': 'Subtraction',
+            'reverse': 'rsub',
+            'series_examples': _sub_example_SERIES},
+    'mul': {'op': '*',
+            'desc': 'Multiplication',
+            'reverse': 'rmul',
+            'series_examples': _mul_example_SERIES,
+            'df_examples': None},
+    'mod': {'op': '%',
+            'desc': 'Modulo',
+            'reverse': 'rmod',
+            'series_examples': _mod_example_SERIES},
+    'pow': {'op': '**',
+            'desc': 'Exponential power',
+            'reverse': 'rpow',
+            'series_examples': _pow_example_SERIES,
+            'df_examples': None},
+    'truediv': {'op': '/',
+                'desc': 'Floating division',
+                'reverse': 'rtruediv',
+                'series_examples': _div_example_SERIES,
+                'df_examples': None},
+    'floordiv': {'op': '//',
+                 'desc': 'Integer division',
+                 'reverse': 'rfloordiv',
+                 'series_examples': _floordiv_example_SERIES,
+                 'df_examples': None},
+    'divmod': {'op': 'divmod',
+               'desc': 'Integer division and modulo',
+               'reverse': 'rdivmod',
+               'series_examples': None,
+               'df_examples': None},
+
+    # Comparison Operators
+    'eq': {'op': '==',
+           'desc': 'Equal to',
+           'reverse': None,
+           'series_examples': None},
+    'ne': {'op': '!=',
+           'desc': 'Not equal to',
+           'reverse': None,
+           'series_examples': None},
+    'lt': {'op': '<',
+           'desc': 'Less than',
+           'reverse': None,
+           'series_examples': None},
+    'le': {'op': '<=',
+           'desc': 'Less than or equal to',
+           'reverse': None,
+           'series_examples': None},
+    'gt': {'op': '>',
+           'desc': 'Greater than',
+           'reverse': None,
+           'series_examples': None},
+    'ge': {'op': '>=',
+           'desc': 'Greater than or equal to',
+           'reverse': None,
+           'series_examples': None}
+}  # type: Dict[str, Dict[str, Optional[str]]]
+
+_op_names = list(_op_descriptions.keys())
+for key in _op_names:
+    reverse_op = _op_descriptions[key]['reverse']
+    if reverse_op is not None:
+        _op_descriptions[reverse_op] = _op_descriptions[key].copy()
+        _op_descriptions[reverse_op]['reverse'] = key
+
+_flex_doc_SERIES = """
+Return {desc} of series and other, element-wise (binary operator `{op_name}`).
+
+Equivalent to ``{equiv}``, but with support to substitute a fill_value for
+missing data in one of the inputs.
+
+Parameters
+----------
+other : Series or scalar value
+fill_value : None or float value, default None (NaN)
+    Fill existing missing (NaN) values, and any new element needed for
+    successful Series alignment, with this value before computation.
+    If data in both corresponding Series locations is missing
+    the result will be missing.
+level : int or name
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
+
+Returns
+-------
+Series
+    The result of the operation.
+
+See Also
 --------
 Series.{reverse}
 """
@@ -625,84 +681,313 @@ level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level
 
-Notes
------
-Mismatched indices will be unioned together
-
 Returns
 -------
 result : DataFrame
+
+Notes
+-----
+Mismatched indices will be unioned together
 """
 
 _flex_doc_FRAME = """
-{desc} of dataframe and other, element-wise (binary operator `{op_name}`).
+Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 
-Equivalent to ``{equiv}``, but with support to substitute a fill_value for
-missing data in one of the inputs.
+Equivalent to ``{equiv}``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `{reverse}`.
+
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
 Parameters
 ----------
-other : Series, DataFrame, or constant
-axis : {{0, 1, 'index', 'columns'}}
-    For Series input, axis to match Series index on
-level : int or name
+other : scalar, sequence, Series, or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis :  {{0 or 'index', 1 or 'columns'}}
+    Whether to compare by the index (0 or 'index') or columns
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or label
     Broadcast across a level, matching Index values on the
-    passed MultiIndex level
-fill_value : None or float value, default None
+    passed MultiIndex level.
+fill_value : float or None, default None
     Fill existing missing (NaN) values, and any new element needed for
     successful DataFrame alignment, with this value before computation.
     If data in both corresponding DataFrame locations is missing
-    the result will be missing
+    the result will be missing.
+
+Returns
+-------
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
 
 Notes
 -----
-Mismatched indices will be unioned together
-
-Returns
--------
-result : DataFrame
+Mismatched indices will be unioned together.
 
 Examples
 --------
-{df_examples}
+>>> df = pd.DataFrame({{'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]}},
+...                   index=['circle', 'triangle', 'rectangle'])
+>>> df
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
 
-See also
---------
-DataFrame.{reverse}
+Add a scalar with operator version which return the same
+results.
+
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
+
+>>> df.rdiv(10)
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [1, 2]
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub([1, 2], axis='columns')
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
+
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({{'angles': [0, 3, 4]}},
+...                      index=['circle', 'triangle', 'rectangle'])
+>>> other
+           angles
+circle          0
+triangle        3
+rectangle       4
+
+>>> df * other
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
+
+>>> df.mul(other, fill_value=0)
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
+
+Divide by a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({{'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]}},
+...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
+...                                    ['circle', 'triangle', 'rectangle',
+...                                     'square', 'pentagon', 'hexagon']])
+>>> df_multindex
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
+
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
 """
 
-_flex_doc_PANEL = """
-{desc} of series and other, element-wise (binary operator `{op_name}`).
-Equivalent to ``{equiv}``.
+_flex_comp_doc_FRAME = """
+Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
+
+Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+operators.
+
+Equivalent to `==`, `=!`, `<=`, `<`, `>=`, `>` with support to choose axis
+(rows or columns) and level for comparison.
 
 Parameters
 ----------
-other : DataFrame or Panel
-axis : {{items, major_axis, minor_axis}}
-    Axis to broadcast over
+other : scalar, sequence, Series, or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis :  {{0 or 'index', 1 or 'columns'}}, default 'columns'
+    Whether to compare by the index (0 or 'index') or columns
+    (1 or 'columns').
+level : int or label
+    Broadcast across a level, matching Index values on the passed
+    MultiIndex level.
 
 Returns
 -------
-Panel
+DataFrame of bool
+    Result of the comparison.
 
-See also
+See Also
 --------
-Panel.{reverse}
-"""
+DataFrame.eq : Compare DataFrames for equality elementwise.
+DataFrame.ne : Compare DataFrames for inequality elementwise.
+DataFrame.le : Compare DataFrames for less than inequality
+    or equality elementwise.
+DataFrame.lt : Compare DataFrames for strictly less than
+    inequality elementwise.
+DataFrame.ge : Compare DataFrames for greater than inequality
+    or equality elementwise.
+DataFrame.gt : Compare DataFrames for strictly greater than
+    inequality elementwise.
 
+Notes
+-----
+Mismatched indices will be unioned together.
+`NaN` values are considered different (i.e. `NaN` != `NaN`).
 
-_agg_doc_PANEL = """
-Wrapper method for {op_name}
+Examples
+--------
+>>> df = pd.DataFrame({{'cost': [250, 150, 100],
+...                    'revenue': [100, 250, 300]}},
+...                   index=['A', 'B', 'C'])
+>>> df
+   cost  revenue
+A   250      100
+B   150      250
+C   100      300
 
-Parameters
-----------
-other : DataFrame or Panel
-axis : {{items, major_axis, minor_axis}}
-    Axis to broadcast over
+Comparison with a scalar, using either the operator or method:
 
-Returns
--------
-Panel
+>>> df == 100
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+>>> df.eq(100)
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
+
+When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+with the index of `other` and broadcast:
+
+>>> df != pd.Series([100, 250], index=["cost", "revenue"])
+    cost  revenue
+A   True     True
+B   True    False
+C  False     True
+
+Use the method to control the broadcast axis:
+
+>>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis='index')
+   cost  revenue
+A  True    False
+B  True     True
+C  True     True
+D  True     True
+
+When comparing to an arbitrary sequence, the number of columns must
+match the number elements in `other`:
+
+>>> df == [250, 100]
+    cost  revenue
+A   True     True
+B  False    False
+C  False    False
+
+Use the method to control the axis:
+
+>>> df.eq([250, 250, 100], axis='index')
+    cost  revenue
+A   True    False
+B  False     True
+C   True    False
+
+Compare to a DataFrame of different shape.
+
+>>> other = pd.DataFrame({{'revenue': [300, 250, 100, 150]}},
+...                      index=['A', 'B', 'C', 'D'])
+>>> other
+   revenue
+A      300
+B      250
+C      100
+D      150
+
+>>> df.gt(other)
+    cost  revenue
+A  False    False
+B  False    False
+C  False     True
+D  False    False
+
+Compare to a MultiIndex by level.
+
+>>> df_multindex = pd.DataFrame({{'cost': [250, 150, 100, 150, 300, 220],
+...                              'revenue': [100, 250, 300, 200, 175, 225]}},
+...                             index=[['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
+...                                    ['A', 'B', 'C', 'A', 'B', 'C']])
+>>> df_multindex
+      cost  revenue
+Q1 A   250      100
+   B   150      250
+   C   100      300
+Q2 A   150      200
+   B   300      175
+   C   220      225
+
+>>> df.le(df_multindex, level=1)
+       cost  revenue
+Q1 A   True     True
+   B   True     True
+   C   True     True
+Q2 A  False     True
+   B   True    False
+   C   True    False
 """
 
 
@@ -724,24 +1009,31 @@ def _make_flex_doc(op_name, typ):
     op_name = op_name.replace('__', '')
     op_desc = _op_descriptions[op_name]
 
-    if op_desc['reversed']:
+    if op_name.startswith('r'):
         equiv = 'other ' + op_desc['op'] + ' ' + typ
     else:
         equiv = typ + ' ' + op_desc['op'] + ' other'
 
     if typ == 'series':
         base_doc = _flex_doc_SERIES
-        doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
-                              equiv=equiv, reverse=op_desc['reverse'])
+        doc_no_examples = base_doc.format(
+            desc=op_desc['desc'],
+            op_name=op_name,
+            equiv=equiv,
+            reverse=op_desc['reverse']
+        )
+        if op_desc['series_examples']:
+            doc = doc_no_examples + op_desc['series_examples']
+        else:
+            doc = doc_no_examples
     elif typ == 'dataframe':
         base_doc = _flex_doc_FRAME
-        doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
-                              equiv=equiv, reverse=op_desc['reverse'],
-                              df_examples=op_desc['df_examples'])
-    elif typ == 'panel':
-        base_doc = _flex_doc_PANEL
-        doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
-                              equiv=equiv, reverse=op_desc['reverse'])
+        doc = base_doc.format(
+            desc=op_desc['desc'],
+            op_name=op_name,
+            equiv=equiv,
+            reverse=op_desc['reverse']
+        )
     else:
         raise AssertionError('Invalid typ argument.')
     return doc
@@ -940,7 +1232,139 @@ def should_series_dispatch(left, right, op):
         # numpy integer dtypes as timedelta64 dtypes in this scenario
         return True
 
+    if is_datetime64_dtype(ldtype) and is_object_dtype(rdtype):
+        # in particular case where right is an array of DateOffsets
+        return True
+
     return False
+
+
+def dispatch_to_series(left, right, func, str_rep=None, axis=None):
+    """
+    Evaluate the frame operation func(left, right) by evaluating
+    column-by-column, dispatching to the Series implementation.
+
+    Parameters
+    ----------
+    left : DataFrame
+    right : scalar or DataFrame
+    func : arithmetic or comparison operator
+    str_rep : str or None, default None
+    axis : {None, 0, 1, "index", "columns"}
+
+    Returns
+    -------
+    DataFrame
+    """
+    # Note: we use iloc to access columns for compat with cases
+    #       with non-unique columns.
+    import pandas.core.computation.expressions as expressions
+
+    right = lib.item_from_zerodim(right)
+    if lib.is_scalar(right) or np.ndim(right) == 0:
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b)
+                    for i in range(len(a.columns))}
+
+    elif isinstance(right, ABCDataFrame):
+        assert right._indexed_same(left)
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b.iloc[:, i])
+                    for i in range(len(a.columns))}
+
+    elif isinstance(right, ABCSeries) and axis == "columns":
+        # We only get here if called via left._combine_match_columns,
+        # in which case we specifically want to operate row-by-row
+        assert right.index.equals(left.columns)
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b.iloc[i])
+                    for i in range(len(a.columns))}
+
+    elif isinstance(right, ABCSeries):
+        assert right.index.equals(left.index)  # Handle other cases later
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b)
+                    for i in range(len(a.columns))}
+
+    else:
+        # Remaining cases have less-obvious dispatch rules
+        raise NotImplementedError(right)
+
+    new_data = expressions.evaluate(column_op, str_rep, left, right)
+
+    result = left._constructor(new_data, index=left.index, copy=False)
+    # Pin columns instead of passing to constructor for compat with
+    # non-unique columns case
+    result.columns = left.columns
+    return result
+
+
+def dispatch_to_index_op(op, left, right, index_class):
+    """
+    Wrap Series left in the given index_class to delegate the operation op
+    to the index implementation.  DatetimeIndex and TimedeltaIndex perform
+    type checking, timezone handling, overflow checks, etc.
+
+    Parameters
+    ----------
+    op : binary operator (operator.add, operator.sub, ...)
+    left : Series
+    right : object
+    index_class : DatetimeIndex or TimedeltaIndex
+
+    Returns
+    -------
+    result : object, usually DatetimeIndex, TimedeltaIndex, or Series
+    """
+    left_idx = index_class(left)
+
+    # avoid accidentally allowing integer add/sub.  For datetime64[tz] dtypes,
+    # left_idx may inherit a freq from a cached DatetimeIndex.
+    # See discussion in GH#19147.
+    if getattr(left_idx, 'freq', None) is not None:
+        left_idx = left_idx._shallow_copy(freq=None)
+    try:
+        result = op(left_idx, right)
+    except NullFrequencyError:
+        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
+        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
+        raise TypeError('incompatible type for a datetime/timedelta '
+                        'operation [{name}]'.format(name=op.__name__))
+    return result
+
+
+def dispatch_to_extension_op(op, left, right):
+    """
+    Assume that left or right is a Series backed by an ExtensionArray,
+    apply the operator defined by op.
+    """
+
+    # The op calls will raise TypeError if the op is not defined
+    # on the ExtensionArray
+
+    # unbox Series and Index to arrays
+    if isinstance(left, (ABCSeries, ABCIndexClass)):
+        new_left = left._values
+    else:
+        new_left = left
+
+    if isinstance(right, (ABCSeries, ABCIndexClass)):
+        new_right = right._values
+    else:
+        new_right = right
+
+    res_values = op(new_left, new_right)
+    res_name = get_op_result_name(left, right)
+
+    if op.__name__ in ['divmod', 'rdivmod']:
+        return _construct_divmod_result(
+            left, res_values, left.index, res_name)
+
+    return _construct_result(left, res_values, left.index, res_name)
 
 
 # -----------------------------------------------------------------------------
@@ -990,12 +1414,6 @@ def _get_method_wrappers(cls):
         arith_special = _arith_method_SPARSE_ARRAY
         comp_special = _arith_method_SPARSE_ARRAY
         bool_special = _arith_method_SPARSE_ARRAY
-    elif issubclass(cls, ABCPanel):
-        arith_flex = _flex_method_PANEL
-        comp_flex = _comp_method_PANEL
-        arith_special = _arith_method_PANEL
-        comp_special = _comp_method_PANEL
-        bool_special = _arith_method_PANEL
     elif issubclass(cls, ABCDataFrame):
         # Same for DataFrame and SparseDataFrame
         arith_flex = _arith_method_FRAME
@@ -1076,7 +1494,7 @@ def add_methods(cls, new_methods):
         force = not (issubclass(cls, ABCSparseArray) and
                      name.startswith('__i'))
         if force or name not in cls.__dict__:
-            bind_method(cls, name, method)
+            setattr(cls, name, method)
 
 
 # ----------------------------------------------------------------------
@@ -1112,6 +1530,7 @@ def add_special_arithmetic_methods(cls):
 
             return self
 
+        f.__name__ = "__i{name}__".format(name=method.__name__.strip("__"))
         return f
 
     new_methods.update(
@@ -1122,8 +1541,6 @@ def add_special_arithmetic_methods(cls):
              __ifloordiv__=_wrap_inplace_method(new_methods["__floordiv__"]),
              __imod__=_wrap_inplace_method(new_methods["__mod__"]),
              __ipow__=_wrap_inplace_method(new_methods["__pow__"])))
-    if not compat.PY3:
-        new_methods["__idiv__"] = _wrap_inplace_method(new_methods["__div__"])
 
     new_methods.update(
         dict(__iand__=_wrap_inplace_method(new_methods["__and__"]),
@@ -1187,7 +1604,7 @@ def _construct_result(left, result, index, name, dtype=None):
     not be enough; we still need to override the name attribute.
     """
     out = left._constructor(result, index=index, dtype=dtype)
-
+    out = out.__finalize__(left)
     out.name = name
     return out
 
@@ -1195,41 +1612,12 @@ def _construct_result(left, result, index, name, dtype=None):
 def _construct_divmod_result(left, result, index, name, dtype=None):
     """divmod returns a tuple of like indexed series instead of a single series.
     """
-    constructor = left._constructor
     return (
-        constructor(result[0], index=index, name=name, dtype=dtype),
-        constructor(result[1], index=index, name=name, dtype=dtype),
+        _construct_result(left, result[0], index=index, name=name,
+                          dtype=dtype),
+        _construct_result(left, result[1], index=index, name=name,
+                          dtype=dtype),
     )
-
-
-def dispatch_to_extension_op(op, left, right):
-    """
-    Assume that left or right is a Series backed by an ExtensionArray,
-    apply the operator defined by op.
-    """
-
-    # The op calls will raise TypeError if the op is not defined
-    # on the ExtensionArray
-
-    # unbox Series and Index to arrays
-    if isinstance(left, (ABCSeries, ABCIndexClass)):
-        new_left = left._values
-    else:
-        new_left = left
-
-    if isinstance(right, (ABCSeries, ABCIndexClass)):
-        new_right = right._values
-    else:
-        new_right = right
-
-    res_values = op(new_left, new_right)
-    res_name = get_op_result_name(left, right)
-
-    if op.__name__ in ['divmod', 'rdivmod']:
-        return _construct_divmod_result(
-            left, res_values, left.index, res_name)
-
-    return _construct_result(left, res_values, left.index, res_name)
 
 
 def _arith_method_SERIES(cls, op, special):
@@ -1290,28 +1678,31 @@ def _arith_method_SERIES(cls, op, special):
             raise TypeError("{typ} cannot perform the operation "
                             "{op}".format(typ=type(left).__name__, op=str_rep))
 
-        elif (is_extension_array_dtype(left) or
-                (is_extension_array_dtype(right) and not is_scalar(right))):
-            # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
-            return dispatch_to_extension_op(op, left, right)
-
         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
+            # Give dispatch_to_index_op a chance for tests like
+            # test_dt64_series_add_intlike, which the index dispatching handles
+            # specifically.
             result = dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
             return construct_result(left, result,
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
 
+        elif (is_extension_array_dtype(left) or
+                (is_extension_array_dtype(right) and not is_scalar(right))):
+            # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
+            return dispatch_to_extension_op(op, left, right)
+
         elif is_timedelta64_dtype(left):
             result = dispatch_to_index_op(op, left, right, pd.TimedeltaIndex)
             return construct_result(left, result,
-                                    index=left.index, name=res_name,
-                                    dtype=result.dtype)
+                                    index=left.index, name=res_name)
 
-        elif is_timedelta64_dtype(right) and not is_scalar(right):
-            # i.e. exclude np.timedelta64 object
+        elif is_timedelta64_dtype(right):
+            # We should only get here with non-scalar or timedelta64('NaT')
+            #  values for right
             # Note: we cannot use dispatch_to_index_op because
-            # that may incorrectly raise TypeError when we
-            # should get NullFrequencyError
+            #  that may incorrectly raise TypeError when we
+            #  should get NullFrequencyError
             result = op(pd.Index(left), right)
             return construct_result(left, result,
                                     index=left.index, name=res_name,
@@ -1326,41 +1717,8 @@ def _arith_method_SERIES(cls, op, special):
         return construct_result(left, result,
                                 index=left.index, name=res_name, dtype=None)
 
+    wrapper.__name__ = op_name
     return wrapper
-
-
-def dispatch_to_index_op(op, left, right, index_class):
-    """
-    Wrap Series left in the given index_class to delegate the operation op
-    to the index implementation.  DatetimeIndex and TimedeltaIndex perform
-    type checking, timezone handling, overflow checks, etc.
-
-    Parameters
-    ----------
-    op : binary operator (operator.add, operator.sub, ...)
-    left : Series
-    right : object
-    index_class : DatetimeIndex or TimedeltaIndex
-
-    Returns
-    -------
-    result : object, usually DatetimeIndex, TimedeltaIndex, or Series
-    """
-    left_idx = index_class(left)
-
-    # avoid accidentally allowing integer add/sub.  For datetime64[tz] dtypes,
-    # left_idx may inherit a freq from a cached DatetimeIndex.
-    # See discussion in GH#19147.
-    if getattr(left_idx, 'freq', None) is not None:
-        left_idx = left_idx._shallow_copy(freq=None)
-    try:
-        result = op(left_idx, right)
-    except NullFrequencyError:
-        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
-        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
-        raise TypeError('incompatible type for a datetime/timedelta '
-                        'operation [{name}]'.format(name=op.__name__))
-    return result
 
 
 def _comp_method_OBJECT_ARRAY(op, x, y):
@@ -1548,6 +1906,7 @@ def _comp_method_SERIES(cls, op, special):
             return self._constructor(res_values, index=self.index,
                                      name=res_name, dtype='bool')
 
+    wrapper.__name__ = op_name
     return wrapper
 
 
@@ -1661,75 +2020,12 @@ def _flex_method_SERIES(cls, op, special):
 # -----------------------------------------------------------------------------
 # DataFrame
 
-def dispatch_to_series(left, right, func, str_rep=None, axis=None):
-    """
-    Evaluate the frame operation func(left, right) by evaluating
-    column-by-column, dispatching to the Series implementation.
-
-    Parameters
-    ----------
-    left : DataFrame
-    right : scalar or DataFrame
-    func : arithmetic or comparison operator
-    str_rep : str or None, default None
-    axis : {None, 0, 1, "index", "columns"}
-
-    Returns
-    -------
-    DataFrame
-    """
-    # Note: we use iloc to access columns for compat with cases
-    #       with non-unique columns.
-    import pandas.core.computation.expressions as expressions
-
-    right = lib.item_from_zerodim(right)
-    if lib.is_scalar(right):
-
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b)
-                    for i in range(len(a.columns))}
-
-    elif isinstance(right, ABCDataFrame):
-        assert right._indexed_same(left)
-
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[:, i])
-                    for i in range(len(a.columns))}
-
-    elif isinstance(right, ABCSeries) and axis == "columns":
-        # We only get here if called via left._combine_match_columns,
-        # in which case we specifically want to operate row-by-row
-        assert right.index.equals(left.columns)
-
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[i])
-                    for i in range(len(a.columns))}
-
-    elif isinstance(right, ABCSeries):
-        assert right.index.equals(left.index)  # Handle other cases later
-
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b)
-                    for i in range(len(a.columns))}
-
-    else:
-        # Remaining cases have less-obvious dispatch rules
-        raise NotImplementedError(right)
-
-    new_data = expressions.evaluate(column_op, str_rep, left, right)
-
-    result = left._constructor(new_data, index=left.index, copy=False)
-    # Pin columns instead of passing to constructor for compat with
-    # non-unique columns case
-    result.columns = left.columns
-    return result
-
 
 def _combine_series_frame(self, other, func, fill_value=None, axis=None,
-                          level=None, try_cast=True):
+                          level=None):
     """
     Apply binary operator `func` to self, other using alignment and fill
-    conventions determined by the fill_value, axis, level, and try_cast kwargs.
+    conventions determined by the fill_value, axis, and level kwargs.
 
     Parameters
     ----------
@@ -1739,7 +2035,6 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
     fill_value : object, default None
     axis : {0, 1, 'columns', 'index', None}, default None
     level : int or None, default None
-    try_cast : bool, default True
 
     Returns
     -------
@@ -1754,8 +2049,7 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
         if axis == 0:
             return self._combine_match_index(other, func, level=level)
         else:
-            return self._combine_match_columns(other, func, level=level,
-                                               try_cast=try_cast)
+            return self._combine_match_columns(other, func, level=level)
     else:
         if not len(other):
             return self * np.nan
@@ -1766,8 +2060,7 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
                                      columns=self.columns)
 
         # default axis is columns
-        return self._combine_match_columns(other, func, level=level,
-                                           try_cast=try_cast)
+        return self._combine_match_columns(other, func, level=level)
 
 
 def _align_method_FRAME(left, right, axis):
@@ -1867,13 +2160,13 @@ def _arith_method_FRAME(cls, op, special):
             pass_op = op if axis in [0, "columns", None] else na_op
             return _combine_series_frame(self, other, pass_op,
                                          fill_value=fill_value, axis=axis,
-                                         level=level, try_cast=True)
+                                         level=level)
         else:
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
             assert np.ndim(other) == 0
-            return self._combine_const(other, op, try_cast=True)
+            return self._combine_const(other, op)
 
     f.__name__ = op_name
 
@@ -1893,8 +2186,10 @@ def _flex_comp_method_FRAME(cls, op, special):
             result = mask_cmp_op(x, y, op, (np.ndarray, ABCSeries))
         return result
 
-    @Appender('Wrapper for flexible comparison methods {name}'
-              .format(name=op_name))
+    doc = _flex_comp_doc_FRAME.format(op_name=op_name,
+                                      desc=_op_descriptions[op_name]['desc'])
+
+    @Appender(doc)
     def f(self, other, axis=default_axis, level=None):
 
         other = _align_method_FRAME(self, other, axis)
@@ -1909,9 +2204,10 @@ def _flex_comp_method_FRAME(cls, op, special):
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, na_op,
                                          fill_value=None, axis=axis,
-                                         level=level, try_cast=False)
+                                         level=level)
         else:
-            return self._combine_const(other, na_op, try_cast=False)
+            assert np.ndim(other) == 0, other
+            return self._combine_const(other, na_op)
 
     f.__name__ = op_name
 
@@ -1937,106 +2233,16 @@ def _comp_method_FRAME(cls, func, special):
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, func,
                                          fill_value=None, axis=None,
-                                         level=None, try_cast=False)
+                                         level=None)
         else:
 
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
-            res = self._combine_const(other, func,
-                                      errors='ignore',
-                                      try_cast=False)
+            res = self._combine_const(other, func)
             return res.fillna(True).astype(bool)
 
     f.__name__ = op_name
 
-    return f
-
-
-# -----------------------------------------------------------------------------
-# Panel
-
-def _arith_method_PANEL(cls, op, special):
-    # work only for scalars
-    op_name = _get_op_name(op, special)
-
-    def f(self, other):
-        if not is_scalar(other):
-            raise ValueError('Simple arithmetic with {name} can only be '
-                             'done with scalar values'
-                             .format(name=self._constructor.__name__))
-
-        return self._combine(other, op)
-
-    f.__name__ = op_name
-    return f
-
-
-def _comp_method_PANEL(cls, op, special):
-    str_rep = _get_opstr(op, cls)
-    op_name = _get_op_name(op, special)
-
-    def na_op(x, y):
-        import pandas.core.computation.expressions as expressions
-
-        try:
-            result = expressions.evaluate(op, str_rep, x, y)
-        except TypeError:
-            result = mask_cmp_op(x, y, op, np.ndarray)
-        return result
-
-    @Appender('Wrapper for comparison method {name}'.format(name=op_name))
-    def f(self, other, axis=None):
-        # Validate the axis parameter
-        if axis is not None:
-            self._get_axis_number(axis)
-
-        if isinstance(other, self._constructor):
-            return self._compare_constructor(other, na_op, try_cast=False)
-        elif isinstance(other, (self._constructor_sliced, ABCDataFrame,
-                                ABCSeries)):
-            raise Exception("input needs alignment for this object [{object}]"
-                            .format(object=self._constructor))
-        else:
-            return self._combine_const(other, na_op, try_cast=False)
-
-    f.__name__ = op_name
-
-    return f
-
-
-def _flex_method_PANEL(cls, op, special):
-    str_rep = _get_opstr(op, cls)
-    op_name = _get_op_name(op, special)
-    eval_kwargs = _gen_eval_kwargs(op_name)
-    fill_zeros = _gen_fill_zeros(op_name)
-
-    def na_op(x, y):
-        import pandas.core.computation.expressions as expressions
-
-        try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          errors='raise',
-                                          **eval_kwargs)
-        except TypeError:
-            result = op(x, y)
-
-        # handles discrepancy between numpy and numexpr on division/mod
-        # by 0 though, given that these are generally (always?)
-        # non-scalars, I'm not sure whether it's worth it at the moment
-        result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-        return result
-
-    if op_name in _op_descriptions:
-        doc = _make_flex_doc(op_name, 'panel')
-    else:
-        # doc strings substitors
-        doc = _agg_doc_PANEL.format(op_name=op_name)
-
-    @Appender(doc)
-    def f(self, other, axis=0):
-        return self._combine(other, na_op, axis=axis)
-
-    f.__name__ = op_name
     return f
 
 
@@ -2066,10 +2272,10 @@ def _cast_sparse_series_op(left, right, opname):
     # TODO: This should be moved to the array?
     if is_integer_dtype(left) and is_integer_dtype(right):
         # series coerces to float64 if result should have NaN/inf
-        if opname in ('floordiv', 'mod') and (right.values == 0).any():
+        if opname in ('floordiv', 'mod') and (right.to_dense() == 0).any():
             left = left.astype(SparseDtype(np.float64, left.fill_value))
             right = right.astype(SparseDtype(np.float64, right.fill_value))
-        elif opname in ('rfloordiv', 'rmod') and (left.values == 0).any():
+        elif opname in ('rfloordiv', 'rmod') and (left.to_dense() == 0).any():
             left = left.astype(SparseDtype(np.float64, left.fill_value))
             right = right.astype(SparseDtype(np.float64, right.fill_value))
 
@@ -2152,8 +2358,6 @@ def maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs):
 
     special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
                'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder'}
-    if compat.PY2:
-        special.add('div')
     aliases = {
         'subtract': 'sub',
         'multiply': 'mul',

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-cdef bint is_utc(object tz)
+cpdef bint is_utc(object tz)
 cdef bint is_tzlocal(object tz)
 
 cdef bint treat_tz_as_pytz(object tz)

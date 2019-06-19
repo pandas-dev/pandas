@@ -1,26 +1,22 @@
-# -*- coding: utf-8 -*-
-
 """
 test all other .agg behavior
 """
 
-from __future__ import print_function
-
-import pytest
 from collections import OrderedDict
-
 import datetime as dt
 from functools import partial
 
 import numpy as np
-import pandas as pd
+import pytest
 
+import pandas as pd
 from pandas import (
-    date_range, DataFrame, Index, MultiIndex, PeriodIndex, period_range, Series
-)
+    DataFrame, Index, MultiIndex, PeriodIndex, Series, date_range,
+    period_range)
 from pandas.core.groupby.groupby import SpecificationError
-from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
+
+from pandas.io.formats.printing import pprint_thing
 
 
 def test_agg_api():
@@ -221,6 +217,7 @@ def test_agg_dict_renaming_deprecation():
         df.groupby('A').agg({'B': {'foo': ['sum', 'max']},
                              'C': {'bar': ['count', 'min']}})
         assert "using a dict with renaming" in str(w[0].message)
+        assert "named aggregation" in str(w[0].message)
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.groupby('A')[['B', 'C']].agg({'ma': 'max'})
@@ -228,6 +225,7 @@ def test_agg_dict_renaming_deprecation():
     with tm.assert_produces_warning(FutureWarning) as w:
         df.groupby('A').B.agg({'foo': 'count'})
         assert "using a dict on a Series for aggregation" in str(w[0].message)
+        assert "named aggregation instead." in str(w[0].message)
 
 
 def test_agg_compat():
@@ -268,7 +266,7 @@ def test_agg_nested_dicts():
     g = df.groupby(['A', 'B'])
 
     msg = r'cannot perform renaming for r[1-2] with a nested dictionary'
-    with tm.assert_raises_regex(SpecificationError, msg):
+    with pytest.raises(SpecificationError, match=msg):
         g.aggregate({'r1': {'C': ['mean', 'sum']},
                      'r2': {'D': ['mean', 'sum']}})
 
@@ -302,7 +300,7 @@ def test_agg_item_by_item_raise_typeerror():
         pprint_thing(df.to_string())
         raise TypeError('test')
 
-    with tm.assert_raises_regex(TypeError, 'test'):
+    with pytest.raises(TypeError, match='test'):
         df.groupby(0).agg(raiseException)
 
 
@@ -363,7 +361,7 @@ def test_agg_callables():
     # GH 7929
     df = DataFrame({'foo': [1, 2], 'bar': [3, 4]}).astype(np.int64)
 
-    class fn_class(object):
+    class fn_class:
 
         def __call__(self, x):
             return sum(x)
@@ -487,17 +485,6 @@ def test_agg_structs_series(structure, expected):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize('observed', [
-    True,
-    pytest.param(False,
-                 marks=pytest.mark.xfail(reason="GH#18869: agg func not "
-                                                "called on empty groups.",
-                                         strict=True)),
-    pytest.param(None,
-                 marks=pytest.mark.xfail(reason="GH#18869: agg func not "
-                                                "called on empty groups.",
-                                         strict=True))
-])
 def test_agg_category_nansum(observed):
     categories = ['a', 'b', 'c']
     df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],
@@ -522,4 +509,19 @@ def test_agg_list_like_func():
     result = grouped.agg({'B': lambda x: list(x)})
     expected = pd.DataFrame({'A': [str(x) for x in range(3)],
                              'B': [[str(x)] for x in range(3)]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_lambda_with_timezone():
+    # GH 23683
+    df = pd.DataFrame({
+        'tag': [1, 1],
+        'date': [
+            pd.Timestamp('2018-01-01', tz='UTC'),
+            pd.Timestamp('2018-01-02', tz='UTC')]
+    })
+    result = df.groupby('tag').agg({'date': lambda e: e.head(1)})
+    expected = pd.DataFrame([pd.Timestamp('2018-01-01', tz='UTC')],
+                            index=pd.Index([1], name='tag'),
+                            columns=['date'])
     tm.assert_frame_equal(result, expected)

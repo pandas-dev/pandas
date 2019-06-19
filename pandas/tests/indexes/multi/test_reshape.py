@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
-
-
 import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import Index, MultiIndex
+import pandas.util.testing as tm
 
 
 def test_insert(idx):
@@ -27,7 +24,7 @@ def test_insert(idx):
 
     # key wrong length
     msg = "Item must have length equal to number of levels"
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         idx.insert(0, ('foo2',))
 
     left = pd.DataFrame([['a', 'b', 0], ['b', 'd', 1]],

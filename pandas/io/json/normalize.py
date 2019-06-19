@@ -1,16 +1,20 @@
 # ---------------------------------------------------------------------
 # JSON normalization routines
 
-import copy
 from collections import defaultdict
+import copy
+
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas import compat, DataFrame
+
+from pandas import DataFrame
 
 
 def _convert_to_line_delimits(s):
-    """Helper function that converts json lists to line delimited json."""
+    """
+    Helper function that converts JSON lists to line delimited JSON.
+    """
 
     # Determine we have a JSON list to turn to lines otherwise just return the
     # json object, only lists can
@@ -22,9 +26,10 @@ def _convert_to_line_delimits(s):
 
 
 def nested_to_record(ds, prefix="", sep=".", level=0):
-    """a simplified json_normalize
+    """
+    A simplified json_normalize.
 
-    converts a nested dict into a flat dict ("record"), unlike json_normalize,
+    Converts a nested dict into a flat dict ("record"), unlike json_normalize,
     it does not attempt to extract a subset of the data.
 
     Parameters
@@ -67,7 +72,7 @@ def nested_to_record(ds, prefix="", sep=".", level=0):
         new_d = copy.deepcopy(d)
         for k, v in d.items():
             # each key gets renamed with prefix
-            if not isinstance(k, compat.string_types):
+            if not isinstance(k, str):
                 k = str(k)
             if level == 0:
                 newkey = k
@@ -97,7 +102,7 @@ def json_normalize(data, record_path=None, meta=None,
                    errors='raise',
                    sep='.'):
     """
-    "Normalize" semi-structured JSON data into a flat table
+    Normalize semi-structured JSON data into a flat table.
 
     Parameters
     ----------
@@ -108,10 +113,10 @@ def json_normalize(data, record_path=None, meta=None,
         assumed to be an array of records
     meta : list of paths (string or list of strings), default None
         Fields to use as metadata for each record in resulting table
+    meta_prefix : string, default None
     record_prefix : string, default None
         If True, prefix records with dotted (?) path, e.g. foo.bar.field if
         path to records is ['foo', 'bar']
-    meta_prefix : string, default None
     errors : {'raise', 'ignore'}, default 'raise'
 
         * 'ignore' : will ignore KeyError if keys listed in meta are not
@@ -126,7 +131,6 @@ def json_normalize(data, record_path=None, meta=None,
         e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
 
         .. versionadded:: 0.20.0
-
 
     Returns
     -------
@@ -194,8 +198,7 @@ def json_normalize(data, record_path=None, meta=None,
         data = [data]
 
     if record_path is None:
-        if any([isinstance(x, dict)
-                for x in compat.itervalues(y)] for y in data):
+        if any([isinstance(x, dict) for x in y.values()] for y in data):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:
@@ -220,11 +223,13 @@ def json_normalize(data, record_path=None, meta=None,
     lengths = []
 
     meta_vals = defaultdict(list)
-    if not isinstance(sep, compat.string_types):
+    if not isinstance(sep, str):
         sep = str(sep)
     meta_keys = [sep.join(val) for val in meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
+        if isinstance(data, dict):
+            data = [data]
         if len(path) > 1:
             for obj in data:
                 for val, key in zip(meta, meta_keys):
@@ -267,7 +272,7 @@ def json_normalize(data, record_path=None, meta=None,
             columns=lambda x: "{p}{c}".format(p=record_prefix, c=x))
 
     # Data types, a problem
-    for k, v in compat.iteritems(meta_vals):
+    for k, v in meta_vals.items():
         if meta_prefix is not None:
             k = meta_prefix + k
 
@@ -275,6 +280,7 @@ def json_normalize(data, record_path=None, meta=None,
             raise ValueError('Conflicting metadata name {name}, '
                              'need distinguishing prefix '.format(name=k))
 
-        result[k] = np.array(v).repeat(lengths)
+        # forcing dtype to object to avoid the metadata being casted to string
+        result[k] = np.array(v, dtype=object).repeat(lengths)
 
     return result

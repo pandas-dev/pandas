@@ -1,19 +1,19 @@
 """ test with the .transform """
-
-import pytest
+from io import StringIO
 
 import numpy as np
-import pandas as pd
-from pandas.util import testing as tm
-from pandas import Series, DataFrame, Timestamp, MultiIndex, concat, date_range
-from pandas.core.dtypes.common import (
-    ensure_platform_int, is_timedelta64_dtype)
-from pandas.compat import StringIO
+import pytest
+
 from pandas._libs import groupby
 
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, MultiIndex, Series, Timestamp, concat, date_range)
 from pandas.core.groupby.groupby import DataError
-from pandas.core.config import option_context
+from pandas.util import testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 def assert_fp_equal(a, b):
@@ -445,7 +445,7 @@ def test_transform_mixed_type():
     assert result['d'].dtype == np.float64
 
     # this is by definition a mutating operation!
-    with option_context('mode.chained_assignment', None):
+    with pd.option_context('mode.chained_assignment', None):
         for key, group in grouped:
             res = f(group)
             assert_frame_equal(res, result.loc[key])
@@ -471,7 +471,8 @@ def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
     ans = np.zeros_like(data)
 
     labels = np.array([0, 0, 0, 0], dtype=np.int64)
-    pd_op(ans, data, labels, is_datetimelike)
+    ngroups = 1
+    pd_op(ans, data, labels, ngroups, is_datetimelike)
 
     tm.assert_numpy_array_equal(np_op(data), ans[:, 0],
                                 check_dtype=False)
@@ -497,17 +498,19 @@ def test_cython_group_transform_algos():
 
     # with nans
     labels = np.array([0, 0, 0, 0, 0], dtype=np.int64)
+    ngroups = 1
 
     data = np.array([[1], [2], [3], [np.nan], [4]], dtype='float64')
     actual = np.zeros_like(data)
     actual.fill(np.nan)
-    groupby.group_cumprod_float64(actual, data, labels, is_datetimelike)
+    groupby.group_cumprod_float64(actual, data, labels, ngroups,
+                                  is_datetimelike)
     expected = np.array([1, 2, 6, np.nan, 24], dtype='float64')
     tm.assert_numpy_array_equal(actual[:, 0], expected)
 
     actual = np.zeros_like(data)
     actual.fill(np.nan)
-    groupby.group_cumsum(actual, data, labels, is_datetimelike)
+    groupby.group_cumsum(actual, data, labels, ngroups, is_datetimelike)
     expected = np.array([1, 3, 6, np.nan, 10], dtype='float64')
     tm.assert_numpy_array_equal(actual[:, 0], expected)
 
@@ -516,7 +519,7 @@ def test_cython_group_transform_algos():
     data = np.array([np.timedelta64(1, 'ns')] * 5, dtype='m8[ns]')[:, None]
     actual = np.zeros_like(data, dtype='int64')
     groupby.group_cumsum(actual, data.view('int64'), labels,
-                         is_datetimelike)
+                         ngroups, is_datetimelike)
     expected = np.array([np.timedelta64(1, 'ns'), np.timedelta64(
         2, 'ns'), np.timedelta64(3, 'ns'), np.timedelta64(4, 'ns'),
         np.timedelta64(5, 'ns')])
@@ -637,8 +640,11 @@ def test_cython_transform_frame(op, args, targop):
             for c in df:
                 if c not in ['float', 'int', 'float_missing'
                              ] and op != 'shift':
-                    pytest.raises(DataError, gb[c].transform, op)
-                    pytest.raises(DataError, getattr(gb[c], op))
+                    msg = "No numeric types to aggregate"
+                    with pytest.raises(DataError, match=msg):
+                        gb[c].transform(op)
+                    with pytest.raises(DataError, match=msg):
+                        getattr(gb[c], op)()
                 else:
                     expected = gb[c].apply(targop)
                     expected.name = c
@@ -658,11 +664,11 @@ def test_transform_with_non_scalar_group():
     df = pd.DataFrame(np.random.randint(1, 10, (4, 12)),
                       columns=cols,
                       index=['A', 'C', 'G', 'T'])
-    tm.assert_raises_regex(ValueError, 'transform must return '
-                           'a scalar value for each '
-                           'group.*',
-                           df.groupby(axis=1, level=1).transform,
-                           lambda z: z.div(z.sum(axis=1), axis=0))
+
+    msg = 'transform must return a scalar value for each group.*'
+    with pytest.raises(ValueError, match=msg):
+        df.groupby(axis=1, level=1).transform(
+            lambda z: z.div(z.sum(axis=1), axis=0))
 
 
 @pytest.mark.parametrize('cols,exp,comp_func', [
@@ -743,7 +749,7 @@ def test_group_fill_methods(mix_groupings, as_series, val1, val2,
         assert_series_equal(result, exp)
     else:
         result = getattr(df.groupby('key'), fill_method)(limit=limit)
-        exp = DataFrame({'key': keys, 'val': _exp_vals})
+        exp = DataFrame({'val': _exp_vals})
         assert_frame_equal(result, exp)
 
 
@@ -757,7 +763,7 @@ def test_pad_stable_sorting(fill_method):
         y = y[::-1]
 
     df = pd.DataFrame({'x': x, 'y': y})
-    expected = df.copy()
+    expected = df.drop('x', 1)
 
     result = getattr(df.groupby('x'), fill_method)()
 
@@ -765,36 +771,36 @@ def test_pad_stable_sorting(fill_method):
 
 
 @pytest.mark.parametrize("test_series", [True, False])
+@pytest.mark.parametrize("freq", [
+    None,
+    pytest.param('D', marks=pytest.mark.xfail(
+        reason='GH#23918 before method uses freq in vectorized approach'))])
 @pytest.mark.parametrize("periods,fill_method,limit", [
     (1, 'ffill', None), (1, 'ffill', 1),
     (1, 'bfill', None), (1, 'bfill', 1),
     (-1, 'ffill', None), (-1, 'ffill', 1),
-    (-1, 'bfill', None), (-1, 'bfill', 1)])
-def test_pct_change(test_series, periods, fill_method, limit):
-    vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
-    exp_vals = Series(vals).pct_change(periods=periods,
-                                       fill_method=fill_method,
-                                       limit=limit).tolist()
+    (-1, 'bfill', None), (-1, 'bfill', 1),
+])
+def test_pct_change(test_series, freq, periods, fill_method, limit):
+    # GH  21200, 21621
+    vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
+    keys = ['a', 'b']
+    key_v = np.repeat(keys, len(vals))
+    df = DataFrame({'key': key_v, 'vals': vals * 2})
 
-    df = DataFrame({'key': ['a'] * len(vals) + ['b'] * len(vals),
-                    'vals': vals * 2})
-    grp = df.groupby('key')
+    df_g = getattr(df.groupby('key'), fill_method)(limit=limit)
+    grp = df_g.groupby(df.key)
 
-    def get_result(grp_obj):
-        return grp_obj.pct_change(periods=periods,
-                                  fill_method=fill_method,
-                                  limit=limit)
+    expected = grp['vals'].obj / grp['vals'].shift(periods) - 1
 
     if test_series:
-        exp = pd.Series(exp_vals * 2)
-        exp.name = 'vals'
-        grp = grp['vals']
-        result = get_result(grp)
-        tm.assert_series_equal(result, exp)
+        result = df.groupby('key')['vals'].pct_change(
+            periods=periods, fill_method=fill_method, limit=limit, freq=freq)
+        tm.assert_series_equal(result, expected)
     else:
-        exp = DataFrame({'vals': exp_vals * 2})
-        result = get_result(grp)
-        tm.assert_frame_equal(result, exp)
+        result = df.groupby('key').pct_change(
+            periods=periods, fill_method=fill_method, limit=limit, freq=freq)
+        tm.assert_frame_equal(result, expected.to_frame('vals'))
 
 
 @pytest.mark.parametrize("func", [np.any, np.all])
@@ -808,3 +814,80 @@ def test_any_all_np_func(func):
 
     res = df.groupby('key')['val'].transform(func)
     tm.assert_series_equal(res, exp)
+
+
+def test_groupby_transform_rename():
+    # https://github.com/pandas-dev/pandas/issues/23461
+    def demean_rename(x):
+        result = x - x.mean()
+
+        if isinstance(x, pd.Series):
+            return result
+
+        result = result.rename(
+            columns={c: '{}_demeaned'.format(c) for c in result.columns})
+
+        return result
+
+    df = pd.DataFrame({'group': list('ababa'),
+                       'value': [1, 1, 1, 2, 2]})
+    expected = pd.DataFrame({'value': [-1. / 3, -0.5, -1. / 3, 0.5, 2. / 3]})
+
+    result = df.groupby('group').transform(demean_rename)
+    tm.assert_frame_equal(result, expected)
+    result_single = df.groupby('group').value.transform(demean_rename)
+    tm.assert_series_equal(result_single, expected['value'])
+
+
+@pytest.mark.parametrize('func', [min, max, np.min, np.max, 'first', 'last'])
+def test_groupby_transform_timezone_column(func):
+    # GH 24198
+    ts = pd.to_datetime('now', utc=True).tz_convert('Asia/Singapore')
+    result = pd.DataFrame({'end_time': [ts], 'id': [1]})
+    result['max_end_time'] = result.groupby('id').end_time.transform(func)
+    expected = pd.DataFrame([[ts, 1, ts]], columns=['end_time', 'id',
+                                                    'max_end_time'])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func, values", [
+    ("idxmin", ["1/1/2011"] * 2 + ["1/3/2011"] * 7 + ["1/10/2011"]),
+    ("idxmax", ["1/2/2011"] * 2 + ["1/9/2011"] * 7 + ["1/10/2011"])
+])
+def test_groupby_transform_with_datetimes(func, values):
+    # GH 15306
+    dates = pd.date_range('1/1/2011', periods=10, freq='D')
+
+    stocks = pd.DataFrame({'price': np.arange(10.0)}, index=dates)
+    stocks['week_id'] = pd.to_datetime(stocks.index).week
+
+    result = stocks.groupby(stocks['week_id'])['price'].transform(func)
+
+    expected = pd.Series(data=pd.to_datetime(values),
+                         index=dates, name="price")
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('func', ['cumsum', 'cumprod', 'cummin', 'cummax'])
+def test_transform_absent_categories(func):
+    # GH 16771
+    # cython transforms with more groups than rows
+    x_vals = [1]
+    x_cats = range(2)
+    y = [1]
+    df = DataFrame(dict(x=Categorical(x_vals, x_cats), y=y))
+    result = getattr(df.y.groupby(df.x), func)()
+    expected = df.y
+    assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('func', ['ffill', 'bfill', 'shift'])
+@pytest.mark.parametrize('key, val', [('level', 0), ('by', Series([0]))])
+def test_ffill_not_in_axis(func, key, val):
+    # GH 21521
+    df = pd.DataFrame([[np.nan]])
+    result = getattr(df.groupby(**{key: val}), func)()
+    expected = df
+
+    assert_frame_equal(result, expected)

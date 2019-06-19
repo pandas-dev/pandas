@@ -1,21 +1,16 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=E1101,W0612
-
+from distutils.version import LooseVersion
 from operator import methodcaller
 
-import pytest
 import numpy as np
-import pandas as pd
+import pytest
 
-from distutils.version import LooseVersion
-from pandas import Series, date_range, MultiIndex
-
-from pandas.compat import range
-from pandas.util.testing import (assert_series_equal,
-                                 assert_almost_equal)
-
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import MultiIndex, Series, date_range
+import pandas.util.testing as tm
+from pandas.util.testing import assert_almost_equal, assert_series_equal
+
 from .test_generic import Generic
 
 try:
@@ -103,23 +98,34 @@ class TestSeries(Generic):
         s = Series([False])
         assert not s.bool()
 
+        msg = "The truth value of a Series is ambiguous"
         # single item nan to raise
         for s in [Series([np.nan]), Series([pd.NaT]), Series([True]),
                   Series([False])]:
-            pytest.raises(ValueError, lambda: bool(s))
+            with pytest.raises(ValueError, match=msg):
+                bool(s)
 
+        msg = "bool cannot act on a non-boolean single element Series"
         for s in [Series([np.nan]), Series([pd.NaT])]:
-            pytest.raises(ValueError, lambda: s.bool())
+            with pytest.raises(ValueError, match=msg):
+                s.bool()
 
         # multiple bool are still an error
+        msg = "The truth value of a Series is ambiguous"
         for s in [Series([True, True]), Series([False, False])]:
-            pytest.raises(ValueError, lambda: bool(s))
-            pytest.raises(ValueError, lambda: s.bool())
+            with pytest.raises(ValueError, match=msg):
+                bool(s)
+            with pytest.raises(ValueError, match=msg):
+                s.bool()
 
         # single non-bool are an error
         for s in [Series([1]), Series([0]), Series(['a']), Series([0.0])]:
-            pytest.raises(ValueError, lambda: bool(s))
-            pytest.raises(ValueError, lambda: s.bool())
+            msg = "The truth value of a Series is ambiguous"
+            with pytest.raises(ValueError, match=msg):
+                bool(s)
+            msg = "bool cannot act on a non-boolean single element Series"
+            with pytest.raises(ValueError, match=msg):
+                s.bool()
 
     def test_metadata_propagation_indiv(self):
         # check that the metadata matches up on the resulting ops

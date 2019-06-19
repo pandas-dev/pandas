@@ -2,27 +2,21 @@
 missing types & inference
 """
 import numpy as np
-from pandas._libs import lib, missing as libmissing
+
+from pandas._libs import lib
+import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
-from .generic import (ABCMultiIndex, ABCSeries,
-                      ABCIndexClass, ABCGeneric,
-                      ABCExtensionArray)
-from .common import (is_string_dtype, is_datetimelike,
-                     is_datetimelike_v_numeric, is_float_dtype,
-                     is_datetime64_dtype, is_datetime64tz_dtype,
-                     is_timedelta64_dtype,
-                     is_period_dtype,
-                     is_complex_dtype,
-                     is_string_like_dtype, is_bool_dtype,
-                     is_integer_dtype, is_dtype_equal,
-                     is_extension_array_dtype,
-                     needs_i8_conversion, ensure_object,
-                     pandas_dtype,
-                     is_scalar,
-                     is_object_dtype,
-                     is_integer,
-                     _TD_DTYPE,
-                     _NS_DTYPE)
+
+from .common import (
+    _NS_DTYPE, _TD_DTYPE, ensure_object, is_bool_dtype, is_complex_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_datetimelike,
+    is_datetimelike_v_numeric, is_dtype_equal, is_extension_array_dtype,
+    is_float_dtype, is_integer_dtype, is_object_dtype, is_period_dtype,
+    is_scalar, is_string_dtype, is_string_like_dtype, is_timedelta64_dtype,
+    needs_i8_conversion, pandas_dtype)
+from .generic import (
+    ABCDatetimeArray, ABCExtensionArray, ABCGeneric, ABCIndexClass,
+    ABCMultiIndex, ABCSeries, ABCTimedeltaArray)
 from .inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
@@ -51,7 +45,7 @@ def isna(obj):
 
     See Also
     --------
-    notna : boolean inverse of pandas.isna.
+    notna : Boolean inverse of pandas.isna.
     Series.isna : Detect missing values in a Series.
     DataFrame.isna : Detect missing values in a DataFrame.
     Index.isna : Detect missing values in an Index.
@@ -116,7 +110,8 @@ def _isna_new(obj):
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass,
-                          ABCExtensionArray)):
+                          ABCExtensionArray,
+                          ABCDatetimeArray, ABCTimedeltaArray)):
         return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=isna))
@@ -178,7 +173,7 @@ def _use_inf_as_na(key):
     * http://stackoverflow.com/questions/4859217/
       programmatically-creating-variables-in-python/4859312#4859312
     """
-    from pandas.core.config import get_option
+    from pandas._config import get_option
     flag = get_option(key)
     if flag:
         globals()['_isna'] = _isna_old
@@ -187,15 +182,25 @@ def _use_inf_as_na(key):
 
 
 def _isna_ndarraylike(obj):
-    values = getattr(obj, 'values', obj)
+    is_extension = is_extension_array_dtype(obj)
+
+    if not is_extension:
+        # Avoid accessing `.values` on things like
+        # PeriodIndex, which may be expensive.
+        values = getattr(obj, 'values', obj)
+    else:
+        values = obj
+
     dtype = values.dtype
 
-    if is_extension_array_dtype(obj):
+    if is_extension:
         if isinstance(obj, (ABCIndexClass, ABCSeries)):
             values = obj._values
         else:
             values = obj
         result = values.isna()
+    elif isinstance(obj, ABCDatetimeArray):
+        return obj.isna()
     elif is_string_dtype(dtype):
         # Working around NumPy ticket 1542
         shape = values.shape
@@ -209,7 +214,7 @@ def _isna_ndarraylike(obj):
             vec = libmissing.isnaobj(values.ravel())
             result[...] = vec.reshape(shape)
 
-    elif needs_i8_conversion(obj):
+    elif needs_i8_conversion(dtype):
         # this is the NaT pattern
         result = values.view('i8') == iNaT
     else:
@@ -217,8 +222,8 @@ def _isna_ndarraylike(obj):
 
     # box
     if isinstance(obj, ABCSeries):
-        from pandas import Series
-        result = Series(result, index=obj.index, name=obj.name, copy=False)
+        result = obj._constructor(
+            result, index=obj.index, name=obj.name, copy=False)
 
     return result
 
@@ -246,8 +251,8 @@ def _isna_ndarraylike_old(obj):
 
     # box
     if isinstance(obj, ABCSeries):
-        from pandas import Series
-        result = Series(result, index=obj.index, name=obj.name, copy=False)
+        result = obj._constructor(
+            result, index=obj.index, name=obj.name, copy=False)
 
     return result
 
@@ -274,7 +279,7 @@ def notna(obj):
 
     See Also
     --------
-    isna : boolean inverse of pandas.notna.
+    isna : Boolean inverse of pandas.notna.
     Series.notna : Detect valid values in a Series.
     DataFrame.notna : Detect valid values in a DataFrame.
     Index.notna : Detect valid values in an Index.
@@ -333,22 +338,6 @@ def notna(obj):
 
 
 notnull = notna
-
-
-def is_null_datelike_scalar(other):
-    """ test whether the object is a null datelike, e.g. Nat
-    but guard against passing a non-scalar """
-    if other is NaT or other is None:
-        return True
-    elif is_scalar(other):
-
-        # a timedelta
-        if hasattr(other, 'dtype'):
-            return other.view('i8') == iNaT
-        elif is_integer(other) and other == iNaT:
-            return True
-        return isna(other)
-    return False
 
 
 def _isna_compat(arr, fill_value=np.nan):
@@ -470,7 +459,7 @@ def _infer_fill_value(val):
     if is_datetimelike(val):
         return np.array('NaT', dtype=val.dtype)
     elif is_object_dtype(val.dtype):
-        dtype = lib.infer_dtype(ensure_object(val))
+        dtype = lib.infer_dtype(ensure_object(val), skipna=False)
         if dtype in ['datetime', 'datetime64']:
             return np.array('NaT', dtype=_NS_DTYPE)
         elif dtype in ['timedelta', 'timedelta64']:

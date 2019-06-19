@@ -2,19 +2,23 @@
 
 import ast
 from functools import partial
+
 import numpy as np
-import pandas as pd
+
+from pandas._libs.tslibs import Timedelta, Timestamp
+from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.dtypes.common import is_list_like
-import pandas.core.common as com
-from pandas.compat import u, string_types, DeepChainMap
+
+import pandas as pd
 from pandas.core.base import StringMixin
-from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
+import pandas.core.common as com
 from pandas.core.computation import expr, ops
-from pandas.core.computation.ops import is_term, UndefinedVariableError
-from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.common import _ensure_decoded
-from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
+from pandas.core.computation.expr import BaseExprVisitor
+from pandas.core.computation.ops import UndefinedVariableError, is_term
+
+from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
 
 class Scope(expr.Scope):
@@ -22,20 +26,21 @@ class Scope(expr.Scope):
 
     def __init__(self, level, global_dict=None, local_dict=None,
                  queryables=None):
-        super(Scope, self).__init__(level + 1, global_dict=global_dict,
-                                    local_dict=local_dict)
+        super().__init__(level + 1,
+                         global_dict=global_dict,
+                         local_dict=local_dict)
         self.queryables = queryables or dict()
 
 
 class Term(ops.Term):
 
     def __new__(cls, name, env, side=None, encoding=None):
-        klass = Constant if not isinstance(name, string_types) else cls
+        klass = Constant if not isinstance(name, str) else cls
         supr_new = StringMixin.__new__
         return supr_new(klass)
 
     def __init__(self, name, env, side=None, encoding=None):
-        super(Term, self).__init__(name, env, side=side, encoding=encoding)
+        super().__init__(name, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
         # must be a queryables
@@ -51,7 +56,8 @@ class Term(ops.Term):
         except UndefinedVariableError:
             return self.name
 
-    @property
+    # read-only property overwriting read/write property
+    @property  # type: ignore
     def value(self):
         return self._value
 
@@ -59,8 +65,7 @@ class Term(ops.Term):
 class Constant(Term):
 
     def __init__(self, value, env, side=None, encoding=None):
-        super(Constant, self).__init__(value, env, side=side,
-                                       encoding=encoding)
+        super().__init__(value, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
         return self._name
@@ -71,7 +76,7 @@ class BinOp(ops.BinOp):
     _max_selectors = 31
 
     def __init__(self, op, lhs, rhs, queryables, encoding):
-        super(BinOp, self).__init__(op, lhs, rhs)
+        super().__init__(op, lhs, rhs)
         self.queryables = queryables
         self.encoding = encoding
         self.filter = None
@@ -178,18 +183,18 @@ class BinOp(ops.BinOp):
 
         kind = _ensure_decoded(self.kind)
         meta = _ensure_decoded(self.meta)
-        if kind == u('datetime64') or kind == u('datetime'):
+        if kind == 'datetime64' or kind == 'datetime':
             if isinstance(v, (int, float)):
                 v = stringify(v)
             v = _ensure_decoded(v)
-            v = pd.Timestamp(v)
+            v = Timestamp(v)
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             return TermValue(v, v.value, kind)
-        elif kind == u('timedelta64') or kind == u('timedelta'):
-            v = _coerce_scalar_to_timedelta_type(v, unit='s').value
+        elif kind == 'timedelta64' or kind == 'timedelta':
+            v = Timedelta(v, unit='s').value
             return TermValue(int(v), v, kind)
-        elif meta == u('category'):
+        elif meta == 'category':
             metadata = com.values_from_object(self.metadata)
             result = metadata.searchsorted(v, side='left')
 
@@ -197,24 +202,24 @@ class BinOp(ops.BinOp):
             # check that metadata contains v
             if not result and v not in metadata:
                 result = -1
-            return TermValue(result, result, u('integer'))
-        elif kind == u('integer'):
+            return TermValue(result, result, 'integer')
+        elif kind == 'integer':
             v = int(float(v))
             return TermValue(v, v, kind)
-        elif kind == u('float'):
+        elif kind == 'float':
             v = float(v)
             return TermValue(v, v, kind)
-        elif kind == u('bool'):
-            if isinstance(v, string_types):
-                v = not v.strip().lower() in [u('false'), u('f'), u('no'),
-                                              u('n'), u('none'), u('0'),
-                                              u('[]'), u('{}'), u('')]
+        elif kind == 'bool':
+            if isinstance(v, str):
+                v = not v.strip().lower() in ['false', 'f', 'no',
+                                              'n', 'none', '0',
+                                              '[]', '{}', '']
             else:
                 v = bool(v)
             return TermValue(v, v, kind)
-        elif isinstance(v, string_types):
+        elif isinstance(v, str):
             # string quoting
-            return TermValue(v, stringify(v), u('string'))
+            return TermValue(v, stringify(v), 'string')
         else:
             raise TypeError("Cannot compare {v} of type {typ} to {kind} column"
                             .format(v=v, typ=type(v), kind=kind))
@@ -225,7 +230,7 @@ class BinOp(ops.BinOp):
 
 class FilterBinOp(BinOp):
 
-    def __unicode__(self):
+    def __str__(self):
         return pprint_thing("[Filter : [{lhs}] -> [{op}]"
                             .format(lhs=self.filter[0], op=self.filter[1]))
 
@@ -248,7 +253,7 @@ class FilterBinOp(BinOp):
                              .format(slf=self))
 
         rhs = self.conform(self.rhs)
-        values = [TermValue(v, v, self.kind) for v in rhs]
+        values = [TermValue(v, v, self.kind).value for v in rhs]
 
         if self.is_in_table:
 
@@ -259,7 +264,7 @@ class FilterBinOp(BinOp):
                 self.filter = (
                     self.lhs,
                     filter_op,
-                    pd.Index([v.value for v in values]))
+                    pd.Index(values))
 
                 return self
             return None
@@ -271,7 +276,7 @@ class FilterBinOp(BinOp):
             self.filter = (
                 self.lhs,
                 filter_op,
-                pd.Index([v.value for v in values]))
+                pd.Index(values))
 
         else:
             raise TypeError("passing a filterable condition to a non-table "
@@ -297,7 +302,7 @@ class JointFilterBinOp(FilterBinOp):
 
 class ConditionBinOp(BinOp):
 
-    def __unicode__(self):
+    def __str__(self):
         return pprint_thing("[Condition : [{cond}]]"
                             .format(cond=self.condition))
 
@@ -381,7 +386,7 @@ class ExprVisitor(BaseExprVisitor):
     term_type = Term
 
     def __init__(self, env, engine, parser, **kwargs):
-        super(ExprVisitor, self).__init__(env, engine, parser)
+        super().__init__(env, engine, parser)
         for bin_op in self.binary_ops:
             bin_node = self.binary_op_nodes_map[bin_op]
             setattr(self, 'visit_{node}'.format(node=bin_node),
@@ -472,7 +477,7 @@ def _validate_where(w):
     TypeError : An invalid data type was passed in for w (e.g. dict).
     """
 
-    if not (isinstance(w, (Expr, string_types)) or is_list_like(w)):
+    if not (isinstance(w, (Expr, str)) or is_list_like(w)):
         raise TypeError("where must be passed as a string, Expr, "
                         "or list-like of Exprs")
 
@@ -537,14 +542,14 @@ class Expr(expr.Expr):
         self.expr = where
         self.env = Scope(scope_level + 1, local_dict=local_dict)
 
-        if queryables is not None and isinstance(self.expr, string_types):
+        if queryables is not None and isinstance(self.expr, str):
             self.env.queryables.update(queryables)
             self._visitor = ExprVisitor(self.env, queryables=queryables,
                                         parser='pytables', engine='pytables',
                                         encoding=encoding)
             self.terms = self.parse()
 
-    def __unicode__(self):
+    def __str__(self):
         if self.terms is not None:
             return pprint_thing(self.terms)
         return pprint_thing(self.expr)
@@ -568,7 +573,7 @@ class Expr(expr.Expr):
         return self.condition, self.filter
 
 
-class TermValue(object):
+class TermValue:
 
     """ hold a term value the we use to construct a condition/filter """
 
@@ -580,11 +585,11 @@ class TermValue(object):
     def tostring(self, encoding):
         """ quote the string if not encoded
             else encode and return """
-        if self.kind == u'string':
+        if self.kind == 'string':
             if encoding is not None:
                 return self.converted
             return '"{converted}"'.format(converted=self.converted)
-        elif self.kind == u'float':
+        elif self.kind == 'float':
             # python 2 str(float) is not always
             # round-trippable so use repr()
             return repr(self.converted)
@@ -593,7 +598,7 @@ class TermValue(object):
 
 def maybe_expression(s):
     """ loose checking if s is a pytables-acceptable expression """
-    if not isinstance(s, string_types):
+    if not isinstance(s, str):
         return False
     ops = ExprVisitor.binary_ops + ExprVisitor.unary_ops + ('=',)
 

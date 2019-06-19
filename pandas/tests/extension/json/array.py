@@ -5,12 +5,12 @@ not an ndarray.
 
 Note:
 
-We currently store lists of UserDicts (Py3 only). Pandas has a few places
+We currently store lists of UserDicts. Pandas has a few places
 internally that specifically check for dicts, and does non-scalar things
 in that case. We *want* the dictionaries to be treated as scalars, so we
 hack around pandas by using UserDicts.
 """
-import collections
+from collections import UserDict, abc
 import itertools
 import numbers
 import random
@@ -19,20 +19,15 @@ import sys
 
 import numpy as np
 
-from pandas import compat
 from pandas.core.dtypes.base import ExtensionDtype
+
 from pandas.core.arrays import ExtensionArray
 
 
 class JSONDtype(ExtensionDtype):
-    type = compat.Mapping
+    type = abc.Mapping
     name = 'json'
-
-    try:
-        na_value = collections.UserDict()
-    except AttributeError:
-        # source compatibility with Py2.
-        na_value = {}
+    na_value = UserDict()
 
     @classmethod
     def construct_array_type(cls):
@@ -77,14 +72,14 @@ class JSONArray(ExtensionArray):
 
     @classmethod
     def _from_factorized(cls, values, original):
-        return cls([collections.UserDict(x) for x in values if x != ()])
+        return cls([UserDict(x) for x in values if x != ()])
 
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, np.ndarray) and item.dtype == 'bool':
             return self._from_sequence([x for x, m in zip(self, item) if m])
-        elif isinstance(item, compat.Iterable):
+        elif isinstance(item, abc.Iterable):
             # fancy indexing
             return type(self)([self.data[i] for i in item])
         else:
@@ -95,8 +90,7 @@ class JSONArray(ExtensionArray):
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:
-            if not isinstance(value, (type(self),
-                                      compat.Sequence)):
+            if not isinstance(value, (type(self), abc.Sequence)):
                 # broadcast value
                 value = itertools.cycle([value])
 
@@ -113,9 +107,6 @@ class JSONArray(ExtensionArray):
 
     def __len__(self):
         return len(self.data)
-
-    def __repr__(self):
-        return 'JSONArary({!r})'.format(self.data)
 
     @property
     def nbytes(self):
@@ -159,6 +150,12 @@ class JSONArray(ExtensionArray):
         # NumPy has issues when all the dicts are the same length.
         # np.array([UserDict(...), UserDict(...)]) fails,
         # but np.array([{...}, {...}]) works, so cast.
+
+        # needed to add this check for the Series constructor
+        if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:
+            if copy:
+                return self.copy()
+            return self
         return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
     def unique(self):
@@ -175,6 +172,9 @@ class JSONArray(ExtensionArray):
 
     def _values_for_factorize(self):
         frozen = self._values_for_argsort()
+        if len(frozen) == 0:
+            # _factorize_array expects 1-d array, this is a len-0 2-d array.
+            frozen = frozen.ravel()
         return frozen, ()
 
     def _values_for_argsort(self):
@@ -187,6 +187,6 @@ class JSONArray(ExtensionArray):
 
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
-    return [collections.UserDict([
+    return [UserDict([
         (random.choice(string.ascii_letters), random.randint(0, 100))
         for _ in range(random.randint(0, 10))]) for _ in range(100)]

@@ -1,18 +1,13 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
 import operator
 
-import pytest
 import numpy as np
+import pytest
 
-from dateutil.tz import tzutc
-from pytz import utc
-
-from pandas.compat import long, PY2
 from pandas import Timestamp
 
 
-class TestTimestampComparison(object):
+class TestTimestampComparison:
     def test_comparison_object_array(self):
         # GH#15183
         ts = Timestamp('2011-01-03 00:00:00-0500', tz='US/Eastern')
@@ -40,7 +35,7 @@ class TestTimestampComparison(object):
 
     def test_comparison(self):
         # 5-18-2012 00:00:00.000
-        stamp = long(1337299200000000000)
+        stamp = 1337299200000000000
 
         val = Timestamp(stamp)
 
@@ -69,12 +64,11 @@ class TestTimestampComparison(object):
         assert other >= val
 
     def test_compare_invalid(self):
-        # GH 8058
+        # GH#8058
         val = Timestamp('20130101 12:01:02')
         assert not val == 'foo'
         assert not val == 10.0
         assert not val == 1
-        assert not val == long(1)
         assert not val == []
         assert not val == {'foo': 1}
         assert not val == np.float64(1)
@@ -83,74 +77,44 @@ class TestTimestampComparison(object):
         assert val != 'foo'
         assert val != 10.0
         assert val != 1
-        assert val != long(1)
         assert val != []
         assert val != {'foo': 1}
         assert val != np.float64(1)
         assert val != np.int64(1)
 
-    def test_cant_compare_tz_naive_w_aware(self):
-        # see gh-1404
+    def test_cant_compare_tz_naive_w_aware(self, utc_fixture):
+        # see GH#1404
         a = Timestamp('3/12/2012')
-        b = Timestamp('3/12/2012', tz='utc')
+        b = Timestamp('3/12/2012', tz=utc_fixture)
 
-        pytest.raises(Exception, a.__eq__, b)
-        pytest.raises(Exception, a.__ne__, b)
-        pytest.raises(Exception, a.__lt__, b)
-        pytest.raises(Exception, a.__gt__, b)
-        pytest.raises(Exception, b.__eq__, a)
-        pytest.raises(Exception, b.__ne__, a)
-        pytest.raises(Exception, b.__lt__, a)
-        pytest.raises(Exception, b.__gt__, a)
+        with pytest.raises(TypeError):
+            a == b
+        with pytest.raises(TypeError):
+            a != b
+        with pytest.raises(TypeError):
+            a < b
+        with pytest.raises(TypeError):
+            a <= b
+        with pytest.raises(TypeError):
+            a > b
+        with pytest.raises(TypeError):
+            a >= b
 
-        if PY2:
-            pytest.raises(Exception, a.__eq__, b.to_pydatetime())
-            pytest.raises(Exception, a.to_pydatetime().__eq__, b)
-        else:
-            assert not a == b.to_pydatetime()
-            assert not a.to_pydatetime() == b
+        with pytest.raises(TypeError):
+            b == a
+        with pytest.raises(TypeError):
+            b != a
+        with pytest.raises(TypeError):
+            b < a
+        with pytest.raises(TypeError):
+            b <= a
+        with pytest.raises(TypeError):
+            b > a
+        with pytest.raises(TypeError):
+            b >= a
 
-    def test_cant_compare_tz_naive_w_aware_explicit_pytz(self):
-        # see gh-1404
-        a = Timestamp('3/12/2012')
-        b = Timestamp('3/12/2012', tz=utc)
-
-        pytest.raises(Exception, a.__eq__, b)
-        pytest.raises(Exception, a.__ne__, b)
-        pytest.raises(Exception, a.__lt__, b)
-        pytest.raises(Exception, a.__gt__, b)
-        pytest.raises(Exception, b.__eq__, a)
-        pytest.raises(Exception, b.__ne__, a)
-        pytest.raises(Exception, b.__lt__, a)
-        pytest.raises(Exception, b.__gt__, a)
-
-        if PY2:
-            pytest.raises(Exception, a.__eq__, b.to_pydatetime())
-            pytest.raises(Exception, a.to_pydatetime().__eq__, b)
-        else:
-            assert not a == b.to_pydatetime()
-            assert not a.to_pydatetime() == b
-
-    def test_cant_compare_tz_naive_w_aware_dateutil(self):
-        # see gh-1404
-        a = Timestamp('3/12/2012')
-        b = Timestamp('3/12/2012', tz=tzutc())
-
-        pytest.raises(Exception, a.__eq__, b)
-        pytest.raises(Exception, a.__ne__, b)
-        pytest.raises(Exception, a.__lt__, b)
-        pytest.raises(Exception, a.__gt__, b)
-        pytest.raises(Exception, b.__eq__, a)
-        pytest.raises(Exception, b.__ne__, a)
-        pytest.raises(Exception, b.__lt__, a)
-        pytest.raises(Exception, b.__gt__, a)
-
-        if PY2:
-            pytest.raises(Exception, a.__eq__, b.to_pydatetime())
-            pytest.raises(Exception, a.to_pydatetime().__eq__, b)
-        else:
-            assert not a == b.to_pydatetime()
-            assert not a.to_pydatetime() == b
+        assert not a == b.to_pydatetime()
+        assert not a.to_pydatetime() == b
 
     def test_timestamp_compare_scalars(self):
         # case where ndim == 0
@@ -191,3 +155,33 @@ class TestTimestampComparison(object):
         assert stamp >= datetime(1600, 1, 1)
         assert stamp < datetime(2700, 1, 1)
         assert stamp <= datetime(2700, 1, 1)
+
+
+def test_rich_comparison_with_unsupported_type():
+    # Comparisons with unsupported objects should return NotImplemented
+    # (it previously raised TypeError, see #24011)
+
+    class Inf:
+        def __lt__(self, o):
+            return False
+
+        def __le__(self, o):
+            return isinstance(o, Inf)
+
+        def __gt__(self, o):
+            return not isinstance(o, Inf)
+
+        def __ge__(self, o):
+            return True
+
+        def __eq__(self, o):
+            return isinstance(o, Inf)
+
+    inf = Inf()
+    timestamp = Timestamp('2018-11-30')
+
+    for left, right in [(inf, timestamp), (timestamp, inf)]:
+        assert left > right or left < right
+        assert left >= right or left <= right
+        assert not (left == right)
+        assert left != right

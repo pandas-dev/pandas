@@ -1,7 +1,7 @@
-import warnings
 from importlib import import_module
 
 import numpy as np
+
 import pandas as pd
 from pandas.util import testing as tm
 
@@ -13,72 +13,80 @@ for imp in ['pandas.util', 'pandas.tools.hashing']:
         pass
 
 
-class Factorize(object):
+class Factorize:
 
-    params = [True, False]
-    param_names = ['sort']
+    params = [[True, False], ['int', 'uint', 'float', 'string']]
+    param_names = ['sort', 'dtype']
 
-    def setup(self, sort):
+    def setup(self, sort, dtype):
         N = 10**5
-        self.int_idx = pd.Int64Index(np.arange(N).repeat(5))
-        self.float_idx = pd.Float64Index(np.random.randn(N).repeat(5))
-        self.string_idx = tm.makeStringIndex(N)
+        data = {'int': pd.Int64Index(np.arange(N).repeat(5)),
+                'uint': pd.UInt64Index(np.arange(N).repeat(5)),
+                'float': pd.Float64Index(np.random.randn(N).repeat(5)),
+                'string': tm.makeStringIndex(N).repeat(5)}
+        self.idx = data[dtype]
 
-    def time_factorize_int(self, sort):
-        self.int_idx.factorize(sort=sort)
-
-    def time_factorize_float(self, sort):
-        self.float_idx.factorize(sort=sort)
-
-    def time_factorize_string(self, sort):
-        self.string_idx.factorize(sort=sort)
+    def time_factorize(self, sort, dtype):
+        self.idx.factorize(sort=sort)
 
 
-class Duplicated(object):
+class FactorizeUnique:
 
-    params = ['first', 'last', False]
-    param_names = ['keep']
+    params = [[True, False], ['int', 'uint', 'float', 'string']]
+    param_names = ['sort', 'dtype']
 
-    def setup(self, keep):
+    def setup(self, sort, dtype):
         N = 10**5
-        self.int_idx = pd.Int64Index(np.arange(N).repeat(5))
-        self.float_idx = pd.Float64Index(np.random.randn(N).repeat(5))
-        self.string_idx = tm.makeStringIndex(N)
+        data = {'int': pd.Int64Index(np.arange(N)),
+                'uint': pd.UInt64Index(np.arange(N)),
+                'float': pd.Float64Index(np.arange(N)),
+                'string': tm.makeStringIndex(N)}
+        self.idx = data[dtype]
+        assert self.idx.is_unique
 
-    def time_duplicated_int(self, keep):
-        self.int_idx.duplicated(keep=keep)
-
-    def time_duplicated_float(self, keep):
-        self.float_idx.duplicated(keep=keep)
-
-    def time_duplicated_string(self, keep):
-        self.string_idx.duplicated(keep=keep)
+    def time_factorize(self, sort, dtype):
+        self.idx.factorize(sort=sort)
 
 
-class DuplicatedUniqueIndex(object):
+class Duplicated:
 
-    def setup(self):
+    params = [['first', 'last', False], ['int', 'uint', 'float', 'string']]
+    param_names = ['keep', 'dtype']
+
+    def setup(self, keep, dtype):
         N = 10**5
-        self.idx_int_dup = pd.Int64Index(np.arange(N * 5))
+        data = {'int': pd.Int64Index(np.arange(N).repeat(5)),
+                'uint': pd.UInt64Index(np.arange(N).repeat(5)),
+                'float': pd.Float64Index(np.random.randn(N).repeat(5)),
+                'string': tm.makeStringIndex(N).repeat(5)}
+        self.idx = data[dtype]
         # cache is_unique
-        self.idx_int_dup.is_unique
+        self.idx.is_unique
 
-    def time_duplicated_unique_int(self):
-        self.idx_int_dup.duplicated()
-
-
-class Match(object):
-
-    def setup(self):
-        self.uniques = tm.makeStringIndex(1000).values
-        self.all = self.uniques.repeat(10)
-
-    def time_match_string(self):
-        with warnings.catch_warnings(record=True):
-            pd.match(self.all, self.uniques)
+    def time_duplicated(self, keep, dtype):
+        self.idx.duplicated(keep=keep)
 
 
-class Hashing(object):
+class DuplicatedUniqueIndex:
+
+    params = ['int', 'uint', 'float', 'string']
+    param_names = ['dtype']
+
+    def setup(self, dtype):
+        N = 10**5
+        data = {'int': pd.Int64Index(np.arange(N)),
+                'uint': pd.UInt64Index(np.arange(N)),
+                'float': pd.Float64Index(np.random.randn(N)),
+                'string': tm.makeStringIndex(N)}
+        self.idx = data[dtype]
+        # cache is_unique
+        self.idx.is_unique
+
+    def time_duplicated_unique(self, dtype):
+        self.idx.duplicated()
+
+
+class Hashing:
 
     def setup_cache(self):
         N = 10**5
@@ -116,4 +124,21 @@ class Hashing(object):
         hashing.hash_pandas_object(df['dates'])
 
 
-from .pandas_vb_common import setup  # noqa: F401
+class Quantile:
+    params = [[0, 0.5, 1],
+              ['linear', 'nearest', 'lower', 'higher', 'midpoint'],
+              ['float', 'int', 'uint']]
+    param_names = ['quantile', 'interpolation', 'dtype']
+
+    def setup(self, quantile, interpolation, dtype):
+        N = 10**5
+        data = {'int': np.arange(N),
+                'uint': np.arange(N).astype(np.uint64),
+                'float': np.random.randn(N)}
+        self.idx = pd.Series(data[dtype].repeat(5))
+
+    def time_quantile(self, quantile, interpolation, dtype):
+        self.idx.quantile(quantile, interpolation=interpolation)
+
+
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

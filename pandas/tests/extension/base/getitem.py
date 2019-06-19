@@ -1,8 +1,7 @@
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -168,7 +167,7 @@ class BaseGetitemTests(BaseExtensionTests):
         assert result[0] == data[0]
         assert na_cmp(result[1], na_value)
 
-        with tm.assert_raises_regex(IndexError, "out of bounds"):
+        with pytest.raises(IndexError, match="out of bounds"):
             data.take([len(data) + 1])
 
     def test_take_empty(self, data, na_value, na_cmp):
@@ -180,7 +179,7 @@ class BaseGetitemTests(BaseExtensionTests):
         with pytest.raises(IndexError):
             empty.take([-1])
 
-        with tm.assert_raises_regex(IndexError, "cannot do a non-empty take"):
+        with pytest.raises(IndexError, match="cannot do a non-empty take"):
             empty.take([0, 1])
 
     def test_take_negative(self, data):

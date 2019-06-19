@@ -2,46 +2,53 @@
 Data structures for sparse float data. Life is made simpler by dealing only
 with float64 data
 """
-
-# pylint: disable=E1101,E1103,W0231
-
-import numpy as np
+from collections import abc
 import warnings
 
-from pandas.core.dtypes.common import (
-    is_scalar,
-)
-from pandas.core.dtypes.missing import isna, notna, is_integer
+import numpy as np
 
-from pandas import compat
-from pandas.compat.numpy import function as nv
-from pandas.core.index import Index
-from pandas.core.series import Series
-from pandas.core.dtypes.generic import ABCSeries, ABCSparseSeries
-from pandas.core.internals import SingleBlockManager
-from pandas.core import generic
-import pandas.core.ops as ops
 import pandas._libs.index as libindex
+import pandas._libs.sparse as splib
+from pandas._libs.sparse import BlockIndex, IntIndex
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.arrays import (
-    SparseArray,
-)
-from pandas._libs.sparse import BlockIndex, IntIndex
-import pandas._libs.sparse as splib
+from pandas.core.dtypes.common import is_integer, is_scalar
+from pandas.core.dtypes.generic import ABCSeries, ABCSparseSeries
+from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core import generic
+from pandas.core.arrays import SparseArray
+from pandas.core.arrays.sparse import SparseAccessor
+from pandas.core.index import Index
+from pandas.core.internals import SingleBlockManager
+import pandas.core.ops as ops
+from pandas.core.series import Series
 from pandas.core.sparse.scipy_sparse import (
-    _sparse_series_to_coo,
-    _coo_to_sparse_series)
-
+    _coo_to_sparse_series, _sparse_series_to_coo)
 
 _shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
                           axes_single_arg="{0, 'index'}",
                           optional_labels='', optional_axis='')
 
 
+depr_msg = """\
+SparseSeries is deprecated and will be removed in a future version.
+Use a Series with sparse values instead.
+
+    >>> series = pd.Series(pd.SparseArray(...))
+
+See http://pandas.pydata.org/pandas-docs/stable/\
+user_guide/sparse.html#migrating for more.
+"""
+
+
 class SparseSeries(Series):
     """Data structure for labeled, sparse floating point data
+
+    .. deprecated:: 0.25.0
+
+       Use a Series with sparse values instead.
 
     Parameters
     ----------
@@ -68,6 +75,7 @@ class SparseSeries(Series):
     def __init__(self, data=None, index=None, sparse_index=None, kind='block',
                  fill_value=None, name=None, dtype=None, copy=False,
                  fastpath=False):
+        warnings.warn(depr_msg, FutureWarning, stacklevel=2)
         # TODO: Most of this should be refactored and shared with Series
         # 1. BlockManager -> array
         # 2. Series.index, Series.name, index, name reconciliation
@@ -87,13 +95,13 @@ class SparseSeries(Series):
             if index is not None:
                 data = data.reindex(index)
 
-        elif isinstance(data, compat.Mapping):
+        elif isinstance(data, abc.Mapping):
             data, index = Series()._init_dict(data, index=index)
 
         elif is_scalar(data) and index is not None:
             data = np.full(len(index), fill_value=data)
 
-        super(SparseSeries, self).__init__(
+        super().__init__(
             SparseArray(data,
                         sparse_index=sparse_index,
                         kind=kind,
@@ -115,26 +123,6 @@ class SparseSeries(Series):
                                  sparse_index=self.sp_index,
                                  fill_value=result.fill_value,
                                  copy=False).__finalize__(self)
-
-    def __array_wrap__(self, result, context=None):
-        """
-        Gets called prior to a ufunc (and after)
-
-        See SparseArray.__array_wrap__ for detail.
-        """
-        result = self.values.__array_wrap__(result, context=context)
-        return self._constructor(result, index=self.index,
-                                 sparse_index=self.sp_index,
-                                 fill_value=result.fill_value,
-                                 copy=False).__finalize__(self)
-
-    def __array_finalize__(self, obj):
-        """
-        Gets called after any ufunc or other array operations, necessary
-        to pass on the index.
-        """
-        self.name = getattr(obj, 'name', None)
-        self.fill_value = getattr(obj, 'fill_value', None)
 
     # unary ops
     # TODO: See if this can be shared
@@ -183,7 +171,7 @@ class SparseSeries(Series):
 
     @property
     def npoints(self):
-        return self.sp_index.npoints
+        return self.values.npoints
 
     @classmethod
     def from_array(cls, arr, index=None, name=None, copy=False,
@@ -225,12 +213,13 @@ class SparseSeries(Series):
         return SparseArray(self.values, sparse_index=self.sp_index,
                            fill_value=fill_value, kind=kind, copy=copy)
 
-    def __unicode__(self):
-        # currently, unicode is same as repr...fixes infinite loop
-        series_rep = Series.__unicode__(self)
-        rep = '{series}\n{index!r}'.format(series=series_rep,
-                                           index=self.sp_index)
-        return rep
+    def __repr__(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Sparse")
+            series_rep = Series.__repr__(self)
+            rep = '{series}\n{index!r}'.format(series=series_rep,
+                                               index=self.sp_index)
+            return rep
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
@@ -301,7 +290,7 @@ class SparseSeries(Series):
         if is_integer(key) and key not in self.index:
             return self._get_val_at(key)
         else:
-            return super(SparseSeries, self).__getitem__(key)
+            return super().__getitem__(key)
 
     def _get_values(self, indexer):
         try:
@@ -452,8 +441,7 @@ class SparseSeries(Series):
 
     @property
     def density(self):
-        r = float(self.sp_index.npoints) / float(self.sp_index.length)
-        return r
+        return self.values.density
 
     def copy(self, deep=True):
         """
@@ -473,9 +461,8 @@ class SparseSeries(Series):
     def reindex(self, index=None, method=None, copy=True, limit=None,
                 **kwargs):
         # TODO: remove?
-        return super(SparseSeries, self).reindex(index=index, method=method,
-                                                 copy=copy, limit=limit,
-                                                 **kwargs)
+        return super().reindex(index=index, method=method, copy=copy,
+                               limit=limit, **kwargs)
 
     def sparse_reindex(self, new_index):
         """
@@ -580,99 +567,16 @@ class SparseSeries(Series):
         dense_combined = self.to_dense().combine_first(other)
         return dense_combined.to_sparse(fill_value=self.fill_value)
 
+    @Appender(SparseAccessor.to_coo.__doc__)
     def to_coo(self, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
-        """
-        Create a scipy.sparse.coo_matrix from a SparseSeries with MultiIndex.
-
-        Use row_levels and column_levels to determine the row and column
-        coordinates respectively. row_levels and column_levels are the names
-        (labels) or numbers of the levels. {row_levels, column_levels} must be
-        a partition of the MultiIndex level names (or numbers).
-
-        Parameters
-        ----------
-        row_levels : tuple/list
-        column_levels : tuple/list
-        sort_labels : bool, default False
-            Sort the row and column labels before forming the sparse matrix.
-
-        Returns
-        -------
-        y : scipy.sparse.coo_matrix
-        rows : list (row labels)
-        columns : list (column labels)
-
-        Examples
-        --------
-        >>> s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
-        >>> s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
-                                                (1, 2, 'a', 1),
-                                                (1, 1, 'b', 0),
-                                                (1, 1, 'b', 1),
-                                                (2, 1, 'b', 0),
-                                                (2, 1, 'b', 1)],
-                                                names=['A', 'B', 'C', 'D'])
-        >>> ss = s.to_sparse()
-        >>> A, rows, columns = ss.to_coo(row_levels=['A', 'B'],
-                                         column_levels=['C', 'D'],
-                                         sort_labels=True)
-        >>> A
-        <3x4 sparse matrix of type '<class 'numpy.float64'>'
-                with 3 stored elements in COOrdinate format>
-        >>> A.todense()
-        matrix([[ 0.,  0.,  1.,  3.],
-        [ 3.,  0.,  0.,  0.],
-        [ 0.,  0.,  0.,  0.]])
-        >>> rows
-        [(1, 1), (1, 2), (2, 1)]
-        >>> columns
-        [('a', 0), ('a', 1), ('b', 0), ('b', 1)]
-        """
         A, rows, columns = _sparse_series_to_coo(self, row_levels,
                                                  column_levels,
                                                  sort_labels=sort_labels)
         return A, rows, columns
 
     @classmethod
+    @Appender(SparseAccessor.from_coo.__doc__)
     def from_coo(cls, A, dense_index=False):
-        """
-        Create a SparseSeries from a scipy.sparse.coo_matrix.
-
-        Parameters
-        ----------
-        A : scipy.sparse.coo_matrix
-        dense_index : bool, default False
-            If False (default), the SparseSeries index consists of only the
-            coords of the non-null entries of the original coo_matrix.
-            If True, the SparseSeries index consists of the full sorted
-            (row, col) coordinates of the coo_matrix.
-
-        Returns
-        -------
-        s : SparseSeries
-
-        Examples
-        ---------
-        >>> from scipy import sparse
-        >>> A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
-                               shape=(3, 4))
-        >>> A
-        <3x4 sparse matrix of type '<class 'numpy.float64'>'
-                with 3 stored elements in COOrdinate format>
-        >>> A.todense()
-        matrix([[ 0.,  0.,  1.,  2.],
-                [ 3.,  0.,  0.,  0.],
-                [ 0.,  0.,  0.,  0.]])
-        >>> ss = pd.SparseSeries.from_coo(A)
-        >>> ss
-        0  2    1
-           3    2
-        1  0    3
-        dtype: float64
-        BlockIndex
-        Block locations: array([0], dtype=int32)
-        Block lengths: array([3], dtype=int32)
-        """
         return _coo_to_sparse_series(A, dense_index=dense_index)
 
 

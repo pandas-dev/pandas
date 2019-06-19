@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Translated from the reference implementation
 # at https://github.com/veorq/SipHash
 
@@ -9,7 +8,7 @@ import numpy as np
 from numpy cimport uint8_t, uint32_t, uint64_t, import_array
 import_array()
 
-from util cimport is_nan
+from pandas._libs.util cimport is_nan
 
 DEF cROUNDS = 2
 DEF dROUNDS = 4
@@ -54,8 +53,8 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
     n = len(arr)
 
     # create an array of bytes
-    vecs = <char **> malloc(n * sizeof(char *))
-    lens = <uint64_t*> malloc(n * sizeof(uint64_t))
+    vecs = <char **>malloc(n * sizeof(char *))
+    lens = <uint64_t*>malloc(n * sizeof(uint64_t))
 
     for i in range(n):
         val = arr[i]

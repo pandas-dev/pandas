@@ -1,11 +1,11 @@
+import codecs
+import importlib
+import locale
 import os
 import platform
-import sys
 import struct
 import subprocess
-import codecs
-import locale
-import importlib
+import sys
 
 
 def get_sys_info():
@@ -85,7 +85,7 @@ def show_versions(as_json=False):
         ("xlrd", lambda mod: mod.__VERSION__),
         ("xlwt", lambda mod: mod.__VERSION__),
         ("xlsxwriter", lambda mod: mod.__version__),
-        ("lxml", lambda mod: mod.etree.__version__),
+        ("lxml.etree", lambda mod: mod.__version__),
         ("bs4", lambda mod: mod.__version__),
         ("html5lib", lambda mod: mod.__version__),
         ("sqlalchemy", lambda mod: mod.__version__),

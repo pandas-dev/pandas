@@ -1,28 +1,20 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
-import pytest
-
-import operator
 from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
-
+import operator
 import warnings
-import numpy as np
-from hypothesis import given
-from hypothesis.strategies import composite, dates, integers, sampled_from
 
-from pandas import (notna, DataFrame, Series, MultiIndex, date_range,
-                    Timestamp, compat)
-import pandas as pd
+import numpy as np
+import pytest
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.apply import frame_apply
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal)
-import pandas.util.testing as tm
+
+import pandas as pd
+from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
 from pandas.conftest import _get_cython_table_params
+from pandas.core.apply import frame_apply
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 @pytest.fixture
@@ -37,7 +29,7 @@ def int_frame_const_col():
     return df
 
 
-class TestDataFrameApply():
+class TestDataFrameApply:
 
     def test_apply(self, float_frame):
         with np.errstate(all='ignore'):
@@ -57,7 +49,8 @@ class TestDataFrameApply():
         # invalid axis
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
-        pytest.raises(ValueError, df.apply, lambda x: x, 2)
+        with pytest.raises(ValueError):
+            df.apply(lambda x: x, 2)
 
         # GH 9573
         df = DataFrame({'c0': ['A', 'A', 'B', 'B'],
@@ -76,8 +69,10 @@ class TestDataFrameApply():
         result = df.apply(lambda x: x, axis=1)
         assert_frame_equal(result, df)
 
-    def test_apply_empty(self, float_frame, empty_frame):
+    def test_apply_empty(self, float_frame):
         # empty
+        empty_frame = DataFrame()
+
         applied = empty_frame.apply(np.sqrt)
         assert applied.empty
 
@@ -99,8 +94,10 @@ class TestDataFrameApply():
         result = expected.apply(lambda x: x['a'], axis=1)
         assert_frame_equal(expected, result)
 
-    def test_apply_with_reduce_empty(self, empty_frame):
+    def test_apply_with_reduce_empty(self):
         # reduce with an empty DataFrame
+        empty_frame = DataFrame()
+
         x = []
         result = empty_frame.apply(x.append, axis=1, result_type='expand')
         assert_frame_equal(result, empty_frame)
@@ -118,7 +115,9 @@ class TestDataFrameApply():
         # Ensure that x.append hasn't been called
         assert x == []
 
-    def test_apply_deprecate_reduce(self, empty_frame):
+    def test_apply_deprecate_reduce(self):
+        empty_frame = DataFrame()
+
         x = []
         with tm.assert_produces_warning(FutureWarning):
             empty_frame.apply(x.append, axis=1, reduce=True)
@@ -320,18 +319,25 @@ class TestDataFrameApply():
         result = float_frame.apply(np.mean, axis=1)
         assert_series_equal(result, expected)
 
+    def test_apply_reduce_rows_to_dict(self):
+        # GH 25196
+        data = pd.DataFrame([[1, 2], [3, 4]])
+        expected = pd.Series([{0: 1, 1: 3}, {0: 2, 1: 4}])
+        result = data.apply(dict)
+        assert_series_equal(result, expected)
+
     def test_apply_differently_indexed(self):
         df = DataFrame(np.random.randn(20, 10))
 
         result0 = df.apply(Series.describe, axis=0)
         expected0 = DataFrame({i: v.describe()
-                               for i, v in compat.iteritems(df)},
+                               for i, v in df.items()},
                               columns=df.columns)
         assert_frame_equal(result0, expected0)
 
         result1 = df.apply(Series.describe, axis=1)
         expected1 = DataFrame({i: v.describe()
-                               for i, v in compat.iteritems(df.T)},
+                               for i, v in df.T.items()},
                               columns=df.index).T
         assert_frame_equal(result1, expected1)
 
@@ -571,7 +577,7 @@ class TestDataFrameApply():
         tm.assert_frame_equal(result, expected)
 
 
-class TestInferOutputShape(object):
+class TestInferOutputShape:
     # the user has supplied an opaque UDF where
     # they are transforming the input that requires
     # us to infer the output
@@ -823,7 +829,7 @@ def zip_frames(frames, axis=1):
         return pd.DataFrame(zipped)
 
 
-class TestDataFrameAggregate():
+class TestDataFrameAggregate:
 
     def test_agg_transform(self, axis, float_frame):
         other_axis = 1 if axis in {0, 'index'} else 0
@@ -876,19 +882,16 @@ class TestDataFrameAggregate():
 
     def test_transform_and_agg_err(self, axis, float_frame):
         # cannot both transform and agg
-        def f():
+        with pytest.raises(ValueError):
             float_frame.transform(['max', 'min'], axis=axis)
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 float_frame.agg(['max', 'sqrt'], axis=axis)
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 float_frame.transform(['max', 'sqrt'], axis=axis)
-        pytest.raises(ValueError, f)
 
         df = pd.DataFrame({'A': range(5), 'B': 5})
 
@@ -1142,23 +1145,11 @@ class TestDataFrameAggregate():
         with pytest.raises(expected):
             df.agg(func, axis=axis)
 
-    @composite
-    def indices(draw, max_length=5):
-        date = draw(
-            dates(
-                min_value=Timestamp.min.ceil("D").to_pydatetime().date(),
-                max_value=Timestamp.max.floor("D").to_pydatetime().date(),
-            ).map(Timestamp)
-        )
-        periods = draw(integers(0, max_length))
-        freq = draw(sampled_from(list("BDHTS")))
-        dr = date_range(date, periods=periods, freq=freq)
-        return pd.DatetimeIndex(list(dr))
-
-    @given(index=indices(5), num_columns=integers(0, 5))
-    def test_frequency_is_original(self, index, num_columns):
+    @pytest.mark.parametrize("num_cols", [2, 3, 5])
+    def test_frequency_is_original(self, num_cols):
         # GH 22150
+        index = pd.DatetimeIndex(["1950-06-30", "1952-10-24", "1953-05-29"])
         original = index.copy()
-        df = DataFrame(True, index=index, columns=range(num_columns))
+        df = DataFrame(1, index=index, columns=range(num_cols))
         df.apply(lambda x: x)
         assert index.freq == original.freq

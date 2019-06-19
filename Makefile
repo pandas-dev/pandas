@@ -13,7 +13,7 @@ build: clean_pyc
 	python setup.py build_ext --inplace
 
 lint-diff:
-	git diff master --name-only -- "*.py" | grep -E "pandas|scripts" | xargs flake8
+	git diff upstream/master --name-only -- "*.py" | xargs flake8
 
 develop: build
 	-python setup.py develop
@@ -23,4 +23,3 @@ doc:
 	cd doc; \
 	python make.py clean; \
 	python make.py html
-	python make.py spellcheck

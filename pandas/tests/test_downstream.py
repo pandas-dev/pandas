@@ -1,16 +1,18 @@
-# -*- coding: utf-8 -*-
 """
 Testing that we work in the downstream packages
 """
+import builtins
+import importlib
 import subprocess
 import sys
 
-import pytest
 import numpy as np  # noqa
-from pandas import DataFrame
+import pytest
+
 from pandas.compat import PY36
+
+from pandas import DataFrame
 from pandas.util import testing as tm
-import importlib
 
 
 def import_module(name):
@@ -101,7 +103,7 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module('pandas_gbq')  # noqa
 
 
-@pytest.mark.xfail(reason="0.7.0 pending", strict=True)
+@pytest.mark.xfail(reason="0.7.0 pending")
 @tm.network
 def test_pandas_datareader():
 
@@ -114,6 +116,7 @@ def test_pandas_datareader():
 @pytest.mark.filterwarnings("ignore:The 'warn':DeprecationWarning")
 @pytest.mark.filterwarnings("ignore:pandas.util:DeprecationWarning")
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
+@pytest.mark.skip(reason="gh-25778: geopandas stack issue")
 def test_geopandas():
 
     geopandas = import_module('geopandas')  # noqa
@@ -129,3 +132,32 @@ def test_pyarrow(df):
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
+
+
+def test_missing_required_dependency(monkeypatch):
+    # GH 23868
+    original_import = __import__
+
+    def mock_import_fail(name, *args, **kwargs):
+        if name == "numpy":
+            raise ImportError("cannot import name numpy")
+        elif name == "pytz":
+            raise ImportError("cannot import name some_dependency")
+        elif name == "dateutil":
+            raise ImportError("cannot import name some_other_dependency")
+        else:
+            return original_import(name, *args, **kwargs)
+
+    expected_msg = (
+        "Unable to import required dependencies:"
+        "\nnumpy: cannot import name numpy"
+        "\npytz: cannot import name some_dependency"
+        "\ndateutil: cannot import name some_other_dependency"
+    )
+
+    import pandas as pd
+
+    with monkeypatch.context() as m:
+        m.setattr(builtins, "__import__", mock_import_fail)
+        with pytest.raises(ImportError, match=expected_msg):
+            importlib.reload(pd)

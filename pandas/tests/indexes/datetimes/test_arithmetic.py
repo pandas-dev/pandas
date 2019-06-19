@@ -1,16 +1,16 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
 
 import pytest
 import pytz
 
-import pandas as pd
-import pandas.util.testing as tm
 from pandas.errors import NullFrequencyError
-from pandas import Series, DatetimeIndex, date_range
+
+import pandas as pd
+from pandas import DatetimeIndex, Series, date_range
+import pandas.util.testing as tm
 
 
-class TestDatetimeIndexArithmetic(object):
+class TestDatetimeIndexArithmetic:
 
     # -------------------------------------------------------------
     # DatetimeIndex.shift is used in integer addition
@@ -57,11 +57,17 @@ class TestDatetimeIndexArithmetic(object):
     def test_dti_shift_int(self):
         rng = date_range('1/1/2000', periods=20)
 
-        result = rng + 5
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # GH#22535
+            result = rng + 5
+
         expected = rng.shift(5)
         tm.assert_index_equal(result, expected)
 
-        result = rng - 5
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # GH#22535
+            result = rng - 5
+
         expected = rng.shift(-5)
         tm.assert_index_equal(result, expected)
 
