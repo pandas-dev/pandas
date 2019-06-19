@@ -345,6 +345,8 @@ here, but it is certainly possible to make use of it to achieve the same goal.
 
 With this overview in hand, you hopefully have the necessary information in order
 to develop rich, full-featured ExtensionArrays that seamlessly plug in to pandas.
+EA support is still being actively worked on, so if you encounter a bug, or behaviour
+which does not behave as described, please report it to the team.
 
 .. important::
     You are not required to provide implementations for the full complement of Series
@@ -354,13 +356,6 @@ to develop rich, full-featured ExtensionArrays that seamlessly plug in to pandas
 
     TBD: should we have a standard way of signalling not supported instead of a
     random AttributeError exception being thrown.
-
-.. important::
-
-The above description currently leads the state of the code considerably. Many Series
-methods need to be updated to conform to this model of EA support. If you find a
-bug, or something else which does not behave as described, please report it to
-the pandas team by opening an issue.
 
 
 Formatting Extension Arrays
