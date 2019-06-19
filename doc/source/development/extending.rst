@@ -329,8 +329,7 @@ mechanism introduced by [NEP18](https://www.numpy.org/neps/nep-0018-array-functi
 This is an opt-in mechanism in numpy 1.16 (by setting an environment variable), and
 is enabled by default starting with numpy 1.17. As of 1.17 it is still considered
 experimental, and its design is actively being revised. We will not discuss it further
-here, but it is certainly possible to make use of it to achieve the same goal. Your
-mileage may vary.
+here, but it is certainly possible to make use of it to achieve the same goal.
 
 .. important::
     Implementing `__array_function__` is not a substitute for implementing `__array_ufunc__`.
