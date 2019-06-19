@@ -918,3 +918,17 @@ class TestNDFrame:
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == \
                 box._get_block_manager_axis(v)
+
+    def test_deprecated_to_dense(self):
+        # GH 26557: DEPR
+        # Deprecated 0.25.0
+
+        df = pd.DataFrame({"A": [1, 2, 3]})
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.to_dense()
+        tm.assert_frame_equal(result, df)
+
+        ser = pd.Series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning):
+            result = ser.to_dense()
+        tm.assert_series_equal(result, ser)

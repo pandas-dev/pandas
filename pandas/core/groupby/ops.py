@@ -630,9 +630,9 @@ class BaseGrouper:
         group_index, _, ngroups = self.group_info
 
         # avoids object / Series creation overhead
-        dummy = obj._get_values(slice(None, 0)).to_dense()
+        dummy = obj._get_values(slice(None, 0))
         indexer = get_group_index_sorter(group_index, ngroups)
-        obj = obj._take(indexer).to_dense()
+        obj = obj._take(indexer)
         group_index = algorithms.take_nd(
             group_index, indexer, allow_fill=False)
         grouper = reduction.SeriesGrouper(obj, func, group_index, ngroups,
@@ -879,7 +879,7 @@ class DataSplitter:
 class SeriesSplitter(DataSplitter):
 
     def _chop(self, sdata, slice_obj):
-        return sdata._get_values(slice_obj).to_dense()
+        return sdata._get_values(slice_obj)
 
 
 class FrameSplitter(DataSplitter):

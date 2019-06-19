@@ -781,6 +781,7 @@ class TestSeriesMissingData:
         assert_series_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_sparse_series_fillna_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)
@@ -809,6 +810,7 @@ class TestSeriesMissingData:
         assert_series_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_sparse_series_pad_backfill_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)

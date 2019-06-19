@@ -6,6 +6,7 @@ import pandas.util.testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseGroupBy:
 
     def setup_method(self, method):
@@ -61,6 +62,7 @@ class TestSparseGroupBy:
 
 @pytest.mark.parametrize("fill_value", [0, np.nan])
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 def test_groupby_includes_fill_value(fill_value):
     # https://github.com/pandas-dev/pandas/issues/5078
     df = pd.DataFrame({'a': [fill_value, 1, fill_value, fill_value],

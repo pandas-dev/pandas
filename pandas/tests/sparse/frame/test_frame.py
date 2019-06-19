@@ -25,6 +25,8 @@ def test_deprecated():
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseDataFrame(SharedWithSparse):
     klass = SparseDataFrame
 
@@ -347,6 +349,18 @@ class TestSparseDataFrame(SharedWithSparse):
         sdf = df.to_sparse(fill_value=0)
         assert sdf.default_fill_value == 0
         tm.assert_frame_equal(sdf.to_dense(), df)
+
+    def test_deprecated_dense_to_sparse(self):
+        # GH 26557
+        # Deprecated 0.25.0
+
+        df = pd.DataFrame({"A": [1, np.nan, 3]})
+        sparse_df = pd.SparseDataFrame({"A": [1, np.nan, 3]})
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = df.to_sparse()
+        tm.assert_frame_equal(result, sparse_df)
 
     def test_density(self):
         df = SparseSeries([nan, nan, nan, 0, 1, 2, 3, 4, 5, 6])
@@ -1294,6 +1308,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseDataFrameArithmetic:
 
     def test_numeric_op_scalar(self):
@@ -1324,6 +1339,7 @@ class TestSparseDataFrameArithmetic:
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseDataFrameAnalytics:
 
     def test_cumsum(self, float_frame):

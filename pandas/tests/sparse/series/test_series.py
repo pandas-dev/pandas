@@ -61,6 +61,7 @@ def _test_data2_zero():
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSparseSeries(SharedWithSparse):
 
     series_klass = SparseSeries
@@ -1045,6 +1046,7 @@ class TestSparseSeries(SharedWithSparse):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseHandlingMultiIndexes:
 
     def setup_method(self, method):
@@ -1076,6 +1078,7 @@ class TestSparseHandlingMultiIndexes:
     "ignore:the matrix subclass:PendingDeprecationWarning"
 )
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSparseSeriesScipyInteraction:
     # Issue 8048: add SparseSeries coo methods
 
@@ -1444,6 +1447,7 @@ def _dense_series_compare(s, f):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSparseSeriesAnalytics:
 
     def setup_method(self, method):
@@ -1538,12 +1542,27 @@ def test_constructor_dict_datetime64_index(datetime_type):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 def test_to_sparse():
     # https://github.com/pandas-dev/pandas/issues/22389
     arr = pd.SparseArray([1, 2, None, 3])
     result = pd.Series(arr).to_sparse()
     assert len(result) == 4
     tm.assert_sp_array_equal(result.values, arr, check_kind=False)
+
+
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+def test_deprecated_to_sparse():
+    # GH 26557
+    # Deprecated 0.25.0
+
+    ser = Series([1, np.nan, 3])
+    sparse_ser = pd.SparseSeries([1, np.nan, 3])
+
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        result = ser.to_sparse()
+    tm.assert_series_equal(result, sparse_ser)
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
