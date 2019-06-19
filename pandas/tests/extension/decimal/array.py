@@ -61,7 +61,9 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         self._data = values
         self._dtype = DecimalDtype(context)
 
-    # aliases for common attribute names, to ensure pandas supports these
+    # Certain pandas function currently refer to these attributes
+    # expecting them to return a numpy array of values. here we
+    # just treat them as synonyms for `self._data`.
     @property
     def _items(self):
         return self._data
