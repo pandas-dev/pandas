@@ -229,8 +229,7 @@ if the series operations it handles. Once your EA implements
 :meth:`ExtensionArray._reduce`, your implementation will be cailled
 whenever one of the related Series method is called. All these
 methods are reduction functions, and so are expected to return a scalar value
-of some type. However it is perfectly acceptable to return some instance of an
-:class:`pandas.api.extensions.ExtensionArray`.
+of some type.
 
 Series operations which are not handled by :meth:`ExtensionArray._reduce`,
 such as :meth:`Series.round`, will generally invoke an equivalent numpy
@@ -247,14 +246,24 @@ this solution usually falls short, becase any series methods you then
 use casts your EA into an object ndarray, while you usually want the
 result to remain an instance of your EA.
 
-The second approach is more involved, but it does a proper job of maintaining
-the ExtensionArray's dtype through operations. It requires a detailed
-understanding of how numpy functions operate on non ndarray objects.
+In most cases, you will want to provide your own implementations of the
+methods. This takes more work, but does a proper job of maintaining the
+ExtensionArray's dtype through operations. Understanding how to do this
+requires a more detailed understanding of how numpy functions operate on non
+ndarray objects.
 
 Just as pandas handles some operation via :meth:`ExtensionArray._reduce`
 and others by delegating to numpy, numpy makes a distinction between
 between two types of operations: ufuncs (such as `np.floor`, `np.ceil`,
 and `np.abs`), and non-ufuncs (for example `np.round`, and `np.repeat`).
+
+.. note::
+    To be clear, although your code will override numpy's own functions,
+    It is perfectly common, and valid for your function to return an
+    an instance of :class:`pandas.api.extensions.ExtensionArray`,
+    usually your own. You are *not* required to return numpy arrays
+    from these function.
+
 
 We will deal with ufuncs first. You can find a list of numpy's ufuncs here
 (TBD). In order to support numpy ufuncs, a convenient approach is to implement
