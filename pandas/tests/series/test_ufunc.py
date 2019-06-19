@@ -71,7 +71,6 @@ def test_binary_ufunc(ufunc, sparse, shuffle, box_other,
         a2 = pd.SparseArray(a2, dtype=pd.SparseDtype('int', 0))
 
     name = "name"
-    # TODO: verify name when the differ? Take the first? Drop?
     s1 = pd.Series(a1, name=name)
     s2 = pd.Series(a2, name=name)
 
@@ -171,6 +170,7 @@ def test_multiple_ouput_ufunc(sparse, arrays_for_binary_ufunc):
 @pytest.mark.xfail(reason="Series.__array_ufunc__")
 def test_binary_ufunc_drops_series_name(ufunc, sparse,
                                         arrays_for_binary_ufunc):
+    # Drop the names when they differ.
     a1, a2 = arrays_for_binary_ufunc
     s1 = pd.Series(a1, name='a')
     s2 = pd.Series(a2, name='b')
