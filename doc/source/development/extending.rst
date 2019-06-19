@@ -297,14 +297,6 @@ after computing the values, you will usually want to wrap the result as a new
 ExtensionArray instance and return it to the caller. Pandas will automatically
 use that Array as the backing ExtensionArray for a new Series object.
 
-.. note::
-    Before [NEP13](https://www.numpy.org/neps/nep-0013-ufunc-overrides.html),
-    numpy already provides a way of wrapping ufunc functions via `__array_prepare__`
-    and `__array_wrap__`, as documented in the Numpy documentation section
-    ["Subclassing Numpy"](http://docs.python.org/doc/numpy/user/basics.subclassing.html).
-    However, NEP13 seems to have largely superseded that mechanism.
-
-
 With ufuncs out of the way, we turn to the remaining numpy operations, such
 as `np.round`. The simplest way to support these operations is to simply
 implement a compatible method on your ExtensionArray. For example, if your
