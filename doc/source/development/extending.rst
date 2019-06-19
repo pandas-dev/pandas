@@ -267,7 +267,7 @@ numpy's `__array_ufunc__` interface, specified in
 [NEP13](https://www.numpy.org/neps/nep-0013-ufunc-overrides.html). In brief,
 if your ExtensionArray implements a compliant `__array_ufunc__` interface,
 when a numpy ufunc such as `np.floor` is invoked on your array, its
-implementation of `__array_ufunc__`  will bec called first and given the
+implementation of `__array_ufunc__`  will be called first and given the
 opportunity to compute the function. The return value needn't be a numpy
 ndarray (though it can be). In general, you want the return value to be an
 instance of your ExtensionArray. In some cases, your implementation can
