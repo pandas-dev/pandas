@@ -9,7 +9,8 @@ import numpy as np
 from pandas._libs.writers import convert_json_to_lines
 
 from pandas import DataFrame
-from typing import Union
+from typing import Union, List, Dict, Any
+
 
 def _convert_to_line_delimits(s):
     """
@@ -25,8 +26,8 @@ def _convert_to_line_delimits(s):
     return convert_json_to_lines(s)
 
 
-def nested_to_record(ds, prefix: str="", sep: str=".", level: int=0,
-                     max_level: int=None):
+def nested_to_record(ds, prefix: str = "", sep: str = ".", level: int = 0,
+                     max_level: int = None):
     """
 
     A simplified json_normalize
@@ -105,12 +106,14 @@ def nested_to_record(ds, prefix: str="", sep: str=".", level: int=0,
     return new_ds
 
 
-def json_normalize(data:dict, record_path: Union[str, list]=None, meta:Union[str, list]=None,
-                   meta_prefix: str=None,
-                   record_prefix: str=None,
-                   errors='raise',
-                   sep: str ='.',
-                   max_level: int=None):
+def json_normalize(data: List[Dict[Any, Any]],
+                   record_path: Union[str, list] = None,
+                   meta: Union[str, list] = None,
+                   meta_prefix: str = None,
+                   record_prefix: str = None,
+                   errors: str = 'raise',
+                   sep: str = '.',
+                   max_level: int = None):
     """
     Normalize semi-structured JSON data into a flat table.
 
@@ -264,10 +267,10 @@ def json_normalize(data:dict, record_path: Union[str, list]=None, meta:Union[str
     meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
-    records = []
+    records: list = []
     lengths = []
 
-    meta_vals = defaultdict(list)
+    meta_vals: dict = defaultdict(list)
     if not isinstance(sep, str):
         sep = str(sep)
     meta_keys = [sep.join(val) for val in meta]
