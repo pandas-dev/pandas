@@ -503,6 +503,7 @@ Other Deprecations
 - The :meth:`Series.ftype`, :meth:`Series.ftypes` and :meth:`DataFrame.ftypes` methods are deprecated and will be removed in a future version.
   Instead, use :meth:`Series.dtype` and :meth:`DataFrame.dtypes` (:issue:`26705`).
 - :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
+- :meth:`Series.to_sparse`, :meth:`DataFrame.to_sparse`, :meth:`Series.to_dense` and :meth:`DataFrame.to_dense` are deprecated and will be removed in a future version. (:issue:`26557`).
 
 .. _whatsnew_0250.prior_deprecations:
 
