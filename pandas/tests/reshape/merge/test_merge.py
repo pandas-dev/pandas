@@ -1026,6 +1026,22 @@ class TestMerge:
         result = merge(left, right, on=['a', 'b'], validate='1:1')
         assert_frame_equal(result, expected_multi)
 
+    @pytest.mark.parametrize('merge_type', ['left_on', 'right_on'])
+    def test_missing_on_raises(self, merge_type):
+        # GH26824
+        left = DataFrame({
+            'A': [1, 2, 3, 4, 5, 6],
+            'B': ['P', 'Q', 'R', 'S', 'T', 'U']
+        })
+        right = DataFrame({
+            'A': [1, 2, 4, 5, 7, 8],
+            'C': ['L', 'M', 'N', 'O', 'P', 'Q']
+        })
+        msg = 'must equal'
+        kwargs = {merge_type: 'A'}
+        with pytest.raises(ValueError, match=msg):
+            pd.merge(left, right, how='left', **kwargs)
+
     def test_merge_two_empty_df_no_division_error(self):
         # GH17776, PR #17846
         a = pd.DataFrame({'a': [], 'b': [], 'c': []})
@@ -1763,20 +1779,3 @@ def test_merge_equal_cat_dtypes2():
 
     # Categorical is unordered, so don't check ordering.
     tm.assert_frame_equal(result, expected, check_categorical=False)
-
-
-@pytest.mark.parametrize('merge_type', ['left_on', 'right_on'])
-def test_missing_on_raises(merge_type):
-    # GH26824
-    df1 = DataFrame({
-        'A': [1, 2, 3, 4, 5, 6],
-        'B': ['P', 'Q', 'R', 'S', 'T', 'U']
-    })
-    df2 = DataFrame({
-        'A': [1, 2, 4, 5, 7, 8],
-        'C': ['L', 'M', 'N', 'O', 'P', 'Q']
-    })
-    msg = 'must equal'
-    kwargs = {merge_type: 'A'}
-    with pytest.raises(ValueError, match=msg):
-        pd.merge(df1, df2, how='left', **kwargs)
