@@ -3,7 +3,7 @@
 {{ header }}
 
 ==============================
- Essential Basic Functionality
+ Essential basic functionality
 ==============================
 
 Here we discuss a lot of the essential functionality common to the pandas data
@@ -19,7 +19,7 @@ the previous section:
 
 .. _basics.head_tail:
 
-Head and Tail
+Head and tail
 -------------
 
 To view a small sample of a Series or DataFrame object, use the
@@ -34,7 +34,7 @@ of elements to display is five, but you may pass a custom number.
 
 .. _basics.attrs:
 
-Attributes and Underlying Data
+Attributes and underlying data
 ------------------------------
 
 pandas objects have a number of attributes enabling you to access the metadata
@@ -286,7 +286,7 @@ using ``fillna`` if you wish).
 
 .. _basics.compare:
 
-Flexible Comparisons
+Flexible comparisons
 ~~~~~~~~~~~~~~~~~~~~
 
 Series and DataFrame have the binary comparison methods ``eq``, ``ne``, ``lt``, ``gt``,
@@ -304,7 +304,7 @@ indexing operations, see the section on :ref:`Boolean indexing<indexing.boolean>
 
 .. _basics.reductions:
 
-Boolean Reductions
+Boolean reductions
 ~~~~~~~~~~~~~~~~~~
 
 You can apply the reductions: :attr:`~DataFrame.empty`, :meth:`~DataFrame.any`,
