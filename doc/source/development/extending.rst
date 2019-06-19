@@ -243,7 +243,7 @@ implementation of :meth:`ExtensionArray._reduce` which handles a particular
 method, calling the method on the Series will invoke the implementation
 on your ExtensionArray. All these methods are reduction functions, and
 so are expected to return a scalr value of some type. However it is perfectly
-acceptable to return some instance of an :class:`pandas.api.extensions.ExtensionDtype`.
+acceptable to return some instance of an :class:`pandas.api.extensions.ExtensionArray`.
 
 Series operations which are not handled by :meth:`ExtensionArray._reduce`,
 such as :meth:`Series.round`, will generally invoke an equivalent numpy
