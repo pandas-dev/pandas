@@ -270,13 +270,7 @@ when a numpy ufunc such as `np.floor` is invoked on your array, its
 implementation of `__array_ufunc__`  will be called first and given the
 opportunity to compute the function. The return value needn't be a numpy
 ndarray (though it can be). In general, you want the return value to be an
-instance of your ExtensionArray. In some cases, your implementation can
-calculate the result itself (see for example TBD), or, if your ExtensionArray
-already has a numeric ndarray backing it, your implementation will itself
-invoke the numpy ufunc itself on it (see for example TBD). In either case,
-after computing the values, you will usually want to wrap the result as a new
-ExtensionArray instance and return it to the caller. Pandas will automatically
-use that Array as the backing ExtensionArray for a new Series object.
+instance of your ExtensionArray.
 
 With ufuncs out of the way, we turn to the remaining numpy operations, such
 as `np.round`. The simplest way to support these operations is to simply
