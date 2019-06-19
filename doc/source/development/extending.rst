@@ -221,14 +221,6 @@ simply call an equivalent numpy function with data from the underlying array.
 In order to support this operations in a new ExtensionArray, you must provide
 an implementation for them.
 
-.. note::
-
-    There is a third category of operation which live on the `pandas`
-    namespace, for example `:meth:pd.concat`. There is an equivalent numpy
-    function `:meth:np.concatenate`, but it is not called by the pandas
-    method. In general, these function should just work with your EA, you do
-    not need to implement more than the general EA interface.
-
 As of 0.25.0, pandas provides its own implementations for the following
 operations: :meth:`Series.any`, :meth:`Series.all`,
 :meth:`Series.min`, :meth:`Series.max`, :meth:`Series.sum`,
