@@ -15,7 +15,7 @@ from pandas.tseries.offsets import DateOffset, Tick, generate_range
 def generate_regular_range(start: Timestamp,
                            end: Timestamp,
                            periods: int,
-                           freq: DateOffset,) -> Tuple[np.ndarray, str]:
+                           freq: DateOffset) -> Tuple[np.ndarray, str]:
     """
     Generate a range of dates with the spans between dates described by
     the given `freq` DateOffset.
@@ -87,7 +87,7 @@ def generate_regular_range(start: Timestamp,
 def _generate_range_overflow_safe(endpoint: int,
                                   periods: int,
                                   stride: int,
-                                  side: str = 'start',) -> int:
+                                  side: str = 'start') -> int:
     """
     Calculate the second endpoint for passing to np.arange, checking
     to avoid an integer overflow.  Catch OverflowError and re-raise
