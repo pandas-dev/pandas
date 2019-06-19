@@ -1,20 +1,13 @@
 #!/usr/bin/env python
-
-import os
-import sys
 import math
 import xml.etree.ElementTree as et
 
 
-def parse_results(filename):
+def main(filename):
     tree = et.parse(filename)
     root = tree.getroot()
-    skipped = []
-
     current_class = ''
-    i = 1
-    assert i - 1 == len(skipped)
-    for el in root.findall('testcase'):
+    for i, el in enumerate(root.findall('testcase')):
         cn = el.attrib['classname']
         for sk in el.findall('skipped'):
             old_class = current_class
@@ -24,32 +17,15 @@ def parse_results(filename):
             msg = sk.attrib['message']
             out = ''
             if old_class != current_class:
-                ndigits = int(math.log(i, 10) + 1)
+                ndigits = int(math.log(i + 1, 10) + 1)
 
                 # 4 for : + space + # + space
                 out += ('-' * (len(name + msg) + 4 + ndigits) + '\n')
-            out += '#{i} {name}: {msg}'.format(i=i, name=name, msg=msg)
-            skipped.append(out)
-            i += 1
-            assert i - 1 == len(skipped)
-    assert i - 1 == len(skipped)
-    # assert len(skipped) == int(root.attrib['skip'])
-    return '\n'.join(skipped)
-
-
-def main():
-    test_files = [
-        'test-data-single.xml',
-        'test-data-multiple.xml',
-        'test-data.xml',
-    ]
-
-    print('SKIPPED TESTS:')
-    for fn in test_files:
-        if os.path.isfile(fn):
-            print(parse_results(fn))
-    return 0
+            out += '#{i} {name}: {msg}'.format(i=i + 1, name=name, msg=msg)
+            yield out
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    print('SKIPPED TESTS:')
+    skipped_tests = main('test-data.xml')
+    print('\n'.join(skipped_tests))
