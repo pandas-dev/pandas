@@ -363,7 +363,7 @@ Testing Extension Arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 We provide a test suite for ensuring that your extension arrays satisfy the expected
-behaviour. To use the test suite, you must provide several pytest fixtures and inherit
+behavior. To use the test suite, you must provide several pytest fixtures and inherit
 from the base test class. The required fixtures are found in
 https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/conftest.py.
 
