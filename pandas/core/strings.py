@@ -2587,8 +2587,9 @@ class StringMethods(NoNewAttributesMixin):
     Which will create a MultiIndex:
 
     >>> idx.str.partition()
-    MultiIndex(levels=[['X', 'Y'], [' '], ['123', '999']],
-               codes=[[0, 1], [0, 0], [0, 1]])
+    MultiIndex([('X', ' ', '123'),
+                ('Y', ' ', '999')],
+               dtype='object')
 
     Or an index with tuples with ``expand=False``:
 

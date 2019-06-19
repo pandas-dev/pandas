@@ -265,7 +265,7 @@ default_pprint = lambda x, max_seq_items=None: \
 
 
 def format_object_summary(obj, formatter, is_justify=True, name=None,
-                          indent_for_name=True):
+                          indent_for_name=True, line_break_each_value=False):
     """
     Return the formatted obj as a unicode string
 
@@ -282,6 +282,12 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
     indent_for_name : bool, default True
         Whether subsequent lines should be be indented to
         align with the name.
+    line_break_each_value : bool, default False
+        If True, inserts a line break for each value of ``obj``.
+        If False, only break lines when the a line of values gets wider
+        than the display width.
+
+        .. versionadded:: 0.25.0
 
     Returns
     -------
@@ -306,7 +312,12 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
         space2 = "\n "  # space for the opening '['
 
     n = len(obj)
-    sep = ','
+    if line_break_each_value:
+        # If we want to vertically align on each value of obj, we need to
+        # separate values by a line break and indent the values
+        sep = ',\n ' + ' ' * len(name)
+    else:
+        sep = ','
     max_seq_items = get_option('display.max_seq_items') or n
 
     # are we a truncated display
@@ -334,10 +345,10 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
 
     if n == 0:
         summary = '[]{}'.format(close)
-    elif n == 1:
+    elif n == 1 and not line_break_each_value:
         first = formatter(obj[0])
         summary = '[{}]{}'.format(first, close)
-    elif n == 2:
+    elif n == 2 and not line_break_each_value:
         first = formatter(obj[0])
         last = formatter(obj[-1])
         summary = '[{}, {}]{}'.format(first, last, close)
@@ -353,21 +364,39 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
 
         # adjust all values to max length if needed
         if is_justify:
-
-            # however, if we are not truncated and we are only a single
+            if line_break_each_value:
+                # Justify each string in the values of head and tail, so the
+                # strings will right align when head and tail are stacked
+                # vertically.
+                head, tail = _justify(head, tail)
+            elif (is_truncated or not (len(', '.join(head)) < display_width and
+                                       len(', '.join(tail)) < display_width)):
+                # Each string in head and tail should align with each other
+                max_length = max(best_len(head), best_len(tail))
+                head = [x.rjust(max_length) for x in head]
+                tail = [x.rjust(max_length) for x in tail]
+            # If we are not truncated and we are only a single
             # line, then don't justify
-            if (is_truncated or
-                    not (len(', '.join(head)) < display_width and
-                         len(', '.join(tail)) < display_width)):
-                max_len = max(best_len(head), best_len(tail))
-                head = [x.rjust(max_len) for x in head]
-                tail = [x.rjust(max_len) for x in tail]
+
+        if line_break_each_value:
+            # Now head and tail are of type List[Tuple[str]]. Below we
+            # convert them into List[str], so there will be one string per
+            # value. Also truncate items horizontally if wider than
+            # max_space
+            max_space = display_width - len(space2)
+            value = tail[0]
+            for max_items in reversed(range(1, len(value) + 1)):
+                pprinted_seq = _pprint_seq(value, max_seq_items=max_items)
+                if len(pprinted_seq) < max_space:
+                    break
+            head = [_pprint_seq(x, max_seq_items=max_items) for x in head]
+            tail = [_pprint_seq(x, max_seq_items=max_items) for x in tail]
 
         summary = ""
         line = space2
 
-        for i in range(len(head)):
-            word = head[i] + sep + ' '
+        for max_items in range(len(head)):
+            word = head[max_items] + sep + ' '
             summary, line = _extend_line(summary, line, word,
                                          display_width, space2)
 
@@ -376,8 +405,8 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
             summary += line.rstrip() + space2 + '...'
             line = space2
 
-        for i in range(len(tail) - 1):
-            word = tail[i] + sep + ' '
+        for max_items in range(len(tail) - 1):
+            word = tail[max_items] + sep + ' '
             summary, line = _extend_line(summary, line, word,
                                          display_width, space2)
 
@@ -391,7 +420,7 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
         close = ']' + close.rstrip(' ')
         summary += close
 
-        if len(summary) > (display_width):
+        if len(summary) > (display_width) or line_break_each_value:
             summary += space1
         else:  # one row
             summary += ' '
@@ -402,7 +431,44 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
     return summary
 
 
-def format_object_attrs(obj):
+def _justify(head, tail):
+    """
+    Justify items in head and tail, so they are right-aligned when stacked.
+
+    Parameters
+    ----------
+    head : list-like of list-likes of strings
+    tail : list-like of list-likes of strings
+
+    Returns
+    -------
+    tuple of list of tuples of strings
+        Same as head and tail, but items are right aligned when stacked
+        vertically.
+
+    Examples
+    --------
+    >>> _justify([['a', 'b']], [['abc', 'abcd']])
+    ([('  a', '   b')], [('abc', 'abcd')])
+    """
+    combined = head + tail
+
+    # For each position for the sequences in ``combined``,
+    # find the length of the largest string.
+    max_length = [0] * len(combined[0])
+    for inner_seq in combined:
+        length = [len(item) for item in inner_seq]
+        max_length = [max(x, y) for x, y in zip(max_length, length)]
+
+    # justify each item in each list-like in head and tail using max_length
+    head = [tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length))
+            for seq in head]
+    tail = [tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length))
+            for seq in tail]
+    return head, tail
+
+
+def format_object_attrs(obj, include_dtype=True):
     """
     Return a list of tuples of the (attr, formatted_value)
     for common attrs, including dtype, name, length
@@ -411,6 +477,8 @@ def format_object_attrs(obj):
     ----------
     obj : object
         must be iterable
+    include_dtype : bool
+        If False, dtype won't be in the returned list
 
     Returns
     -------
@@ -418,10 +486,12 @@ def format_object_attrs(obj):
 
     """
     attrs = []
-    if hasattr(obj, 'dtype'):
+    if hasattr(obj, 'dtype') and include_dtype:
         attrs.append(('dtype', "'{}'".format(obj.dtype)))
     if getattr(obj, 'name', None) is not None:
         attrs.append(('name', default_pprint(obj.name)))
+    elif getattr(obj, 'names', None) is not None and any(obj.names):
+        attrs.append(('names', default_pprint(obj.names)))
     max_seq_items = get_option('display.max_seq_items') or len(obj)
     if len(obj) > max_seq_items:
         attrs.append(('length', len(obj)))
