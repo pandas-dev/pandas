@@ -159,8 +159,8 @@ class TestTimestampComparison:
     def test_compare_zerodim_array(self):
         # GH#26916
         ts = Timestamp.now()
-        td64 = np.datetime64('2016-01-01', 'ns')
-        arr = np.array(td64)
+        dt64 = np.datetime64('2016-01-01', 'ns')
+        arr = np.array(dt64)
         assert arr.ndim == 0
 
         result = arr < ts
