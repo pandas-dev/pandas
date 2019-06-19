@@ -2452,7 +2452,7 @@ def check_bool_indexer(index, key):
         # object array key, so no check needed here
 
         # GH26658
-        if all([len(i) > 0 for i in (index, key)]) and len(index) != len(key):
+        if all((len(i) > 0 for i in (index, key))) and len(index) != len(key):
             raise ValueError(
                 'Item wrong length {} instead of {}.'.format(len(key),
                                                              len(index)))
