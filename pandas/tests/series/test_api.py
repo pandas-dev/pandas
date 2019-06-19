@@ -123,6 +123,7 @@ class SharedWithSparse:
         assert result.name == self.ts.name
 
     @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_to_sparse_pass_name(self):
         result = self.ts.to_sparse()
         assert result.name == self.ts.name
