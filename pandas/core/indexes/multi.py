@@ -29,7 +29,8 @@ from pandas.core.indexes.base import (
 from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
 import pandas.core.missing as missing
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    format_object_attrs, format_object_summary, pprint_thing)
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -193,8 +194,10 @@ class MultiIndex(Index):
 
     >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
     >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
-    MultiIndex(levels=[[1, 2], ['blue', 'red']],
-               codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
+    MultiIndex([(1,  'red'),
+                (1, 'blue'),
+                (2,  'red'),
+                (2, 'blue')],
                names=['number', 'color'])
 
     See further examples for how to construct a MultiIndex in the doc strings
@@ -359,8 +362,10 @@ class MultiIndex(Index):
         --------
         >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
         >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
-        MultiIndex(levels=[[1, 2], ['blue', 'red']],
-                   codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
+        MultiIndex([(1,  'red'),
+                    (1, 'blue'),
+                    (2,  'red'),
+                    (2, 'blue')],
                    names=['number', 'color'])
         """
         error_msg = "Input must be a list / sequence of array-likes."
@@ -420,8 +425,10 @@ class MultiIndex(Index):
         >>> tuples = [(1, 'red'), (1, 'blue'),
         ...           (2, 'red'), (2, 'blue')]
         >>> pd.MultiIndex.from_tuples(tuples, names=('number', 'color'))
-        MultiIndex(levels=[[1, 2], ['blue', 'red']],
-                   codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
+        MultiIndex([(1,  'red'),
+                    (1, 'blue'),
+                    (2,  'red'),
+                    (2, 'blue')],
                    names=['number', 'color'])
         """
         if not is_list_like(tuples):
@@ -477,8 +484,12 @@ class MultiIndex(Index):
         >>> colors = ['green', 'purple']
         >>> pd.MultiIndex.from_product([numbers, colors],
         ...                            names=['number', 'color'])
-        MultiIndex(levels=[[0, 1, 2], ['green', 'purple']],
-                   codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+        MultiIndex([(0,  'green'),
+                    (0, 'purple'),
+                    (1,  'green'),
+                    (1, 'purple'),
+                    (2,  'green'),
+                    (2, 'purple')],
                    names=['number', 'color'])
         """
         from pandas.core.arrays.categorical import _factorize_from_iterables
@@ -537,15 +548,19 @@ class MultiIndex(Index):
         3    NJ  Precip
 
         >>> pd.MultiIndex.from_frame(df)
-        MultiIndex(levels=[['HI', 'NJ'], ['Precip', 'Temp']],
-                   codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
+        MultiIndex([('HI',   'Temp'),
+                    ('HI', 'Precip'),
+                    ('NJ',   'Temp'),
+                    ('NJ', 'Precip')],
                    names=['a', 'b'])
 
         Using explicit names, instead of the column names
 
         >>> pd.MultiIndex.from_frame(df, names=['state', 'observation'])
-        MultiIndex(levels=[['HI', 'NJ'], ['Precip', 'Temp']],
-                   codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
+        MultiIndex([('HI',   'Temp'),
+                    ('HI', 'Precip'),
+                    ('NJ',   'Temp'),
+                    ('NJ', 'Precip')],
                    names=['state', 'observation'])
         """
         if not isinstance(df, ABCDataFrame):
@@ -663,21 +678,29 @@ class MultiIndex(Index):
         >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
                                             (2, 'one'), (2, 'two')],
                                             names=['foo', 'bar'])
-        >>> idx.set_levels([['a','b'], [1,2]])
-        MultiIndex(levels=[['a', 'b'], [1, 2]],
-                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
+        >>> idx.set_levels([['a', 'b'], [1, 2]])
+        MultiIndex([('a', 1),
+                    ('a', 2),
+                    ('b', 1),
+                    ('b', 2)],
                    names=['foo', 'bar'])
-        >>> idx.set_levels(['a','b'], level=0)
-        MultiIndex(levels=[['a', 'b'], ['one', 'two']],
-                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
+        >>> idx.set_levels(['a', 'b'], level=0)
+        MultiIndex([('a', 'one'),
+                    ('a', 'two'),
+                    ('b', 'one'),
+                    ('b', 'two')],
                    names=['foo', 'bar'])
-        >>> idx.set_levels(['a','b'], level='bar')
-        MultiIndex(levels=[[1, 2], ['a', 'b']],
-                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
+        >>> idx.set_levels(['a', 'b'], level='bar')
+        MultiIndex([(1, 'a'),
+                    (1, 'b'),
+                    (2, 'a'),
+                    (2, 'b')],
                    names=['foo', 'bar'])
-        >>> idx.set_levels([['a','b'], [1,2]], level=[0,1])
-        MultiIndex(levels=[['a', 'b'], [1, 2]],
-                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
+        >>> idx.set_levels([['a', 'b'], [1, 2]], level=[0, 1])
+        MultiIndex([('a', 1),
+                    ('a', 2),
+                    ('b', 1),
+                    ('b', 2)],
                    names=['foo', 'bar'])
         """
         if is_list_like(levels) and not isinstance(levels, Index):
@@ -779,24 +802,34 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
-                                            (2, 'one'), (2, 'two')],
+        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'),
+                                             (1, 'two'),
+                                             (2, 'one'),
+                                             (2, 'two')],
                                             names=['foo', 'bar'])
-        >>> idx.set_codes([[1,0,1,0], [0,0,1,1]])
-        MultiIndex(levels=[[1, 2], ['one', 'two']],
-                   codes=[[1, 0, 1, 0], [0, 0, 1, 1]],
+        >>> idx.set_codes([[1, 0, 1, 0], [0, 0, 1, 1]])
+        MultiIndex([(2, 'one'),
+                    (1, 'one'),
+                    (2, 'two'),
+                    (1, 'two')],
                    names=['foo', 'bar'])
-        >>> idx.set_codes([1,0,1,0], level=0)
-        MultiIndex(levels=[[1, 2], ['one', 'two']],
-                   codes=[[1, 0, 1, 0], [0, 1, 0, 1]],
+        >>> idx.set_codes([1, 0, 1, 0], level=0)
+        MultiIndex([(2, 'one'),
+                    (1, 'two'),
+                    (2, 'one'),
+                    (1, 'two')],
                    names=['foo', 'bar'])
-        >>> idx.set_codes([0,0,1,1], level='bar')
-        MultiIndex(levels=[[1, 2], ['one', 'two']],
-                   codes=[[0, 0, 1, 1], [0, 0, 1, 1]],
+        >>> idx.set_codes([0, 0, 1, 1], level='bar')
+        MultiIndex([(1, 'one'),
+                    (1, 'one'),
+                    (2, 'two'),
+                    (2, 'two')],
                    names=['foo', 'bar'])
-        >>> idx.set_codes([[1,0,1,0], [0,0,1,1]], level=[0,1])
-        MultiIndex(levels=[[1, 2], ['one', 'two']],
-                   codes=[[1, 0, 1, 0], [0, 0, 1, 1]],
+        >>> idx.set_codes([[1, 0, 1, 0], [0, 0, 1, 1]], level=[0, 1])
+        MultiIndex([(2, 'one'),
+                    (1, 'one'),
+                    (2, 'two'),
+                    (1, 'two')],
                    names=['foo', 'bar'])
         """
         if level is not None and not is_list_like(level):
@@ -947,28 +980,25 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
     # Rendering Methods
+    def _formatter_func(self, tup):
+        """
+        Formats each item in tup according to its level's formatter function.
+        """
+        formatter_funcs = [level._formatter_func for level in self.levels]
+        return tuple(func(val) for func, val in zip(formatter_funcs, tup))
+
+    def _format_data(self, name=None):
+        """
+        Return the formatted data as a unicode string
+        """
+        return format_object_summary(self, self._formatter_func,
+                                     name=name, line_break_each_value=True)
 
     def _format_attrs(self):
         """
-        Return a list of tuples of the (attr,formatted_value)
+        Return a list of tuples of the (attr,formatted_value).
         """
-        attrs = [
-            ('levels', ibase.default_pprint(self._levels,
-                                            max_seq_items=False)),
-            ('codes', ibase.default_pprint(self._codes,
-                                           max_seq_items=False))]
-        if com._any_not_none(*self.names):
-            attrs.append(('names', ibase.default_pprint(self.names)))
-        if self.sortorder is not None:
-            attrs.append(('sortorder', ibase.default_pprint(self.sortorder)))
-        return attrs
-
-    def _format_space(self):
-        return "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
-
-    def _format_data(self, name=None):
-        # we are formatting thru the attributes
-        return None
+        return format_object_attrs(self, include_dtype=False)
 
     def _format_native_types(self, na_rep='nan', **kwargs):
         new_levels = []
@@ -1555,9 +1585,19 @@ class MultiIndex(Index):
         >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
                                             (2, 'one'), (2, 'two')])
         >>> idx.to_hierarchical(3)
-        MultiIndex(levels=[[1, 2], ['one', 'two']],
-                   codes=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-                          [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1]])
+        MultiIndex([(1, 'one'),
+                    (1, 'one'),
+                    (1, 'one'),
+                    (1, 'two'),
+                    (1, 'two'),
+                    (1, 'two'),
+                    (2, 'one'),
+                    (2, 'one'),
+                    (2, 'one'),
+                    (2, 'two'),
+                    (2, 'two'),
+                    (2, 'two')],
+                   )
         """
         levels = self.levels
         codes = [np.repeat(level_codes, n_repeat) for
@@ -1648,16 +1688,21 @@ class MultiIndex(Index):
         Examples
         --------
 
-        >>> i = pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
-                              codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
-        >>> i
-        MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
-                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        >>> mi = pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
+        ...                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        >>> mi
+        MultiIndex([('a', 'bb'),
+                    ('a', 'aa'),
+                    ('b', 'bb'),
+                    ('b', 'aa')],
+                   )
 
-        >>> i.sort_monotonic()
-        MultiIndex(levels=[['a', 'b'], ['aa', 'bb']],
-                   codes=[[0, 0, 1, 1], [1, 0, 1, 0]])
-
+        >>> mi.sort_values()
+        MultiIndex([('a', 'aa'),
+                    ('a', 'bb'),
+                    ('b', 'aa'),
+                    ('b', 'bb')],
+                   )
         """
 
         if self.is_lexsorted() and self.is_monotonic:
@@ -1706,20 +1751,25 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> i = pd.MultiIndex.from_product([range(2), list('ab')])
-        MultiIndex(levels=[[0, 1], ['a', 'b']],
-                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        >>> mi = pd.MultiIndex.from_product([range(2), list('ab')])
+        >>> mi
+        MultiIndex([(0, 'a'),
+                    (0, 'b'),
+                    (1, 'a'),
+                    (1, 'b')],
+                   )
 
-        >>> i[2:]
-        MultiIndex(levels=[[0, 1], ['a', 'b']],
-                   codes=[[1, 1], [0, 1]])
+        >>> mi[2:]
+        MultiIndex([(1, 'a'),
+                    (1, 'b')],
+                   )
 
         The 0 from the first level is not represented
         and can be removed
 
-        >>> i[2:].remove_unused_levels()
-        MultiIndex(levels=[[1], ['a', 'b']],
-                   codes=[[0, 0], [0, 1]])
+        >>> mi2 = mi[2:].remove_unused_levels()
+        >>> mi2.levels
+        FrozenList([[1], ['a', 'b']])
         """
 
         new_levels = []
@@ -2026,11 +2076,17 @@ class MultiIndex(Index):
         >>> mi = pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
         ...                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         >>> mi
-        MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
-                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        MultiIndex([('a', 'bb'),
+                    ('a', 'aa'),
+                    ('b', 'bb'),
+                    ('b', 'aa')],
+                   )
         >>> mi.swaplevel(0, 1)
-        MultiIndex(levels=[['bb', 'aa'], ['a', 'b']],
-                   codes=[[0, 1, 0, 1], [0, 0, 1, 1]])
+        MultiIndex([('bb', 'a'),
+                    ('aa', 'a'),
+                    ('bb', 'b'),
+                    ('aa', 'b')],
+                   )
         """
         new_levels = list(self.levels)
         new_codes = list(self.codes)
