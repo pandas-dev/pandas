@@ -1092,6 +1092,7 @@ class _MergeOperation:
             if not self.right_on:
                 raise ValueError('both "right_on" and "left_on" '
                                  'should be passed')
+            self.right_on = self.right_on or [None] * (n + 1)
         elif self.right_on is not None:
             n = len(self.right_on)
             if self.left_index:
@@ -1102,6 +1103,7 @@ class _MergeOperation:
             if not self.left_on:
                 raise ValueError('both "right_on" and "left_on" '
                                  'should be passed')
+            self.left_on = self.left_on or [None] * (n + 1)
         if len(self.right_on) != len(self.left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
 
