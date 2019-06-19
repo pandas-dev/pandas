@@ -51,6 +51,11 @@ do
         DISPLAY=:99.0
         PYTEST_CMD="xvfb-run $PYTEST_CMD"
     fi
+    echo "################################################################################"
+    echo "ps -ef"
+    echo "################################################################################"
+    ps -ef
+    echo "################################################################################"
     echo $PYTEST_CMD
     # if no tests are found (the case of "single and slow"), pytest exits with code 5, and would make the script fail, if not for the below code
     sh -c "$PYTEST_CMD; ret=\$?; [ \$ret = 5 ] && exit 0 || exit \$ret"
