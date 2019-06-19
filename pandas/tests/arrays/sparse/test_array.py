@@ -1071,6 +1071,16 @@ class TestSparseArrayAnalytics:
         result = SparseArray([2, 0, 1, -1], fill_value=1)
         tm.assert_sp_array_equal(np.add(sparse, 1), result)
 
+    @pytest.mark.parametrize('fill_value', [0.0, np.nan])
+    def test_modf(self, fill_value):
+        # https://github.com/pandas-dev/pandas/issues/26946
+        sparse = pd.SparseArray([fill_value] * 10 + [1.1, 2.2],
+                                fill_value=fill_value)
+        r1, r2 = np.modf(sparse)
+        e1, e2 = np.modf(np.asarray(sparse))
+        tm.assert_sp_array_equal(r1, pd.SparseArray(e1, fill_value=fill_value))
+        tm.assert_sp_array_equal(r2, pd.SparseArray(e2, fill_value=fill_value))
+
     def test_nbytes_integer(self):
         arr = SparseArray([1, 0, 0, 0, 2], kind='integer')
         result = arr.nbytes
