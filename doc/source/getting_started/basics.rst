@@ -643,7 +643,7 @@ there for details about accepted inputs.
 
 .. _basics.idxmin:
 
-Index of min/max Values
+Index of min/max values
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~DataFrame.idxmin` and :meth:`~DataFrame.idxmax` functions on Series
