@@ -1107,24 +1107,20 @@ def test_extension_array_cross_section_converts():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize('idxr, error, error_message', [
+@pytest.mark.parametrize('idxr, error_message', [
     (lambda x: x,
-     AttributeError,
      "'numpy.ndarray' object has no attribute 'get'"),
     (lambda x: x.loc,
-     AttributeError,
      "type object 'NDFrame' has no attribute '_AXIS_ALIASES'"),
     (lambda x: x.iloc,
-     AttributeError,
      "type object 'NDFrame' has no attribute '_AXIS_ALIASES'"),
     pytest.param(
         lambda x: x.ix,
-        ValueError,
-        "NDFrameIndexer does not support NDFrame objects with ndim > 2",
+        "type object 'NDFrame' has no attribute '_AXIS_ALIASES'",
         marks=ignore_ix)
 ])
-def test_ndframe_indexing_raises(idxr, error, error_message):
+def test_ndframe_indexing_raises(idxr, error_message):
     # GH 25567
     frame = NDFrame(np.random.randint(5, size=(2, 2, 2)))
-    with pytest.raises(error, match=error_message):
-        idxr(frame)[0]
+    with pytest.raises(AttributeError, match=error_message):
+        _ = idxr(frame)[0]

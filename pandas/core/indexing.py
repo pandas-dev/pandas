@@ -1441,9 +1441,6 @@ class _LocationIndexer(_NDFrameIndexer):
             axis = self.axis or 0
         labels = self.obj._get_axis(axis)
         key = check_bool_indexer(labels, key)
-        if 0 < len(labels) != len(key):
-            raise ValueError('Item wrong length %d instead of %d.' %
-                             (len(key), len(labels)))
         inds, = key.nonzero()
         try:
             return self.obj._take(inds, axis=axis)
@@ -2409,20 +2406,43 @@ def convert_to_index_sliceable(obj, key):
     return None
 
 
-def check_bool_indexer(ax, key):
-    # boolean indexing, need to check that the data are aligned, otherwise
-    # disallowed
+def check_bool_indexer(index, key):
+    """
+    Check if key is a valid boolean indexer for an object with such index and
+    perform reindexing or conversion if needed.
 
-    # this function assumes that is_bool_indexer(key) == True
+    This function assumes that is_bool_indexer(key) == True.
 
+    Parameters
+    ----------
+    key : list-like
+        Boolean indexer to check
+
+    index : Index
+        Index of the object on which the indexing is done
+
+    Returns
+    -------
+    result: np.array
+        Resulting key
+
+    Raises
+    ------
+    ValueError
+        If the key does not have the same length as index
+
+    IndexingError
+        If the index of the key is unalignable to index
+
+    """
     result = key
-    if isinstance(key, ABCSeries) and not key.index.equals(ax):
-        result = result.reindex(ax)
+    if isinstance(key, ABCSeries) and not key.index.equals(index):
+        result = result.reindex(index)
         mask = isna(result._values)
         if mask.any():
             raise IndexingError('Unalignable boolean Series provided as '
                                 'indexer (index of the boolean Series and of '
-                                'the indexed object do not match')
+                                'the indexed object do not match).')
         result = result.astype(bool)._values
     elif is_sparse(result):
         result = result.to_dense()
@@ -2430,6 +2450,12 @@ def check_bool_indexer(ax, key):
     else:
         # is_bool_indexer has already checked for nulls in the case of an
         # object array key, so no check needed here
+
+        # GH26658
+        if all([len(i) > 0 for i in (index, key)]) and len(index) != len(key):
+            raise ValueError(
+                'Item wrong length {} instead of {}.'.format(len(key),
+                                                             len(index)))
         result = np.asarray(result, dtype=bool)
 
     return result
