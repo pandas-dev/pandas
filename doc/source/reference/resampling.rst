@@ -43,7 +43,7 @@ Upsampling
    Resampler.asfreq
    Resampler.interpolate
 
-Computations / Descriptive Stats
+Computations / descriptive statistics
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
