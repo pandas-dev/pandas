@@ -233,7 +233,7 @@ In order to implement any of these functions, your ExtensionArray must include
 an implementation of :meth:`ExtensionArray._reduce`. Once you provide an
 implementation of :meth:`ExtensionArray._reduce`, calling the method on the
 Series will invoke the implementation on your ExtensionArray. All these
-methods are reduction functions, and so are expected to return a scalr value
+methods are reduction functions, and so are expected to return a scalar value
 of some type. However it is perfectly acceptable to return some instance of an
 :class:`pandas.api.extensions.ExtensionArray`.
 
