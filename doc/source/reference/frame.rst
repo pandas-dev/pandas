@@ -115,7 +115,7 @@ Binary operator functions
    DataFrame.combine
    DataFrame.combine_first
 
-Function application, groupby & window
+Function application, GroupBy & window
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
