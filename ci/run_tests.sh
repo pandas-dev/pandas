@@ -46,6 +46,10 @@ do
     fi
 
     PYTEST_CMD="pytest -m \"$TYPE_PATTERN$PATTERN\" -n $NUM_JOBS -s --strict --durations=10 --junitxml=test-data-$TYPE.xml $TEST_ARGS $COVERAGE pandas"
+    echo "uname"
+    uname
+    echo "env"
+    env
     if [[ "$(uname)" == "Linux" && "STRAVIS" != "true" ]]; then
         # This is required for the clipboard to work (X virtual frambuffer implements the X server API, required by the clipboard tools, without running an actual X server)
         DISPLAY=:99.0
