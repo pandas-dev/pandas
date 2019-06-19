@@ -297,7 +297,7 @@ class TestJSONNormalize:
     @pytest.mark.parametrize("max_level", [0, 1])
     def test_max_level_with_records_path(self,
                                          max_level):
-
+        # GH23843: Enhanced JSON normalize
         test_input = [{'CreatedBy': {'Name': 'User001'},
                        'Lookup': [{'TextField': 'Some text',
                                    'UserField': {'Id': 'ID001',
@@ -521,6 +521,7 @@ class TestNestedToRecord:
         assert output == expected_output
 
     def test_with_max_level_zero(self):
+        # GH23843: Enhanced JSON normalize
         data = [{
             'CreatedBy': {'Name': 'User001'},
             'Lookup': {'TextField': 'Some text',
@@ -531,6 +532,7 @@ class TestNestedToRecord:
         assert output == data
 
     def test_with_max_level_one(self):
+        # GH23843: Enhanced JSON normalize
         data = [{
             'CreatedBy': {'Name': 'User001'},
             'Lookup': {'TextField': 'Some text',
@@ -547,6 +549,7 @@ class TestNestedToRecord:
         assert output == expected_output
 
     def test_with_large_max_level(self):
+        # GH23843: Enhanced JSON normalize
         data = [
             {'CreatedBy': {
                 "user": {
