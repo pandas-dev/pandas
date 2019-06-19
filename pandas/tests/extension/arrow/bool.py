@@ -14,6 +14,7 @@ import pyarrow as pa
 import pandas as pd
 from pandas.api.extensions import (
     ExtensionArray, ExtensionDtype, register_extension_dtype, take)
+from pandas.core.arrays.base import ReshapeWrapper
 
 
 @register_extension_dtype
@@ -40,8 +41,10 @@ class ArrowBoolDtype(ExtensionDtype):
         return True
 
 
-class ArrowBoolArray(ExtensionArray):
+class _ArrowBoolArray(ExtensionArray):
     def __init__(self, values):
+        if isinstance(values, _ArrowBoolArray):
+            values = values._data
         if not isinstance(values, pa.ChunkedArray):
             raise ValueError
 
@@ -142,3 +145,7 @@ class ArrowBoolArray(ExtensionArray):
 
     def all(self, axis=0, out=None):
         return self._data.to_pandas().all()
+
+
+class ArrowBoolArray(ReshapeWrapper, _ArrowBoolArray):
+    pass

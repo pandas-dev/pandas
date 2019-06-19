@@ -1119,3 +1119,86 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     @classmethod
     def _create_comparison_method(cls, op):
         return cls._create_method(op, coerce_to_dtype=False)
+
+
+class ReshapeWrapper:
+    """
+    Mixin to an natively-1D ExtensionArray to support limited 2D operations.
+
+    Notes
+    -----
+    Assumes that `type(self)(self)` will construct an array equivalent to self.
+    """
+    # --------------------------------------------------------------
+    # Override ExtensionArray, assumes ReshapeWrapper is mixed in such that
+    #  it is before EA in the __mro__
+
+    shape = None  # Need to override property in base class
+
+    def __len__(self) -> int:
+        return self.shape[0]
+
+    @property
+    def ndim(self) -> int:
+        return len(self.shape)
+
+    @property
+    def size(self) -> int:
+        return np.prod(self.shape)
+
+    # --------------------------------------------------------------
+
+    def __init__(self, *args, shape=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if shape is None:
+            shape = (super().__len__(),)
+
+        # If we ever allow greater dimensions, other methods below will need
+        #  to be updated.
+        assert len(shape) in [1, 2]
+        self.shape = shape  # No other validation on shape
+
+    def reshape(self, *args):
+        # *args because numpy accepts either
+        #  `arr.reshape(1, 2)` or `arr.reshape((1, 2))`
+        shape = args
+        if len(args) == 1 and isinstance(args[0], tuple):
+            shape = args[0]
+        if -1 in shape:
+            if shape.count(-1) != 1:
+                raise ValueError("Invalid shape {shape}".format(shape=shape))
+            idx = shape.index(-1)
+            others = [n for n in shape if n != -1]
+            prod = np.prod(others)
+            dim, rem = divmod(self.size, prod)
+            shape = shape[:idx] + (dim,) + shape[idx+1:]
+
+        if np.prod(shape) != self.size:
+            raise ValueError("Product of shape ({shape}) must match "
+                             "size ({size})".format(shape=shape,
+                                                    size=self.size))
+        return type(self)(self, shape=shape)
+
+    def transpose(self, *args, **kwargs):
+        # Note: no validation on args/kwargs
+        shape = self.shape[::-1]
+        return type(self)(self, shape=shape)
+
+    @property
+    def T(self):
+        return self.transpose()
+
+    def ravel(self, order=None):
+        # Note: we ignore `order`, keep the argument for compat with
+        #  numpy signature
+        slen = super().__len__()
+        shape = (slen,)
+        return type(self)(self, shape=shape)
+
+    def swapaxes(self, axis1, axis2):
+        if axis1 > self.ndim or axis2 > self.ndim:
+            raise ValueError("invalid axes=({axis1}, {axis2}) for ndim={ndim}"
+                             .format(axis1, axis2=axis2, ndim=self.ndim))
+        if self.ndim == 1 or axis1 == axis2:
+            return type(self)(self, shape=self.shape)
+        return type(self)(self, shape=self.shape[::-1])
