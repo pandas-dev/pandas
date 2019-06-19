@@ -221,18 +221,13 @@ simply call an equivalent numpy function with data from the underlying array.
 In order to support this operations in a new ExtensionArray, you must provide
 an implementation for them.
 
-As of 0.25.0, pandas provides its own implementations for the following
-operations: :meth:`Series.any`, :meth:`Series.all`,
-:meth:`Series.min`, :meth:`Series.max`, :meth:`Series.sum`,
-:meth:`Series.mean`, :meth:`Series.median`, :meth:`Series.prod`
-(and its alias :meth:`Series.product`), :meth:`Series.std`,
-:meth:`Series.var`, :meth:`Series.sem`,
-:meth:`Series.kurt`, and :meth:`Series.skew`.
-
-In order to implement any of these functions, your ExtensionArray must include
-an implementation of :meth:`ExtensionArray._reduce`. Once you provide an
-implementation of :meth:`ExtensionArray._reduce`, calling the method on the
-Series will invoke the implementation on your ExtensionArray. All these
+As of 0.25.0, pandas provides its own implementations for some
+reduction operations such as min/max/sum/etc'. For your ExtensionArray
+to support these methods, it must include an implementation of
+:meth:`ExtensionArray._reduce`. See its docstring for a complete list o
+if the series operations it handles. Once your EA implements
+:meth:`ExtensionArray._reduce`, your implementation will be cailled
+whenever one of the related Series method is called. All these
 methods are reduction functions, and so are expected to return a scalar value
 of some type. However it is perfectly acceptable to return some instance of an
 :class:`pandas.api.extensions.ExtensionArray`.
