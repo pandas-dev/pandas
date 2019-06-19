@@ -3451,7 +3451,8 @@ class Table(Fixed):
             # `kwargs` may contain `start` and `stop` arguments if passed to
             # `store.select()`. If set they determine the index size.
             a.convert(values, nan_rep=self.nan_rep, encoding=self.encoding,
-                      errors=self.errors, **kwargs)
+                      errors=self.errors, start=kwargs.get('start'),
+                      stop=kwargs.get('stop'))
 
         return True
 
