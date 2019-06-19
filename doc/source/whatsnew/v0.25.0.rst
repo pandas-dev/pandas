@@ -74,6 +74,38 @@ a dict to a Series groupby aggregation (:ref:`whatsnew_0200.api_breaking.depreca
 
 See :ref:`groupby.aggregate.named` for more.
 
+
+.. _whatsnew_0250.enhancements.multi_index_repr:
+
+Better repr for MultiIndex
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Printing of :class:`MultiIndex` instances now shows tuples of each row and ensures
+that the tuple items are vertically aligned, so it's now easier to understand
+the structure of the ``MultiIndex``. (:issue:`13480`):
+
+The repr now looks like this:
+
+.. ipython:: python
+
+   pd.MultiIndex.from_product([['a', 'abc'], range(500)])
+
+Previously, outputting a :class:`MultiIndex` printed all the ``levels`` and
+``codes`` of the ``MultiIndex``, which was visually unappealing and made
+the output more difficult to navigate. For example (limiting the range to 5):
+
+.. code-block:: ipython
+
+   In [1]: pd.MultiIndex.from_product([['a', 'abc'], range(5)])
+   Out[1]: MultiIndex(levels=[['a', 'abc'], [0, 1, 2, 3]],
+      ...:            codes=[[0, 0, 0, 0, 1, 1, 1, 1], [0, 1, 2, 3, 0, 1, 2, 3]])
+
+In the new repr, all values will be shown, if the number of rows is smaller
+than :attr:`options.display.max_seq_items` (default: 100 items). Horizontally,
+the output will truncate, if it's wider than :attr:`options.display.width`
+(default: 80 characters).
+
+
 .. _whatsnew_0250.enhancements.other:
 
 Other Enhancements
