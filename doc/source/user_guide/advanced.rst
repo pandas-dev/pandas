@@ -182,15 +182,15 @@ on a deeper level.
 Defined Levels
 ~~~~~~~~~~~~~~
 
-The repr of a ``MultiIndex`` shows all the defined levels of an index, even
+The :class:`MultiIndex` keeps all the defined levels of an index, even
 if they are not actually used. When slicing an index, you may notice this.
 For example:
 
 .. ipython:: python
 
-   df.columns  # original MultiIndex
+   df.columns.levels  # original MultiIndex
 
-   df[['foo','qux']].columns  # sliced
+   df[['foo','qux']].columns.levels  # sliced
 
 This is done to avoid a recomputation of the levels in order to make slicing
 highly performant. If you want to see only the used levels, you can use the
@@ -210,7 +210,8 @@ To reconstruct the ``MultiIndex`` with only the used levels, the
 
 .. ipython:: python
 
-   df[['foo', 'qux']].columns.remove_unused_levels()
+   new_mi = df[['foo', 'qux']].columns.remove_unused_levels()
+   new_mi.levels
 
 Data alignment and using ``reindex``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

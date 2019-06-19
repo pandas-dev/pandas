@@ -212,6 +212,7 @@ class TestSeriesCombine:
         assert_series_equal(exp, result)
 
     @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_concat_empty_series_dtypes(self):
 
         # booleans
@@ -244,16 +245,16 @@ class TestSeriesCombine:
 
         # sparse
         # TODO: move?
-        result = pd.concat([Series(dtype='float64').to_sparse(), Series(
-            dtype='float64').to_sparse()])
+        result = pd.concat([Series(dtype='float64').to_sparse(),
+                            Series(dtype='float64').to_sparse()])
         assert result.dtype == 'Sparse[float64]'
 
         # GH 26705 - Assert .ftype is deprecated
         with tm.assert_produces_warning(FutureWarning):
             assert result.ftype == 'float64:sparse'
 
-        result = pd.concat([Series(dtype='float64').to_sparse(), Series(
-            dtype='float64')])
+        result = pd.concat([Series(dtype='float64').to_sparse(),
+                            Series(dtype='float64')])
         # TODO: release-note: concat sparse dtype
         expected = pd.core.sparse.api.SparseDtype(np.float64)
         assert result.dtype == expected
@@ -262,8 +263,8 @@ class TestSeriesCombine:
         with tm.assert_produces_warning(FutureWarning):
             assert result.ftype == 'float64:sparse'
 
-        result = pd.concat([Series(dtype='float64').to_sparse(), Series(
-            dtype='object')])
+        result = pd.concat([Series(dtype='float64').to_sparse(),
+                            Series(dtype='object')])
         # TODO: release-note: concat sparse dtype
         expected = pd.core.sparse.api.SparseDtype('object')
         assert result.dtype == expected
