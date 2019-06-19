@@ -505,7 +505,7 @@ If the method yields its value:
 
 .. _docstring.see_also:
 
-Section 5: See Also
+Section 5: See also
 ~~~~~~~~~~~~~~~~~~~
 
 This section is used to let users know about pandas functionality
@@ -929,7 +929,7 @@ plot will be generated automatically when building the documentation.
 
 .. _docstring.sharing:
 
-Sharing Docstrings
+Sharing docstrings
 ------------------
 
 Pandas has a system for sharing docstrings, with slight variations, between

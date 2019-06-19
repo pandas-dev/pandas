@@ -1,6 +1,6 @@
 .. _whatsnew_0250:
 
-What's New in 0.25.0 (April XX, 2019)
+What's new in 0.25.0 (April XX, 2019)
 -------------------------------------
 
 .. warning::
@@ -24,7 +24,7 @@ Enhancements
 
 .. _whatsnew_0250.enhancements.agg_relabel:
 
-Groupby Aggregation with Relabeling
+Groupby aggregation with relabeling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Pandas has added special groupby behavior, known as "named aggregation", for naming the
@@ -74,41 +74,9 @@ a dict to a Series groupby aggregation (:ref:`whatsnew_0200.api_breaking.depreca
 
 See :ref:`groupby.aggregate.named` for more.
 
-
-.. _whatsnew_0250.enhancements.multi_index_repr:
-
-Better repr for MultiIndex
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Printing of :class:`MultiIndex` instances now shows tuples of each row and ensures
-that the tuple items are vertically aligned, so it's now easier to understand
-the structure of the ``MultiIndex``. (:issue:`13480`):
-
-The repr now looks like this:
-
-.. ipython:: python
-
-   pd.MultiIndex.from_product([['a', 'abc'], range(500)])
-
-Previously, outputting a :class:`MultiIndex` printed all the ``levels`` and
-``codes`` of the ``MultiIndex``, which was visually unappealing and made
-the output more difficult to navigate. For example (limiting the range to 5):
-
-.. code-block:: ipython
-
-   In [1]: pd.MultiIndex.from_product([['a', 'abc'], range(5)])
-   Out[1]: MultiIndex(levels=[['a', 'abc'], [0, 1, 2, 3]],
-      ...:            codes=[[0, 0, 0, 0, 1, 1, 1, 1], [0, 1, 2, 3, 0, 1, 2, 3]])
-
-In the new repr, all values will be shown, if the number of rows is smaller
-than :attr:`options.display.max_seq_items` (default: 100 items). Horizontally,
-the output will truncate, if it's wider than :attr:`options.display.width`
-(default: 80 characters).
-
-
 .. _whatsnew_0250.enhancements.other:
 
-Other Enhancements
+Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :func:`DataFrame.plot` keywords ``logy``, ``logx`` and ``loglog`` can now accept the value ``'sym'`` for symlog scaling. (:issue:`24867`)
 - Added support for ISO week year format ('%G-%V-%u') when parsing datetimes using :meth:`to_datetime` (:issue:`16607`)
@@ -153,7 +121,7 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
     df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
     df
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -162,7 +130,7 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
                                0
     2019-01-01 00:00:00-08:00  0
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -179,7 +147,7 @@ Constructing a :class:`MultiIndex` with ``NaN`` levels or codes value < -1 was a
 Now, construction with codes value < -1 is not allowed and ``NaN`` levels' corresponding codes
 would be reassigned as -1. (:issue:`19387`)
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -193,7 +161,7 @@ would be reassigned as -1. (:issue:`19387`)
     Out[2]: MultiIndex(levels=[[1, 2]],
                        codes=[[0, -2]])
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
     :okexcept:
@@ -205,7 +173,7 @@ would be reassigned as -1. (:issue:`19387`)
 
 .. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
 
-``GroupBy.apply`` on ``DataFrame`` evaluates first group only once
+``Groupby.apply`` on ``DataFrame`` evaluates first group only once
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The implementation of :meth:`DataFrameGroupBy.apply() <pandas.core.groupby.DataFrameGroupBy.apply>`
@@ -224,7 +192,7 @@ Now every group is evaluated only a single time.
         print(group.name)
         return group
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: python
 
@@ -237,14 +205,14 @@ Now every group is evaluated only a single time.
    0  x  1
    1  y  2
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
     df.groupby("a").apply(func)
 
 
-Concatenating Sparse Values
+Concatenating sparse values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When passed DataFrames whose values are sparse, :func:`concat` will now return a
@@ -254,14 +222,14 @@ When passed DataFrames whose values are sparse, :func:`concat` will now return a
 
    df = pd.DataFrame({"A": pd.SparseArray([0, 1])})
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
    In [2]: type(pd.concat([df, df]))
    pandas.core.sparse.frame.SparseDataFrame
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -287,7 +255,7 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
 ``'bytes'``-only data will raise an exception (except for :meth:`Series.str.decode`, :meth:`Series.str.get`,
 :meth:`Series.str.len`, :meth:`Series.str.slice`), see :issue:`23163`, :issue:`23011`, :issue:`23551`.
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: python
 
@@ -307,7 +275,7 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
     2    False
     dtype: bool
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
     :okexcept:
@@ -318,7 +286,7 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
 
 .. _whatsnew_0250.api_breaking.incompatible_index_unions:
 
-Incompatible Index Type Unions
+Incompatible Index type unions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When performing :func:`Index.union` operations between objects of incompatible dtypes,
@@ -328,7 +296,7 @@ of empty :class:`Index` objects will now be evaluated before performing union op
 rather than simply returning the other :class:`Index` object. :func:`Index.union` can now be
 considered commutative, such that ``A.union(B) == B.union(A)`` (:issue:`23525`).
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: python
 
@@ -339,7 +307,7 @@ considered commutative, such that ``A.union(B) == B.union(A)`` (:issue:`23525`).
     In [2]: pd.Index([], dtype=object).union(pd.Index([1, 2, 3]))
     Out[2]: Int64Index([1, 2, 3], dtype='int64')
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -360,7 +328,7 @@ are returned. (:issue:`21521`)
     df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
     df
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: python
 
@@ -370,7 +338,7 @@ are returned. (:issue:`21521`)
    0  x  1
    1  y  2
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -389,7 +357,7 @@ with :attr:`numpy.nan` in the case of an empty :class:`DataFrame` (:issue:`26397
    df = pd.DataFrame({"empty_col": pd.Categorical([])})
    df
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: python
 
@@ -399,7 +367,7 @@ with :attr:`numpy.nan` in the case of an empty :class:`DataFrame` (:issue:`26397
    count           0
    unique          0
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -479,7 +447,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 .. _whatsnew_0250.api.other:
 
-Other API Changes
+Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - :class:`DatetimeTZDtype` will now standardize pytz timezones to a common timezone instance (:issue:`24713`)
@@ -498,13 +466,13 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 
-Sparse Subclasses
+Sparse subclasses
 ^^^^^^^^^^^^^^^^^
 
 The ``SparseSeries`` and ``SparseDataFrame`` subclasses are deprecated. Their functionality is better-provided
 by a ``Series`` or ``DataFrame`` with sparse values.
 
-**Previous Way**
+**Previous way**
 
 .. ipython:: python
    :okwarning:
@@ -512,7 +480,7 @@ by a ``Series`` or ``DataFrame`` with sparse values.
    df = pd.SparseDataFrame({"A": [0, 0, 1, 2]})
    df.dtypes
 
-**New Way**
+**New way**
 
 .. ipython:: python
 
@@ -521,7 +489,7 @@ by a ``Series`` or ``DataFrame`` with sparse values.
 
 The memory usage of the two approaches is identical. See :ref:`sparse.migration` for more (:issue:`19239`).
 
-Other Deprecations
+Other deprecations
 ^^^^^^^^^^^^^^^^^^
 
 - The deprecated ``.ix[]`` indexer now raises a more visible ``FutureWarning`` instead of ``DeprecationWarning`` (:issue:`26438`).
@@ -535,7 +503,6 @@ Other Deprecations
 - The :meth:`Series.ftype`, :meth:`Series.ftypes` and :meth:`DataFrame.ftypes` methods are deprecated and will be removed in a future version.
   Instead, use :meth:`Series.dtype` and :meth:`DataFrame.dtypes` (:issue:`26705`).
 - :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
-- :meth:`Series.to_sparse`, :meth:`DataFrame.to_sparse`, :meth:`Series.to_dense` and :meth:`DataFrame.to_dense` are deprecated and will be removed in a future version. (:issue:`26557`).
 
 .. _whatsnew_0250.prior_deprecations:
 
@@ -551,7 +518,7 @@ Removal of prior version deprecations/changes
 
 .. _whatsnew_0250.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Significant speedup in :class:`SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
@@ -575,7 +542,7 @@ Performance Improvements
 
 .. _whatsnew_0250.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 
@@ -722,7 +689,7 @@ Plotting
 -
 -
 
-Groupby/Resample/Rolling
+Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`pandas.core.resample.Resampler.agg` with a timezone aware index where ``OverflowError`` would raise when passing a list of functions (:issue:`22660`)
