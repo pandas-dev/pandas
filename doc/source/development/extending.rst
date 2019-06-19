@@ -227,10 +227,10 @@ an implementation for them.
     namespace, for example `:meth:pd.concat`. There is an equivalent numpy
     function `:meth:np.concatenate`, but it is not called by the pandas
     method. In general, these function should just work with your EA, you do
-    not need to impelment more than the general EA interface.
+    not need to implement more than the general EA interface.
 
-As of 0.25.0, the list of series operations which pandas' provides its own
-implementations are: :meth:`Series.any`, :meth:`Series.all`,
+As of 0.25.0, pandas provides its own implementations for the following
+operations: :meth:`Series.any`, :meth:`Series.all`,
 :meth:`Series.min`, :meth:`Series.max`, :meth:`Series.sum`,
 :meth:`Series.mean`, :meth:`Series.median`, :meth:`Series.prod`
 (and its alias :meth:`Series.product`), :meth:`Series.std`,
