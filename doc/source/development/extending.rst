@@ -245,11 +245,6 @@ how your ExtensionArray should interact with numpy's dispatch logic
 in order to achieve its goal, since there are several alternative ways
 of achieving similar results.
 
-However, the details of numpy's dispatch logic are not entirely simple, and
-there nuances which you should be aware of. For that reason, and in order to
-make it easier to create new pandas extensions, we will now cover some of
-possible approaches of dealing with numpy.
-
 The first alternative, and the simplest, is to simply provide an `__array__`
 method for your ExtensionArray. This is a standard numpy function documented
 here (TBD), which must return a numpy array equivalent of your ExtensionArray.
