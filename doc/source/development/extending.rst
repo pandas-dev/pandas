@@ -277,7 +277,7 @@ understanding of how numpy functions operate on non ndarray objects.
 
 Just as pandas handles some operation via :meth:`ExtensionArray._reduce`
 and others by delegating to numpy, numpy makes a distinction between
-between two types of opersions: ufuncs (such as `np.floor`, `np.ceil`,
+between two types of operations: ufuncs (such as `np.floor`, `np.ceil`,
 and `np.abs`), and non-ufuncs (for example `np.round`, and `np.repeat`).
 
 We will deal with ufuncs first. You can find a list of numpy's ufuncs here
@@ -300,21 +300,21 @@ use that Array as the backing ExtensionArray for a new Series object.
 .. note::
     Before [NEP13](https://www.numpy.org/neps/nep-0013-ufunc-overrides.html),
     numpy already provides a way of wrapping ufunc functions via `__array_prepare__`
-    and `__array_wrap__`, as documented in the Numpy docuemntation section
+    and `__array_wrap__`, as documented in the Numpy documentation section
     ["Subclassing Numpy"](http://docs.python.org/doc/numpy/user/basics.subclassing.html).
-    However, NEP13 seems to have largely superceded that mechanism.
+    However, NEP13 seems to have largely superseded that mechanism.
 
 
 With ufuncs out of the way, we turn to the remaining numpy operations, such
 as `np.round`. The simplest way to support these operations is to simply
 implement a compatible method on your ExtensionArray. For example, if your
 ExtensionArray has a compatible `round` method on your ExtensionArray,
-When python involes `ser.round()`, :meth:``Series.round` will invoke
+When python involves `ser.round()`, :meth:``Series.round` will invoke
 `np.round(self.array)`, which will pass your ExtensionArray to the `np.round`
 method. Numpy will detect that your EA implements a compatible `round`
 and will invoke it to perform the operation. As in the ufunc case,
-your implemntation will generally perform the calculaion itself,
-or call numpy on its own acking numeric array, and in either case
+your implementation will generally perform the calculation itself,
+or call numpy on its own backing numeric array, and in either case
 will wrap the result as a new instance of ExtensionArray and return that
 as a result. It is usually possible to write generic code to handle
 most ufuncs without having to provide a special case for each. For an example, see TBD.
@@ -344,7 +344,7 @@ most ufuncs without having to provide a special case for each. For an example, s
 An alternative approach to implementing individual functions, is to override
 `__getattr__` in your ExtensionArray, and to intercept requests for method
 names which you wish to support (such as `round`). For most functions,
-you can return a dynamiclly generated function, which simply calls
+you can return a dynamically generated function, which simply calls
 the numpy function on your existing backing numeric array, wraps
 the result in your ExtensionArray, and returns it. This approach can
 reduce boilerplate significantly, but you do have to maintain a whitelist,
@@ -375,10 +375,10 @@ With this overview in hand, you hopefully have the necessary information in orde
 to develop rich, full-featured ExtensionArrays that seamlessly plug in to pandas.
 
 .. important::
-    You are not required to provide implementations for the full complemnt of Series
+    You are not required to provide implementations for the full complement of Series
     operations in your ExtensionArray. In fact, some of them may not even make sense
-    within your context. You amay also choose to ass implementations incrementally,
-    as the need arised.
+    within your context. You may also choose to ass implementations incrementally,
+    as the need arises.
 
     TBD: should we have a standard way of signalling not supported instead of a
     random AttributeError exception being thrown.
@@ -402,7 +402,7 @@ Testing Extension Arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 We provide a test suite for ensuring that your extension arrays satisfy the expected
-behavior. To use the test suite, you must provide several pytest fixtures and inherit
+behaviour. To use the test suite, you must provide several pytest fixtures and inherit
 from the base test class. The required fixtures are found in
 https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/conftest.py.
 
