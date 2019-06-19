@@ -7,7 +7,10 @@ import pandas as pd
 import pandas.util.testing as tm
 
 UNARY_UFUNCS = [np.positive, np.floor, np.exp]
-BINARY_UFUNCS = [np.add, np.logaddexp]  # -> dunder op
+BINARY_UFUNCS = [
+    np.add,  # dunder op
+    np.logaddexp,
+]
 SPARSE = [
     pytest.param(True,
                  marks=pytest.mark.xfail(reason="Series.__array_ufunc__")),
@@ -52,8 +55,12 @@ def test_unary_ufunc(ufunc, sparse):
 @pytest.mark.parametrize("ufunc", BINARY_UFUNCS)
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 @pytest.mark.parametrize("shuffle", SHUFFLE)
-@pytest.mark.parametrize("box_other", [True, False])
+@pytest.mark.parametrize("box_other", [True, False],
+                         ids=['other-boxed', 'other-raw'])
+@pytest.mark.parametrize("flip", [True, False],
+                         ids=['flipped', 'straight'])
 def test_binary_ufunc(ufunc, sparse, shuffle, box_other,
+                      flip,
                       arrays_for_binary_ufunc):
     # Check the invariant that
     #   ufunc(Series(a), Series(b)) == Series(ufunc(a, b))
@@ -80,8 +87,15 @@ def test_binary_ufunc(ufunc, sparse, shuffle, box_other,
     elif shuffle:
         a2 = a2.take(idx)
 
-    result = ufunc(s1, s2)
-    expected = pd.Series(ufunc(a1, a2), name=name)
+    a, b = s1, s2
+    c, d = a1, a2
+
+    if flip:
+        a, b = b, a
+        c, d = d, c
+
+    result = ufunc(a, b)
+    expected = pd.Series(ufunc(c, d), name=name)
     tm.assert_series_equal(result, expected)
 
 
@@ -150,3 +164,16 @@ def test_multiple_ouput_ufunc(sparse, arrays_for_binary_ufunc):
 
     tm.assert_series_equal(result[0], pd.Series(expected[0], name="name"))
     tm.assert_series_equal(result[1], pd.Series(expected[1], name="name"))
+
+
+@pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
+@pytest.mark.parametrize("ufunc", BINARY_UFUNCS)
+@pytest.mark.xfail(reason="Series.__array_ufunc__")
+def test_binary_ufunc_drops_series_name(ufunc, sparse,
+                                        arrays_for_binary_ufunc):
+    a1, a2 = arrays_for_binary_ufunc
+    s1 = pd.Series(a1, name='a')
+    s2 = pd.Series(a2, name='b')
+
+    result = ufunc(s1, s2)
+    assert result.name is None
