@@ -238,7 +238,7 @@ operations: :meth:`Series.any`, :meth:`Series.all`,
 :meth:`Series.kurt`, and :meth:`Series.skew`.
 
 In order to implement any of these functions, your ExtensionArray must include
-an Implementation of :meth:`ExtensionArray._reduce`. Once you provide an
+an implementation of :meth:`ExtensionArray._reduce`. Once you provide an
 implementation of :meth:`ExtensionArray._reduce` which handles a particular
 method, calling the method on the Series will invoke the implementation
 on your ExtensionArray. All these methods are reduction functions, and
