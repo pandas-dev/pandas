@@ -5199,18 +5199,18 @@ def pytables_hdf5_file():
         {'c0': t0 + 3, 'c1': 'ddddd', 'c2': 4294967295},
     ]
 
-    # This returns a path and does not open the file.
-    tmpfilepath = create_tempfile('pytables_hdf5_file')
-    objectname = 'pandas_test_timeseries'
+    objname = 'pandas_test_timeseries'
 
-    with tables.open_file(tmpfilepath, mode='w') as hf:
-        t = hf.create_table('/', name=objectname, description=table_schema)
-        for sample in testsamples:
-            for key, value in sample.items():
-                t.row[key] = value
-            t.row.append()
+    with ensure_clean_path('pytables_hdf5_file') as path:
+        # The `ensure_clean_path` context mgr removes the temp file upon exit.
+        with tables.open_file(path, mode='w') as f:
+            t = f.create_table('/', name=objname, description=table_schema)
+            for sample in testsamples:
+                for key, value in sample.items():
+                    t.row[key] = value
+                t.row.append()
 
-    return tmpfilepath, objectname, pd.DataFrame(testsamples)
+        yield path, objname, pd.DataFrame(testsamples)
 
 
 class TestReadPyTablesHDF5:
