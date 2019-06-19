@@ -1001,8 +1001,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Returns
         -------
         tuples: %(return_type)s
-        %(examples)s
-    """
+        %(examples)s\
+        """
 
     @Appender(_interval_shared_docs['to_tuples'] % dict(
         return_type='ndarray',
