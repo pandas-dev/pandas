@@ -245,18 +245,12 @@ how your ExtensionArray should interact with numpy's dispatch logic
 in order to achieve its goal, since there are several alternative ways
 of achieving similar results.
 
-The first alternative, and the simplest, is to simply provide an `__array__`
-method for your ExtensionArray. This is a standard numpy function documented
-here (TBD), which must return a numpy array equivalent of your ExtensionArray.
-This will usually be an array whose dtype is `object` and whose values are
-instances of some class which your ExtensionArray wraps into an array. For
-example, the pandas tests include an ExtensionArray example called
-`DecimalArray`, if it used this method, its `__array__` method would return an
-ndarray of `decimal.Decimal` objects.
-
-Implementing `__array__`  is easy, but it usually isn't satisfactory because
-it means most Series operations will return a Series of object dtype, instead
-of maintaining your ExtensionArray's dtype.
+For the most basic support, the default implemntation of :meth:`ExtensionArray.__array__`
+will transperantly convert your EA to a numpy object array. You can also
+override it to return any numpy array which suits your case. However,
+this solution usually falls short, becase any series methods you then
+use casts your EA into an object ndarray, while you usually want the
+result to remain an instance of your EA.
 
 The second approach is more involved, but it does a proper job of maintaining
 the ExtensionArray's dtype through operations. It requires a detailed
