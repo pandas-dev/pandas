@@ -967,7 +967,6 @@ class TestValueCounts:
             expected = Series([2, 1, 1], index=[5., 10.3, np.nan])
             tm.assert_series_equal(result, expected)
 
-
     @pytest.mark.parametrize('dropna, vals, index', [
         (False, [0.6, 0.2, 0.2], [np.nan, 2.0, 1.0]),
         (True, [0.5, 0.5], [2.0, 1.0])])
