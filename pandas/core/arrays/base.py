@@ -881,7 +881,7 @@ class ExtensionArray:
             ``boxed=True``.
         """
         if boxed:
-            return str
+            return None
         return repr
 
     def _formatting_values(self) -> np.ndarray:

@@ -1009,9 +1009,9 @@ class TestDataFrameDatetimeWithTZ(TestData):
 
         with option_context('display.max_columns', 20):
             result = str(self.tzframe)
-            assert ('0 2013-01-01 2013-01-01 00:00:00-05:00 '
+            assert ('0 2013-01-01  2013-01-01 00:00:00-05:00  '
                     '2013-01-01 00:00:00+01:00') in result
-            assert ('1 2013-01-02                       '
-                    'NaT                       NaT') in result
-            assert ('2 2013-01-03 2013-01-03 00:00:00-05:00 '
+            assert ('1 2013-01-02                        '
+                    'NaT                        NaT') in result
+            assert ('2 2013-01-03  2013-01-03 00:00:00-05:00  '
                     '2013-01-03 00:00:00+01:00') in result

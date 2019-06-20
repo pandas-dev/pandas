@@ -363,7 +363,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     def _formatter(self, boxed=False):
         from pandas.io.formats.format import _get_format_timedelta64
-        return _get_format_timedelta64(self, box=True)
+        return _get_format_timedelta64(self, box=not boxed)
 
     def _format_native_types(self, na_rep='NaT', date_format=None):
         from pandas.io.formats.format import _get_format_timedelta64

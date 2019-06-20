@@ -17,17 +17,15 @@ from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_complex_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype, is_extension_array_dtype, is_float, is_float_dtype,
-    is_integer, is_integer_dtype, is_list_like, is_numeric_dtype, is_scalar,
-    is_timedelta64_dtype)
-from pandas.core.dtypes.generic import (
-    ABCIndexClass, ABCMultiIndex, ABCSeries, ABCSparseArray)
+    is_categorical_dtype, is_complex_dtype, is_datetime64_dtype, is_float,
+    is_float_dtype, is_integer, is_integer_dtype, is_list_like,
+    is_numeric_dtype, is_scalar, is_timedelta64_dtype)
+from pandas.core.dtypes.generic import ABCIndexClass, ABCMultiIndex
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.index import Index, ensure_index
+from pandas.core.index import ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 from pandas.io.common import _expand_user, _stringify_path
@@ -248,8 +246,8 @@ class SeriesFormatter:
         return fmt_index, have_header
 
     def _get_formatted_values(self):
-        values_to_format = self.tr_series._formatting_values()
-        return format_array(values_to_format, None,
+        values = self.tr_series
+        return format_array(values, formatter=None,
                             float_format=self.float_format, na_rep=self.na_rep)
 
     def to_string(self):
@@ -713,10 +711,9 @@ class DataFrameFormatter(TableFormatter):
                             'method')
 
     def _format_col(self, i):
-        frame = self.tr_frame
+        values = self.tr_frame.iloc[:, i]
         formatter = self._get_formatter(i)
-        values_to_format = frame.iloc[:, i]._formatting_values()
-        return format_array(values_to_format, formatter,
+        return format_array(values, formatter=formatter,
                             float_format=self.float_format, na_rep=self.na_rep,
                             space=self.col_space, decimal=self.decimal)
 
@@ -883,14 +880,34 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
     List[str]
     """
 
+    def _get_formatted_values(values):
+
+        if isinstance(values, ABCIndexClass):
+            values = values._values
+
+        try:
+            formatter = values._formatter(boxed=True)
+        except AttributeError:
+            formatter = None
+
+        def _format_values(values):
+            if formatter is None:
+                return values
+            else:
+                return np.array([formatter(x) for x in values])
+
+        try:
+            values = values._formatting_values()
+            return _format_values(_get_formatted_values(values))
+        except AttributeError:
+            return _format_values(values)
+
+    values = _get_formatted_values(values)
+
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
-    elif is_datetime64tz_dtype(values):
-        fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
-    elif is_extension_array_dtype(values.dtype):
-        fmt_klass = ExtensionArrayFormatter
     elif is_float_dtype(values.dtype) or is_complex_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
     elif is_integer_dtype(values.dtype):
@@ -970,10 +987,6 @@ class GenericArrayFormatter:
                 return '{x}'.format(x=formatter(x))
 
         vals = self.values
-        if isinstance(vals, Index):
-            vals = vals._values
-        elif isinstance(vals, ABCSparseArray):
-            vals = vals.values
 
         is_float_type = lib.map_infer(vals, is_float) & notna(vals)
         leading_space = self.leading_space
@@ -1185,29 +1198,6 @@ class Datetime64Formatter(GenericArrayFormatter):
         return fmt_values.tolist()
 
 
-class ExtensionArrayFormatter(GenericArrayFormatter):
-    def _format_strings(self):
-        values = self.values
-        if isinstance(values, (ABCIndexClass, ABCSeries)):
-            values = values._values
-
-        formatter = values._formatter(boxed=True)
-
-        if is_categorical_dtype(values.dtype):
-            # Categorical is special for now, so that we can preserve tzinfo
-            array = values.get_values()
-        else:
-            array = np.asarray(values)
-
-        fmt_values = format_array(array,
-                                  formatter,
-                                  float_format=self.float_format,
-                                  na_rep=self.na_rep, digits=self.digits,
-                                  space=self.space, justify=self.justify,
-                                  leading_space=self.leading_space)
-        return fmt_values
-
-
 def format_percentiles(percentiles):
     """
     Outputs rounded and formatted percentiles.
@@ -1328,21 +1318,6 @@ def _get_format_datetime64_from_values(values, date_format):
     if is_dates_only:
         return date_format or "%Y-%m-%d"
     return date_format
-
-
-class Datetime64TZFormatter(Datetime64Formatter):
-
-    def _format_strings(self):
-        """ we by definition have a TZ """
-
-        values = self.values.astype(object)
-        is_dates_only = _is_dates_only(values)
-        formatter = (self.formatter or
-                     _get_format_datetime64(is_dates_only,
-                                            date_format=self.date_format))
-        fmt_values = [formatter(x) for x in values]
-
-        return fmt_values
 
 
 class Timedelta64Formatter(GenericArrayFormatter):

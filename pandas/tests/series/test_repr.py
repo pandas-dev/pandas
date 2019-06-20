@@ -306,11 +306,11 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-
         idx = date_range('2011-01-01 09:00', freq='H', periods=5,
                          tz='US/Eastern')
         s = Series(Categorical(idx))
-        exp = """0   2011-01-01 09:00:00-05:00
-1   2011-01-01 10:00:00-05:00
-2   2011-01-01 11:00:00-05:00
-3   2011-01-01 12:00:00-05:00
-4   2011-01-01 13:00:00-05:00
+        exp = """0    2011-01-01 09:00:00-05:00
+1    2011-01-01 10:00:00-05:00
+2    2011-01-01 11:00:00-05:00
+3    2011-01-01 12:00:00-05:00
+4    2011-01-01 13:00:00-05:00
 dtype: category
 Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,
                                              2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,
@@ -335,11 +335,11 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 201
         idx = date_range('2011-01-01 09:00', freq='H', periods=5,
                          tz='US/Eastern')
         s = Series(Categorical(idx, ordered=True))
-        exp = """0   2011-01-01 09:00:00-05:00
-1   2011-01-01 10:00:00-05:00
-2   2011-01-01 11:00:00-05:00
-3   2011-01-01 12:00:00-05:00
-4   2011-01-01 13:00:00-05:00
+        exp = """0    2011-01-01 09:00:00-05:00
+1    2011-01-01 10:00:00-05:00
+2    2011-01-01 11:00:00-05:00
+3    2011-01-01 12:00:00-05:00
+4    2011-01-01 13:00:00-05:00
 dtype: category
 Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <
                                              2011-01-01 11:00:00-05:00 < 2011-01-01 12:00:00-05:00 <
@@ -402,11 +402,11 @@ Categories (5, period[M]): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]"""
     def test_categorical_series_repr_timedelta(self):
         idx = timedelta_range('1 days', periods=5)
         s = Series(Categorical(idx))
-        exp = """0   1 days
-1   2 days
-2   3 days
-3   4 days
-4   5 days
+        exp = """0    1 days
+1    2 days
+2    3 days
+3    4 days
+4    5 days
 dtype: category
 Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
 
@@ -414,16 +414,16 @@ Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
 
         idx = timedelta_range('1 hours', periods=10)
         s = Series(Categorical(idx))
-        exp = """0   0 days 01:00:00
-1   1 days 01:00:00
-2   2 days 01:00:00
-3   3 days 01:00:00
-4   4 days 01:00:00
-5   5 days 01:00:00
-6   6 days 01:00:00
-7   7 days 01:00:00
-8   8 days 01:00:00
-9   9 days 01:00:00
+        exp = """0    0 days 01:00:00
+1    1 days 01:00:00
+2    2 days 01:00:00
+3    3 days 01:00:00
+4    4 days 01:00:00
+5    5 days 01:00:00
+6    6 days 01:00:00
+7    7 days 01:00:00
+8    8 days 01:00:00
+9    9 days 01:00:00
 dtype: category
 Categories (10, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
                                    3 days 01:00:00, ..., 6 days 01:00:00, 7 days 01:00:00,
@@ -434,11 +434,11 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:0
     def test_categorical_series_repr_timedelta_ordered(self):
         idx = timedelta_range('1 days', periods=5)
         s = Series(Categorical(idx, ordered=True))
-        exp = """0   1 days
-1   2 days
-2   3 days
-3   4 days
-4   5 days
+        exp = """0    1 days
+1    2 days
+2    3 days
+3    4 days
+4    5 days
 dtype: category
 Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""  # noqa
 
@@ -446,16 +446,16 @@ Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
 
         idx = timedelta_range('1 hours', periods=10)
         s = Series(Categorical(idx, ordered=True))
-        exp = """0   0 days 01:00:00
-1   1 days 01:00:00
-2   2 days 01:00:00
-3   3 days 01:00:00
-4   4 days 01:00:00
-5   5 days 01:00:00
-6   6 days 01:00:00
-7   7 days 01:00:00
-8   8 days 01:00:00
-9   9 days 01:00:00
+        exp = """0    0 days 01:00:00
+1    1 days 01:00:00
+2    2 days 01:00:00
+3    3 days 01:00:00
+4    4 days 01:00:00
+5    5 days 01:00:00
+6    6 days 01:00:00
+7    7 days 01:00:00
+8    8 days 01:00:00
+9    9 days 01:00:00
 dtype: category
 Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
                                    3 days 01:00:00 ... 6 days 01:00:00 < 7 days 01:00:00 <

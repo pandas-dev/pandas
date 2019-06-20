@@ -457,6 +457,9 @@ class Categorical(ExtensionArray, PandasObject):
         # Defer to CategoricalFormatter's formatter.
         return None
 
+    def _formatting_values(self):
+        return self.get_values()
+
     def copy(self):
         """
         Copy constructor.

@@ -385,8 +385,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         raise AbstractMethodError(self)
 
     def _formatter(self, boxed=False):
-        # TODO: Remove Datetime & DatetimeTZ formatters.
-        return "'{}'".format
+        from pandas.io.formats.format import (
+            _is_dates_only, _get_format_datetime64)
+        if boxed:
+            values = self.values.astype(object)
+            is_dates_only = _is_dates_only(values)
+            return _get_format_datetime64(is_dates_only)
+        else:
+            return "'{}'".format
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods

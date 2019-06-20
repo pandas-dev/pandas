@@ -872,12 +872,12 @@ class TestDataFrameFormatting:
         df = pd.DataFrame({"dt": dts,
                            "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context('display.max_rows', 5):
-            expected = ('                          dt   x\n'
-                        '0  2011-01-01 00:00:00-05:00   1\n'
-                        '1  2011-01-01 00:00:00-05:00   2\n'
-                        '..                       ...  ..\n'
-                        '8                        NaT   9\n'
-                        '9                        NaT  10\n\n'
+            expected = ('                           dt   x\n'
+                        '0   2011-01-01 00:00:00-05:00   1\n'
+                        '1   2011-01-01 00:00:00-05:00   2\n'
+                        '..                        ...  ..\n'
+                        '8                         NaT   9\n'
+                        '9                         NaT  10\n\n'
                         '[10 rows x 2 columns]')
             assert repr(df) == expected
 
@@ -885,12 +885,12 @@ class TestDataFrameFormatting:
         df = pd.DataFrame({"dt": dts,
                            "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context('display.max_rows', 5):
-            expected = ('                          dt   x\n'
-                        '0                        NaT   1\n'
-                        '1                        NaT   2\n'
-                        '..                       ...  ..\n'
-                        '8  2011-01-01 00:00:00-05:00   9\n'
-                        '9  2011-01-01 00:00:00-05:00  10\n\n'
+            expected = ('                           dt   x\n'
+                        '0                         NaT   1\n'
+                        '1                         NaT   2\n'
+                        '..                        ...  ..\n'
+                        '8   2011-01-01 00:00:00-05:00   9\n'
+                        '9   2011-01-01 00:00:00-05:00  10\n\n'
                         '[10 rows x 2 columns]')
             assert repr(df) == expected
 
