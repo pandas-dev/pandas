@@ -133,7 +133,7 @@ def test_pyarrow(df):
     tm.assert_frame_equal(result, df)
 
 
-def test_missing_required_dependency(capsys):
+def test_missing_required_dependency():
     # GH 23868
     # use the -S flag to disable site-packages
     call = ['python', '-S', '-c', 'import pandas']
