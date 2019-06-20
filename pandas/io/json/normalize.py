@@ -29,7 +29,6 @@ def _convert_to_line_delimits(s):
 def nested_to_record(ds, prefix: str = "", sep: str = ".", level: int = 0,
                      max_level: int = None):
     """
-
     A simplified json_normalize
 
     Converts a nested dict into a flat dict ("record"), unlike json_normalize,
@@ -267,10 +266,10 @@ def json_normalize(data: List[Dict[Any, Any]],
     meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
-    records = []
+    records = [] # type: list
     lengths = []
 
-    meta_vals = defaultdict(list)
+    meta_vals = defaultdict(list) # type: dict
     if not isinstance(sep, str):
         sep = str(sep)
     meta_keys = [sep.join(val) for val in meta]
