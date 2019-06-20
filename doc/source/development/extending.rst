@@ -224,8 +224,8 @@ an implementation for them.
 As of 0.25.0, pandas provides its own implementations for some
 reduction operations such as min/max/sum/etc'. For your ExtensionArray
 to support these methods, it must include an implementation of
-:meth:`ExtensionArray._reduce`. See its docstring for a complete list o
-if the series operations it handles. Once your EA implements
+:meth:`ExtensionArray._reduce`. See its docstring for a complete list of
+the series operations it handles. Once your EA implements
 :meth:`ExtensionArray._reduce`, your implementation will be cailled
 whenever one of the related Series method is called. All these
 methods are reduction functions, and so are expected to return a scalar value
@@ -258,17 +258,16 @@ between two types of operations: ufuncs (such as `np.floor`, `np.ceil`,
 and `np.abs`), and non-ufuncs (for example `np.round`, and `np.repeat`).
 
 .. note::
-    To be clear, although your code will override numpy's own functions,
-    It is perfectly common, and valid for your function to return an
-    an instance of :class:`pandas.api.extensions.ExtensionArray`,
-    usually your own. You are *not* required to return numpy arrays
-    from these function.
 
+    Although your methods will override numpy's own methods, they
+    are *not* required to return numpy arrays or builtin python types. In
+    fact, you will often want your method to return a new instance of your
+    :class:`pandas.api.extensions.ExtensionArray` as the return value.
 
 We will deal with ufuncs first. You can find a list of numpy's ufuncs here
 (TBD). In order to support numpy ufuncs, a convenient approach is to implement
 numpy's `__array_ufunc__` interface, specified in
-[NEP13](https://www.numpy.org/neps/nep-0013-ufunc-overrides.html). In brief,
+`NEP-13 <https://www.numpy.org/neps/nep-0013-ufunc-overrides.html>`__
 if your ExtensionArray implements a compliant `__array_ufunc__` interface,
 when a numpy ufunc such as `np.floor` is invoked on your array, its
 implementation of `__array_ufunc__`  will be called first and given the
@@ -280,7 +279,7 @@ With ufuncs out of the way, we turn to the remaining numpy operations, such
 as `np.round`. The simplest way to support these operations is to simply
 implement a compatible method on your ExtensionArray. For example, if your
 ExtensionArray has a compatible `round` method on your ExtensionArray,
-When python involves `ser.round()`, :meth:``Series.round` will invoke
+When :meth:`Series.round` is called, it in turn calls
 `np.round(self.array)`, which will pass your ExtensionArray to the `np.round`
 method. Numpy will detect that your EA implements a compatible `round`
 and will invoke it to perform the operation. As in the ufunc case,
@@ -294,8 +293,7 @@ most ufuncs without having to provide a special case for each. For an example, s
 
     When providing implementations of numpy functions such as `np.round`,
     You muse ensure that the method signature is compatible with the numpy method
-    it implements.
-    Otherwise, numpy will ignore it.
+    it implements. If the signatures do not match, numpy will ignore it.
 
     For example, the signature for `np.round` is `np.round(a, decimals=0, out=None)`.
     if you implement a round function which omits the `out` keyword:
@@ -324,24 +322,26 @@ the result in your ExtensionArray, and returns it. This approach can
 reduce boilerplate significantly, but you do have to maintain a whitelist,
 and may require more than one case, based on signature.
 
-A third possible approach, is to use the `__array_function__`
-mechanism introduced by [NEP18](https://www.numpy.org/neps/nep-0018-array-function-protocol.html).
-This is an opt-in mechanism in numpy 1.16 (by setting an environment variable), and
-is enabled by default starting with numpy 1.17. As of 1.17 it is still considered
-experimental, and its design is actively being revised. We will not discuss it further
-here, but it is certainly possible to make use of it to achieve the same goal.
+A third possible approach, is to use the `__array_function__` mechanism
+introduced by numpy's
+`NEP-18 <https://www.numpy.org/neps/nep-0018-array-function-protocol.html>`__
+proposal. NEP-18 is an experimental mechanism introduced in numpy 1.16, and is
+enabled by default starting with numpy 1.17 (to enable it in 1.16, you must
+set the environment variable `NUMPY_EXPERIMENTAL_ARRAY_FUNCTION` in your
+shell). NEP-18 is an "opt-in, all-in" solution, meaning that if you choose to
+make use of it in your class, by implementing the `__array_function__`
+interface, it will always be used when (non-ufunc) numpy methods are called
+with an instance of your EA as the argument. Numpy will not make use of an `__array__`
+method if you have one. If you include both a `__array_function__` and an
+implementation of `round`, for example, numpy will always invoke `__array_function__`
+when `np.round` is passed an instance of your EA.
 
 .. important::
-    Implementing `__array_function__` is not a substitute for implementing `__array_ufunc__`.
-    The `__array_function__` mechanism complements (and to a degree copies) the`__array_ufunc__`
-    mechanism, by providing the same flexibility for non-ufuncs.
 
-.. important::
-    `__array_function__` is an "all-in" solution. That means that if you cannot mix it with
-    explicit implementations for some methods and using `__array_function__` for some.
-    If you both `__array_function__` and also provide an implementation of `round`, numpy
-    will invoke `__array_function__` for all the operations in the specification, **including**
-     `round`.
+    If you choose to implement `__array_function__`, you will still need to
+    implement `__array_ufunc__` in order to override ufuncs. Each of these
+    two interfaces covers a seperate portion of numpy's functionality.
+
 
 With this overview in hand, you hopefully have the necessary information in order
 to develop rich, full-featured ExtensionArrays that seamlessly plug in to pandas.
