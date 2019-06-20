@@ -2150,10 +2150,11 @@ class DataFrame(NDFrame):
                   returns=fmt.return_docstring)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
                 index=True, na_rep='NaN', formatters=None, float_format=None,
-                sparsify=None, index_names=True, justify=None, max_rows=None,
-                max_cols=None, show_dimensions=False, decimal='.',
-                bold_rows=True, classes=None, escape=True, notebook=False,
-                border=None, table_id=None, render_links=False):
+                sparsify=None, index_names=True, line_width=None, justify=None,
+                max_rows=None, max_cols=None, show_dimensions=False,
+                decimal='.', bold_rows=True, classes=None, escape=True,
+                notebook=False, border=None, table_id=None,
+                render_links=False):
         """
         Render a DataFrame as an HTML table.
         %(shared_params)s
@@ -2195,6 +2196,7 @@ class DataFrame(NDFrame):
                                            formatters=formatters,
                                            float_format=float_format,
                                            sparsify=sparsify, justify=justify,
+                                           line_width=line_width,
                                            index_names=index_names,
                                            header=header, index=index,
                                            bold_rows=bold_rows, escape=escape,
