@@ -275,19 +275,19 @@ opportunity to compute the function. The return value needn't be a numpy
 ndarray (though it can be). In general, you want the return value to be an
 instance of your ExtensionArray.
 
-With ufuncs out of the way, we turn to the remaining numpy operations, such
-as `np.round`. The simplest way to support these operations is to simply
+With ufuncs out of the way, we turn to the remaining numpy operations, such as
+`np.round`. The simplest way to support these operations is to simply
 implement a compatible method on your ExtensionArray. For example, if your
-ExtensionArray has a compatible `round` method on your ExtensionArray,
-When :meth:`Series.round` is called, it in turn calls
-`np.round(self.array)`, which will pass your ExtensionArray to the `np.round`
-method. Numpy will detect that your EA implements a compatible `round`
-and will invoke it to perform the operation. As in the ufunc case,
-your implementation will generally perform the calculation itself,
-or call numpy on its own backing numeric array, and in either case
-will wrap the result as a new instance of ExtensionArray and return that
-as a result. It is usually possible to write generic code to handle
-most ufuncs without having to provide a special case for each. For an example, see TBD.
+ExtensionArray has a compatible `round` method on your ExtensionArray, When
+:meth:`Series.round` is called, it in turn calls `np.round(self.array)`,
+passing your EA into numpy's dispatch logic. Numpy will detect that your EA
+implements a compatible `round` method and use it instead of its own
+version. As in the ufunc case, your implementation will perform
+the calculation on its internal data, and then usually wrap the
+result in anew instance of your EA class, and return that as the result.
+
+It is usually possible to write generic code to handle most ufuncs,
+instead of providing a special case for each. For an example, see TBD.
 
 .. important::
 
@@ -296,8 +296,7 @@ most ufuncs without having to provide a special case for each. For an example, s
     it implements. If the signatures do not match, numpy will ignore it.
 
     For example, the signature for `np.round` is `np.round(a, decimals=0, out=None)`.
-    if you implement a round function which omits the `out` keyword:
-
+    if you implement a round function which omits the `out` keyword,
 
 .. code-block:: python
 
@@ -305,15 +304,14 @@ most ufuncs without having to provide a special case for each. For an example, s
         pass
 
 
-  numpy will ignore it. The following will work however:
-
+\... numpy will ignore it. The following will work however:
 .. code-block:: python
 
     def round(self, decimals=0, **kwds):
         pass
 
 
-An alternative approach to implementing individual functions, is to override
+An second possible approach to implementing individual operations, is to override
 `__getattr__` in your ExtensionArray, and to intercept requests for method
 names which you wish to support (such as `round`). For most functions,
 you can return a dynamically generated function, which simply calls
