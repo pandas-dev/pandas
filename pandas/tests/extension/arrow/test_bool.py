@@ -137,6 +137,8 @@ class Test2D:
     def test_getitem_collike(self, data):
         collike = data.reshape(1, -1)
 
+        assert collike[0, 0] is data[0]
+
         result = collike[:, :]
         assert result.shape == (1, 100)
 
@@ -152,6 +154,8 @@ class Test2D:
     def test_getitem_rowlike(self, data):
         rowlike = data.reshape(-1, 1)
 
+        assert rowlike[0, 0] is data[0]
+
         result = rowlike[:, :]
         assert result.shape == (100, 1)
 
@@ -163,3 +167,27 @@ class Test2D:
 
         result = rowlike[::2, 0]
         assert result.shape == (50,)
+
+    def test_take_rowlike(self, data):
+        rowlike = data.reshape(1, -1)
+
+        result = rowlike.take([0], axis=0)
+        assert result.shape == (100, 1)
+
+        result2 = rowlike.take([0, 5, 10], axis=1)
+        assert result2.shape == (1, 3)
+        assert result2[0, 0] == data[0]
+        assert result2[0, 1] == data[5]
+        assert result2[0, 2] == data[10]
+
+    def test_take_collike(self, data):
+        collike = data.reshape(-1, 1)
+
+        result = collike.take([0], axis=1)
+        assert result.shape == (1, 100)
+
+        result2 = collike.take([0, 5, 10], axis=0)
+        assert result2.shape == (3, 1)
+        assert result2[0, 0] == data[0]
+        assert result2[1, 0] == data[5]
+        assert result2[2, 0] == data[10]

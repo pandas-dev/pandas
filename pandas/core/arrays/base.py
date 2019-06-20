@@ -1221,11 +1221,16 @@ class ReshapeWrapper:
         key2 = key[oth]
         squeezed = self.ravel()
 
+        # Note: we use type(self) explicitly below because
+        #  Arrow bool example otherwise returns numpy
         if isinstance(key1, int) and key1 == 0:
             # dummy-dim selection reduces dimension
-            return squeezed[key2]
+            res = squeezed[key2]
+            if np.ndim(res) == 0:
+                return res
+            return type(self)(res)
         if isinstance(key1, slice):
-            res1d = squeezed[key2]
+            res1d = type(self)(squeezed[[key2]])
             result = res1d.reshape(1, -1)
             if dummy_dim == 1:
                 result = result.T
@@ -1234,8 +1239,28 @@ class ReshapeWrapper:
         raise NotImplementedError
 
     def take(self, indices: Sequence[int], allow_fill: bool = False,
-             fill_value: Any = None) -> ABCExtensionArray:
+             fill_value: Any = None, axis: int = 0) -> ABCExtensionArray:
         if self.ndim == 1:
             return super().take(indices=indices, allow_fill=allow_fill,
                                 fill_value=fill_value)
-        raise NotImplementedError
+
+        def take_item(n):
+            if axis == 0:
+                if n == -1:
+                    seq = [fill_value] * self.shape[1]
+                    return type(self)._from_sequence(seq)
+                else:
+                    return self[n, :]
+            if n == -1:
+                seq = [fill_value] * self.shape[1]
+                return type(self)._from_sequence(seq)
+            else:
+                return self[:, n]
+
+        arrs = [take_item(n) for n in indices]
+        res1d = type(self)._concat_same_type(arrs)
+        if axis == 0:
+            result = res1d.reshape(-1, 1)
+        else:
+            result = res1d.reshape(1, -1)
+        return result

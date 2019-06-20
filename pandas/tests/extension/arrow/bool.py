@@ -45,7 +45,9 @@ class _ArrowBoolArray(ExtensionArray):
     def __init__(self, values):
         if isinstance(values, _ArrowBoolArray):
             values = values._data
-        if not isinstance(values, pa.ChunkedArray):
+        elif isinstance(values, np.ndarray):
+            values = pa.chunked_array([pa.array(values)])
+        elif not isinstance(values, pa.ChunkedArray):
             raise ValueError
 
         assert values.type == pa.bool_()
@@ -117,6 +119,7 @@ class _ArrowBoolArray(ExtensionArray):
         else:
             return type(self)(copy.copy(self._data))
 
+    @classmethod
     def _concat_same_type(cls, to_concat):
         chunks = list(itertools.chain.from_iterable(x._data.chunks
                                                     for x in to_concat))
