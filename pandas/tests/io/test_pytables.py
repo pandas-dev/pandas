@@ -51,6 +51,12 @@ ignore_natural_naming_warning = pytest.mark.filterwarnings(
     "ignore:object name:tables.exceptions.NaturalNameWarning"
 )
 ignore_sparse = pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+ignore_dataframe_tosparse = pytest.mark.filterwarnings(
+    "ignore:DataFrame.to_sparse:FutureWarning"
+)
+ignore_series_tosparse = pytest.mark.filterwarnings(
+    "ignore:Series.to_sparse:FutureWarning"
+)
 
 # contextmanager to ensure the file cleanup
 
@@ -2245,6 +2251,7 @@ class TestHDFStore(Base):
                               check_index_type=False)
 
     @ignore_sparse
+    @ignore_series_tosparse
     def test_sparse_series(self):
 
         s = tm.makeStringSeries()
@@ -2262,6 +2269,7 @@ class TestHDFStore(Base):
                               check_series_type=True)
 
     @ignore_sparse
+    @ignore_dataframe_tosparse
     def test_sparse_frame(self):
 
         s = tm.makeDataFrame()
@@ -2601,6 +2609,7 @@ class TestHDFStore(Base):
             tm.assert_series_equal(store['a'], ts)
 
     @ignore_sparse
+    @ignore_dataframe_tosparse
     def test_sparse_with_compression(self):
 
         # GH 2931
@@ -3746,6 +3755,7 @@ class TestHDFStore(Base):
             tm.assert_frame_equal(result, expected)
 
     @ignore_sparse
+    @ignore_dataframe_tosparse
     def test_start_stop_fixed(self):
 
         with ensure_clean_store(self.path) as store:
