@@ -28,8 +28,8 @@ def arrays_for_binary_ufunc():
     """
     A pair of random, length-100 integer-dtype arrays, that are mostly 0.
     """
-    a1 = np.random.randint(0, 10, 100)
-    a2 = np.random.randint(0, 10, 100)
+    a1 = np.random.randint(0, 10, 100, dtype='int64')
+    a2 = np.random.randint(0, 10, 100, dtype='int64')
     a1[::3] = 0
     a2[::4] = 0
     return a1, a2
@@ -38,7 +38,7 @@ def arrays_for_binary_ufunc():
 @pytest.mark.parametrize("ufunc", UNARY_UFUNCS)
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 def test_unary_ufunc(ufunc, sparse):
-    array = np.random.randint(0, 10, 10)
+    array = np.random.randint(0, 10, 10, dtype='int64')
     array[::2] = 0
     if sparse:
         array = pd.SparseArray(array, dtype=pd.SparseDtype('int', 0))
