@@ -3,7 +3,7 @@ import string
 
 import numpy as np
 import pandas.util.testing as tm
-from pandas import DataFrame, Categorical, date_range, read_csv
+from pandas import DataFrame, Categorical, date_range, read_csv, to_datetime
 from pandas.io.parsers import _parser_defaults
 from io import StringIO
 
@@ -94,6 +94,35 @@ class ReadCSVDInferDatetimeFormat(StringIORewind):
         read_csv(self.data(self.StringIO_input),
                  header=None, names=['foo'], parse_dates=['foo'],
                  infer_datetime_format=infer_datetime_format)
+
+
+class ReadCSVConcatDatetime(StringIORewind):
+
+    iso8601 = '%Y-%m-%d %H:%M:%S'
+
+    def setup(self):
+        rng = date_range('1/1/2000', periods=50000, freq='S')
+        self.StringIO_input = StringIO('\n'.join(
+                                       rng.strftime(self.iso8601).tolist()))
+
+    def time_read_csv(self):
+        read_csv(self.data(self.StringIO_input),
+                 header=None, names=['foo'], parse_dates=['foo'],
+                 infer_datetime_format=False)
+
+
+class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
+
+    params = (['nan', '0', ''],)
+    param_names = ['bad_date_value']
+
+    def setup(self, bad_date_value):
+        self.StringIO_input = StringIO(('%s,\n' % bad_date_value) * 50000)
+
+    def time_read_csv(self, bad_date_value):
+        read_csv(self.data(self.StringIO_input),
+                 header=None, names=['foo', 'bar'], parse_dates=['foo'],
+                 infer_datetime_format=False)
 
 
 class ReadCSVSkipRows(BaseIO):
@@ -273,7 +302,7 @@ class ReadCSVMemoryGrowth(BaseIO):
 
 class ReadCSVParseSpecialDate(StringIORewind):
     params = (['mY', 'mdY', 'hm'],)
-    params_name = ['value']
+    param_names = ['value']
     objects = {
         'mY': '01-2019\n10-2019\n02/2000\n',
         'mdY': '12/02/2010\n',
@@ -288,6 +317,31 @@ class ReadCSVParseSpecialDate(StringIORewind):
     def time_read_special_date(self, value):
         read_csv(self.data(self.StringIO_input), sep=',', header=None,
                  names=['Date'], parse_dates=['Date'])
+
+
+class ParseDateComparison(StringIORewind):
+    params = ([False, True],)
+    param_names = ['cache_dates']
+
+    def setup(self, cache_dates):
+        count_elem = 10000
+        data = '12-02-2010\n' * count_elem
+        self.StringIO_input = StringIO(data)
+
+    def time_read_csv_dayfirst(self, cache_dates):
+        read_csv(self.data(self.StringIO_input), sep=',', header=None,
+                 names=['Date'], parse_dates=['Date'], cache_dates=cache_dates,
+                 dayfirst=True)
+
+    def time_to_datetime_dayfirst(self, cache_dates):
+        df = read_csv(self.data(self.StringIO_input),
+                      dtype={'date': str}, names=['date'])
+        to_datetime(df['date'], cache=cache_dates, dayfirst=True)
+
+    def time_to_datetime_format_DD_MM_YYYY(self, cache_dates):
+        df = read_csv(self.data(self.StringIO_input),
+                      dtype={'date': str}, names=['date'])
+        to_datetime(df['date'], cache=cache_dates, format='%d-%m-%Y')
 
 
 from ..pandas_vb_common import setup  # noqa: F401

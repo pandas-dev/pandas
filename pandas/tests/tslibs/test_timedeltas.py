@@ -24,5 +24,5 @@ def test_delta_to_nanoseconds(obj, expected):
 def test_delta_to_nanoseconds_error():
     obj = np.array([123456789], dtype="m8[ns]")
 
-    with pytest.raises(TypeError, match="<(class|type) 'numpy.ndarray'>"):
+    with pytest.raises(TypeError, match="<class 'numpy.ndarray'>"):
         delta_to_nanoseconds(obj)

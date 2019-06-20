@@ -12,6 +12,7 @@ from shutil import rmtree
 import string
 import tempfile
 import traceback
+from typing import Union, cast
 import warnings
 import zipfile
 
@@ -21,8 +22,8 @@ from numpy.random import rand, randn
 from pandas._config.localization import (  # noqa:F401
     can_set_locale, get_locales, set_locale)
 
-from pandas._libs import testing as _testing
-from pandas.compat import lmap, raise_with_traceback
+import pandas._libs.testing as _testing
+from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -515,9 +516,14 @@ def equalContents(arr1, arr2):
     return frozenset(arr1) == frozenset(arr2)
 
 
-def assert_index_equal(left, right, exact='equiv', check_names=True,
-                       check_less_precise=False, check_exact=True,
-                       check_categorical=True, obj='Index'):
+def assert_index_equal(left: Index,
+                       right: Index,
+                       exact: Union[bool, str] = 'equiv',
+                       check_names: bool = True,
+                       check_less_precise: Union[bool, int] = False,
+                       check_exact: bool = True,
+                       check_categorical: bool = True,
+                       obj: str = 'Index') -> None:
     """Check that left and right Index are equal.
 
     Parameters
@@ -588,6 +594,9 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
+        left = cast(MultiIndex, left)
+        right = cast(MultiIndex, right)
+
         for level in range(left.nlevels):
             # cannot use get_level_values here because it can change dtype
             llevel = _get_ilevel_values(left, level)
@@ -1403,7 +1412,7 @@ def assert_sp_array_equal(left, right, check_dtype=True, check_kind=True,
         assert_attr_equal('fill_value', left, right)
     if check_dtype:
         assert_attr_equal('dtype', left, right)
-    assert_numpy_array_equal(left.values, right.values,
+    assert_numpy_array_equal(left.to_dense(), right.to_dense(),
                              check_dtype=check_dtype)
 
 
@@ -1815,7 +1824,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         def keyfunc(x):
             import re
             numeric_tuple = re.sub(r"[^\d_]_?", "", x).split("_")
-            return lmap(int, numeric_tuple)
+            return [int(num) for num in numeric_tuple]
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1

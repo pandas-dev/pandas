@@ -1,9 +1,9 @@
 """ support numpy compatiblitiy across versions """
 
-import re
-import numpy as np
 from distutils.version import LooseVersion
+import re
 
+import numpy as np
 
 # numpy versioning
 _np_version = np.__version__
@@ -12,6 +12,7 @@ _np_version_under1p14 = _nlv < LooseVersion('1.14')
 _np_version_under1p15 = _nlv < LooseVersion('1.15')
 _np_version_under1p16 = _nlv < LooseVersion('1.16')
 _np_version_under1p17 = _nlv < LooseVersion('1.17')
+_is_numpy_dev = '.dev' in str(_nlv)
 
 
 if _nlv < '1.13.3':
@@ -61,8 +62,10 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
 
 
 __all__ = ['np',
+           '_np_version',
            '_np_version_under1p14',
            '_np_version_under1p15',
            '_np_version_under1p16',
-           '_np_version_under1p17'
+           '_np_version_under1p17',
+           '_is_numpy_dev'
            ]

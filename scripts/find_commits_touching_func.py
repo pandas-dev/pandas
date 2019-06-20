@@ -18,8 +18,6 @@ from collections import namedtuple
 
 from dateutil.parser import parse
 
-from pandas.compat import lrange
-
 try:
     import sh
 except ImportError:
@@ -176,7 +174,7 @@ def pprint_hits(hits):
 
     print(('\nThese commits touched the %s method in these files '
            'on these dates:\n') % args.funcname)
-    for i in sorted(lrange(len(hits)), key=sorter):
+    for i in sorted(range(len(hits)), key=sorter):
         hit = hits[i]
         h, s, d = get_commit_vitals(hit.commit)
         p = hit.path.split(os.path.realpath(os.curdir) + os.path.sep)[-1]

@@ -7,7 +7,7 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY, lrange
+from pandas.compat import PYPY
 
 import pandas as pd
 from pandas import (
@@ -43,7 +43,7 @@ class TestDataFrameReprInfoEtc(TestData):
         # big mixed
         biggie = DataFrame({'A': np.random.randn(200),
                             'B': tm.makeStringIndex(200)},
-                           index=lrange(200))
+                           index=range(200))
         biggie.loc[:20, 'A'] = np.nan
         biggie.loc[:20, 'B'] = np.nan
 
@@ -88,8 +88,8 @@ class TestDataFrameReprInfoEtc(TestData):
     @pytest.mark.slow
     def test_repr_big(self):
         # big one
-        biggie = DataFrame(np.zeros((200, 4)), columns=lrange(4),
-                           index=lrange(200))
+        biggie = DataFrame(np.zeros((200, 4)), columns=range(4),
+                           index=range(200))
         repr(biggie)
 
     def test_repr_unsortable(self):
@@ -140,9 +140,12 @@ class TestDataFrameReprInfoEtc(TestData):
         df = DataFrame({'A': ["\u05d0"]})
         str(df)
 
-    def test_bytestring_with_unicode(self):
-        df = DataFrame({'A': ["\u05d0"]})
-        bytes(df)
+    def test_str_to_bytes_raises(self):
+        # GH 26447
+        df = DataFrame({'A': ["abc"]})
+        msg = "^'str' object cannot be interpreted as an integer$"
+        with pytest.raises(TypeError, match=msg):
+            bytes(df)
 
     def test_very_wide_info_repr(self):
         df = DataFrame(np.random.randn(10, 20),
@@ -508,8 +511,10 @@ class TestDataFrameReprInfoEtc(TestData):
 3 2011-01-01 12:00:00-05:00  2011-04
 4 2011-01-01 13:00:00-05:00  2011-05"""
 
-        df = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
         assert repr(df) == exp
+
+        df2 = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
+        assert repr(df2) == exp
 
     @pytest.mark.parametrize('arg', [np.datetime64, np.timedelta64])
     @pytest.mark.parametrize('box, expected', [

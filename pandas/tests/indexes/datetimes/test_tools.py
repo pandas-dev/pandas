@@ -14,7 +14,6 @@ import pytz
 
 from pandas._libs import tslib
 from pandas._libs.tslibs import iNaT, parsing
-from pandas.compat import lmap
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -97,6 +96,25 @@ class TestTimeConversionFormats:
         result = pd.to_datetime(s, format='%Y%m%d', errors='coerce',
                                 cache=cache)
         expected = Series(['20121231', '20141231', 'NaT'], dtype='M8[ns]')
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("input_s, expected", [
+        # NaN before strings with invalid date values
+        [Series(['19801222', np.nan, '20010012', '10019999']),
+         Series([Timestamp('19801222'), np.nan, np.nan, np.nan])],
+        # NaN after strings with invalid date values
+        [Series(['19801222', '20010012', '10019999', np.nan]),
+         Series([Timestamp('19801222'), np.nan, np.nan, np.nan])],
+        # NaN before integers with invalid date values
+        [Series([20190813, np.nan, 20010012, 20019999]),
+         Series([Timestamp('20190813'), np.nan, np.nan, np.nan])],
+        # NaN after integers with invalid date values
+        [Series([20190813, 20010012, np.nan, 20019999]),
+         Series([Timestamp('20190813'), np.nan, np.nan, np.nan])]])
+    def test_to_datetime_format_YYYYMMDD_overflow(self, input_s, expected):
+        # GH 25512
+        # format='%Y%m%d', errors='coerce'
+        result = pd.to_datetime(input_s, format='%Y%m%d', errors='coerce')
         assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('cache', [True, False])
@@ -114,6 +132,25 @@ class TestTimeConversionFormats:
 
         result = to_datetime(s, format='%Y%m', cache=cache)
         assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('int_date, expected', [
+        # valid date, length == 8
+        [20121030, datetime(2012, 10, 30)],
+        # short valid date, length == 6
+        [199934, datetime(1999, 3, 4)],
+        # long integer date partially parsed to datetime(2012,1,1), length > 8
+        [2012010101, 2012010101],
+        # invalid date partially parsed to datetime(2012,9,9), length == 8
+        [20129930, 20129930],
+        # short integer date partially parsed to datetime(2012,9,9), length < 8
+        [2012993, 2012993],
+        # short invalid date, length == 4
+        [2121, 2121]])
+    def test_int_to_datetime_format_YYYYMMDD_typeerror(self, int_date,
+                                                       expected):
+        # GH 26583
+        result = to_datetime(int_date, format='%Y%m%d', errors='ignore')
+        assert result == expected
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_format_microsecond(self, cache):
@@ -1204,7 +1241,7 @@ class TestToDatetimeMisc:
     def test_to_datetime_with_space_in_series(self, cache):
         # GH 6428
         s = Series(['10/18/2006', '10/18/2008', ' '])
-        msg = r"(\(u?')?String does not contain a date(:', ' '\))?"
+        msg = r"(\(')?String does not contain a date(:', ' '\))?"
         with pytest.raises(ValueError, match=msg):
             to_datetime(s, errors='raise', cache=cache)
         result_coerce = to_datetime(s, errors='coerce', cache=cache)
@@ -1264,7 +1301,7 @@ class TestToDatetimeMisc:
         # array = ['2012','20120101','20120101 12:01:01']
         array = ['20120101', '20120101 12:01:01']
         expected = list(to_datetime(array, cache=cache))
-        result = lmap(Timestamp, array)
+        result = [Timestamp(date_str) for date_str in array]
         tm.assert_almost_equal(result, expected)
 
         # currently fails ###

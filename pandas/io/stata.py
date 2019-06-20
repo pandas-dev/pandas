@@ -23,7 +23,6 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas.compat import lmap
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -32,7 +31,6 @@ from pandas.core.dtypes.common import (
 from pandas import (
     Categorical, DatetimeIndex, NaT, Timestamp, concat, isna, to_datetime,
     to_timedelta)
-from pandas.core.base import StringMixin
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
@@ -713,7 +711,7 @@ class StataValueLabel:
         return bio.read()
 
 
-class StataMissingValue(StringMixin):
+class StataMissingValue:
     """
     An observation's missing value.
 
@@ -805,7 +803,7 @@ class StataMissingValue(StringMixin):
     value = property(lambda self: self._value,
                      doc='The binary representation of the missing value.')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.string
 
     def __repr__(self):
@@ -1030,7 +1028,7 @@ class StataReader(StataParser, BaseIterator):
                                     if type(x) is int]) > 0
 
         # calculate size of a data record
-        self.col_sizes = lmap(lambda x: self._calcsize(x), self.typlist)
+        self.col_sizes = [self._calcsize(typ) for typ in self.typlist]
 
     def _read_new_header(self, first_char):
         # The first part of the header is common to 117 and 118.
@@ -1573,9 +1571,9 @@ the string values returned are correct."""
         data = self._do_convert_missing(data, convert_missing)
 
         if convert_dates:
-            cols = np.where(lmap(lambda x: any(x.startswith(fmt)
-                                               for fmt in _date_formats),
-                                 self.fmtlist))[0]
+            def any_startswith(x: str) -> bool:
+                return any(x.startswith(fmt) for fmt in _date_formats)
+            cols = np.where([any_startswith(x) for x in self.fmtlist])[0]
             for i in cols:
                 col = data.columns[i]
                 try:

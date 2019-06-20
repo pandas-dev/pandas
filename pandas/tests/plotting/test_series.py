@@ -10,7 +10,6 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -705,7 +704,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_valid_object_plot(self):
-        s = Series(lrange(10), dtype=object)
+        s = Series(range(10), dtype=object)
         for kind in plotting._core._common_kinds:
             _check_plot_works(s.plot, kind=kind)
 
@@ -787,7 +786,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_standard_colors(self):
-        from pandas.plotting._style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import _get_standard_colors
 
         for c in ['r', 'red', 'green', '#FF0000']:
             result = _get_standard_colors(1, color=c)
@@ -805,7 +804,7 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     def test_standard_colors_all(self):
         import matplotlib.colors as colors
-        from pandas.plotting._style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import _get_standard_colors
 
         # multiple colors like mediumaquamarine
         for c in colors.cnames:

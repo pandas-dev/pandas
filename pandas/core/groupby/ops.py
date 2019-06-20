@@ -17,7 +17,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    ensure_float64, ensure_int64, ensure_int64_or_float64, ensure_object,
+    ensure_float64, ensure_int64, ensure_int_or_float, ensure_object,
     ensure_platform_int, is_bool_dtype, is_categorical_dtype, is_complex_dtype,
     is_datetime64_any_dtype, is_integer_dtype, is_numeric_dtype,
     is_timedelta64_dtype, needs_i8_conversion)
@@ -149,6 +149,15 @@ class BaseGrouper:
     def _get_splitter(self, data, axis=0):
         comp_ids, _, ngroups = self.group_info
         return get_splitter(data, comp_ids, ngroups, axis=axis)
+
+    def _get_grouper(self):
+        """
+        We are a grouper as part of another's groupings.
+
+        We have a specific method of grouping, so cannot
+        convert to a Index for our grouper.
+        """
+        return self.groupings[0].grouper
 
     def _get_group_keys(self):
         if len(self.groupings) == 1:
@@ -486,7 +495,7 @@ class BaseGrouper:
             if (values == iNaT).any():
                 values = ensure_float64(values)
             else:
-                values = ensure_int64_or_float64(values)
+                values = ensure_int_or_float(values)
         elif is_numeric and not is_complex_dtype(values):
             values = ensure_float64(values)
         else:
@@ -621,9 +630,9 @@ class BaseGrouper:
         group_index, _, ngroups = self.group_info
 
         # avoids object / Series creation overhead
-        dummy = obj._get_values(slice(None, 0)).to_dense()
+        dummy = obj._get_values(slice(None, 0))
         indexer = get_group_index_sorter(group_index, ngroups)
-        obj = obj._take(indexer).to_dense()
+        obj = obj._take(indexer)
         group_index = algorithms.take_nd(
             group_index, indexer, allow_fill=False)
         grouper = reduction.SeriesGrouper(obj, func, group_index, ngroups,
@@ -706,6 +715,15 @@ class BinGrouper(BaseGrouper):
     @property
     def nkeys(self):
         return 1
+
+    def _get_grouper(self):
+        """
+        We are a grouper as part of another's groupings.
+
+        We have a specific method of grouping, so cannot
+        convert to a Index for our grouper.
+        """
+        return self
 
     def get_iterator(self, data, axis=0):
         """
@@ -861,7 +879,7 @@ class DataSplitter:
 class SeriesSplitter(DataSplitter):
 
     def _chop(self, sdata, slice_obj):
-        return sdata._get_values(slice_obj).to_dense()
+        return sdata._get_values(slice_obj)
 
 
 class FrameSplitter(DataSplitter):

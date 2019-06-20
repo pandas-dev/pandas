@@ -41,7 +41,7 @@ import pandas._libs.lib as lib
 from pandas._libs.khash cimport (
     khiter_t,
     kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
-    kh_get_str, kh_destroy_str, kh_resize_str,
+    kh_get_str, kh_destroy_str,
     kh_float64_t, kh_get_float64, kh_destroy_float64,
     kh_put_float64, kh_init_float64, kh_resize_float64,
     kh_strbox_t, kh_put_strbox, kh_get_strbox, kh_init_strbox,
@@ -49,7 +49,6 @@ from pandas._libs.khash cimport (
     kh_str_starts_t, kh_put_str_starts_item, kh_init_str_starts,
     kh_get_str_starts_item, kh_destroy_str_starts, kh_resize_str_starts)
 
-import pandas.compat as compat
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer_dtype, is_float_dtype,
@@ -149,9 +148,6 @@ cdef extern from "parser/tokenizer.h":
         char lineterminator
         int skipinitialspace       # ignore spaces following delimiter? */
         int quoting                # style of quoting to write */
-
-        # hmm =/
-        # int numeric_field
 
         char commentchar
         int allow_embedded_newline
@@ -477,14 +473,19 @@ cdef class TextReader:
 
         self.verbose = verbose
         self.low_memory = low_memory
-        self.parser.double_converter_nogil = xstrtod
-        self.parser.double_converter_withgil = NULL
-        if float_precision == 'high':
-            self.parser.double_converter_nogil = precise_xstrtod
-            self.parser.double_converter_withgil = NULL
-        elif float_precision == 'round_trip':  # avoid gh-15140
+
+        if float_precision == "round_trip":
+            # see gh-15140
+            #
+            # Our current roundtrip implementation requires the GIL.
             self.parser.double_converter_nogil = NULL
             self.parser.double_converter_withgil = round_trip
+        elif float_precision == "high":
+            self.parser.double_converter_withgil = NULL
+            self.parser.double_converter_nogil = precise_xstrtod
+        else:
+            self.parser.double_converter_withgil = NULL
+            self.parser.double_converter_nogil = xstrtod
 
         if isinstance(dtype, dict):
             dtype = {k: pandas_dtype(dtype[k])

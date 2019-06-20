@@ -34,7 +34,7 @@ _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
 
 class StringMixin:
     """
-    Implements string methods so long as object defines a `__unicode__` method.
+    Implements string methods so long as object defines a `__str__` method.
     """
     # side note - this could be made into a metaclass if more than one
     #             object needs
@@ -42,23 +42,11 @@ class StringMixin:
     # ----------------------------------------------------------------------
     # Formatting
 
-    def __unicode__(self):
-        raise AbstractMethodError(self)
-
     def __str__(self):
         """
         Return a string representation for a particular Object
         """
-        return self.__unicode__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular object.
-        """
-        from pandas._config import get_option
-
-        encoding = get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
+        raise AbstractMethodError(self)
 
     def __repr__(self):
         """
@@ -67,7 +55,7 @@ class StringMixin:
         return str(self)
 
 
-class PandasObject(StringMixin, DirNamesMixin):
+class PandasObject(DirNamesMixin):
 
     """baseclass for various pandas objects"""
 
@@ -76,7 +64,7 @@ class PandasObject(StringMixin, DirNamesMixin):
         """class constructor (for this class it's just `__class__`"""
         return self.__class__
 
-    def __unicode__(self):
+    def __repr__(self):
         """
         Return a string representation for a particular object.
         """
@@ -352,11 +340,15 @@ class SelectionMixin:
             def nested_renaming_depr(level=4):
                 # deprecation of nested renaming
                 # GH 15931
-                warnings.warn(
-                    ("using a dict with renaming "
-                     "is deprecated and will be removed in a future "
-                     "version"),
-                    FutureWarning, stacklevel=level)
+                msg = textwrap.dedent("""\
+                using a dict with renaming is deprecated and will be removed
+                in a future version.
+
+                For column-specific groupby renaming, use named aggregation
+
+                    >>> df.groupby(...).agg(name=('column', aggfunc))
+                """)
+                warnings.warn(msg, FutureWarning, stacklevel=level)
 
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
@@ -981,7 +973,7 @@ class IndexOpsMixin:
     def empty(self):
         return not self.size
 
-    def max(self, axis=None, skipna=True):
+    def max(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return the maximum value of the Index.
 
@@ -1019,9 +1011,10 @@ class IndexOpsMixin:
         ('b', 2)
         """
         nv.validate_minmax_axis(axis)
+        nv.validate_max(args, kwargs)
         return nanops.nanmax(self._values, skipna=skipna)
 
-    def argmax(self, axis=None, skipna=True):
+    def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return an ndarray of the maximum argument indexer.
 
@@ -1041,9 +1034,10 @@ class IndexOpsMixin:
         numpy.ndarray.argmax
         """
         nv.validate_minmax_axis(axis)
+        nv.validate_argmax_with_skipna(skipna, args, kwargs)
         return nanops.nanargmax(self._values, skipna=skipna)
 
-    def min(self, axis=None, skipna=True):
+    def min(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return the minimum value of the Index.
 
@@ -1081,9 +1075,10 @@ class IndexOpsMixin:
         ('a', 1)
         """
         nv.validate_minmax_axis(axis)
+        nv.validate_min(args, kwargs)
         return nanops.nanmin(self._values, skipna=skipna)
 
-    def argmin(self, axis=None, skipna=True):
+    def argmin(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return a ndarray of the minimum argument indexer.
 
@@ -1102,6 +1097,7 @@ class IndexOpsMixin:
         numpy.ndarray.argmin
         """
         nv.validate_minmax_axis(axis)
+        nv.validate_argmax_with_skipna(skipna, args, kwargs)
         return nanops.nanargmin(self._values, skipna=skipna)
 
     def tolist(self):
@@ -1568,5 +1564,5 @@ class IndexOpsMixin:
     # ----------------------------------------------------------------------
     # abstracts
 
-    def _update_inplace(self, result, **kwargs):
+    def _update_inplace(self, result, verify_is_copy=True, **kwargs):
         raise AbstractMethodError(self)
