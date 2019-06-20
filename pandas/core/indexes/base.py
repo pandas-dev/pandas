@@ -229,7 +229,6 @@ class Index(IndexOpsMixin, PandasObject):
     _data = None
     _id = None
     name = None
-    asi8 = None
     _comparables = ['name']
     _attributes = ['name']
     _is_numeric_dtype = False
@@ -500,6 +499,18 @@ class Index(IndexOpsMixin, PandasObject):
 
     See each method's docstring.
     """
+
+    @property
+    def asi8(self):
+        """
+        Integer representation of the values.
+
+        Returns
+        -------
+        ndarray
+            An ndarray with int64 dtype.
+        """
+        return None
 
     @classmethod
     def _simple_new(cls, values, name=None, dtype=None, **kwargs):
@@ -1321,16 +1332,23 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.MultiIndex.from_product([['python', 'cobra'],
         ...                                   [2018, 2019]])
         >>> idx
-        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]])
+        MultiIndex([('python', 2018),
+                    ('python', 2019),
+                    ( 'cobra', 2018),
+                    ( 'cobra', 2019)],
+                   )
         >>> idx.set_names(['kind', 'year'], inplace=True)
         >>> idx
-        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
+        MultiIndex([('python', 2018),
+                    ('python', 2019),
+                    ( 'cobra', 2018),
+                    ( 'cobra', 2019)],
                    names=['kind', 'year'])
         >>> idx.set_names('species', level=0)
-        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
+        MultiIndex([('python', 2018),
+                    ('python', 2019),
+                    ( 'cobra', 2018),
+                    ( 'cobra', 2019)],
                    names=['species', 'year'])
         """
 
@@ -1392,12 +1410,16 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                   [2018, 2019]],
         ...                                   names=['kind', 'year'])
         >>> idx
-        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
+        MultiIndex([('python', 2018),
+                    ('python', 2019),
+                    ( 'cobra', 2018),
+                    ( 'cobra', 2019)],
                    names=['kind', 'year'])
         >>> idx.rename(['species', 'year'])
-        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
+        MultiIndex([('python', 2018),
+                    ('python', 2019),
+                    ( 'cobra', 2018),
+                    ( 'cobra', 2019)],
                    names=['species', 'year'])
         >>> idx.rename('species')
         Traceback (most recent call last):
@@ -5431,8 +5453,8 @@ def ensure_index_from_sequences(sequences, names=None):
 
     >>> ensure_index_from_sequences([['a', 'a'], ['a', 'b']],
                                     names=['L1', 'L2'])
-    MultiIndex(levels=[['a'], ['a', 'b']],
-               codes=[[0, 0], [0, 1]],
+    MultiIndex([('a', 'a'),
+                ('a', 'b')],
                names=['L1', 'L2'])
 
     See Also
@@ -5472,8 +5494,10 @@ def ensure_index(index_like, copy=False):
     Index([('a', 'a'), ('b', 'c')], dtype='object')
 
     >>> ensure_index([['a', 'a'], ['b', 'c']])
-    MultiIndex(levels=[['a'], ['b', 'c']],
-               codes=[[0, 0], [0, 1]])
+    MultiIndex([('a', 'b'),
+                ('a', 'c')],
+               dtype='object')
+               )
 
     See Also
     --------

@@ -3,7 +3,7 @@ from functools import partial
 import itertools
 import operator
 import re
-from typing import List, Optional, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -15,7 +15,8 @@ from pandas.core.dtypes.cast import (
     maybe_promote)
 from pandas.core.dtypes.common import (
     _NS_DTYPE, is_datetimelike_v_numeric, is_extension_array_dtype,
-    is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar)
+    is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar,
+    is_sparse)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
@@ -94,9 +95,12 @@ class BlockManager(PandasObject):
     __slots__ = ['axes', 'blocks', '_ndim', '_shape', '_known_consolidated',
                  '_is_consolidated', '_blknos', '_blklocs']
 
-    def __init__(self, blocks, axes, do_integrity_check=True):
+    def __init__(self,
+                 blocks: Sequence[Block],
+                 axes: Sequence[Index],
+                 do_integrity_check: bool = True):
         self.axes = [ensure_index(ax) for ax in axes]
-        self.blocks = tuple(blocks)
+        self.blocks = tuple(blocks)  # type: Tuple[Block, ...]
 
         for block in blocks:
             if block.is_sparse:
@@ -770,7 +774,6 @@ class BlockManager(PandasObject):
         Return ndarray from blocks with specified item order
         Items must be contained in the blocks
         """
-        from pandas.core.dtypes.common import is_sparse
         dtype = _interleaved_dtype(self.blocks)
 
         # TODO: https://github.com/pandas-dev/pandas/issues/22791
@@ -1415,8 +1418,11 @@ class SingleBlockManager(BlockManager):
     _known_consolidated = True
     __slots__ = ()
 
-    def __init__(self, block, axis, do_integrity_check=False, fastpath=False):
-
+    def __init__(self,
+                 block: Block,
+                 axis: Union[Index, List[Index]],
+                 do_integrity_check: bool = False,
+                 fastpath: bool = False):
         if isinstance(axis, list):
             if len(axis) != 1:
                 raise ValueError("cannot create SingleBlockManager with more "
@@ -1455,7 +1461,7 @@ class SingleBlockManager(BlockManager):
         if not isinstance(block, Block):
             block = make_block(block, placement=slice(0, len(axis)), ndim=1)
 
-        self.blocks = [block]
+        self.blocks = tuple([block])
 
     def _post_setstate(self):
         pass

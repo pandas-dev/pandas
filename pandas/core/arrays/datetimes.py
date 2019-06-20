@@ -265,8 +265,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                              'normalize', 'strftime', 'round', 'floor',
                              'ceil', 'month_name', 'day_name']
 
-    # Needed so that Timestamp.__richcmp__(DateTimeArray) operates pointwise
-    ndim = 1
+    # ndim is inherited from ExtensionArray, must exist to ensure
+    #  Timestamp.__richcmp__(DateTimeArray) operates pointwise
 
     # ensure that operations with numpy arrays defer to our implementation
     __array_priority__ = 1000
