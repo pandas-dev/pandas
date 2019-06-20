@@ -3,6 +3,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from collections import OrderedDict
 from io import StringIO
+import numbers
 from shutil import get_terminal_size
 from textwrap import dedent
 import warnings
@@ -700,24 +701,58 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
     # NDArray Compat
+    _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods
+        from pandas.core.internals.construction import extract_array
+
         result = ops.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs)
         if result is not NotImplemented:
             return result
 
-        inputs = tuple(
-            x._values if isinstance(x, type(self)) else x
-            for x in inputs
-        )
+        # align all the inputs.
+        # TODO: is there a more efficient way to do this?
+        types = tuple(type(x) for x in inputs)
+        series = [x for x, t in zip(inputs, types) if issubclass(t, Series)]
+        names = [getattr(x, 'name') for x in inputs if hasattr(x, 'name')]
+
+        if len(series) > 1:
+            index = series[0].index
+            for s in series[1:]:
+                index |= s.index
+            inputs = [x.reindex(index) for x, t in zip(inputs, types)
+                      if issubclass(t, Series)]
+        else:
+            index = self.index
+
+        # Type checks: can we do this, given the inputs.
+        # It's expected that the following classes defer to us when
+        # any Series is present.
+        # 1. Index.
+        # 2. ExtensionArray.
+
+        inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
+        handled_types = sum([getattr(x, '_HANDLED_TYPES', ()) for x in inputs],
+                            self._HANDLED_TYPES + (Series,))
+        if not all(isinstance(t, handled_types) for t in inputs):
+            # there's an unknown object present. Bail out.
+            # TODO: Handle Series[object]
+            return NotImplemented
 
         result = getattr(ufunc, method)(*inputs, **kwargs)
+        if len(set(names)) == 1:
+            # we require names to be hashable, right?
+            name = names[0]
+        else:
+            name = None
 
         def construct_return(result):
-            return self._constructor(result, index=self.index,
-                                     copy=False).__finalize__(self)
+            return self._constructor(result,
+                                     index=index,
+                                     name=name,
+                                     copy=False)
 
         if type(result) is tuple:
             # multiple return values
