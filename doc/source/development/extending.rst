@@ -351,9 +351,6 @@ which does not behave as described, please report it to the team.
     within your context. You may also choose to add implementations incrementally,
     as the need arises.
 
-    TBD: should we have a standard way of signalling not supported instead of a
-    random AttributeError exception being thrown.
-
 
 Formatting Extension Arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
