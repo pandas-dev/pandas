@@ -266,10 +266,10 @@ def json_normalize(data: List[Dict[Any, Any]],
     meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
-    records = [] # type: list
+    records = []  # type: list
     lengths = []
 
-    meta_vals = defaultdict(list) # type: dict
+    meta_vals = defaultdict(list)  # type: dict
     if not isinstance(sep, str):
         sep = str(sep)
     meta_keys = [sep.join(val) for val in meta]
