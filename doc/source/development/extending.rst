@@ -258,7 +258,6 @@ between two types of operations: ufuncs (such as `np.floor`, `np.ceil`,
 and `np.abs`), and non-ufuncs (for example `np.round`, and `np.repeat`).
 
 .. note::
-
     Although your methods will override numpy's own methods, they
     are *not* required to return numpy arrays or builtin python types. In
     fact, you will often want your method to return a new instance of your
@@ -305,6 +304,7 @@ instead of providing a special case for each. For an example, see TBD.
 
 
 \... numpy will ignore it. The following will work however:
+
 .. code-block:: python
 
     def round(self, decimals=0, **kwds):
@@ -335,7 +335,6 @@ implementation of `round`, for example, numpy will always invoke `__array_functi
 when `np.round` is passed an instance of your EA.
 
 .. important::
-
     Even if you choose to implement `__array_function__`, you still need to
     implement `__array_ufunc__` in order to override ufuncs. Each of these
     two interfaces covers a seperate portion of numpy's functionality.
@@ -347,7 +346,6 @@ EA support is still being actively worked on, so if you encounter a bug, or beha
 which does not behave as described, please report it to the team.
 
 .. important::
-
     You are not required to provide implementations for the full complement of Series
     operations in your ExtensionArray. In fact, some of them may not even make sense
     within your context. You may also choose to add implementations incrementally,
