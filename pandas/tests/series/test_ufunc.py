@@ -55,8 +55,7 @@ def test_unary_ufunc(ufunc, sparse):
 @pytest.mark.parametrize("ufunc", BINARY_UFUNCS)
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 @pytest.mark.parametrize("shuffle", SHUFFLE)
-@pytest.mark.parametrize("box_other", [True, False],
-                         ids=['other-boxed', 'other-raw'])
+@pytest.mark.parametrize("box_other", ['series', 'index', 'raw'])
 @pytest.mark.parametrize("flip", [True, False],
                          ids=['flipped', 'straight'])
 def test_binary_ufunc(ufunc, sparse, shuffle, box_other,
@@ -72,7 +71,13 @@ def test_binary_ufunc(ufunc, sparse, shuffle, box_other,
 
     name = "name"
     s1 = pd.Series(a1, name=name)
-    s2 = pd.Series(a2, name=name)
+    if box_other == 'series':
+        s2 = pd.Series(a2, name=name)
+    elif box_other == 'index':
+        # Index should defer to Series
+        s2 = pd.Index(a2, naame=name)
+    else:
+        s2 = a2
 
     # handle shufling / alignment
     # If boxing -- ufunc(series, series) -- then we don't need to shuffle
@@ -95,6 +100,8 @@ def test_binary_ufunc(ufunc, sparse, shuffle, box_other,
 
     result = ufunc(a, b)
     expected = pd.Series(ufunc(c, d), name=name)
+    if box_other == 'index' and flip:
+        raise pytest.xfail("Index should defer to Series")
     tm.assert_series_equal(result, expected)
 
 
