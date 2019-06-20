@@ -18,7 +18,8 @@ SPARSE = [
 ]
 SPARSE_IDS = ['sparse', 'dense']
 SHUFFLE = [
-    pytest.param(True, marks=pytest.mark.xfail(reason="GH-26945")),
+    pytest.param(True, marks=pytest.mark.xfail(reason="GH-26945",
+                                               strict=False)),
     False
 ]
 
@@ -79,17 +80,15 @@ def test_binary_ufunc(ufunc, sparse, shuffle, box_other,
     else:
         s2 = a2
 
-    # handle shufling / alignment
-    # If boxing -- ufunc(series, series) -- then we don't need to shuffle
-    # the other array for the expected, since we align.
-    # If not boxing -- ufunc(series, array) -- then we do need to shuffle
-    # the other array, since we *dont'* align
     idx = np.random.permutation(len(s1))
-    if box_other and shuffle:
-        # ensure we align before applying the ufunc
+
+    if shuffle:
         s2 = s2.take(idx)
-    elif shuffle:
-        a2 = a2.take(idx)
+        if box_other != 'series':
+            # when other is a Series, we align, so we don't
+            # need to shuffle the array for expected. In all
+            # other cases, we do.
+            a2 = a2.take(idx)
 
     a, b = s1, s2
     c, d = a1, a2
