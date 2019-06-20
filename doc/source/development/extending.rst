@@ -348,7 +348,7 @@ which does not behave as described, please report it to the team.
 .. important::
     You are not required to provide implementations for the full complement of Series
     operations in your ExtensionArray. In fact, some of them may not even make sense
-    within your context. You may also choose to add implementations incrementally,
+    within its context. You may also choose to add implementations incrementally,
     as the need arises.
 
 
