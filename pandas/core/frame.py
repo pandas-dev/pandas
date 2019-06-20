@@ -4281,7 +4281,7 @@ class DataFrame(NDFrame):
             the index to the default integer index.
         inplace : bool, default False
             Modify the DataFrame in place (do not create a new object).
-        col_level : int or str, default 0
+        col_level : int, str, tuple, or list, default 0
             If the columns have multiple levels, determines which level the
             labels are inserted into. By default it is inserted into the first
             level.
@@ -4404,6 +4404,18 @@ class DataFrame(NDFrame):
         parrot           bird   24.0     fly
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
+
+        We can specify the column level where a particular index level
+        will be placed.
+
+        >>> df.reset_index(level=['class', 'name'], col_level=[1,0],
+        ...                col_fill=['genus', 'pet'])
+             genus    name  speed species
+            class     pet    max    type
+        0    bird  falcon  389.0     fly
+        1    bird  parrot   24.0     fly
+        2  mammal    lion   80.5     run
+        3  mammal  monkey    NaN    jump
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if inplace:
@@ -4469,6 +4481,41 @@ class DataFrame(NDFrame):
                 to_insert = ((self.index, None),)
 
             multi_col = isinstance(self.columns, MultiIndex)
+            if multi_col:
+                if isinstance(col_level, int):
+                    col_level = [col_level]
+                if col_fill is None:
+                    col_fill = [None]
+                elif isinstance(col_fill, str):
+                    col_fill = [col_fill]
+                if len(col_fill) == 1:
+                    col_fill = col_fill * len(col_level)
+                elif len(col_level) != len(col_fill):
+                    # ValueError is not raised if col_fill has only 1 value
+                    raise ValueError("Length of col_level={} should be "
+                                     "equal to length of col_fill={}."
+                                     .format(len(col_level), len(col_fill)))
+                if level is None:
+                    level = range(self.index.nlevels)
+                if len(col_level) < self.index.nlevels:
+                    # the last column level gets repeated
+                    # for the remaining index levels.
+                    multiply = self.index.nlevels - len(col_level)
+                    col_level += [col_level[-1]] * multiply
+                    col_fill += [col_fill[-1]] * multiply
+
+                col_order = list(zip(level, col_level, col_fill))
+                col_order = sorted(col_order, key=lambda pos: pos[0])
+                col_order = map(list, zip(*col_order))
+                check_level, iter_col_level, iter_col_fill = col_order
+
+                iter_col_level = iter(iter_col_level)
+                iter_col_fill = iter(iter_col_fill)
+                col_level = [next(iter_col_level) if i in check_level else None
+                             for i in range(self.index.nlevels)]
+                col_fill = [next(iter_col_fill) if i in check_level else None
+                            for i in range(self.index.nlevels)]
+
             for i, (lev, lab) in reversed(list(enumerate(to_insert))):
                 if not (level is None or i in level):
                     continue
@@ -4476,17 +4523,17 @@ class DataFrame(NDFrame):
                 if multi_col:
                     col_name = (list(name) if isinstance(name, tuple)
                                 else [name])
-                    if col_fill is None:
+                    if col_fill[i] is None:
                         if len(col_name) not in (1, self.columns.nlevels):
                             raise ValueError("col_fill=None is incompatible "
                                              "with incomplete column name "
                                              "{}".format(name))
-                        col_fill = col_name[0]
+                        col_fill[i] = col_name[0]
 
-                    lev_num = self.columns._get_level_number(col_level)
-                    name_lst = [col_fill] * lev_num + col_name
+                    lev_num = self.columns._get_level_number(col_level[i])
+                    name_lst = [col_fill[i]] * lev_num + col_name
                     missing = self.columns.nlevels - len(name_lst)
-                    name_lst += [col_fill] * missing
+                    name_lst += [col_fill[i]] * missing
                     name = tuple(name_lst)
                 # to ndarray and maybe infer different dtype
                 level_values = _maybe_casted_values(lev, lab)

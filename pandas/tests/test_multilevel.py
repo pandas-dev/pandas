@@ -1680,6 +1680,31 @@ Thur,Lunch,Yes,51.51,17"""
                                                             col_fill='C')
         tm.assert_frame_equal(result, expected)
 
+    def test_reset_index_multiindex_index_and_columns(self):
+        mc = MultiIndex.from_product([['a'], ['b', 'c']],
+                                     names=['clev0', 'clev1'])
+        mi = MultiIndex.from_product([['x'], ['y', 'z']],
+                                     names=['ilev0', 'ilev1'])
+        data = np.array(range(4)).reshape(2, 2)
+        df = DataFrame(data, columns=mc, index=mi)
+
+        with pytest.raises(ValueError,
+                           match=("Length of col_level=2 should be "
+                                  "equal to length of col_fill=3.")):
+            df.reset_index(col_level=[1, 0], col_fill=['p', 'q', 'r'])
+
+        df_actual = df.reset_index(level=[0, 1], col_level=[1, 0],
+                                   col_fill='o').T
+        df_expected = DataFrame([['o', 'ilev0', 'x', 'x'],
+                                 ['ilev1', 'o', 'y', 'z'],
+                                 ['a', 'b', 0, 2],
+                                 ['a', 'c', 1, 3]])
+        df_expected = df_expected.set_index([0, 1])
+        df_expected = df_expected.rename_axis(('clev0', 'clev1'), axis=0)
+        df_expected.columns = [0, 1]
+
+        tm.assert_frame_equal(df_actual, df_expected)
+
     def test_set_index_period(self):
         # GH 6631
         df = DataFrame(np.random.random(6))
