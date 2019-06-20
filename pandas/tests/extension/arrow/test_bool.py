@@ -36,8 +36,7 @@ class TestDtype(BaseArrowTests, base.BaseDtypeTests):
 
 
 class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
-    def test_repr(self, data):
-        raise pytest.skip("TODO")
+    pass
 
 
 class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
