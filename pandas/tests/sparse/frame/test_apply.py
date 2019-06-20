@@ -38,6 +38,7 @@ def fill_frame(frame):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 def test_apply(frame):
     applied = frame.apply(np.sqrt)
     assert isinstance(applied, SparseDataFrame)
@@ -72,6 +73,7 @@ def test_apply_empty(empty):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 def test_apply_nonuq():
     orig = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                      index=['a', 'a', 'c'])

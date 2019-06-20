@@ -123,7 +123,7 @@ jobs:
   timeoutInMinutes: 90
   steps:
   - script: |
-      echo '##vso[task.setvariable variable=ENV_FILE]ci/deps/travis-36-doc.yaml'
+      echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
     displayName: 'Setting environment variables'
 
   - script: |
@@ -146,6 +146,7 @@ jobs:
       git init
       touch .nojekyll
       echo "dev.pandas.io" > CNAME
+      printf "User-agent: *\nDisallow: /" > robots.txt
       git add --all .
       git config user.email "pandas-dev@python.org"
       git config user.name "pandas-docs-bot"
@@ -176,7 +177,6 @@ jobs:
       cd doc/build/html
       git remote add origin git@github.com:pandas-dev/pandas-dev.github.io.git
       git push -f origin master
-      exit 0  # FIXME this will leave the build green even if the step fails. To be removed when we are confident with this.
     displayName: 'Publish docs to GitHub pages'
     condition : |
       and(not(eq(variables['Build.Reason'], 'PullRequest')),
