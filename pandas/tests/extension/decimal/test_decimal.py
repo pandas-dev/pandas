@@ -384,15 +384,3 @@ def test_divmod_array(reverse, expected_div, expected_mod):
 
     tm.assert_extension_array_equal(div, expected_div)
     tm.assert_extension_array_equal(mod, expected_mod)
-
-
-def test_formatting_values_deprecated():
-    class DecimalArray2(DecimalArray):
-        def _formatting_values(self):
-            return np.array(self)
-
-    ser = pd.Series(DecimalArray2([decimal.Decimal('1.0')]))
-
-    with tm.assert_produces_warning(DeprecationWarning,
-                                    check_stacklevel=False):
-        repr(ser)
