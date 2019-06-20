@@ -4,9 +4,7 @@ import types
 import pytest
 
 from pandas.compat._optional import VERSIONS, import_optional_dependency
-import pandas.util._test_decorators as td
 
-import pandas as pd
 import pandas.util.testing as tm
 
 
@@ -52,11 +50,3 @@ def test_no_version_raises():
 
     with pytest.raises(ImportError, match="Can't determine .* fakemodule"):
         import_optional_dependency(name)
-
-
-@td.skip_if_installed("tables")
-def test_pytables_raises():
-    df = pd.DataFrame({"A": [1, 2]})
-    with pytest.raises(ImportError, match="tables"):
-        with tm.ensure_clean("foo.h5") as path:
-            df.to_hdf(path, "df")
