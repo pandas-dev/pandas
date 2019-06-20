@@ -8,5 +8,5 @@ from .blocks import (  # noqa:F401
 from .managers import (  # noqa:F401
     BlockManager, SingleBlockManager,
     create_block_manager_from_arrays, create_block_manager_from_blocks,
-    items_overlap_with_suffix,  # reshape.merge
+    _transform_index,  # reshape.merge
     concatenate_block_managers)  # reshape.concat, reshape.merge
