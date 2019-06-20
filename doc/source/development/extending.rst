@@ -292,12 +292,14 @@ most ufuncs without having to provide a special case for each. For an example, s
 
 .. important::
 
-  When providing implementations of numpy functions such as `np.round`,
-  It essential that function signature is compatible with the numpy original.
-  Otherwise,, numpy will ignore it.
+    When providing implementations of numpy functions such as `np.round`,
+    You muse ensure that the method signature is compatible with the numpy method
+    it implements.
+    Otherwise, numpy will ignore it.
 
-  For example, the signature for `np.round` is `np.round(a, decimals=0, out=None)`.
-  if you implement a round function which omits the `out` keyword:
+    For example, the signature for `np.round` is `np.round(a, decimals=0, out=None)`.
+    if you implement a round function which omits the `out` keyword:
+
 
 .. code-block:: python
 
@@ -312,6 +314,7 @@ most ufuncs without having to provide a special case for each. For an example, s
     def round(self, decimals=0, **kwds):
         pass
 
+
 An alternative approach to implementing individual functions, is to override
 `__getattr__` in your ExtensionArray, and to intercept requests for method
 names which you wish to support (such as `round`). For most functions,
@@ -320,7 +323,6 @@ the numpy function on your existing backing numeric array, wraps
 the result in your ExtensionArray, and returns it. This approach can
 reduce boilerplate significantly, but you do have to maintain a whitelist,
 and may require more than one case, based on signature.
-
 
 A third possible approach, is to use the `__array_function__`
 mechanism introduced by [NEP18](https://www.numpy.org/neps/nep-0018-array-function-protocol.html).
@@ -357,7 +359,7 @@ which does not behave as described, please report it to the team.
 
 
 Formatting Extension Arrays
-^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 TBD
 
