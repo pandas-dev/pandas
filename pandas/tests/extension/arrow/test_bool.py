@@ -131,3 +131,35 @@ class TestReshape:
             data.reshape(-1, -1)
         with pytest.raises(ValueError, match="Product of shape"):
             data.reshape(len(data), 2)
+
+
+class Test2D:
+    def test_getitem_collike(self, data):
+        collike = data.reshape(1, -1)
+
+        result = collike[:, :]
+        assert result.shape == (1, 100)
+
+        result = collike[:, ::2]
+        assert result.shape == (1, 50)
+
+        result = collike[0, :]
+        assert result.shape == (100,)
+
+        result = collike[0, ::2]
+        assert result.shape == (50,)
+
+    def test_getitem_rowlike(self, data):
+        rowlike = data.reshape(-1, 1)
+
+        result = rowlike[:, :]
+        assert result.shape == (100, 1)
+
+        result = rowlike[::2, :]
+        assert result.shape == (50, 1)
+
+        result = rowlike[:, 0]
+        assert result.shape == (100,)
+
+        result = rowlike[::2, 0]
+        assert result.shape == (50,)

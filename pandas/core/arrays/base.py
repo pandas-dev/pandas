@@ -1171,7 +1171,7 @@ class ReshapeWrapper:
             others = [n for n in shape if n != -1]
             prod = np.prod(others)
             dim, rem = divmod(self.size, prod)
-            shape = shape[:idx] + (dim,) + shape[idx+1:]
+            shape = shape[:idx] + (dim,) + shape[idx + 1:]
 
         if np.prod(shape) != self.size:
             raise ValueError("Product of shape ({shape}) must match "
@@ -1202,3 +1202,40 @@ class ReshapeWrapper:
         if self.ndim == 1 or axis1 == axis2:
             return type(self)(self, shape=self.shape)
         return type(self)(self, shape=self.shape[::-1])
+
+    # --------------------------------------------------------------
+
+    def __getitem__(self, key):
+        if self.ndim == 1:
+            return super().__getitem__(key)
+
+        if not isinstance(key, tuple) or len(key) != 2:
+            raise ValueError("Only limited selection is available for 2D "
+                             "{cls}.  Indexer must be a 2-tuple."
+                             .format(cls=type(self).__name__))
+
+        dummy_dim = 0 if self.shape[0] == 1 else 1
+        oth = 1 - dummy_dim
+
+        key1 = key[dummy_dim]
+        key2 = key[oth]
+        squeezed = self.ravel()
+
+        if isinstance(key1, int) and key1 == 0:
+            # dummy-dim selection reduces dimension
+            return squeezed[key2]
+        if isinstance(key1, slice):
+            res1d = squeezed[key2]
+            result = res1d.reshape(1, -1)
+            if dummy_dim == 1:
+                result = result.T
+            return result
+
+        raise NotImplementedError
+
+    def take(self, indices: Sequence[int], allow_fill: bool = False,
+             fill_value: Any = None) -> ABCExtensionArray:
+        if self.ndim == 1:
+            return super().take(indices=indices, allow_fill=allow_fill,
+                                fill_value=fill_value)
+        raise NotImplementedError
