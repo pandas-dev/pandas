@@ -336,7 +336,7 @@ when `np.round` is passed an instance of your EA.
 
 .. important::
 
-    If you choose to implement `__array_function__`, you will still need to
+    Even if you choose to implement `__array_function__`, you still need to
     implement `__array_ufunc__` in order to override ufuncs. Each of these
     two interfaces covers a seperate portion of numpy's functionality.
 
