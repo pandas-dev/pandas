@@ -21,7 +21,7 @@ fi
 
 time_test_file () {
     echo -n "$1 : "
-    { time python -m pytest -m \"$PATTERN\" -n 1 -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $1 > /dev/null ; } 2>&1 | grep "real" | cut -f2
+    { time python -m pytest -m "$PATTERN" -n 1 -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $1 > /dev/null ; } 2>&1 | grep "real" | cut -f2
 }
 export -f time_test_file
 find pandas -name "test_*.py" -exec bash -c 'time_test_file "$0"' {} \;
