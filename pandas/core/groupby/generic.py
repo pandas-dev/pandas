@@ -11,7 +11,7 @@ import copy
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, FrozenSet, Iterator, List, Type, Union
 import warnings
 
 import numpy as np
@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_interval_dtype, is_numeric_dtype, is_scalar)
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
@@ -46,6 +47,51 @@ from pandas.plotting import boxplot_frame_groupby
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
+
+
+def whitelist_method_generator(base_class: Type[GroupBy],
+                               klass: Type[FrameOrSeries],
+                               whitelist: FrozenSet[str],
+                               ) -> Iterator[str]:
+    """
+    Yields all GroupBy member defs for DataFrame/Series names in whitelist.
+
+    Parameters
+    ----------
+    base_class : Groupby class
+        base class
+    klass : DataFrame or Series class
+        class where members are defined.
+    whitelist : frozenset
+        Set of names of klass methods to be constructed
+
+    Returns
+    -------
+    The generator yields a sequence of strings, each suitable for exec'ing,
+    that define implementations of the named methods for DataFrameGroupBy
+    or SeriesGroupBy.
+
+    Since we don't want to override methods explicitly defined in the
+    base class, any such name is skipped.
+    """
+    property_wrapper_template = \
+        """@property
+def %(name)s(self) :
+    \"""%(doc)s\"""
+    return self.__getattr__('%(name)s')"""
+
+    for name in whitelist:
+        # don't override anything that was explicitly defined
+        # in the base class
+        if hasattr(base_class, name):
+            continue
+        # ugly, but we need the name string itself in the method.
+        f = getattr(klass, name)
+        doc = f.__doc__
+        doc = doc if type(doc) == str else ''
+        wrapper_template = property_wrapper_template
+        params = {'name': name, 'doc': doc}
+        yield wrapper_template % params
 
 
 class NDFrameGroupBy(GroupBy):
@@ -685,7 +731,7 @@ class SeriesGroupBy(GroupBy):
     # Make class defs of attributes on SeriesGroupBy whitelist
 
     _apply_whitelist = base.series_apply_whitelist
-    for _def_str in base.whitelist_method_generator(
+    for _def_str in whitelist_method_generator(
             GroupBy, Series, _apply_whitelist):
         exec(_def_str)
 
@@ -1289,7 +1335,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     #
     # Make class defs of attributes on DataFrameGroupBy whitelist.
-    for _def_str in base.whitelist_method_generator(
+    for _def_str in whitelist_method_generator(
             GroupBy, DataFrame, _apply_whitelist):
         exec(_def_str)
 

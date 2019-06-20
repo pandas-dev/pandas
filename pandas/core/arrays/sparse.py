@@ -15,6 +15,7 @@ import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
 import pandas.compat as compat
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 
@@ -571,6 +572,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         this determines ``self.sp_values`` and ``self.fill_value``.
     copy : bool, default False
         Whether to explicitly copy the incoming `data` array.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
 
     _pandas_ftype = 'sparse'
@@ -1688,6 +1697,17 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # No alignment necessary.
             sp_values = getattr(ufunc, method)(self.sp_values, **kwargs)
             fill_value = getattr(ufunc, method)(self.fill_value, **kwargs)
+
+            if isinstance(sp_values, tuple):
+                # multiple outputs. e.g. modf
+                arrays = tuple(
+                    self._simple_new(sp_value,
+                                     self.sp_index,
+                                     SparseDtype(sp_value.dtype, fv))
+                    for sp_value, fv in zip(sp_values, fill_value)
+                )
+                return arrays
+
             return self._simple_new(sp_values,
                                     self.sp_index,
                                     SparseDtype(sp_values.dtype, fill_value))
@@ -2205,10 +2225,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         float32. By numpy.find_common_type convention, mixing int64 and
         and uint64 will result in a float64 dtype.
         """
-        try:
-            from scipy.sparse import coo_matrix
-        except ImportError:
-            raise ImportError('Scipy is not installed')
+        import_optional_dependency("scipy")
+        from scipy.sparse import coo_matrix
 
         dtype = find_common_type(self._parent.dtypes)
         if isinstance(dtype, SparseDtype):

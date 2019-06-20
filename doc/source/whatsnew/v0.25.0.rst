@@ -72,7 +72,39 @@ column selection, the values can just be the functions to apply
 This type of aggregation is the recommended alternative to the deprecated behavior when passing
 a dict to a Series groupby aggregation (:ref:`whatsnew_0200.api_breaking.deprecate_group_agg_dict`).
 
-See :ref:`_groupby.aggregate.named` for more.
+See :ref:`groupby.aggregate.named` for more.
+
+
+.. _whatsnew_0250.enhancements.multi_index_repr:
+
+Better repr for MultiIndex
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Printing of :class:`MultiIndex` instances now shows tuples of each row and ensures
+that the tuple items are vertically aligned, so it's now easier to understand
+the structure of the ``MultiIndex``. (:issue:`13480`):
+
+The repr now looks like this:
+
+.. ipython:: python
+
+   pd.MultiIndex.from_product([['a', 'abc'], range(500)])
+
+Previously, outputting a :class:`MultiIndex` printed all the ``levels`` and
+``codes`` of the ``MultiIndex``, which was visually unappealing and made
+the output more difficult to navigate. For example (limiting the range to 5):
+
+.. code-block:: ipython
+
+   In [1]: pd.MultiIndex.from_product([['a', 'abc'], range(5)])
+   Out[1]: MultiIndex(levels=[['a', 'abc'], [0, 1, 2, 3]],
+      ...:            codes=[[0, 0, 0, 0, 1, 1, 1, 1], [0, 1, 2, 3, 0, 1, 2, 3]])
+
+In the new repr, all values will be shown, if the number of rows is smaller
+than :attr:`options.display.max_seq_items` (default: 100 items). Horizontally,
+the output will truncate, if it's wider than :attr:`options.display.width`
+(default: 80 characters).
+
 
 .. _whatsnew_0250.enhancements.other:
 
@@ -99,6 +131,7 @@ Other Enhancements
 - Error message for missing required imports now includes the original import error's text (:issue:`23868`)
 - :class:`DatetimeIndex` and :class:`TimedeltaIndex` now have a ``mean`` method (:issue:`24757`)
 - :meth:`DataFrame.describe` now formats integer percentiles without decimal point (:issue:`26660`)
+- Added support for reading SPSS .sav files using :func:`read_spss` (:issue:`26537`)
 - Added new option ``plotting.backend`` to be able to select a plotting backend different that the existing ``matplotlib`` one. Use ``pandas.set_option('plotting.backend', '<backend-module>')`` where ``<backend-module`` is a library implementing the pandas plotting API (:issue:`14130`)
 
 .. _whatsnew_0250.api_breaking:
@@ -147,29 +180,28 @@ Constructing a :class:`MultiIndex` with ``NaN`` levels or codes value < -1 was a
 Now, construction with codes value < -1 is not allowed and ``NaN`` levels' corresponding codes
 would be reassigned as -1. (:issue:`19387`)
 
-.. ipython:: python
-
-    mi1 = pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
-                        codes=[[0, -1, 1, 2, 3, 4]])
-    mi2 = pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
-
 *Previous Behavior*:
 
 .. code-block:: ipython
 
-    In [1]: mi1
+    In [1]: pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+       ...:               codes=[[0, -1, 1, 2, 3, 4]])
+       ...:
     Out[1]: MultiIndex(levels=[[nan, None, NaT, 128, 2]],
                        codes=[[0, -1, 1, 2, 3, 4]])
-    In [2]: mi2
+
+    In [2]: pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
     Out[2]: MultiIndex(levels=[[1, 2]],
                        codes=[[0, -2]])
 
 *New Behavior*:
 
 .. ipython:: python
+    :okexcept:
 
-    mi1
-    mi2
+    pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+                  codes=[[0, -1, 1, 2, 3, 4]])
+    pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
 
 
 .. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
@@ -285,7 +317,7 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
     s
     s.str.startswith(b'a')
 
-.. _whatsnew_0250.api_breaking.incompatible_index_unions
+.. _whatsnew_0250.api_breaking.incompatible_index_unions:
 
 Incompatible Index Type Unions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -403,6 +435,8 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | pytz            | 2015.4          |    X     |
 +-----------------+-----------------+----------+
+| python-dateutil | 2.6.1           |    X     |
++-----------------+-----------------+----------+
 | bottleneck      | 1.2.1           |          |
 +-----------------+-----------------+----------+
 | numexpr         | 2.6.2           |          |
@@ -410,18 +444,20 @@ If installed, we now require:
 | pytest (dev)    | 4.0.2           |          |
 +-----------------+-----------------+----------+
 
-For `optional libraries <https://pandas-docs.github.io/pandas-docs-travis/install.html#dependencies>`_ the general recommendation is to use the latest version.
+For `optional libraries <https://dev.pandas.io/install.html#dependencies>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 
 +-----------------+-----------------+
 | Package         | Minimum Version |
 +=================+=================+
+| beautifulsoup4  | 4.6.0           |
++-----------------+-----------------+
 | fastparquet     | 0.2.1           |
 +-----------------+-----------------+
 | matplotlib      | 2.2.2           |
 +-----------------+-----------------+
-| openpyxl        | 2.4.0           |
+| openpyxl        | 2.4.8           |
 +-----------------+-----------------+
 | pyarrow         | 0.9.0           |
 +-----------------+-----------------+
@@ -433,12 +469,14 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+
 | xarray          | 0.8.2           |
 +-----------------+-----------------+
-| xlrd            | 1.0.0           |
+| xlrd            | 1.1.0           |
 +-----------------+-----------------+
-| xlsxwriter      | 0.7.7           |
+| xlsxwriter      | 0.9.8           |
 +-----------------+-----------------+
-| xlwt            | 1.0.0           |
+| xlwt            | 1.2.0           |
 +-----------------+-----------------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
 .. _whatsnew_0250.api.other:
 
@@ -497,7 +535,8 @@ Other Deprecations
   Use the public attributes :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop` and :attr:`~RangeIndex.step` instead (:issue:`26581`).
 - The :meth:`Series.ftype`, :meth:`Series.ftypes` and :meth:`DataFrame.ftypes` methods are deprecated and will be removed in a future version.
   Instead, use :meth:`Series.dtype` and :meth:`DataFrame.dtypes` (:issue:`26705`).
-
+- :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
+- :meth:`Series.to_sparse`, :meth:`DataFrame.to_sparse`, :meth:`Series.to_dense` and :meth:`DataFrame.to_dense` are deprecated and will be removed in a future version. (:issue:`26557`).
 
 .. _whatsnew_0250.prior_deprecations:
 
@@ -521,7 +560,7 @@ Performance Improvements
 - Improved performance of :meth:`Series.searchsorted`. The speedup is especially large when the dtype is
   int8/int16/int32 and the searched key is within the integer bounds for the dtype (:issue:`22034`)
 - Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
-- Improved performance of slicing and other selected operation on a :class:`RangeIndex` (:issue:`26565`, :issue:`26617`)
+- Improved performance of slicing and other selected operation on a :class:`RangeIndex` (:issue:`26565`, :issue:`26617`, :issue:`26722`)
 - Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
 - Improved performance of :meth:`read_csv` by faster parsing of N/A and boolean values (:issue:`25804`)
 - Improved performance of :attr:`IntervalIndex.is_monotonic`, :attr:`IntervalIndex.is_monotonic_increasing` and :attr:`IntervalIndex.is_monotonic_decreasing` by removing conversion to :class:`MultiIndex` (:issue:`24813`)
@@ -609,7 +648,7 @@ Strings
 ^^^^^^^
 
 - Bug in the ``__name__`` attribute of several methods of :class:`Series.str`, which were set incorrectly (:issue:`23551`)
--
+- Improved error message when passing :class:`Series` of wrong dtype to :meth:`Series.str.cat` (:issue:`22722`)
 -
 
 
@@ -669,6 +708,7 @@ I/O
 - Bug in :func:`read_json` where date strings with ``Z`` were not converted to a UTC timezone (:issue:`26168`)
 - Added ``cache_dates=True`` parameter to :meth:`read_csv`, which allows to cache unique dates when they are parsed (:issue:`25990`)
 - :meth:`DataFrame.to_excel` now raises a ``ValueError`` when the caller's dimensions exceed the limitations of Excel (:issue:`26051`)
+- Fixed bug in :func:`pandas.read_csv` where a BOM would result in incorrect parsing using engine='python' (:issue:`26545`)
 - :func:`read_excel` now raises a ``ValueError`` when input is of type :class:`pandas.io.excel.ExcelFile` and ``engine`` param is passed since :class:`pandas.io.excel.ExcelFile` has an engine defined (:issue:`26566`)
 - Bug while selecting from :class:`HDFStore` with ``where=''`` specified (:issue:`26610`).
 
@@ -721,6 +761,7 @@ Reshaping
 - Bug in :func:`pandas.cut` where large bins could incorrectly raise an error due to an integer overflow (:issue:`26045`)
 - Bug in :func:`DataFrame.sort_index` where an error is thrown when a multi-indexed ``DataFrame`` is sorted on all levels with the initial level sorted last (:issue:`26053`)
 - Bug in :meth:`Series.nlargest` treats ``True`` as smaller than ``False`` (:issue:`26154`)
+- Bug in :func:`DataFrame.pivot_table` with a :class:`IntervalIndex` as pivot index would raise ``TypeError`` (:issue:`25814`)
 
 Sparse
 ^^^^^^
@@ -729,6 +770,7 @@ Sparse
 - Bug in :class:`SparseFrame` constructor where passing ``None`` as the data would cause ``default_fill_value`` to be ignored (:issue:`16807`)
 - Bug in :class:`SparseDataFrame` when adding a column in which the length of values does not match length of index, ``AssertionError`` is raised instead of raising ``ValueError`` (:issue:`25484`)
 - Introduce a better error message in :meth:`Series.sparse.from_coo` so it returns a ``TypeError`` for inputs that are not coo matrices (:issue:`26554`)
+- Bug in :func:`numpy.modf` on a :class:`SparseArray`. Now a tuple of :class:`SparseArray` is returned.
 
 Other
 ^^^^^
