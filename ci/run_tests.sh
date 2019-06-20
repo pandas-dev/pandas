@@ -19,16 +19,9 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     fi
 fi
 
-if [ "$COVERAGE" ]; then
-    COVERAGE_FNAME="/tmp/test_coverage.xml"
-    COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
-fi
-
-PYTEST_CMD="pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
-echo $PYTEST_CMD
-sh -c "$PYTEST_CMD"
-
-if [[ "$COVERAGE" && $? == 0 ]]; then
-    echo "bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME"
-          bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME
-fi
+time_test_file () {
+    echo -n "$1 : "
+    { time python -m pytest -m \"$PATTERN\" -n 1 -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $1 > /dev/null ; } 2>&1 | grep "real" | cut -f2
+}
+export -f time_test_file
+find pandas -name "test_*.py" -exec bash -c 'time_test_file "$0"' {} \;
