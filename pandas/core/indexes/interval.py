@@ -206,7 +206,17 @@ class IntervalIndex(IntervalMixin, Index):
         return result
 
     @classmethod
-    @Appender(_interval_shared_docs['from_breaks'] % _index_doc_kwargs)
+    @Appender(_interval_shared_docs['from_breaks'] % dict(
+        klass='IntervalIndex',
+        examples=textwrap.dedent("""\
+        Examples
+        --------
+        >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
+        IntervalIndex([(0, 1], (1, 2], (2, 3]],
+                      closed='right',
+                      dtype='interval[int64]')
+        """),
+    ))
     def from_breaks(cls, breaks, closed='right', name=None, copy=False,
                     dtype=None):
         with rewrite_exception("IntervalArray", cls.__name__):
@@ -215,7 +225,17 @@ class IntervalIndex(IntervalMixin, Index):
         return cls._simple_new(array, name=name)
 
     @classmethod
-    @Appender(_interval_shared_docs['from_arrays'] % _index_doc_kwargs)
+    @Appender(_interval_shared_docs['from_arrays'] % dict(
+        klass='IntervalIndex',
+        examples=textwrap.dedent("""\
+        Examples
+        --------
+        >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
+        IntervalIndex([(0, 1], (1, 2], (2, 3]],
+                      closed='right',
+                      dtype='interval[int64]')
+        """),
+    ))
     def from_arrays(cls, left, right, closed='right', name=None, copy=False,
                     dtype=None):
         with rewrite_exception("IntervalArray", cls.__name__):
@@ -239,7 +259,17 @@ class IntervalIndex(IntervalMixin, Index):
         return cls._simple_new(array, name=name)
 
     @classmethod
-    @Appender(_interval_shared_docs['from_tuples'] % _index_doc_kwargs)
+    @Appender(_interval_shared_docs['from_tuples'] % dict(
+        klass='IntervalIndex',
+        examples=textwrap.dedent("""\
+        Examples
+        --------
+        >>> pd.IntervalIndex.from_tuples([(0, 1), (1, 2)])
+        IntervalIndex([(0, 1], (1, 2]],
+                       closed='right',
+                       dtype='interval[int64]')
+        """),
+    ))
     def from_tuples(cls, data, closed='right', name=None, copy=False,
                     dtype=None):
         with rewrite_exception("IntervalArray", cls.__name__):
@@ -356,7 +386,22 @@ class IntervalIndex(IntervalMixin, Index):
         """
         return self._data._closed
 
-    @Appender(_interval_shared_docs['set_closed'] % _index_doc_kwargs)
+    @Appender(_interval_shared_docs['set_closed'] % dict(
+        klass='IntervalIndex',
+        examples=textwrap.dedent("""\
+        Examples
+        --------
+        >>> index = pd.interval_range(0, 3)
+        >>> index
+        IntervalIndex([(0, 1], (1, 2], (2, 3]],
+                      closed='right',
+                      dtype='interval[int64]')
+        >>> index.set_closed('both')
+        IntervalIndex([[0, 1], [1, 2], [2, 3]],
+                      closed='both',
+                      dtype='interval[int64]')
+        """),
+    ))
     def set_closed(self, closed):
         if closed not in _VALID_CLOSED:
             msg = "invalid option for 'closed': {closed}"
@@ -1134,52 +1179,17 @@ class IntervalIndex(IntervalMixin, Index):
                 self.right.equals(other.right) and
                 self.closed == other.closed)
 
-    def overlaps(self, other):
-        """
-        Check elementwise if an Interval overlaps the values in the
-        IntervalIndex.
-
-        Two intervals overlap if they share a common point, including closed
-        endpoints. Intervals that only have an open endpoint in common do not
-        overlap.
-
-        .. versionadded:: 0.24.0
-
-        Parameters
-        ----------
-        other : Interval
-            Interval to check against for an overlap.
-
-        Returns
-        -------
-        ndarray
-            Boolean array positionally indicating where an overlap occurs.
-
-        See Also
-        --------
-        Interval.overlaps : Check whether two Interval objects overlap.
-
-        Examples
-        --------
+    @Appender(_interval_shared_docs['overlaps'] % dict(
+        klass='IntervalIndex',
+        examples=textwrap.dedent("""\
         >>> intervals = pd.IntervalIndex.from_tuples([(0, 1), (1, 3), (2, 4)])
         >>> intervals
         IntervalIndex([(0, 1], (1, 3], (2, 4]],
               closed='right',
               dtype='interval[int64]')
-
-        >>> intervals.overlaps(pd.Interval(0.5, 1.5))
-        array([ True,  True, False])
-
-        Intervals that share closed endpoints overlap:
-
-        >>> intervals.overlaps(pd.Interval(1, 3, closed='left'))
-        array([ True,  True, True])
-
-        Intervals that only have an open endpoint in common do not overlap:
-
-        >>> intervals.overlaps(pd.Interval(1, 2, closed='right'))
-        array([False,  True, False])
-        """
+        """),
+    ))
+    def overlaps(self, other):
         return self._data.overlaps(other)
 
     @Appender(_index_shared_docs['intersection'])
