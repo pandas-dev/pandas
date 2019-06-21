@@ -172,7 +172,7 @@ _apply_docs = dict(
     {examples}
     """)
 
-_pipe_template = """\
+_pipe_template = """
 Apply a function `func` with arguments to this %(klass)s object and return
 the function's result.
 
@@ -223,7 +223,8 @@ See more `here
 
 Examples
 --------
-%(examples)s"""
+%(examples)s
+"""
 
 _transform_template = """
 Call function producing a like-indexed %(klass)s on each group and
