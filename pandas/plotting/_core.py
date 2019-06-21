@@ -6,6 +6,7 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
+import pandas
 from pandas.core.base import PandasObject
 from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
