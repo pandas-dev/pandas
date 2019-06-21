@@ -1,5 +1,6 @@
 from pandas._config import get_option
 
+import pandas
 from pandas.plotting._matplotlib.boxplot import (
     BoxPlot, boxplot, boxplot_frame, boxplot_frame_groupby)
 from pandas.plotting._matplotlib.converter import deregister, register
@@ -15,6 +16,20 @@ from pandas.plotting._matplotlib.tools import table
 
 if get_option("plotting.matplotlib.register_converters"):
     register(explicit=False)
+
+
+class PlotBackend(pandas.plotting.BasePlotBackend):
+    def line(self, data, x=None, y=None, **kwargs):
+        return LinePlot(data, x=x, y=y)
+
+    def bar(self, data, x=None, y=None, **kwargs):
+        return BarPlot(data, x=x, y=y)
+
+    def barh(self, data, x=None, y=None, **kwargs):
+        return BarhPlot(data, x=x, y=y)
+
+    def box(self, data, by=None, **kwargs):
+        return BoxPlot(data, by=by)
 
 
 __all__ = ['LinePlot', 'BarPlot', 'BarhPlot', 'HistPlot', 'BoxPlot', 'KdePlot',

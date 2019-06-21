@@ -627,7 +627,7 @@ def _get_plot_backend():
     backend_str = pandas.get_option('plotting.backend')
     if backend_str == 'matplotlib':
         backend_str = 'pandas.plotting._matplotlib'
-    return importlib.import_module(backend_str)
+    return getattr(importlib.import_module(backend_str), 'PlotBackend')
 
 
 def _plot_classes():
