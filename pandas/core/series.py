@@ -704,41 +704,45 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        # for binary ops, use our custom dunder methods
+        # TODO: handle DataFrame
         from pandas.core.internals.construction import extract_array
 
+        # for binary ops, use our custom dunder methods
         result = ops.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs)
         if result is not NotImplemented:
             return result
 
         # align all the inputs.
-        # TODO: is there a more efficient way to do this?
-        types = tuple(type(x) for x in inputs)
-        series = [x for x, t in zip(inputs, types) if issubclass(t, Series)]
         names = [getattr(x, 'name') for x in inputs if hasattr(x, 'name')]
+        types = tuple(type(x) for x in inputs)
+        # TODO: dataframe
+        alignable = [x for x, t in zip(inputs, types) if issubclass(t, Series)]
 
-        if len(series) > 1:
-            index = series[0].index
-            for s in series[1:]:
+        if len(alignable) > 1:
+            # This triggers alignment.
+            # TODO: I'm sure there's a better way to get the expected index.
+            index = alignable[0].index
+            for s in alignable[1:]:
                 index |= s.index
             inputs = [x.reindex(index) for x, t in zip(inputs, types)
                       if issubclass(t, Series)]
         else:
             index = self.index
 
-        # Type checks: can we do this, given the inputs.
+        # dtype check: can we do this, given the inputs?
         # It's expected that the following classes defer to us when
-        # any Series is present.
-        # 1. Index.
-        # 2. ExtensionArray.
+        # any Series is present in inputes.
+        #   1. Index.
+        #   2. ExtensionArray.
 
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
         handled_types = sum([getattr(x, '_HANDLED_TYPES', ()) for x in inputs],
                             self._HANDLED_TYPES + (Series,))
-        if not all(isinstance(t, handled_types) for t in inputs):
-            # there's an unknown object present. Bail out.
-            # TODO: Handle Series[object]
+        any_object = any(getattr(x, 'dtype', None) == 'object' for x in inputs)
+        # defer when an unknown object and not object dtype.
+        if (not all(isinstance(t, handled_types) for t in inputs) and
+                not any_object):
             return NotImplemented
 
         result = getattr(ufunc, method)(*inputs, **kwargs)
