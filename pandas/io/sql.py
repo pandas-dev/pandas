@@ -623,7 +623,7 @@ class SQLTable(PandasObject):
                     # GH 9086: Ensure we return datetimes with timezone info
                     # Need to return 2-D data; DatetimeIndex is 1D
                     d = b.values.to_pydatetime()
-                    d = np.expand_dims(d, axis=0)
+                    d = np.atleast_2d(d)
                 else:
                     # convert to microsecond resolution for datetime.datetime
                     d = b.values.astype('M8[us]').astype(object)

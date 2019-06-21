@@ -6,10 +6,9 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas.compat import to_str
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
 from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas.core.reshape.concat import concat
@@ -545,8 +544,7 @@ class JsonReader(BaseIterator):
         if self.lines and self.chunksize:
             obj = concat(self)
         elif self.lines:
-
-            data = to_str(self.data)
+            data = ensure_str(self.data)
             obj = self._get_object_parser(
                 self._combine_lines(data.split('\n'))
             )

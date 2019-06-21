@@ -712,10 +712,9 @@ class TestAdditionSubtraction:
         tm.assert_series_equal(df['result'], df['expected'], check_names=False)
 
     # TODO: taken from tests.frame.test_operators, needs cleanup
-    def test_frame_operators(self):
-        seriesd = tm.getSeriesData()
-        frame = pd.DataFrame(seriesd)
-        frame2 = pd.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
+    def test_frame_operators(self, float_frame):
+        frame = float_frame
+        frame2 = pd.DataFrame(float_frame, columns=['D', 'C', 'B', 'A'])
 
         garbage = np.random.random(4)
         colSeries = pd.Series(garbage, index=np.array(frame.columns))

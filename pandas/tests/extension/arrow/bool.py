@@ -114,6 +114,7 @@ class ArrowBoolArray(ExtensionArray):
         else:
             return type(self)(copy.copy(self._data))
 
+    @classmethod
     def _concat_same_type(cls, to_concat):
         chunks = list(itertools.chain.from_iterable(x._data.chunks
                                                     for x in to_concat))

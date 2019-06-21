@@ -212,7 +212,7 @@ class TimelikeOps:
 
             .. versionadded:: 0.24.0
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
 default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
@@ -400,10 +400,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
         return self._data
-
-    @property
-    def shape(self):
-        return (len(self),)
 
     @property
     def size(self) -> int:

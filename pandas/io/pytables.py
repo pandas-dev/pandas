@@ -19,6 +19,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -448,11 +449,7 @@ class HDFStore:
         if 'format' in kwargs:
             raise ValueError('format is not a defined argument for HDFStore')
 
-        try:
-            import tables  # noqa
-        except ImportError as ex:  # pragma: no cover
-            raise ImportError('HDFStore requires PyTables, "{ex!s}" problem '
-                              'importing'.format(ex=ex))
+        tables = import_optional_dependency("tables")
 
         if complib is not None and complib not in tables.filters.all_complibs:
             raise ValueError(

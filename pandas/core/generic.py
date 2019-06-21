@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Callable, FrozenSet, List, Set
+from typing import Callable, FrozenSet, List, Optional, Set
 import warnings
 import weakref
 
@@ -15,7 +15,8 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import Timestamp, iNaT, properties
-from pandas.compat import set_function_name, to_str
+from pandas.compat import set_function_name
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -24,7 +25,7 @@ from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
-    ensure_int64, ensure_object, is_bool, is_bool_dtype,
+    ensure_int64, ensure_object, ensure_str, is_bool, is_bool_dtype,
     is_datetime64_any_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
     is_dict_like, is_extension_array_dtype, is_integer, is_list_like,
     is_number, is_numeric_dtype, is_object_dtype, is_period_arraylike,
@@ -34,6 +35,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
+from pandas._typing import Dtype
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -117,12 +119,17 @@ class NDFrame(PandasObject, SelectionMixin):
     ])  # type: FrozenSet[str]
     _metadata = []  # type: List[str]
     _is_copy = None
+    _data = None  # type: BlockManager
 
     # ----------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, data, axes=None, copy=False, dtype=None,
-                 fastpath=False):
+    def __init__(self,
+                 data: BlockManager,
+                 axes: Optional[List[Index]] = None,
+                 copy: bool = False,
+                 dtype: Optional[Dtype] = None,
+                 fastpath: bool = False):
 
         if not fastpath:
             if dtype is not None:
@@ -1831,7 +1838,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # can we get a better explanation of this?
     def keys(self):
-        """Get the 'info axis' (see Indexing for more)
+        """
+        Get the 'info axis' (see Indexing for more)
 
         This is index for Series, columns for DataFrame.
 
@@ -1843,7 +1851,8 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._info_axis
 
     def iteritems(self):
-        """Iterate over (label, values) on info axis
+        """
+        Iterate over (label, values) on info axis
 
         This is index for Series, columns for DataFrame and so on.
         """
@@ -1933,11 +1942,16 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return dense representation of NDFrame (as opposed to sparse).
 
+        .. deprecated:: 0.25.0
+
         Returns
         -------
         %(klass)s
             Dense %(klass)s.
         """
+        warnings.warn("DataFrame/Series.to_dense is deprecated "
+                      "and will be removed in a future version",
+                      FutureWarning, stacklevel=2)
         # compat
         return self
 
@@ -2750,15 +2764,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Data variables:
             speed    (date, animal) int64 350 18 361 15
         """
-        try:
-            import xarray
-        except ImportError:
-            # Give a nice error message
-            raise ImportError("the xarray library is not installed\n"
-                              "you can install via conda\n"
-                              "conda install xarray\n"
-                              "or via pip\n"
-                              "pip install xarray\n")
+        xarray = import_optional_dependency("xarray")
 
         if self.ndim == 1:
             return xarray.DataArray.from_series(self)
@@ -4564,12 +4570,12 @@ class NDFrame(PandasObject, SelectionMixin):
                 **{name: [r for r in items if r in labels]})
         elif like:
             def f(x):
-                return like in to_str(x)
+                return like in ensure_str(x)
             values = labels.map(f)
             return self.loc(axis=axis)[values]
         elif regex:
             def f(x):
-                return matcher.search(to_str(x)) is not None
+                return matcher.search(ensure_str(x)) is not None
             matcher = re.compile(regex)
             values = labels.map(f)
             return self.loc(axis=axis)[values]
@@ -10283,8 +10289,8 @@ numeric_only : bool, default None
 Returns
 -------
 %(name1)s or %(name2)s (if level specified)\
-%(see_also)s
-%(examples)s\
+%(see_also)s\
+%(examples)s
 """
 
 _num_ddof_doc = """
@@ -10427,7 +10433,8 @@ skipna : boolean, default True
 
 Returns
 -------
-%(name1)s or %(name2)s\n
+%(name1)s or %(name2)s
+
 See Also
 --------
 core.window.Expanding.%(accum_func_name)s : Similar functionality
@@ -10788,10 +10795,10 @@ True
 Series([], dtype: bool)
 """
 
-_shared_docs['stat_func_example'] = """\
+_shared_docs['stat_func_example'] = """
+
 Examples
 --------
-
 >>> idx = pd.MultiIndex.from_arrays([
 ...     ['warm', 'warm', 'cold', 'cold'],
 ...     ['dog', 'falcon', 'fish', 'spider']],
@@ -10820,8 +10827,7 @@ Name: legs, dtype: int64
 blooded
 warm    {level_output_0}
 cold    {level_output_1}
-Name: legs, dtype: int64
-"""
+Name: legs, dtype: int64"""
 
 _sum_examples = _shared_docs['stat_func_example'].format(
     stat_func='sum',
@@ -10831,6 +10837,7 @@ _sum_examples = _shared_docs['stat_func_example'].format(
     level_output_1=8)
 
 _sum_examples += """
+
 By default, the sum of an empty or all-NA Series is ``0``.
 
 >>> pd.Series([]).sum()  # min_count=0 is the default
@@ -10849,8 +10856,7 @@ empty series identically.
 0.0
 
 >>> pd.Series([np.nan]).sum(min_count=1)
-nan
-"""
+nan"""
 
 _max_examples = _shared_docs['stat_func_example'].format(
     stat_func='max',
@@ -10867,6 +10873,7 @@ _min_examples = _shared_docs['stat_func_example'].format(
     level_output_1=0)
 
 _stat_func_see_also = """
+
 See Also
 --------
 Series.sum : Return the sum.
@@ -10878,10 +10885,10 @@ DataFrame.sum : Return the sum over the requested axis.
 DataFrame.min : Return the minimum over the requested axis.
 DataFrame.max : Return the maximum over the requested axis.
 DataFrame.idxmin : Return the index of the minimum over the requested axis.
-DataFrame.idxmax : Return the index of the maximum over the requested axis.
-"""
+DataFrame.idxmax : Return the index of the maximum over the requested axis."""
 
-_prod_examples = """\
+_prod_examples = """
+
 Examples
 --------
 By default, the product of an empty or all-NA Series is ``1``
@@ -10901,8 +10908,7 @@ empty series identically.
 1.0
 
 >>> pd.Series([np.nan]).prod(min_count=1)
-nan
-"""
+nan"""
 
 _min_count_stub = """\
 min_count : int, default 0

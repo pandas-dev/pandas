@@ -24,17 +24,6 @@ PYPY = platform.python_implementation() == 'PyPy'
 # found at https://bitbucket.org/gutworth/six
 
 
-def to_str(s):
-    """
-    Convert bytes and non-string into Python 3 str
-    """
-    if isinstance(s, bytes):
-        s = s.decode('utf-8')
-    elif not isinstance(s, str):
-        s = str(s)
-    return s
-
-
 def set_function_name(f, name, cls):
     """
     Bind the name/qualname attributes of the function
