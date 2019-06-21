@@ -769,7 +769,8 @@ class IntervalIndex(IntervalMixin, Index):
         return start, stop
 
     def get_loc(self, key, method=None):
-        """Get integer location, slice or boolean mask for requested label.
+        """
+        Get integer location, slice or boolean mask for requested label.
 
         Parameters
         ----------

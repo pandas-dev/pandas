@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-"""Top level ``eval`` module.
+"""
+Top level ``eval`` module.
 """
 
 import tokenize
@@ -15,7 +16,8 @@ from pandas.io.formats.printing import pprint_thing
 
 
 def _check_engine(engine):
-    """Make sure a valid engine is passed.
+    """
+    Make sure a valid engine is passed.
 
     Parameters
     ----------
@@ -31,7 +33,6 @@ def _check_engine(engine):
     Returns
     -------
     string engine
-
     """
     from pandas.core.computation.check import _NUMEXPR_INSTALLED
 
@@ -60,7 +61,8 @@ def _check_engine(engine):
 
 
 def _check_parser(parser):
-    """Make sure a valid parser is passed.
+    """
+    Make sure a valid parser is passed.
 
     Parameters
     ----------
@@ -88,7 +90,8 @@ def _check_resolvers(resolvers):
 
 
 def _check_expression(expr):
-    """Make sure an expression is not an empty string
+    """
+    Make sure an expression is not an empty string
 
     Parameters
     ----------
@@ -105,7 +108,8 @@ def _check_expression(expr):
 
 
 def _convert_expression(expr):
-    """Convert an object to an expression.
+    """
+    Convert an object to an expression.
 
     Thus function converts an object to an expression (a unicode string) and
     checks to make sure it isn't empty after conversion. This is used to
@@ -155,7 +159,8 @@ def _check_for_locals(expr, stack_level, parser):
 def eval(expr, parser='pandas', engine=None, truediv=True,
          local_dict=None, global_dict=None, resolvers=(), level=0,
          target=None, inplace=False):
-    """Evaluate a Python expression as a string using various backends.
+    """
+    Evaluate a Python expression as a string using various backends.
 
     The following arithmetic operations are supported: ``+``, ``-``, ``*``,
     ``/``, ``**``, ``%``, ``//`` (python engine only) along with the following

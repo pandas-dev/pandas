@@ -204,8 +204,7 @@ class Resampler(_GroupBy):
     >>> df.resample('2D').pipe(lambda x: x.max() - x.min())
                 A
     2012-08-02  1
-    2012-08-04  1
-    """)
+    2012-08-04  1""")
     @Appender(_pipe_template)
     def pipe(self, func, *args, **kwargs):
         return super().pipe(func, *args, **kwargs)

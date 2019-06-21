@@ -631,12 +631,16 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     @property
     def unit(self):
-        """The precision of the datetime data."""
+        """
+        The precision of the datetime data.
+        """
         return self._unit
 
     @property
     def tz(self):
-        """The timezone."""
+        """
+        The timezone.
+        """
         return self._tz
 
     @classmethod
@@ -777,7 +781,9 @@ class PeriodDtype(PandasExtensionDtype):
 
     @property
     def freq(self):
-        """The frequency object of this PeriodDtype."""
+        """
+        The frequency object of this PeriodDtype.
+        """
         return self._freq
 
     @classmethod
@@ -944,7 +950,9 @@ class IntervalDtype(PandasExtensionDtype):
 
     @property
     def subtype(self):
-        """The dtype of the Interval bounds."""
+        """
+        The dtype of the Interval bounds.
+        """
         return self._subtype
 
     @classmethod

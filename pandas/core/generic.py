@@ -1838,7 +1838,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # can we get a better explanation of this?
     def keys(self):
-        """Get the 'info axis' (see Indexing for more)
+        """
+        Get the 'info axis' (see Indexing for more)
 
         This is index for Series, columns for DataFrame.
 
@@ -1850,7 +1851,8 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._info_axis
 
     def iteritems(self):
-        """Iterate over (label, values) on info axis
+        """
+        Iterate over (label, values) on info axis
 
         This is index for Series, columns for DataFrame and so on.
         """

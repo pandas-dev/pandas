@@ -196,7 +196,7 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-_codes_doc = """\
+_codes_doc = """
 The category codes of this categorical.
 
 Level codes are an array if integer which are the positions of the real

@@ -427,7 +427,8 @@ def is_named_tuple(obj):
 
 
 def is_hashable(obj):
-    """Return True if hash(obj) will succeed, False otherwise.
+    """
+    Return True if hash(obj) will succeed, False otherwise.
 
     Some types will pass a test against collections.abc.Hashable but fail when
     they are actually hashed with hash().
