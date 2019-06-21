@@ -5,7 +5,6 @@ from distutils.version import LooseVersion
 from io import BytesIO
 import os
 import tempfile
-import time
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -5180,7 +5179,7 @@ class TestTimezones(Base):
                 assert_frame_equal(result, df)
 
 
-@pytest.fixture()
+@pytest.fixture
 def pytables_hdf5_file():
     """Use PyTables to create a simple HDF5 file."""
 
@@ -5190,7 +5189,7 @@ def pytables_hdf5_file():
         'c2': tables.Int64Col(pos=2),
     }
 
-    t0 = time.time()
+    t0 = 1561105000.0
 
     testsamples = [
         {'c0': t0, 'c1': 'aaaaa', 'c2': 1},
