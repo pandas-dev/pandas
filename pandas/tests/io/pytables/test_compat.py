@@ -1,7 +1,3 @@
-import os
-import tempfile
-from contextlib import contextmanager
-
 import pytest
 
 import pandas as pd
@@ -16,8 +12,9 @@ tables = pytest.importorskip('tables')
 def pytables_hdf5_file(tmp_path):
     """Use PyTables to create a simple HDF5 file.
 
-    There is no need for temporary file cleanup, pytest makes sure that there is
-    no collision between tests and that storage needs to not grow indefinitely.
+    There is no need for temporary file cleanup, pytest makes sure that there
+    is no collision between tests and that storage needs to not grow
+    indefinitely.
     """
 
     table_schema = {
