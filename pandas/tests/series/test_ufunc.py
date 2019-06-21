@@ -80,10 +80,7 @@ def test_binary_ufunc_with_array(flip, sparse, ufunc, arrays_for_binary_ufunc):
 
 @pytest.mark.parametrize("ufunc", BINARY_UFUNCS)
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
-@pytest.mark.parametrize("flip", [
-    pytest.param(True, marks=pytest.mark.xfail(reason="Index should defer")),
-    False
-], ids=['flipped', 'straight'])
+@pytest.mark.parametrize("flip", [True, False], ids=['flipped', 'straight'])
 def test_binary_ufunc_with_index(flip, sparse, ufunc, arrays_for_binary_ufunc):
     # Test that
     #   * func(Series(a), Series(b)) == Series(ufunc(a, b))
@@ -119,10 +116,6 @@ def test_binary_ufunc_with_series(flip, shuffle, sparse, ufunc,
     # Test that
     #   * func(Series(a), Series(b)) == Series(ufunc(a, b))
     #   with alignment between the indices
-
-    if flip and shuffle:
-        pytest.xfail(reason="Fix with Series.__array_ufunc__")
-
     a1, a2 = arrays_for_binary_ufunc
     if sparse:
         a1 = pd.SparseArray(a1, dtype=pd.SparseDtype('int', 0))
@@ -136,8 +129,6 @@ def test_binary_ufunc_with_series(flip, shuffle, sparse, ufunc,
 
     if shuffle:
         other = other.take(idx)
-        a2 = a2.take(idx)
-        # alignment, so the expected index is the first index in the op.
         if flip:
             index = other.align(series)[0].index
         else:
@@ -196,6 +187,9 @@ def test_multiple_ouput_binary_ufuncs(ufunc, sparse, shuffle,
         pytest.skip("sparse divmod not implemented.")
 
     a1, a2 = arrays_for_binary_ufunc
+    # work around https://github.com/pandas-dev/pandas/issues/26987
+    a1[a1 == 0] = 1
+    a2[a2 == 0] = 1
 
     if sparse:
         a1 = pd.SparseArray(a1, dtype=pd.SparseDtype('int', 0))
@@ -239,7 +233,6 @@ def test_multiple_ouput_ufunc(sparse, arrays_for_binary_ufunc):
 
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 @pytest.mark.parametrize("ufunc", BINARY_UFUNCS)
-@pytest.mark.xfail(reason="Series.__array_ufunc__")
 def test_binary_ufunc_drops_series_name(ufunc, sparse,
                                         arrays_for_binary_ufunc):
     # Drop the names when they differ.

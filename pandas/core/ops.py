@@ -1634,12 +1634,20 @@ def _arith_method_SERIES(cls, op, special):
 
     def na_op(x, y):
         import pandas.core.computation.expressions as expressions
+
         try:
             result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
             result = masked_arith_op(x, y, op)
 
-        result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
+        if isinstance(result, tuple):
+            # e.g. divmod
+            result = tuple(
+                missing.fill_zeros(x, x, y, op_name, fill_zeros)
+                for x in result
+            )
+        else:
+            result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
         return result
 
     def safe_na_op(lvalues, rvalues):
