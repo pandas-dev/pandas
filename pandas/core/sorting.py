@@ -7,7 +7,7 @@ from pandas._libs.hashtable import unique_label_indices
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_platform_int, is_categorical_dtype,
-    is_extension_array_dtype, is_list_like, is_sparse)
+    is_extension_array_dtype, is_list_like)
 from pandas.core.dtypes.generic import ABCIndexClass
 from pandas.core.dtypes.missing import isna
 
