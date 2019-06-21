@@ -573,8 +573,8 @@ def sanitize_array(data, index, dtype=None, copy=False,
         # it is already ensured above this is not a PandasArray
         subarr = data
         if dtype is not None:
-            subarr = subarr.astype(dtype)
-        if copy:
+            subarr = subarr.astype(dtype, copy=copy)
+        elif copy:
             subarr = subarr.copy()
         return subarr
 
@@ -658,7 +658,19 @@ def sanitize_array(data, index, dtype=None, copy=False,
 
 
 def _try_cast(arr, dtype, copy, raise_cast_failure):
+    """
+    Convert input to numpy ndarray and optionally cast to a given dtype.
 
+    Parameters
+    ----------
+    arr : array-like
+    dtype : np.dtype, ExtensionDtype or None
+    copy : bool
+        If False, don't copy the data if not needed.
+    raise_cast_failure : bool
+        If True, and if a dtype is specified, raise errors during casting.
+        Otherwise an object array is returned.
+    """
     # perf shortcut as this is the most common case
     if isinstance(arr, np.ndarray):
         if maybe_castable(arr) and not copy and dtype is None:
