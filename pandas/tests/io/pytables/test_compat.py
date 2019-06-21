@@ -1,8 +1,9 @@
 import pytest
 
 import pandas as pd
-
 from pandas.util.testing import assert_frame_equal
+
+from pandas.tests.io.test_pytables import ensure_clean_path
 
 
 tables = pytest.importorskip('tables')
@@ -10,14 +11,7 @@ tables = pytest.importorskip('tables')
 
 @pytest.fixture
 def pytables_hdf5_file(tmp_path):
-    """Use PyTables to create a simple HDF5 file.
-
-    There is no need for temporary file cleanup: pytest's `tmp_path` fixture
-    guarantees file system isolation between tests, retains files for later
-    inspection and then removes them in a rolling fashion so that the storage
-    space consumption does not grow indefinitely with the number of test runner
-    invocations.
-    """
+    """Use PyTables to create a simple HDF5 file."""
 
     table_schema = {
         'c0': tables.Time64Col(pos=0),
@@ -36,18 +30,16 @@ def pytables_hdf5_file(tmp_path):
 
     objname = 'pandas_test_timeseries'
 
-    # The `tmp_path` fixture provides a temporary directory unique to the
-    # individual test invocation. Create a file in there.
-    h5path = tmp_path / 'written_with_pytables.h5'
+    with ensure_clean_path('written_with_pytables.h5') as path:
+        # The `ensure_clean_path` context mgr removes the temp file upon exit.
+        with tables.open_file(path, mode='w') as f:
+            t = f.create_table('/', name=objname, description=table_schema)
+            for sample in testsamples:
+                for key, value in sample.items():
+                    t.row[key] = value
+                t.row.append()
 
-    with tables.open_file(str(h5path), mode='w') as f:
-        t = f.create_table('/', name=objname, description=table_schema)
-        for sample in testsamples:
-            for key, value in sample.items():
-                t.row[key] = value
-            t.row.append()
-
-    return h5path, objname, pd.DataFrame(testsamples)
+        yield path, objname, pd.DataFrame(testsamples)
 
 
 class TestReadPyTablesHDF5:
