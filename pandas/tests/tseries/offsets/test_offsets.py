@@ -115,7 +115,7 @@ class Base:
             assert t.tzinfo == result.tzinfo
 
         except OutOfBoundsDatetime:
-            raise
+            pass
         except (ValueError, KeyError):
             # we are creating an invalid offset
             # so ignore

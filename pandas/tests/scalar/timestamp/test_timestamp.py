@@ -463,6 +463,13 @@ class TestTimestampConstructors:
         with pytest.raises(ValueError):
             Timestamp('2010-10-10 12:59:59.999999999', **kwarg)
 
+    def test_out_of_bounds_integer_value(self):
+        # GH#26651 check that we raise OutOfBoundsDatetime, not OverflowError
+        with pytest.raises(OutOfBoundsDatetime):
+            Timestamp(Timestamp.max.value * 2)
+        with pytest.raises(OutOfBoundsDatetime):
+            Timestamp(Timestamp.min.value * 2)
+
     def test_out_of_bounds_value(self):
         one_us = np.timedelta64(1).astype('timedelta64[us]')
 
