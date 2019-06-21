@@ -194,7 +194,7 @@ class TestLoc(Base):
                           typs=['ints', 'uints', 'labels',
                                 'mixed', 'ts', 'floats'])
         self.check_result('bool', 'loc', b, 'ix', b, typs=['empty'],
-                          fails=KeyError)
+                          fails=ValueError)
 
     @pytest.mark.parametrize('index', [[True, False],
                                        [True, False, True, False]])

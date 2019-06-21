@@ -262,8 +262,11 @@ class TestiLoc(Base):
         b = [True, False, True, False, ]
         self.check_result('bool', 'iloc', b, 'ix', b, typs=['ints', 'uints'])
         self.check_result('bool', 'iloc', b, 'ix', b,
-                          typs=['labels', 'mixed', 'ts', 'floats', 'empty'],
+                          typs=['labels', 'mixed', 'ts', 'floats'],
                           fails=IndexError)
+        self.check_result('bool', 'iloc', b, 'ix', b,
+                          typs=['empty'],
+                          fails=ValueError)
 
     @pytest.mark.parametrize('index', [[True, False],
                                        [True, False, True, False]])

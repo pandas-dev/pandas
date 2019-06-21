@@ -1,4 +1,5 @@
 import textwrap
+from typing import Sequence
 import warnings
 
 import numpy as np
@@ -2406,7 +2407,7 @@ def convert_to_index_sliceable(obj, key):
     return None
 
 
-def check_bool_indexer(index, key):
+def check_bool_indexer(index: Index, key: Sequence[bool]) -> np.ndarray:
     """
     Check if key is a valid boolean indexer for an object with such index and
     perform reindexing or conversion if needed.
@@ -2415,11 +2416,10 @@ def check_bool_indexer(index, key):
 
     Parameters
     ----------
-    key : list-like
-        Boolean indexer to check
-
     index : Index
         Index of the object on which the indexing is done
+    key : list-like
+        Boolean indexer to check
 
     Returns
     -------
@@ -2450,13 +2450,13 @@ def check_bool_indexer(index, key):
     else:
         # is_bool_indexer has already checked for nulls in the case of an
         # object array key, so no check needed here
+        result = np.asarray(result, dtype=bool)
 
         # GH26658
-        if all((len(i) > 0 for i in (index, key))) and len(index) != len(key):
+        if len(result) != len(index):
             raise ValueError(
-                'Item wrong length {} instead of {}.'.format(len(key),
+                'Item wrong length {} instead of {}.'.format(len(result),
                                                              len(index)))
-        result = np.asarray(result, dtype=bool)
 
     return result
 
