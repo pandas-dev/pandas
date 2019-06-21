@@ -12,9 +12,11 @@ tables = pytest.importorskip('tables')
 def pytables_hdf5_file(tmp_path):
     """Use PyTables to create a simple HDF5 file.
 
-    There is no need for temporary file cleanup, pytest makes sure that there
-    is no collision between tests and that storage needs to not grow
-    indefinitely.
+    There is no need for temporary file cleanup: pytest's `tmp_path` fixture
+    guarantees file system isolation between tests, retains files for later
+    inspection and then removes them in a rolling fashion so that the storage
+    space consumption does not grow indefinitely with the number of test runner
+    invocations.
     """
 
     table_schema = {
