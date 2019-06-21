@@ -1099,6 +1099,10 @@ def roll_median_c(ndarray[float64_t] values, int64_t win, int64_t minp,
         use_mock=False)
     output = np.empty(N, dtype=float)
 
+    if win == 0:
+        output[:] = NaN
+        return output
+
     sl = skiplist_init(<int>win)
     if sl == NULL:
         raise MemoryError("skiplist_init failed")
@@ -1486,6 +1490,11 @@ def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
         minp, index, closed,
         use_mock=False)
     output = np.empty(N, dtype=float)
+
+    if win == 0:
+        output[:] = NaN
+        return output
+
     skiplist = skiplist_init(<int>win)
     if skiplist == NULL:
         raise MemoryError("skiplist_init failed")
