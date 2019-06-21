@@ -10,7 +10,7 @@ tables = pytest.importorskip('tables')
 
 
 @pytest.fixture
-def pytables_hdf5_file(tmp_path):
+def pytables_hdf5_file():
     """Use PyTables to create a simple HDF5 file."""
 
     table_schema = {
@@ -46,6 +46,8 @@ class TestReadPyTablesHDF5:
     """
     A group of tests which covers reading HDF5 files written by plain PyTables
     (not written by pandas).
+
+    Was introduced for regression-testing issue 11188.
     """
 
     def test_read_complete(self, pytables_hdf5_file):
