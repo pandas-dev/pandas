@@ -105,7 +105,7 @@ def ensure_clean_store(path, mode='a', complevel=None, complib=None,
 def ensure_clean_path(path):
     """
     return essentially a named temporary file that is not opened
-    and deleted on existing; if path is a list, then create and
+    and deleted on exiting; if path is a list, then create and
     return list of filenames
     """
     try:
