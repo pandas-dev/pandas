@@ -19,6 +19,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -448,11 +449,7 @@ class HDFStore:
         if 'format' in kwargs:
             raise ValueError('format is not a defined argument for HDFStore')
 
-        try:
-            import tables  # noqa
-        except ImportError as ex:  # pragma: no cover
-            raise ImportError('HDFStore requires PyTables, "{ex!s}" problem '
-                              'importing'.format(ex=ex))
+        tables = import_optional_dependency("tables")
 
         if complib is not None and complib not in tables.filters.all_complibs:
             raise ValueError(
@@ -1627,7 +1624,8 @@ class IndexCol:
         new_self.read_metadata(handler)
         return new_self
 
-    def convert(self, values, nan_rep, encoding, errors):
+    def convert(self, values, nan_rep, encoding, errors, start=None,
+                stop=None):
         """ set the values from this selection: take = take ownership """
 
         # values is a recarray
@@ -1816,10 +1814,29 @@ class GenericIndexCol(IndexCol):
     def is_indexed(self):
         return False
 
-    def convert(self, values, nan_rep, encoding, errors):
-        """ set the values from this selection: take = take ownership """
+    def convert(self, values, nan_rep, encoding, errors, start=None,
+                stop=None):
+        """ set the values from this selection: take = take ownership
 
-        self.values = Int64Index(np.arange(self.table.nrows))
+        Parameters
+        ----------
+
+        values : np.ndarray
+        nan_rep : str
+        encoding : str
+        errors : str
+        start : int, optional
+            Table row number: the start of the sub-selection.
+        stop : int, optional
+            Table row number: the end of the sub-selection. Values larger than
+            the underlying table's row count are normalized to that.
+        """
+
+        start = start if start is not None else 0
+        stop = (min(stop, self.table.nrows)
+                if stop is not None else self.table.nrows)
+        self.values = Int64Index(np.arange(stop - start))
+
         return self
 
     def get_attr(self):
@@ -2162,7 +2179,8 @@ class DataCol(IndexCol):
                 raise ValueError("appended items dtype do not match existing "
                                  "items dtype in table!")
 
-    def convert(self, values, nan_rep, encoding, errors):
+    def convert(self, values, nan_rep, encoding, errors, start=None,
+                stop=None):
         """set the data from this selection (and convert to the correct dtype
         if we can)
         """
@@ -3434,8 +3452,11 @@ class Table(Fixed):
         # convert the data
         for a in self.axes:
             a.set_info(self.info)
+            # `kwargs` may contain `start` and `stop` arguments if passed to
+            # `store.select()`. If set they determine the index size.
             a.convert(values, nan_rep=self.nan_rep, encoding=self.encoding,
-                      errors=self.errors)
+                      errors=self.errors, start=kwargs.get('start'),
+                      stop=kwargs.get('stop'))
 
         return True
 
