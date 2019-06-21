@@ -1313,6 +1313,7 @@ class Categorical(ExtensionArray, PandasObject):
             self, ufunc, method, *inputs, **kwargs)
         if result is not NotImplemented:
             return result
+
         # for all other cases, raise for now (similarly as what happens in
         # Series.__array_prepare__)
         raise TypeError("Object with dtype {dtype} cannot perform "

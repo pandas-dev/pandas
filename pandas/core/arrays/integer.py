@@ -349,7 +349,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-
+        # For IntegerArray inputs, we apply the ufunc to ._data
+        # and mask the result.
         out = kwargs.get('out', ())
 
         for x in inputs + out:
@@ -362,26 +363,33 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         if result is not NotImplemented:
             return result
 
-        if (method == '__call__'
-                and ufunc.signature is None
-                and ufunc.nout == 1):
-            # only supports IntegerArray for now
-            args = [a._data for a in inputs]
-            masks = [a._mask for a in inputs]
-            result = ufunc(*args, **kwargs)
-            mask = np.logical_or.reduce(masks)
-            if result.dtype.kind in ('i', 'u'):
-                return IntegerArray(result, mask)
+        mask = np.zeros(len(self), dtype=bool)
+        inputs2 = []
+        for x in inputs:
+            if isinstance(x, IntegerArray):
+                mask |= x._mask
+                inputs2.append(x._data)
             else:
-                result[mask] = np.nan
-                return result
+                inputs2.append(x)
 
-        # fall back to array for other ufuncs
-        inputs = tuple(
-            np.array(x) if isinstance(x, type(self)) else x
-            for x in inputs
-        )
-        return getattr(ufunc, method)(*inputs, **kwargs)
+        def reconstruct(x):
+            if np.isscalar(x):
+                # reductions.
+                if mask.any():
+                    return np.nan
+                return x
+            if is_integer_dtype(x.dtype):
+                m = mask.copy()
+                return IntegerArray(x, m)
+            else:
+                x[mask] = np.nan
+            return x
+
+        result = getattr(ufunc, method)(*inputs2, **kwargs)
+        if isinstance(result, tuple):
+            tuple(reconstruct(x) for x in result)
+        else:
+            return reconstruct(result)
 
     def __iter__(self):
         for i in range(len(self)):

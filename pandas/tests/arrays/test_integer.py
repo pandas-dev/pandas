@@ -781,6 +781,10 @@ def test_ufunc_fallback():
     assert pd.isna(np.add.reduce(a))
 
 
+def test_modf():
+    pass
+
+
 # TODO(jreback) - these need testing / are broken
 
 # shift
