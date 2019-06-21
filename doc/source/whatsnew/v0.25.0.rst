@@ -132,6 +132,7 @@ Other Enhancements
 - :class:`DatetimeIndex` and :class:`TimedeltaIndex` now have a ``mean`` method (:issue:`24757`)
 - :meth:`DataFrame.describe` now formats integer percentiles without decimal point (:issue:`26660`)
 - Added support for reading SPSS .sav files using :func:`read_spss` (:issue:`26537`)
+- Added new option ``plotting.backend`` to be able to select a plotting backend different than the existing ``matplotlib`` one. Use ``pandas.set_option('plotting.backend', '<backend-module>')`` where ``<backend-module`` is a library implementing the pandas plotting API (:issue:`14130`)
 
 .. _whatsnew_0250.api_breaking:
 

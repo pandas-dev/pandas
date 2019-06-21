@@ -431,6 +431,12 @@ compute.use_bottleneck                  True         Use the bottleneck library 
                                                      computation if it is installed.
 compute.use_numexpr                     True         Use the numexpr library to accelerate
                                                      computation if it is installed.
+plotting.backend                        matplotlib   Change the plotting backend to a different
+                                                     backend than the current matplotlib one.
+                                                     Backends can be implemented as third-party
+                                                     libraries implementing the pandas plotting
+                                                     API. They can use other plotting libraries
+                                                     like Bokeh, Altair, etc.
 plotting.matplotlib.register_converters True         Register custom converters with
                                                      matplotlib. Set to False to de-register.
 ======================================= ============ ==================================

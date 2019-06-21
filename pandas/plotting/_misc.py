@@ -3,14 +3,7 @@ import warnings
 
 from pandas.util._decorators import deprecate_kwarg
 
-
-def _get_plot_backend():
-    # TODO unify with the same function in `_core.py`
-    try:
-        import pandas.plotting._matplotlib as plot_backend
-    except ImportError:
-        raise ImportError("matplotlib is required for plotting.")
-    return plot_backend
+from pandas.plotting._core import _get_plot_backend
 
 
 def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
