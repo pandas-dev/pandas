@@ -824,30 +824,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             dtype = 'M8[ns]'
         return np.asarray(self.array, dtype)
 
-    def __array_wrap__(self, result, context=None):
-        """
-        Gets called after a ufunc.
-        """
-        return self._constructor(result, index=self.index,
-                                 copy=False).__finalize__(self)
-
-    def __array_prepare__(self, result, context=None):
-        """
-        Gets called prior to a ufunc.
-        """
-
-        # nice error message for non-ufunc types
-        if (context is not None and
-                (not isinstance(self._values, (np.ndarray, ExtensionArray))
-                 or isinstance(self._values, Categorical))):
-            obj = context[1][0]
-            raise TypeError("{obj} with dtype {dtype} cannot perform "
-                            "the numpy op {op}".format(
-                                obj=type(obj).__name__,
-                                dtype=getattr(obj, 'dtype', None),
-                                op=context[0].__name__))
-        return result
-
     # ----------------------------------------------------------------------
     # Unary Methods
 
