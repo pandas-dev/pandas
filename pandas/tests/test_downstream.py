@@ -131,3 +131,15 @@ def test_pyarrow(df):
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
+
+
+def test_missing_required_dependency():
+    # GH 23868
+    # use the -S flag to disable site-packages
+    call = ['python', '-S', '-c', 'import pandas']
+
+    with pytest.raises(subprocess.CalledProcessError) as exc:
+        subprocess.check_output(call, stderr=subprocess.STDOUT)
+
+    output = exc.value.stdout.decode()
+    assert all(x in output for x in ['numpy', 'pytz', 'dateutil'])

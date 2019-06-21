@@ -200,7 +200,13 @@ class TestSetitem(BaseDecimal, base.BaseSetitemTests):
 
 
 class TestPrinting(BaseDecimal, base.BasePrintingTests):
-    pass
+
+    def test_series_repr(self, data):
+        # Overriding this base test to explicitly test that
+        # the custom _formatter is used
+        ser = pd.Series(data)
+        assert data.dtype.name in repr(ser)
+        assert "Decimal: " in repr(ser)
 
 
 # TODO(extension)

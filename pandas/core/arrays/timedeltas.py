@@ -127,6 +127,14 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     freq : Offset, optional
     copy : bool, default False
         Whether to copy the underlying array of data.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _typ = "timedeltaarray"
     _scalar_type = Timedelta
