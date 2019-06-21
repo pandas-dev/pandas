@@ -241,14 +241,15 @@ class TestDataFrameMissingData:
         result = mf.fillna(method='pad')
         _check_mixed_float(result, dtype=dict(C=None))
 
-    def test_fillna_other(self):
+    def test_fillna_empty(self):
         # empty frame (GH #2778)
         df = DataFrame(columns=['x'])
         for m in ['pad', 'backfill']:
             df.x.fillna(method=m, inplace=True)
             df.x.fillna(method=m)
 
-        # with different dtype (GH3386)
+    def test_fillna_different_dtype(self):
+        # with different dtype (GH#3386)
         df = DataFrame([['a', 'a', np.nan, 'a'], [
                        'b', 'b', np.nan, 'b'], ['c', 'c', np.nan, 'c']])
 
@@ -261,6 +262,7 @@ class TestDataFrameMissingData:
         df.fillna({2: 'foo'}, inplace=True)
         assert_frame_equal(df, expected)
 
+    def test_fillna_limit_and_value(self):
         # limit and value
         df = DataFrame(np.random.randn(10, 3))
         df.iloc[2:7, 0] = np.nan
@@ -272,8 +274,9 @@ class TestDataFrameMissingData:
         result = df.fillna(999, limit=1)
         assert_frame_equal(result, expected)
 
+    def test_fillna_datelike(self):
         # with datelike
-        # GH 6344
+        # GH#6344
         df = DataFrame({
             'Date': [pd.NaT, Timestamp("2014-1-1")],
             'Date2': [Timestamp("2013-1-1"), pd.NaT]
@@ -285,8 +288,9 @@ class TestDataFrameMissingData:
         result = df.fillna(value={'Date': df['Date2']})
         assert_frame_equal(result, expected)
 
+    def test_fillna_tzaware(self):
         # with timezone
-        # GH 15855
+        # GH#15855
         df = pd.DataFrame({'A': [pd.Timestamp('2012-11-11 00:00:00+01:00'),
                                  pd.NaT]})
         exp = pd.DataFrame({'A': [pd.Timestamp('2012-11-11 00:00:00+01:00'),
@@ -299,8 +303,9 @@ class TestDataFrameMissingData:
                                   pd.Timestamp('2012-11-11 00:00:00+01:00')]})
         assert_frame_equal(df.fillna(method='bfill'), exp)
 
+    def test_fillna_tzaware_different_column(self):
         # with timezone in another column
-        # GH 15522
+        # GH#15522
         df = pd.DataFrame({'A': pd.date_range('20130101', periods=4,
                                               tz='US/Eastern'),
                            'B': [1, 2, np.nan, np.nan]})

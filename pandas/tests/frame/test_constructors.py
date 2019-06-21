@@ -5,6 +5,7 @@ import itertools
 
 import numpy as np
 import numpy.ma as ma
+import numpy.ma.mrecords as mrecords
 import pytest
 
 from pandas.compat import PY36, is_platform_little_endian
@@ -839,7 +840,7 @@ class TestDataFrameConstructors(TestData):
         data = np.ma.array(
             np.ma.zeros(5, dtype=[('date', '<f8'), ('price', '<f8')]),
             mask=[False] * 5)
-        data = data.view(ma.mrecords.mrecarray)
+        data = data.view(mrecords.mrecarray)
         result = pd.DataFrame(data, dtype=int)
         expected = pd.DataFrame(np.zeros((5, 2), dtype=int),
                                 columns=['date', 'price'])
@@ -868,7 +869,7 @@ class TestDataFrameConstructors(TestData):
         # call assert_frame_equal for all selections of 3 arrays
         for comb in itertools.combinations(arrays, 3):
             names, data = zip(*comb)
-            mrecs = ma.mrecords.fromarrays(data, names=names)
+            mrecs = mrecords.fromarrays(data, names=names)
 
             # fill the comb
             comb = {k: (v.filled() if hasattr(v, 'filled') else v)
