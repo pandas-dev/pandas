@@ -1,9 +1,8 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 import functools
+import warnings
 
-from matplotlib import pylab
-import matplotlib.pyplot as plt
 import numpy as np
 
 from pandas._libs.tslibs.frequencies import (
@@ -25,7 +24,6 @@ from pandas.tseries.offsets import DateOffset
 
 
 def tsplot(series, plotf, ax=None, **kwargs):
-    import warnings
     """
     Plots a Series on the given Matplotlib axes or the current axes
 
@@ -42,6 +40,7 @@ def tsplot(series, plotf, ax=None, **kwargs):
     .. deprecated:: 0.23.0
        Use Series.plot() instead
     """
+    import matplotlib.pyplot as plt
     warnings.warn("'tsplot' is deprecated and will be removed in a "
                   "future version. Please use Series.plot() instead.",
                   FutureWarning, stacklevel=2)
@@ -323,6 +322,7 @@ def format_dateaxis(subplot, freq, index):
     default, changing the limits of the x axis will intelligently change
     the positions of the ticks.
     """
+    from matplotlib import pylab
 
     # handle index specific formatting
     # Note: DatetimeIndex does not use this

@@ -180,6 +180,7 @@ class TestSparseSeriesConcat:
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparseDataFrameConcat:
 
     def setup_method(self, method):
