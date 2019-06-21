@@ -133,13 +133,20 @@ def test_pyarrow(df):
     tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.xfail(reason="pandas-wheels-50", strict=False)
 def test_missing_required_dependency():
     # GH 23868
-    # use the -S flag to disable site-packages
-    call = ['python', '-S', '-c', 'import pandas']
+    # To ensure proper isolation, we pass these flags
+    # -S : disable site-packages
+    # -s : disable user site-packages
+    # -E : disable PYTHON* env vars, especially PYTHONPATH
+    # And, that's apparently not enough, so we give up.
+    # https://github.com/MacPython/pandas-wheels/pull/50
+    call = ['python', '-sSE', '-c', 'import pandas']
 
     with pytest.raises(subprocess.CalledProcessError) as exc:
         subprocess.check_output(call, stderr=subprocess.STDOUT)
 
     output = exc.value.stdout.decode()
-    assert all(x in output for x in ['numpy', 'pytz', 'dateutil'])
+    for name in ['numpy', 'pytz', 'dateutil']:
+        assert name in output
