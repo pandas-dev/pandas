@@ -608,6 +608,17 @@ class TestRolling(Base):
         result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
 
+    def test_empty_window_median_quantile(self):
+        # GH 26005
+        expected = pd.Series([np.nan, np.nan, np.nan])
+        roll = pd.Series(np.arange(3)).rolling(0)
+
+        result = roll.median()
+        tm.assert_series_equal(result, expected)
+
+        result = roll.quantile(0.1)
+        tm.assert_series_equal(result, expected)
+
     def test_missing_minp_zero(self):
         # https://github.com/pandas-dev/pandas/pull/18921
         # minp=0
