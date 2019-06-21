@@ -1,5 +1,4 @@
 import textwrap
-from typing import Sequence
 import warnings
 
 import numpy as np
@@ -2408,7 +2407,7 @@ def convert_to_index_sliceable(obj, key):
     return None
 
 
-def check_bool_indexer(index: Index, key: Sequence[bool]) -> np.ndarray:
+def check_bool_indexer(index: Index, key) -> np.ndarray:
     """
     Check if key is a valid boolean indexer for an object with such index and
     perform reindexing or conversion if needed.
