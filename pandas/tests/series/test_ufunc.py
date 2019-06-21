@@ -55,8 +55,69 @@ def test_unary_ufunc(ufunc, sparse):
 
 @pytest.mark.parametrize("ufunc", BINARY_UFUNCS)
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
+@pytest.mark.parametrize("flip", [True, False], ids=['flipped', 'straight'])
+def test_binary_ufunc_with_array(flip, sparse, ufunc, arrays_for_binary_ufunc):
+    # Test that ufunc(Series(a), array) == Series(ufunc(a, b))
+    a1, a2 = arrays_for_binary_ufunc
+    if sparse:
+        a1 = pd.SparseArray(a1, dtype=pd.SparseDtype('int', 0))
+        a2 = pd.SparseArray(a2, dtype=pd.SparseDtype('int', 0))
+
+    name = "name"  # op(Series, array) preserves the name.
+    series = pd.Series(a1, name=name)
+    other = a2
+
+    array_args = (a1, a2)
+    series_args = (series, other)            # ufunc(series, array)
+
+    if flip:
+        array_args = reversed(array_args)
+        series_args = reversed(series_args)  # ufunc(array, series)
+
+    expected = pd.Series(ufunc(*array_args), name=name)
+    result = ufunc(*series_args)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("ufunc", BINARY_UFUNCS)
+@pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
+@pytest.mark.parametrize("flip", [
+    pytest.param(True, marks=pytest.mark.xfail(reason="Index should defer")),
+    False
+], ids=['flipped', 'straight'])
+def test_binary_ufunc_with_index(flip, sparse, ufunc, arrays_for_binary_ufunc):
+    # Test that
+    #   * func(Series(a), Series(b)) == Series(ufunc(a, b))
+    #   * ufunc(Index, Series) dispatches to Series (returns a Series)
+    a1, a2 = arrays_for_binary_ufunc
+    if sparse:
+        a1 = pd.SparseArray(a1, dtype=pd.SparseDtype('int', 0))
+        a2 = pd.SparseArray(a2, dtype=pd.SparseDtype('int', 0))
+
+    name = "name"  # op(Series, array) preserves the name.
+    series = pd.Series(a1, name=name)
+    other = pd.Index(a2, name=name).astype("int64")
+
+    array_args = (a1, a2)
+    series_args = (series, other)            # ufunc(series, array)
+
+    if flip:
+        array_args = reversed(array_args)
+        series_args = reversed(series_args)  # ufunc(array, series)
+
+    expected = pd.Series(ufunc(*array_args), name=name)
+    result = ufunc(*series_args)
+    tm.assert_series_equal(result, expected)
+
+
+def test_binary_ufunc_with_series():
+    pass
+
+
+@pytest.mark.parametrize("ufunc", BINARY_UFUNCS)
+@pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 @pytest.mark.parametrize("shuffle", SHUFFLE)
-@pytest.mark.parametrize("box_other", ['series', 'index', 'raw'])
+@pytest.mark.parametrize("box_other", ['series', 'index', 'ndarray'])
 @pytest.mark.parametrize("flip", [True, False],
                          ids=['flipped', 'straight'])
 def test_binary_ufunc(ufunc, sparse, shuffle, box_other,
@@ -76,7 +137,9 @@ def test_binary_ufunc(ufunc, sparse, shuffle, box_other,
         s2 = pd.Series(a2, name=name)
     elif box_other == 'index':
         # Index should defer to Series
-        s2 = pd.Index(a2, naame=name)
+        # astype for https://github.com/pandas-dev/pandas/issues/26972
+        s2 = pd.Index(a2, name=name).astype('int64')
+
     else:
         s2 = a2
 
@@ -98,7 +161,13 @@ def test_binary_ufunc(ufunc, sparse, shuffle, box_other,
         c, d = d, c
 
     result = ufunc(a, b)
-    expected = pd.Series(ufunc(c, d), name=name)
+    if shuffle and box_other != 'series':
+        index = s1.index
+    else:
+        # shuffle & union or no alignment
+        index = np.arange(len(s1))
+
+    expected = pd.Series(ufunc(c, d), name=name, index=index)
     if box_other == 'index' and flip:
         raise pytest.xfail("Index should defer to Series")
     tm.assert_series_equal(result, expected)
@@ -120,8 +189,9 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
         c, d = b, c
         a, b = b, a
 
-    expected = pd.Series(ufunc(a, b), name="name")
-    result = pd.Series(ufunc(c, d), name="name")
+    expected = pd.Series(ufunc(c, d), name="name")
+    result = ufunc(a, b)
+
     tm.assert_series_equal(result, expected)
 
 
@@ -131,6 +201,9 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
 @pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
 def test_multiple_ouput_binary_ufuncs(ufunc, sparse, shuffle,
                                       arrays_for_binary_ufunc):
+    if sparse and ufunc is np.divmod:
+        pytest.skip("sparse divmod not implemented.")
+
     a1, a2 = arrays_for_binary_ufunc
 
     if sparse:
