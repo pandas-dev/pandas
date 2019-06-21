@@ -3,14 +3,19 @@ Helper functions to generate range-like data for DatetimeArray
 (and possibly TimedeltaArray/PeriodArray)
 """
 
+from typing import Tuple
+
 import numpy as np
 
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 
-from pandas.tseries.offsets import Tick, generate_range
+from pandas.tseries.offsets import DateOffset, Tick, generate_range
 
 
-def generate_regular_range(start, end, periods, freq):
+def generate_regular_range(start: Timestamp,
+                           end: Timestamp,
+                           periods: int,
+                           freq: DateOffset) -> Tuple[np.ndarray, str]:
     """
     Generate a range of dates with the spans between dates described by
     the given `freq` DateOffset.
@@ -79,7 +84,10 @@ def generate_regular_range(start, end, periods, freq):
     return values, tz
 
 
-def _generate_range_overflow_safe(endpoint, periods, stride, side='start'):
+def _generate_range_overflow_safe(endpoint: int,
+                                  periods: int,
+                                  stride: int,
+                                  side: str = 'start') -> int:
     """
     Calculate the second endpoint for passing to np.arange, checking
     to avoid an integer overflow.  Catch OverflowError and re-raise
@@ -146,7 +154,10 @@ def _generate_range_overflow_safe(endpoint, periods, stride, side='start'):
     return _generate_range_overflow_safe(midpoint, remaining, stride, side)
 
 
-def _generate_range_overflow_safe_signed(endpoint, periods, stride, side):
+def _generate_range_overflow_safe_signed(endpoint: int,
+                                         periods: int,
+                                         stride: int,
+                                         side: str) -> int:
     """
     A special case for _generate_range_overflow_safe where `periods * stride`
     can be calculated without overflowing int64 bounds.
