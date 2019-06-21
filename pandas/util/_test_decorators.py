@@ -100,6 +100,23 @@ def _skip_if_no_scipy():
                 safe_import('scipy.signal'))
 
 
+def skip_if_installed(
+    package: str,
+) -> MarkDecorator:
+    """
+    Skip a test if a package is installed.
+
+    Parameters
+    ----------
+    package : str
+        The name of the package.
+    """
+    return pytest.mark.skipif(
+        safe_import(package),
+        reason="Skipping because {} is installed.".format(package)
+    )
+
+
 def skip_if_no(
     package: str,
     min_version: Optional[str] = None
