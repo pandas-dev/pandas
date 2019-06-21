@@ -197,6 +197,7 @@ def _concat_categorical(to_concat, axis=0):
             return union_categoricals(categoricals)
 
     # extract the categoricals & coerce to object if needed
+    # NB: ravel() assumes we will never have consolidated datetimetz
     to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
                  else np.asarray(x).ravel() if not is_datetime64tz_dtype(x)
                  else np.asarray(x.astype(object)).ravel() for x in to_concat]
@@ -470,8 +471,7 @@ def _concat_datetimetz(to_concat, name=None):
     if isinstance(sample, ABCIndexClass):
         return sample._concat_same_dtype(to_concat, name=name)
     elif isinstance(sample, ABCDatetimeArray):
-        tc = [x.ravel() for x in to_concat]
-        return sample.ravel()._concat_same_type(tc)
+        return sample._concat_same_type(to_concat)
 
 
 def _concat_index_same_dtype(indexes, klass=None):

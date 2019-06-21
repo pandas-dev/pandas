@@ -597,6 +597,10 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         ------
         tstamp : Timestamp
         """
+        if self.ndim > 1:
+            for i in range(len(self)):
+                yield self[i]
+            return
 
         # convert in chunks of 10k for efficiency
         data = self.asi8

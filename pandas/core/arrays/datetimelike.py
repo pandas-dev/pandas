@@ -625,12 +625,21 @@ class DatetimeLikeArrayMixin(ReshapeMixin, ExtensionOpsMixin,
         return type(self)(new_values, dtype=self.dtype)
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
+    def _concat_same_type(cls, to_concat, axis=0):
+        if axis != 0:
+            # ravel() below assumes we are always either 1-D or column-like
+            raise NotImplementedError
+
+        # FIXME: Fails on pandas/tests/frame/test_combine_concat.py
+        #   test_concat_tz_NaT, test_concat_tz_not_aligned
+        # assert all(x.ndim == to_concat[0].ndim for x in to_concat)
+
         dtypes = {x.dtype for x in to_concat}
         assert len(dtypes) == 1
         dtype = list(dtypes)[0]
 
-        values = np.concatenate([x.asi8 for x in to_concat])
+        # FIXME: I don't like the ravel here
+        values = np.concatenate([x.asi8.ravel() for x in to_concat])
         return cls(values, dtype=dtype)
 
     def copy(self, deep=False):

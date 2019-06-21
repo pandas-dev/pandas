@@ -743,17 +743,6 @@ class Block(PandasObject):
                 filtered_out = ~self.mgr_locs.isin(filter)
                 mask[filtered_out.nonzero()[0]] = False
 
-            if not mask.any():
-                if convert:
-                    # NB: this check must come before the "if inplace" check
-                    out = self.convert(by_item=True, numeric=False,
-                                       copy=not inplace)
-                elif inplace:
-                    out = self
-                else:
-                    out = self.copy()
-                return [out]
-
             blocks = self.putmask(mask, value, inplace=inplace)
             if convert:
                 blocks = [b.convert(by_item=True, numeric=False,
@@ -2309,13 +2298,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         if is_object_dtype(dtype):
             values = values._box_values(values._data)
 
-        values = np.asarray(values.ravel())
-
-        if self.ndim == 2:
-            # Ensure that our shape is correct for DataFrame.
-            # ExtensionArrays are always 1-D, even in a DataFrame when
-            # the analogous NumPy-backed column would be a 2-D ndarray.
-            values = values.reshape(1, -1)
+        values = np.asarray(values)
+        assert values.shape == self.shape, (values.shape, self.shape)
         return values
 
     def to_dense(self):
