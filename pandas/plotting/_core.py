@@ -1,3 +1,4 @@
+import importlib
 from typing import List, Type  # noqa
 
 from pandas.util._decorators import Appender
@@ -5,6 +6,7 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
+import pandas
 from pandas.core.base import PandasObject
 from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
@@ -622,11 +624,10 @@ def _get_plot_backend():
     The backend is imported lazily, as matplotlib is a soft dependency, and
     pandas can be used without it being installed.
     """
-    try:
-        import pandas.plotting._matplotlib as plot_backend
-    except ImportError:
-        raise ImportError("matplotlib is required for plotting.")
-    return plot_backend
+    backend_str = pandas.get_option('plotting.backend')
+    if backend_str == 'matplotlib':
+        backend_str = 'pandas.plotting._matplotlib'
+    return importlib.import_module(backend_str)
 
 
 def _plot_classes():
