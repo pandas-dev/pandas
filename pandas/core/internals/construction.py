@@ -8,7 +8,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._libs.tslibs import IncompatibleFrequency
+from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
 from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.cast import (
@@ -700,6 +700,9 @@ def _try_cast(arr, take_fast_path, dtype, copy, raise_cast_failure):
         elif not is_extension_type(subarr):
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype,
                                                         copy=copy)
+    except OutOfBoundsDatetime:
+        # in case of out of bound datetime64 -> always raise
+        raise
     except (ValueError, TypeError):
         if is_categorical_dtype(dtype):
             # We *do* allow casting to categorical, since we know
