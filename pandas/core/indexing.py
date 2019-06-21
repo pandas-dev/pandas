@@ -2444,12 +2444,9 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
                                 'indexer (index of the boolean Series and of '
                                 'the indexed object do not match).')
         result = result.astype(bool)._values
-    elif is_sparse(result):
-        result = result.to_dense()
-        result = np.asarray(result, dtype=bool)
     else:
-        # is_bool_indexer has already checked for nulls in the case of an
-        # object array key, so no check needed here
+        if is_sparse(result):
+            result = result.to_dense()
         result = np.asarray(result, dtype=bool)
 
         # GH26658
