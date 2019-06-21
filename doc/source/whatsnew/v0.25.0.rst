@@ -699,6 +699,7 @@ I/O
 - Bug in :func:`read_csv` not properly interpreting the UTF8 encoded filenames on Windows on Python 3.6+ (:issue:`15086`)
 - Improved performance in :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` when converting columns that have missing values (:issue:`25772`)
 - Bug in :meth:`DataFrame.to_html` where header numbers would ignore display options when rounding (:issue:`17280`)
+- Bug in :func:`read_hdf` where reading a table from an HDF5 file written directly with PyTables fails with a ``ValueError`` when using a sub-selection via the ``start`` or ``stop`` arguments (:issue:`11188`)
 - Bug in :func:`read_hdf` not properly closing store after a ``KeyError`` is raised (:issue:`25766`)
 - Bug in ``read_csv`` which would not raise ``ValueError`` if a column index in ``usecols`` was out of bounds (:issue:`25623`)
 - Improved the explanation for the failure when value labels are repeated in Stata dta files and suggested work-arounds (:issue:`25772`)
