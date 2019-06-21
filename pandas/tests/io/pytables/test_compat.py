@@ -12,35 +12,13 @@ from pandas.util.testing import assert_frame_equal
 tables = pytest.importorskip('tables')
 
 
-def safe_remove(path):
-    if path is not None:
-        try:
-            os.remove(path)
-        except OSError:
-            pass
-
-
-def create_tempfile(path):
-    return os.path.join(tempfile.gettempdir(), path)
-
-
-@contextmanager
-def ensure_clean_path(path):
-    try:
-        if isinstance(path, list):
-            filenames = [create_tempfile(p) for p in path]
-            yield filenames
-        else:
-            filenames = [create_tempfile(path)]
-            yield filenames[0]
-    finally:
-        for f in filenames:
-            safe_remove(f)
-
-
 @pytest.fixture
-def pytables_hdf5_file():
-    """Use PyTables to create a simple HDF5 file."""
+def pytables_hdf5_file(tmp_path):
+    """Use PyTables to create a simple HDF5 file.
+
+    There is no need for temporary file cleanup, pytest makes sure that there is
+    no collision between tests and that storage needs to not grow indefinitely.
+    """
 
     table_schema = {
         'c0': tables.Time64Col(pos=0),
@@ -59,16 +37,18 @@ def pytables_hdf5_file():
 
     objname = 'pandas_test_timeseries'
 
-    with ensure_clean_path('pytables_hdf5_file') as path:
-        # The `ensure_clean_path` context mgr removes the temp file upon exit.
-        with tables.open_file(path, mode='w') as f:
-            t = f.create_table('/', name=objname, description=table_schema)
-            for sample in testsamples:
-                for key, value in sample.items():
-                    t.row[key] = value
-                t.row.append()
+    # The `tmp_path` fixture provides a temporary directory unique to the
+    # individual test invocation. Create a file in there.
+    h5path = tmp_path / 'written_with_pytables.h5'
 
-        yield path, objname, pd.DataFrame(testsamples)
+    with tables.open_file(h5path, mode='w') as f:
+        t = f.create_table('/', name=objname, description=table_schema)
+        for sample in testsamples:
+            for key, value in sample.items():
+                t.row[key] = value
+            t.row.append()
+
+    return h5path, objname, pd.DataFrame(testsamples)
 
 
 class TestReadPyTablesHDF5:
