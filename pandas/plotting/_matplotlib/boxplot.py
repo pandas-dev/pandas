@@ -1,7 +1,6 @@
 from collections import namedtuple
 import warnings
 
-from matplotlib import pyplot as plt
 from matplotlib.artist import setp
 import numpy as np
 
@@ -11,6 +10,7 @@ from pandas.core.dtypes.missing import remove_na_arraylike
 import pandas as pd
 
 from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import _flatten, _subplots
@@ -215,6 +215,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True, figsize=None, layout=None, return_type=None,
             **kwds):
 
+    import matplotlib.pyplot as plt
     # validate return_type:
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {'axes', 'dict', 'both'}")
@@ -296,6 +297,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
                   grid=True, figsize=None, layout=None,
                   return_type=None, **kwds):
+    import matplotlib.pyplot as plt
+    converter._WARN = False  # no warning for pandas plots
     ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
                  grid=grid, rot=rot, figsize=figsize, layout=layout,
                  return_type=return_type, **kwds)
@@ -306,6 +309,7 @@ def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
 def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                           rot=0, grid=True, ax=None, figsize=None,
                           layout=None, sharex=False, sharey=True, **kwds):
+    converter._WARN = False  # no warning for pandas plots
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(naxes=naxes, squeeze=False,

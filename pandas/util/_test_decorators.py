@@ -76,7 +76,7 @@ def safe_import(mod_name, min_version=None):
 def _skip_if_no_mpl():
     mod = safe_import("matplotlib")
     if mod:
-        mod.use("Agg", warn=False)
+        mod.use("Agg", warn=True)
     else:
         return True
 
@@ -98,6 +98,23 @@ def _skip_if_no_scipy():
                 safe_import('scipy.sparse') and
                 safe_import('scipy.interpolate') and
                 safe_import('scipy.signal'))
+
+
+def skip_if_installed(
+    package: str,
+) -> MarkDecorator:
+    """
+    Skip a test if a package is installed.
+
+    Parameters
+    ----------
+    package : str
+        The name of the package.
+    """
+    return pytest.mark.skipif(
+        safe_import(package),
+        reason="Skipping because {} is installed.".format(package)
+    )
 
 
 def skip_if_no(

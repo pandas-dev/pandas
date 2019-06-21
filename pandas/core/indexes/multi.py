@@ -1149,7 +1149,7 @@ class MultiIndex(Index):
             self.levels[l].rename(name, inplace=True)
 
     names = property(fset=_set_names, fget=_get_names,
-                     doc="Names of levels in MultiIndex")
+                     doc="""\nNames of levels in MultiIndex\n""")
 
     @Appender(_index_shared_docs['_get_grouper_for_level'])
     def _get_grouper_for_level(self, mapper, level):
@@ -1823,12 +1823,16 @@ class MultiIndex(Index):
 
     @property
     def nlevels(self):
-        """Integer number of levels in this MultiIndex."""
+        """
+        Integer number of levels in this MultiIndex.
+        """
         return len(self.levels)
 
     @property
     def levshape(self):
-        """A tuple with the length of each level."""
+        """
+        A tuple with the length of each level.
+        """
         return tuple(len(x) for x in self.levels)
 
     def __reduce__(self):

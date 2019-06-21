@@ -3,7 +3,6 @@ import warnings
 
 import matplotlib.cm as cm
 import matplotlib.colors
-import matplotlib.pyplot as plt
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
@@ -13,6 +12,7 @@ import pandas.core.common as com
 
 def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
                          color=None):
+    import matplotlib.pyplot as plt
     if color is None and colormap is not None:
         if isinstance(colormap, str):
             cmap = colormap
