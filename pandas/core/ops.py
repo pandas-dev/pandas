@@ -6,7 +6,7 @@ This is not a public API.
 import datetime
 import operator
 import textwrap
-from typing import Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 import warnings
 
 import numpy as np
@@ -29,6 +29,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
+from pandas._typing import ArrayLike
 import pandas.core.common as com
 import pandas.core.missing as missing
 
@@ -2362,8 +2363,32 @@ def _arith_method_SPARSE_ARRAY(cls, op, special):
     return wrapper
 
 
-def maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs):
+def maybe_dispatch_ufunc_to_dunder_op(
+    self: ArrayLike,
+    ufunc: Callable,
+    method: str,
+    *inputs: Tuple[Any],
+    **kwargs: Dict,
+):
+    """
+    Dispatch a ufunc to the equivalent dunder method.
 
+    Parameters
+    ----------
+    self : ArrayLike
+        The array whose dunder method we dispatch to
+    ufunc : Callable
+        A NumPy ufunc
+    method : {'reduce', 'accumulate', 'reduceat', 'outer', 'at', '__call__'}
+    inputs : Tuple
+    kwargs : Dict
+
+    Returns
+    -------
+    result : Any
+        The result of applying the ufunc
+    """
+    # special has the ufuncs we dispatch to the dunder op on
     special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
                'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder'}
     aliases = {
@@ -2382,6 +2407,7 @@ def maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs):
         'greater_equal': 'ge',
     }
 
+    # For op(., Array) -> Array.__r{op}__
     flipped = {
         'lt': '__gt__',
         'le': '__ge__',
