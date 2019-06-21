@@ -1508,19 +1508,13 @@ def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
             if i == 0:
 
                 # setup
-                val = values[i]
-                if notnan(val):
-                    nobs += 1
-                    skiplist_insert(skiplist, val)
-
-            else:
-
-                # calculate deletes
-                for j in range(start[i - 1], s):
+                for j in range(s, e):
                     val = values[j]
                     if notnan(val):
-                        skiplist_remove(skiplist, val)
-                        nobs -= 1
+                        nobs += 1
+                        skiplist_insert(skiplist, val)
+
+            else:
 
                 # calculate adds
                 for j in range(end[i - 1], e):
@@ -1528,6 +1522,13 @@ def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
                     if notnan(val):
                         nobs += 1
                         skiplist_insert(skiplist, val)
+
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = values[j]
+                    if notnan(val):
+                        skiplist_remove(skiplist, val)
+                        nobs -= 1
 
             if nobs >= minp:
                 if nobs == 1:

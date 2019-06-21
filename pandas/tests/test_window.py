@@ -600,12 +600,17 @@ class TestRolling(Base):
         ('neither', [np.nan, 0, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5]),
         ('left', [np.nan, 0, 0.5, 1, 2, 3, 4, 5, 6, 7])
     ])
-    def test_closed_median(self, closed, expected):
+    def test_closed_median_quantile(self, closed, expected):
         # GH 26005
         ser = pd.Series(data=np.arange(10),
                         index=pd.date_range('2000', periods=10))
-        result = ser.rolling('3D', closed=closed).median()
+        roll = ser.rolling('3D', closed=closed)
         expected = pd.Series(expected, index=ser.index)
+
+        result = roll.median()
+        tm.assert_series_equal(result, expected)
+
+        result = roll.quantile(0.5)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('roller', ['1s', 1])
