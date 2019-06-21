@@ -55,7 +55,14 @@ class SeriesConstructors:
               [False, True],
               ['float', 'int']]
 
+    # Generators get exhausted on use, so run setup before every call
+    number = 1
+    repeat = (3, 250, 10)
+
     def setup(self, data_fmt, with_index, dtype):
+        if data_fmt in (gen_of_str, gen_of_tuples) and with_index:
+            raise NotImplementedError('Series constructors do not support '
+                                      'using generators with indexes')
         N = 10**4
         if dtype == 'float':
             arr = np.random.randn(N)
