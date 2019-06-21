@@ -148,8 +148,8 @@ class Holiday:
         --------
         >>> from pandas.tseries.holiday import Holiday, nearest_workday
         >>> from dateutil.relativedelta import MO
-        >>> USMemorialDay = Holiday('MemorialDay', month=5, day=24,
-                                    offset=pd.DateOffset(weekday=MO(1)))
+        >>> USMemorialDay = Holiday('Memorial Day', month=5, day=31,
+                                    offset=pd.DateOffset(weekday=MO(-1)))
         >>> USLaborDay = Holiday('Labor Day', month=9, day=1,
                                 offset=pd.DateOffset(weekday=MO(1)))
         >>> July3rd = Holiday('July 3rd', month=7, day=3,)
@@ -464,7 +464,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
             return holidays
 
 
-USMemorialDay = Holiday('MemorialDay', month=5, day=31,
+USMemorialDay = Holiday('Memorial Day', month=5, day=31,
                         offset=DateOffset(weekday=MO(-1)))
 USLaborDay = Holiday('Labor Day', month=9, day=1,
                      offset=DateOffset(weekday=MO(1)))
@@ -472,10 +472,10 @@ USColumbusDay = Holiday('Columbus Day', month=10, day=1,
                         offset=DateOffset(weekday=MO(2)))
 USThanksgivingDay = Holiday('Thanksgiving', month=11, day=1,
                             offset=DateOffset(weekday=TH(4)))
-USMartinLutherKingJr = Holiday('Dr. Martin Luther King Jr.',
+USMartinLutherKingJr = Holiday('Martin Luther King Jr. Day',
                                start_date=datetime(1986, 1, 1), month=1, day=1,
                                offset=DateOffset(weekday=MO(3)))
-USPresidentsDay = Holiday('President''s Day', month=2, day=1,
+USPresidentsDay = Holiday('Presidents Day', month=2, day=1,
                           offset=DateOffset(weekday=MO(3)))
 GoodFriday = Holiday("Good Friday", month=1, day=1, offset=[Easter(), Day(-2)])
 

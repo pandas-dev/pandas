@@ -1013,6 +1013,8 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert stz.to_json() == s_naive.to_json()
 
     @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_sparse(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
         df = pd.DataFrame(np.random.randn(10, 4))

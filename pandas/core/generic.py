@@ -1838,7 +1838,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # can we get a better explanation of this?
     def keys(self):
-        """Get the 'info axis' (see Indexing for more)
+        """
+        Get the 'info axis' (see Indexing for more)
 
         This is index for Series, columns for DataFrame.
 
@@ -1850,7 +1851,8 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._info_axis
 
     def iteritems(self):
-        """Iterate over (label, values) on info axis
+        """
+        Iterate over (label, values) on info axis
 
         This is index for Series, columns for DataFrame and so on.
         """
@@ -1940,11 +1942,16 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return dense representation of NDFrame (as opposed to sparse).
 
+        .. deprecated:: 0.25.0
+
         Returns
         -------
         %(klass)s
             Dense %(klass)s.
         """
+        warnings.warn("DataFrame/Series.to_dense is deprecated "
+                      "and will be removed in a future version",
+                      FutureWarning, stacklevel=2)
         # compat
         return self
 

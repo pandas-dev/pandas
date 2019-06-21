@@ -1105,7 +1105,7 @@ class TestSeriesAnalytics:
         dict(keepdims=True),
         dict(out=object()),
     ])
-    @td.skip_if_np_lt_115
+    @td.skip_if_np_lt("1.15")
     def test_validate_any_all_out_keepdims_raises(self, kwargs, func):
         s = pd.Series([1, 2])
         param = list(kwargs)[0]
@@ -1117,7 +1117,7 @@ class TestSeriesAnalytics:
         with pytest.raises(ValueError, match=msg):
             func(s, **kwargs)
 
-    @td.skip_if_np_lt_115
+    @td.skip_if_np_lt("1.15")
     def test_validate_sum_initial(self):
         s = pd.Series([1, 2])
         msg = (r"the 'initial' parameter is not "
@@ -1136,7 +1136,7 @@ class TestSeriesAnalytics:
             # method instead of the ufunc.
             s.median(overwrite_input=True)
 
-    @td.skip_if_np_lt_115
+    @td.skip_if_np_lt("1.15")
     def test_validate_stat_keepdims(self):
         s = pd.Series([1, 2])
         msg = (r"the 'keepdims' parameter is not "

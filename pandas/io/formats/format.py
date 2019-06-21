@@ -1567,7 +1567,7 @@ class EngFormatter:
 
         formatted = format_str.format(mant=mant, prefix=prefix)
 
-        return formatted  # .strip()
+        return formatted
 
 
 def set_eng_float_format(accuracy=3, use_eng_prefix=False):
