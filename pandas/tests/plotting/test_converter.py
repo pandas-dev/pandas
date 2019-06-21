@@ -12,11 +12,30 @@ from pandas.compat.numpy import np_datetime64_compat
 from pandas import Index, Period, Series, Timestamp, date_range
 import pandas.util.testing as tm
 
+from pandas.plotting import (
+    deregister_matplotlib_converters, register_matplotlib_converters)
 from pandas.tseries.offsets import Day, Micro, Milli, Second
 
-converter = pytest.importorskip('pandas.plotting._converter')
-from pandas.plotting import (deregister_matplotlib_converters,  # isort:skip
-                             register_matplotlib_converters)
+try:
+    from pandas.plotting._matplotlib import converter
+except ImportError:
+    # try / except, rather than skip, to avoid internal refactoring
+    # causing an improprer skip
+    pass
+
+pytest.importorskip('matplotlib.pyplot')
+
+
+def test_initial_warning():
+    code = (
+        "import pandas as pd; import matplotlib.pyplot as plt; "
+        "s = pd.Series(1, pd.date_range('2000', periods=12)); "
+        "fig, ax = plt.subplots(); "
+        "ax.plot(s.index, s.values)"
+    )
+    call = [sys.executable, '-c', code]
+    out = subprocess.check_output(call, stderr=subprocess.STDOUT).decode()
+    assert 'Using an implicitly' in out
 
 
 def test_timtetonum_accepts_unicode():

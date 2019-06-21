@@ -5,19 +5,16 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-import pandas
 from pandas.core.base import PandasObject
 from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
-# Automatically registering converters was deprecated in 0.21, but
-# the deprecation warning wasn't showing until 0.24
-# This block will be eventually removed, but it's not clear when
-if pandas.get_option('plotting.matplotlib.register_converters'):
-    try:
-        from .misc import register
-        register(explicit=False)
-    except ImportError:
-        pass
+# Trigger matplotlib import, which implicitly registers our
+# converts. Implicit registration is deprecated, and when enforced
+# we can lazily import matplotlib.
+try:
+    import pandas.plotting._matplotlib  # noqa
+except ImportError:
+    pass
 
 df_kind = """- 'scatter' : scatter plot
         - 'hexbin' : hexbin plot"""

@@ -2,7 +2,6 @@ import re
 from typing import Optional  # noqa
 import warnings
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from pandas._config import get_option
@@ -61,6 +60,8 @@ class MPLPlot:
                  secondary_y=False, colormap=None,
                  table=False, layout=None, **kwds):
 
+        import matplotlib.pyplot as plt
+        converter._WARN = False  # no warning for pandas plots
         self.data = data
         self.by = by
 
@@ -103,7 +104,7 @@ class MPLPlot:
             self.rot = self._default_rot
 
         if grid is None:
-            grid = False if secondary_y else self.plt.rcParams['axes.grid']
+            grid = False if secondary_y else plt.rcParams['axes.grid']
 
         self.grid = grid
         self.legend = legend
@@ -618,6 +619,8 @@ class MPLPlot:
 
     @classmethod
     def get_default_ax(cls, ax):
+        import matplotlib.pyplot as plt
+
         if ax is None and len(plt.get_fignums()) > 0:
             with plt.rc_context():
                 ax = plt.gca()

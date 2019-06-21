@@ -2,7 +2,6 @@
 from math import ceil
 import warnings
 
-import matplotlib.pyplot as plt
 import matplotlib.table
 import matplotlib.ticker as ticker
 import numpy as np
@@ -168,6 +167,7 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
     # Four polar axes
     plt.subplots(2, 2, subplot_kw=dict(polar=True))
     """
+    import matplotlib.pyplot as plt
     if subplot_kw is None:
         subplot_kw = {}
 
@@ -345,6 +345,7 @@ def _get_xlim(lines):
 
 def _set_ticks_props(axes, xlabelsize=None, xrot=None,
                      ylabelsize=None, yrot=None):
+    import matplotlib.pyplot as plt
     for ax in _flatten(axes):
         if xlabelsize is not None:
             plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
