@@ -132,6 +132,7 @@ Other Enhancements
 - :class:`DatetimeIndex` and :class:`TimedeltaIndex` now have a ``mean`` method (:issue:`24757`)
 - :meth:`DataFrame.describe` now formats integer percentiles without decimal point (:issue:`26660`)
 - Added support for reading SPSS .sav files using :func:`read_spss` (:issue:`26537`)
+- Added new option ``plotting.backend`` to be able to select a plotting backend different than the existing ``matplotlib`` one. Use ``pandas.set_option('plotting.backend', '<backend-module>')`` where ``<backend-module`` is a library implementing the pandas plotting API (:issue:`14130`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -600,6 +601,8 @@ Datetimelike
 - Bug in :meth:`isin` for datetimelike indexes; :class:`DatetimeIndex`, :class:`TimedeltaIndex` and :class:`PeriodIndex` where the ``levels`` parameter was ignored. (:issue:`26675`)
 - Bug in :func:`to_datetime` which raises ``TypeError`` for ``format='%Y%m%d'`` when called for invalid integer dates with length >= 6 digits with ``errors='ignore'``
 - Bug when comparing a :class:`PeriodIndex` against a zero-dimensional numpy array (:issue:`26689`)
+- Bug in constructing a ``Series`` or ``DataFrame`` from a numpy ``datetime64`` array with a non-ns unit and out-of-bound timestamps generating rubbish data, which will now correctly raise an ``OutOfBoundsDatetime`` error (:issue:`26206`).
+- Bug in :func:`date_range` with unnecessary ``OverflowError`` being raised for very large or very small dates (:issue:`26651`)
 
 Timedelta
 ^^^^^^^^^
@@ -742,6 +745,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`pandas.core.groupby.SeriesGroupBy.transform` where transforming an empty group would raise a ``ValueError`` (:issue:`26208`)
 - Bug in :meth:`pandas.core.frame.DataFrame.groupby` where passing a :class:`pandas.core.groupby.grouper.Grouper` would return incorrect groups when using the ``.groups`` accessor (:issue:`26326`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.agg` where incorrect results are returned for uint64 columns. (:issue:`26310`)
+- Bug in :meth:`pandas.core.window.Rolling.median` and :meth:`pandas.core.window.Rolling.quantile` where MemoryError is raised with empty window (:issue:`26005`)
 
 Reshaping
 ^^^^^^^^^
