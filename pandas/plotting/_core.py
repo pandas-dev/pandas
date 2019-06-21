@@ -625,41 +625,8 @@ def _get_plot_backend():
     """
     backend_str = pandas.get_option('plotting.backend')
     if backend_str == 'matplotlib':
-        try:
-            import pandas.plotting._matplotlib as backend_mod
-        except ImportError:
-            raise ImportError('matplotlib is required for plotting when the '
-                              'default backend is selected.')
-    else:
-        try:
-            mod = importlib.import_module(backend_str)
-        except ImportError:
-            raise ValueError('"{}" does not seem to be an installed module.'
-                             'A pandas plotting backend must be a module that '
-                             'can be imported'.format(backend_str))
-
-        required_objs = ['LinePlot', 'BarPlot', 'BarhPlot', 'HistPlot',
-                         'BoxPlot', 'KdePlot', 'AreaPlot', 'PiePlot',
-                         'ScatterPlot', 'HexBinPlot', 'hist_series',
-                         'hist_frame', 'boxplot', 'boxplot_frame',
-                         'boxplot_frame_groupby', 'tsplot', 'table',
-                         'andrews_curves', 'autocorrelation_plot',
-                         'bootstrap_plot', 'lag_plot', 'parallel_coordinates',
-                         'radviz', 'scatter_matrix', 'register', 'deregister']
-        missing_objs = set(required_objs) - set(dir(mod))
-        if len(missing_objs) == len(required_objs):
-            raise ValueError(
-                '"{}" does not seem to be a valid backend. Valid backends are '
-                'modules that implement the next objects:\n{}'.format(
-                    backend_str, '\n-'.join(required_objs)))
-        elif missing_objs:
-            raise ValueError(
-                '"{}" does not seem to be a complete backend. Valid backends '
-                'must implement the next objects:\n{}'.format(
-                    backend_str, '\n-'.join(missing_objs)))
-        else:
-            backend_mod = importlib.import_module(backend_str)
-    return backend_mod
+        backend_str = 'pandas.plotting._matplotlib'
+    return importlib.import_module(backend_str)
 
 
 def _plot_classes():
