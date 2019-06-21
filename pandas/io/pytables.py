@@ -1821,14 +1821,10 @@ class GenericIndexCol(IndexCol):
         Parameters
         ----------
 
-        values :
-            Expected to be passed but ignored in this implementation.
-        nan_rep :
-            Expected to be passed but ignored in this implementation.
-        encoding:
-            Expected to be passed but ignored in this implementation.
-        errors:
-            Expected to be passed but ignored in this implementation.
+        values : np.ndarray
+        nan_rep : str
+        encoding : str
+        errors : str
         start : int, optional
             Table row number: the start of the sub-selection.
         stop : int, optional
