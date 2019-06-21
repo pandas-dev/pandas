@@ -71,9 +71,9 @@ static void free_if_not_null(void **ptr) {
 
 */
 
-static void *grow_buffer(void *buffer, int64_t length, int64_t *capacity,
+static void *grow_buffer(void *buffer, uint64_t length, uint64_t *capacity,
                          int64_t space, int64_t elsize, int *error) {
-    int64_t cap = *capacity;
+    uint64_t cap = *capacity;
     void *newbuffer = buffer;
 
     // Can we fit potentially nbytes tokens (+ null terminators) in the stream?
@@ -248,8 +248,7 @@ void parser_del(parser_t *self) {
 }
 
 static int make_stream_space(parser_t *self, size_t nbytes) {
-    uint64_t i, cap;
-    int64_t length;
+    uint64_t i, cap, length;
     int status;
     void *orig_ptr, *newptr;
 
@@ -264,7 +263,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
         ("\n\nmake_stream_space: nbytes = %zu.  grow_buffer(self->stream...)\n",
          nbytes))
     self->stream = (char *)grow_buffer((void *)self->stream, self->stream_len,
-                                       (int64_t*)&self->stream_cap, nbytes * 2,
+                                       &self->stream_cap, nbytes * 2,
                                        sizeof(char), &status);
     TRACE(
         ("make_stream_space: self->stream=%p, self->stream_len = %zu, "
@@ -306,7 +305,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
 
     self->words =
         (char **)grow_buffer((void *)self->words, length,
-                             (int64_t*)&self->words_cap, nbytes,
+                             &self->words_cap, nbytes,
                              sizeof(char *), &status);
     TRACE(
         ("make_stream_space: grow_buffer(self->self->words, %zu, %zu, %zu, "
@@ -337,7 +336,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     cap = self->lines_cap;
     self->line_start =
         (int64_t *)grow_buffer((void *)self->line_start, self->lines + 1,
-                           (int64_t*)&self->lines_cap, nbytes,
+                           &self->lines_cap, nbytes,
                            sizeof(int64_t), &status);
     TRACE((
         "make_stream_space: grow_buffer(self->line_start, %zu, %zu, %zu, %d)\n",
