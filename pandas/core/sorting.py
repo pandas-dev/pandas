@@ -238,7 +238,7 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
     GH #6399, #5231
     """
 
-    mask = isna(items)
+    mask = np.asarray(isna(items))
     # specially handle Categorical
     if is_categorical_dtype(items):
         if na_position not in {'first', 'last'}:
@@ -256,11 +256,6 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
 
     if (not isinstance(items, ABCIndexClass)
             and is_extension_array_dtype(items)):
-
-        if is_sparse(items):
-            # The conversion to np.ndarray is due to the fact that
-            # SparseArray.isna() is also a SparseArray
-            mask = np.array(isna(items))
 
         items = items._values_for_argsort()
     else:
