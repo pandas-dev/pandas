@@ -1,9 +1,8 @@
-import itertools
-
 import numpy as np
 import scipy.sparse
-from pandas import (SparseSeries, SparseDataFrame, SparseArray, Series,
-                    date_range, MultiIndex)
+
+import pandas as pd
+from pandas import MultiIndex, Series, SparseArray, date_range
 
 
 def make_array(size, dense_proportion, fill_value, dtype):
@@ -25,10 +24,10 @@ class SparseSeriesToFrame:
             data = np.random.randn(N)[:-i]
             idx = rng[:-i]
             data[100:] = np.nan
-            self.series[i] = SparseSeries(data, index=idx)
+            self.series[i] = pd.Series(pd.SparseArray(data), index=idx)
 
     def time_series_to_frame(self):
-        SparseDataFrame(self.series)
+        pd.DataFrame(self.series)
 
 
 class SparseArrayConstructor:
@@ -51,16 +50,9 @@ class SparseDataFrameConstructor:
         N = 1000
         self.arr = np.arange(N)
         self.sparse = scipy.sparse.rand(N, N, 0.005)
-        self.dict = dict(zip(range(N), itertools.repeat([0])))
-
-    def time_constructor(self):
-        SparseDataFrame(columns=self.arr, index=self.arr)
 
     def time_from_scipy(self):
-        SparseDataFrame(self.sparse)
-
-    def time_from_dict(self):
-        SparseDataFrame(self.dict)
+        pd.DataFrame.sparse.from_spmatrix(self.sparse)
 
 
 class FromCoo:
@@ -71,7 +63,7 @@ class FromCoo:
                                               shape=(100, 100))
 
     def time_sparse_series_from_coo(self):
-        SparseSeries.from_coo(self.matrix)
+        pd.Series.sparse.from_coo(self.matrix)
 
 
 class ToCoo:
@@ -82,12 +74,12 @@ class ToCoo:
         s[100] = -1.0
         s[999] = 12.1
         s.index = MultiIndex.from_product([range(10)] * 4)
-        self.ss = s.to_sparse()
+        self.ss = s.astype("Sparse")
 
     def time_sparse_series_to_coo(self):
-        self.ss.to_coo(row_levels=[0, 1],
-                       column_levels=[2, 3],
-                       sort_labels=True)
+        self.ss.sparse.to_coo(row_levels=[0, 1],
+                              column_levels=[2, 3],
+                              sort_labels=True)
 
 
 class Arithmetic:

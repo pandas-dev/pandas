@@ -3,7 +3,7 @@ from functools import partial
 import itertools
 import operator
 import re
-from typing import List, Optional, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -15,14 +15,14 @@ from pandas.core.dtypes.cast import (
     maybe_promote)
 from pandas.core.dtypes.common import (
     _NS_DTYPE, is_datetimelike_v_numeric, is_extension_array_dtype,
-    is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar)
+    is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar,
+    is_sparse)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays.sparse import _maybe_to_sparse
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.indexing import maybe_convert_indices
@@ -94,9 +94,12 @@ class BlockManager(PandasObject):
     __slots__ = ['axes', 'blocks', '_ndim', '_shape', '_known_consolidated',
                  '_is_consolidated', '_blknos', '_blklocs']
 
-    def __init__(self, blocks, axes, do_integrity_check=True):
+    def __init__(self,
+                 blocks: Sequence[Block],
+                 axes: Sequence[Index],
+                 do_integrity_check: bool = True):
         self.axes = [ensure_index(ax) for ax in axes]
-        self.blocks = tuple(blocks)
+        self.blocks = tuple(blocks)  # type: Tuple[Block, ...]
 
         for block in blocks:
             if block.is_sparse:
@@ -770,7 +773,6 @@ class BlockManager(PandasObject):
         Return ndarray from blocks with specified item order
         Items must be contained in the blocks
         """
-        from pandas.core.dtypes.common import is_sparse
         dtype = _interleaved_dtype(self.blocks)
 
         # TODO: https://github.com/pandas-dev/pandas/issues/22791
@@ -1415,8 +1417,11 @@ class SingleBlockManager(BlockManager):
     _known_consolidated = True
     __slots__ = ()
 
-    def __init__(self, block, axis, do_integrity_check=False, fastpath=False):
-
+    def __init__(self,
+                 block: Block,
+                 axis: Union[Index, List[Index]],
+                 do_integrity_check: bool = False,
+                 fastpath: bool = False):
         if isinstance(axis, list):
             if len(axis) != 1:
                 raise ValueError("cannot create SingleBlockManager with more "
@@ -1455,7 +1460,7 @@ class SingleBlockManager(BlockManager):
         if not isinstance(block, Block):
             block = make_block(block, placement=slice(0, len(axis)), ndim=1)
 
-        self.blocks = [block]
+        self.blocks = tuple([block])
 
     def _post_setstate(self):
         pass
@@ -1721,10 +1726,6 @@ def form_blocks(arrays, names, axes):
         object_blocks = _simple_blockify(items_dict['ObjectBlock'], np.object_)
         blocks.extend(object_blocks)
 
-    if len(items_dict['SparseBlock']) > 0:
-        sparse_blocks = _sparse_blockify(items_dict['SparseBlock'])
-        blocks.extend(sparse_blocks)
-
     if len(items_dict['CategoricalBlock']) > 0:
         cat_blocks = [make_block(array, klass=CategoricalBlock, placement=[i])
                       for i, _, array in items_dict['CategoricalBlock']]
@@ -1786,20 +1787,6 @@ def _multi_blockify(tuples, dtype=None):
         values, placement = _stack_arrays(list(tup_block), dtype)
 
         block = make_block(values, placement=placement)
-        new_blocks.append(block)
-
-    return new_blocks
-
-
-def _sparse_blockify(tuples, dtype=None):
-    """ return an array of blocks that potentially have different dtypes (and
-    are sparse)
-    """
-
-    new_blocks = []
-    for i, names, array in tuples:
-        array = _maybe_to_sparse(array)
-        block = make_block(array, placement=[i])
         new_blocks.append(block)
 
     return new_blocks

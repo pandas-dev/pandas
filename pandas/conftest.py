@@ -399,6 +399,10 @@ def tz_aware_fixture(request):
     return request.param
 
 
+# Generate cartesian product of tz_aware_fixture:
+tz_aware_fixture2 = tz_aware_fixture
+
+
 # ----------------------------------------------------------------
 # Dtypes
 # ----------------------------------------------------------------
@@ -434,6 +438,46 @@ def string_dtype(request):
     * str
     * 'str'
     * 'U'
+    """
+    return request.param
+
+
+@pytest.fixture(params=BYTES_DTYPES)
+def bytes_dtype(request):
+    """Parametrized fixture for bytes dtypes.
+
+    * bytes
+    * 'bytes'
+    """
+    return request.param
+
+
+@pytest.fixture(params=OBJECT_DTYPES)
+def object_dtype(request):
+    """Parametrized fixture for object dtypes.
+
+    * object
+    * 'object'
+    """
+    return request.param
+
+
+@pytest.fixture(params=DATETIME64_DTYPES)
+def datetime64_dtype(request):
+    """Parametrized fixture for datetime64 dtypes.
+
+    * 'datetime64[ns]'
+    * 'M8[ns]'
+    """
+    return request.param
+
+
+@pytest.fixture(params=TIMEDELTA64_DTYPES)
+def timedelta64_dtype(request):
+    """Parametrized fixture for timedelta64 dtypes.
+
+    * 'timedelta64[ns]'
+    * 'm8[ns]'
     """
     return request.param
 

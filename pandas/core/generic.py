@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Callable, FrozenSet, List, Set
+from typing import Callable, FrozenSet, List, Optional, Set
 import warnings
 import weakref
 
@@ -35,6 +35,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
+from pandas._typing import Dtype
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -118,12 +119,17 @@ class NDFrame(PandasObject, SelectionMixin):
     ])  # type: FrozenSet[str]
     _metadata = []  # type: List[str]
     _is_copy = None
+    _data = None  # type: BlockManager
 
     # ----------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, data, axes=None, copy=False, dtype=None,
-                 fastpath=False):
+    def __init__(self,
+                 data: BlockManager,
+                 axes: Optional[List[Index]] = None,
+                 copy: bool = False,
+                 dtype: Optional[Dtype] = None,
+                 fastpath: bool = False):
 
         if not fastpath:
             if dtype is not None:
@@ -1832,7 +1838,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # can we get a better explanation of this?
     def keys(self):
-        """Get the 'info axis' (see Indexing for more)
+        """
+        Get the 'info axis' (see Indexing for more)
 
         This is index for Series, columns for DataFrame.
 
@@ -1844,7 +1851,8 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._info_axis
 
     def iteritems(self):
-        """Iterate over (label, values) on info axis
+        """
+        Iterate over (label, values) on info axis
 
         This is index for Series, columns for DataFrame and so on.
         """
@@ -1934,11 +1942,16 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return dense representation of NDFrame (as opposed to sparse).
 
+        .. deprecated:: 0.25.0
+
         Returns
         -------
         %(klass)s
             Dense %(klass)s.
         """
+        warnings.warn("DataFrame/Series.to_dense is deprecated "
+                      "and will be removed in a future version",
+                      FutureWarning, stacklevel=2)
         # compat
         return self
 

@@ -30,6 +30,13 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.Series([0, 1])
         self.assert_series_equal(result, expected)
 
+    def test_series_count(self, data_missing):
+        # GH#26835
+        ser = pd.Series(data_missing)
+        result = ser.count()
+        expected = 1
+        assert result == expected
+
     def test_apply_simple_series(self, data):
         result = pd.Series(data).apply(id)
         assert isinstance(result, pd.Series)

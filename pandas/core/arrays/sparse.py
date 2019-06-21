@@ -572,6 +572,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         this determines ``self.sp_values`` and ``self.fill_value``.
     copy : bool, default False
         Whether to explicitly copy the incoming `data` array.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
 
     _pandas_ftype = 'sparse'
@@ -1689,6 +1697,17 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # No alignment necessary.
             sp_values = getattr(ufunc, method)(self.sp_values, **kwargs)
             fill_value = getattr(ufunc, method)(self.fill_value, **kwargs)
+
+            if isinstance(sp_values, tuple):
+                # multiple outputs. e.g. modf
+                arrays = tuple(
+                    self._simple_new(sp_value,
+                                     self.sp_index,
+                                     SparseDtype(sp_value.dtype, fv))
+                    for sp_value, fv in zip(sp_values, fill_value)
+                )
+                return arrays
+
             return self._simple_new(sp_values,
                                     self.sp_index,
                                     SparseDtype(sp_values.dtype, fill_value))

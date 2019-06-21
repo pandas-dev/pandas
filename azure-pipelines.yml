@@ -5,6 +5,7 @@ jobs:
   parameters:
     name: macOS
     vmImage: xcode9-macos10.13
+
 - template: ci/azure/posix.yml
   parameters:
     name: Linux
@@ -122,7 +123,7 @@ jobs:
   timeoutInMinutes: 90
   steps:
   - script: |
-      echo '##vso[task.setvariable variable=ENV_FILE]ci/deps/travis-36-doc.yaml'
+      echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
     displayName: 'Setting environment variables'
 
   - script: |
@@ -134,7 +135,10 @@ jobs:
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
-      doc/make.py
+      # Next we should simply have `doc/make.py --warnings-are-errors`, everything else is required because the ipython directive doesn't fail the build on errors (https://github.com/ipython/ipython/issues/11547)
+      doc/make.py --warnings-are-errors | tee sphinx.log ; SPHINX_RET=${PIPESTATUS[0]}
+      grep -B1 "^<<<-------------------------------------------------------------------------$" sphinx.log ; IPY_RET=$(( $? != 1 ))
+      exit $(( $SPHINX_RET + $IPY_RET ))
     displayName: 'Build documentation'
 
   - script: |
@@ -142,6 +146,7 @@ jobs:
       git init
       touch .nojekyll
       echo "dev.pandas.io" > CNAME
+      printf "User-agent: *\nDisallow: /" > robots.txt
       git add --all .
       git config user.email "pandas-dev@python.org"
       git config user.name "pandas-docs-bot"
@@ -172,7 +177,6 @@ jobs:
       cd doc/build/html
       git remote add origin git@github.com:pandas-dev/pandas-dev.github.io.git
       git push -f origin master
-      exit 0  # FIXME this will leave the build green even if the step fails. To be removed when we are confident with this.
     displayName: 'Publish docs to GitHub pages'
     condition : |
       and(not(eq(variables['Build.Reason'], 'PullRequest')),
