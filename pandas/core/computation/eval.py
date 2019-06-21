@@ -5,17 +5,21 @@ Top level ``eval`` module.
 """
 
 import tokenize
+from typing import Any, Iterable, Union
 import warnings
+
+import numpy as np
 
 from pandas.util._validators import validate_bool_kwarg
 
+import pandas as pd
 from pandas.core.computation.engines import _engines
 from pandas.core.computation.scope import _ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
 
 
-def _check_engine(engine):
+def _check_engine(engine: str) -> str:
     """
     Make sure a valid engine is passed.
 
@@ -60,7 +64,7 @@ def _check_engine(engine):
     return engine
 
 
-def _check_parser(parser):
+def _check_parser(parser: str) -> None:
     """
     Make sure a valid parser is passed.
 
@@ -80,7 +84,7 @@ def _check_parser(parser):
                        ' {valid}'.format(parser=parser, valid=_parsers.keys()))
 
 
-def _check_resolvers(resolvers):
+def _check_resolvers(resolvers: Iterable) -> None:
     if resolvers is not None:
         for resolver in resolvers:
             if not hasattr(resolver, '__getitem__'):
@@ -89,7 +93,7 @@ def _check_resolvers(resolvers):
                                 'the __getitem__ method'.format(name=name))
 
 
-def _check_expression(expr):
+def _check_expression(expr: Any) -> None:
     """
     Make sure an expression is not an empty string
 
@@ -107,7 +111,7 @@ def _check_expression(expr):
         raise ValueError("expr cannot be an empty string")
 
 
-def _convert_expression(expr):
+def _convert_expression(expr: Any) -> str:
     """
     Convert an object to an expression.
 
@@ -136,7 +140,7 @@ def _convert_expression(expr):
     return s
 
 
-def _check_for_locals(expr, stack_level, parser):
+def _check_for_locals(expr: Any, stack_level: int, parser: str) -> None:
     from pandas.core.computation.expr import tokenize_string
 
     at_top_of_stack = stack_level == 0
@@ -156,9 +160,16 @@ def _check_for_locals(expr, stack_level, parser):
                 raise SyntaxError(msg)
 
 
-def eval(expr, parser='pandas', engine=None, truediv=True,
-         local_dict=None, global_dict=None, resolvers=(), level=0,
-         target=None, inplace=False):
+def eval(expr: str,
+         parser: str = 'pandas',
+         engine: str = None,
+         truediv: bool = True,
+         local_dict: dict = None,
+         global_dict: dict = None,
+         resolvers: Iterable = (),
+         level: int = 0,
+         target: Union[np.ndarry, pd.DataFrame, pd.Series] = None,
+         inplace: bool = False) -> Union[np.ndarry, pd.DataFrame, pd.Series]:
     """
     Evaluate a Python expression as a string using various backends.
 
