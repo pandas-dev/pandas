@@ -286,6 +286,7 @@ psycopg2                                     PostgreSQL engine for sqlalchemy
 pyarrow                   0.9.0              Parquet and feather reading / writing
 pymysql                                      MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
+pytables                  3.4.2              HDF5 reading / writing
 qtpy                                         Clipboard I/O
 s3fs                      0.0.8              Amazon S3 access
 xarray                    0.8.2              pandas-like API for N-dimensional data

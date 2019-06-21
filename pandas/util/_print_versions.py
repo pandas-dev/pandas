@@ -1,11 +1,13 @@
 import codecs
-import importlib
 import locale
 import os
 import platform
 import struct
 import subprocess
 import sys
+
+from pandas.compat._optional import (
+    VERSIONS, _get_version, import_optional_dependency)
 
 
 def get_sys_info():
@@ -58,60 +60,49 @@ def get_sys_info():
 
 def show_versions(as_json=False):
     sys_info = get_sys_info()
-
     deps = [
-        # (MODULE_NAME, f(mod) -> mod version)
-        ("pandas", lambda mod: mod.__version__),
-        ("pytest", lambda mod: mod.__version__),
-        ("pip", lambda mod: mod.__version__),
-        ("setuptools", lambda mod: mod.__version__),
-        ("Cython", lambda mod: mod.__version__),
-        ("numpy", lambda mod: mod.version.version),
-        ("scipy", lambda mod: mod.version.version),
-        ("pyarrow", lambda mod: mod.__version__),
-        ("xarray", lambda mod: mod.__version__),
-        ("IPython", lambda mod: mod.__version__),
-        ("sphinx", lambda mod: mod.__version__),
-        ("patsy", lambda mod: mod.__version__),
-        ("dateutil", lambda mod: mod.__version__),
-        ("pytz", lambda mod: mod.VERSION),
-        ("blosc", lambda mod: mod.__version__),
-        ("bottleneck", lambda mod: mod.__version__),
-        ("tables", lambda mod: mod.__version__),
-        ("numexpr", lambda mod: mod.__version__),
-        ("feather", lambda mod: mod.__version__),
-        ("matplotlib", lambda mod: mod.__version__),
-        ("openpyxl", lambda mod: mod.__version__),
-        ("xlrd", lambda mod: mod.__VERSION__),
-        ("xlwt", lambda mod: mod.__VERSION__),
-        ("xlsxwriter", lambda mod: mod.__version__),
-        ("lxml.etree", lambda mod: mod.__version__),
-        ("bs4", lambda mod: mod.__version__),
-        ("html5lib", lambda mod: mod.__version__),
-        ("sqlalchemy", lambda mod: mod.__version__),
-        ("pymysql", lambda mod: mod.__version__),
-        ("psycopg2", lambda mod: mod.__version__),
-        ("jinja2", lambda mod: mod.__version__),
-        ("s3fs", lambda mod: mod.__version__),
-        ("fastparquet", lambda mod: mod.__version__),
-        ("pandas_gbq", lambda mod: mod.__version__),
-        ("pandas_datareader", lambda mod: mod.__version__),
-        ("gcsfs", lambda mod: mod.__version__),
+        'pandas',
+        # required
+        'numpy',
+        'pytz',
+        'dateutil',
+        # install / build,
+        'pip',
+        'setuptools',
+        'Cython',
+        # test
+        'pytest',
+        'hypothesis',
+        # docs
+        "sphinx",
+        # Other, need a min version
+        "blosc",
+        "feather",
+        "xlsxwriter",
+        "lxml.etree",
+        "html5lib",
+        "pymysql",
+        "psycopg2",
+        "jinja2",
+        # Other, not imported.
+        "IPython",
+        "pandas_datareader",
     ]
 
-    deps_blob = list()
-    for (modname, ver_f) in deps:
-        try:
-            if modname in sys.modules:
-                mod = sys.modules[modname]
-            else:
-                mod = importlib.import_module(modname)
-            ver = ver_f(mod)
-            deps_blob.append((modname, ver))
-        except ImportError:
-            deps_blob.append((modname, None))
+    deps.extend(list(VERSIONS))
+    deps_blob = []
 
-    if (as_json):
+    for modname in deps:
+        mod = import_optional_dependency(modname,
+                                         raise_on_missing=False,
+                                         on_version="ignore")
+        if mod:
+            ver = _get_version(mod)
+        else:
+            ver = None
+        deps_blob.append((modname, ver))
+
+    if as_json:
         try:
             import json
         except ImportError:
@@ -126,16 +117,15 @@ def show_versions(as_json=False):
                 json.dump(j, f, indent=2)
 
     else:
-
+        maxlen = max(len(x) for x in deps)
+        tpl = '{{k:<{maxlen}}}: {{stat}}'.format(maxlen=maxlen)
         print("\nINSTALLED VERSIONS")
         print("------------------")
-
         for k, stat in sys_info:
-            print("{k}: {stat}".format(k=k, stat=stat))
-
+            print(tpl.format(k=k, stat=stat))
         print("")
         for k, stat in deps_blob:
-            print("{k}: {stat}".format(k=k, stat=stat))
+            print(tpl.format(k=k, stat=stat))
 
 
 def main():
