@@ -1073,7 +1073,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Examples
         --------
         %(examples)s
-
         >>> intervals.overlaps(pd.Interval(0.5, 1.5))
         array([ True,  True, False])
 
@@ -1086,14 +1085,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         >>> intervals.overlaps(pd.Interval(1, 2, closed='right'))
         array([False,  True, False])
-
         """)
 
     @Appender(_interval_shared_docs['overlaps'] % dict(
         klass='IntervalArray',
         examples=textwrap.dedent("""\
-        >>> intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 3),\
-                                                             (2, 4)])
+        >>> data = [(0, 1), (1, 3), (2, 4)]
+        >>> intervals = pd.arrays.IntervalArray.from_tuples(data)
         >>> intervals
         <IntervalArray>
         [(0, 1], (1, 3], (2, 4]]
