@@ -5,7 +5,7 @@ Top level ``eval`` module.
 """
 
 import tokenize
-from typing import Iterable, Union
+from typing import Dict, Iterable, Union
 import warnings
 
 import numpy as np
@@ -93,7 +93,7 @@ def _check_resolvers(resolvers: Iterable) -> None:
                                 'the __getitem__ method'.format(name=name))
 
 
-def _check_expression(expr: Any) -> None:
+def _check_expression(expr: str) -> None:
     """
     Make sure an expression is not an empty string
 
@@ -168,8 +168,8 @@ def eval(expr: str,
          global_dict: dict = None,
          resolvers: Iterable = (),
          level: int = 0,
-         target: Union[np.ndarry, pd.DataFrame, pd.Series] = None,
-         inplace: bool = False) -> Union[np.ndarry, pd.DataFrame, pd.Series]:
+         target: Union[float, np.ndarray, pd.DataFrame, pd.Series] = None,
+         inplace: bool = False) -> Union[float, np.ndarray, pd.DataFrame, pd.Series]:
     """
     Evaluate a Python expression as a string using various backends.
 
