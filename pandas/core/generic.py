@@ -5640,7 +5640,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Cast col1 to int32 using a dictionary:
 
-         >>> df.astype({'col1': 'int32'}).dtypes
+        >>> df.astype({'col1': 'int32'}).dtypes
         col1    int32
         col2    int64
         dtype: object
