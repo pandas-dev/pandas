@@ -56,7 +56,7 @@ from pandas.tseries.frequencies import to_offset
 # able to share
 _shared_docs = dict()
 _shared_doc_kwargs = dict(
-    axes='keywords for axes', klass='NDFrame',
+    axes='keywords for axes', klass='DataFrame',
     axes_single_arg='int or labels for object',
     args_transpose='axes to permute (int or label for object)',
     optional_by="""
@@ -1940,7 +1940,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_dense(self):
         """
-        Return dense representation of NDFrame (as opposed to sparse).
+        Return dense representation of DataFrame (as opposed to sparse).
 
         .. deprecated:: 0.25.0
 
@@ -9011,7 +9011,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        shifted : NDFrame
+        shifted : DataFrame
 
         Notes
         -----
@@ -10247,12 +10247,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return idx
 
     @Appender(_shared_docs['valid_index'] % {'position': 'first',
-                                             'klass': 'NDFrame'})
+                                             'klass': 'DataFrame'})
     def first_valid_index(self):
         return self._find_valid_index('first')
 
     @Appender(_shared_docs['valid_index'] % {'position': 'last',
-                                             'klass': 'NDFrame'})
+                                             'klass': 'DataFrame'})
     def last_valid_index(self):
         return self._find_valid_index('last')
 
