@@ -21,8 +21,8 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype, is_extension_type, is_float_dtype,
     is_integer_dtype, is_iterator, is_list_like, is_object_dtype, pandas_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex,
-    ABCSeries, ABCTimedeltaIndex)
+    ABCDataFrame, ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex, ABCSeries,
+    ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
