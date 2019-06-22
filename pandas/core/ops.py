@@ -6,7 +6,7 @@ This is not a public API.
 import datetime
 import operator
 import textwrap
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional
 import warnings
 
 import numpy as np
@@ -2367,8 +2367,8 @@ def maybe_dispatch_ufunc_to_dunder_op(
     self: ArrayLike,
     ufunc: Callable,
     method: str,
-    *inputs: Tuple[Any],
-    **kwargs: Dict,
+    *inputs,
+    **kwargs,
 ):
     """
     Dispatch a ufunc to the equivalent dunder method.
