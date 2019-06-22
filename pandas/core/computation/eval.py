@@ -5,7 +5,7 @@ Top level ``eval`` module.
 """
 
 import tokenize
-from typing import Dict, Iterable, Union
+from typing import Iterable, Union
 import warnings
 
 import numpy as np
@@ -169,7 +169,8 @@ def eval(expr: str,
          resolvers: Iterable = (),
          level: int = 0,
          target: Union[float, np.ndarray, pd.DataFrame, pd.Series] = None,
-         inplace: bool = False) -> Union[float, np.ndarray, pd.DataFrame, pd.Series]:
+         inplace: bool = False,
+         ) -> Union[float, np.ndarray, pd.DataFrame, pd.Series]:
     """
     Evaluate a Python expression as a string using various backends.
 
