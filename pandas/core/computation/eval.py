@@ -5,7 +5,7 @@ Top level ``eval`` module.
 """
 
 import tokenize
-from typing import Iterable, Union
+from typing import Any, Dict, Iterable, Union
 import warnings
 
 import numpy as np
@@ -164,8 +164,8 @@ def eval(expr: str,
          parser: str = 'pandas',
          engine: str = None,
          truediv: bool = True,
-         local_dict: dict = None,
-         global_dict: dict = None,
+         local_dict: Dict[str, Any] = None,
+         global_dict: Dict[str, Any] = None,
          resolvers: Iterable = (),
          level: int = 0,
          target: Union[float, np.ndarray, pd.DataFrame, pd.Series] = None,
