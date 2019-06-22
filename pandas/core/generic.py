@@ -5622,6 +5622,31 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
+        Create a DataFrame:
+
+        >>> d = {'col1': [1, 2], 'col2': [3, 4]}
+        >>> df = pd.DataFrame(data=d)
+        >>> df.dtypes
+        col1    int64
+        col2    int64
+        dtype: object
+
+        Cast all columns to int32:
+
+        >>> df.astype('int32').dtypes
+        col1    int32
+        col2    int32
+        dtype: object
+
+        Cast col1 to int32 using a dictionary:
+
+        >>> df.astype({'col1': 'int32'}).dtypes
+        col1    int32
+        col2    int64
+        dtype: object
+
+        Create a series:
+
         >>> ser = pd.Series([1, 2], dtype='int32')
         >>> ser
         0    1
