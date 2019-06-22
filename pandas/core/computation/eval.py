@@ -5,7 +5,7 @@ Top level ``eval`` module.
 """
 
 import tokenize
-from typing import Any, Iterable, Union
+from typing import Iterable, Union
 import warnings
 
 import numpy as np
@@ -111,7 +111,7 @@ def _check_expression(expr: Any) -> None:
         raise ValueError("expr cannot be an empty string")
 
 
-def _convert_expression(expr: Any) -> str:
+def _convert_expression(expr: str) -> str:
     """
     Convert an object to an expression.
 
@@ -140,7 +140,7 @@ def _convert_expression(expr: Any) -> str:
     return s
 
 
-def _check_for_locals(expr: Any, stack_level: int, parser: str) -> None:
+def _check_for_locals(expr: str, stack_level: int, parser: str) -> None:
     from pandas.core.computation.expr import tokenize_string
 
     at_top_of_stack = stack_level == 0
