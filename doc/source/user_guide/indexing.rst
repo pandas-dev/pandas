@@ -6,7 +6,7 @@
 Indexing and Selecting Data
 ***************************
 
-The axis labeling information in pandas objects serves many purposes:
+Axis *labeling* information in pandas objects serves many purposes:
 
 * Identifies data (i.e. provides *metadata*) using known indicators,
   important for analysis, visualization, and interactive console display.
@@ -16,7 +16,14 @@ The axis labeling information in pandas objects serves many purposes:
 In this section, we will focus on the final point: namely, how to slice, dice,
 and generally get and set subsets of pandas objects. The primary focus will be
 on Series and DataFrame as they have received more development attention in
-this area.
+this area. 
+
+.. note::
+
+   Throughout the documentation we typically use the term "label" to refer to the items of
+   a Pandas index labelling some axis. I.e. a Series has a single axis that may be "labelled" 
+   by specifying a Pandas Index (a MultiIndex is a type of index). A DataFrame has two axes 
+   (rows and columns) each of which maybe "labelled" by specifying an index.
 
 .. note::
 
