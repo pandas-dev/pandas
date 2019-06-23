@@ -117,12 +117,13 @@ def _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
         # box_dtype; the expected value returned from maybe_promote is the
         # missing value marker for the returned dtype.
         fill_array = np.array([fill_value], dtype=box_dtype)
-        result_dtype, result_fill_value = maybe_promote_with_array(dtype,
-                                                                   fill_array)
+        result_dtype, result_fill_value = maybe_promote(dtype, fill_array)
         expected_fill_value = exp_val_for_array
     else:
-        result_dtype, result_fill_value = maybe_promote_with_scalar(dtype,
-                                                                    fill_value)
+        # here, we pass on fill_value as a scalar directly; the expected value
+        # returned from maybe_promote is fill_value, potentially upcast to the
+        # returned dtype.
+        result_dtype, result_fill_value = maybe_promote(dtype, fill_value)
         expected_fill_value = exp_val_for_scalar
 
     _safe_dtype_assert(result_dtype, expected_dtype)
