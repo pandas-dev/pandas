@@ -695,7 +695,7 @@ handling of NaN:
     In [2]: pd.factorize(x, sort=True)
     Out[2]:
     (array([ 2,  2, -1,  3,  0,  1]),
-     Index([3.14, inf, u'A', u'B'], dtype='object'))
+     Index([3.14, inf, 'A', 'B'], dtype='object'))
 
     In [3]: np.unique(x, return_inverse=True)[::-1]
     Out[3]: (array([3, 3, 0, 4, 1, 2]), array([nan, 3.14, inf, 'A', 'B'], dtype=object))
@@ -705,7 +705,7 @@ handling of NaN:
     you can use  ``df["cat_col"] = pd.Categorical(df["col"])`` or
     ``df["cat_col"] = df["col"].astype("category")``. For full docs on :class:`~pandas.Categorical`,
     see the :ref:`Categorical introduction <categorical>` and the
-    :ref:`API documentation <api.categorical>`.
+    :ref:`API documentation <api.arrays.categorical>`.
 
 Examples
 --------

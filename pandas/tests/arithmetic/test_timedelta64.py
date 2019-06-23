@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Arithmetc tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 from datetime import datetime, timedelta
@@ -6,7 +5,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas.errors import (
+    NullFrequencyError, OutOfBoundsDatetime, PerformanceWarning)
 
 import pandas as pd
 from pandas import (
@@ -31,8 +31,21 @@ def get_upcast_box(box, vector):
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Comparisons
 
-class TestTimedelta64ArrayComparisons(object):
+class TestTimedelta64ArrayComparisons:
     # TODO: All of these need to be parametrized over box
+
+    def test_compare_timedelta64_zerodim(self):
+        # GH#26689 should unbox when comparing with zerodim array
+        tdi = pd.timedelta_range('2H', periods=4)
+        other = np.array(tdi.to_numpy()[0])
+
+        res = tdi <= other
+        expected = np.array([True, False, False, False])
+        tm.assert_numpy_array_equal(res, expected)
+
+        with pytest.raises(TypeError):
+            # zero-dim of wrong dtype should still raise
+            tdi >= np.array(4)
 
     def test_compare_timedelta_series(self):
         # regresssion test for GH#5963
@@ -157,7 +170,7 @@ class TestTimedelta64ArrayComparisons(object):
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Arithmetic Operations
 
-class TestTimedelta64ArithmeticUnsorted(object):
+class TestTimedelta64ArithmeticUnsorted:
     # Tests moved from type-specific test files but not
     #  yet sorted/parametrized/de-duplicated
 
@@ -442,7 +455,7 @@ class TestTimedelta64ArithmeticUnsorted(object):
         tm.assert_index_equal(result2, result3)
 
 
-class TestAddSubNaTMasking(object):
+class TestAddSubNaTMasking:
     # TODO: parametrize over boxes
 
     def test_tdi_add_timestamp_nat_masking(self):
@@ -467,10 +480,10 @@ class TestAddSubNaTMasking(object):
 
     def test_tdi_add_overflow(self):
         # See GH#14068
-        msg = "too (big|large) to convert"
-        with pytest.raises(OverflowError, match=msg):
+        # preliminary test scalar analogue of vectorized tests below
+        with pytest.raises(OutOfBoundsDatetime):
             pd.to_timedelta(106580, 'D') + Timestamp('2000')
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsDatetime):
             Timestamp('2000') + pd.to_timedelta(106580, 'D')
 
         _NaT = int(pd.NaT) + 1
@@ -502,7 +515,7 @@ class TestAddSubNaTMasking(object):
         tm.assert_index_equal(result, exp)
 
 
-class TestTimedeltaArraylikeAddSubOps(object):
+class TestTimedeltaArraylikeAddSubOps:
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
 
     # TODO: moved from frame tests; needs parametrization/de-duplication
@@ -1399,7 +1412,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
                 anchored - tdi
 
 
-class TestTimedeltaArraylikeMulDivOps(object):
+class TestTimedeltaArraylikeMulDivOps:
     # Tests for timedelta64[ns]
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
 
@@ -1525,7 +1538,8 @@ class TestTimedeltaArraylikeMulDivOps(object):
         rng = timedelta_range('1 days', '10 days', name='foo')
         rng = tm.box_expected(rng, box_with_array)
 
-        with pytest.raises(TypeError, match='true_divide cannot use operands'):
+        with pytest.raises(TypeError,
+                           match="'?true_divide'? cannot use operands"):
             rng / pd.NaT
         with pytest.raises(TypeError, match='Cannot divide NaTType by'):
             pd.NaT / rng
@@ -1990,7 +2004,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
             tm.assert_equal(result, expected)
 
 
-class TestTimedeltaArraylikeInvalidArithmeticOps(object):
+class TestTimedeltaArraylikeInvalidArithmeticOps:
 
     def test_td64arr_pow_invalid(self, scalar_td, box_with_array):
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)

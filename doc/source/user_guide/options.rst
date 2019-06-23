@@ -431,6 +431,12 @@ compute.use_bottleneck                  True         Use the bottleneck library 
                                                      computation if it is installed.
 compute.use_numexpr                     True         Use the numexpr library to accelerate
                                                      computation if it is installed.
+plotting.backend                        matplotlib   Change the plotting backend to a different
+                                                     backend than the current matplotlib one.
+                                                     Backends can be implemented as third-party
+                                                     libraries implementing the pandas plotting
+                                                     API. They can use other plotting libraries
+                                                     like Bokeh, Altair, etc.
 plotting.matplotlib.register_converters True         Register custom converters with
                                                      matplotlib. Set to False to de-register.
 ======================================= ============ ==================================
@@ -484,7 +490,7 @@ If a DataFrame or Series contains these characters, the default output mode may 
 
 .. ipython:: python
 
-   df = pd.DataFrame({u'国籍': ['UK', u'日本'], u'名前': ['Alice', u'しのぶ']})
+   df = pd.DataFrame({'国籍': ['UK', '日本'], '名前': ['Alice', 'しのぶ']})
    df
 
 .. image:: ../_static/option_unicode01.png
@@ -507,7 +513,7 @@ By default, an "Ambiguous" character's width, such as "¡" (inverted exclamation
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a': ['xxx', u'¡¡'], 'b': ['yyy', u'¡¡']})
+   df = pd.DataFrame({'a': ['xxx', '¡¡'], 'b': ['yyy', '¡¡']})
    df
 
 .. image:: ../_static/option_unicode03.png

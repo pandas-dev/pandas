@@ -4,8 +4,6 @@ import numpy as np
 from numpy import iinfo
 import pytest
 
-import pandas.compat as compat
-
 import pandas as pd
 from pandas import DataFrame, Index, Series, to_numeric
 from pandas.util import testing as tm
@@ -242,7 +240,7 @@ def test_really_large_scalar(large_val, signed, transform, errors):
     else:
         expected = float(val) if (errors == "coerce" and
                                   val_is_string) else val
-        assert tm.assert_almost_equal(to_numeric(val, **kwargs), expected)
+        tm.assert_almost_equal(to_numeric(val, **kwargs), expected)
 
 
 def test_really_large_in_arr(large_val, signed, transform,
@@ -280,8 +278,7 @@ def test_really_large_in_arr(large_val, signed, transform,
                 expected.append(extra_elt)
                 exp_dtype = object
         else:
-            exp_dtype = float if isinstance(exp_val, (
-                int, compat.long, float)) else object
+            exp_dtype = float if isinstance(exp_val, (int, float)) else object
 
         tm.assert_almost_equal(result, np.array(expected, dtype=exp_dtype))
 
@@ -414,6 +411,16 @@ def test_downcast_invalid_cast():
 
     with pytest.raises(ValueError, match=msg):
         to_numeric(data, downcast=invalid_downcast)
+
+
+def test_errors_invalid_value():
+    # see gh-26466
+    data = ["1", 2, 3]
+    invalid_error_value = "invalid"
+    msg = "invalid error value specified"
+
+    with pytest.raises(ValueError, match=msg):
+        to_numeric(data, errors=invalid_error_value)
 
 
 @pytest.mark.parametrize("data", [

@@ -182,15 +182,15 @@ on a deeper level.
 Defined Levels
 ~~~~~~~~~~~~~~
 
-The repr of a ``MultiIndex`` shows all the defined levels of an index, even
+The :class:`MultiIndex` keeps all the defined levels of an index, even
 if they are not actually used. When slicing an index, you may notice this.
 For example:
 
 .. ipython:: python
 
-   df.columns  # original MultiIndex
+   df.columns.levels  # original MultiIndex
 
-   df[['foo','qux']].columns  # sliced
+   df[['foo','qux']].columns.levels  # sliced
 
 This is done to avoid a recomputation of the levels in order to make slicing
 highly performant. If you want to see only the used levels, you can use the
@@ -210,7 +210,8 @@ To reconstruct the ``MultiIndex`` with only the used levels, the
 
 .. ipython:: python
 
-   df[['foo', 'qux']].columns.remove_unused_levels()
+   new_mi = df[['foo', 'qux']].columns.remove_unused_levels()
+   new_mi.levels
 
 Data alignment and using ``reindex``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -703,6 +704,8 @@ faster than fancy indexing.
    %timeit arr[indexer]
    %timeit arr.take(indexer, axis=0)
 
+.. ipython:: python
+
    ser = pd.Series(arr[:, 0])
    %timeit ser.iloc[indexer]
    %timeit ser.take(indexer)
@@ -797,7 +800,7 @@ values **not** in the categories, similarly to how you can reindex **any** panda
     In [11]: df3 = df3.set_index('B')
 
     In [11]: df3.index
-    Out[11]: CategoricalIndex([u'a', u'a', u'b', u'b', u'c', u'a'], categories=[u'a', u'b', u'c'], ordered=False, name=u'B', dtype='category')
+    Out[11]: CategoricalIndex(['a', 'a', 'b', 'b', 'c', 'a'], categories=['a', 'b', 'c'], ordered=False, name='B', dtype='category')
 
     In [12]: pd.concat([df2, df3])
     TypeError: categories must match existing categories when appending

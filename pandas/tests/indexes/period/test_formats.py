@@ -48,7 +48,7 @@ def test_to_native_types():
     tm.assert_numpy_array_equal(result, expected)
 
 
-class TestPeriodIndexRendering(object):
+class TestPeriodIndexRendering:
 
     def test_frame_repr(self):
         df = pd.DataFrame({"A": [1, 2, 3]},
@@ -61,7 +61,7 @@ class TestPeriodIndexRendering(object):
             '2000-01-03  3')
         assert result == expected
 
-    @pytest.mark.parametrize('method', ['__repr__', '__unicode__', '__str__'])
+    @pytest.mark.parametrize('method', ['__repr__', '__str__'])
     def test_representation(self, method):
         # GH#7601
         idx1 = PeriodIndex([], freq='D')

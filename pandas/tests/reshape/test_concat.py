@@ -1,7 +1,8 @@
-from collections import deque
+from collections import OrderedDict, abc, deque
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal
+from io import StringIO
 from itertools import combinations
 from warnings import catch_warnings
 
@@ -10,14 +11,13 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import PY2, Iterable, StringIO, iteritems
-
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Panel, Series,
+    Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series,
     Timestamp, concat, date_range, isna, read_csv)
+import pandas.core.common as com
 from pandas.tests.extension.decimal import to_decimal
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, makeCustomDataframe as mkdf
@@ -39,15 +39,7 @@ def sort_with_none(request):
     return request.param
 
 
-class ConcatenateBase(object):
-
-    def setup_method(self, method):
-        self.frame = DataFrame(tm.getSeriesData())
-        self.mixed_frame = self.frame.copy()
-        self.mixed_frame['foo'] = 'bar'
-
-
-class TestConcatAppendCommon(ConcatenateBase):
+class TestConcatAppendCommon:
 
     """
     Test common dtype coercion rules between concat and append.
@@ -100,13 +92,13 @@ class TestConcatAppendCommon(ConcatenateBase):
 
     def test_dtypes(self):
         # to confirm test case covers intended dtypes
-        for typ, vals in iteritems(self.data):
+        for typ, vals in self.data.items():
             self._check_expected_dtype(pd.Index(vals), typ)
             self._check_expected_dtype(pd.Series(vals), typ)
 
     def test_concatlike_same_dtypes(self):
         # GH 13660
-        for typ1, vals1 in iteritems(self.data):
+        for typ1, vals1 in self.data.items():
 
             vals2 = vals1
             vals3 = vals1
@@ -196,9 +188,8 @@ class TestConcatAppendCommon(ConcatenateBase):
             tm.assert_series_equal(res, exp, check_index_type=True)
 
             # cannot append non-index
-            msg = (r'cannot concatenate object of type \"(.+?)\";'
-                   ' only pd.Series, pd.DataFrame, and pd.Panel'
-                   r' \(deprecated\) objs are valid')
+            msg = (r"cannot concatenate object of type '.+';"
+                   " only Series and DataFrame objs are valid")
             with pytest.raises(TypeError, match=msg):
                 pd.Series(vals1).append(vals2)
 
@@ -213,8 +204,8 @@ class TestConcatAppendCommon(ConcatenateBase):
 
     def test_concatlike_dtypes_coercion(self):
         # GH 13660
-        for typ1, vals1 in iteritems(self.data):
-            for typ2, vals2 in iteritems(self.data):
+        for typ1, vals1 in self.data.items():
+            for typ2, vals2 in self.data.items():
 
                 vals3 = vals2
 
@@ -732,17 +723,20 @@ class TestConcatAppendCommon(ConcatenateBase):
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
 
-class TestAppend(ConcatenateBase):
+class TestAppend:
 
-    def test_append(self, sort):
-        begin_index = self.frame.index[:5]
-        end_index = self.frame.index[5:]
+    def test_append(self, sort, float_frame):
+        mixed_frame = float_frame.copy()
+        mixed_frame['foo'] = 'bar'
 
-        begin_frame = self.frame.reindex(begin_index)
-        end_frame = self.frame.reindex(end_index)
+        begin_index = float_frame.index[:5]
+        end_index = float_frame.index[5:]
+
+        begin_frame = float_frame.reindex(begin_index)
+        end_frame = float_frame.reindex(end_index)
 
         appended = begin_frame.append(end_frame)
-        tm.assert_almost_equal(appended['A'], self.frame['A'])
+        tm.assert_almost_equal(appended['A'], float_frame['A'])
 
         del end_frame['A']
         partial_appended = begin_frame.append(end_frame, sort=sort)
@@ -752,35 +746,35 @@ class TestAppend(ConcatenateBase):
         assert 'A' in partial_appended
 
         # mixed type handling
-        appended = self.mixed_frame[:5].append(self.mixed_frame[5:])
-        tm.assert_frame_equal(appended, self.mixed_frame)
+        appended = mixed_frame[:5].append(mixed_frame[5:])
+        tm.assert_frame_equal(appended, mixed_frame)
 
         # what to test here
-        mixed_appended = self.mixed_frame[:5].append(self.frame[5:], sort=sort)
-        mixed_appended2 = self.frame[:5].append(self.mixed_frame[5:],
-                                                sort=sort)
+        mixed_appended = mixed_frame[:5].append(float_frame[5:], sort=sort)
+        mixed_appended2 = float_frame[:5].append(mixed_frame[5:], sort=sort)
 
         # all equal except 'foo' column
         tm.assert_frame_equal(
             mixed_appended.reindex(columns=['A', 'B', 'C', 'D']),
             mixed_appended2.reindex(columns=['A', 'B', 'C', 'D']))
 
-        # append empty
-        empty = DataFrame({})
+    def test_append_empty(self, float_frame):
+        empty = DataFrame()
 
-        appended = self.frame.append(empty)
-        tm.assert_frame_equal(self.frame, appended)
-        assert appended is not self.frame
+        appended = float_frame.append(empty)
+        tm.assert_frame_equal(float_frame, appended)
+        assert appended is not float_frame
 
-        appended = empty.append(self.frame)
-        tm.assert_frame_equal(self.frame, appended)
-        assert appended is not self.frame
+        appended = empty.append(float_frame)
+        tm.assert_frame_equal(float_frame, appended)
+        assert appended is not float_frame
 
-        # Overlap
+    def test_append_overlap_raises(self, float_frame):
         msg = "Indexes have overlapping values"
         with pytest.raises(ValueError, match=msg):
-            self.frame.append(self.frame, verify_integrity=True)
+            float_frame.append(float_frame, verify_integrity=True)
 
+    def test_append_new_columns(self):
         # see gh-6129: new columns
         df = DataFrame({'a': {'x': 1, 'y': 2}, 'b': {'x': 3, 'y': 4}})
         row = Series([5, 6, 7], index=['a', 'b', 'c'], name='z')
@@ -852,23 +846,23 @@ class TestAppend(ConcatenateBase):
         assert isna(appended['strings'][0:4]).all()
         assert isna(appended['bools'][5:]).all()
 
-    def test_append_many(self, sort):
-        chunks = [self.frame[:5], self.frame[5:10],
-                  self.frame[10:15], self.frame[15:]]
+    def test_append_many(self, sort, float_frame):
+        chunks = [float_frame[:5], float_frame[5:10],
+                  float_frame[10:15], float_frame[15:]]
 
         result = chunks[0].append(chunks[1:])
-        tm.assert_frame_equal(result, self.frame)
+        tm.assert_frame_equal(result, float_frame)
 
         chunks[-1] = chunks[-1].copy()
         chunks[-1]['foo'] = 'bar'
         result = chunks[0].append(chunks[1:], sort=sort)
-        tm.assert_frame_equal(result.loc[:, self.frame.columns], self.frame)
+        tm.assert_frame_equal(result.loc[:, float_frame.columns], float_frame)
         assert (result['foo'][15:] == 'bar').all()
         assert result['foo'][:15].isna().all()
 
     def test_append_preserve_index_name(self):
         # #980
-        df1 = DataFrame(data=None, columns=['A', 'B', 'C'])
+        df1 = DataFrame(columns=['A', 'B', 'C'])
         df1 = df1.set_index(['A'])
         df2 = DataFrame(data=[[1, 4, 7], [2, 5, 8], [3, 6, 9]],
                         columns=['A', 'B', 'C'])
@@ -961,22 +955,23 @@ class TestAppend(ConcatenateBase):
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=index_can_append)
         ser = pd.Series([7, 8, 9], index=index_cannot_append_with_other,
                         name=2)
-        msg = ("the other index needs to be an IntervalIndex too, but was"
+        msg = (r"unorderable types: (Interval|int)\(\) (<|>) "
+               r"(int|long|float|str|Timestamp)\(\)|"
+               r"Expected tuple, got (int|long|float|str)|"
+               r"Cannot compare type 'Timestamp' with type '(int|long)'|"
+               r"'(<|>)' not supported between instances of 'int' "
+               r"and '(str|Timestamp)'|"
+               r"the other index needs to be an IntervalIndex too, but was"
                r" type {}|"
-               r"object of type '(int|long|float|Timestamp)' has no len\(\)|"
+               r"object of type '(int|float|Timestamp)' has no len\(\)|"
                "Expected tuple, got str")
-        with pytest.raises(TypeError, match=msg.format(
-                index_can_append.__class__.__name__)):
+        with pytest.raises(TypeError, match=msg):
             df.append(ser)
 
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]],
                           columns=index_cannot_append_with_other)
         ser = pd.Series([7, 8, 9], index=index_can_append, name=2)
-        msg = (r"unorderable types: (Interval|int)\(\) > "
-               r"(int|long|float|str)\(\)|"
-               r"Expected tuple, got (int|long|float|str)|"
-               r"Cannot compare type 'Timestamp' with type '(int|long)'|"
-               r"'>' not supported between instances of 'int' and 'str'")
+
         with pytest.raises(TypeError, match=msg):
             df.append(ser)
 
@@ -1042,7 +1037,7 @@ class TestAppend(ConcatenateBase):
         assert_frame_equal(result, expected)
 
 
-class TestConcatenate(ConcatenateBase):
+class TestConcatenate:
 
     def test_concat_copy(self):
         df = DataFrame(np.random.randn(4, 3))
@@ -1163,7 +1158,7 @@ class TestConcatenate(ConcatenateBase):
                   'baz': DataFrame(np.random.randn(4, 3)),
                   'qux': DataFrame(np.random.randn(4, 3))}
 
-        sorted_keys = sorted(frames)
+        sorted_keys = com.dict_keys_to_ordered_list(frames)
 
         result = concat(frames)
         expected = concat([frames[k] for k in sorted_keys], keys=sorted_keys)
@@ -1401,8 +1396,8 @@ class TestConcatenate(ConcatenateBase):
     def test_with_mixed_tuples(self, sort):
         # 10697
         # columns have mixed tuples, so handle properly
-        df1 = DataFrame({u'A': 'foo', (u'B', 1): 'bar'}, index=range(2))
-        df2 = DataFrame({u'B': 'foo', (u'B', 1): 'bar'}, index=range(2))
+        df1 = DataFrame({'A': 'foo', ('B', 1): 'bar'}, index=range(2))
+        df2 = DataFrame({'B': 'foo', ('B', 1): 'bar'}, index=range(2))
 
         # it works
         concat([df1, df2], sort=sort)
@@ -1533,33 +1528,6 @@ class TestConcatenate(ConcatenateBase):
         df = DataFrame({'text': ['some words'] + [None] * 9})
         result = concat([df.iloc[[0]], df.iloc[[1]]])
         tm.assert_series_equal(result.dtypes, df.dtypes)
-
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    # Panel.rename warning we don't care about
-    @pytest.mark.filterwarnings("ignore:Using:FutureWarning")
-    def test_panel_concat_buglet(self, sort):
-        # #2257
-        def make_panel():
-            index = 5
-            cols = 3
-
-            def df():
-                return DataFrame(np.random.randn(index, cols),
-                                 index=["I%s" % i for i in range(index)],
-                                 columns=["C%s" % i for i in range(cols)])
-            return Panel({"Item%s" % x: df() for x in ['A', 'B', 'C']})
-
-        panel1 = make_panel()
-        panel2 = make_panel()
-
-        panel2 = panel2.rename(major_axis={x: "%s_1" % x
-                                           for x in panel2.major_axis})
-
-        panel3 = panel2.rename(major_axis=lambda x: '%s_1' % x)
-        panel3 = panel3.rename(minor_axis=lambda x: '%s_1' % x)
-
-        # it works!
-        concat([panel1, panel3], axis=1, verify_integrity=True, sort=sort)
 
     def test_concat_series(self):
 
@@ -1756,7 +1724,7 @@ class TestConcatenate(ConcatenateBase):
         assert_frame_equal(
             concat(deque((df1, df2)), ignore_index=True), expected)
 
-        class CustomIterator1(object):
+        class CustomIterator1:
 
             def __len__(self):
                 return 2
@@ -1769,7 +1737,7 @@ class TestConcatenate(ConcatenateBase):
         assert_frame_equal(pd.concat(CustomIterator1(),
                                      ignore_index=True), expected)
 
-        class CustomIterator2(Iterable):
+        class CustomIterator2(abc.Iterable):
 
             def __iter__(self):
                 yield df1
@@ -1781,9 +1749,8 @@ class TestConcatenate(ConcatenateBase):
 
         # trying to concat a ndframe with a non-ndframe
         df1 = mkdf(10, 2)
-        msg = ('cannot concatenate object of type "{}";'
-               ' only pd.Series, pd.DataFrame, and pd.Panel'
-               r' \(deprecated\) objs are valid')
+        msg = ("cannot concatenate object of type '{}';"
+               " only Series and DataFrame objs are valid")
         for obj in [1, dict(), [1, 2], (1, 2)]:
             with pytest.raises(TypeError, match=msg.format(type(obj))):
                 concat([df1, obj])
@@ -2058,7 +2025,8 @@ bar2,12,13,14,15
         s1 = pd.Series([1, 2, 3], name='x')
         s2 = pd.Series(name='y')
         res = pd.concat([s1, s2], axis=1)
-        exp = pd.DataFrame({'x': [1, 2, 3], 'y': [np.nan, np.nan, np.nan]})
+        exp = pd.DataFrame({'x': [1, 2, 3], 'y': [np.nan, np.nan, np.nan]},
+                           index=pd.Index([0, 1, 2], dtype='O'))
         tm.assert_frame_equal(res, exp)
 
         s1 = pd.Series([1, 2, 3], name='x')
@@ -2073,7 +2041,8 @@ bar2,12,13,14,15
         s2 = pd.Series(name=None)
         res = pd.concat([s1, s2], axis=1)
         exp = pd.DataFrame({'x': [1, 2, 3], 0: [np.nan, np.nan, np.nan]},
-                           columns=['x', 0])
+                           columns=['x', 0],
+                           index=pd.Index([0, 1, 2], dtype='O'))
         tm.assert_frame_equal(res, exp)
 
     @pytest.mark.parametrize('tz', [None, 'UTC'])
@@ -2331,13 +2300,7 @@ bar2,12,13,14,15
                 for i in range(100)]
 
         result = pd.concat(dfs, sort=True).columns
-
-        if PY2:
-            # Different sort order between incomparable objects between
-            # python 2 and python3 via Index.union.
-            expected = dfs[1].columns
-        else:
-            expected = dfs[0].columns
+        expected = dfs[0].columns
         tm.assert_index_equal(result, expected)
 
     def test_concat_datetime_timezone(self):
@@ -2387,7 +2350,6 @@ bar2,12,13,14,15
                                 index=idx1.append(idx1))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(PY2, reason="Unhashable Decimal dtype")
     def test_concat_different_extension_dtypes_upcasts(self):
         a = pd.Series(pd.core.arrays.integer_array([1, 2]))
         b = pd.Series(to_decimal([1, 2]))
@@ -2399,10 +2361,17 @@ bar2,12,13,14,15
         ], dtype=object)
         tm.assert_series_equal(result, expected)
 
+    def test_concat_odered_dict(self):
+        # GH 21510
+        expected = pd.concat([pd.Series(range(3)), pd.Series(range(4))],
+                             keys=['First', 'Another'])
+        result = pd.concat(OrderedDict([('First', pd.Series(range(3))),
+                                        ('Another', pd.Series(range(4)))]))
+        tm.assert_series_equal(result, expected)
 
-@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
+
+@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame])
 @pytest.mark.parametrize('dt', np.sctypes['float'])
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_concat_no_unnecessary_upcast(dt, pdt):
     # GH 13247
     dims = pdt().ndim
@@ -2413,9 +2382,8 @@ def test_concat_no_unnecessary_upcast(dt, pdt):
     assert x.values.dtype == dt
 
 
-@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
+@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame])
 @pytest.mark.parametrize('dt', np.sctypes['int'])
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_concat_will_upcast(dt, pdt):
     with catch_warnings(record=True):
         dims = pdt().ndim
@@ -2561,3 +2529,20 @@ def test_concat_categorical_tz():
         'a', 'b'
     ])
     tm.assert_series_equal(result, expected)
+
+
+def test_concat_datetimeindex_freq():
+    # GH 3232
+    # Monotonic index result
+    dr = pd.date_range('01-Jan-2013', periods=100, freq='50L', tz='UTC')
+    data = list(range(100))
+    expected = pd.DataFrame(data, index=dr)
+    result = pd.concat([expected[:50], expected[50:]])
+    tm.assert_frame_equal(result, expected)
+
+    # Non-monotonic index result
+    result = pd.concat([expected[50:], expected[:50]])
+    expected = pd.DataFrame(data[50:] + data[:50],
+                            index=dr[50:].append(dr[:50]))
+    expected.index.freq = None
+    tm.assert_frame_equal(result, expected)

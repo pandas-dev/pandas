@@ -449,8 +449,8 @@ Merge
 Concat
 ~~~~~~
 
-pandas provides various facilities for easily combining together Series,
-DataFrame, and Panel objects with various kinds of set logic for the indexes
+pandas provides various facilities for easily combining together Series and
+DataFrame objects with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
 
@@ -712,6 +712,7 @@ See the :ref:`Plotting <visualization>` docs.
    plt.close('all')
 
 .. ipython:: python
+   :okwarning:
 
    ts = pd.Series(np.random.randn(1000),
                   index=pd.date_range('1/1/2000', periods=1000))

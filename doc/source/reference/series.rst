@@ -56,7 +56,6 @@ Conversion
 
    Series.astype
    Series.infer_objects
-   Series.convert_objects
    Series.copy
    Series.bool
    Series.to_numpy
@@ -212,7 +211,6 @@ Reindexing / Selection / Label manipulation
    Series.rename_axis
    Series.reset_index
    Series.sample
-   Series.select
    Series.set_axis
    Series.take
    Series.tail
@@ -474,6 +472,8 @@ strings and apply several methods to it. These can be accessed like
        Series.str
        Series.cat
        Series.dt
+       Series.sparse
+       DataFrame.sparse
        Index.str
 
 .. _api.series.cat:

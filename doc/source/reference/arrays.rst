@@ -144,8 +144,14 @@ If the data are tz-aware, then every value in the array must have the same timez
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
    arrays.DatetimeArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
    DatetimeTZDtype
 
 .. _api.arrays.timedelta:
@@ -199,6 +205,7 @@ A collection of timedeltas may be stored in a :class:`TimedeltaArray`.
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
    arrays.TimedeltaArray
 
@@ -258,8 +265,14 @@ Every period in a ``PeriodArray`` must have the same ``freq``.
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
-   arrays.DatetimeArray
+   arrays.PeriodArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
    PeriodDtype
 
 .. _api.arrays.interval:
@@ -294,9 +307,38 @@ A collection of intervals may be stored in an :class:`arrays.IntervalArray`.
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
    arrays.IntervalArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
    IntervalDtype
+
+
+.. Those attributes and methods are included in the API because the docstrings
+.. of IntervalIndex and IntervalArray are shared. Including it here to make
+.. sure a docstring page is built for them to avoid warnings
+
+..
+    .. autosummary::
+      :toctree: api/
+
+      arrays.IntervalArray.left
+      arrays.IntervalArray.right
+      arrays.IntervalArray.closed
+      arrays.IntervalArray.mid
+      arrays.IntervalArray.length
+      arrays.IntervalArray.is_non_overlapping_monotonic
+      arrays.IntervalArray.from_arrays
+      arrays.IntervalArray.from_tuples
+      arrays.IntervalArray.from_breaks
+      arrays.IntervalArray.overlaps
+      arrays.IntervalArray.set_closed
+      arrays.IntervalArray.to_tuples
+
 
 .. _api.arrays.integer_na:
 
@@ -308,8 +350,14 @@ Pandas provides this through :class:`arrays.IntegerArray`.
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
    arrays.IntegerArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
    Int8Dtype
    Int16Dtype
    Int32Dtype
@@ -394,10 +442,30 @@ be stored efficiently as a :class:`SparseArray`.
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
 
    SparseArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
    SparseDtype
 
 The ``Series.sparse`` accessor may be used to access sparse-specific attributes
 and methods if the :class:`Series` contains sparse values. See
 :ref:`api.series.sparse` for more.
+
+
+
+.. Dtype attributes which are manually listed in their docstrings: including
+.. it here to make sure a docstring page is built for them
+
+..
+    .. autosummary::
+      :toctree: api/
+
+      DatetimeTZDtype.unit
+      DatetimeTZDtype.tz
+      PeriodDtype.freq
+      IntervalDtype.subtype

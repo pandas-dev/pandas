@@ -11,7 +11,7 @@ from os.path import join as pjoin
 
 import pkg_resources
 import platform
-from distutils.sysconfig import get_config_var
+from distutils.sysconfig import get_config_vars
 import sys
 import shutil
 from distutils.version import LooseVersion
@@ -30,11 +30,11 @@ def is_platform_mac():
     return sys.platform == 'darwin'
 
 
-min_numpy_ver = '1.12.0'
+min_numpy_ver = '1.13.3'
 setuptools_kwargs = {
     'install_requires': [
-        'python-dateutil >= 2.5.0',
-        'pytz >= 2011k',
+        'python-dateutil >= 2.6.1',
+        'pytz >= 2017.2',
         'numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver),
     ],
     'setup_requires': ['numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver)],
@@ -203,15 +203,18 @@ AUTHOR = "The PyData Development Team"
 EMAIL = "pydata@googlegroups.com"
 URL = "http://pandas.pydata.org"
 DOWNLOAD_URL = ''
+PROJECT_URLS = {
+    'Bug Tracker': 'https://github.com/pandas-dev/pandas/issues',
+    'Documentation': 'http://pandas.pydata.org/pandas-docs/stable/',
+    'Source Code': 'https://github.com/pandas-dev/pandas'
+}
 CLASSIFIERS = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Operating System :: OS Independent',
     'Intended Audience :: Science/Research',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',
@@ -312,6 +315,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/ops.pyx',
                  'pandas/_libs/parsers.pyx',
+                 'pandas/_libs/tslibs/c_timestamp.pyx',
                  'pandas/_libs/tslibs/ccalendar.pyx',
                  'pandas/_libs/tslibs/period.pyx',
                  'pandas/_libs/tslibs/strptime.pyx',
@@ -325,6 +329,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/_libs/tslibs/resolution.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
+                 'pandas/_libs/tslibs/tzconversion.pyx',
                  'pandas/_libs/writers.pyx',
                  'pandas/io/sas/sas.pyx']
 
@@ -413,6 +418,11 @@ else:
 # ----------------------------------------------------------------------
 # Preparation of compiler arguments
 
+debugging_symbols_requested = '--with-debugging-symbols' in sys.argv
+if debugging_symbols_requested:
+    sys.argv.remove('--with-debugging-symbols')
+
+
 if sys.byteorder == 'big':
     endian_macro = [('__BIG_ENDIAN__', '1')]
 else:
@@ -421,23 +431,29 @@ else:
 
 if is_platform_windows():
     extra_compile_args = []
+    extra_link_args = []
+    if debugging_symbols_requested:
+        extra_compile_args.append('/Z7')
+        extra_link_args.append('/DEBUG')
 else:
     # args to ignore warnings
     extra_compile_args = ['-Wno-unused-function']
+    extra_link_args = []
+    if debugging_symbols_requested:
+        extra_compile_args.append('-g')
 
-
-# For mac, ensure extensions are built for macos 10.9 when compiling on a
-# 10.9 system or above, overriding distuitls behaviour which is to target
-# the version that python was built for. This may be overridden by setting
+# Build for at least macOS 10.9 when compiling on a 10.9 system or above,
+# overriding CPython distuitls behaviour which is to target the version that
+# python was built for. This may be overridden by setting
 # MACOSX_DEPLOYMENT_TARGET before calling setup.py
 if is_platform_mac():
     if 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:
-        current_system = LooseVersion(platform.mac_ver()[0])
-        python_target = LooseVersion(
-            get_config_var('MACOSX_DEPLOYMENT_TARGET'))
-        if python_target < '10.9' and current_system >= '10.9':
+        current_system = platform.mac_ver()[0]
+        python_target = get_config_vars().get('MACOSX_DEPLOYMENT_TARGET',
+                                              current_system)
+        if (LooseVersion(python_target) < '10.9' and
+                LooseVersion(current_system) >= '10.9'):
             os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
-
 
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
@@ -451,7 +467,7 @@ if '--with-cython-coverage' in sys.argv:
 # pinning `ext.cython_directives = directives` to each ext in extensions.
 # github.com/cython/cython/wiki/enhancements-compilerdirectives#in-setuppy
 directives = {'linetrace': False,
-              'language_level': 2}
+              'language_level': 3}
 macros = []
 if linetrace:
     # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py
@@ -547,7 +563,8 @@ ext_data = {
     '_libs.lib': {
         'pyxfile': '_libs/lib',
         'include': common_include + ts_include,
-        'depends': lib_depends + tseries_depends},
+        'depends': lib_depends + tseries_depends,
+        'sources': ['pandas/_libs/src/parser/tokenizer.c']},
     '_libs.missing': {
         'pyxfile': '_libs/missing',
         'include': common_include + ts_include,
@@ -576,6 +593,11 @@ ext_data = {
         'depends': _pxi_dep['sparse']},
     '_libs.tslib': {
         'pyxfile': '_libs/tslib',
+        'include': ts_include,
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
+    '_libs.tslibs.c_timestamp': {
+        'pyxfile': '_libs/tslibs/c_timestamp',
         'include': ts_include,
         'depends': tseries_depends,
         'sources': np_datetime_sources},
@@ -610,7 +632,8 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
-        'include': []},
+        'depends': ['pandas/_libs/src/parser/tokenizer.h'],
+        'sources': ['pandas/_libs/src/parser/tokenizer.c']},
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
         'include': ts_include,
@@ -639,6 +662,11 @@ ext_data = {
     '_libs.tslibs.timezones': {
         'pyxfile': '_libs/tslibs/timezones',
         'include': []},
+    '_libs.tslibs.tzconversion': {
+        'pyxfile': '_libs/tslibs/tzconversion',
+        'include': ts_include,
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.testing': {
         'pyxfile': '_libs/testing'},
     '_libs.window': {
@@ -688,7 +716,8 @@ for name, data in ext_data.items():
                     include_dirs=include,
                     language=data.get('language', 'c'),
                     define_macros=data.get('macros', macros),
-                    extra_compile_args=extra_compile_args)
+                    extra_compile_args=extra_compile_args,
+                    extra_link_args=extra_link_args)
 
     extensions.append(obj)
 
@@ -715,6 +744,7 @@ ujson_ext = Extension('pandas._libs.json',
                                     'pandas/_libs/src/datetime'],
                       extra_compile_args=(['-D_GNU_SOURCE'] +
                                           extra_compile_args),
+                      extra_link_args=extra_link_args,
                       define_macros=macros)
 
 
@@ -726,8 +756,13 @@ extensions.append(ujson_ext)
 _move_ext = Extension('pandas.util._move',
                       depends=[],
                       sources=['pandas/util/move.c'],
-                      define_macros=macros)
+                      define_macros=macros,
+                      extra_compile_args=extra_compile_args,
+                      extra_link_args=extra_link_args)
 extensions.append(_move_ext)
+
+# ----------------------------------------------------------------------
+
 
 # The build cache system does string matching below this point.
 # if you change something, be careful.
@@ -744,8 +779,9 @@ setup(name=DISTNAME,
       cmdclass=cmdclass,
       url=URL,
       download_url=DOWNLOAD_URL,
+      project_urls=PROJECT_URLS,
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       platforms='any',
-      python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*',
+      python_requires='>=3.5',
       **setuptools_kwargs)

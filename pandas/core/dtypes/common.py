@@ -1,15 +1,16 @@
 """ common type operations """
+from typing import Any, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from pandas.compat import PY3, PY36, string_types
+from pandas.compat import PY36
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, IntervalDtype,
-    PandasExtensionDtype, PeriodDtype, registry)
+    PeriodDtype, registry)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
     ABCPeriodArray, ABCPeriodIndex, ABCSeries)
@@ -18,6 +19,8 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_float, is_hashable, is_integer, is_interval, is_iterator, is_list_like,
     is_named_tuple, is_nested_list_like, is_number, is_re, is_re_compilable,
     is_scalar, is_sequence, is_string_like)
+
+from pandas._typing import ArrayLike
 
 _POSSIBLY_CAST_DTYPES = {np.dtype(t).name
                          for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
@@ -66,6 +69,17 @@ ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
 
 
+def ensure_str(value: Union[bytes, Any]) -> str:
+    """
+    Ensure that bytes and non-strings get converted into ``str`` objects.
+    """
+    if isinstance(value, bytes):
+        value = value.decode('utf-8')
+    elif not isinstance(value, str):
+        value = str(value)
+    return value
+
+
 def ensure_categorical(arr):
     """
     Ensure that an array-like object is a Categorical (if not already).
@@ -87,10 +101,10 @@ def ensure_categorical(arr):
     return arr
 
 
-def ensure_int64_or_float64(arr, copy=False):
+def ensure_int_or_float(arr: ArrayLike, copy=False) -> np.array:
     """
     Ensure that an dtype array of some integer dtype
-    has an int64 dtype if possible
+    has an int64 dtype if possible.
     If it's not possible, potentially because of overflow,
     convert the array to float64 instead.
 
@@ -107,11 +121,48 @@ def ensure_int64_or_float64(arr, copy=False):
     out_arr : The input array cast as int64 if
               possible without overflow.
               Otherwise the input array cast to float64.
+
+    Notes
+    -----
+    If the array is explicitly of type uint64 the type
+    will remain unchanged.
     """
     try:
         return arr.astype('int64', copy=copy, casting='safe')
     except TypeError:
+        pass
+    try:
+        return arr.astype('uint64', copy=copy, casting='safe')
+    except TypeError:
         return arr.astype('float64', copy=copy)
+
+
+def ensure_python_int(value: Union[int, np.integer]) -> int:
+    """
+    Ensure that a value is a python int.
+
+    Parameters
+    ----------
+    value: int or numpy.integer
+
+    Returns
+    -------
+    int
+
+    Raises
+    ------
+    TypeError: if the value isn't an int or can't be converted to one.
+    """
+    if not is_scalar(value):
+        raise TypeError("Value needs to be a scalar value, was type {}"
+                        .format(type(value)))
+    msg = "Wrong type {} for value {}"
+    try:
+        new_value = int(value)
+        assert (new_value == value)
+    except (TypeError, ValueError, AssertionError):
+        raise TypeError(msg.format(type(value), value))
+    return new_value
 
 
 def classes(*klasses):
@@ -763,7 +814,7 @@ def is_dtype_equal(source, target):
     target : The second dtype to compare
 
     Returns
-    ----------
+    -------
     boolean
         Whether or not the two dtypes are equal.
 
@@ -804,7 +855,7 @@ def is_dtype_union_equal(source, target):
     target : The second dtype to compare
 
     Returns
-    ----------
+    -------
     boolean
         Whether or not the two dtypes are equal.
 
@@ -1274,9 +1325,7 @@ def _is_unorderable_exception(e):
     if PY36:
         return "'>' not supported between instances of" in str(e)
 
-    elif PY3:
-        return 'unorderable' in str(e)
-    return False
+    return 'unorderable' in str(e)
 
 
 def is_numeric_v_string_like(a, b):
@@ -1890,11 +1939,9 @@ def _is_dtype_type(arr_or_dtype, condition):
     if isinstance(arr_or_dtype, np.dtype):
         return condition(arr_or_dtype.type)
     elif isinstance(arr_or_dtype, type):
-        if issubclass(arr_or_dtype, (PandasExtensionDtype, ExtensionDtype)):
+        if issubclass(arr_or_dtype, ExtensionDtype):
             arr_or_dtype = arr_or_dtype.type
         return condition(np.dtype(arr_or_dtype).type)
-    elif arr_or_dtype is None:
-        return condition(type(None))
 
     # if we have an array-like
     if hasattr(arr_or_dtype, 'dtype'):
@@ -1938,7 +1985,7 @@ def infer_dtype_from_object(dtype):
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         # Type object from a dtype
         return dtype
-    elif isinstance(dtype, (np.dtype, PandasExtensionDtype, ExtensionDtype)):
+    elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         # dtype object
         try:
             _validate_date_like_dtype(dtype)
@@ -1954,7 +2001,7 @@ def infer_dtype_from_object(dtype):
 
     if is_extension_array_dtype(dtype):
         return dtype.type
-    elif isinstance(dtype, string_types):
+    elif isinstance(dtype, str):
 
         # TODO(jreback)
         # should deprecate these
@@ -2023,7 +2070,7 @@ def pandas_dtype(dtype):
     # short-circuit
     if isinstance(dtype, np.ndarray):
         return dtype.dtype
-    elif isinstance(dtype, (np.dtype, PandasExtensionDtype, ExtensionDtype)):
+    elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         return dtype
 
     # registered extension types
@@ -2037,7 +2084,7 @@ def pandas_dtype(dtype):
         npdtype = np.dtype(dtype)
     except Exception:
         # we don't want to force a repr of the non-string
-        if not isinstance(dtype, string_types):
+        if not isinstance(dtype, str):
             raise TypeError("data type not understood")
         raise TypeError("data type '{}' not understood".format(
             dtype))

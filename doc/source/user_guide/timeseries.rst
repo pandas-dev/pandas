@@ -322,13 +322,16 @@ which can be specified. These are computed from the starting point specified by 
                    1349720105400, 1349720105500], unit='ms')
 
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
-with the ``tz`` argument specified will localize the epoch timestamps to UTC
-first then convert the result to the specified time zone.
+with the ``tz`` argument specified will currently localize the epoch timestamps to UTC
+first then convert the result to the specified time zone. However, this behavior
+is :ref:`deprecated <whatsnew_0240.deprecations.integer_tz>`, and if you have
+epochs in wall time in another timezone, it is recommended to read the epochs
+as timezone-naive timestamps and then localize to the appropriate timezone:
 
 .. ipython:: python
 
-   pd.Timestamp(1262347200000000000, tz='US/Pacific')
-   pd.DatetimeIndex([1262347200000000000], tz='US/Pacific')
+   pd.Timestamp(1262347200000000000).tz_localize('US/Pacific')
+   pd.DatetimeIndex([1262347200000000000]).tz_localize('US/Pacific')
 
 .. note::
 
@@ -757,34 +760,6 @@ regularity will result in a ``DatetimeIndex``, although frequency is lost:
 .. ipython:: python
 
    ts2[[0, 2, 6]].index
-
-.. _timeseries.iterating-label:
-
-Iterating through groups
-------------------------
-
-With the ``Resampler`` object in hand, iterating through the grouped data is very
-natural and functions similarly to :py:func:`itertools.groupby`:
-
-.. ipython:: python
-
-   small = pd.Series(
-       range(6),
-       index=pd.to_datetime(['2017-01-01T00:00:00',
-                             '2017-01-01T00:30:00',
-                             '2017-01-01T00:31:00',
-                             '2017-01-01T01:00:00',
-                             '2017-01-01T03:00:00',
-                             '2017-01-01T03:05:00'])
-   )
-   resampled = small.resample('H')
-
-   for name, group in resampled:
-       print("Group: ", name)
-       print("-" * 27)
-       print(group, end="\n\n")
-
-See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 
 .. _timeseries.components:
 
@@ -1625,24 +1600,32 @@ labels.
 
    ts.resample('5Min', label='left', loffset='1s').mean()
 
-.. note::
+.. warning::
 
-    The default values for ``label`` and ``closed`` is 'left' for all
+    The default values for ``label`` and ``closed`` is '**left**' for all
     frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W'
     which all have a default of 'right'.
 
+    This might unintendedly lead to looking ahead, where the value for a later
+    time is pulled back to a previous time as in the following example with
+    the :class:`~pandas.tseries.offsets.BusinessDay` frequency:
+
     .. ipython:: python
 
-       rng2 = pd.date_range('1/1/2012', end='3/31/2012', freq='D')
-       ts2 = pd.Series(range(len(rng2)), index=rng2)
+        s = pd.date_range('2000-01-01', '2000-01-05').to_series()
+        s.iloc[2] = pd.NaT
+        s.dt.weekday_name
 
-       # default: label='right', closed='right'
-       ts2.resample('M').max()
+        # default: label='left', closed='left'
+        s.resample('B').last().dt.weekday_name
 
-       # default: label='left', closed='left'
-       ts2.resample('SM').max()
+    Notice how the value for Sunday got pulled back to the previous Friday.
+    To get the behavior where the value for Sunday is pushed to Monday, use
+    instead
 
-       ts2.resample('SM', label='right', closed='right').max()
+    .. ipython:: python
+
+        s.resample('B', label='right', closed='right').last().dt.weekday_name
 
 The ``axis`` parameter can be set to 0 or 1 and allows you to resample the
 specified axis for a ``DataFrame``.
@@ -1792,6 +1775,34 @@ level of ``MultiIndex``, its name or location can be passed to the
 .. ipython:: python
 
    df.resample('M', level='d').sum()
+
+.. _timeseries.iterating-label:
+
+Iterating through groups
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+With the ``Resampler`` object in hand, iterating through the grouped data is very
+natural and functions similarly to :py:func:`itertools.groupby`:
+
+.. ipython:: python
+
+   small = pd.Series(
+       range(6),
+       index=pd.to_datetime(['2017-01-01T00:00:00',
+                             '2017-01-01T00:30:00',
+                             '2017-01-01T00:31:00',
+                             '2017-01-01T01:00:00',
+                             '2017-01-01T03:00:00',
+                             '2017-01-01T03:05:00'])
+   )
+   resampled = small.resample('H')
+
+   for name, group in resampled:
+       print("Group: ", name)
+       print("-" * 27)
+       print(group, end="\n\n")
+
+See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 
 
 .. _timeseries.periods:
@@ -2149,12 +2160,9 @@ Time Zone Handling
 ------------------
 
 pandas provides rich support for working with timestamps in different time
-zones using the ``pytz`` and ``dateutil`` libraries.
+zones using the ``pytz`` and ``dateutil`` libraries or class:`datetime.timezone`
+objects from the standard library.
 
-.. note::
-
-    pandas does not yet support ``datetime.timezone`` objects from the standard
-    library.
 
 Working with Time Zones
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -2195,6 +2203,15 @@ To return ``dateutil`` time zone objects, append ``dateutil/`` before the string
    # dateutil - utc special case
    rng_utc = pd.date_range('3/6/2012 00:00', periods=3, freq='D',
                            tz=dateutil.tz.tzutc())
+   rng_utc.tz
+
+.. versionadded:: 0.25.0
+
+.. ipython:: python
+
+   # datetime.timezone
+   rng_utc = pd.date_range('3/6/2012 00:00', periods=3, freq='D',
+                           tz=datetime.timezone.utc)
    rng_utc.tz
 
 Note that the ``UTC`` time zone is a special case in ``dateutil`` and should be constructed explicitly

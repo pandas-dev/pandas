@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
 
-from pandas import DataFrame, compat
+from pandas import DataFrame
 
 
 def _convert_to_line_delimits(s):
@@ -72,7 +72,7 @@ def nested_to_record(ds, prefix="", sep=".", level=0):
         new_d = copy.deepcopy(d)
         for k, v in d.items():
             # each key gets renamed with prefix
-            if not isinstance(k, compat.string_types):
+            if not isinstance(k, str):
                 k = str(k)
             if level == 0:
                 newkey = k
@@ -198,8 +198,7 @@ def json_normalize(data, record_path=None, meta=None,
         data = [data]
 
     if record_path is None:
-        if any([isinstance(x, dict)
-                for x in compat.itervalues(y)] for y in data):
+        if any([isinstance(x, dict) for x in y.values()] for y in data):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:
@@ -224,7 +223,7 @@ def json_normalize(data, record_path=None, meta=None,
     lengths = []
 
     meta_vals = defaultdict(list)
-    if not isinstance(sep, compat.string_types):
+    if not isinstance(sep, str):
         sep = str(sep)
     meta_keys = [sep.join(val) for val in meta]
 
@@ -273,7 +272,7 @@ def json_normalize(data, record_path=None, meta=None,
             columns=lambda x: "{p}{c}".format(p=record_prefix, c=x))
 
     # Data types, a problem
-    for k, v in compat.iteritems(meta_vals):
+    for k, v in meta_vals.items():
         if meta_prefix is not None:
             k = meta_prefix + k
 
@@ -281,6 +280,7 @@ def json_normalize(data, record_path=None, meta=None,
             raise ValueError('Conflicting metadata name {name}, '
                              'need distinguishing prefix '.format(name=k))
 
-        result[k] = np.array(v).repeat(lengths)
+        # forcing dtype to object to avoid the metadata being casted to string
+        result[k] = np.array(v, dtype=object).repeat(lengths)
 
     return result
