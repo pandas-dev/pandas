@@ -630,14 +630,14 @@ b  2""")
 
     def get_group(self, name, obj=None):
         """
-        Construct NDFrame from group with provided name.
+        Construct DataFrame from group with provided name.
 
         Parameters
         ----------
         name : object
             the name of the group to get as a DataFrame
-        obj : NDFrame, default None
-            the NDFrame to take the DataFrame out of.  If
+        obj : DataFrame, default None
+            the DataFrame to take the DataFrame out of.  If
             it is None, the object groupby was called on will
             be used
 
