@@ -1689,9 +1689,10 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame(data, columns=mc, index=mi)
 
         with pytest.raises(ValueError,
-                           match=("Length of col_level=2 should be "
-                                  "equal to length of col_fill=3.")):
-            df.reset_index(col_level=[1, 0], col_fill=['p', 'q', 'r'])
+                           match=("Length of col_fill=3 exceeds the "
+                                  "length of level=2.")):
+            df.reset_index(level=[0, 1], col_level=[1, 0],
+                           col_fill=['p', 'q', 'r'])
 
         df_actual = df.reset_index(level=[0, 1], col_level=[1, 0],
                                    col_fill='o').T

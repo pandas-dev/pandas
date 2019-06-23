@@ -4501,19 +4501,19 @@ class DataFrame(NDFrame):
             if multi_col:
                 col_level = _convert_to_listlike(col_level, 0)
                 col_fill = _convert_to_listlike(col_fill, [None])
-                if len(col_fill) == 1:
-                    col_fill = col_fill * len(col_level)
-                elif len(col_level) != len(col_fill):
-                    # ValueError is not raised if col_fill has only 1 value
-                    raise ValueError("Length of col_level={} should be "
-                                     "equal to length of col_fill={}."
-                                     .format(len(col_level), len(col_fill)))
-                if len(col_level) < len(level):
-                    # the last column level gets repeated
-                    # for the remaining index levels.
-                    multiply = self.index.nlevels - len(col_level)
-                    col_level += [col_level[-1]] * multiply
-                    col_fill += [col_fill[-1]] * multiply
+                within_limits = [col_level, col_fill]
+                display_param = ['col_level', 'col_fill']
+                for i, var in enumerate(within_limits):
+                    if len(var) <= len(level):
+                        # the last column level / fill value gets repeated
+                        # for the remaining index levels.
+                        multiply = len(level) - len(var)
+                        var += [var[-1]] * multiply
+                    else:
+                        raise ValueError("Length of {}={} exceeds the "
+                                         "length of level={}."
+                                         .format(display_param[i],
+                                                 len(var), len(level)))
                 col_level = list(reversed(col_level))
                 col_fill = list(reversed(col_fill))
 
