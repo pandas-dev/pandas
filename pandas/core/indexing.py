@@ -2428,7 +2428,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
 
     Raises
     ------
-    ValueError
+    IndexError
         If the key does not have the same length as index
 
     IndexingError
@@ -2451,7 +2451,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
 
         # GH26658
         if len(result) != len(index):
-            raise ValueError(
+            raise IndexError(
                 'Item wrong length {} instead of {}.'.format(len(result),
                                                              len(index)))
 

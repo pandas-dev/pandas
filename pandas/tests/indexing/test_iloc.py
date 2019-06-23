@@ -262,18 +262,15 @@ class TestiLoc(Base):
         b = [True, False, True, False, ]
         self.check_result('bool', 'iloc', b, 'ix', b, typs=['ints', 'uints'])
         self.check_result('bool', 'iloc', b, 'ix', b,
-                          typs=['labels', 'mixed', 'ts', 'floats'],
+                          typs=['labels', 'mixed', 'ts', 'floats', 'empty'],
                           fails=IndexError)
-        self.check_result('bool', 'iloc', b, 'ix', b,
-                          typs=['empty'],
-                          fails=ValueError)
 
     @pytest.mark.parametrize('index', [[True, False],
                                        [True, False, True, False]])
     def test_iloc_getitem_bool_diff_len(self, index):
         # GH26658
         s = Series([1, 2, 3])
-        with pytest.raises(ValueError,
+        with pytest.raises(IndexError,
                            match=('Item wrong length {} instead of {}.'.format(
                                len(index), len(s)))):
             _ = s.iloc[index]
