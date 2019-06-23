@@ -23,7 +23,6 @@ from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays.sparse import _maybe_to_sparse
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.indexing import maybe_convert_indices
@@ -1727,10 +1726,6 @@ def form_blocks(arrays, names, axes):
         object_blocks = _simple_blockify(items_dict['ObjectBlock'], np.object_)
         blocks.extend(object_blocks)
 
-    if len(items_dict['SparseBlock']) > 0:
-        sparse_blocks = _sparse_blockify(items_dict['SparseBlock'])
-        blocks.extend(sparse_blocks)
-
     if len(items_dict['CategoricalBlock']) > 0:
         cat_blocks = [make_block(array, klass=CategoricalBlock, placement=[i])
                       for i, _, array in items_dict['CategoricalBlock']]
@@ -1792,20 +1787,6 @@ def _multi_blockify(tuples, dtype=None):
         values, placement = _stack_arrays(list(tup_block), dtype)
 
         block = make_block(values, placement=placement)
-        new_blocks.append(block)
-
-    return new_blocks
-
-
-def _sparse_blockify(tuples, dtype=None):
-    """ return an array of blocks that potentially have different dtypes (and
-    are sparse)
-    """
-
-    new_blocks = []
-    for i, names, array in tuples:
-        array = _maybe_to_sparse(array)
-        block = make_block(array, placement=[i])
         new_blocks.append(block)
 
     return new_blocks
