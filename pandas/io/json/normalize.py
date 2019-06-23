@@ -2,6 +2,7 @@
 # JSON normalization routines
 
 from collections import defaultdict
+from typing import Union, List, Dict, Any, DefaultDict
 import copy
 
 import numpy as np
@@ -9,7 +10,6 @@ import numpy as np
 from pandas._libs.writers import convert_json_to_lines
 
 from pandas import DataFrame
-from typing import Union, List, Dict, Any
 
 
 def _convert_to_line_delimits(s):
@@ -106,8 +106,8 @@ def nested_to_record(ds, prefix: str = "", sep: str = ".", level: int = 0,
 
 
 def json_normalize(data: List[Dict[Any, Any]],
-                   record_path: Union[str, list] = None,
-                   meta: Union[str, list] = None,
+                   record_path: Union[str, List[str]] = None,
+                   meta: Union[str, List[str]] = None,
                    meta_prefix: str = None,
                    record_prefix: str = None,
                    errors: str = 'raise',
@@ -171,7 +171,6 @@ def json_normalize(data: List[Dict[Any, Any]],
     1  NaN         NaN      Regner        NaN       Mose       NaN
     2  2.0  Faye Raker         NaN        NaN        NaN       NaN
 
-    >>> from pandas.io.json import json_normalize
     >>> data = [{'id': 1,
     ...          'name': "Cole Volk",
     ...          'fitness': {'height': 130, 'weight': 60}},
@@ -185,7 +184,8 @@ def json_normalize(data: List[Dict[Any, Any]],
     1   {'height': 130, 'weight': 60}  NaN    Mose Reg
     2   {'height': 130, 'weight': 60}  2.0  Faye Raker
 
-    >>> from pandas.io.json import json_normalize
+    Normalizes nested data upto level 1.
+
     >>> data = [{'id': 1,
     ...          'name': "Cole Volk",
     ...          'fitness': {'height': 130, 'weight': 60}},
@@ -266,10 +266,10 @@ def json_normalize(data: List[Dict[Any, Any]],
     meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
-    records = []  # type: list
+    records = []  # type: List
     lengths = []
 
-    meta_vals = defaultdict(list)  # type: dict
+    meta_vals = defaultdict(list)  # type: DefaultDict
     if not isinstance(sep, str):
         sep = str(sep)
     meta_keys = [sep.join(val) for val in meta]
