@@ -701,7 +701,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
     # NDArray Compat
-    _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray, numbers.Number)
+    _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray, numbers.Number,
+                      list)  # what other builtins? array? deque? ...
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         # TODO: handle DataFrame

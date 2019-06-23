@@ -1644,8 +1644,8 @@ def _arith_method_SERIES(cls, op, special):
         if isinstance(result, tuple):
             # e.g. divmod
             result = tuple(
-                missing.fill_zeros(x, x, y, op_name, fill_zeros)
-                for x in result
+                missing.fill_zeros(r, x, y, op_name, fill_zeros)
+                for r in result
             )
         else:
             result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
