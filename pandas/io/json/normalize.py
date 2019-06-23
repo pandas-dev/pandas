@@ -2,7 +2,7 @@
 # JSON normalization routines
 
 from collections import defaultdict
-from typing import Union, List, Dict, Any
+from typing import Union, List, Dict, Any, DefaultDict
 import copy
 
 import numpy as np
@@ -155,7 +155,6 @@ def json_normalize(data: List[Dict[Any, Any]],
     Returns
     -------
     frame : DataFrame
-
     Normalize semi-structured JSON data into a flat table.
 
     Examples
@@ -211,7 +210,7 @@ def json_normalize(data: List[Dict[Any, Any]],
     ...          'counties': [{'name': 'Summit', 'population': 1234},
     ...                       {'name': 'Cuyahoga', 'population': 1337}]}]
     >>> result = json_normalize(data, 'counties', ['state', 'shortname',
-    ...                                           ['info', 'governor']])
+    ...                                            ['info', 'governor']])
     >>> result
              name  population    state shortname info.governor
     0        Dade       12345   Florida    FL    Rick Scott
@@ -225,6 +224,8 @@ def json_normalize(data: List[Dict[Any, Any]],
         Prefix.0
     0          1
     1          2
+
+    Returns normalized data with columns prefixed with the given string.
     """
     def _pull_field(js, spec):
         result = js
