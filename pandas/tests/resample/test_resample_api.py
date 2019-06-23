@@ -145,7 +145,7 @@ def test_api_compat_before_use():
 
 def tests_skip_nuisance():
 
-    df = test_frame
+    df = test_frame.copy()
     df['D'] = 'foo'
     r = df.resample('H')
     result = r[['A', 'B']].sum()
