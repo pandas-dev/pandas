@@ -502,8 +502,25 @@ class TestNestedToRecord:
             'location.country.state.town.info.z': 27.572303771972656}
         assert result == expected
 
-    @pytest.mark.parametrize("max_level", [None, 0, 1])
-    def test_with_max_level_none(self, max_level):
+    @pytest.mark.parametrize("max_level, expected", [
+        (None, [{'CreatedBy.Name': 'User001',
+                 'Lookup.TextField': 'Some text',
+                 'Lookup.UserField.Id': 'ID001',
+                 'Lookup.UserField.Name': 'Name001',
+                 'Image.a': 'b'
+                 }]),
+        (0, [{'CreatedBy': {'Name': 'User001'},
+              'Lookup': {'TextField': 'Some text',
+                         'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+              'Image': {'a': 'b'}
+              }]),
+        (1, [{'CreatedBy.Name': 'User001',
+              'Lookup.TextField': 'Some text',
+              'Lookup.UserField': {'Id': 'ID001',
+                                   'Name': 'Name001'},
+              'Image.a': 'b'
+              }])])
+    def test_with_max_level_none(self, max_level, expected):
         # GH23843: Enhanced JSON normalize
         data = [{
             'CreatedBy': {'Name': 'User001'},
@@ -511,22 +528,8 @@ class TestNestedToRecord:
                        'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
             'Image': {'a': 'b'}
         }]
-        expected_output = {None: [{'CreatedBy.Name': 'User001',
-                                   'Lookup.TextField': 'Some text',
-                                   'Lookup.UserField.Id': 'ID001',
-                                   'Lookup.UserField.Name': 'Name001',
-                                   'Image.a': 'b'
-                                   }],
-                           0: data,
-                           1: [{
-                               'CreatedBy.Name': 'User001',
-                               'Lookup.TextField': 'Some text',
-                               'Lookup.UserField': {'Id': 'ID001',
-                                                    'Name': 'Name001'},
-                               'Image.a': 'b'
-                           }]}
         output = nested_to_record(data, max_level=max_level)
-        assert output == expected_output[max_level]
+        assert output == expected
 
     def test_with_large_max_level(self):
         # GH23843: Enhanced JSON normalize
