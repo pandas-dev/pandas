@@ -142,7 +142,7 @@ def convert_json_field_to_pandas_type(field):
     'int64'
     >>> convert_json_field_to_pandas_type({'name': 'a_categorical',
                                            'type': 'any',
-                                           'contraints': {'enum': [
+                                           'constraints': {'enum': [
                                                           'a', 'b', 'c']},
                                            'ordered': True})
     'CategoricalDtype(categories=['a', 'b', 'c'], ordered=True)'
