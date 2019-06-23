@@ -4281,7 +4281,7 @@ class DataFrame(NDFrame):
             the index to the default integer index.
         inplace : bool, default False
             Modify the DataFrame in place (do not create a new object).
-        col_level : int, str, tuple, or list, default 0
+        col_level : int, str or list, default 0
             If the columns have multiple levels, determines which level the
             labels are inserted into. By default it is inserted into the first
             level.
@@ -4461,19 +4461,36 @@ class DataFrame(NDFrame):
 
             return values
 
+        def _convert_to_listlike(lev_attribute, if_none):
+            if lev_attribute is None:
+                return if_none
+            else:
+                if isinstance(lev_attribute, (int, str)):
+                    return [lev_attribute]
+                elif not isinstance(lev_attribute, (tuple, list)):
+                    # for range indexes
+                    return list(lev_attribute)
+                else:
+                    return lev_attribute
+
         new_index = ibase.default_index(len(new_obj))
-        if level is not None:
-            if not isinstance(level, (tuple, list)):
-                level = [level]
-            level = [self.index._get_level_number(lev) for lev in level]
-            if len(level) < self.index.nlevels:
-                new_index = self.index.droplevel(level)
+        level = _convert_to_listlike(level, range(self.index.nlevels))
+        level = [self.index._get_level_number(lev) for lev in level]
+        if len(level) < self.index.nlevels:
+            new_index = self.index.droplevel(level)
+        level = list(reversed(level))
 
         if not drop:
+            to_insert = []
             if isinstance(self.index, MultiIndex):
-                names = [n if n is not None else ('level_%d' % i)
-                         for (i, n) in enumerate(self.index.names)]
-                to_insert = zip(self.index.levels, self.index.codes)
+                names = [self.index.names[level[i]]
+                         if self.index.names[level[i]] is not None
+                         else ('level_%d' % level[i])
+                         for i, n in enumerate(level)]
+                for i in range(len(level)):
+                    lev_number = self.index._get_level_number(level[i])
+                    to_insert.append([self.index.levels[lev_number],
+                                      self.index.codes[lev_number]])
             else:
                 default = 'index' if 'index' not in self else 'level_0'
                 names = ([default] if self.index.name is None
@@ -4482,12 +4499,8 @@ class DataFrame(NDFrame):
 
             multi_col = isinstance(self.columns, MultiIndex)
             if multi_col:
-                if isinstance(col_level, int):
-                    col_level = [col_level]
-                if col_fill is None:
-                    col_fill = [None]
-                elif isinstance(col_fill, str):
-                    col_fill = [col_fill]
+                col_level = _convert_to_listlike(col_level, 0)
+                col_fill = _convert_to_listlike(col_fill, [None])
                 if len(col_fill) == 1:
                     col_fill = col_fill * len(col_level)
                 elif len(col_level) != len(col_fill):
@@ -4495,30 +4508,16 @@ class DataFrame(NDFrame):
                     raise ValueError("Length of col_level={} should be "
                                      "equal to length of col_fill={}."
                                      .format(len(col_level), len(col_fill)))
-                if level is None:
-                    level = range(self.index.nlevels)
-                if len(col_level) < self.index.nlevels:
+                if len(col_level) < len(level):
                     # the last column level gets repeated
                     # for the remaining index levels.
                     multiply = self.index.nlevels - len(col_level)
                     col_level += [col_level[-1]] * multiply
                     col_fill += [col_fill[-1]] * multiply
+                col_level = list(reversed(col_level))
+                col_fill = list(reversed(col_fill))
 
-                col_order = list(zip(level, col_level, col_fill))
-                col_order = sorted(col_order, key=lambda pos: pos[0])
-                col_order = map(list, zip(*col_order))
-                check_level, iter_col_level, iter_col_fill = col_order
-
-                iter_col_level = iter(iter_col_level)
-                iter_col_fill = iter(iter_col_fill)
-                col_level = [next(iter_col_level) if i in check_level else None
-                             for i in range(self.index.nlevels)]
-                col_fill = [next(iter_col_fill) if i in check_level else None
-                            for i in range(self.index.nlevels)]
-
-            for i, (lev, lab) in reversed(list(enumerate(to_insert))):
-                if not (level is None or i in level):
-                    continue
+            for i, (lev, lab) in enumerate(to_insert):
                 name = names[i]
                 if multi_col:
                     col_name = (list(name) if isinstance(name, tuple)
