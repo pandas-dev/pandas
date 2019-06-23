@@ -8,7 +8,6 @@ from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_platform_int, is_categorical_dtype,
     is_extension_array_dtype, is_list_like)
-from pandas.core.dtypes.generic import ABCIndexClass
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algorithms
@@ -237,7 +236,9 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
     handles NaNs. It adds ascending and na_position parameters.
     GH #6399, #5231
     """
+    from pandas.core.internals.arrays import extract_array
 
+    items = extract_array(items)
     mask = np.asarray(isna(items))
     # specially handle Categorical
     if is_categorical_dtype(items):
@@ -254,9 +255,7 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
             sorted_idx = np.roll(sorted_idx, cnt_null)
         return sorted_idx
 
-    if (not isinstance(items, ABCIndexClass)
-            and is_extension_array_dtype(items)):
-
+    if is_extension_array_dtype(items):
         items = items._values_for_argsort()
     else:
         items = np.asanyarray(items)
