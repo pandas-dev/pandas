@@ -1659,7 +1659,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2
         """
         if level is None:
-            return notna(com.values_from_object(self)).sum()
+            return notna(self.array).sum()
 
         if isinstance(level, str):
             level = self.index._get_level_number(level)
