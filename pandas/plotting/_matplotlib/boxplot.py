@@ -1,13 +1,16 @@
 from collections import namedtuple
 import warnings
 
-from matplotlib import pyplot as plt
+from matplotlib.artist import setp
 import numpy as np
 
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import remove_na_arraylike
 
+import pandas as pd
+
 from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import _flatten, _subplots
@@ -105,7 +108,6 @@ class BoxPlot(LinePlot):
             medians = self.color or self._medians_c
             caps = self.color or self._caps_c
 
-        from matplotlib.artist import setp
         setp(bp['boxes'], color=boxes, alpha=1)
         setp(bp['whiskers'], color=whiskers, alpha=1)
         setp(bp['medians'], color=medians, alpha=1)
@@ -113,8 +115,7 @@ class BoxPlot(LinePlot):
 
     def _make_plot(self):
         if self.subplots:
-            from pandas.core.series import Series
-            self._return_obj = Series()
+            self._return_obj = pd.Series()
 
             for i, (label, y) in enumerate(self._iter_data()):
                 ax = self._get_ax(i)
@@ -197,8 +198,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         ax_values.append(re_plotf)
         ax.grid(grid)
 
-    from pandas.core.series import Series
-    result = Series(ax_values, index=columns)
+    result = pd.Series(ax_values, index=columns)
 
     # Return axes in multiplot case, maybe revisit later # 985
     if return_type is None:
@@ -215,6 +215,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True, figsize=None, layout=None, return_type=None,
             **kwds):
 
+    import matplotlib.pyplot as plt
     # validate return_type:
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {'axes', 'dict', 'both'}")
@@ -230,7 +231,6 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     def maybe_color_bp(bp):
         if 'color' not in kwds:
-            from matplotlib.artist import setp
             setp(bp['boxes'], color=colors[0], alpha=1)
             setp(bp['whiskers'], color=colors[0], alpha=1)
             setp(bp['medians'], color=colors[2], alpha=1)
@@ -297,6 +297,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
                   grid=True, figsize=None, layout=None,
                   return_type=None, **kwds):
+    import matplotlib.pyplot as plt
+    converter._WARN = False  # no warning for pandas plots
     ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
                  grid=grid, rot=rot, figsize=figsize, layout=layout,
                  return_type=return_type, **kwds)
@@ -307,6 +309,7 @@ def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
 def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                           rot=0, grid=True, ax=None, figsize=None,
                           layout=None, sharex=False, sharey=True, **kwds):
+    converter._WARN = False  # no warning for pandas plots
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(naxes=naxes, squeeze=False,
@@ -314,8 +317,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                               figsize=figsize, layout=layout)
         axes = _flatten(axes)
 
-        from pandas.core.series import Series
-        ret = Series()
+        ret = pd.Series()
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
                               rot=rot, grid=grid, **kwds)
@@ -324,10 +326,9 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
         fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1,
                             right=0.9, wspace=0.2)
     else:
-        from pandas.core.reshape.concat import concat
         keys, frames = zip(*grouped)
         if grouped.axis == 0:
-            df = concat(frames, keys=keys, axis=1)
+            df = pd.concat(frames, keys=keys, axis=1)
         else:
             if len(frames) > 1:
                 df = frames[0].join(frames[1::])

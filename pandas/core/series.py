@@ -142,6 +142,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Override cache_readonly bc Series is mutable
     hasnans = property(base.IndexOpsMixin.hasnans.func,
                        doc=base.IndexOpsMixin.hasnans.__doc__)
+    _data = None  # type: SingleBlockManager
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -419,14 +420,30 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def ftype(self):
         """
         Return if the data is sparse|dense.
+
+        .. deprecated:: 0.25.0
+           Use :func:`dtype` instead.
         """
+        warnings.warn("Series.ftype is deprecated and will "
+                      "be removed in a future version. "
+                      "Use Series.dtype instead.",
+                      FutureWarning, stacklevel=2)
+
         return self._data.ftype
 
     @property
     def ftypes(self):
         """
         Return if the data is sparse|dense.
+
+        .. deprecated:: 0.25.0
+           Use :func:`dtypes` instead.
         """
+        warnings.warn("Series.ftypes is deprecated and will "
+                      "be removed in a future version. "
+                      "Use Series.dtype instead.",
+                      FutureWarning, stacklevel=2)
+
         return self._data.ftype
 
     @property
@@ -1575,6 +1592,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Convert Series to SparseSeries.
 
+        .. deprecated:: 0.25.0
+
         Parameters
         ----------
         kind : {'block', 'integer'}, default 'block'
@@ -1586,12 +1605,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         SparseSeries
             Sparse representation of the Series.
         """
+
+        warnings.warn("Series.to_sparse is deprecated and will be removed "
+                      "in a future version", FutureWarning, stacklevel=2)
         from pandas.core.sparse.series import SparseSeries
 
         values = SparseArray(self, kind=kind, fill_value=fill_value)
-        return SparseSeries(
-            values, index=self.index, name=self.name
-        ).__finalize__(self)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="SparseSeries")
+            return SparseSeries(
+                values, index=self.index, name=self.name
+            ).__finalize__(self)
 
     def _set_name(self, name, inplace=False):
         """
@@ -1635,7 +1659,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2
         """
         if level is None:
-            return notna(com.values_from_object(self)).sum()
+            return notna(self.array).sum()
 
         if isinstance(level, str):
             level = self.index._get_level_number(level)
@@ -3729,6 +3753,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif is_datetime64_dtype(delegate):
             # use DatetimeIndex implementation to handle skipna correctly
             delegate = DatetimeIndex(delegate)
+        elif is_timedelta64_dtype(delegate) and hasattr(TimedeltaIndex, name):
+            # use TimedeltaIndex to handle skipna correctly
+            # TODO: remove hasattr check after TimedeltaIndex has `std` method
+            delegate = TimedeltaIndex(delegate)
 
         # dispatch to numpy arrays
         elif isinstance(delegate, np.ndarray):

@@ -181,7 +181,7 @@ def contains(cat, key, container):
     #  can't be in container either.
     try:
         loc = cat.categories.get_loc(key)
-    except KeyError:
+    except (KeyError, TypeError):
         return False
 
     # loc is the location of key in categories, but also the *value*
@@ -196,7 +196,7 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-_codes_doc = """\
+_codes_doc = """
 The category codes of this categorical.
 
 Level codes are an array if integer which are the positions of the real
