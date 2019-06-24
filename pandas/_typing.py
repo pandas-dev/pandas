@@ -11,9 +11,6 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCExtensionArray, ABCIndexClass, ABCSeries, ABCSparseSeries)
 
-from pandas.core.arrays.datetimes import DatetimeArray
-from pandas.core.arrays.period import PeriodArray
-from pandas.core.arrays.timedeltas import TimedeltaArray
 
 AnyArrayLike = TypeVar('AnyArrayLike',
                        ABCExtensionArray,
@@ -21,8 +18,6 @@ AnyArrayLike = TypeVar('AnyArrayLike',
                        ABCSeries,
                        ABCSparseSeries,
                        np.ndarray)
-DatetimeLikeArray = TypeVar('DatetimeLikeArray', DatetimeArray,
-                            PeriodArray, TimedeltaArray)
 
 ArrayLike = TypeVar('ArrayLike', ABCExtensionArray, np.ndarray)
 DatetimeLikeScalar = TypeVar('DatetimeLikeScalar', Period, Timestamp,
