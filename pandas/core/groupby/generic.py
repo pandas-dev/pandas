@@ -48,6 +48,7 @@ from pandas.plotting import boxplot_frame_groupby
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
+ScalarResult = typing.TypeVar("ScalarResult")  # TODO: fix & move to _typing.
 
 
 def whitelist_method_generator(base_class: Type[GroupBy],
@@ -1716,24 +1717,52 @@ def _normalize_keyword_aggregation(kwargs):
     return aggspec, columns, order
 
 
-def _make_lambda(func, i):
+def _make_lambda(
+        func: Callable[..., ScalarResult], i: int
+) -> Callable[..., ScalarResult]:
+    """
+    Make a new function with name <lambda_i>
+
+    Parameters
+    ----------
+    func : Callable
+        The lambda function to call.
+    i : int
+        The counter to use for the name.
+
+    Returns
+    -------
+    Callable
+        Same as the caller but with name <lambda_i>
+    """
     def f(*args, **kwargs):
         return func(*args, **kwargs)
     f.__name__ = "<lambda_{}>".format(i)
     return f
 
 
-def _managle_lambda_list(aggfuncs):
+def _managle_lambda_list(
+        aggfuncs: typing.Sequence[Callable[..., ScalarResult]]
+) -> typing.Sequence[Callable[..., ScalarResult]]:
+    """
+    Possibly mangle a list of aggfuncs.
+
+    Notes
+    -----
+    If just one aggfunc is passed, the name will not be mangeld.
+    """
+    if len(aggfuncs) <= 1:
+        # don't mangle for .agg([lambda x: .])
+        return aggfuncs
     i = 0
-    aggfuncs2 = []
+    mangled_aggfuncs = []
     for aggfunc in aggfuncs:
         if com.get_callable_name(aggfunc) == "<lambda>":
-            if i > 0:
-                aggfunc = _make_lambda(aggfunc, i)
+            aggfunc = _make_lambda(aggfunc, i)
             i += 1
-        aggfuncs2.append(aggfunc)
+        mangled_aggfuncs.append(aggfunc)
 
-    return aggfuncs2
+    return mangled_aggfuncs
 
 
 def _maybe_mangle_lambdas(agg_spec):
@@ -1765,18 +1794,18 @@ def _maybe_mangle_lambdas(agg_spec):
     is_dict = is_dict_like(agg_spec)
     if not (is_dict or is_list_like(agg_spec)):
         return agg_spec
-    agg_spec2 = type(agg_spec)()  # dict or OrderdDict
+    mangled_aggspec = type(agg_spec)()  # dict or OrderdDict
 
     if is_dict:
         for key in agg_spec:
             aggfuncs = agg_spec[key]
             if is_list_like(aggfuncs) and not is_dict_like(aggfuncs):
-                aggfuncs2 = _managle_lambda_list(aggfuncs)
+                mangled_aggfuncs = _managle_lambda_list(aggfuncs)
             else:
-                aggfuncs2 = aggfuncs
+                mangled_aggfuncs = aggfuncs
 
-            agg_spec2[key] = aggfuncs2 or aggfuncs
+            mangled_aggspec[key] = mangled_aggfuncs or aggfuncs
     else:
-        agg_spec2 = _managle_lambda_list(agg_spec)
+        mangled_aggspec = _managle_lambda_list(agg_spec)
 
-    return agg_spec2
+    return mangled_aggspec

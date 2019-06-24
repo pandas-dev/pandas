@@ -354,6 +354,12 @@ class TestNamedAggregationSeries:
         with pytest.raises(SpecificationError):
             gr.agg(a='sum', b='sum')
 
+    def test_mangled(self):
+        gr = pd.Series([1, 2, 3]).groupby([0, 0, 1])
+        result = gr.agg(a=lambda x: 0, b=lambda x: 1)
+        expected = pd.Series([0, 1], index=['a', 'b'])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNamedAggregationDataFrame:
     def test_agg_relabel(self):
@@ -451,19 +457,29 @@ class TestNamedAggregationDataFrame:
                                        c=("B", "count"))
         tm.assert_frame_equal(result, expected)
 
+    def test_mangled(self):
+        df = pd.DataFrame({"A": [0, 1], "B": [1, 2], "C": [3, 4]})
+        result = df.groupby("A").agg(
+            b=("B", lambda x: 0),
+            c=("C", lambda x: 1)
+        )
+        expected = pd.DataFrame({"b": [0, 0], "c": [1, 1]},
+                                index=pd.Index([0, 1], name='A'))
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLambdaMangling:
 
     def test_maybe_mangle_lambdas_passthrough(self):
         assert _maybe_mangle_lambdas('mean') == 'mean'
         assert _maybe_mangle_lambdas(lambda x: x).__name__ == '<lambda>'
-        assert [x.__name__ for x in _maybe_mangle_lambdas([lambda x: x])
-                ] == ['<lambda>']
+        # don't mangel single lambda.
+        assert _maybe_mangle_lambdas([lambda x: x])[0].__name__ == '<lambda>'
 
     def test_maybe_mangle_lambdas_listlike(self):
         aggfuncs = [lambda x: 1, lambda x: 2]
         result = _maybe_mangle_lambdas(aggfuncs)
-        assert result[0].__name__ == '<lambda>'
+        assert result[0].__name__ == '<lambda_0>'
         assert result[1].__name__ == '<lambda_1>'
         assert aggfuncs[0](None) == result[0](None)
         assert aggfuncs[1](None) == result[1](None)
@@ -473,7 +489,7 @@ class TestLambdaMangling:
             'A': [lambda x: 0, lambda x: 1]
         }
         result = _maybe_mangle_lambdas(func)
-        assert result['A'][0].__name__ == '<lambda>'
+        assert result['A'][0].__name__ == '<lambda_0>'
         assert result['A'][1].__name__ == '<lambda_1>'
 
     def test_maybe_mangle_lambdas_args(self):
@@ -481,7 +497,7 @@ class TestLambdaMangling:
             'A': [lambda x, a, b=1: (0, a, b), lambda x: 1]
         }
         result = _maybe_mangle_lambdas(func)
-        assert result['A'][0].__name__ == '<lambda>'
+        assert result['A'][0].__name__ == '<lambda_0>'
         assert result['A'][1].__name__ == '<lambda_1>'
 
         assert func['A'][0](0, 1) == (0, 1, 1)
@@ -499,7 +515,7 @@ class TestLambdaMangling:
         df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
         result = df.groupby("A").agg({"B": [lambda x: 0, lambda x: 1]})
 
-        expected = pd.DataFrame({("B", "<lambda>"): [0, 0],
+        expected = pd.DataFrame({("B", "<lambda_0>"): [0, 0],
                                  ("B", "<lambda_1>"): [1, 1]},
                                 index=pd.Index([0, 1], name='A'))
         tm.assert_frame_equal(result, expected)
@@ -507,7 +523,7 @@ class TestLambdaMangling:
     def test_mangle_series_groupby(self):
         gr = pd.Series([1, 2, 3, 4]).groupby([0, 0, 1, 1])
         result = gr.agg([lambda x: 0, lambda x: 1])
-        expected = pd.DataFrame({'<lambda>': [0, 0], '<lambda_1>': [1, 1]})
+        expected = pd.DataFrame({'<lambda_0>': [0, 0], '<lambda_1>': [1, 1]})
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="GH-26611. kwargs for multi-agg.")
@@ -515,9 +531,9 @@ class TestLambdaMangling:
         f1 = lambda x, y, b=1: x.sum() + y + b
         f2 = lambda x, y, b=2: x.sum() + y * b
         result = pd.Series([1, 2]).groupby([0, 0]).agg([f1, f2], 0)
-        expected = pd.DataFrame({'<lambda>': [4], '<lambda_1>': [6]})
+        expected = pd.DataFrame({'<lambda_0>': [4], '<lambda_1>': [6]})
         tm.assert_frame_equal(result, expected)
 
         result = pd.Series([1, 2]).groupby([0, 0]).agg([f1, f2], 0, b=10)
-        expected = pd.DataFrame({'<lambda>': [13], '<lambda_1>': [30]})
+        expected = pd.DataFrame({'<lambda_0>': [13], '<lambda_1>': [30]})
         tm.assert_frame_equal(result, expected)
