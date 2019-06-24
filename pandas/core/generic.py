@@ -8393,7 +8393,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 return self._constructor(ranks, **self._construct_axes_dict())
 
             if axis == 1:
-                ser = self.stack(dropna=False)  # FIXME: we actually need to keep stacking until we are 1D
+                ser = self.stack(dropna=False)
+                # FIXME: we actually need to keep stacking until we are 1D
             else:
                 ser = self.unstack()
             result = ser.rank(axis=0, method=method, ascending=ascending,

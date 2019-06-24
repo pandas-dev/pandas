@@ -107,12 +107,7 @@ def _ensure_data(values, dtype=None):
             from pandas import DatetimeIndex
             from pandas.core.arrays import unwrap_reshapeable
             values = unwrap_reshapeable(values)
-            #if isinstance(values, np.ndarray) and values.ndim == 2 and values.shape[0] == 1:
-            #    values = values.ravel()
-            #if values.ndim != 1:
-            #    raise TypeError  # NDFrame.rank catches TypeError raised here
-            assert values.ndim == 1, (type(values), values.shape)  # nope, we get (2, 3) entries here#
-            #values = values.ravel
+            assert values.ndim == 1, (type(values), values.shape)
             values = DatetimeIndex(values)
             dtype = values.dtype
 
@@ -1533,7 +1528,7 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
 
     if allow_fill:
         # Pandas style, -1 means NA
-        validate_indices(indices, arr.shape[axis])#len(arr))
+        validate_indices(indices, arr.shape[axis])
         result = take_1d(arr, indices, axis=axis, allow_fill=True,
                          fill_value=fill_value)
     else:
