@@ -174,6 +174,7 @@ def test_from_scipy_fillna(spmatrix):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 def test_index_names_multiple_nones():
     # https://github.com/pandas-dev/pandas/pull/24092
     sparse = pytest.importorskip("scipy.sparse")

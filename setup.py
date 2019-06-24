@@ -11,7 +11,7 @@ from os.path import join as pjoin
 
 import pkg_resources
 import platform
-from distutils.sysconfig import get_config_var
+from distutils.sysconfig import get_config_vars
 import sys
 import shutil
 from distutils.version import LooseVersion
@@ -442,18 +442,18 @@ else:
     if debugging_symbols_requested:
         extra_compile_args.append('-g')
 
-# For mac, ensure extensions are built for macos 10.9 when compiling on a
-# 10.9 system or above, overriding distuitls behaviour which is to target
-# the version that python was built for. This may be overridden by setting
+# Build for at least macOS 10.9 when compiling on a 10.9 system or above,
+# overriding CPython distuitls behaviour which is to target the version that
+# python was built for. This may be overridden by setting
 # MACOSX_DEPLOYMENT_TARGET before calling setup.py
 if is_platform_mac():
     if 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:
-        current_system = LooseVersion(platform.mac_ver()[0])
-        python_target = LooseVersion(
-            get_config_var('MACOSX_DEPLOYMENT_TARGET'))
-        if python_target < '10.9' and current_system >= '10.9':
+        current_system = platform.mac_ver()[0]
+        python_target = get_config_vars().get('MACOSX_DEPLOYMENT_TARGET',
+                                              current_system)
+        if (LooseVersion(python_target) < '10.9' and
+                LooseVersion(current_system) >= '10.9'):
             os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
-
 
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext

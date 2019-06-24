@@ -51,6 +51,12 @@ ignore_natural_naming_warning = pytest.mark.filterwarnings(
     "ignore:object name:tables.exceptions.NaturalNameWarning"
 )
 ignore_sparse = pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+ignore_dataframe_tosparse = pytest.mark.filterwarnings(
+    "ignore:DataFrame.to_sparse:FutureWarning"
+)
+ignore_series_tosparse = pytest.mark.filterwarnings(
+    "ignore:Series.to_sparse:FutureWarning"
+)
 
 # contextmanager to ensure the file cleanup
 
@@ -99,7 +105,7 @@ def ensure_clean_store(path, mode='a', complevel=None, complib=None,
 def ensure_clean_path(path):
     """
     return essentially a named temporary file that is not opened
-    and deleted on existing; if path is a list, then create and
+    and deleted on exiting; if path is a list, then create and
     return list of filenames
     """
     try:
@@ -2245,6 +2251,7 @@ class TestHDFStore(Base):
                               check_index_type=False)
 
     @ignore_sparse
+    @ignore_series_tosparse
     def test_sparse_series(self):
 
         s = tm.makeStringSeries()
@@ -2262,6 +2269,7 @@ class TestHDFStore(Base):
                               check_series_type=True)
 
     @ignore_sparse
+    @ignore_dataframe_tosparse
     def test_sparse_frame(self):
 
         s = tm.makeDataFrame()
@@ -2601,6 +2609,7 @@ class TestHDFStore(Base):
             tm.assert_series_equal(store['a'], ts)
 
     @ignore_sparse
+    @ignore_dataframe_tosparse
     def test_sparse_with_compression(self):
 
         # GH 2931
@@ -3746,6 +3755,7 @@ class TestHDFStore(Base):
             tm.assert_frame_equal(result, expected)
 
     @ignore_sparse
+    @ignore_dataframe_tosparse
     def test_start_stop_fixed(self):
 
         with ensure_clean_store(self.path) as store:
