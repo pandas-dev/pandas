@@ -816,7 +816,7 @@ Enhancements
 - Implemented ``Panel.pct_change`` (:issue:`6904`)
 - Added ``how`` option to rolling-moment functions to dictate how to handle resampling; :func:`rolling_max` defaults to max,
   :func:`rolling_min` defaults to min, and all others default to mean (:issue:`6297`)
-- ``CustomBuisnessMonthBegin`` and ``CustomBusinessMonthEnd`` are now available (:issue:`6866`)
+- ``CustomBusinessMonthBegin`` and ``CustomBusinessMonthEnd`` are now available (:issue:`6866`)
 - :meth:`Series.quantile` and :meth:`DataFrame.quantile` now accept an array of
   quantiles.
 - :meth:`~DataFrame.describe` now accepts an array of percentiles to include in the summary statistics (:issue:`4196`)

@@ -79,7 +79,7 @@ def nested_to_record(ds, prefix="", sep=".", level=0):
             else:
                 newkey = prefix + sep + k
 
-            # only dicts gets recurse-flattend
+            # only dicts gets recurse-flattened
             # only at level>1 do we rename the rest of the keys
             if not isinstance(v, dict):
                 if level != 0:  # so we skip copying for top level, common case

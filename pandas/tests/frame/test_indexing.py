@@ -2729,7 +2729,7 @@ class TestDataFrameIndexing(TestData):
             cond = df >= 0
             _check_set(df, cond)
 
-            # aligining
+            # aligning
             cond = (df >= 0)[1:]
             _check_set(df, cond)
 
@@ -3691,7 +3691,7 @@ class TestDataFrameIndexingCategorical:
             df.at["j", "cats"] = "c"
 
         # Assigning a Category to parts of a int/... column uses the values of
-        # the Catgorical
+        # the Categorical
         df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
         exp = DataFrame({"a": [1, "b", "b", 1, 1], "b": list("aabba")})
         df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])

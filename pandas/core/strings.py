@@ -2058,7 +2058,7 @@ class StringMethods(NoNewAttributesMixin):
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, Index) else self._orig.index
 
-        err_msg = ('others must be Series, Index, DataFrame, np.ndarrary or '
+        err_msg = ('others must be Series, Index, DataFrame, np.ndarray or '
                    'list-like (either containing only strings or containing '
                    'only objects of type Series/Index/list-like/np.ndarray)')
 
@@ -2155,7 +2155,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        others : Series, Index, DataFrame, np.ndarrary or list-like
+        others : Series, Index, DataFrame, np.ndarray or list-like
             Series, Index, DataFrame, np.ndarray (one- or two-dimensional) and
             other list-likes of strings must have the same length as the
             calling Series/Index, with the exception of indexed objects (i.e.
@@ -2571,7 +2571,7 @@ class StringMethods(NoNewAttributesMixin):
     0  Linda van der Berg
     1         George Pitt  -  Rivers
 
-    To return a Series containining tuples instead of a DataFrame:
+    To return a Series containing tuples instead of a DataFrame:
 
     >>> s.str.partition('-', expand=False)
     0    (Linda van der Berg, , )
@@ -3292,7 +3292,7 @@ class StringMethods(NoNewAttributesMixin):
 
     The ``s5.str.istitle`` method checks for whether all words are in title
     case (whether only the first letter of each word is capitalized). Words are
-    assumed to be as any sequence of non-numeric characters seperated by
+    assumed to be as any sequence of non-numeric characters separated by
     whitespace characters.
 
     >>> s5.str.istitle()
