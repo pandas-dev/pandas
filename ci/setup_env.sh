@@ -92,7 +92,7 @@ conda remove --all -q -y -n pandas-dev
 
 echo
 echo "conda env create -q --file=${ENV_FILE}"
-time conda env create -q --file="${ENV_FILE}"
+time conda env create -v --file="${ENV_FILE}"
 
 echo "activate pandas-dev"
 source activate pandas-dev
