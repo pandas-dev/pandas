@@ -5,6 +5,53 @@
 Computational tools
 ===================
 
+.. _computation.ufuncs:
+
+Universal Functions
+-------------------
+
+:class:`Series` implements ``__array_ufunc__``, which allows it to work with NumPy's
+`universal functions <https://docs.scipy.org/doc/numpy/reference/ufuncs.html>`_
+to be applied.
+
+The ufunc is applied to the underlying array in a Series.
+
+.. ipython:: python
+
+   ser = pd.Series([1, 2, 3, 4])
+   np.exp(ser)
+
+Like other parts of of the library, pandas will automatically align labeled inputs
+as part of a ufunc with multiple inputs. For example, using :meth:`numpy.remainder`
+on two :class:`Series` with differently ordered labels will align before the operation.
+
+.. ipython:: python
+
+   ser1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+   ser2 = pd.Series([1, 3, 5], index=['b', 'a', 'c'])
+   ser1
+   ser2
+   np.remainder(ser1, ser2)
+
+As usual, the union of the two indices is taken, and non-overlapping values are filled
+with missing values.
+
+.. ipython:: python
+
+   ser3 = pd.Series([2, 4, 6], index=['b', 'c', 'd'])
+   ser3
+   np.remainder(ser1, ser3)
+
+When a binary ufunc is applied to a :class:`Series` and :class:`Index`, the Series
+implementation takes precedence and a Series is returned.
+
+.. ipython:: python
+
+   ser = pd.Series([1, 2, 3])
+   idx = pd.Index([4, 5, 6])
+
+   np.maximum(ser, idx)
+
 Statistical Functions
 ---------------------
 
