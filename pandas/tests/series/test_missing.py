@@ -634,7 +634,7 @@ class TestSeriesMissingData:
         # td<np.timedelta64(timedelta(days=7)))] = np.nan
         # assert isna(result).sum() == 7
 
-        # NumPy limitiation =(
+        # NumPy limitation =(
 
         # def test_logical_range_select(self):
         #     np.random.seed(12345)

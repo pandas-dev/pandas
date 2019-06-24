@@ -2198,7 +2198,7 @@ bar2,12,13,14,15
 
     def test_categorical_concat_gh7864(self):
         # GH 7864
-        # make sure ordering is preserverd
+        # make sure ordering is preserved
         df = DataFrame({"id": [1, 2, 3, 4, 5, 6], "raw_grade": list('abbaae')})
         df["grade"] = Categorical(df["raw_grade"])
         df['grade'].cat.set_categories(['e', 'a', 'b'])
@@ -2265,7 +2265,7 @@ bar2,12,13,14,15
              }).set_index('B')
         tm.assert_frame_equal(result, expected)
 
-        # wrong catgories
+        # wrong categories
         df3 = DataFrame({'A': a, 'B': Categorical(b, categories=list('abe'))
                          }).set_index('B')
         msg = "categories must match existing categories when appending"

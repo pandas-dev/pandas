@@ -653,7 +653,7 @@ class ExtensionArray:
         -----
         :meth:`pandas.factorize` offers a `sort` keyword as well.
         """
-        # Impelmentor note: There are two ways to override the behavior of
+        # Implementer note: There are two ways to override the behavior of
         # pandas.factorize
         # 1. _values_for_factorize and _from_factorize.
         #    Specify the values passed to pandas' internal factorization

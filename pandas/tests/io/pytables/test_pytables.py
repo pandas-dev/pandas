@@ -225,7 +225,7 @@ class TestHDFStore(Base):
     def test_api(self):
 
         # GH4584
-        # API issue when to_hdf doesn't acdept append AND format args
+        # API issue when to_hdf doesn't accept append AND format args
         with ensure_clean_path(self.path) as path:
 
             df = tm.makeDataFrame()
@@ -2656,7 +2656,7 @@ class TestHDFStore(Base):
                 expected = df.reindex(columns=['A', 'B'])
                 tm.assert_frame_equal(expected, result)
 
-                # equivalentsly
+                # equivalently
                 result = store.select('df', [("columns=['A', 'B']")])
                 expected = df.reindex(columns=['A', 'B'])
                 tm.assert_frame_equal(expected, result)
@@ -3284,7 +3284,7 @@ class TestHDFStore(Base):
 
             expected = read_hdf(hh, 'df', where='l1=[2, 3, 4]')
 
-            # sccope with list like
+            # scope with list like
             l = selection.index.tolist()  # noqa
             store = HDFStore(hh)
             result = store.select('df', where='l1=l')
@@ -3308,7 +3308,7 @@ class TestHDFStore(Base):
             result = read_hdf(hh, 'df', where='l1=list(selection.index)')
             assert_frame_equal(result, expected)
 
-            # sccope with index
+            # scope with index
             store = HDFStore(hh)
 
             result = store.select('df', where='l1=index')
@@ -5164,7 +5164,7 @@ class TestTimezones(Base):
             assert_frame_equal(result, expected)
 
     def test_dst_transitions(self):
-        # make sure we are not failing on transaitions
+        # make sure we are not failing on transitions
         with ensure_clean_store(self.path) as store:
             times = pd.date_range("2013-10-26 23:00", "2013-10-27 01:00",
                                   tz="Europe/London",

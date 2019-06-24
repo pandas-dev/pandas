@@ -213,7 +213,7 @@ class TestTimedeltas:
 
             assert isinstance(td64, np.timedelta64)
 
-        # this is NOT equal and cannot be roundtriped (because of the nanos)
+        # this is NOT equal and cannot be roundtripped (because of the nanos)
         td = Timedelta('1 days, 10:11:12.012345678')
         assert td != td.to_pytimedelta()
 

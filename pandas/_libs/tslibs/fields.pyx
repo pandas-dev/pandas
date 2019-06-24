@@ -171,7 +171,7 @@ def get_start_end_field(int64_t[:] dtindex, object field,
 
         # YearBegin(), BYearBegin() use month = starting month of year.
         # QuarterBegin(), BQuarterBegin() use startingMonth = starting
-        # month of year. Other offests use month, startingMonth as ending
+        # month of year. Other offsets use month, startingMonth as ending
         # month of year.
 
         if (freqstr[0:2] in ['MS', 'QS', 'AS']) or (

@@ -1,4 +1,4 @@
-""" support numpy compatiblitiy across versions """
+""" support numpy compatibility across versions """
 
 from distutils.version import LooseVersion
 import re

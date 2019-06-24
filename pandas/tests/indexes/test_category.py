@@ -676,7 +676,7 @@ class TestCategoricalIndex(Base):
             with pytest.raises(KeyError):
                 i.get_loc('NOT-EXIST')
 
-        # non-unique, slicable
+        # non-unique, sliceable
         cidx3 = CategoricalIndex(list('aabbb'), categories=list('abc'))
         idx3 = Index(list('aabbb'))
 

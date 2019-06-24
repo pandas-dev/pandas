@@ -947,7 +947,7 @@ class MultiIndex(Index):
     def memory_usage(self, deep=False):
         # we are overwriting our base class to avoid
         # computing .values here which could materialize
-        # a tuple representation uncessarily
+        # a tuple representation unnecessarily
         return self._nbytes(deep)
 
     @cache_readonly
@@ -1074,7 +1074,7 @@ class MultiIndex(Index):
             sentinel = ''
             # GH3547
             # use value of sparsify as sentinel,  unless it's an obvious
-            # "Truthey" value
+            # "Truthy" value
             if sparsify not in [True, 1]:
                 sentinel = sparsify
             # little bit of a kludge job for #1217
@@ -2729,7 +2729,7 @@ class MultiIndex(Index):
             return m
 
         if isinstance(key, slice):
-            # handle a slice, returnig a slice if we can
+            # handle a slice, returning a slice if we can
             # otherwise a boolean indexer
 
             try:

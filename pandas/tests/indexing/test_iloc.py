@@ -20,7 +20,7 @@ class TestiLoc(Base):
         # iloc should allow indexers that exceed the bounds
         df = DataFrame(np.random.random_sample((20, 5)), columns=list('ABCDE'))
 
-        # lists of positions should raise IndexErrror!
+        # lists of positions should raise IndexError!
         msg = 'positional indexers are out-of-bounds'
         with pytest.raises(IndexError, match=msg):
             df.iloc[:, [0, 1, 2, 3, 4, 5]]

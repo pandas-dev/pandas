@@ -150,7 +150,7 @@ def error(code, **kwargs):
     code : str
         Error code.
     message : str
-        Error message with varaibles replaced.
+        Error message with variables replaced.
     """
     return (code, ERROR_MSGS[code].format(**kwargs))
 

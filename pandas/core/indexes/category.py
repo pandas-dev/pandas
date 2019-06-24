@@ -534,7 +534,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     @Appender(_index_shared_docs['where'])
     def where(self, cond, other=None):
         # TODO: Investigate an alternative implementation with
-        # 1. copy the underyling Categorical
+        # 1. copy the underlying Categorical
         # 2. setitem with `cond` and `other`
         # 3. Rebuild CategoricalIndex.
         if other is None:

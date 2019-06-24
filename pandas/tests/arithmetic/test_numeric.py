@@ -1,4 +1,4 @@
-# Arithmetc tests for DataFrame/Series/Index/Array classes that should
+# Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for numeric dtypes
 from collections import abc
@@ -587,7 +587,7 @@ class TestMultiplicationDivision:
         tm.assert_series_equal(ts / ts, ts / df['A'],
                                check_names=False)
 
-    # TODO: this came from tests.series.test_analytics, needs cleannup and
+    # TODO: this came from tests.series.test_analytics, needs cleanup and
     #  de-duplication with test_modulo above
     def test_modulo2(self):
         with np.errstate(all='ignore'):

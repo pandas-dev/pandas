@@ -619,7 +619,7 @@ def mask_zero_div_zero(x, y, result, copy=False):
 
 def dispatch_missing(op, left, right, result):
     """
-    Fill nulls caused by division by zero, casting to a diffferent dtype
+    Fill nulls caused by division by zero, casting to a different dtype
     if necessary.
 
     Parameters

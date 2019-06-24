@@ -307,7 +307,7 @@ class TestDataFrameNonuniqueIndexes(TestData):
         with pytest.raises(ValueError, match=msg):
             df[df.A > 6]
 
-        # dup aligining operations should work
+        # dup aligning operations should work
         # GH 5185
         df1 = DataFrame([1, 2, 3, 4, 5], index=[1, 2, 1, 2, 3])
         df2 = DataFrame([1, 2, 3], index=[1, 2, 3])

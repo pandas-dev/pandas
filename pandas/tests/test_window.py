@@ -1387,7 +1387,7 @@ class TestMoments(Base):
 
     def test_rolling_quantile_np_percentile(self):
         # #9413: Tests that rolling window's quantile default behavior
-        # is analogus to Numpy's percentile
+        # is analogous to Numpy's percentile
         row = 10
         col = 5
         idx = pd.date_range('20100101', periods=row, freq='B')
@@ -2003,7 +2003,7 @@ class TestPairwise:
 
         # DataFrame with itself, pairwise=True
         # note that we may construct the 1st level of the MI
-        # in a non-motononic way, so compare accordingly
+        # in a non-monotonic way, so compare accordingly
         results = []
         for i, df in enumerate(self.df1s):
             result = f(df)
@@ -2154,7 +2154,7 @@ def _create_consistency_data():
     def no_nans(x):
         return x.notna().all().all()
 
-    # data is a tuple(object, is_contant, no_nans)
+    # data is a tuple(object, is_constant, no_nans)
     data = create_series() + create_dataframes()
 
     return [(x, is_constant(x), no_nans(x)) for x in data]

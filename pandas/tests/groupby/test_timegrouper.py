@@ -92,7 +92,7 @@ class TestGroupBy:
     def test_timegrouper_with_reg_groups(self):
 
         # GH 3794
-        # allow combinateion of timegrouper/reg groups
+        # allow combination of timegrouper/reg groups
 
         df_original = DataFrame({
             'Branch': 'A A A A A A A B'.split(),

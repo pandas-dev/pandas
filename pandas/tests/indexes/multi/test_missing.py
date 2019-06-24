@@ -74,7 +74,7 @@ def test_dropna():
         idx.dropna(how='xxx')
 
     # GH26408
-    # test if missing values are dropped for mutiindex constructed
+    # test if missing values are dropped for multiindex constructed
     # from codes and values
     idx = MultiIndex(levels=[[np.nan, None, pd.NaT, "128", 2],
                              [np.nan, None, pd.NaT, "128", 2]],

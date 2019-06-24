@@ -363,7 +363,7 @@ def _adjust_to_origin(arg, origin, unit):
             raise ValueError("incompatible 'arg' type for given "
                              "'origin'='julian'")
 
-        # premptively check this for a nice range
+        # preemptively check this for a nice range
         j_max = Timestamp.max.to_julian_date() - j0
         j_min = Timestamp.min.to_julian_date() - j0
         if np.any(arg > j_max) or np.any(arg < j_min):

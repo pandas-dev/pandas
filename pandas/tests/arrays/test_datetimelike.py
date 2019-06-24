@@ -450,7 +450,7 @@ class TestDatetimeArray(SharedTests):
             arr._concat_same_type([arr, other])
 
     def test_concat_same_type_different_freq(self):
-        # we *can* concatentate DTI with different freqs.
+        # we *can* concatenate DTI with different freqs.
         a = DatetimeArray(pd.date_range('2000', periods=2, freq='D',
                                         tz='US/Central'))
         b = DatetimeArray(pd.date_range('2000', periods=2, freq='H',

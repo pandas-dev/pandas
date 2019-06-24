@@ -16,7 +16,7 @@ class TestLoc(Base):
 
     def test_loc_getitem_dups(self):
         # GH 5678
-        # repeated gettitems on a dup index returning a ndarray
+        # repeated getitems on a dup index returning a ndarray
         df = DataFrame(
             np.random.random_sample((20, 5)),
             index=['ABCDE' [x % 5] for x in range(20)])

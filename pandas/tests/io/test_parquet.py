@@ -305,7 +305,7 @@ class TestBasic(Base):
         check_round_trip(df, engine)
 
     def test_write_multiindex(self, pa):
-        # Not suppoprted in fastparquet as of 0.1.3 or older pyarrow version
+        # Not supported in fastparquet as of 0.1.3 or older pyarrow version
         engine = pa
 
         df = pd.DataFrame({'A': [1, 2, 3]})

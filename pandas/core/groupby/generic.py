@@ -1316,7 +1316,7 @@ class SeriesGroupBy(GroupBy):
         return func(self)
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
-        """Calcuate pct_change of each value to previous entry in group"""
+        """Calculate pct_change of each value to previous entry in group"""
         # TODO: Remove this conditional when #23918 is fixed
         if freq:
             return self.apply(lambda x: x.pct_change(periods=periods,

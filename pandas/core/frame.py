@@ -2145,7 +2145,7 @@ class DataFrame(NDFrame):
                   col_space='The minimum width of each column in CSS length '
                             'units.  An int is assumed to be px units.\n\n'
                             '            .. versionadded:: 0.25.0\n'
-                            '                Abillity to use str')
+                            '                Ability to use str')
     @Substitution(shared_params=fmt.common_docstring,
                   returns=fmt.return_docstring)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
@@ -5312,7 +5312,7 @@ class DataFrame(NDFrame):
             this_mask = isna(series)
             other_mask = isna(otherSeries)
 
-            # don't overwrite columns unecessarily
+            # don't overwrite columns unnecessarily
             # DO propagate if this column is not in the intersection
             if not overwrite and other_mask.all():
                 result[col] = this[col].copy()
@@ -5572,7 +5572,7 @@ class DataFrame(NDFrame):
                 else:
                     mask = notna(this)
 
-            # don't overwrite columns unecessarily
+            # don't overwrite columns unnecessarily
             if mask.all():
                 continue
 
@@ -6508,7 +6508,7 @@ class DataFrame(NDFrame):
         2    13
         dtype: int64
 
-        Retuning a list-like will result in a Series
+        Returning a list-like will result in a Series
 
         >>> df.apply(lambda x: [1, 2], axis=1)
         0    [1, 2]
@@ -6993,7 +6993,7 @@ class DataFrame(NDFrame):
         3   0.2   0.2
 
         With a dict, the number of places for specific columns can be
-        specfified with the column names as key and the number of decimal
+        specified with the column names as key and the number of decimal
         places as value
 
         >>> df.round({'dogs': 1, 'cats': 0})
@@ -7004,7 +7004,7 @@ class DataFrame(NDFrame):
         3   0.2   0.0
 
         Using a Series, the number of places for specific columns can be
-        specfified with the column names as index and the number of
+        specified with the column names as index and the number of
         decimal places as value
 
         >>> decimals = pd.Series([0, 1], index=['cats', 'dogs'])

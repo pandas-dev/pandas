@@ -94,7 +94,7 @@ class TestSlicing:
 
     def test_monotone_DTI_indexing_bug(self):
         # GH 19362
-        # Testing accessing the first element in a montononic descending
+        # Testing accessing the first element in a monotonic descending
         # partial string indexing.
 
         df = pd.DataFrame(list(range(5)))

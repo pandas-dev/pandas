@@ -206,7 +206,7 @@ class Ops:
 
                 result = getattr(o, op)
 
-                # these couuld be series, arrays or scalars
+                # these could be series, arrays or scalars
                 if isinstance(result, Series) and isinstance(expected, Series):
                     tm.assert_series_equal(result, expected)
                 elif isinstance(result, Index) and isinstance(expected, Index):

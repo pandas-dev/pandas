@@ -1392,7 +1392,7 @@ class Panel(NDFrame):
         Parameters
         ----------
         other : Panel, or object coercible to Panel
-            The object from which the caller will be udpated.
+            The object from which the caller will be updated.
         join : {'left', 'right', 'outer', 'inner'}, default 'left'
             How individual DataFrames are joined.
         overwrite : bool, default True

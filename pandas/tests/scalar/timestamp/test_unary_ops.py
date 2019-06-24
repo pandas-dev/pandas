@@ -112,7 +112,7 @@ class TestTimestampUnaryOps:
     ])
     @pytest.mark.parametrize('rounder', ['ceil', 'floor', 'round'])
     def test_round_minute_freq(self, test_input, freq, expected, rounder):
-        # Ensure timestamps that shouldnt round dont!
+        # Ensure timestamps that shouldn't round dont!
         # GH#21262
 
         dt = Timestamp(test_input)

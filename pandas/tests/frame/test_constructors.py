@@ -149,7 +149,7 @@ class TestDataFrameConstructors(TestData):
                 if d in df:
                     assert(df.dtypes[d] == d)
 
-        # mixed floating and integer coexinst in the same frame
+        # mixed floating and integer coexist in the same frame
         df = _make_mixed_dtypes_df('float')
         _check_mixed_dtypes(df)
 

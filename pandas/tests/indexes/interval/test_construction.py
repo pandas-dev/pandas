@@ -272,7 +272,7 @@ class TestFromTuples(Base):
             IntervalIndex.from_tuples(tuples)
 
     def test_na_tuples(self):
-        # tuple (NA, NA) evaluates the same as NA as an elemenent
+        # tuple (NA, NA) evaluates the same as NA as an element
         na_tuple = [(0, 1), (np.nan, np.nan), (2, 3)]
         idx_na_tuple = IntervalIndex.from_tuples(na_tuple)
         idx_na_element = IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)])

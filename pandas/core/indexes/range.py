@@ -525,7 +525,7 @@ class RangeIndex(Int64Index):
 
         sort : False or None, default None
             Whether to sort resulting index. ``sort=None`` returns a
-            mononotically increasing ``RangeIndex`` if possible or a sorted
+            monotonically increasing ``RangeIndex`` if possible or a sorted
             ``Int64Index`` if not. ``sort=False`` always returns an
             unsorted ``Int64Index``
 

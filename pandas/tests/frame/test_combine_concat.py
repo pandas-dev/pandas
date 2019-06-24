@@ -664,7 +664,7 @@ class TestDataFrameCombineFirst:
         expected = Series([True, True, False], name=2)
         assert_series_equal(result, expected)
 
-        # GH 3593, converting datetime64[ns] incorrecly
+        # GH 3593, converting datetime64[ns] incorrectly
         df0 = DataFrame({"a": [datetime(2000, 1, 1),
                                datetime(2000, 1, 2),
                                datetime(2000, 1, 3)]})

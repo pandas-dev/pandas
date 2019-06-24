@@ -429,7 +429,7 @@ def _convert_bin_to_numeric_type(bins, dtype):
 
 def _convert_bin_to_datelike_type(bins, dtype):
     """
-    Convert bins to a DatetimeIndex or TimedeltaIndex if the orginal dtype is
+    Convert bins to a DatetimeIndex or TimedeltaIndex if the original dtype is
     datelike
 
     Parameters

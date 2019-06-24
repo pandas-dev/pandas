@@ -52,7 +52,7 @@ def test_xs_loc_equality(multiindex_dataframe_random_data):
 
 def test_xs_missing_values_in_index():
     # see gh-6574
-    # missing values in returned index should be preserrved
+    # missing values in returned index should be preserved
     acc = [
         ('a', 'abcde', 1),
         ('b', 'bbcde', 2),

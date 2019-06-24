@@ -263,7 +263,7 @@ Now, to find prices per store/product, we can simply do:
 See the :ref:`documentation <groupby.pipe>` for more.
 
 
-.. _whatsnew_0210.enhancements.reanme_categories:
+.. _whatsnew_0210.enhancements.rename_categories:
 
 ``Categorical.rename_categories`` accepts a dict-like
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -418,7 +418,7 @@ New Behavior, without regard to the bottleneck installation:
 
    s.sum()
 
-Note that this also changes the sum of an empty ``Series``. Previously this always returned 0 regardless of a ``bottlenck`` installation:
+Note that this also changes the sum of an empty ``Series``. Previously this always returned 0 regardless of a ``bottleneck`` installation:
 
 .. code-block:: ipython
 

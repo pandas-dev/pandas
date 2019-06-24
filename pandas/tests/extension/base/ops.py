@@ -36,7 +36,7 @@ class BaseOpsUtil(BaseExtensionTests):
                 op(s, other)
 
     def _check_divmod_op(self, s, op, other, exc=Exception):
-        # divmod has multiple return values, so check separatly
+        # divmod has multiple return values, so check separately
         if exc is None:
             result_div, result_mod = op(s, other)
             if op is divmod:

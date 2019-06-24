@@ -376,7 +376,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     def __reduce__(self):
 
-        # we use a special reudce here because we need
+        # we use a special reduce here because we need
         # to simply set the .tz (and not reinterpret it)
 
         d = dict(data=self._data)
