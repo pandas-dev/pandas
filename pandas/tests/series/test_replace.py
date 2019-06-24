@@ -292,6 +292,23 @@ class TestSeriesReplace(TestData):
         expected = pd.Series(numeric)
         tm.assert_series_equal(expected, result, check_dtype=False)
 
+    def test_replace_categorical_single(self):
+        # GH 26988
+        dti = pd.date_range('2016-01-01', periods=3, tz='US/Pacific')
+        s = pd.Series(dti)
+        c = s.astype('category')
+
+        expected = c.copy()
+        expected.cat.add_categories('foo', inplace=True)
+        expected[2] = 'foo'
+        expected.cat.remove_unused_categories(inplace=True)
+
+        result = c.replace(c[2], 'foo')
+        tm.assert_series_equal(expected, result)
+
+        c.replace(c[2], 'foo', inplace=True)
+        tm.assert_series_equal(expected, c)
+
     def test_replace_with_no_overflowerror(self):
         # GH 25616
         # casts to object without Exception from OverflowError

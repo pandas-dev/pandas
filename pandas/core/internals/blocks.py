@@ -2978,6 +2978,25 @@ class CategoricalBlock(ExtensionBlock):
                                                axis=axis, transpose=transpose)
         return result
 
+    def replace(self, to_replace, value, inplace=False, filter=None,
+                regex=False, convert=True):
+        if filter is None or not self.mgr_locs.isin(filter).any():
+            result = self if inplace else self.copy()
+            categories = result.values.categories.tolist()
+            if to_replace in categories:
+                index = categories.index(to_replace)
+                categories[index] = value
+                result.values.rename_categories(categories, inplace=True)
+            if convert:
+                return result.convert(by_item=True, numeric=False,
+                                      copy=not inplace)
+            else:
+                return result
+        else:
+            self.values.add_categories(value, inplace=True)
+            return super().replace(to_replace, value, inplace,
+                                   filter, regex, convert)
+
 
 # -----------------------------------------------------------------
 # Constructor Helpers
