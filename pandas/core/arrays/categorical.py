@@ -457,11 +457,14 @@ class Categorical(ExtensionArray, PandasObject):
         # Defer to CategoricalFormatter's formatter.
         return None
 
-    def copy(self):
+    def copy(self, deep: bool = False):
         """
         Copy constructor.
         """
-        return self._constructor(values=self._codes.copy(),
+        values = self._codes
+        if deep:
+            values = values.copy()
+        return self._constructor(values=values,
                                  dtype=self.dtype,
                                  fastpath=True)
 
@@ -483,7 +486,7 @@ class Categorical(ExtensionArray, PandasObject):
         if is_categorical_dtype(dtype):
             # GH 10696/18593
             dtype = self.dtype.update_dtype(dtype)
-            self = self.copy() if copy else self
+            self = self.copy(deep=True) if copy else self
             if dtype == self.dtype:
                 return self
             return self._set_dtype(dtype)
@@ -578,7 +581,7 @@ class Categorical(ExtensionArray, PandasObject):
             codes = _recode_for_categories(inferred_codes, cats, categories)
         elif not cats.is_monotonic_increasing:
             # Sort categories and recode for unknown categories.
-            unsorted = cats.copy()
+            unsorted = cats.copy(deep=True)
             categories = cats.sort_values()
 
             codes = _recode_for_categories(inferred_codes, unsorted,
@@ -751,7 +754,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         new_dtype = CategoricalDtype(self.categories, ordered=value)
-        cat = self if inplace else self.copy()
+        cat = self if inplace else self.copy(deep=True)
         cat._dtype = new_dtype
         if not inplace:
             return cat
@@ -849,7 +852,7 @@ class Categorical(ExtensionArray, PandasObject):
             ordered = self.dtype.ordered
         new_dtype = CategoricalDtype(new_categories, ordered=ordered)
 
-        cat = self if inplace else self.copy()
+        cat = self if inplace else self.copy(deep=True)
         if rename:
             if (cat.dtype.categories is not None and
                     len(new_dtype.categories) < len(cat.dtype.categories)):
@@ -937,7 +940,7 @@ class Categorical(ExtensionArray, PandasObject):
         Categories (2, object): [A, B]
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        cat = self if inplace else self.copy()
+        cat = self if inplace else self.copy(deep=True)
 
         if isinstance(new_categories, ABCSeries):
             msg = ("Treating Series 'new_categories' as a list-like and using "
@@ -1045,7 +1048,7 @@ class Categorical(ExtensionArray, PandasObject):
         new_categories = list(self.dtype.categories) + list(new_categories)
         new_dtype = CategoricalDtype(new_categories, self.ordered)
 
-        cat = self if inplace else self.copy()
+        cat = self if inplace else self.copy(deep=True)
         cat._dtype = new_dtype
         cat._codes = coerce_indexer_dtype(cat._codes, new_dtype.categories)
         if not inplace:
@@ -1127,7 +1130,7 @@ class Categorical(ExtensionArray, PandasObject):
         set_categories
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        cat = self if inplace else self.copy()
+        cat = self if inplace else self.copy(deep=True)
         idx, inv = np.unique(cat._codes, return_inverse=True)
 
         if idx.size != 0 and idx[0] == -1:  # na sentinel
@@ -2295,7 +2298,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
-        cat = self.copy()
+        cat = self.copy()  # Don't need deep here
 
         # keep nan in codes
         cat._codes = unique_codes

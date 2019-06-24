@@ -243,3 +243,28 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 
 class TestParsing(base.BaseParsingTests):
     pass
+
+
+def test_copy_deep(data):
+    assert data[0] != data[1]
+
+    orig = data.copy(deep=True)
+    other = data.copy(deep=True)
+
+    # Modifying other will _not_ modify `data`
+    other[0] = other[1]
+    assert other[0] == other[1]
+    assert data[0] != data[1]
+
+    # Modifying other _will_ modify `data`
+    other2 = data.copy(deep=False)
+    other2[0] = other2[1]
+    assert other2[0] == other2[1]
+    assert data[0] == data[1]
+
+    # Default behavior should be deep=False
+    data = orig.copy(deep=True)
+    other3 = data.copy()
+
+    other3[0] = other3[1]
+    assert data[0] == data[1]

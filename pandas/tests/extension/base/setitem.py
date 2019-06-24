@@ -18,7 +18,9 @@ class BaseSetitemTests(BaseExtensionTests):
     def test_setitem_sequence(self, data, box_in_series):
         if box_in_series:
             data = pd.Series(data)
-        original = data.copy()
+            original = data.copy()
+        else:
+            original = data.copy(deep=True)
 
         data[[0, 1]] = [data[1], data[0]]
         assert data[0] == original[1]

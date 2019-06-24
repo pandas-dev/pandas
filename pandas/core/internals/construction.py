@@ -594,7 +594,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
             subarr = data.astype(dtype)
 
         if copy:
-            subarr = data.copy()
+            subarr = data.copy(deep=True)
         return subarr
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:
