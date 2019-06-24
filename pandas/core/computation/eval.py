@@ -366,3 +366,5 @@ def eval(expr: str,
     # We want to exclude `inplace=None` as being False.
     if inplace is False:
         return target if target_modified else ret
+    else:
+        return target
