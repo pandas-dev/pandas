@@ -663,6 +663,7 @@ class Block(PandasObject):
                 dtype = dtype.type
             if issubclass(dtype, (np.bool_, np.object_)):
                 if issubclass(dtype, np.bool_):
+                    # TODO: de-nest this check, btw it isn't reached in tests
                     if isna(result).all():
                         return result.astype(np.bool_)
                     else:
@@ -1207,7 +1208,7 @@ class Block(PandasObject):
                                        allow_fill=True, fill_value=fill_value)
 
         if new_mgr_locs is None:
-            if axis == 0:
+            if axis == 0:  # TODO: Never True in tests
                 slc = libinternals.indexer_as_slice(indexer)
                 if slc is not None:
                     new_mgr_locs = self.mgr_locs[slc]
@@ -1293,9 +1294,9 @@ class Block(PandasObject):
         # explicitly reshape other instead
         if getattr(other, 'ndim', 0) >= 1:
             if values.ndim - 1 == other.ndim and axis == 1:
-                other = other.reshape(tuple(other.shape + (1, )))
+                other = other.reshape(tuple(other.shape + (1,)))
             elif transpose and values.ndim == self.ndim - 1:
-                cond = cond.T
+                cond = cond.T  # TODO: not hit in tests
 
         if not hasattr(cond, 'shape'):
             raise ValueError("where must have a condition that is ndarray "
@@ -1416,6 +1417,9 @@ class Block(PandasObject):
         -------
         Block
         """
+        # Series dispatches to DataFrame, so we should always be 2D
+        assert self.ndim == 2, self.shape
+
         if self.is_datetimetz:
             # TODO: cleanup this special case.
             # We need to operate on i8 values for datetimetz
@@ -1433,7 +1437,8 @@ class Block(PandasObject):
             qs = [qs]
 
         if is_empty:
-            if self.ndim == 1:  # TODO: isnt this no longer possible?
+            if self.ndim == 1:
+                # TODO: isnt this no longer possible?  not hit in tests
                 result = self._na_value
             else:
                 # create the array of na_values
@@ -1536,7 +1541,7 @@ class NonConsolidatableMixIn:
     def should_store(self, value):
         return isinstance(value, self._holder)
 
-    def set(self, locs, values, check=False):
+    def set(self, locs, values, check=False):  # TODO: not hit in tests
         assert locs.tolist() == [0]
         self.values = values
 
@@ -1567,7 +1572,7 @@ class NonConsolidatableMixIn:
         new_values, new = self._try_coerce_args(new_values, new)
 
         if isinstance(new, np.ndarray) and len(new) == len(mask):
-            new = new[mask]
+            new = new[mask]  # TODO: not hit in tests
 
         mask = _safe_reshape(mask, new_values.shape)
 
@@ -1709,11 +1714,10 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         self.values[indexer] = value
         return self
 
-    def get_values(self, dtype=None):
+    def get_values(self, dtype=None):  # TODO: can we use base class?
         # ExtensionArrays must be iterable, so this works.
         values = np.asarray(self.values)
-        if values.ndim == self.ndim - 1:
-            values = values.reshape((1,) + values.shape)
+        assert values.ndim == self.ndim, (values.ndim, self.ndim)
         return values
 
     def to_dense(self):
@@ -2009,6 +2013,7 @@ class DatetimeLikeBlockMixin:
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
         if is_object_dtype(dtype):
+            # TODO: Why do we need the _holder?
             values = self.values.ravel()
             result = self._holder(values).astype(object)
             return result.reshape(self.values.shape)
@@ -2024,7 +2029,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         if self.is_datetimetz:
             if not values._allows_2d and ndim == 2:
-                shape = (1, values.size,)
+                shape = (1, values.size,)  # TODO: not hit in tests
                 values = ReshapeableArray(values, shape=shape)
 
         super().__init__(values, placement=placement, ndim=ndim)
@@ -2160,18 +2165,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
                 not is_datetime64tz_dtype(value) and
                 not is_extension_array_dtype(value))
 
-    def set(self, locs, values):
-        """
-        Modify Block in-place with new item value
-
-        Returns
-        -------
-        None
-        """
-        values = conversion.ensure_datetime64ns(values, copy=False)
-
-        self.values[locs] = values
-
     def external_values(self):
         result = np.asarray(self.values.astype('datetime64[ns]', copy=False))
         return unwrap_reshapeable(result)
@@ -2217,13 +2210,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # check the ndarray values of the DatetimeIndex values
         return self.values._data.base is not None
 
-    def copy(self, deep=True):
-        """ copy constructor """
-        values = self.values
-        if deep:
-            values = values.copy(deep=True)
-        return self.make_block_same_class(values)
-
     def get_values(self, dtype=None):
         """
         Returns an ndarray of values.
@@ -2247,34 +2233,20 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """
         values = self.values
         if is_object_dtype(dtype):
+            # TODO: can we just use values.astype(object)?
             values = values._box_values(values._data.ravel())
             values = values.reshape(self.shape)
 
         values = np.asarray(values)
 
-        if self.ndim == 2:
-            # Ensure that our shape is correct for DataFrame.
-            # ExtensionArrays are always 1-D, even in a DataFrame when
-            # the analogous NumPy-backed column would be a 2-D ndarray.
-            values = values.reshape(1, -1)
-        return values
+        assert values.shape == self.shape, (values.shape, values.shape)
+        return values  # TODO: can we just use base class?
 
     def to_dense(self):
         # we request M8[ns] dtype here, even though it discards tzinfo,
         # as lots of code (e.g. anything using values_from_object)
         # expects that behavior.
         return np.asarray(self.values, dtype=_NS_DTYPE)
-
-    '''
-    def _slice(self, slicer):
-        """ return a slice of my values """
-        if isinstance(slicer, tuple):
-            col, loc = slicer
-            if not com.is_null_slice(col) and col != 0:
-                raise IndexError("{0} only contains one item".format(self))
-            return self.values[loc]
-        return self.values[slicer]
-    '''
 
     def _try_coerce_args(self, values, other):
         """
@@ -2632,26 +2604,6 @@ class ObjectBlock(Block):
 
         return blocks
 
-    def set(self, locs, values):
-        """
-        Modify Block in-place with new item value
-
-        Returns
-        -------
-        None
-        """
-        try:
-            self.values[locs] = values
-        except (ValueError):
-
-            # broadcasting error
-            # see GH6171
-            new_shape = list(values.shape)
-            new_shape[0] = len(self.items)
-            self.values = np.empty(tuple(new_shape), dtype=self.dtype)
-            self.values.fill(np.nan)
-            self.values[locs] = values
-
     def _maybe_downcast(self, blocks, downcast=None):
 
         if downcast is not None:
@@ -2899,6 +2851,7 @@ class CategoricalBlock(ExtensionBlock):
         # while returned results could be any dim
         if ((not is_categorical_dtype(result)) and
                 isinstance(result, np.ndarray)):
+            # TODO: not hit in tests; needed?
             result = _block_shape(result, ndim=self.ndim)
 
         return result
@@ -2914,16 +2867,14 @@ class CategoricalBlock(ExtensionBlock):
 
         values = self.values
         if slicer is not None:
-            # Categorical is always one dimension
-            # TODO: above comment is wrong
             values = values[:, slicer]
         mask = isna(values)
         values = np.array(values, dtype='object')
         values[mask] = na_rep
 
         # we are expected to return a 2-d ndarray
-        # TODO: reshape should now be unnecessary
-        return values.reshape(1, values.size)
+        assert values.shape == (1, values.size), values.shape
+        return values
 
     def concat_same_type(self, to_concat, placement=None):
         """
@@ -3064,7 +3015,7 @@ def _extend_blocks(result, blocks=None):
             else:
                 blocks.append(r)
     elif isinstance(result, BlockManager):
-        blocks.extend(result.blocks)
+        blocks.extend(result.blocks)  # TODO: not hit
     else:
         blocks.append(result)
     return blocks
@@ -3130,7 +3081,7 @@ def _safe_reshape(arr, new_shape):
     if not isinstance(arr, ABCExtensionArray):
         arr = arr.reshape(new_shape)
     if isinstance(arr, ReshapeableArray):
-        arr = arr.reshape(new_shape)
+        arr = arr.reshape(new_shape)  # TODO: not hit
     return arr
 
 
@@ -3212,7 +3163,7 @@ def _putmask_smart(v, m, n):
     dtype, _ = maybe_promote(n.dtype)
 
     if is_extension_type(v.dtype) and is_object_dtype(dtype):
-        v = v.get_values(dtype)
+        v = v.get_values(dtype)  # TODO: not hit
     else:
         v = v.astype(dtype)
 

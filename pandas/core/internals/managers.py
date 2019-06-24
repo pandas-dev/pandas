@@ -984,7 +984,7 @@ class BlockManager(PandasObject):
         elif (block.is_extension and isinstance(values, ReshapeableArray)
               and isinstance(values._1dvalues, PandasArray)):
             # FIXME: kludge!
-            values = values._1dvalues.to_numpy()
+            values = values._1dvalues.to_numpy()  # TOOD: not hit in tests
             nb = make_block(values, placement=slice(0, len(values)), ndim=1)
             return SingleBlockManager([nb], self.axes[1])
 
@@ -1456,7 +1456,7 @@ class SingleBlockManager(BlockManager):
         # passed from constructor, single block, single axis
         if fastpath:
             self.axes = [axis]
-            if isinstance(block, list):
+            if isinstance(block, list):  # TODO: never truthy in tests
 
                 # empty block
                 if len(block) == 0:

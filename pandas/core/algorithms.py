@@ -1578,10 +1578,12 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     # TODO(EA): Remove these if / elifs as datetimeTZ, interval, become EAs
     # dispatch to internal type takes
     if is_extension_array_dtype(arr):
-        try:
+        if isinstance(arr, ABCIndexClass):
+            arr = arr._data
+        if arr._allows_2d:
             return arr.take(indexer, fill_value=fill_value,
                             allow_fill=allow_fill, axis=axis)
-        except TypeError:
+        else:
             # `axis` kwarg not yet available
             return arr.take(indexer, fill_value=fill_value,
                             allow_fill=allow_fill)
