@@ -130,7 +130,7 @@ def test_groupby_return_type():
     assert isinstance(result, DataFrame)
 
     # GH5592
-    # inconcistent return type
+    # inconsistent return type
     df = DataFrame(dict(A=['Tiger', 'Tiger', 'Tiger', 'Lamb', 'Lamb',
                            'Pony', 'Pony'], B=Series(
                                np.arange(7), dtype='int64'), C=date_range(
