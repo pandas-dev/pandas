@@ -1,6 +1,5 @@
 import warnings
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from pandas.core.dtypes.common import is_integer, is_list_like
@@ -10,6 +9,7 @@ from pandas.core.dtypes.missing import isna, remove_na_arraylike
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.tools import (
     _flatten, _set_ticks_props, _subplots)
@@ -203,6 +203,7 @@ def _grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     def plot_group(group, ax):
         ax.hist(group.dropna().values, bins=bins, **kwargs)
 
+    converter._WARN = False  # no warning for pandas plots
     xrot = xrot or rot
 
     fig, axes = _grouped_plot(plot_group, data, column=column,
@@ -220,6 +221,7 @@ def _grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
 def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
                 xrot=None, ylabelsize=None, yrot=None, figsize=None,
                 bins=10, **kwds):
+    import matplotlib.pyplot as plt
     if by is None:
         if kwds.get('layout', None) is not None:
             raise ValueError("The 'layout' keyword is not supported when "
@@ -261,6 +263,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
 def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                xrot=None, ylabelsize=None, yrot=None, ax=None, sharex=False,
                sharey=False, figsize=None, layout=None, bins=10, **kwds):
+    converter._WARN = False  # no warning for pandas plots
     if by is not None:
         axes = _grouped_hist(data, column=column, by=by, ax=ax, grid=grid,
                              figsize=figsize, sharex=sharex, sharey=sharey,

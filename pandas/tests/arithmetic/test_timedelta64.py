@@ -1,11 +1,12 @@
-# Arithmetc tests for DataFrame/Series/Index/Array classes that should
+# Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
 
-from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas.errors import (
+    NullFrequencyError, OutOfBoundsDatetime, PerformanceWarning)
 
 import pandas as pd
 from pandas import (
@@ -47,7 +48,7 @@ class TestTimedelta64ArrayComparisons:
             tdi >= np.array(4)
 
     def test_compare_timedelta_series(self):
-        # regresssion test for GH#5963
+        # regression test for GH#5963
         s = pd.Series([timedelta(days=1), timedelta(days=2)])
         actual = s > timedelta(days=1)
         expected = pd.Series([False, True])
@@ -479,10 +480,10 @@ class TestAddSubNaTMasking:
 
     def test_tdi_add_overflow(self):
         # See GH#14068
-        msg = "too (big|large) to convert"
-        with pytest.raises(OverflowError, match=msg):
+        # preliminary test scalar analogue of vectorized tests below
+        with pytest.raises(OutOfBoundsDatetime):
             pd.to_timedelta(106580, 'D') + Timestamp('2000')
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsDatetime):
             Timestamp('2000') + pd.to_timedelta(106580, 'D')
 
         _NaT = int(pd.NaT) + 1

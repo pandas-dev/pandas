@@ -77,7 +77,7 @@ Time series changes and improvements
   interface while enabling working with nanosecond-resolution data. Also
   provides :ref:`easy time zone conversions <timeseries.timezone>`.
 - Enhanced support for :ref:`time zones <timeseries.timezone>`. Add
-  `tz_convert` and ``tz_lcoalize`` methods to TimeSeries and DataFrame. All
+  `tz_convert` and ``tz_localize`` methods to TimeSeries and DataFrame. All
   timestamps are stored as UTC; Timestamps from DatetimeIndex objects with time
   zone set will be localized to local time. Time zone conversions are therefore
   essentially free. User needs to know very little about pytz library now; only

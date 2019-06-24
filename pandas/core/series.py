@@ -1481,7 +1481,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Lazily iterate over (index, value) tuples.
 
         This method returns an iterable tuple (index, value). This is
-        convienient if you want to create a lazy iterator. Note that the
+        convenient if you want to create a lazy iterator. Note that the
         methods Series.items and Series.iteritems are the same methods.
 
         Returns
@@ -1659,7 +1659,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2
         """
         if level is None:
-            return notna(com.values_from_object(self)).sum()
+            return notna(self.array).sum()
 
         if isinstance(level, str):
             level = self.index._get_level_number(level)
