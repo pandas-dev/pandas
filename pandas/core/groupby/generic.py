@@ -1725,12 +1725,13 @@ def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
     """
     result = result.copy()
 
-    ocols = [idx for idx in range(len(result.columns))
-             if is_object_dtype(result.dtypes[idx])]
+    obj_cols = [idx for idx in range(len(result.columns))
+                if is_object_dtype(result.dtypes[idx])]
 
-    for cidx in ocols:
-        cvals = result.iloc[:, cidx].values
-        result.iloc[:, cidx] = maybe_convert_objects(cvals,
-                                                     convert_numeric=False)
+    # See GH#26285
+    converted = [maybe_convert_objects(result.iloc[:, n].values,
+                                       convert_numeric=False)
+                 for n in obj_cols]
 
+    result.iloc[:, obj_cols] = converted
     return result
