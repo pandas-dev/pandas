@@ -1437,18 +1437,14 @@ class Block(PandasObject):
             qs = [qs]
 
         if is_empty:
-            if self.ndim == 1:
-                # TODO: isnt this no longer possible?  not hit in tests
-                result = self._na_value
-            else:
-                # create the array of na_values
-                # 2d len(values) * len(qs)
-                result = np.repeat(np.array([self.fill_value] * len(qs)),
-                                   len(values)).reshape(len(values),
-                                                        len(qs))
+            # create the array of na_values
+            # 2d len(values) * len(qs)
+            result = np.repeat(np.array([self.fill_value] * len(qs)),
+                               len(values)).reshape(len(values),
+                                                    len(qs))
         else:
             # asarray needed for Sparse, see GH#24600
-            # Note: this is self.values and not `values` for datetimetz
+            # Note: this is `self.values` and not `values` for datetimetz
             #  case where we have now cast to i8 so isna(values) will
             #  be all-False.
             mask = np.asarray(isna(self.values))
@@ -1458,10 +1454,11 @@ class Block(PandasObject):
                                    interpolation=interpolation)
 
             result = np.array(result, copy=False)
-            if self.ndim > 1:  # TODO: isn't this now _always_ the case?
-                result = result.T
+            result = result.T
 
         if orig_scalar and not lib.is_scalar(result):
+            # TODO: because self.ndim can no longer be 1, we can no longer
+            #  get a zero-dim result.  See what we can simplify here.
             # result could be scalar in case with is_empty and self.ndim == 1
             assert result.shape[-1] == 1, result.shape
             result = result[..., 0]
