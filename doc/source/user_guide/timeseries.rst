@@ -1133,7 +1133,7 @@ Valid business hours are distinguished by whether it started from valid ``Busine
     pd.Timestamp('2014-08-01 17:00') + bh
     pd.Timestamp('2014-08-01 23:00') + bh
 
-    # Although 2014-08-02 is Satuaday,
+    # Although 2014-08-02 is Saturday,
     # it is valid because it starts from 08-01 (Friday).
     pd.Timestamp('2014-08-02 04:00') + bh
 

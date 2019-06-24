@@ -276,7 +276,7 @@ To show only observed values:
 
    df.groupby(['A', 'B', 'C'], observed=True).count()
 
-For pivotting operations, this behavior is *already* controlled by the ``dropna`` keyword:
+For pivoting operations, this behavior is *already* controlled by the ``dropna`` keyword:
 
 .. ipython:: python
 

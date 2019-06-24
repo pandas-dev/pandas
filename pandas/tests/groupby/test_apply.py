@@ -133,7 +133,7 @@ def test_fast_apply():
 def test_group_apply_once_per_group(df, group_names):
     # GH2936, GH7739, GH10519, GH2656, GH12155, GH20084, GH21417
 
-    # This test should ensure that a function is only evaluted
+    # This test should ensure that a function is only evaluated
     # once per group. Previously the function has been evaluated twice
     # on the first group to check if the Cython index slider is safe to use
     # This test ensures that the side effect (append to list) is only triggered

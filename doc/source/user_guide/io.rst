@@ -488,7 +488,7 @@ specification:
 
 .. versionadded:: 0.21.0
 
-Specifying ``dtype='cateogry'`` will result in an unordered ``Categorical``
+Specifying ``dtype='category'`` will result in an unordered ``Categorical``
 whose ``categories`` are the unique values observed in the data. For more
 control on the categories and order, create a
 :class:`~pandas.api.types.CategoricalDtype` ahead of time, and pass that for
@@ -1679,7 +1679,7 @@ S3 URLs are handled as well but require installing the `S3Fs
 
    df = pd.read_csv('s3://pandas-test/tips.csv')
 
-If your S3 bucket requires cedentials you will need to set them as environment
+If your S3 bucket requires credentials you will need to set them as environment
 variables or in the ``~/.aws/credentials`` config file, refer to the `S3Fs
 documentation on credentials
 <https://s3fs.readthedocs.io/en/latest/#credentials>`_.
@@ -2078,7 +2078,7 @@ Dates written in nanoseconds need to be read back in nanoseconds:
 
    json = dfj2.to_json(date_unit='ns')
 
-   # Try to parse timestamps as millseconds -> Won't Work
+   # Try to parse timestamps as milliseconds -> Won't Work
    dfju = pd.read_json(json, date_unit='ms')
    dfju
 

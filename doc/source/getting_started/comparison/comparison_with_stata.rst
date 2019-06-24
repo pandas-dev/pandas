@@ -634,7 +634,7 @@ For example, to subtract the mean for each observation by smoker group.
    generate adj_total_bill = total_bill - group_bill
 
 
-pandas ``groubpy`` provides a ``transform`` mechanism that allows
+pandas ``groupby`` provides a ``transform`` mechanism that allows
 these type of operations to be succinctly expressed in one
 operation.
 
