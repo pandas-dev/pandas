@@ -471,11 +471,13 @@ class BaseGrouper:
         vdim = values.ndim
         swapped = False
         if vdim == 1:
-            values = values[:, None]  # on 1D EA this raises IndexError: too many indices for array
+            # Note: on 1D EA this raises IndexError: too many indices for array
+            values = values[:, None]
             out_shape = (self.ngroups, arity)
         elif is_sparse(values):
-            # kludge to mimic behavior on master and fix tests
-            # pandas/tests/sparse/test_groupby.py, pandas/tests/sparse/test_pivot.py
+            # FIXME: kludge to mimic behavior on master and fix tests
+            #  pandas/tests/sparse/test_groupby.py
+            #  pandas/tests/sparse/test_pivot.py
             raise IndexError("too many indices for array.")
         else:
             if axis > 0:
@@ -490,7 +492,8 @@ class BaseGrouper:
         is_numeric = is_numeric_dtype(values.dtype)
 
         if is_datetimelike:
-            values = values.view('int64').reshape(values.shape)  # FIXME: ReshapeableArray.view loses its shape
+            values = values.view('int64').reshape(values.shape)
+            # FIXME: ReshapeableArray.view loses its shape
             is_numeric = True
         elif is_bool_dtype(values.dtype):
             values = ensure_float64(values)

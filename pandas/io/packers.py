@@ -61,7 +61,7 @@ from pandas import (  # noqa:F401
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, Timestamp)
 from pandas.core import internals
 from pandas.core.arrays import (
-    DatetimeArray, IntervalArray, PeriodArray, ReshapeableArray)
+    DatetimeArray, IntervalArray, PeriodArray)
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
 from pandas.core.internals import BlockManager, _safe_reshape, make_block

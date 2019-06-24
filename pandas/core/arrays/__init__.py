@@ -12,4 +12,4 @@ from .integer import (  # noqa
 from .sparse import SparseArray  # noqa
 from .numpy_ import PandasArray, PandasDtype  # noqa
 from .reshaping import (  # noqa
-	ReshapeableArray, ReshapeMixin, unwrap_reshapeable)
+    ReshapeableArray, ReshapeMixin, unwrap_reshapeable)

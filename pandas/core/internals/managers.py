@@ -312,17 +312,19 @@ class BlockManager(PandasObject):
         mgr_shape = self.shape
         tot_items = sum(len(x.mgr_locs) for x in self.blocks)
         for block in self.blocks:
-            if (True or block._verify_integrity) and block.shape[1:] != mgr_shape[1:]:
+            # TODO: get rid of _verify_integrity since we're not treating
+            #  it as always-True
+            if block.shape[1:] != mgr_shape[1:]:
                 import inspect
                 stack = inspect.stack()
-                if ('pyarrow' in str(stack) or 'msgpack' in str(stack)):# and block.values.ndim == 1:
-                    # kludge to the max! for reading legacy files
-                    #assert block.values.ndim == 1, (type(block.values), block.values.shape)
+                if ('pyarrow' in str(stack) or 'msgpack' in str(stack)):
+                    # FIXME: kludge to the max! for reading legacy files
                     shape = (1, block.values.size,)
                     if isinstance(block.values, ReshapeableArray):
                         block.values = block.values.reshape(shape)
                     else:
-                        block.values = ReshapeableArray(block.values, shape=shape)
+                        block.values = ReshapeableArray(block.values,
+                                                        shape=shape)
                 else:
                     construction_error(tot_items, block.shape[1:], self.axes)
         if len(self.items) != tot_items:
@@ -2051,7 +2053,8 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
                 [ju.block for ju in join_units], placement=placement)
         else:
             vals = concatenate_join_units(join_units, concat_axis, copy=copy)
-            if isinstance(vals, ABCExtensionArray) and not vals._allows_2d and len(axes) == 2:
+            if (isinstance(vals, ABCExtensionArray)
+                    and not vals._allows_2d and len(axes) == 2):
                 vals = ReshapeableArray(vals, shape=(1, vals.size))
             b = make_block(
                 vals,

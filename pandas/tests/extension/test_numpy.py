@@ -9,7 +9,8 @@ import pandas.util.testing as tm
 
 from . import base
 
-pytestmark = pytest.mark.skip(reason="Dont break ABCPandasArray checks!  GH#27014")
+pytestmark = pytest.mark.skip(reason="Dont break ABCPandasArray checks!  "
+                                     "GH#27014")
 
 
 @pytest.fixture(params=['float', 'object'])

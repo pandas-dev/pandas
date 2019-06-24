@@ -9,8 +9,8 @@ from pandas._libs.lib import is_integer
 from pandas.errors import AbstractMethodError
 
 from pandas.core.arrays.base import ExtensionArray
-from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.dtypes.generic import ABCPandasArray
+
 
 class ReshapeableArray(ExtensionArray):
     """
@@ -20,7 +20,7 @@ class ReshapeableArray(ExtensionArray):
     _allows_2d = True
 
     def __init__(self, values: ExtensionArray, shape: Tuple[int, ...]):
-        assert isinstance(values, ExtensionArray) and not values._allows_2d, type(values)
+        assert isinstance(values, ExtensionArray) and not values._allows_2d
         assert not isinstance(values, ABCPandasArray)
         self._1dvalues = values
 
@@ -76,12 +76,9 @@ class ReshapeableArray(ExtensionArray):
         return type(self)(result, shape=shape)
 
     def shift(self, periods: int = 1, fill_value: object = None):
-        #if self.ndim != 1:  # FIXME: technically wrong to allow this
-        #    raise ValueError
+        # FIXME: technically wrong to allow if we dont have ndim == 1
 
         result = self._1dvalues.shift(periods, fill_value=fill_value)
-        #shape = (result.size,)
-        #assert shape == self.shape
         shape = self.shape
         return type(self)(result, shape=shape)
 
@@ -126,7 +123,7 @@ class ReshapeableArray(ExtensionArray):
         assert isinstance(other, type(self))
         assert other.shape == self.shape
         result = self._1dvalues - other._1dvalues
-        return type(self)(result, shape=self.shape)   
+        return type(self)(result, shape=self.shape)
 
     def __array__(self, dtype=None):
         if hasattr(self._1dvalues, "__array__"):
@@ -134,7 +131,7 @@ class ReshapeableArray(ExtensionArray):
         else:
             result = np.array(self._1dvalues, dtype=dtype)
             # TODO: cant we use this unconditionally?
-        return result.reshape(self.shape)     
+        return result.reshape(self.shape)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         # implementing for sparse tests
@@ -142,8 +139,8 @@ class ReshapeableArray(ExtensionArray):
         invals = [x if x is not self else self._1dvalues for x in invals]
         invals = tuple(invals)
         result = getattr(ufunc, method)(*invals, **kwargs)
-        if isinstance(result, type(self._1dvalues)) and result.size == self.size:
-            # TODO: reshape isnt a ufunc is it?
+        if (isinstance(result, type(self._1dvalues))
+                and result.size == self.size):
             return type(self)(result, shape=self.shape)
         return result
 
@@ -188,7 +185,8 @@ class ReshapeableArray(ExtensionArray):
             if np.ndim(result) == 0:
                 return result
             if not isinstance(result, type(self._1dvalues)):
-                # e.g. for object dtype pandas/tests/sparse/test_indexing.py::test_frame_indexing_single
+                # e.g. for object dtype
+                # pandas/tests/sparse/test_indexing.py::test_frame_indexing_single
                 return result
             shape = (result.size,)
             return type(self)(result, shape=shape)
@@ -199,14 +197,14 @@ class ReshapeableArray(ExtensionArray):
             return type(self)(result, shape=shape)
 
         if key[0] == slice(None):
-            #result = self._1dvalues[tuple([key[1]])]
-            # FIXME: in some places using tuple fails (e.g. DateTimearray, in others we get numpy warnings)
+            # FIXME: in some places using tuple fails
+            #  (e.g. DateTimearray, in others we get numpy warnings)
             result = self._1dvalues[[key[1]]]
             if np.ndim(result) == 0:
                 return result
-                #raise ValueError(key, result)
             if not isinstance(result, type(self._1dvalues)):
-                # e.g. for object dtype pandas/tests/sparse/test_indexing.py::test_frame_indexing_single
+                # e.g. for object dtype
+                #  pandas/tests/sparse/test_indexing.py::test_frame_indexing_single
                 return result
             shape = (1, result.size)
             return type(self)(result, shape=shape)
@@ -221,12 +219,14 @@ class ReshapeableArray(ExtensionArray):
 
         assert self.ndim == 2
 
-        if isinstance(key, tuple) and len(key) == 2 and key[0] == 0 and self.shape[0] == 1:
+        if (isinstance(key, tuple) and len(key) == 2
+                and key[0] == 0 and self.shape[0] == 1):
             # TODO: Do we need to squeeze value?
             self._1dvalues[key[1]] = value
             return
 
-        if isinstance(key, np.ndarray) and key.dtype == np.bool_ and key.shape == self.shape:
+        if (isinstance(key, np.ndarray) and key.dtype == np.bool_
+                and key.shape == self.shape):
             if self.shape[0] == 1:
                 key1 = key[0, :]
                 if isinstance(value, np.ndarray) and value.shape == key.shape:
@@ -235,7 +235,8 @@ class ReshapeableArray(ExtensionArray):
                 return
 
         if isinstance(key, slice) and key == slice(None):
-            if isinstance(value, np.ndarray) and value.shape == self.shape and self.shape[0] == 1:
+            if (isinstance(value, np.ndarray) and value.shape == self.shape
+                    and self.shape[0] == 1):
                 value = value[0, :]
             self._1dvalues[key] = value
             return
@@ -445,10 +446,10 @@ def _tuplify_shape(size: int, shape) -> Tuple[int, ...]:
     return shape
 
 
-
 def unwrap_reshapeable(values, check=True):
     if isinstance(values, ReshapeableArray):
-        #if check:
+        # FIXME: re-enablen check
+        # if check:
         #    assert values.ndim == 1
         return values._1dvalues
     return values

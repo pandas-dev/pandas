@@ -1579,10 +1579,12 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     # dispatch to internal type takes
     if is_extension_array_dtype(arr):
         try:
-            return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill, axis=axis)
+            return arr.take(indexer, fill_value=fill_value,
+                            allow_fill=allow_fill, axis=axis)
         except TypeError:
             # `axis` kwarg not yet available
-            return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+            return arr.take(indexer, fill_value=fill_value,
+                            allow_fill=allow_fill)
     elif is_datetime64tz_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_interval_dtype(arr):

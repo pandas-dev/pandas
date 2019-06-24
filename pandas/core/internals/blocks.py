@@ -33,7 +33,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
-    Categorical, DatetimeArray, ExtensionArray, PandasArray,
+    Categorical, DatetimeArray, ExtensionArray,
     PandasDtype, ReshapeableArray,
     TimedeltaArray, unwrap_reshapeable)
 from pandas.core.base import PandasObject
@@ -1422,11 +1422,6 @@ class Block(PandasObject):
             # but `Block.get_values()` returns an ndarray of objects
             # right now. We need an API for "values to do numeric-like ops on"
             values = self.values.asi8
-
-            # TODO: NonConsolidatableMixin shape
-            # Usual shape inconsistencies for ExtensionBlocks
-            #if self.ndim > 1:
-            #    values = values[None, :]
         else:
             values = self.get_values()
             values, _ = self._try_coerce_args(values, values)
@@ -1448,10 +1443,10 @@ class Block(PandasObject):
                                                         len(qs))
         else:
             # asarray needed for Sparse, see GH#24600
-            # TODO: Why self.values and not values?
+            # Note: this is self.values and not `values` for datetimetz
+            #  case where we have now cast to i8 so isna(values) will
+            #  be all-False.
             mask = np.asarray(isna(self.values))
-            #mask2 = np.asarray(isna(values))
-            #assert (mask2 == mask).all(), (mask, mask2)  # just checking that these are equivalent; if so we may be able to refactor # nope! DatetimeTZBlock case
             result = nanpercentile(values, np.array(qs) * 100,
                                    axis=axis, na_value=self.fill_value,
                                    mask=mask, ndim=self.ndim,
@@ -1537,25 +1532,6 @@ class NonConsolidatableMixIn:
             else:
                 ndim = 2
         super().__init__(values, placement, ndim=ndim)
-
-    #@property
-    #def shape(self):
-    #    if self.ndim == 1:
-    #        return (len(self.values)),
-    #    return (len(self.mgr_locs), len(self.values))
-    """
-    def iget(self, col):
-
-        if self.ndim == 2 and isinstance(col, tuple):
-            col, loc = col
-            if not com.is_null_slice(col) and col != 0:
-                raise IndexError("{0} only contains one item".format(self))
-            return self.values[loc]
-        else:
-            if col != 0:
-                raise IndexError("{0} only contains one item".format(self))
-            return self.values
-    """
 
     def should_store(self, value):
         return isinstance(value, self._holder)
@@ -1655,7 +1631,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             shape = values.shape
             if ndim == 2:
                 shape = (1, values.size)
-            #assert not isinstance(values, PandasArray), values
             assert not isinstance(values, ABCPandasArray)
             values = ReshapeableArray(values, shape=shape)
 
@@ -1727,8 +1702,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         """
         if isinstance(indexer, tuple):
             # we are always 1-D
-            #indexer = indexer[0]
-            indexer = indexer[::-1]  # TODO: can we just get rid of this method and use base class?
+            indexer = indexer[::-1]
+            # TODO: can we just get rid of this method and use base class?
 
         check_setitem_lengths(indexer, value, self.values)
         self.values[indexer] = value
@@ -1744,49 +1719,10 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def to_dense(self):
         return np.asarray(self.values)
 
-    '''
-    def take_nd(self, indexer, axis=0, new_mgr_locs=None, fill_tuple=None):
-        """
-        Take values according to indexer and return them as a block.
-        """
-        if fill_tuple is None:
-            fill_value = None
-        else:
-            fill_value = fill_tuple[0]
-
-        # axis doesn't matter; we are really a single-dim object
-        # but are passed the axis depending on the calling routing
-        # if its REALLY axis 0, then this will be a reindex and not a take
-        new_values = self.values.take(indexer, fill_value=fill_value,
-                                      allow_fill=True)
-
-        if self.ndim == 1 and new_mgr_locs is None:
-            new_mgr_locs = [0]
-        else:
-            if new_mgr_locs is None:
-                new_mgr_locs = self.mgr_locs
-
-        return self.make_block_same_class(new_values, new_mgr_locs)
-    '''
     def _can_hold_element(self, element):
         # XXX: We may need to think about pushing this onto the array.
         # We're doing the same as CategoricalBlock here.
         return True
-
-    '''
-    def _slice(self, slicer):
-        """ return a slice of my values """
-
-        # slice the category
-        # return same dims as we currently have
-        if isinstance(slicer, tuple) and len(slicer) == 2:
-            if not com.is_null_slice(slicer[0]):
-                raise AssertionError("invalid slicing for a 1-ndim "
-                                     "categorical")
-            slicer = slicer[1]
-
-        return self.values[slicer]
-    '''
 
     def formatting_values(self):
         # Deprecating the ability to override _formatting_values.
@@ -1818,9 +1754,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         values = self.values if inplace else self.values.copy()
         new_values = values.fillna(value=value, limit=limit)
-        if inplace and not is_sparse(values):  # kludge; shouldnt this be handled on the EA?
+        if inplace and not is_sparse(values):
+            # FIXME: kludge; shouldnt this be handled on the EA?
             # SparseArray.__setitem__ is diabled
-            # TODO: get rid of Block.is_sparse; it is always False so not helpful
+            # TODO: get rid of Block.is_sparse; it is always False
+            #  so not helpful
             values[:] = new_values
         return [self.make_block_same_class(values=new_values,
                                            placement=self.mgr_locs,
@@ -1857,14 +1795,12 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             # ExtensionArrays are 1-D, so if we get here then
             # `other` should be a DataFrame with a single column.
             assert other.shape[1] == 1
-            #other = other.iloc[:, 0]
             other = other.values.T
 
         other = extract_array(other, extract_numpy=True)
 
         if isinstance(cond, ABCDataFrame):
             assert cond.shape[1] == 1
-            #cond = cond.iloc[:, 0]
             cond = cond.values.T
 
         cond = extract_array(cond, extract_numpy=True)
@@ -1884,8 +1820,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             dtype = self.dtype
 
         try:
-            result = self.values.copy(deep=True)   # TODO: can this go outside try/except  TODO: deep?
-            assert result.size == self.values.size, (result.size, self.values.size)
+            # TODO: can this go outside try/except
+            result = self.values.copy(deep=True)
             icond = ~cond
             if lib.is_scalar(other):
                 result[icond] = other
@@ -1895,9 +1831,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             # NotImplementedError for class not implementing `__setitem__`
             # TypeError for SparseArray, which implements just to raise
             # a TypeError
-            assert cond.size == self.values.size, (cond.size, self.values.size)
             outvalues = np.where(cond, self.values, other)
-            assert outvalues.size == cond.size, (outvalues.size, cond.size, self.shape)
             result = self._holder._from_sequence(
                 outvalues.ravel(),  # FIXME: worry about order
                 dtype=dtype,
@@ -1926,12 +1860,13 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         new_placement, new_values, mask = self._get_unstack_items(
             unstacker, new_columns
         )
-        new_values = unwrap_reshapeable(new_values)  # TODO: wish this was unnecessary
+        # TODO: wish unwrap_reshapeable was unnecessary
+        new_values = unwrap_reshapeable(new_values)
 
         blocks = [
             self.make_block_same_class(
-                unwrap_reshapeable(self.values).take(indices, allow_fill=True,  # TODO: whish this was unnecessary
-                                 fill_value=fill_value),
+                unwrap_reshapeable(self.values).take(indices, allow_fill=True,
+                                                     fill_value=fill_value),
                 [place], ndim=self.ndim)  # TODO: is ndim right here?
             for indices, place in zip(new_values.T, new_placement)
         ]
@@ -2443,7 +2378,10 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # Instead of placing the condition here, it could also go into the
         # is_uniform_join_units check, but I'm not sure what is better.
         if len({x.dtype for x in to_concat}) > 1:
-            values = _concat._concat_datetime([x.values.ravel() for x in to_concat])
+            # TODO: be careful about ravel() here in case we ever do allow
+            #  real 2D EAs
+            values = _concat._concat_datetime([x.values.ravel()
+                                               for x in to_concat])
             placement = placement or slice(0, len(values), 1)
 
             if self.ndim > 1:
@@ -2984,7 +2922,8 @@ class CategoricalBlock(ExtensionBlock):
         values[mask] = na_rep
 
         # we are expected to return a 2-d ndarray
-        return values.reshape(1, values.size)  # TODO: reshape should now be unnecessary
+        # TODO: reshape should now be unnecessary
+        return values.reshape(1, values.size)
 
     def concat_same_type(self, to_concat, placement=None):
         """

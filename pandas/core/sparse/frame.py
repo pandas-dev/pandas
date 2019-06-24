@@ -912,7 +912,7 @@ def to_manager(sdf, columns, index):
         elif isinstance(obj, Series):
             obj = obj._values
         if obj.ndim == 1 and not hasattr(obj, "reshape"):
-            # TODO: should be 
+            # TODO: should be
             #  isinstance(obj, ABCExtensionArray) and not obj._allows_2d
             obj = ReshapeableArray(obj, shape=(1, obj.size,))
         return obj

@@ -278,11 +278,7 @@ def _homogenize(data, index, dtype=None):
         if isinstance(val, ABCPandasArray):
             # NB: tests break ABCPandasArray checks
             val = val.to_numpy()
-            assert not isinstance(val, ABCPandasArray), val
-            #assert not isinstance(val, PandasArray), val
         if isinstance(val, ExtensionArray) and not val._allows_2d:
-            assert not isinstance(val, ABCPandasArray)
-            #assert not isinstance(val, PandasArray), (val, val._typ)
             shape = (1, val.size,)
             val = ReshapeableArray(val, shape=shape)
         if isinstance(val, ReshapeableArray) and val.ndim == 1:
@@ -620,7 +616,9 @@ def sanitize_array(data, index, dtype=None, copy=False,
             subarr = data.astype(dtype)
 
         if copy:
-            subarr = data.copy(deep=True)  # TODO: this can be done in isolation along with correctly implementing deep for categortical
+            subarr = data.copy(deep=True)
+            # TODO: this can be done in isolation along with correctly
+            #  implementing deep for categorical
         return subarr
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:
