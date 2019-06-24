@@ -610,7 +610,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
             subarr = data
 
         # everything else in this block must also handle ndarray's,
-        # becuase we've unwrapped PandasArray into an ndarray.
+        # because we've unwrapped PandasArray into an ndarray.
 
         if dtype is not None:
             subarr = data.astype(dtype)
