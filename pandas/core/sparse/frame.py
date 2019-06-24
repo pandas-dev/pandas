@@ -16,6 +16,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseArray, SparseFrameAccessor
+from pandas.core.arrays import ReshapeableArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 import pandas.core.generic as generic
@@ -903,8 +904,21 @@ def to_manager(sdf, columns, index):
     # from BlockManager perspective
     axes = [ensure_index(columns), ensure_index(index)]
 
-    return create_block_manager_from_arrays(
-        [sdf[c] for c in columns], columns, axes)
+    arrays = [sdf[c] for c in columns]
+
+    def to_2d(obj):
+        if isinstance(obj, SparseSeries):
+            obj = obj._values
+        elif isinstance(obj, Series):
+            obj = obj._values
+        if obj.ndim == 1 and not hasattr(obj, "reshape"):
+            # TODO: should be 
+            #  isinstance(obj, ABCExtensionArray) and not obj._allows_2d
+            obj = ReshapeableArray(obj, shape=(1, obj.size,))
+        return obj
+
+    arrays = [to_2d(x) for x in arrays]
+    return create_block_manager_from_arrays(arrays, columns, axes)
 
 
 def stack_sparse_frame(frame):

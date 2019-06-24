@@ -120,6 +120,9 @@ def _concat_compat(to_concat, axis=0):
         except Exception:
             return True
 
+    from pandas.core.arrays import unwrap_reshapeable
+    to_concat = [unwrap_reshapeable(x) for x in to_concat]
+
     # If all arrays are empty, there's nothing to convert, just short-cut to
     # the concatenation, #3121.
     #
@@ -162,6 +165,8 @@ def _concat_compat(to_concat, axis=0):
                 # coerce to object
                 to_concat = [x.astype('object') for x in to_concat]
 
+    from pandas.core.arrays import unwrap_reshapeable
+    to_concat = [unwrap_reshapeable(x) for x in to_concat]
     return np.concatenate(to_concat, axis=axis)
 
 
@@ -186,6 +191,10 @@ def _concat_categorical(to_concat, axis=0):
     # if we only have a single categoricals then combine everything
     # else its a non-compat categorical
     categoricals = [x for x in to_concat if is_categorical_dtype(x.dtype)]
+    from pandas.core.arrays import unwrap_reshapeable
+
+    # TODO: check that they are all 1D or all collike or something?
+    categoricals = [unwrap_reshapeable(x) for x in categoricals]
 
     # validate the categories
     if len(categoricals) != len(to_concat):

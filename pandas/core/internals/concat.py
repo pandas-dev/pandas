@@ -151,6 +151,10 @@ class JoinUnit:
             return False
         elif self.block.is_extension:
             values_flat = values
+            if hasattr(values_flat, "ravel"):
+                # FIXME: should be unconditional
+                values_flat = values_flat.ravel()
+                # TODO: order='K' matter?
         else:
             values_flat = values.ravel(order='K')
         total_len = values_flat.shape[0]
@@ -184,6 +188,7 @@ class JoinUnit:
                         array = empty_dtype.construct_array_type()
                         return array(np.full(self.shape[1], fill_value.value),
                                      dtype=empty_dtype)
+
                     pass
                 elif getattr(self.block, 'is_categorical', False):
                     pass

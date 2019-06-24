@@ -27,7 +27,7 @@ class BaseConstructorsTests(BaseExtensionTests):
         assert result.dtype == data.dtype
         assert len(result) == len(data)
         assert isinstance(result._data.blocks[0], ExtensionBlock)
-        assert result._data.blocks[0].values is data
+        assert result._data.blocks[0].values._1dvalues is data
 
         # Series[EA] is unboxed / boxed correctly
         result2 = pd.Series(result)

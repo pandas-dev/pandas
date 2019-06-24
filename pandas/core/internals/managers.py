@@ -23,6 +23,7 @@ from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ReshapeableArray, PandasArray
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.indexing import maybe_convert_indices
@@ -251,14 +252,15 @@ class BlockManager(PandasObject):
         return axes_array, block_values, block_items, extra_state
 
     def __setstate__(self, state):
-        def unpickle_block(values, mgr_locs):
-            return make_block(values, placement=mgr_locs)
+        def unpickle_block(values, mgr_locs, ndim):
+            return make_block(values, placement=mgr_locs, ndim=ndim)
 
         if (isinstance(state, tuple) and len(state) >= 4 and
                 '0.14.1' in state[3]):
             state = state[3]['0.14.1']
             self.axes = [ensure_index(ax) for ax in state['axes']]
-            self.blocks = tuple(unpickle_block(b['values'], b['mgr_locs'])
+            self.blocks = tuple(unpickle_block(b['values'], b['mgr_locs'],
+                                               ndim=len(self.axes))
                                 for b in state['blocks'])
         else:
             # discard anything after 3rd, support beta pickling format for a
@@ -281,7 +283,7 @@ class BlockManager(PandasObject):
                                 for blk_items in bitems]
 
             self.blocks = tuple(
-                unpickle_block(values, mgr_locs)
+                unpickle_block(values, mgr_locs, ndim=len(self.axes))
                 for values, mgr_locs in zip(bvalues, all_mgr_locs))
 
         self._post_setstate()
@@ -310,8 +312,19 @@ class BlockManager(PandasObject):
         mgr_shape = self.shape
         tot_items = sum(len(x.mgr_locs) for x in self.blocks)
         for block in self.blocks:
-            if block._verify_integrity and block.shape[1:] != mgr_shape[1:]:
-                construction_error(tot_items, block.shape[1:], self.axes)
+            if (True or block._verify_integrity) and block.shape[1:] != mgr_shape[1:]:
+                import inspect
+                stack = inspect.stack()
+                if ('pyarrow' in str(stack) or 'msgpack' in str(stack)):# and block.values.ndim == 1:
+                    # kludge to the max! for reading legacy files
+                    #assert block.values.ndim == 1, (type(block.values), block.values.shape)
+                    shape = (1, block.values.size,)
+                    if isinstance(block.values, ReshapeableArray):
+                        block.values = block.values.reshape(shape)
+                    else:
+                        block.values = ReshapeableArray(block.values, shape=shape)
+                else:
+                    construction_error(tot_items, block.shape[1:], self.axes)
         if len(self.items) != tot_items:
             raise AssertionError('Number of manager items must equal union of '
                                  'block items\n# manager items: {0}, # '
@@ -448,9 +461,7 @@ class BlockManager(PandasObject):
         axes, blocks = [], []
         for b in self.blocks:
             block = b.quantile(axis=axis, qs=qs, interpolation=interpolation)
-
             axe = get_axe(b, qs, axes=self.axes)
-
             axes.append(axe)
             blocks.append(block)
 
@@ -459,6 +470,15 @@ class BlockManager(PandasObject):
         assert 0 not in ndim, ndim
 
         if 2 in ndim:
+            #for b in blocks:
+            #    if not b.is_extension and b.ndim == 1:
+            #        # kludge to get matching
+            #        b.values = b.values.reshape(1, -1)
+            #        b.ndim = 2
+            #        #b = b.make_block_same_class(b.values.reshape(1, -1))
+            #    elif b.ndim == 1:
+            #        raise ValueError(b.dtype, b.shape)
+            #assert all(x.ndim == 2 for x in blocks)
 
             new_axes = list(self.axes)
 
@@ -968,6 +988,11 @@ class BlockManager(PandasObject):
         values = block.iget(self._blklocs[i])
         if not fastpath or not block._box_to_block_values or values.ndim != 1:
             return values
+        elif block.is_extension and isinstance(values, ReshapeableArray) and isinstance(values._1dvalues, PandasArray):# and PandasArray._typ == "extension":
+            # kludge!
+            values = values._1dvalues.to_numpy()
+            nb = make_block(values, placement=slice(0, len(values)), ndim=1)
+            return SingleBlockManager([nb], self.axes[1])
 
         # fastpath shortcut for select a single-dim from a 2-dim BM
         return SingleBlockManager(
@@ -1024,11 +1049,18 @@ class BlockManager(PandasObject):
 
         # TODO(EA): Remove an is_extension_ when all extension types satisfy
         # the interface
+        if isinstance(value, PandasArray):
+            value = value.to_numpy()
+
         value_is_extension_type = (is_extension_type(value) or
                                    is_extension_array_dtype(value))
 
-        # categorical/spares/datetimetz
+        # categorical/sparse/datetimetz
         if value_is_extension_type:
+            if isinstance(value, Index):
+                value = value._data
+            if not value._allows_2d and self.ndim == 2:
+                value = ReshapeableArray(value, shape=(1, value.size,))
 
             def value_getitem(placement):
                 return value
@@ -1399,7 +1431,6 @@ class BlockManager(PandasObject):
                 n_rows,
                 fill_value
             )
-
             new_blocks.extend(blocks)
             columns_mask.extend(mask)
 
@@ -1657,6 +1688,8 @@ def construction_error(tot_items, block_shape, axes, e=None):
 
     if passed == implied and e is not None:
         raise e
+    if "Shape of passed values" in str(e):
+        raise e
     if block_shape[0] == 0:
         raise ValueError("Empty data passed with indices specified.")
     raise ValueError("Shape of passed values is {0}, indices imply {1}".format(
@@ -1804,6 +1837,11 @@ def _stack_arrays(tuples, dtype):
     def _shape_compat(x):
         if isinstance(x, ABCSeries):
             return len(x),
+        if isinstance(x, ABCExtensionArray):
+            # kludge
+            if x.ndim == 2:
+                return x.shape[1:]
+            return x.shape
         else:
             return x.shape
 
@@ -2008,7 +2046,6 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
     blocks = []
 
     for placement, join_units in concat_plan:
-
         if len(join_units) == 1 and not join_units[0].indexers:
             b = join_units[0].block
             values = b.values
@@ -2021,8 +2058,11 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
             b = join_units[0].block.concat_same_type(
                 [ju.block for ju in join_units], placement=placement)
         else:
+            vals = concatenate_join_units(join_units, concat_axis, copy=copy)
+            if isinstance(vals, ABCExtensionArray) and not vals._allows_2d and len(axes) == 2:
+                vals = ReshapeableArray(vals, shape=(1, vals.size))
             b = make_block(
-                concatenate_join_units(join_units, concat_axis, copy=copy),
+                vals,
                 placement=placement)
         blocks.append(b)
 

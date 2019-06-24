@@ -17,6 +17,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_sparse,
     ensure_float64, ensure_int64, ensure_int_or_float, ensure_object,
     ensure_platform_int, is_bool_dtype, is_categorical_dtype, is_complex_dtype,
     is_datetime64_any_dtype, is_integer_dtype, is_numeric_dtype,
@@ -470,8 +471,12 @@ class BaseGrouper:
         vdim = values.ndim
         swapped = False
         if vdim == 1:
-            values = values[:, None]
+            values = values[:, None]  # on 1D EA this raises IndexError: too many indices for array
             out_shape = (self.ngroups, arity)
+        elif is_sparse(values):
+            # kludge to mimic behavior on master and fix tests
+            # pandas/tests/sparse/test_groupby.py, pandas/tests/sparse/test_pivot.py
+            raise IndexError("too many indices for array.")
         else:
             if axis > 0:
                 swapped = True
@@ -485,7 +490,7 @@ class BaseGrouper:
         is_numeric = is_numeric_dtype(values.dtype)
 
         if is_datetimelike:
-            values = values.view('int64')
+            values = values.view('int64').reshape(values.shape)  # FIXME: ReshapeableArray.view loses its shape
             is_numeric = True
         elif is_bool_dtype(values.dtype):
             values = ensure_float64(values)

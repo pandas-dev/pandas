@@ -33,6 +33,7 @@ from pandas.util._validators import (validate_bool_kwarg,
 
 from pandas.compat import PY36, raise_with_traceback
 from pandas.compat.numpy import function as nv
+from pandas.core.arrays import ReshapeableArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.dtypes.cast import (
     maybe_upcast,
@@ -3613,6 +3614,10 @@ class DataFrame(NDFrame):
             # as sanitize_index won't copy an EA, even with copy=True
             value = value.copy()
             value = sanitize_index(value, self.index, copy=False)
+            #if not value._allows_2d:
+            #    # TODO: should this be below after the broadcast stuff?
+            #    shape = (1, value.size,)
+            #    value = ReshapeableArray(value, shape=shape)
 
         elif isinstance(value, Index) or is_sequence(value):
 

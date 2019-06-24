@@ -60,7 +60,8 @@ from pandas import (  # noqa:F401
     Index, Int64Index, Interval, IntervalIndex, MultiIndex, NaT, Panel, Period,
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, Timestamp)
 from pandas.core import internals
-from pandas.core.arrays import DatetimeArray, IntervalArray, PeriodArray
+from pandas.core.arrays import (
+    DatetimeArray, IntervalArray, PeriodArray, ReshapeableArray)
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
 from pandas.core.internals import BlockManager, _safe_reshape, make_block
@@ -622,7 +623,17 @@ def decode(obj):
             if is_datetime64tz_dtype(b['dtype']):
                 assert isinstance(values, np.ndarray), type(values)
                 assert values.dtype == 'M8[ns]', values.dtype
+                if values.ndim > 1:
+                    assert values.shape[0] == 1
+                    # kludge
+                    values = values.ravel()
                 values = DatetimeArray(values, dtype=b['dtype'])
+
+            #if len(axes) == 2 and values.ndim == 1:# and not isinstance(values, np.ndarray):
+            #    shape = (1, values.size,)
+            #    #if values.size == 9:
+            #    #    raise ValueError(values)
+            #    values = ReshapeableArray(values, shape=shape)
 
             return make_block(values=values,
                               klass=getattr(internals, b['klass']),
@@ -630,6 +641,14 @@ def decode(obj):
                               dtype=b['dtype'])
 
         blocks = [create_block(b) for b in obj['blocks']]
+        if len(axes) == 2:
+            assert all(b.ndim == 2 for b in blocks)
+        try:
+            out = globals()[obj['klass']](BlockManager(blocks, axes))
+        except ValueError:
+            for x in blocks:
+                print(x.values.shape)
+            raise
         return globals()[obj['klass']](BlockManager(blocks, axes))
     elif typ == 'datetime':
         return parse(obj['data'])
@@ -689,6 +708,9 @@ def pack(o, default=encode,
     """
     Pack an object and return the packed bytes.
     """
+    if type(o).__name__ == "ReshapeableArray":
+        # kludge
+        o = o._1dvalues
 
     return Packer(default=default, encoding=encoding,
                   unicode_errors=unicode_errors,

@@ -39,7 +39,7 @@ from pandas.tseries.offsets import DateOffset, Tick
 from .base import ExtensionArray, ExtensionOpsMixin
 
 
-class AttributesMixin:
+class AttributesMixin:  # TODO: how much of this do we still need?
     _data = None  # type: np.ndarray
 
     @property
@@ -400,11 +400,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
         return self._data
-
-    @property
-    def size(self) -> int:
-        """The number of elements in this array."""
-        return np.prod(self.shape)
 
     def __len__(self):
         return len(self._data)

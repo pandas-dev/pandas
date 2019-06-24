@@ -1416,7 +1416,7 @@ class _LocationIndexer(_NDFrameIndexer):
             key = tuple(com.apply_if_callable(x, self.obj)
                         for x in key)
             try:
-                if self._is_scalar_access(key):
+                if self._is_scalar_access(key):  # TODO: can the check go outside the try/except?
                     return self._getitem_scalar(key)
             except (KeyError, IndexError, AttributeError):
                 pass

@@ -8369,6 +8369,41 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if numeric_only:
             data = self._get_numeric_data()
+        elif self.ndim > 1 and (self.dtypes == 'M8[ns]').all():
+            # kludge because algos.rank ends up passing data to DatetimeIndex
+            #  constructor which is 1D only
+            if axis == 0:
+                # TODO: Do we have a test for this case.
+                #  definitely do for axis=1.
+                ranks = [
+                    self.iloc[:, n].rank(method=method, ascending=ascending,
+                                         numeric_only=False,
+                                         na_option=na_option, pct=pct)
+                    for n in range(self.shape[1])
+                ]
+                result = np.array(ranks).T
+                return self._constructor(result, **self._construct_axes_dict())
+            else:
+                ranks = [
+                    self.iloc[n, :].rank(method=method, ascending=ascending,
+                                         numeric_only=False,
+                                         na_option=na_option, pct=pct)
+                    for n in range(self.shape[0])
+                ]
+                return self._constructor(ranks, **self._construct_axes_dict())
+
+            if axis == 1:
+                ser = self.stack(dropna=False)  # FIXME: we actually need to keep stacking until we are 1D
+            else:
+                ser = self.unstack()
+            result = ser.rank(axis=0, method=method, ascending=ascending,
+                              numeric_only=False,
+                              na_option=na_option, pct=pct)
+            if axis == 1:
+                out = result.unstack(0)
+            else:
+                out = result.unstack(1)
+            return out
         else:
             data = self
 

@@ -6,6 +6,7 @@ from pandas.core.internals import BlockManager, SingleBlockManager
 from pandas.core.internals.blocks import Block, NonConsolidatableMixIn
 
 
+# TODO: since when do we support these?
 class CustomBlock(NonConsolidatableMixIn, Block):
 
     _holder = np.ndarray
@@ -18,16 +19,19 @@ class CustomBlock(NonConsolidatableMixIn, Block):
         Always concatenate disregarding self.ndim as the values are
         always 1D in this custom Block
         """
-        values = np.concatenate([blk.values for blk in to_concat])
+        values = np.concatenate([blk.values.ravel() for blk in to_concat])
+        if self.ndim > 1:
+            values = values.reshape(1, -1)
         return self.make_block_same_class(
-            values, placement=placement or slice(0, len(values), 1))
+            values, placement=placement or slice(0, len(values), 1),
+            ndim=self.ndim)
 
 
 @pytest.fixture
 def df():
     df1 = pd.DataFrame({'a': [1, 2, 3]})
     blocks = df1._data.blocks
-    values = np.arange(3, dtype='int64')
+    values = np.arange(3, dtype='int64').reshape(1, -1)
     custom_block = CustomBlock(values, placement=slice(1, 2))
     blocks = blocks + (custom_block,)
     block_manager = BlockManager(blocks, [pd.Index(['a', 'b']), df1.index])
@@ -44,7 +48,7 @@ def test_custom_repr():
     assert repr(s) == '0    Val: 0\n1    Val: 1\n2    Val: 2\ndtype: int64'
 
     # dataframe
-    block = CustomBlock(values, placement=slice(0, 1))
+    block = CustomBlock(values.reshape(1, -1), placement=slice(0, 1))
     blk_mgr = BlockManager([block], [['col'], range(3)])
     df = pd.DataFrame(blk_mgr)
     assert repr(df) == '      col\n0  Val: 0\n1  Val: 1\n2  Val: 2'

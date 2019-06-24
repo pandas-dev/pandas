@@ -135,7 +135,7 @@ class NDFrameGroupBy(GroupBy):
         new_items = []
         deleted_items = []
         for block in data.blocks:
-
+            #
             locs = block.mgr_locs.as_array
             try:
                 result, _ = self.grouper.aggregate(
@@ -144,26 +144,29 @@ class NDFrameGroupBy(GroupBy):
                 # generally if we have numeric_only=False
                 # and non-applicable functions
                 # try to python agg
-
                 if alt is None:
                     # we cannot perform the operation
                     # in an alternate way, exclude the block
                     deleted_items.append(locs)
                     continue
-
+                #
                 # call our grouper again with only this block
                 from pandas.core.groupby.groupby import groupby
-
+                #
                 obj = self.obj[data.items[locs]]
                 s = groupby(obj, self.grouper)
                 result = s.aggregate(lambda x: alt(x, axis=self.axis))
-
+                #
             finally:
-
+                #
                 # see if we can cast the block back to the original dtype
-                result = block._try_coerce_and_cast_result(result)
-                newb = block.make_block(result)
-
+                # FIXME: result is unbound local in failure case
+                if locs not in deleted_items:
+                    # i.e. didnt get NotImplementedError for object dtype
+                    result = block._try_coerce_and_cast_result(result)
+                    newb = block.make_block(result)
+                    del result  #  avoid referring to this result in the exception case in the next step of the loop  # This screws up at least one test on master
+            #
             new_items.append(locs)
             new_blocks.append(newb)
 
@@ -480,7 +483,8 @@ class NDFrameGroupBy(GroupBy):
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
-                if (so.ndim == 2 and so.dtypes.apply(is_datetimelike).any()):
+                if so.ndim == 2 and so.dtypes.apply(is_datetimelike).any():
+                    #result = _recast_datetimelike_result(result)
                     result = result.apply(
                         lambda x: to_numeric(x, errors='ignore'))
                     date_cols = self._selected_obj.select_dtypes(
@@ -1710,3 +1714,32 @@ def _normalize_keyword_aggregation(kwargs):
         order.append((column,
                       com.get_callable_name(aggfunc) or aggfunc))
     return aggspec, columns, order
+
+
+def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
+    """
+    If we have date/time like in the original, then coerce dates
+    as we are stacking can easily have object dtypes here.
+    Parameters
+    ----------
+    result : DataFrame
+    Returns
+    -------
+    DataFrame
+    Notes
+    -----
+    - Assumes Groupby._selected_obj has ndim==2 and at least one 
+
+    datetimelike column
+    """
+    result = result.copy()
+
+    ocols = [idx for idx in range(len(result.columns))
+             if is_object_dtype(result.dtypes[idx])]
+
+    for cidx in ocols: 
+        cvals = result.iloc[:, cidx].values
+        result.iloc[:, cidx] = maybe_convert_objects(cvals,
+                                                     convert_numeric=False)
+
+    return result

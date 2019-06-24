@@ -26,7 +26,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
-from pandas.core.arrays import Categorical, ExtensionArray, period_array
+from pandas.core.arrays import (
+    Categorical, ExtensionArray, PandasArray, ReshapeableArray, period_array)
 from pandas.core.index import (
     Index, _get_objs_combined_axis, _union_indexes, ensure_index)
 from pandas.core.indexes import base as ibase
@@ -159,7 +160,10 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
     if dtype is None and is_object_dtype(values):
+        shape = values.shape
         values = maybe_infer_to_datetimelike(values)
+        if isinstance(values, ABCDatetimeIndex):
+            values = ReshapeableArray(values._data, shape=shape)
 
     return create_block_manager_from_blocks([values], [columns, index])
 
@@ -255,6 +259,7 @@ def _homogenize(data, index, dtype=None):
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index, copy=False)
+            val = val._values  # so we can reshape if needbe
         else:
             if isinstance(val, dict):
                 if oindex is None:
@@ -267,6 +272,21 @@ def _homogenize(data, index, dtype=None):
                 val = lib.fast_multiget(val, oindex.values, default=np.nan)
             val = sanitize_array(val, index, dtype=dtype, copy=False,
                                  raise_cast_failure=False)
+
+        if isinstance(val, ABCDatetimeIndex):
+            val = val._data
+        if isinstance(val, ABCPandasArray):
+            # NB: tests break ABCPandasArray checks
+            val = val.to_numpy()
+            assert not isinstance(val, ABCPandasArray), val
+            #assert not isinstance(val, PandasArray), val
+        if isinstance(val, ExtensionArray) and not val._allows_2d:
+            assert not isinstance(val, ABCPandasArray)
+            #assert not isinstance(val, PandasArray), (val, val._typ)
+            shape = (1, val.size,)
+            val = ReshapeableArray(val, shape=shape)
+        if isinstance(val, ReshapeableArray) and val.ndim == 1:
+            val = val.reshape(1, -1)
 
         homogenized.append(val)
 
@@ -550,6 +570,10 @@ def sanitize_array(data, index, dtype=None, copy=False,
             data = data.copy()
 
     data = extract_array(data, extract_numpy=True)
+    if isinstance(data, PandasArray):
+        # usually extract_data would handle this but in tests we apparently
+        #  break ABCPandasArray tests on purpose
+        data = data.to_numpy()
 
     # GH#846
     if isinstance(data, np.ndarray):
@@ -580,6 +604,8 @@ def sanitize_array(data, index, dtype=None, copy=False,
 
     elif isinstance(data, ExtensionArray):
         if isinstance(data, ABCPandasArray):
+            # NB: tests break ABCPandasArray checks; are we doing this
+            #  here on purpose?
             # We don't want to let people put our PandasArray wrapper
             # (the output of Series/Index.array), into a Series. So
             # we explicitly unwrap it here.
@@ -594,7 +620,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
             subarr = data.astype(dtype)
 
         if copy:
-            subarr = data.copy()
+            subarr = data.copy(deep=True)  # TODO: this can be done in isolation along with correctly implementing deep for categortical
         return subarr
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:

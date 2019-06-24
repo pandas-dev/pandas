@@ -111,10 +111,12 @@ class ExtensionArray:
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = 'extension'
+    _allows_2d = False
 
     # ------------------------------------------------------------------------
     # Constructors
     # ------------------------------------------------------------------------
+
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         """
@@ -286,6 +288,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Required attributes
     # ------------------------------------------------------------------------
+
     @property
     def dtype(self) -> ExtensionDtype:
         """
@@ -305,7 +308,14 @@ class ExtensionArray:
         """
         Extension Arrays are only allowed to be 1-dimensional.
         """
-        return 1
+        return len(self.shape)
+
+    @property
+    def size(self) -> int:
+        """
+        The number of elements in this array.
+        """
+        return np.prod(self.shape)
 
     @property
     def nbytes(self) -> int:
@@ -319,6 +329,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Additional Methods
     # ------------------------------------------------------------------------
+
     def astype(self, dtype, copy=True):
         """
         Cast to a NumPy array with 'dtype'.
@@ -479,8 +490,7 @@ class ExtensionArray:
     def shift(
             self,
             periods: int = 1,
-            fill_value: object = None,
-    ) -> ABCExtensionArray:
+            fill_value: object = None) -> ABCExtensionArray:
         """
         Shift values by desired number.
 
@@ -836,6 +846,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
+
     def __repr__(self):
         from pandas.io.formats.printing import format_object_summary
 

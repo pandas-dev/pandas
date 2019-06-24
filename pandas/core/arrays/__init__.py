@@ -11,3 +11,5 @@ from .integer import (  # noqa
     IntegerArray, integer_array)
 from .sparse import SparseArray  # noqa
 from .numpy_ import PandasArray, PandasDtype  # noqa
+from .reshaping import (  # noqa
+	ReshapeableArray, ReshapeMixin, unwrap_reshapeable)

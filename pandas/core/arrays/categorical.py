@@ -37,6 +37,8 @@ from pandas.core.sorting import nargsort
 from pandas.io.formats import console
 
 from .base import ExtensionArray, _extension_array_shared_docs
+from .reshaping import unwrap_reshapeable
+
 
 _take_msg = textwrap.dedent("""\
     Interpreting negative values in 'indexer' as missing values.
@@ -349,6 +351,7 @@ class Categorical(ExtensionArray, PandasObject):
                     values = [values[idx] for idx in np.where(~null_mask)[0]]
                 values = sanitize_array(values, None, dtype=sanitize_dtype)
 
+        values = unwrap_reshapeable(values)
         if dtype.categories is None:
             try:
                 codes, categories = factorize(values, sort=True)
@@ -457,11 +460,14 @@ class Categorical(ExtensionArray, PandasObject):
         # Defer to CategoricalFormatter's formatter.
         return None
 
-    def copy(self):
+    def copy(self, deep: bool = False):
         """
         Copy constructor.
         """
-        return self._constructor(values=self._codes.copy(),
+        values = self._codes
+        if deep:
+            values = values.copy()
+        return self._constructor(values=values,
                                  dtype=self.dtype,
                                  fastpath=True)
 

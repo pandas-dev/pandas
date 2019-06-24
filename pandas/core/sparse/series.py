@@ -18,7 +18,7 @@ from pandas.core.dtypes.generic import ABCSeries, ABCSparseSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import generic
-from pandas.core.arrays import SparseArray
+from pandas.core.arrays import SparseArray, unwrap_reshapeable
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.index import Index
 from pandas.core.internals import SingleBlockManager
@@ -86,7 +86,7 @@ class SparseSeries(Series):
             data = []
         elif isinstance(data, SingleBlockManager):
             index = data.index
-            data = data.blocks[0].values
+            data = unwrap_reshapeable(data.blocks[0].values)
         elif isinstance(data, (ABCSeries, ABCSparseSeries)):
             index = data.index if index is None else index
             dtype = data.dtype if dtype is None else dtype

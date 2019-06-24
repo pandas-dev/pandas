@@ -3395,7 +3395,7 @@ class TestDataFrameIndexingCategorical:
 
         result1 = df['D']
         result2 = df['E']
-        tm.assert_categorical_equal(result1._data._block.values, d)
+        tm.assert_categorical_equal(result1._data._block.values._1dvalues, d)
 
         # sorting
         s.name = 'E'

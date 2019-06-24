@@ -323,6 +323,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
             )
             raise ValueError(msg.format(values.dtype))
 
+        if values.ndim != 1:
+            raise ValueError("Only 1-dimensional inputs are valid.")
+
         dtype = _validate_dt64_dtype(dtype)
 
         if freq == "infer":
@@ -353,7 +356,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_NS_DTYPE):
-        assert isinstance(values, np.ndarray)
+        assert isinstance(values, np.ndarray), type(values)
         if values.dtype == 'i8':
             values = values.view(_NS_DTYPE)
 

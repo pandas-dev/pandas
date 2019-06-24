@@ -25,6 +25,7 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCMultiIndex, ABCSeries, ABCSparseArray)
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core.arrays import unwrap_reshapeable
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.index import Index, ensure_index
@@ -1273,6 +1274,13 @@ def format_percentiles(percentiles):
 
 def _is_dates_only(values):
     # return a boolean if we are only dates (and don't have a timezone)
+    values = unwrap_reshapeable(values)
+    if isinstance(values, np.ndarray):
+        # pandas/tests/frame/test_to_csv.py::test_to_csv_from_csv5
+        values = values.ravel()
+
+    assert np.ndim(values) == 1, type(values)
+
     values = DatetimeIndex(values)
     if values.tz is not None:
         return False
