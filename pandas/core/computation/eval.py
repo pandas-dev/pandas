@@ -5,7 +5,7 @@ Top level ``eval`` module.
 """
 
 import tokenize
-from typing import Any, Dict, Iterable, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 import warnings
 
 import numpy as np
@@ -19,7 +19,7 @@ from pandas.core.computation.scope import _ensure_scope
 from pandas.io.formats.printing import pprint_thing
 
 
-def _check_engine(engine: str) -> str:
+def _check_engine(engine: Optional[str]) -> str:
     """
     Make sure a valid engine is passed.
 
@@ -158,14 +158,15 @@ def _check_for_locals(expr: str, stack_level: int, parser: str) -> None:
         for toknum, tokval in tokenize_string(expr):
             if toknum == tokenize.OP and tokval == '@':
                 raise SyntaxError(msg)
+    return None
 
 
 def eval(expr: str,
          parser: str = 'pandas',
          engine: str = None,
          truediv: bool = True,
-         local_dict: Dict[str, Any] = None,
-         global_dict: Dict[str, Any] = None,
+         local_dict: List[Dict[str, Any]] = None,
+         global_dict: List[Dict[str, Any]] = None,
          resolvers: Iterable = (),
          level: int = 0,
          target: Union[float, np.ndarray, pd.DataFrame, pd.Series] = None,
