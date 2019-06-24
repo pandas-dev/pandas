@@ -56,7 +56,7 @@ from pandas.tseries.frequencies import to_offset
 # able to share
 _shared_docs = dict()
 _shared_doc_kwargs = dict(
-    axes='keywords for axes', klass='NDFrame',
+    axes='keywords for axes', klass='Series/DataFrame',
     axes_single_arg='int or labels for object',
     args_transpose='axes to permute (int or label for object)',
     optional_by="""
@@ -1838,7 +1838,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # can we get a better explanation of this?
     def keys(self):
-        """Get the 'info axis' (see Indexing for more)
+        """
+        Get the 'info axis' (see Indexing for more)
 
         This is index for Series, columns for DataFrame.
 
@@ -1850,7 +1851,8 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._info_axis
 
     def iteritems(self):
-        """Iterate over (label, values) on info axis
+        """
+        Iterate over (label, values) on info axis
 
         This is index for Series, columns for DataFrame and so on.
         """
@@ -1938,7 +1940,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_dense(self):
         """
-        Return dense representation of NDFrame (as opposed to sparse).
+        Return dense representation of Series/DataFrame (as opposed to sparse).
 
         .. deprecated:: 0.25.0
 
@@ -5620,6 +5622,31 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
+        Create a DataFrame:
+
+        >>> d = {'col1': [1, 2], 'col2': [3, 4]}
+        >>> df = pd.DataFrame(data=d)
+        >>> df.dtypes
+        col1    int64
+        col2    int64
+        dtype: object
+
+        Cast all columns to int32:
+
+        >>> df.astype('int32').dtypes
+        col1    int32
+        col2    int32
+        dtype: object
+
+        Cast col1 to int32 using a dictionary:
+
+        >>> df.astype({'col1': 'int32'}).dtypes
+        col1    int32
+        col2    int64
+        dtype: object
+
+        Create a series:
+
         >>> ser = pd.Series([1, 2], dtype='int32')
         >>> ser
         0    1
@@ -9009,7 +9036,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        shifted : NDFrame
+        shifted : Series/DataFrame
 
         Notes
         -----
@@ -10245,12 +10272,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return idx
 
     @Appender(_shared_docs['valid_index'] % {'position': 'first',
-                                             'klass': 'NDFrame'})
+                                             'klass': 'Series/DataFrame'})
     def first_valid_index(self):
         return self._find_valid_index('first')
 
     @Appender(_shared_docs['valid_index'] % {'position': 'last',
-                                             'klass': 'NDFrame'})
+                                             'klass': 'Series/DataFrame'})
     def last_valid_index(self):
         return self._find_valid_index('last')
 
