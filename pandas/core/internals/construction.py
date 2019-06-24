@@ -171,17 +171,16 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
             from pandas.core.internals.blocks import make_block
 
             # TODO: What about re-joining object columns?
-            bdvals = [make_block(dvals_list[n], placement=[n])
-                      for n in range(len(dvals_list))]
-            return create_block_manager_from_blocks(bdvals,
-                                                    [columns, index])
+            block_values = [make_block(dvals_list[n], placement=[n])
+                            for n in range(len(dvals_list))]
 
         else:
-            dvals = maybe_infer_to_datetimelike(values)
+            datelike_vals = maybe_infer_to_datetimelike(values)
+            block_values = [datelike_vals]
+    else:
+        block_values = [values]
 
-        values = dvals
-
-    return create_block_manager_from_blocks([values], [columns, index])
+    return create_block_manager_from_blocks(block_values, [columns, index])
 
 
 def init_dict(data, index, columns, dtype=None):
