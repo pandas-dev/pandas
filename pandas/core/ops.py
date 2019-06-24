@@ -2390,7 +2390,8 @@ def maybe_dispatch_ufunc_to_dunder_op(
     """
     # special has the ufuncs we dispatch to the dunder op on
     special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
-               'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder'}
+               'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder',
+               'matmul'}
     aliases = {
         'subtract': 'sub',
         'multiply': 'mul',
