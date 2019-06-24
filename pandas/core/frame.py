@@ -33,7 +33,6 @@ from pandas.util._validators import (validate_bool_kwarg,
 
 from pandas.compat import PY36, raise_with_traceback
 from pandas.compat.numpy import function as nv
-from pandas.core.arrays import ReshapeableArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.dtypes.cast import (
     maybe_upcast,
