@@ -470,15 +470,6 @@ class BlockManager(PandasObject):
         assert 0 not in ndim, ndim
 
         if 2 in ndim:
-            #for b in blocks:
-            #    if not b.is_extension and b.ndim == 1:
-            #        # kludge to get matching
-            #        b.values = b.values.reshape(1, -1)
-            #        b.ndim = 2
-            #        #b = b.make_block_same_class(b.values.reshape(1, -1))
-            #    elif b.ndim == 1:
-            #        raise ValueError(b.dtype, b.shape)
-            #assert all(x.ndim == 2 for x in blocks)
 
             new_axes = list(self.axes)
 
@@ -988,8 +979,9 @@ class BlockManager(PandasObject):
         values = block.iget(self._blklocs[i])
         if not fastpath or not block._box_to_block_values or values.ndim != 1:
             return values
-        elif block.is_extension and isinstance(values, ReshapeableArray) and isinstance(values._1dvalues, PandasArray):# and PandasArray._typ == "extension":
-            # kludge!
+        elif (block.is_extension and isinstance(values, ReshapeableArray)
+              and isinstance(values._1dvalues, PandasArray)):
+            # FIXME: kludge!
             values = values._1dvalues.to_numpy()
             nb = make_block(values, placement=slice(0, len(values)), ndim=1)
             return SingleBlockManager([nb], self.axes[1])

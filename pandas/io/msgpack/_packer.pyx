@@ -140,7 +140,7 @@ cdef class Packer:
             raise PackValueError("recursion limit exceeded.")
 
         if type(o).__name__ == "ReshapeableArray":
-            # kludge
+            # FIXME: kludge
             o = o._1dvalues
 
         while True:
@@ -236,9 +236,6 @@ cdef class Packer:
                 o = self._default(o)
                 default_used = 1
                 continue
-            #elif type(o).__name__ == "ReshapeableArray":
-            #    # kludge
-            #    o = o._1dvalues
             else:
                 raise TypeError("can't serialize {thing!r}".format(thing=o))
             return ret
@@ -246,7 +243,7 @@ cdef class Packer:
     cpdef pack(self, object obj):
         cdef int ret
         if type(obj).__name__ == "ReshapeableArray":
-            # kludge
+            # FIXME: kludge
             obj = obj._1dvalues
 
         ret = self._pack(obj, DEFAULT_RECURSE_LIMIT)

@@ -199,7 +199,7 @@ class _Unstacker:
         # if our mask is all True, then we can use our existing dtype
         if mask_all:
             dtype = values.dtype
-            new_values = np.empty(result_shape, dtype=dtype)            
+            new_values = np.empty(result_shape, dtype=dtype)
         else:
             dtype, fill_value = maybe_promote(values.dtype, self.fill_value)
             new_values = np.empty(result_shape, dtype=dtype)

@@ -625,15 +625,9 @@ def decode(obj):
                 assert values.dtype == 'M8[ns]', values.dtype
                 if values.ndim > 1:
                     assert values.shape[0] == 1
-                    # kludge
+                    # FIXME: kludge
                     values = values.ravel()
                 values = DatetimeArray(values, dtype=b['dtype'])
-
-            #if len(axes) == 2 and values.ndim == 1:# and not isinstance(values, np.ndarray):
-            #    shape = (1, values.size,)
-            #    #if values.size == 9:
-            #    #    raise ValueError(values)
-            #    values = ReshapeableArray(values, shape=shape)
 
             return make_block(values=values,
                               klass=getattr(internals, b['klass']),
@@ -643,12 +637,6 @@ def decode(obj):
         blocks = [create_block(b) for b in obj['blocks']]
         if len(axes) == 2:
             assert all(b.ndim == 2 for b in blocks)
-        try:
-            out = globals()[obj['klass']](BlockManager(blocks, axes))
-        except ValueError:
-            for x in blocks:
-                print(x.values.shape)
-            raise
         return globals()[obj['klass']](BlockManager(blocks, axes))
     elif typ == 'datetime':
         return parse(obj['data'])
@@ -709,7 +697,7 @@ def pack(o, default=encode,
     Pack an object and return the packed bytes.
     """
     if type(o).__name__ == "ReshapeableArray":
-        # kludge
+        # FIXME: kludge
         o = o._1dvalues
 
     return Packer(default=default, encoding=encoding,
