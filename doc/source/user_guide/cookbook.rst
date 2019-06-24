@@ -706,7 +706,7 @@ Apply
                         for ind, row in df.iterrows()})
    df_orgz
 
-`Rolling apply with a DataFrame returning a series
+`Rolling apply with a DataFrame returning a Series
 <http://stackoverflow.com/questions/19121854/using-rolling-apply-on-a-dataframe-object>`__
 
 Rolling Apply to multiple columns where function calculates a Series before a Scalar from the Series is returned
