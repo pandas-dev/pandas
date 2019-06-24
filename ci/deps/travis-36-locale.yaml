@@ -8,7 +8,7 @@ dependencies:
   - python-blosc
   - cython>=0.28.2
   - fastparquet=0.2.1
-  - gcsfs=0.1.0
+  - gcsfs=0.2.2
   - html5lib
   - ipython
   - jinja2
