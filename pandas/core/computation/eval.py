@@ -5,7 +5,7 @@ Top level ``eval`` module.
 """
 
 import tokenize
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 import warnings
 
 import numpy as np
@@ -167,7 +167,7 @@ def eval(expr: str,
          truediv: bool = True,
          local_dict: List[Dict[str, Any]] = None,
          global_dict: List[Dict[str, Any]] = None,
-         resolvers: Iterable = (),
+         resolvers: Tuple = (),
          level: int = 0,
          target: Union[float, np.ndarray, pd.DataFrame, pd.Series] = None,
          inplace: bool = False,
@@ -367,4 +367,4 @@ def eval(expr: str,
     if inplace is False:
         return target if target_modified else ret
     else:
-        return target
+        return None
