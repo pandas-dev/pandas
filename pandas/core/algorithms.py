@@ -104,6 +104,12 @@ def _ensure_data(values, dtype=None):
             dtype = values.dtype
         else:
             # Datetime
+            if values.ndim > 1:
+                # Avoid calling the DatetimeIndex constructor as it is 1D only
+                asi8 = values.view('i8')
+                dtype = values.dtype
+                return asi8, dtype, 'int64'
+
             from pandas import DatetimeIndex
             values = DatetimeIndex(values)
             dtype = values.dtype

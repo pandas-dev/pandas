@@ -1273,6 +1273,11 @@ def format_percentiles(percentiles):
 
 def _is_dates_only(values):
     # return a boolean if we are only dates (and don't have a timezone)
+    if isinstance(values, np.ndarray) and values.ndim > 1:
+        # We don't actaully care about the order of values, and DatetimeIndex
+        #  only accepts 1D values
+        values = values.ravel()
+
     values = DatetimeIndex(values)
     if values.tz is not None:
         return False
