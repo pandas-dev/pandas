@@ -3,6 +3,7 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from textwrap import dedent
+from typing import Dict
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
@@ -27,7 +28,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
 
-_shared_docs = {}
+_shared_docs = {}  # type: Dict[str, str]
 
 
 # --------------- #

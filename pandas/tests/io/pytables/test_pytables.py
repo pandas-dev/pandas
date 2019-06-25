@@ -1084,8 +1084,8 @@ class TestHDFStore(Base):
     @pytest.mark.parametrize('dtype', ['category', object])
     def test_latin_encoding(self, dtype, val):
         enc = 'latin-1'
-        key = 'data'
         nan_rep = ''
+        key = 'data'
 
         val = [x.decode(enc) if isinstance(x, bytes) else x for x in val]
         ser = pd.Series(val, dtype=dtype)
@@ -1096,12 +1096,18 @@ class TestHDFStore(Base):
             retr = read_hdf(store, key)
 
         s_nan = ser.replace(nan_rep, np.nan)
+
         if is_categorical_dtype(s_nan):
             assert is_categorical_dtype(retr)
             assert_series_equal(s_nan, retr, check_dtype=False,
                                 check_categorical=False)
         else:
             assert_series_equal(s_nan, retr)
+
+        # FIXME: don't leave commented-out
+        # fails:
+        # for x in examples:
+        #     roundtrip(s, nan_rep=b'\xf8\xfc')
 
     def test_append_some_nans(self):
 
