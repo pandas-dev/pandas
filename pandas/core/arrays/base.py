@@ -115,6 +115,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Constructors
     # ------------------------------------------------------------------------
+
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         """
@@ -286,6 +287,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Required attributes
     # ------------------------------------------------------------------------
+
     @property
     def dtype(self) -> ExtensionDtype:
         """
@@ -319,6 +321,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Additional Methods
     # ------------------------------------------------------------------------
+
     def astype(self, dtype, copy=True):
         """
         Cast to a NumPy array with 'dtype'.
@@ -479,8 +482,7 @@ class ExtensionArray:
     def shift(
             self,
             periods: int = 1,
-            fill_value: object = None,
-    ) -> ABCExtensionArray:
+            fill_value: object = None) -> ABCExtensionArray:
         """
         Shift values by desired number.
 
@@ -836,6 +838,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
+
     def __repr__(self):
         from pandas.io.formats.printing import format_object_summary
 
