@@ -397,10 +397,9 @@ class TestNestedToRecord:
             record_path='addresses',
             meta='name',
             errors='ignore')
-        ex_data =[
+        ex_data = [
             ['Massillon', 9562, 'OH', 'Morris St.', 44646, 'Alice'],
             ['Elizabethton', 8449, 'TN', 'Spring St.', 37643, np.nan]
-
         ]
         columns = ['city', 'number', 'state', 'street', 'zip', 'name']
         expected = DataFrame(ex_data, columns=columns)
