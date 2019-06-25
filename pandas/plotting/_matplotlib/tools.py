@@ -133,7 +133,7 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
       Number of rows and columns of the subplot grid.
       If not specified, calculated from naxes and layout_type
 
-    layout_type : {'box', 'horziontal', 'vertical'}, default 'box'
+    layout_type : {'box', 'horizontal', 'vertical'}, default 'box'
       Specify how to layout the subplot grid.
 
     fig_kw : Other keyword arguments to be passed to the figure() call.

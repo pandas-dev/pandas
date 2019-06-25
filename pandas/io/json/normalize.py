@@ -87,6 +87,7 @@ def nested_to_record(ds, prefix: str = "", sep: str = ".", level: int = 0,
 
             # flatten if type is dict and
             # current dict level  < maximum level provided and
+            # only dicts gets recurse-flattened
             # only at level>1 do we rename the rest of the keys
             if (not isinstance(v, dict) or
                     (max_level is not None and level >= max_level)):

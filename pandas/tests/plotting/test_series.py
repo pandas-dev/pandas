@@ -529,7 +529,7 @@ class TestSeriesPlots(TestPlotBase):
         assert ax.right_ax.get_yaxis().get_visible()
         tm.close()
 
-        # seconcary -> secondary (without passing ax)
+        # secondary -> secondary (without passing ax)
         _, ax = self.plt.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
         s.plot(legend=True, secondary_y=True, ax=ax)
