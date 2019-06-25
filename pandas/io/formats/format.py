@@ -257,7 +257,8 @@ class SeriesFormatter:
         footer = self._get_footer()
 
         if len(series) == 0:
-            return 'Series([], ' + footer + ')'
+            return "{name}([], {footer})".format(
+                name=self.series.__class__.__name__, footer=footer)
 
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
