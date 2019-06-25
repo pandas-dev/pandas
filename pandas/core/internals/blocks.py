@@ -2980,8 +2980,8 @@ class CategoricalBlock(ExtensionBlock):
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True):
+        result = self if inplace else self.copy()
         if filter is None or not self.mgr_locs.isin(filter).any():
-            result = self if inplace else self.copy()
             categories = result.values.categories.tolist()
             if to_replace in categories:
                 if isna(value):
@@ -2997,9 +2997,10 @@ class CategoricalBlock(ExtensionBlock):
                 return result
         else:
             if not isna(value):
-                self.values.add_categories(value, inplace=True)
-            return super().replace(to_replace, value, inplace,
-                                   filter, regex, convert)
+                result.values.add_categories(value, inplace=True)
+            return super(CategoricalBlock, result).replace(to_replace, value,
+                                                           inplace, filter,
+                                                           regex, convert)
 
 
 # -----------------------------------------------------------------

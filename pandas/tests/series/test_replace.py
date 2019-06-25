@@ -302,9 +302,11 @@ class TestSeriesReplace(TestData):
         expected.cat.add_categories('foo', inplace=True)
         expected[2] = 'foo'
         expected.cat.remove_unused_categories(inplace=True)
+        assert c[2] != 'foo'
 
         result = c.replace(c[2], 'foo')
         tm.assert_series_equal(expected, result)
+        assert c[2] != 'foo'
 
         c.replace(c[2], 'foo', inplace=True)
         tm.assert_series_equal(expected, c)
