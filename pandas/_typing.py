@@ -11,7 +11,6 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCExtensionArray, ABCIndexClass, ABCSeries, ABCSparseSeries)
 
-
 AnyArrayLike = TypeVar('AnyArrayLike',
                        ABCExtensionArray,
                        ABCIndexClass,
