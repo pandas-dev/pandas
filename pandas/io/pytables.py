@@ -24,14 +24,16 @@ from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype, is_list_like, is_timedelta64_dtype)
+    is_datetime64tz_dtype, is_extension_type, is_list_like,
+    is_timedelta64_dtype)
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
     DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, PeriodIndex,
     Series, SparseDataFrame, SparseSeries, TimedeltaIndex, concat, isna,
     to_datetime)
-from pandas.core.arrays.categorical import Categorical
+from pandas.core.arrays import (
+    Categorical, ReshapeableArray, unwrap_reshapeable)
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 import pandas.core.common as com
 from pandas.core.computation.pytables import Expr, maybe_expression
@@ -2098,7 +2100,7 @@ class DataCol(IndexCol):
         # currently only supports a 1-D categorical
         # in a 1-D block
 
-        values = block.values
+        values = unwrap_reshapeable(block.values)
         codes = values.codes
         self.kind = 'integer'
         self.dtype = codes.dtype.name
@@ -3009,6 +3011,14 @@ class BlockManagerFixed(GenericFixed):
             blk_items = self.read_index('block{idx}_items'.format(idx=i))
             values = self.read_array('block{idx}_values'.format(idx=i),
                                      start=_start, stop=_stop)
+            if (is_extension_type(values) and values.ndim == 1
+                    and len(axes) == 2):
+                if isinstance(values, ReshapeableArray):
+                    values = values.reshape(1, -1)
+                else:
+                    if isinstance(values, Index):
+                        values = values._data
+                    values = ReshapeableArray(values, shape=(1, values.size))
             blk = make_block(values,
                              placement=items.get_indexer(blk_items))
             blocks.append(blk)
@@ -4192,7 +4202,13 @@ class AppendableFrameTable(AppendableTable):
             # if we have a DataIndexableCol, its shape will only be 1 dim
             if values.ndim == 1 and isinstance(values, np.ndarray):
                 values = values.reshape((1, values.shape[0]))
+            elif values.ndim == 1 and is_extension_type(values):
+                if isinstance(values, Index):
+                    values = values._data
+                assert not isinstance(values, ReshapeableArray)
+                values = ReshapeableArray(values, shape=(1, values.size))
 
+            assert values.ndim == 2, values
             block = make_block(values, placement=np.arange(len(cols_)))
             mgr = BlockManager([block], [cols_, index_])
             frames.append(DataFrame(mgr))

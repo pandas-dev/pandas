@@ -20,7 +20,8 @@ class ReshapeableArray(ExtensionArray):
     _allows_2d = True
 
     def __init__(self, values: ExtensionArray, shape: Tuple[int, ...]):
-        assert isinstance(values, ExtensionArray) and not values._allows_2d
+        assert (isinstance(values, ExtensionArray)
+                and not values._allows_2d), type(values)
         assert not isinstance(values, ABCPandasArray)
         self._1dvalues = values
 
@@ -143,6 +144,31 @@ class ReshapeableArray(ExtensionArray):
                 and result.size == self.size):
             return type(self)(result, shape=self.shape)
         return result
+
+    # TODO: implement this for other comparisons; this one is needed
+    #  for Categorical.replace to work in a pytables test.
+    def __eq__(self, other):
+        if np.ndim(other) == 0:
+            # scalars, dont need to worry about alignment
+            pass
+        elif other.shape == self.shape:
+            pass
+        elif self.ndim > 1:
+            # TODO: should we allow for the NotImplemented before this?
+            raise NotImplementedError(self.shape, other.shape)
+
+        result = self._1dvalues.__eq__(other)
+        if result is NotImplemented:
+            return result
+        assert (isinstance(result, np.ndarray)
+                and result.dtype == np.bool_), result
+        return result.reshape(self.shape)
+
+    def __ne__(self, other):
+        eq = self.__eq__(other)
+        if eq is NotImplemented:
+            return NotImplemented
+        return ~eq
 
     # --------------------------------------------------
     # Heavily-Modified pass-through methods

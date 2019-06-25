@@ -1565,7 +1565,7 @@ class NonConsolidatableMixIn:
 
         # use block's copy logic.
         # .values may be an Index which does shallow copy by default
-        new_values = self.values if inplace else self.copy().values
+        new_values = self.values if inplace else self.copy(deep=True).values
         new_values, new = self._try_coerce_args(new_values, new)
 
         if isinstance(new, np.ndarray) and len(new) == len(mask):
@@ -1713,7 +1713,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def get_values(self, dtype=None):  # TODO: can we use base class?
         # ExtensionArrays must be iterable, so this works.
-        values = np.asarray(self.values)
+        values = np.asarray(self.values)  # TODO: should dtype kwarg matter?
         assert values.ndim == self.ndim, (values.ndim, self.ndim)
         return values
 
@@ -2010,7 +2010,6 @@ class DatetimeLikeBlockMixin:
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
         if is_object_dtype(dtype):
-            # TODO: Why do we need the _holder?
             values = self.values.ravel()
             result = self._holder(values).astype(object)
             return result.reshape(self.values.shape)
@@ -2228,16 +2227,12 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             the return value to be the same dimensionality as the
             block.
         """
-        values = self.values
         if is_object_dtype(dtype):
-            # TODO: can we just use values.astype(object)?
-            values = values._box_values(values._data.ravel())
-            values = values.reshape(self.shape)
+            return self.values.astype(object)
 
-        values = np.asarray(values)
-
-        assert values.shape == self.shape, (values.shape, values.shape)
-        return values  # TODO: can we just use base class?
+        return np.asarray(self.values)
+        # TODO: could just use DatetimeBlock.get_values if we add a
+        #  np.asarray there.
 
     def to_dense(self):
         # we request M8[ns] dtype here, even though it discards tzinfo,

@@ -115,6 +115,11 @@ class NDFrameGroupBy(GroupBy):
 
     def _cython_agg_general(self, how, alt=None, numeric_only=True,
                             min_count=-1):
+        if any(x.name == 'Int64' for x in self.obj.dtypes.values):
+            # FIXME: kludge for test.arrays.test_integer since this stopped
+            #  raising on its own
+            # Fall back to non-cython variant.
+            raise Exception
         new_items, new_blocks = self._cython_agg_blocks(
             how, alt=alt, numeric_only=numeric_only, min_count=min_count)
         return self._wrap_agged_blocks(new_items, new_blocks)
