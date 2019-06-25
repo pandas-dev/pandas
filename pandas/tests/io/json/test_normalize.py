@@ -168,8 +168,6 @@ class TestJSONNormalize:
 
         result = json_normalize(deep_nested, ['states', 'cities'],
                                 meta=['country', ['states', 'name']])
-        # meta_prefix={'states': 'state_'})
-
         ex_data = {'country': ['USA'] * 4 + ['Germany'] * 3,
                    'states.name': ['California', 'California', 'Ohio', 'Ohio',
                                    'Bayern', 'Nordrhein-Westfalen',
@@ -294,9 +292,28 @@ class TestJSONNormalize:
         expected = DataFrame(ex_data)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("max_level", [0, 1])
-    def test_max_level_with_records_path(self,
-                                         max_level):
+    @pytest.mark.parametrize("max_level,expected", [
+        (0, [{"TextField": "Some text",
+              'UserField': {'Id': 'ID001',
+                            'Name': 'Name001'},
+              "CreatedBy": {"Name": "User001"},
+              'Image': {'a': 'b'}},
+             {"TextField": "Some text",
+              'UserField': {'Id': 'ID001',
+                            'Name': 'Name001'},
+              "CreatedBy": {"Name": "User001"},
+              'Image': {'a': 'b'}}]),
+        (1, [{"TextField": "Some text",
+              "UserField.Id": "ID001",
+              "UserField.Name": "Name001",
+              "CreatedBy": {"Name": "User001"},
+              'Image': {'a': 'b'}},
+             {"TextField": "Some text",
+              "UserField.Id": "ID001",
+              "UserField.Name": "Name001",
+              "CreatedBy": {"Name": "User001"},
+              'Image': {'a': 'b'}}])])
+    def test_max_level_with_records_path(self, max_level, expected):
         # GH23843: Enhanced JSON normalize
         test_input = [{'CreatedBy': {'Name': 'User001'},
                        'Lookup': [{'TextField': 'Some text',
@@ -311,32 +328,11 @@ class TestJSONNormalize:
                                 {'foo': 'something2', 'bar': 'else2'}]
                        }]
 
-        expected_data = {0: [{"TextField": "Some text",
-                              'UserField': {'Id': 'ID001',
-                                            'Name': 'Name001'},
-                              "CreatedBy": {"Name": "User001"},
-                              'Image': {'a': 'b'}},
-                             {"TextField": "Some text",
-                              'UserField': {'Id': 'ID001',
-                                            'Name': 'Name001'},
-                              "CreatedBy": {"Name": "User001"},
-                              'Image': {'a': 'b'}}],
-                         1: [{"TextField": "Some text",
-                              "UserField.Id": "ID001",
-                              "UserField.Name": "Name001",
-                              "CreatedBy": {"Name": "User001"},
-                              'Image': {'a': 'b'}},
-                             {"TextField": "Some text",
-                              "UserField.Id": "ID001",
-                              "UserField.Name": "Name001",
-                              "CreatedBy": {"Name": "User001"},
-                              'Image': {'a': 'b'}}]}
-        expected_data = expected_data[max_level]
         result = json_normalize(test_input,
                                 record_path=["Lookup"],
                                 meta=[["CreatedBy"], ["Image"]],
                                 max_level=max_level)
-        expected_df = DataFrame(data=expected_data,
+        expected_df = DataFrame(data=expected,
                                 columns=result.columns.values)
         tm.assert_equal(expected_df, result)
 
@@ -401,19 +397,10 @@ class TestNestedToRecord:
             record_path='addresses',
             meta='name',
             errors='ignore')
-        ex_data = [
-            {'city': 'Massillon',
-             'number': 9562,
-             'state': 'OH',
-             'street': 'Morris St.',
-             'zip': 44646,
-             'name': 'Alice'},
-            {'city': 'Elizabethton',
-             'number': 8449,
-             'state': 'TN',
-             'street': 'Spring St.',
-             'zip': 37643,
-             'name': np.nan}
+        ex_data =[
+            ['Massillon', 9562, 'OH', 'Morris St.', 44646, 'Alice'],
+            ['Elizabethton', 8449, 'TN', 'Spring St.', 37643, np.nan]
+
         ]
         columns = ['city', 'number', 'state', 'street', 'zip', 'name']
         expected = DataFrame(ex_data, columns=columns)

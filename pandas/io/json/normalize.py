@@ -2,7 +2,7 @@
 # JSON normalization routines
 
 from collections import defaultdict
-from typing import Union, List, Dict, DefaultDict
+from typing import DefaultDict, Dict, List, Union
 import copy
 
 import numpy as np
