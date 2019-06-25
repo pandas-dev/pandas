@@ -48,7 +48,10 @@ from pandas.plotting import boxplot_frame_groupby
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
-ScalarResult = typing.TypeVar("ScalarResult")  # TODO: fix & move to _typing.
+# TODO: validate types on ScalarResult and move to _typing
+# Blocked from using by https://github.com/python/mypy/issues/1484
+# See note at _mangle_lambda_list
+ScalarResult = typing.TypeVar("ScalarResult")
 
 
 def whitelist_method_generator(base_class: Type[GroupBy],
@@ -1720,9 +1723,13 @@ def _normalize_keyword_aggregation(kwargs):
     return aggspec, columns, order
 
 
-def _managle_lambda_list(
-        aggfuncs: typing.Sequence[Callable[..., ScalarResult]]
-) -> typing.Sequence[Callable[..., ScalarResult]]:
+# TODO: Can't use, because mypy doesn't like us setting __name__
+#   error: "partial[Any]" has no attribute "__name__"
+# the type is:
+#   typing.Sequence[Callable[..., ScalarResult]]
+#     -> typing.Sequence[Callable[..., ScalarResult]]:
+
+def _managle_lambda_list(aggfuncs):
     """
     Possibly mangle a list of aggfuncs.
 
