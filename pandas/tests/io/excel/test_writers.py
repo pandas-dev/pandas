@@ -730,7 +730,7 @@ class TestExcelWriter(_WriterBase):
         assert recons.index.names == ('time', 'foo')
 
     def test_to_excel_multiindex_no_write_index(self, engine, ext):
-        # Test writing and re-reading a MI witout the index. GH 5616.
+        # Test writing and re-reading a MI without the index. GH 5616.
 
         # Initial non-MI frame.
         frame1 = DataFrame({'a': [10, 20], 'b': [30, 40], 'c': [50, 60]})

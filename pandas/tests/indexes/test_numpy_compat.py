@@ -80,3 +80,16 @@ def test_numpy_ufuncs_other(indices, func):
         else:
             with pytest.raises(Exception):
                 func(idx)
+
+
+def test_elementwise_comparison_warning():
+    # https://github.com/pandas-dev/pandas/issues/22698#issuecomment-458968300
+    # np.array([1, 2]) == 'a' returns False, and produces a
+    # FutureWarning that it'll be [False, False] in the future.
+    # We just want to ensure that comes through.
+    # When NumPy dev actually enforces this change, we'll need to skip
+    # this test.
+    idx = Index([1, 2])
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        idx == 'a'

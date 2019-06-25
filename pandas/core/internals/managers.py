@@ -23,7 +23,6 @@ from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays.sparse import _maybe_to_sparse
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.indexing import maybe_convert_indices
@@ -103,16 +102,11 @@ class BlockManager(PandasObject):
         self.blocks = tuple(blocks)  # type: Tuple[Block, ...]
 
         for block in blocks:
-            if block.is_sparse:
-                if len(block.mgr_locs) != 1:
-                    raise AssertionError("Sparse block refers to multiple "
-                                         "items")
-            else:
-                if self.ndim != block.ndim:
-                    raise AssertionError(
-                        'Number of Block dimensions ({block}) must equal '
-                        'number of axes ({self})'.format(block=block.ndim,
-                                                         self=self.ndim))
+            if self.ndim != block.ndim:
+                raise AssertionError(
+                    'Number of Block dimensions ({block}) must equal '
+                    'number of axes ({self})'.format(block=block.ndim,
+                                                     self=self.ndim))
 
         if do_integrity_check:
             self._verify_integrity()
@@ -967,7 +961,7 @@ class BlockManager(PandasObject):
         """
         block = self.blocks[self._blknos[i]]
         values = block.iget(self._blklocs[i])
-        if not fastpath or not block._box_to_block_values or values.ndim != 1:
+        if not fastpath or values.ndim != 1:
             return values
 
         # fastpath shortcut for select a single-dim from a 2-dim BM
@@ -1028,7 +1022,7 @@ class BlockManager(PandasObject):
         value_is_extension_type = (is_extension_type(value) or
                                    is_extension_array_dtype(value))
 
-        # categorical/spares/datetimetz
+        # categorical/sparse/datetimetz
         if value_is_extension_type:
 
             def value_getitem(placement):
@@ -1727,10 +1721,6 @@ def form_blocks(arrays, names, axes):
         object_blocks = _simple_blockify(items_dict['ObjectBlock'], np.object_)
         blocks.extend(object_blocks)
 
-    if len(items_dict['SparseBlock']) > 0:
-        sparse_blocks = _sparse_blockify(items_dict['SparseBlock'])
-        blocks.extend(sparse_blocks)
-
     if len(items_dict['CategoricalBlock']) > 0:
         cat_blocks = [make_block(array, klass=CategoricalBlock, placement=[i])
                       for i, _, array in items_dict['CategoricalBlock']]
@@ -1797,20 +1787,6 @@ def _multi_blockify(tuples, dtype=None):
     return new_blocks
 
 
-def _sparse_blockify(tuples, dtype=None):
-    """ return an array of blocks that potentially have different dtypes (and
-    are sparse)
-    """
-
-    new_blocks = []
-    for i, names, array in tuples:
-        array = _maybe_to_sparse(array)
-        block = make_block(array, placement=[i])
-        new_blocks.append(block)
-
-    return new_blocks
-
-
 def _stack_arrays(tuples, dtype):
 
     # fml
@@ -1839,8 +1815,7 @@ def _stack_arrays(tuples, dtype):
 
 
 def _interleaved_dtype(
-        blocks: List[Block]
-) -> Optional[Union[np.dtype, ExtensionDtype]]:
+        blocks: List[Block]) -> Optional[Union[np.dtype, ExtensionDtype]]:
     """Find the common dtype for `blocks`.
 
     Parameters

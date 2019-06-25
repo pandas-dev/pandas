@@ -1,11 +1,12 @@
-# Arithmetc tests for DataFrame/Series/Index/Array classes that should
+# Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
 
-from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas.errors import (
+    NullFrequencyError, OutOfBoundsDatetime, PerformanceWarning)
 
 import pandas as pd
 from pandas import (
@@ -30,24 +31,35 @@ def get_upcast_box(box, vector):
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Comparisons
 
-class TestTimedelta64ArrayComparisons:
-    # TODO: All of these need to be parametrized over box
+class TestTimedelta64ArrayLikeComparisons:
+    # Comparison tests for timedelta64[ns] vectors fully parametrized over
+    #  DataFrame/Series/TimedeltaIndex/TimedeltaArray.  Ideally all comparison
+    #  tests will eventually end up here.
 
-    def test_compare_timedelta64_zerodim(self):
+    def test_compare_timedelta64_zerodim(self, box_with_array):
         # GH#26689 should unbox when comparing with zerodim array
+        box = box_with_array
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
+
         tdi = pd.timedelta_range('2H', periods=4)
         other = np.array(tdi.to_numpy()[0])
 
+        tdi = tm.box_expected(tdi, box)
         res = tdi <= other
         expected = np.array([True, False, False, False])
-        tm.assert_numpy_array_equal(res, expected)
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(res, expected)
 
         with pytest.raises(TypeError):
             # zero-dim of wrong dtype should still raise
             tdi >= np.array(4)
 
+
+class TestTimedelta64ArrayComparisons:
+    # TODO: All of these need to be parametrized over box
+
     def test_compare_timedelta_series(self):
-        # regresssion test for GH#5963
+        # regression test for GH#5963
         s = pd.Series([timedelta(days=1), timedelta(days=2)])
         actual = s > timedelta(days=1)
         expected = pd.Series([False, True])
@@ -479,10 +491,10 @@ class TestAddSubNaTMasking:
 
     def test_tdi_add_overflow(self):
         # See GH#14068
-        msg = "too (big|large) to convert"
-        with pytest.raises(OverflowError, match=msg):
+        # preliminary test scalar analogue of vectorized tests below
+        with pytest.raises(OutOfBoundsDatetime):
             pd.to_timedelta(106580, 'D') + Timestamp('2000')
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsDatetime):
             Timestamp('2000') + pd.to_timedelta(106580, 'D')
 
         _NaT = int(pd.NaT) + 1

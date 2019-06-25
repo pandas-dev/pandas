@@ -594,6 +594,25 @@ class TestRolling(Base):
         expected = pd.Series(expected, index=ser.index)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("closed,expected", [
+        ('right', [0, 0.5, 1, 2, 3, 4, 5, 6, 7, 8]),
+        ('both', [0, 0.5, 1, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5]),
+        ('neither', [np.nan, 0, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5]),
+        ('left', [np.nan, 0, 0.5, 1, 2, 3, 4, 5, 6, 7])
+    ])
+    def test_closed_median_quantile(self, closed, expected):
+        # GH 26005
+        ser = pd.Series(data=np.arange(10),
+                        index=pd.date_range('2000', periods=10))
+        roll = ser.rolling('3D', closed=closed)
+        expected = pd.Series(expected, index=ser.index)
+
+        result = roll.median()
+        tm.assert_series_equal(result, expected)
+
+        result = roll.quantile(0.5)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize('roller', ['1s', 1])
     def tests_empty_df_rolling(self, roller):
         # GH 15819 Verifies that datetime and integer rolling windows can be
@@ -607,6 +626,17 @@ class TestRolling(Base):
         expected = DataFrame(index=pd.DatetimeIndex([]))
         result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
+
+    def test_empty_window_median_quantile(self):
+        # GH 26005
+        expected = pd.Series([np.nan, np.nan, np.nan])
+        roll = pd.Series(np.arange(3)).rolling(0)
+
+        result = roll.median()
+        tm.assert_series_equal(result, expected)
+
+        result = roll.quantile(0.1)
+        tm.assert_series_equal(result, expected)
 
     def test_missing_minp_zero(self):
         # https://github.com/pandas-dev/pandas/pull/18921
@@ -1357,7 +1387,7 @@ class TestMoments(Base):
 
     def test_rolling_quantile_np_percentile(self):
         # #9413: Tests that rolling window's quantile default behavior
-        # is analogus to Numpy's percentile
+        # is analogous to Numpy's percentile
         row = 10
         col = 5
         idx = pd.date_range('20100101', periods=row, freq='B')
@@ -1973,7 +2003,7 @@ class TestPairwise:
 
         # DataFrame with itself, pairwise=True
         # note that we may construct the 1st level of the MI
-        # in a non-motononic way, so compare accordingly
+        # in a non-monotonic way, so compare accordingly
         results = []
         for i, df in enumerate(self.df1s):
             result = f(df)
@@ -2124,7 +2154,7 @@ def _create_consistency_data():
     def no_nans(x):
         return x.notna().all().all()
 
-    # data is a tuple(object, is_contant, no_nans)
+    # data is a tuple(object, is_constant, no_nans)
     data = create_series() + create_dataframes()
 
     return [(x, is_constant(x), no_nans(x)) for x in data]
