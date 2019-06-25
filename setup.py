@@ -788,6 +788,7 @@ setup(name=DISTNAME,
           'test': [
               # sync with setup.cfg minversion & install.rst
               'pytest>=4.0.2',
+              'pytest-xdist',
               'hypothesis>=3.58',
           ]
       },
