@@ -62,7 +62,6 @@ class Block(PandasObject):
     is_bool = False
     is_object = False
     is_categorical = False
-    is_sparse = False
     is_extension = False
     _box_to_block_values = True
     _can_hold_na = False
@@ -1189,8 +1188,6 @@ class Block(PandasObject):
         # sparse is treated like an ndarray, but needs .get_values() shaping
 
         values = self.values
-        if self.is_sparse:
-            values = self.get_values()
 
         if fill_tuple is None:
             fill_value = self.fill_value
