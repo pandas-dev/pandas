@@ -480,7 +480,7 @@ class NDFrameGroupBy(GroupBy):
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
-                if (so.ndim == 2 and so.dtypes.apply(is_datetimelike).any()):
+                if so.ndim == 2 and so.dtypes.apply(is_datetimelike).any():
                     result = result.apply(
                         lambda x: to_numeric(x, errors='ignore'))
                     date_cols = self._selected_obj.select_dtypes(

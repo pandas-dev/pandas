@@ -1027,7 +1027,7 @@ class BlockManager(PandasObject):
         value_is_extension_type = (is_extension_type(value) or
                                    is_extension_array_dtype(value))
 
-        # categorical/spares/datetimetz
+        # categorical/sparse/datetimetz
         if value_is_extension_type:
 
             def value_getitem(placement):
