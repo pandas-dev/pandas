@@ -6,7 +6,7 @@
    without warning.
 """
 import operator
-from typing import Any, Callable, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -26,7 +26,7 @@ from pandas.core import ops
 
 _not_implemented_message = "{} does not implement {}."
 
-_extension_array_shared_docs = dict()
+_extension_array_shared_docs = dict()  # type: Dict[str, str]
 
 
 class ExtensionArray:
@@ -115,6 +115,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Constructors
     # ------------------------------------------------------------------------
+
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         """
@@ -286,6 +287,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Required attributes
     # ------------------------------------------------------------------------
+
     @property
     def dtype(self) -> ExtensionDtype:
         """
@@ -319,6 +321,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Additional Methods
     # ------------------------------------------------------------------------
+
     def astype(self, dtype, copy=True):
         """
         Cast to a NumPy array with 'dtype'.
@@ -479,8 +482,7 @@ class ExtensionArray:
     def shift(
             self,
             periods: int = 1,
-            fill_value: object = None,
-    ) -> ABCExtensionArray:
+            fill_value: object = None) -> ABCExtensionArray:
         """
         Shift values by desired number.
 
@@ -836,6 +838,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
+
     def __repr__(self):
         from pandas.io.formats.printing import format_object_summary
 
