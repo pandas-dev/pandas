@@ -5,9 +5,9 @@ classes that hold the groupby interfaces (and some implementations).
 These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
-
 from collections import OrderedDict, abc, namedtuple
 import copy
+import functools
 from functools import partial
 from textwrap import dedent
 import typing
@@ -1758,7 +1758,8 @@ def _managle_lambda_list(
     mangled_aggfuncs = []
     for aggfunc in aggfuncs:
         if com.get_callable_name(aggfunc) == "<lambda>":
-            aggfunc = _make_lambda(aggfunc, i)
+            aggfunc = functools.partial(aggfunc)
+            aggfunc.__name__ = '<lambda_{}>'.format(i)
             i += 1
         mangled_aggfuncs.append(aggfunc)
 
@@ -1788,7 +1789,7 @@ def _maybe_mangle_lambdas(agg_spec):
     'sum'
 
     >>> _maybe_mangle_lambdas([lambda: 1, lambda: 2])  # doctest: +SKIP
-    [<function __main__.<lambda>()>,
+    [<function __main__.<lambda_0>,
      <function pandas...._make_lambda.<locals>.f(*args, **kwargs)>]
     """
     is_dict = is_dict_like(agg_spec)
@@ -1797,14 +1798,13 @@ def _maybe_mangle_lambdas(agg_spec):
     mangled_aggspec = type(agg_spec)()  # dict or OrderdDict
 
     if is_dict:
-        for key in agg_spec:
-            aggfuncs = agg_spec[key]
+        for key, aggfuncs in agg_spec.items():
             if is_list_like(aggfuncs) and not is_dict_like(aggfuncs):
                 mangled_aggfuncs = _managle_lambda_list(aggfuncs)
             else:
                 mangled_aggfuncs = aggfuncs
 
-            mangled_aggspec[key] = mangled_aggfuncs or aggfuncs
+            mangled_aggspec[key] = mangled_aggfuncs
     else:
         mangled_aggspec = _managle_lambda_list(agg_spec)
 
