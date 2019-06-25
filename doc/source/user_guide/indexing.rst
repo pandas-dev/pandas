@@ -1559,10 +1559,10 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
   index.levels[1]
   index.set_levels(["a", "b"], level=1)
 
+.. _indexing.set_ops:
+
 Set operations on Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _indexing.set_ops:
 
 The two main operations are ``union (|)`` and ``intersection (&)``.
 These can be directly called as instance methods or used via overloaded
@@ -1595,7 +1595,7 @@ with duplicates dropped.
 When performing :meth:`Index.union` between indexes with different dtypes, the indexes
 must be cast to a common dtype. Typically, though not always, this is object dtype. The
 exception is when performing a union between integer and float data. In this case, the
-integer Index is converted to float
+integer values are converted to float
 
 .. ipython:: python
 
@@ -1603,10 +1603,10 @@ integer Index is converted to float
    idx2 = pd.Index([0.5, 1.5])
    idx1 | idx2
 
+.. _indexing.missing:
+
 Missing values
 ~~~~~~~~~~~~~~
-
-.. _indexing.missing:
 
 .. important::
 
@@ -1635,10 +1635,10 @@ Occasionally you will load or create a data set into a DataFrame and want to
 add an index after you've already done so. There are a couple of different
 ways.
 
+.. _indexing.set_index:
+
 Set an index
 ~~~~~~~~~~~~
-
-.. _indexing.set_index:
 
 DataFrame has a :meth:`~DataFrame.set_index` method which takes a column name
 (for a regular ``Index``) or a list of column names (for a ``MultiIndex``).

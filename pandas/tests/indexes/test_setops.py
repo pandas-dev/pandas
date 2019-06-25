@@ -2,6 +2,7 @@
 The tests in this package are to ensure the proper resultant dtypes of
 set operations.
 '''
+from collections import OrderedDict
 import itertools as it
 
 import numpy as np
@@ -15,12 +16,12 @@ from pandas.api.types import pandas_dtype
 from pandas.tests.indexes.conftest import indices_list
 import pandas.util.testing as tm
 
-COMPATIBLE_INCONSISTENT_PAIRS = {
-    (Int64Index, RangeIndex): (tm.makeIntIndex, tm.makeRangeIndex),
-    (Float64Index, Int64Index): (tm.makeFloatIndex, tm.makeIntIndex),
-    (Float64Index, RangeIndex): (tm.makeFloatIndex, tm.makeIntIndex),
-    (Float64Index, UInt64Index): (tm.makeFloatIndex, tm.makeUIntIndex),
-}
+COMPATIBLE_INCONSISTENT_PAIRS = OrderedDict([
+    ((Int64Index, RangeIndex), (tm.makeIntIndex, tm.makeRangeIndex)),
+    ((Float64Index, Int64Index), (tm.makeFloatIndex, tm.makeIntIndex)),
+    ((Float64Index, RangeIndex), (tm.makeFloatIndex, tm.makeIntIndex)),
+    ((Float64Index, UInt64Index), (tm.makeFloatIndex, tm.makeUIntIndex)),
+])
 
 
 @pytest.fixture(params=list(it.combinations(indices_list, 2)),
