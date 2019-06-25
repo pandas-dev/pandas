@@ -317,7 +317,8 @@ class BlockManager(PandasObject):
             if block.shape[1:] != mgr_shape[1:]:
                 import inspect
                 stack = inspect.stack()
-                if ('pyarrow' in str(stack) or 'msgpack' in str(stack)):
+                if ('pyarrow' in str(stack) or 'msgpack' in str(stack)
+                        or 'parquet' in str(stack)):
                     # FIXME: kludge to the max! for reading legacy files
                     shape = (1, block.values.size,)
                     if isinstance(block.values, ReshapeableArray):
@@ -1854,8 +1855,7 @@ def _stack_arrays(tuples, dtype):
 
 
 def _interleaved_dtype(
-        blocks: List[Block]
-    ) -> Optional[Union[np.dtype, ExtensionDtype]]:
+        blocks: List[Block]) -> Optional[Union[np.dtype, ExtensionDtype]]:
     """Find the common dtype for `blocks`.
 
     Parameters

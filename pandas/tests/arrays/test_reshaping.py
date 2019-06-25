@@ -65,9 +65,10 @@ class TestReshapeableArray:
         ea = dti._data
 
         flat = ReshapeableArray(ea, shape=ea.shape)
-        collike = ReshapeableArray(ea, shape=(4, 1))
         rowlike = ReshapeableArray(ea, shape=(1, 4))
-        square = ReshapeableArray(ea, shape=(2, 2))
+        # FIXME: use these, don't leave commented-out
+        # collike = ReshapeableArray(ea, shape=(4, 1))
+        # square = ReshapeableArray(ea, shape=(2, 2))
 
         assert flat[0] == ea[0]
         result = flat[:2]
