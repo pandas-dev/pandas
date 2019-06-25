@@ -681,12 +681,17 @@ class Window(_Window):
 
         blocks, obj, index = self._create_blocks()
         results = []
+        exclude = []
         for b in blocks:
             try:
                 values = self._prep_values(b.values)
-            except TypeError:
-                results.append(b.values.copy())
-                continue
+            except (TypeError, NotImplementedError):
+                if hasattr(b, 'columns'):
+                    exclude.extend(b.columns)
+                    continue
+                else:
+                    from pandas import Series
+                    return Series()
 
             if values.size == 0:
                 results.append(values.copy())
@@ -708,7 +713,7 @@ class Window(_Window):
                 result = self._center_window(result, window)
             results.append(result)
 
-        return self._wrap_results(results, blocks, obj)
+        return self._wrap_results(results, blocks, obj, exclude)
 
     _agg_see_also_doc = dedent("""
     See Also
