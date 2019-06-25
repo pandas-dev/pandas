@@ -1729,9 +1729,9 @@ def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
                 if is_object_dtype(result.dtypes[idx])]
 
     # See GH#26285
-    converted = [maybe_convert_objects(result.iloc[:, n].values,
-                                       convert_numeric=False)
-                 for n in obj_cols]
+    for n in obj_cols:
+        converted = maybe_convert_objects(result.iloc[:, n].values,
+                                          convert_numeric=False)
 
-    result.iloc[:, obj_cols] = converted
+        result.iloc[:, n] = converted
     return result
