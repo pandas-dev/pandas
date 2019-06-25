@@ -2984,16 +2984,20 @@ class CategoricalBlock(ExtensionBlock):
             result = self if inplace else self.copy()
             categories = result.values.categories.tolist()
             if to_replace in categories:
-                index = categories.index(to_replace)
-                categories[index] = value
-                result.values.rename_categories(categories, inplace=True)
+                if isna(value):
+                    result.values.remove_categories(to_replace, inplace=True)
+                else:
+                    index = categories.index(to_replace)
+                    categories[index] = value
+                    result.values.rename_categories(categories, inplace=True)
             if convert:
                 return result.convert(by_item=True, numeric=False,
                                       copy=not inplace)
             else:
                 return result
         else:
-            self.values.add_categories(value, inplace=True)
+            if not isna(value):
+                self.values.add_categories(value, inplace=True)
             return super().replace(to_replace, value, inplace,
                                    filter, regex, convert)
 
