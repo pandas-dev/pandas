@@ -243,7 +243,7 @@ class _Window(PandasObject, SelectionMixin):
             return type(obj)(result, index=index, columns=block.columns)
         return result
 
-    def _wrap_results(self, results, blocks, obj):
+    def _wrap_results(self, results, blocks, obj, exclude=None):
         """
         Wrap the results.
 
@@ -252,6 +252,7 @@ class _Window(PandasObject, SelectionMixin):
         results : list of ndarrays
         blocks : list of blocks
         obj : conformed data (may be resampled)
+        exclude: list of columns to exclude, default to None
         """
 
         from pandas import Series, concat
@@ -284,6 +285,13 @@ class _Window(PandasObject, SelectionMixin):
                     columns = self.obj.columns
                     indexer = columns.get_indexer(selection.tolist() + [name])
                     columns = columns.take(sorted(indexer))
+
+        # exlude nuisance columns from final result
+        if exclude is not None and exclude:
+            columns = [c for c in columns if c not in exclude]
+
+            if not columns:
+                return Series()
 
         if not len(final):
             return obj.astype('float64')
@@ -845,8 +853,17 @@ class _Rolling(_Window):
         blocks, obj, index = self._create_blocks()
         index, indexi = self._get_index(index=index)
         results = []
+        exclude = []
         for b in blocks:
-            values = self._prep_values(b.values)
+            try:
+                values = self._prep_values(b.values)
+            except (TypeError, NotImplementedError):
+                if hasattr(b, 'columns'):
+                    exclude.extend(b.columns)
+                    continue
+                else:
+                    from pandas import Series
+                    return Series()
 
             if values.size == 0:
                 results.append(values.copy())
@@ -892,7 +909,7 @@ class _Rolling(_Window):
 
             results.append(result)
 
-        return self._wrap_results(results, blocks, obj)
+        return self._wrap_results(results, blocks, obj, exclude)
 
 
 class _Rolling_and_Expanding(_Rolling):
@@ -2292,12 +2309,17 @@ class EWM(_Rolling):
         """
         blocks, obj, index = self._create_blocks()
         results = []
+        exclude = []
         for b in blocks:
             try:
                 values = self._prep_values(b.values)
-            except TypeError:
-                results.append(b.values.copy())
-                continue
+            except (TypeError, NotImplementedError):
+                if hasattr(b, 'columns'):
+                    exclude.extend(b.columns)
+                    continue
+                else:
+                    from pandas import Series
+                    return Series()
 
             if values.size == 0:
                 results.append(values.copy())
@@ -2316,7 +2338,7 @@ class EWM(_Rolling):
 
             results.append(np.apply_along_axis(func, self.axis, values))
 
-        return self._wrap_results(results, blocks, obj)
+        return self._wrap_results(results, blocks, obj, exclude)
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
