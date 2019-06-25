@@ -961,7 +961,7 @@ class BlockManager(PandasObject):
         """
         block = self.blocks[self._blknos[i]]
         values = block.iget(self._blklocs[i])
-        if not fastpath or not block._box_to_block_values or values.ndim != 1:
+        if not fastpath or values.ndim != 1:
             return values
 
         # fastpath shortcut for select a single-dim from a 2-dim BM

@@ -63,7 +63,6 @@ class Block(PandasObject):
     is_object = False
     is_categorical = False
     is_extension = False
-    _box_to_block_values = True
     _can_hold_na = False
     _can_consolidate = True
     _verify_integrity = True
