@@ -64,9 +64,7 @@ class Block(PandasObject):
     is_bool = False
     is_object = False
     is_categorical = False
-    is_sparse = False
     is_extension = False
-    _box_to_block_values = True
     _can_hold_na = False
     _can_consolidate = True
     _verify_integrity = True
@@ -1191,8 +1189,6 @@ class Block(PandasObject):
         # sparse is treated like an ndarray, but needs .get_values() shaping
 
         values = self.values
-        if self.is_sparse:
-            values = self.get_values()
 
         if fill_tuple is None:
             fill_value = self.fill_value
@@ -1413,8 +1409,8 @@ class Block(PandasObject):
         -------
         Block
         """
-        # Series dispatches to DataFrame, so we should always be 2D
-        assert self.ndim == 2, self.shape
+        # We should always have ndim == 2 becase Series dispatches to DataFrame
+        assert self.ndim == 2
 
         if self.is_datetimetz:
             # TODO: cleanup this special case.
