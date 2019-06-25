@@ -796,31 +796,6 @@ class TestTimestamp:
 
 class TestTimestampNsOperations:
 
-    def setup_method(self, method):
-        self.timestamp = Timestamp(datetime.utcnow())
-
-    def assert_ns_timedelta(self, modified_timestamp, expected_value):
-        value = self.timestamp.value
-        modified_value = modified_timestamp.value
-
-        assert modified_value - value == expected_value
-
-    def test_timedelta_ns_arithmetic(self):
-        self.assert_ns_timedelta(self.timestamp + np.timedelta64(-123, 'ns'),
-                                 -123)
-
-    def test_timedelta_ns_based_arithmetic(self):
-        self.assert_ns_timedelta(self.timestamp + np.timedelta64(
-            1234567898, 'ns'), 1234567898)
-
-    def test_timedelta_us_arithmetic(self):
-        self.assert_ns_timedelta(self.timestamp + np.timedelta64(-123, 'us'),
-                                 -123000)
-
-    def test_timedelta_ms_arithmetic(self):
-        time = self.timestamp + np.timedelta64(-123, 'ms')
-        self.assert_ns_timedelta(time, -123000000)
-
     def test_nanosecond_string_parsing(self):
         ts = Timestamp('2013-05-01 07:15:45.123456789')
         # GH 7878

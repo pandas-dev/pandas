@@ -603,6 +603,8 @@ Datetimelike
 - Bug when comparing a :class:`PeriodIndex` against a zero-dimensional numpy array (:issue:`26689`)
 - Bug in constructing a ``Series`` or ``DataFrame`` from a numpy ``datetime64`` array with a non-ns unit and out-of-bound timestamps generating rubbish data, which will now correctly raise an ``OutOfBoundsDatetime`` error (:issue:`26206`).
 - Bug in :func:`date_range` with unnecessary ``OverflowError`` being raised for very large or very small dates (:issue:`26651`)
+- Bug where adding :class:`Timestamp` to a ``np.timedelta64`` object would raise instead of returning a :class:`Timestamp` (:issue:`24775`)
+- Bug where comparing a zero-dimensional numpy array containing a ``np.datetime64`` object to a :class:`Timestamp` would incorrect raise ``TypeError`` (:issue:`26916`)
 
 Timedelta
 ^^^^^^^^^

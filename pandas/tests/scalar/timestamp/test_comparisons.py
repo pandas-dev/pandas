@@ -156,6 +156,18 @@ class TestTimestampComparison:
         assert stamp < datetime(2700, 1, 1)
         assert stamp <= datetime(2700, 1, 1)
 
+    def test_compare_zerodim_array(self):
+        # GH#26916
+        ts = Timestamp.now()
+        dt64 = np.datetime64('2016-01-01', 'ns')
+        arr = np.array(dt64)
+        assert arr.ndim == 0
+
+        result = arr < ts
+        assert result is True
+        result = arr > ts
+        assert result is False
+
 
 def test_rich_comparison_with_unsupported_type():
     # Comparisons with unsupported objects should return NotImplemented
