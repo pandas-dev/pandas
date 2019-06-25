@@ -572,6 +572,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
     elif isinstance(data, ExtensionArray):
         # it is already ensured above this is not a PandasArray
         subarr = data
+
         if dtype is not None:
             subarr = subarr.astype(dtype, copy=copy)
         elif copy:

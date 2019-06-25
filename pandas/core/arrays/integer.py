@@ -28,7 +28,7 @@ class _IntegerDtype(ExtensionDtype):
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
     These specific implementations are subclasses of the non-public
-    _IntegerDtype. For example we have Int8Dtype to represnt signed int 8s.
+    _IntegerDtype. For example we have Int8Dtype to represent signed int 8s.
 
     The attributes name & type are set when these subclasses are created.
     """
