@@ -188,7 +188,6 @@ class JoinUnit:
                         array = empty_dtype.construct_array_type()
                         return array(np.full(self.shape[1], fill_value.value),
                                      dtype=empty_dtype)
-
                     pass
                 elif getattr(self.block, 'is_categorical', False):
                     pass

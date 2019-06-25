@@ -966,6 +966,8 @@ class BlockManager(PandasObject):
             if isna(item):
                 raise TypeError("cannot label index with a null key")
 
+            # TODO: the next line is hit, but the one after it isn't.
+            #  Does this always raise?
             indexer = self.items.get_indexer_for([item])
             return self.reindex_indexer(new_axis=self.items[indexer],
                                         indexer=indexer, axis=0,
@@ -1853,7 +1855,7 @@ def _stack_arrays(tuples, dtype):
 
 def _interleaved_dtype(
         blocks: List[Block]
-) -> Optional[Union[np.dtype, ExtensionDtype]]:
+    ) -> Optional[Union[np.dtype, ExtensionDtype]]:
     """Find the common dtype for `blocks`.
 
     Parameters

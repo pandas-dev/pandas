@@ -185,10 +185,6 @@ class Block(PandasObject):
         return self.values.view()
 
     @property
-    def _na_value(self):
-        return np.nan
-
-    @property
     def fill_value(self):
         return np.nan
 
@@ -311,8 +307,8 @@ class Block(PandasObject):
         """
         values = self._concatenator([blk.values for blk in to_concat],
                                     axis=self.ndim - 1)
-        return self.make_block_same_class(
-            values, placement=placement or slice(0, len(values), 1))
+        placement = placement or slice(0, len(values), 1)
+        return self.make_block_same_class(values, placement=placement)
 
     def iget(self, i):
         return self.values[i]
@@ -1998,10 +1994,6 @@ class DatetimeLikeBlockMixin:
         return DatetimeArray
 
     @property
-    def _na_value(self):
-        return tslibs.NaT
-
-    @property
     def fill_value(self):
         return tslibs.iNaT
 
@@ -2817,6 +2809,8 @@ class CategoricalBlock(ExtensionBlock):
     _can_hold_na = True
     _concatenator = staticmethod(_concat._concat_categorical)
 
+    to_native_types = Block.to_native_types
+
     def __init__(self, values, placement, ndim=None):
         from pandas.core.arrays.categorical import _maybe_to_categorical
 
@@ -2854,20 +2848,6 @@ class CategoricalBlock(ExtensionBlock):
         # other types.
         return self.values.get_values()
 
-    def to_native_types(self, slicer=None, na_rep='', quoting=None, **kwargs):
-        """ convert to our native types format, slicing if desired """
-
-        values = self.values
-        if slicer is not None:
-            values = values[:, slicer]
-        mask = isna(values)
-        values = np.array(values, dtype='object')
-        values[mask] = na_rep
-
-        # we are expected to return a 2-d ndarray
-        assert values.shape == (1, values.size), values.shape
-        return values
-
     def concat_same_type(self, to_concat, placement=None):
         """
         Concatenate list of single blocks of the same type.
@@ -2883,10 +2863,9 @@ class CategoricalBlock(ExtensionBlock):
         """
         values = self._concatenator([blk.values for blk in to_concat],
                                     axis=self.ndim - 1)
+        placement = placement or slice(0, len(values), 1)
         # not using self.make_block_same_class as values can be object dtype
-        return make_block(
-            values, placement=placement or slice(0, len(values), 1),
-            ndim=self.ndim)
+        return make_block(values, placement=placement, ndim=self.ndim)
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
