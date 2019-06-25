@@ -112,7 +112,7 @@ def test_qcut_return_intervals():
 
 
 @pytest.mark.parametrize("kwargs,msg", [
-    (dict(duplicates="drop"), None),
+    (dict(duplicates="drop"), True),
     (dict(), "Bin edges must be unique"),
     (dict(duplicates="raise"), "Bin edges must be unique"),
     (dict(duplicates="foo"), "invalid value for 'duplicates' parameter")
@@ -121,7 +121,7 @@ def test_qcut_duplicates_bin(kwargs, msg):
     # see gh-7751
     values = [0, 0, 0, 0, 1, 2, 3]
 
-    if msg is not None:
+    if msg is not True:
         with pytest.raises(ValueError, match=msg):
             qcut(values, 3, **kwargs)
     else:
@@ -136,13 +136,13 @@ def test_qcut_duplicates_bin(kwargs, msg):
     (-9.0, -9.001, -9.0),
 ])
 @pytest.mark.parametrize("length", [1, 2])
-@pytest.mark.parametrize("labels", [None, False])
+@pytest.mark.parametrize("labels", [True, False])
 def test_single_quantile(data, start, end, length, labels):
     # see gh-15431
     ser = Series([data] * length)
     result = qcut(ser, 1, labels=labels)
 
-    if labels is None:
+    if labels is True:
         intervals = IntervalIndex([Interval(start, end)] *
                                   length, closed="right")
         expected = Series(intervals).astype(CDT(ordered=True))

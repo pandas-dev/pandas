@@ -20,7 +20,7 @@ import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
 
 
-def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
+def cut(x, bins, right=True, labels=True, retbins=False, precision=3,
         include_lowest=False, duplicates='raise'):
     """
     Bin values into discrete intervals.
