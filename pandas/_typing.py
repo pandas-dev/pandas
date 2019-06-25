@@ -17,7 +17,6 @@ AnyArrayLike = TypeVar('AnyArrayLike',
                        ABCSeries,
                        ABCSparseSeries,
                        np.ndarray)
-
 ArrayLike = TypeVar('ArrayLike', ABCExtensionArray, np.ndarray)
 DatetimeLikeScalar = TypeVar('DatetimeLikeScalar', Period, Timestamp,
                              Timedelta)
