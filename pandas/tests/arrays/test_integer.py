@@ -164,13 +164,13 @@ class TestArithmeticOps(BaseOpsUtil):
             self._check_op_integer(result, expected, mask, s, op_name, other)
 
     def _check_op_float(self, result, expected, mask, s, op_name, other):
-        # check comparisions that are resulting in float dtypes
+        # check comparisons that are resulting in float dtypes
 
         expected[mask] = np.nan
         tm.assert_series_equal(result, expected)
 
     def _check_op_integer(self, result, expected, mask, s, op_name, other):
-        # check comparisions that are resulting in integer dtypes
+        # check comparisons that are resulting in integer dtypes
 
         # to compare properly, we convert the expected
         # to float, mask to nans and convert infs

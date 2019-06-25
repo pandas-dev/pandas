@@ -201,7 +201,7 @@ class TestTimeConversionFormats:
     def test_parse_nanoseconds_with_formula(self, cache):
 
         # GH8989
-        # trunctaing the nanoseconds when a format was provided
+        # truncating the nanoseconds when a format was provided
         for v in ["2012-01-01 09:00:00.000000001",
                   "2012-01-01 09:00:00.000001",
                   "2012-01-01 09:00:00.001",
@@ -383,7 +383,7 @@ class TestToDatetime:
     def test_to_datetime_today(self):
         # See GH#18666
         # Test with one timezone far ahead of UTC and another far behind, so
-        # one of these will _almost_ alawys be in a different day from UTC.
+        # one of these will _almost_ always be in a different day from UTC.
         # Unfortunately this test between 12 and 1 AM Samoa time
         # this both of these timezones _and_ UTC will all be in the same day,
         # so this test will not detect the regression introduced in #18666.
@@ -606,7 +606,7 @@ class TestToDatetime:
         ], tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
         assert is_datetime64_ns_dtype(i)
 
-        # tz coerceion
+        # tz coercion
         result = pd.to_datetime(i, errors='coerce', cache=cache)
         tm.assert_index_equal(result, i)
 

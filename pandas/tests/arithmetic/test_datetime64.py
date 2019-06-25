@@ -37,6 +37,27 @@ def assert_all(obj):
 # ------------------------------------------------------------------
 # Comparisons
 
+class TestDatetime64ArrayLikeComparisons:
+    # Comparison tests for datetime64 vectors fully parametrized over
+    #  DataFrame/Series/DatetimeIndex/DateteimeArray.  Ideally all comparison
+    #  tests will eventually end up here.
+
+    def test_compare_zerodim(self, tz_naive_fixture, box_with_array):
+        # Test comparison with zero-dimensional array is unboxed
+        tz = tz_naive_fixture
+        box = box_with_array
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
+        dti = date_range('20130101', periods=3, tz=tz)
+
+        other = np.array(dti.to_numpy()[0])
+
+        # FIXME: ValueError with transpose on tzaware
+        dtarr = tm.box_expected(dti, box, transpose=False)
+        result = dtarr <= other
+        expected = np.array([True, False, False])
+        expected = tm.box_expected(expected, xbox, transpose=False)
+        tm.assert_equal(result, expected)
+
 
 class TestDatetime64DataFrameComparison:
     @pytest.mark.parametrize('timestamps', [
@@ -338,17 +359,6 @@ class TestDatetime64SeriesComparison:
 
 
 class TestDatetimeIndexComparisons:
-
-    # TODO: parametrize over box
-    def test_compare_zerodim(self, tz_naive_fixture):
-        # Test comparison with zero-dimensional array is unboxed
-        tz = tz_naive_fixture
-        dti = date_range('20130101', periods=3, tz=tz)
-
-        other = np.array(dti.to_numpy()[0])
-        result = dti <= other
-        expected = np.array([True, False, False])
-        tm.assert_numpy_array_equal(result, expected)
 
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
     @pytest.mark.parametrize("op", [
