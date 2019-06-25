@@ -11,7 +11,7 @@ import functools
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import Any, Callable, FrozenSet, Iterator, List, Type, Union
+from typing import Any, Callable, FrozenSet, Iterator, Type, Union
 import warnings
 
 import numpy as np
@@ -23,9 +23,9 @@ from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    ensure_int64, ensure_platform_int, is_bool, is_datetimelike,
-    is_integer_dtype, is_interval_dtype, is_numeric_dtype, is_scalar)
-from pandas.core.dtypes.inference import is_dict_like, is_list_like
+    ensure_int64, ensure_platform_int, is_bool, is_datetimelike, is_dict_like,
+    is_integer_dtype, is_interval_dtype, is_list_like, is_numeric_dtype,
+    is_scalar)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas._typing import FrameOrSeries
@@ -1703,7 +1703,10 @@ def _normalize_keyword_aggregation(kwargs):
     # process normally, then fixup the names.
     # TODO(Py35): When we drop python 3.5, change this to
     # defaultdict(list)
-    aggspec = OrderedDict()  # type: typing.OrderedDict[str, List[AggScalar]]
+    # TODO: aggspec type: typing.OrderedDict[str, List[AggScalar]]
+    # May be hitting https://github.com/python/mypy/issues/5958
+    # saying it doesn't have an attribute __name__
+    aggspec = OrderedDict()
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
@@ -1717,39 +1720,21 @@ def _normalize_keyword_aggregation(kwargs):
     return aggspec, columns, order
 
 
-def _make_lambda(
-        func: Callable[..., ScalarResult], i: int
-) -> Callable[..., ScalarResult]:
-    """
-    Make a new function with name <lambda_i>
-
-    Parameters
-    ----------
-    func : Callable
-        The lambda function to call.
-    i : int
-        The counter to use for the name.
-
-    Returns
-    -------
-    Callable
-        Same as the caller but with name <lambda_i>
-    """
-    def f(*args, **kwargs):
-        return func(*args, **kwargs)
-    f.__name__ = "<lambda_{}>".format(i)
-    return f
-
-
 def _managle_lambda_list(
         aggfuncs: typing.Sequence[Callable[..., ScalarResult]]
 ) -> typing.Sequence[Callable[..., ScalarResult]]:
     """
     Possibly mangle a list of aggfuncs.
 
+    Returns
+    -------
+    mangled: list-like
+        A new AggSpec sequence, where lambdas have been converted
+        to have unique names.
+
     Notes
     -----
-    If just one aggfunc is passed, the name will not be mangeld.
+    If just one aggfunc is passed, the name will not be mangled.
     """
     if len(aggfuncs) <= 1:
         # don't mangle for .agg([lambda x: .])
