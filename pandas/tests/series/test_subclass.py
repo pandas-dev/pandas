@@ -39,6 +39,9 @@ class TestSeriesSubclassing:
 
         tm.assert_frame_equal(res, exp)
 
+    def test_subclass_empty_repr(self):
+        assert 'SubclassedSeries' in repr(tm.SubclassedSeries())
+
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseSeriesSubclassing:
