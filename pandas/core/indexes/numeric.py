@@ -126,7 +126,10 @@ class NumericIndex(Index):
         return super().insert(loc, item)
 
     def _union(self, other, sort):
-        # float | [u]int -> float
+        # Right now, we treat union(int, float) a bit special.
+        # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
+        # We may change union(int, float) to go to object.
+        # float | [u]int -> float  (the special case)
         # <T>   | <T>    -> T
         # <T>   | <U>    -> object
         needs_cast = (
@@ -248,18 +251,6 @@ class Int64Index(IntegerIndex):
                    for obj in [self, other])
         )
 
-    def _union(self, other, sort):
-        needs_cast = (
-            (is_integer_dtype(self.dtype) and is_float_dtype(other.dtype)) or
-            (is_integer_dtype(other.dtype) and is_float_dtype(self.dtype))
-        )
-        if needs_cast:
-            first = self.astype("float")
-            second = other.astype("float")
-            return first._union(second, sort)
-        else:
-            return super()._union(other, sort)
-
 
 Int64Index._add_numeric_methods()
 Int64Index._add_logical_methods()
@@ -339,18 +330,6 @@ class UInt64Index(IntegerIndex):
                                           ABCFloat64Index))
                    for obj in [self, other])
         )
-
-    def _union(self, other, sort):
-        needs_cast = (
-            (is_integer_dtype(self.dtype) and is_float_dtype(other.dtype)) or
-            (is_integer_dtype(other.dtype) and is_float_dtype(self.dtype))
-        )
-        if needs_cast:
-            first = self.astype("float")
-            second = other.astype("float")
-            return first._union(second, sort)
-        else:
-            return super()._union(other, sort)
 
 
 UInt64Index._add_numeric_methods()

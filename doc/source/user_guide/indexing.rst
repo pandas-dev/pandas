@@ -1592,6 +1592,17 @@ with duplicates dropped.
 
    The resulting index from a set operation will be sorted in ascending order.
 
+When performing :meth:`Index.union` between indexes with different dtypes, the indexes
+must be cast to a common dtype. Typically, though not always, this is object dtype. The
+exception is when performing a union between integer and float data. In this case, the
+integer Index is converted to float
+
+.. ipython:: python
+
+   idx1 = pd.Index([0, 1, 2])
+   idx2 = pd.Index([0.5, 1.5])
+   idx1 | idx2
+
 Missing values
 ~~~~~~~~~~~~~~
 

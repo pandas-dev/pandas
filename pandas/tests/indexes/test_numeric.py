@@ -1122,6 +1122,7 @@ class TestUInt64Index(NumericInt):
 
 @pytest.mark.parametrize("dtype", ['int64', 'uint64'])
 def test_int_float_union_dtype(dtype):
+    # https://github.com/pandas-dev/pandas/issues/26778
     # [u]int | float -> float
     index = pd.Index([0, 2, 3], dtype=dtype)
     other = pd.Float64Index([0.5, 1.5])
@@ -1134,6 +1135,7 @@ def test_int_float_union_dtype(dtype):
 
 
 def test_range_float_union_dtype():
+    # https://github.com/pandas-dev/pandas/issues/26778
     index = pd.RangeIndex(start=0, stop=3)
     other = pd.Float64Index([0.5, 1.5])
     result = index.union(other)
