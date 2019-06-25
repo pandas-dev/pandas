@@ -333,9 +333,6 @@ class UInt64Index(IntegerIndex):
                                 'explicitly cast')
 
     def _is_compatible_with_other(self, other):
-        # not ABCInt64Index
-        # TODO: dedpulicate with Int64Index.
-        # TODO: who all needs this? Int, UInt, Float? Range?
         return (
             super()._is_compatible_with_other(other)
             or all(isinstance(type(obj), (ABCUInt64Index,
