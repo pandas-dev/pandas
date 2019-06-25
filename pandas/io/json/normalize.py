@@ -2,8 +2,8 @@
 # JSON normalization routines
 
 from collections import defaultdict
-from typing import DefaultDict, Dict, List, Union
 import copy
+from typing import DefaultDict, Dict, List, Union
 
 import numpy as np
 
@@ -108,7 +108,7 @@ def nested_to_record(ds, prefix: str = "", sep: str = ".", level: int = 0,
 
 def json_normalize(data: List[Dict],
                    record_path: Union[str, List[str]] = None,
-                   meta: Union[str, List[str]] = None,
+                   meta: Union[str, List[str], List[List[str]]] = None,
                    meta_prefix: str = None,
                    record_prefix: str = None,
                    errors: str = 'raise',
