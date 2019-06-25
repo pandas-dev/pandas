@@ -62,9 +62,7 @@ class Block(PandasObject):
     is_bool = False
     is_object = False
     is_categorical = False
-    is_sparse = False
     is_extension = False
-    _box_to_block_values = True
     _can_hold_na = False
     _can_consolidate = True
     _verify_integrity = True
@@ -181,10 +179,6 @@ class Block(PandasObject):
 
     def to_dense(self):
         return self.values.view()
-
-    @property
-    def _na_value(self):
-        return np.nan
 
     @property
     def fill_value(self):
@@ -1189,8 +1183,6 @@ class Block(PandasObject):
         # sparse is treated like an ndarray, but needs .get_values() shaping
 
         values = self.values
-        if self.is_sparse:
-            values = self.get_values()
 
         if fill_tuple is None:
             fill_value = self.fill_value
@@ -1411,6 +1403,9 @@ class Block(PandasObject):
         -------
         Block
         """
+        # We should always have ndim == 2 becase Series dispatches to DataFrame
+        assert self.ndim == 2
+
         if self.is_datetimetz:
             # TODO: cleanup this special case.
             # We need to operate on i8 values for datetimetz
@@ -1420,8 +1415,7 @@ class Block(PandasObject):
 
             # TODO: NonConsolidatableMixin shape
             # Usual shape inconsistencies for ExtensionBlocks
-            if self.ndim > 1:
-                values = values[None, :]
+            values = values[None, :]
         else:
             values = self.get_values()
             values, _ = self._try_coerce_args(values, values)
@@ -1433,14 +1427,11 @@ class Block(PandasObject):
             qs = [qs]
 
         if is_empty:
-            if self.ndim == 1:
-                result = self._na_value
-            else:
-                # create the array of na_values
-                # 2d len(values) * len(qs)
-                result = np.repeat(np.array([self.fill_value] * len(qs)),
-                                   len(values)).reshape(len(values),
-                                                        len(qs))
+            # create the array of na_values
+            # 2d len(values) * len(qs)
+            result = np.repeat(np.array([self.fill_value] * len(qs)),
+                               len(values)).reshape(len(values),
+                                                    len(qs))
         else:
             # asarray needed for Sparse, see GH#24600
             # TODO: Why self.values and not values?
@@ -1451,8 +1442,7 @@ class Block(PandasObject):
                                    interpolation=interpolation)
 
             result = np.array(result, copy=False)
-            if self.ndim > 1:
-                result = result.T
+            result = result.T
 
         if orig_scalar and not lib.is_scalar(result):
             # result could be scalar in case with is_empty and self.ndim == 1
@@ -2023,10 +2013,6 @@ class DatetimeLikeBlockMixin:
     @property
     def _holder(self):
         return DatetimeArray
-
-    @property
-    def _na_value(self):
-        return tslibs.NaT
 
     @property
     def fill_value(self):

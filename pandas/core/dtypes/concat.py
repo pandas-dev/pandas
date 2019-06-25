@@ -73,10 +73,7 @@ def _get_series_result_type(result, objs=None):
             return DataFrame
 
     # otherwise it is a SingleBlockManager (axis = 0)
-    if result._block.is_sparse:
-        return SparseSeries
-    else:
-        return objs[0]._constructor
+    return objs[0]._constructor
 
 
 def _get_frame_result_type(result, objs):
