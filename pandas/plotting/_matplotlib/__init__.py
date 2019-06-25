@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 from pandas._config import get_option
 
 import pandas
@@ -30,8 +32,7 @@ if get_option("plotting.matplotlib.register_converters"):
 
 
 def plot(data, kind, **kwargs):
-    if isinstance(data, pandas.Series):
-        import matplotlib.pyplot as plt
+    if isinstance(data, pandas.core.dtypes.generic.ABCSeries):
         ax = kwargs.get('ax')
         if ax is None and len(plt.get_fignums()) > 0:
             with plt.rc_context():

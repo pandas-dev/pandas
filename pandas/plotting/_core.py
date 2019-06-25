@@ -2,6 +2,8 @@ import importlib
 from typing import List, Type  # noqa
 
 import pandas
+from pandas.core.dtypes.common import is_integer, is_list_like
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 # Trigger matplotlib import, which implicitly registers our
 # converts. Implicit registration is deprecated, and when enforced
@@ -48,11 +50,17 @@ class PlotAccessor(pandas.core.base.PandasObject):
     with the ``kind`` argument:
     ``s.plot(kind='line')`` is equivalent to ``s.plot.line()``
     """
+    _common_kinds = ('line', 'bar', 'barh', 'kde', 'density', 'area', 'hist',
+                     'box')
+    _series_kinds = ('pie',)
+    _dataframe_kinds = ('scatter', 'hexbin')
+    _kind_aliases = {'density': 'kde'}
+    _all_kinds = _common_kinds + _series_kinds + _dataframe_kinds
+
     def __init__(self, data):
-        assert isinstance(data, (pandas.Series, pandas.DataFrame))
         self._parent = data
 
-    def __call__(self, kind='line', **kwargs):
+    def __call__(self, kind='line', x=None, y=None, **kwargs):
         """
         Make plots of Series or DataFrame using the backend specified by the
         option ``plotting.backend``.
@@ -152,7 +160,69 @@ class PlotAccessor(pandas.core.base.PandasObject):
           From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
           (center)
         """
+        kind = self._kind_aliases.get(kind, kind)
+        if kind not in self._all_kinds:
+            raise ValueError('{} is not a valid plot kind'.format(kind))
+
         plot_backend = _get_plot_backend()
+        if kind in self._dataframe_kinds:
+            if isinstance(self._parent, ABCDataFrame):
+                return plot_backend.plot(self._parent, x=x, y=y, kind=kind,
+                                         **kwargs)
+            else:
+                raise ValueError(("plot kind {} can only be used for "
+                                  "data frames").format(kind))
+        if kind in self._series_kinds:
+            if isinstance(self._parent, ABCDataFrame):
+                if y is None and kwargs.get('subplots') is False:
+                    msg = "{} requires either y column or 'subplots=True'"
+                    raise ValueError(msg.format(kind))
+                elif y is not None:
+                    if (is_integer(y)
+                            and not self._parent.columns.holds_integer()):
+                        y = self._parent.columns[y]
+                    # converted to series actually. copy to not modify
+                    self._parent = self._parent[y].copy()
+                    self._parent.index.name = y
+        elif isinstance(self._parent, ABCDataFrame):
+            data_cols = self._parent.columns
+            if x is not None:
+                if is_integer(x) and not self._parent.columns.holds_integer():
+                    x = data_cols[x]
+                elif not isinstance(self._parent[x], ABCSeries):
+                    raise ValueError("x must be a label or position")
+                self._parent = self._parent.set_index(x)
+            if y is not None:
+                # check if we have y as int or list of ints
+                int_ylist = is_list_like(y) and all(is_integer(c) for c in y)
+                int_y_arg = is_integer(y) or int_ylist
+                if int_y_arg and not self._parent.columns.holds_integer():
+                    y = data_cols[y]
+
+                label_kw = kwargs['label'] if 'label' in kwargs else False
+                for kw in ['xerr', 'yerr']:
+                    if (kw in kwargs and
+                            (isinstance(kwargs[kw], str)
+                             or is_integer(kwargs[kw]))):
+                        try:
+                            kwargs[kw] = self._parent[kwargs[kw]]
+                        except (IndexError, KeyError, TypeError):
+                            pass
+
+                # don't overwrite
+                self._parent = self._parent[y].copy()
+
+                if isinstance(self._parent, ABCSeries):
+                    label_name = label_kw or y
+                    self._parent.name = label_name
+                else:
+                    match = is_list_like(label_kw) and len(label_kw) == len(y)
+                    if label_kw and not match:
+                        raise ValueError(
+                            "label should be list-like and same length as y")
+                    label_name = label_kw or self._parent.columns
+                    self._parent.columns = label_name
+
         return plot_backend.plot(self._parent, kind=kind, **kwargs)
 
     def line(self, x=None, y=None, **kwargs):
@@ -1006,64 +1076,3 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
         grouped, subplots=subplots, column=column, fontsize=fontsize, rot=rot,
         grid=grid, ax=ax, figsize=figsize, layout=layout, sharex=sharex,
         sharey=sharey, **kwds)
-
-
-"""
-# TODO move this somewhere else, it's not being called
-def _plot(data, x=None, y=None, subplots=False,
-          ax=None, kind='line', **kwds):
-    if kind in _series_kinds:
-        if isinstance(data, ABCDataFrame):
-            if y is None and subplots is False:
-                msg = "{0} requires either y column or 'subplots=True'"
-                raise ValueError(msg.format(kind))
-            elif y is not None:
-                if is_integer(y) and not data.columns.holds_integer():
-                    y = data.columns[y]
-                # converted to series actually. copy to not modify
-                data = data[y].copy()
-                data.index.name = y
-        plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
-    else:
-        if isinstance(data, ABCDataFrame):
-            data_cols = data.columns
-            if x is not None:
-                if is_integer(x) and not data.columns.holds_integer():
-                    x = data_cols[x]
-                elif not isinstance(data[x], ABCSeries):
-                    raise ValueError("x must be a label or position")
-                data = data.set_index(x)
-
-            if y is not None:
-                # check if we have y as int or list of ints
-                int_ylist = is_list_like(y) and all(is_integer(c) for c in y)
-                int_y_arg = is_integer(y) or int_ylist
-                if int_y_arg and not data.columns.holds_integer():
-                    y = data_cols[y]
-
-                label_kw = kwds['label'] if 'label' in kwds else False
-                for kw in ['xerr', 'yerr']:
-                    if (kw in kwds) and \
-                        (isinstance(kwds[kw], str) or
-                            is_integer(kwds[kw])):
-                        try:
-                            kwds[kw] = data[kwds[kw]]
-                        except (IndexError, KeyError, TypeError):
-                            pass
-
-                # don't overwrite
-                data = data[y].copy()
-
-                if isinstance(data, ABCSeries):
-                    label_name = label_kw or y
-                    data.name = label_name
-                else:
-                    match = is_list_like(label_kw) and len(label_kw) == len(y)
-                    if label_kw and not match:
-                        raise ValueError(
-                            "label should be list-like and same length as y"
-                        )
-                    label_name = label_kw or data.columns
-                    data.columns = label_name
-        plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
-"""
