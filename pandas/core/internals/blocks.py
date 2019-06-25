@@ -1651,7 +1651,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     @property
     def _holder(self):
         # For extension blocks, the holder is values-dependent.
-        return type(unwrap_reshapeable(self.values, check=False))
+        return type(unwrap_reshapeable(self.values))
 
     @property
     def fill_value(self):

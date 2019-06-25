@@ -80,8 +80,7 @@ class ReshapeableArray(ExtensionArray):
         # FIXME: technically wrong to allow if we dont have ndim == 1
 
         result = self._1dvalues.shift(periods, fill_value=fill_value)
-        shape = self.shape
-        return type(self)(result, shape=shape)
+        return type(self)(result, shape=self.shape)
 
     # --------------------------------------------------
     # Lightly Modified pass-through methods
@@ -127,11 +126,7 @@ class ReshapeableArray(ExtensionArray):
         return type(self)(result, shape=self.shape)
 
     def __array__(self, dtype=None):
-        if hasattr(self._1dvalues, "__array__"):
-            result = self._1dvalues.__array__(dtype=dtype)
-        else:
-            result = np.array(self._1dvalues, dtype=dtype)
-            # TODO: cant we use this unconditionally?
+        result = np.array(self._1dvalues, dtype=dtype)
         return result.reshape(self.shape)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
@@ -472,10 +467,8 @@ def _tuplify_shape(size: int, shape) -> Tuple[int, ...]:
     return shape
 
 
-def unwrap_reshapeable(values, check=True):
+def unwrap_reshapeable(values):
     if isinstance(values, ReshapeableArray):
-        # FIXME: re-enablen check
-        # if check:
-        #    assert values.ndim == 1
+        # TODO: require we are only working with 1D?
         return values._1dvalues
     return values
