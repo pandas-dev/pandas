@@ -1,4 +1,4 @@
-# Arithmetc tests for DataFrame/Series/Index/Array classes that should
+# Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 from datetime import datetime, timedelta
 
@@ -59,7 +59,7 @@ class TestTimedelta64ArrayComparisons:
     # TODO: All of these need to be parametrized over box
 
     def test_compare_timedelta_series(self):
-        # regresssion test for GH#5963
+        # regression test for GH#5963
         s = pd.Series([timedelta(days=1), timedelta(days=2)])
         actual = s > timedelta(days=1)
         expected = pd.Series([False, True])

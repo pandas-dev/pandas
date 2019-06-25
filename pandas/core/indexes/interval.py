@@ -390,7 +390,7 @@ class IntervalIndex(IntervalMixin, Index):
                'a future version')
         warnings.warn(msg, FutureWarning, stacklevel=2)
 
-        # supress the warning from the underlying left/right itemsize
+        # suppress the warning from the underlying left/right itemsize
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             return self.left.itemsize + self.right.itemsize
