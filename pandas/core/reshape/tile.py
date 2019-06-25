@@ -245,7 +245,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                                 series_index, name, dtype)
 
 
-def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
+def qcut(x, q, labels=True, retbins=False, precision=3, duplicates='raise'):
     """
     Quantile-based discretization function. Discretize variable into
     equal-sized buckets based on rank or based on sample quantiles. For example
@@ -258,7 +258,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     q : integer or array of quantiles
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles
-    labels : array or boolean, default None
+    labels : array or boolean, default True
         Used as labels for the resulting bins. Must be of the same length as
         the resulting bins. If False, return only integer indicators of the
         bins.
@@ -317,7 +317,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
                                 series_index, name, dtype)
 
 
-def _bins_to_cuts(x, bins, right=True, labels=None,
+def _bins_to_cuts(x, bins, right=True, labels=True,
                   precision=3, include_lowest=False,
                   dtype=None, duplicates='raise'):
 
@@ -351,7 +351,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     has_nas = na_mask.any()
 
     if labels is not False:
-        if labels is None:
+        if labels is True:
             labels = _format_labels(bins, precision, right=right,
                                     include_lowest=include_lowest,
                                     dtype=dtype)
