@@ -56,7 +56,7 @@ from pandas.tseries.frequencies import to_offset
 # able to share
 _shared_docs = dict()
 _shared_doc_kwargs = dict(
-    axes='keywords for axes', klass='NDFrame',
+    axes='keywords for axes', klass='Series/DataFrame',
     axes_single_arg='int or labels for object',
     args_transpose='axes to permute (int or label for object)',
     optional_by="""
@@ -1940,7 +1940,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_dense(self):
         """
-        Return dense representation of NDFrame (as opposed to sparse).
+        Return dense representation of Series/DataFrame (as opposed to sparse).
 
         .. deprecated:: 0.25.0
 
@@ -3193,7 +3193,7 @@ class NDFrame(PandasObject, SelectionMixin):
         result = result.__finalize__(self)
 
         # this could be a view
-        # but only in a single-dtyped view slicable case
+        # but only in a single-dtyped view sliceable case
         is_copy = axis != 0 or result._is_view
         result._set_is_copy(self, copy=is_copy)
         return result
@@ -3243,7 +3243,7 @@ class NDFrame(PandasObject, SelectionMixin):
         force : boolean, default False
            if True, then force showing an error
 
-        validate if we are doing a settitem on a chained copy.
+        validate if we are doing a setitem on a chained copy.
 
         If you call this function, be sure to set the stacklevel such that the
         user will see the error *at the level of setting*
@@ -3644,7 +3644,7 @@ class NDFrame(PandasObject, SelectionMixin):
             result.index = new_index
 
         # this could be a view
-        # but only in a single-dtyped view slicable case
+        # but only in a single-dtyped view sliceable case
         result._set_is_copy(self, copy=not result._is_view)
         return result
 
@@ -5622,6 +5622,31 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
+        Create a DataFrame:
+
+        >>> d = {'col1': [1, 2], 'col2': [3, 4]}
+        >>> df = pd.DataFrame(data=d)
+        >>> df.dtypes
+        col1    int64
+        col2    int64
+        dtype: object
+
+        Cast all columns to int32:
+
+        >>> df.astype('int32').dtypes
+        col1    int32
+        col2    int32
+        dtype: object
+
+        Cast col1 to int32 using a dictionary:
+
+        >>> df.astype({'col1': 'int32'}).dtypes
+        col1    int32
+        col2    int64
+        dtype: object
+
+        Create a series:
+
         >>> ser = pd.Series([1, 2], dtype='int32')
         >>> ser
         0    1
@@ -6463,7 +6488,7 @@ class NDFrame(PandasObject, SelectionMixin):
                     for c, src in to_replace.items():
                         if c in value and c in self:
                             # object conversion is handled in
-                            # series.replace which is called recursivelly
+                            # series.replace which is called recursively
                             res[c] = res[c].replace(to_replace=src,
                                                     value=value[c],
                                                     inplace=False,
@@ -6699,7 +6724,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Note how the last entry in column 'a' is interpolated differently,
         because there is no entry after it to use for interpolation.
         Note how the first entry in column 'b' remains ``NaN``, because there
-        is no entry befofe it to use for interpolation.
+        is no entry before it to use for interpolation.
 
         >>> df = pd.DataFrame([(0.0, np.nan, -1.0, 1.0),
         ...                    (np.nan, 2.0, np.nan, np.nan),
@@ -9011,7 +9036,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        shifted : NDFrame
+        shifted : Series/DataFrame
 
         Notes
         -----
@@ -9551,7 +9576,7 @@ class NDFrame(PandasObject, SelectionMixin):
         DataFrame.max: Maximum of the values in the object.
         DataFrame.min: Minimum of the values in the object.
         DataFrame.mean: Mean of the values.
-        DataFrame.std: Standard deviation of the obersvations.
+        DataFrame.std: Standard deviation of the observations.
         DataFrame.select_dtypes: Subset of a DataFrame including/excluding
             columns based on their dtype.
 
@@ -10247,12 +10272,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return idx
 
     @Appender(_shared_docs['valid_index'] % {'position': 'first',
-                                             'klass': 'NDFrame'})
+                                             'klass': 'Series/DataFrame'})
     def first_valid_index(self):
         return self._find_valid_index('first')
 
     @Appender(_shared_docs['valid_index'] % {'position': 'last',
-                                             'klass': 'NDFrame'})
+                                             'klass': 'Series/DataFrame'})
     def last_valid_index(self):
         return self._find_valid_index('last')
 
