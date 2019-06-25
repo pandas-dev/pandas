@@ -455,6 +455,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+
 | fastparquet     | 0.2.1           |
 +-----------------+-----------------+
+| gcsfs           | 0.2.2           |
++-----------------+-----------------+
 | lxml            | 3.8.0           |
 +-----------------+-----------------+
 | matplotlib      | 2.2.2           |

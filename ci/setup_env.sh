@@ -51,7 +51,7 @@ echo
 echo "update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
-conda install -c conda-canary conda
+conda update -n base conda
 
 echo "conda info -a"
 conda info -a
@@ -92,7 +92,7 @@ conda remove --all -q -y -n pandas-dev
 
 echo
 echo "conda env create -q --file=${ENV_FILE}"
-time conda env create -v --file="${ENV_FILE}"
+time conda env create -q --file="${ENV_FILE}"
 
 echo "activate pandas-dev"
 source activate pandas-dev
