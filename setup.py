@@ -784,4 +784,11 @@ setup(name=DISTNAME,
       classifiers=CLASSIFIERS,
       platforms='any',
       python_requires='>=3.5',
+      extras_require={
+          'test': [
+              # sync with setup.cfg minversion & install.rst
+              'pytest>=4.0.2',
+              'hypothesis>=3.58',
+          ]
+      },
       **setuptools_kwargs)
