@@ -562,7 +562,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         * 'block': Stores a `block` and `block_length` for each
           contiguous *span* of sparse values. This is best when
           sparse data tends to be clumped together, with large
-          regsions of ``fill-value`` values between sparse values.
+          regions of ``fill-value`` values between sparse values.
         * 'integer': uses an integer to store the location of
           each sparse value.
 
@@ -1316,7 +1316,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             sp_index = IntIndex(length, indices)
 
         else:
-            # when concatentating block indices, we don't claim that you'll
+            # when concatenating block indices, we don't claim that you'll
             # get an identical index as concating the values and then
             # creating a new index. We don't want to spend the time trying
             # to merge blocks across arrays in `to_concat`, so the resulting

@@ -1131,7 +1131,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         .. versionadded:: 0.24.0
 
-        This is implemented for compatability with subclass implementations
+        This is implemented for compatibility with subclass implementations
         when chaining.
 
         Returns
@@ -1486,7 +1486,7 @@ class Index(IndexOpsMixin, PandasObject):
         Return an Index of values for requested level.
 
         This is primarily useful to get an individual level of values from a
-        MultiIndex, but is provided on Index as well for compatability.
+        MultiIndex, but is provided on Index as well for compatibility.
 
         Parameters
         ----------
@@ -3885,7 +3885,7 @@ class Index(IndexOpsMixin, PandasObject):
         from .numeric import Int64Index, UInt64Index
         if not is_unsigned_integer_dtype(dtype):
             # skip int64 conversion attempt if uint-like dtype is passed, as
-            # this could return Int64Index when UInt64Index is what's desrired
+            # this could return Int64Index when UInt64Index is what's desired
             try:
                 res = data.astype('i8', copy=False)
                 if (res == data).all():
