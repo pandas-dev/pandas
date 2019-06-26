@@ -151,7 +151,58 @@ class PlotAccessor(pandas.core.base.PandasObject):
     def __init__(self, data):
         self._parent = data
 
-    def __call__(self, kind='line', x=None, y=None, **kwargs):
+    @staticmethod
+    def _get_call_args(data, args, kwargs):
+        """
+        We used to have different accessors for Series and DataFrame. Their
+        signatures were different:
+
+        - SeriesPlotMethods.__call__(kind, ..., **kwargs)
+        - DataFramePlotMethods.__call__(x, y, kind, ..., **kwargs)
+
+        This function makes this unified `__call__` method compatible with both
+        """
+        if isinstance(data, ABCSeries):
+            arg_def = [
+                ('kind', 'line'), ('ax', None), ('figsize', None),
+                ('use_index', True), ('title', None), ('grid', None),
+                ('legend', False), ('style', None), ('logx', False),
+                ('logy', False), ('loglog', False), ('xticks', None),
+                ('yticks', None), ('xlim', None), ('ylim', None),
+                ('rot', None), ('fontsize', None), ('colormap', None),
+                ('table', False), ('yerr', None), ('xerr', None),
+                ('label', None), ('secondary_y', False)]
+        elif isinstance(data, ABCDataFrame):
+            arg_def = [
+                ('x', None), ('y', None), ('kind', 'line'), ('ax', None),
+                ('subplots', False), ('sharex', None), ('sharey', False),
+                ('layout', None), ('figsize', None), ('use_index', True),
+                ('title', None), ('grid', None), ('legend', True),
+                ('style', None), ('logx', False), ('logy', False),
+                ('loglog', False), ('xticks', None), ('yticks', None),
+                ('xlim', None), ('ylim', None), ('rot', None),
+                ('fontsize', None), ('colormap', None), ('table', False),
+                ('yerr', None), ('xerr', None), ('secondary_y', False),
+                ('sort_columns', False)]
+        else:
+            return TypeError(('Called plot accessor for type {}, expected '
+                              'Series or DataFrame').format(
+                                  type(data).__name__))
+
+        if args:
+            # TODO raise warning here, positional arguments shouldn't be used
+            # anymore
+            pos_args = {name: value for value, (name, _) in zip(args, arg_def)}
+            kwargs = dict(arg_def, **pos_args, **kwargs)
+
+        x = kwargs.pop('x', None)
+        y = kwargs.pop('y', None)
+        kind = kwargs.pop('kind', 'line')
+        return x, y, kind, kwargs
+
+    def __call__(self, *args, **kwargs):
+        x, y, kind, kwargs = self._get_call_args(self._parent, args, kwargs)
+
         kind = self._kind_aliases.get(kind, kind)
         if kind not in self._all_kinds:
             raise ValueError('{} is not a valid plot kind'.format(kind))
@@ -779,6 +830,10 @@ class PlotAccessor(pandas.core.base.PandasObject):
 
             >>> plot = df.plot.pie(subplots=True, figsize=(6, 3))
         """
+        if (isinstance(self._parent, ABCDataFrame)
+                and kwargs.get('y', None) is None
+                and not kwargs.get('subplots', False)):
+            raise ValueError("pie requires either y column or 'subplots=True'")
         return self(kind='pie', **kwargs)
 
     def scatter(self, x, y, s=None, c=None, **kwargs):
