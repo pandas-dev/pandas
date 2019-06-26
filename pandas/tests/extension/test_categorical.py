@@ -246,6 +246,7 @@ class TestParsing(base.BaseParsingTests):
 
 
 def test_copy_deep(data):
+    # GH#27024
     assert data[0] != data[1]
 
     orig = data.copy(deep=True)

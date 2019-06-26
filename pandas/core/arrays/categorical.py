@@ -457,10 +457,8 @@ class Categorical(ExtensionArray, PandasObject):
         # Defer to CategoricalFormatter's formatter.
         return None
 
+    @Appender(ExtensionArray.copy.__doc__)
     def copy(self, deep: bool = False):
-        """
-        Copy constructor.
-        """
         values = self._codes
         if deep:
             values = values.copy()
@@ -2298,7 +2296,9 @@ class Categorical(ExtensionArray, PandasObject):
 
         # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
-        cat = self.copy()  # Don't need deep here
+
+        # We don't need a deep copy since we overwrite cat._codes immediately
+        cat = self.copy()
 
         # keep nan in codes
         cat._codes = unique_codes
