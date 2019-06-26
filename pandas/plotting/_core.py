@@ -37,20 +37,109 @@ def _get_plot_backend():
 
 class PlotAccessor(pandas.core.base.PandasObject):
     """
-    Series and DataFrame plotting accessor and method.
+    Make plots of Series or DataFrame using the backend specified by the
+    option ``plotting.backend``. By default, matplotlib is used.
 
-    Examples
-    --------
-    >>> s.plot.line()
-    >>> s.plot.bar()
-    >>> s.plot.hist()
-    >>> df.plot.line()
-    >>> df.plot.scatter('x', 'y')
-    >>> df.plot.hexbin()
+    *New in version 0.17.0:* Each plot kind has a corresponding method on
+    the Series or DataFrame accessor, for example:
+    ``Series.plot(kind='line')`` is equivalent to
+    ``Series.plot.line()``.
 
-    Plotting methods can also be accessed by calling the accessor as a method
-    with the ``kind`` argument:
-    ``s.plot(kind='line')`` is equivalent to ``s.plot.line()``
+    Parameters
+    ----------
+    data : Series or DataFrame
+        The object for which the method is called
+    x : label or position, default None
+        Only used if data is a DataFrame.
+    y : label, position or list of label, positions, default None
+        Allows plotting of one column versus another. Only used if data is a
+        DataFrame.
+    kind : str
+        - 'line' : line plot (default)
+        - 'bar' : vertical bar plot
+        - 'barh' : horizontal bar plot
+        - 'hist' : histogram
+        - 'box' : boxplot
+        - 'kde' : Kernel Density Estimation plot
+        - 'density' : same as 'kde'
+        - 'area' : area plot
+        - 'pie' : pie plot
+        - 'scatter' : scatter plot
+        - 'hexbin' : hexbin plot
+    figsize : a tuple (width, height) in inches
+    use_index : bool, default True
+        Use index as ticks for x axis
+    title : string or list
+        Title to use for the plot. If a string is passed, print the string
+        at the top of the figure. If a list is passed and `subplots` is
+        True, print each item in the list above the corresponding subplot.
+    grid : bool, default None (matlab style default)
+        Axis grid lines
+    legend : False/True/'reverse'
+        Place legend on axis subplots
+    style : list or dict
+        matplotlib line style per column
+    logx : bool or 'sym', default False
+        Use log scaling or symlog scaling on x axis
+        .. versionchanged:: 0.25.0
+
+    logy : bool or 'sym' default False
+        Use log scaling or symlog scaling on y axis
+        .. versionchanged:: 0.25.0
+
+    loglog : bool or 'sym', default False
+        Use log scaling or symlog scaling on both x and y axes
+        .. versionchanged:: 0.25.0
+
+    xticks : sequence
+        Values to use for the xticks
+    yticks : sequence
+        Values to use for the yticks
+    xlim : 2-tuple/list
+    ylim : 2-tuple/list
+    rot : int, default None
+        Rotation for ticks (xticks for vertical, yticks for horizontal
+        plots)
+    fontsize : int, default None
+        Font size for xticks and yticks
+    colormap : str or matplotlib colormap object, default None
+        Colormap to select colors from. If string, load colormap with that
+        name from matplotlib.
+    colorbar : bool, optional
+        If True, plot colorbar (only relevant for 'scatter' and 'hexbin'
+        plots)
+    position : float
+        Specify relative alignments for bar plot layout.
+        From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
+        (center)
+    table : bool, Series or DataFrame, default False
+        If True, draw a table using the data in the DataFrame and the data
+        will be transposed to meet matplotlib's default layout.
+        If a Series or DataFrame is passed, use passed data to draw a
+        table.
+    yerr : DataFrame, Series, array-like, dict and str
+        See :ref:`Plotting with Error Bars <visualization.errorbars>` for
+        detail.
+    xerr : same types as yerr.
+    mark_right : bool, default True
+        When using a secondary_y axis, automatically mark the column
+        labels with "(right)" in the legend
+    `**kwds` : keywords
+        Options to pass to matplotlib plotting method
+
+    Returns
+    -------
+    :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        If the backend is not the default matplotlib one, the return value
+        will be the object returned by the backend.
+
+    Notes
+    -----
+    - See matplotlib documentation online for more on this subject
+    - If `kind` = 'bar' or 'barh', you can specify relative alignments
+      for bar plot layout by `position` keyword.
+      From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
+      (center)
     """
     _common_kinds = ('line', 'bar', 'barh', 'kde', 'density', 'area', 'hist',
                      'box')
@@ -63,105 +152,6 @@ class PlotAccessor(pandas.core.base.PandasObject):
         self._parent = data
 
     def __call__(self, kind='line', x=None, y=None, **kwargs):
-        """
-        Make plots of Series or DataFrame using the backend specified by the
-        option ``plotting.backend``.
-
-        *New in version 0.17.0:* Each plot kind has a corresponding method on
-        the Series or DataFrame accessor, for example:
-        ``Series.plot(kind='line')`` is equivalent to
-        ``Series.plot.line()``.
-
-        Parameters
-        ----------
-        data : Series or DataFrame
-            The object for which the method is called
-        %(klass_coord)s
-        kind : str
-            - 'line' : line plot (default)
-            - 'bar' : vertical bar plot
-            - 'barh' : horizontal bar plot
-            - 'hist' : histogram
-            - 'box' : boxplot
-            - 'kde' : Kernel Density Estimation plot
-            - 'density' : same as 'kde'
-            - 'area' : area plot
-            - 'pie' : pie plot
-            - 'scatter' : scatter plot
-            - 'hexbin' : hexbin plot
-        figsize : a tuple (width, height) in inches
-        use_index : bool, default True
-            Use index as ticks for x axis
-        title : string or list
-            Title to use for the plot. If a string is passed, print the string
-            at the top of the figure. If a list is passed and `subplots` is
-            True, print each item in the list above the corresponding subplot.
-        grid : bool, default None (matlab style default)
-            Axis grid lines
-        legend : False/True/'reverse'
-            Place legend on axis subplots
-        style : list or dict
-            matplotlib line style per column
-        logx : bool or 'sym', default False
-            Use log scaling or symlog scaling on x axis
-            .. versionchanged:: 0.25.0
-
-        logy : bool or 'sym' default False
-            Use log scaling or symlog scaling on y axis
-            .. versionchanged:: 0.25.0
-
-        loglog : bool or 'sym', default False
-            Use log scaling or symlog scaling on both x and y axes
-            .. versionchanged:: 0.25.0
-
-        xticks : sequence
-            Values to use for the xticks
-        yticks : sequence
-            Values to use for the yticks
-        xlim : 2-tuple/list
-        ylim : 2-tuple/list
-        rot : int, default None
-            Rotation for ticks (xticks for vertical, yticks for horizontal
-            plots)
-        fontsize : int, default None
-            Font size for xticks and yticks
-        colormap : str or matplotlib colormap object, default None
-            Colormap to select colors from. If string, load colormap with that
-            name from matplotlib.
-        colorbar : bool, optional
-            If True, plot colorbar (only relevant for 'scatter' and 'hexbin'
-            plots)
-        position : float
-            Specify relative alignments for bar plot layout.
-            From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
-            (center)
-        table : bool, Series or DataFrame, default False
-            If True, draw a table using the data in the DataFrame and the data
-            will be transposed to meet matplotlib's default layout.
-            If a Series or DataFrame is passed, use passed data to draw a
-            table.
-        yerr : DataFrame, Series, array-like, dict and str
-            See :ref:`Plotting with Error Bars <visualization.errorbars>` for
-            detail.
-        xerr : same types as yerr.
-        mark_right : bool, default True
-            When using a secondary_y axis, automatically mark the column
-            labels with "(right)" in the legend
-        `**kwds` : keywords
-            Options to pass to matplotlib plotting method
-
-        Returns
-        -------
-        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
-
-        Notes
-        -----
-        - See matplotlib documentation online for more on this subject
-        - If `kind` = 'bar' or 'barh', you can specify relative alignments
-          for bar plot layout by `position` keyword.
-          From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
-          (center)
-        """
         kind = self._kind_aliases.get(kind, kind)
         if kind not in self._all_kinds:
             raise ValueError('{} is not a valid plot kind'.format(kind))
