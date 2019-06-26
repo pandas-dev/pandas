@@ -108,7 +108,7 @@ def nested_to_record(ds, prefix: str = "", sep: str = ".", level: int = 0,
 
 def json_normalize(data: List[Dict],
                    record_path: Union[str, List[str]] = None,
-                   meta: Union[str, List[str], List[List[str]]] = None,
+                   meta: Union[str, List, List[str], List[List[str]]] = None,
                    meta_prefix: str = None,
                    record_prefix: str = None,
                    errors: str = 'raise',
@@ -134,6 +134,7 @@ def json_normalize(data: List[Dict],
         path to records is ['foo', 'bar'].
     errors : {'raise', 'ignore'}, default 'raise'
         Configures error handling.
+
         * 'ignore' : will ignore KeyError if keys listed in meta are not
           always present.
         * 'raise' : will raise KeyError if keys listed in meta are not
@@ -143,7 +144,7 @@ def json_normalize(data: List[Dict],
 
     sep : str, default '.'
         Nested records will generate names separated by sep.
-        e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar.
+        e.g., for sep='.', {'foo': {'bar': 0}} -> foo.bar.
 
         .. versionadded:: 0.20.0
 
