@@ -194,7 +194,17 @@ class TestLoc(Base):
                           typs=['ints', 'uints', 'labels',
                                 'mixed', 'ts', 'floats'])
         self.check_result('bool', 'loc', b, 'ix', b, typs=['empty'],
-                          fails=KeyError)
+                          fails=IndexError)
+
+    @pytest.mark.parametrize('index', [[True, False],
+                                       [True, False, True, False]])
+    def test_loc_getitem_bool_diff_len(self, index):
+        # GH26658
+        s = Series([1, 2, 3])
+        with pytest.raises(IndexError,
+                           match=('Item wrong length {} instead of {}.'.format(
+                               len(index), len(s)))):
+            _ = s.loc[index]
 
     def test_loc_getitem_int_slice(self):
 
