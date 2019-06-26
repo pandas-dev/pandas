@@ -1,7 +1,7 @@
-from datetime import date, datetime, time as dt_time, timedelta
+from datetime import date, datetime, timedelta
 import functools
 import operator
-from typing import List, Optional
+from typing import Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -577,9 +577,6 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
 
 
 class BusinessHourMixin(BusinessMixin):
-    start: List[dt_time]
-    end: List[dt_time]
-    n: int
 
     def __init__(self, start='09:00', end='17:00', offset=timedelta(0)):
         # must be validated here to equality check
@@ -642,7 +639,7 @@ class BusinessHourMixin(BusinessMixin):
         else:
             return BusinessDay(n=nb_offset)
 
-    def _next_opening_time(self, other: datetime, sign: int = 1) -> datetime:
+    def _next_opening_time(self, other, sign=1):
         """
         If self.n and sign have the same sign, return the earliest opening time
         later than or equal to current time.
@@ -701,7 +698,7 @@ class BusinessHourMixin(BusinessMixin):
 
         return datetime(other.year, other.month, other.day, hour, minute)
 
-    def _prev_opening_time(self, other: datetime) -> datetime:
+    def _prev_opening_time(self, other):
         """
         If n is positive, return the latest opening time earlier than or equal
         to current time.
@@ -720,7 +717,7 @@ class BusinessHourMixin(BusinessMixin):
         """
         return self._next_opening_time(other, sign=-1)
 
-    def _get_business_hours_by_sec(self, start: dt_time, end: dt_time) -> int:
+    def _get_business_hours_by_sec(self, start, end):
         """
         Return business hours in a day by seconds.
         """
@@ -731,7 +728,7 @@ class BusinessHourMixin(BusinessMixin):
         return int((until - dtstart).total_seconds())
 
     @apply_wraps
-    def rollback(self, dt: datetime) -> datetime:
+    def rollback(self, dt):
         """
         Roll provided date backward to next offset only if not on offset.
         """
@@ -744,7 +741,7 @@ class BusinessHourMixin(BusinessMixin):
         return dt
 
     @apply_wraps
-    def rollforward(self, dt: datetime) -> datetime:
+    def rollforward(self, dt):
         """
         Roll provided date forward to next offset only if not on offset.
         """
@@ -755,7 +752,7 @@ class BusinessHourMixin(BusinessMixin):
                 return self._prev_opening_time(dt)
         return dt
 
-    def _get_closing_time(self, dt: datetime) -> datetime:
+    def _get_closing_time(self, dt):
         """
         Get the closing time of a business hour interval by its opening time.
 
