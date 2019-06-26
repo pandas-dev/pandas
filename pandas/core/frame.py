@@ -1430,8 +1430,8 @@ class DataFrame(NDFrame):
             Column names to use. If the passed data do not have names
             associated with them, this argument provides names for the
             columns. Otherwise this argument indicates the order of the columns
-            in the result (any names not found in the data will become all-NA
-            columns)
+            in the result. If any names are not found in the data an
+            exception will be raised.
         coerce_float : boolean, default False
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets
