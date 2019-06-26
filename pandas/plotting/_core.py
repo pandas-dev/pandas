@@ -157,38 +157,39 @@ class PlotAccessor(pandas.core.base.PandasObject):
             raise ValueError('{} is not a valid plot kind'.format(kind))
 
         plot_backend = _get_plot_backend()
+        data = self._parent.copy()
+
         if kind in self._dataframe_kinds:
-            if isinstance(self._parent, ABCDataFrame):
-                return plot_backend.plot(self._parent, x=x, y=y, kind=kind,
-                                         **kwargs)
+            if isinstance(data, ABCDataFrame):
+                return plot_backend.plot(data, x=x, y=y, kind=kind, **kwargs)
             else:
                 raise ValueError(("plot kind {} can only be used for "
                                   "data frames").format(kind))
-        if kind in self._series_kinds:
-            if isinstance(self._parent, ABCDataFrame):
+        elif kind in self._series_kinds:
+            if isinstance(data, ABCDataFrame):
                 if y is None and kwargs.get('subplots') is False:
                     msg = "{} requires either y column or 'subplots=True'"
                     raise ValueError(msg.format(kind))
                 elif y is not None:
                     if (is_integer(y)
-                            and not self._parent.columns.holds_integer()):
-                        y = self._parent.columns[y]
+                            and not data.columns.holds_integer()):
+                        y = data.columns[y]
                     # converted to series actually. copy to not modify
-                    self._parent = self._parent[y].copy()
-                    self._parent.index.name = y
-        elif isinstance(self._parent, ABCDataFrame):
-            data_cols = self._parent.columns
+                    data = data[y].copy()
+                    data.index.name = y
+        elif isinstance(data, ABCDataFrame):
+            data_cols = data.columns
             if x is not None:
-                if is_integer(x) and not self._parent.columns.holds_integer():
+                if is_integer(x) and not data.columns.holds_integer():
                     x = data_cols[x]
-                elif not isinstance(self._parent[x], ABCSeries):
+                elif not isinstance(data[x], ABCSeries):
                     raise ValueError("x must be a label or position")
-                self._parent = self._parent.set_index(x)
+                data = data.set_index(x)
             if y is not None:
                 # check if we have y as int or list of ints
                 int_ylist = is_list_like(y) and all(is_integer(c) for c in y)
                 int_y_arg = is_integer(y) or int_ylist
-                if int_y_arg and not self._parent.columns.holds_integer():
+                if int_y_arg and not data.columns.holds_integer():
                     y = data_cols[y]
 
                 label_kw = kwargs['label'] if 'label' in kwargs else False
@@ -197,25 +198,25 @@ class PlotAccessor(pandas.core.base.PandasObject):
                             (isinstance(kwargs[kw], str)
                              or is_integer(kwargs[kw]))):
                         try:
-                            kwargs[kw] = self._parent[kwargs[kw]]
+                            kwargs[kw] = data[kwargs[kw]]
                         except (IndexError, KeyError, TypeError):
                             pass
 
                 # don't overwrite
-                self._parent = self._parent[y].copy()
+                data = data[y].copy()
 
-                if isinstance(self._parent, ABCSeries):
+                if isinstance(data, ABCSeries):
                     label_name = label_kw or y
-                    self._parent.name = label_name
+                    data.name = label_name
                 else:
                     match = is_list_like(label_kw) and len(label_kw) == len(y)
                     if label_kw and not match:
                         raise ValueError(
                             "label should be list-like and same length as y")
-                    label_name = label_kw or self._parent.columns
-                    self._parent.columns = label_name
+                    label_name = label_kw or data.columns
+                    data.columns = label_name
 
-        return plot_backend.plot(self._parent, kind=kind, **kwargs)
+        return plot_backend.plot(data, kind=kind, **kwargs)
 
     def line(self, x=None, y=None, **kwargs):
         """
