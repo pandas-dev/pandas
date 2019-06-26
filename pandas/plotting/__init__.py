@@ -2,8 +2,8 @@
 Plotting public API
 """
 from pandas.plotting._core import (
-    PlotAccessor, boxplot, boxplot_frame,
-    boxplot_frame_groupby, hist_frame, hist_series)
+    PlotAccessor, boxplot, boxplot_frame, boxplot_frame_groupby, hist_frame,
+    hist_series)
 from pandas.plotting._misc import (
     andrews_curves, autocorrelation_plot, bootstrap_plot,
     deregister as deregister_matplotlib_converters, lag_plot,

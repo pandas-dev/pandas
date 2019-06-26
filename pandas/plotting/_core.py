@@ -3,9 +3,11 @@ from typing import List, Type  # noqa
 
 from pandas.util._decorators import Appender
 
-import pandas
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+
+import pandas
+from pandas.core.base import PandasObject
 
 # Trigger matplotlib import, which implicitly registers our
 # converts. Implicit registration is deprecated, and when enforced
@@ -35,7 +37,7 @@ def _get_plot_backend():
     return importlib.import_module(backend_str)
 
 
-class PlotAccessor(pandas.core.base.PandasObject):
+class PlotAccessor(PandasObject):
     """
     Make plots of Series or DataFrame using the backend specified by the
     option ``plotting.backend``. By default, matplotlib is used.
@@ -120,7 +122,8 @@ class PlotAccessor(pandas.core.base.PandasObject):
     yerr : DataFrame, Series, array-like, dict and str
         See :ref:`Plotting with Error Bars <visualization.errorbars>` for
         detail.
-    xerr : same types as yerr.
+    xerr : DataFrame, Series, array-like, dict and str
+        Equivalent to yerr.
     mark_right : bool, default True
         When using a secondary_y axis, automatically mark the column
         labels with "(right)" in the legend

@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from pandas._config import get_option
 
 import pandas
+
 from pandas.plotting._matplotlib.boxplot import (
     BoxPlot, boxplot, boxplot_frame, boxplot_frame_groupby)
 from pandas.plotting._matplotlib.converter import deregister, register
