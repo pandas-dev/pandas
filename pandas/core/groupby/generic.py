@@ -1733,6 +1733,10 @@ def _managle_lambda_list(aggfuncs):
     """
     Possibly mangle a list of aggfuncs.
 
+    Parameters
+    ----------
+    aggfuncs : Sequence
+
     Returns
     -------
     mangled: list-like
