@@ -10,7 +10,8 @@ import os
 import re
 
 from pandas.compat import raise_with_traceback
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    VERSIONS, import_optional_dependency, version_message)
 from pandas.errors import AbstractMethodError, EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
@@ -831,9 +832,13 @@ def _parser_dispatch(flavor):
             raise ImportError(
                 "BeautifulSoup4 (bs4) not found, please install it")
         import bs4
-        if LooseVersion(bs4.__version__) <= LooseVersion('4.2.0'):
-            raise ValueError("A minimum version of BeautifulSoup 4.2.1 "
-                             "is required")
+        minimum_bs4_version = VERSIONS['bs4']
+        if LooseVersion(bs4.__version__) <= LooseVersion(minimum_bs4_version):
+            raise ImportError(version_message.format(
+                minimum_bs4_version,
+                'bs4',
+                bs4.__version__
+            ))
 
     else:
         if not _HAS_LXML:
