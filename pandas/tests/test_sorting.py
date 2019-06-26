@@ -6,8 +6,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas import (
-    DataFrame, MultiIndex, Series, array, concat, merge, to_datetime)
+from pandas import DataFrame, MultiIndex, Series, array, concat, merge
 from pandas.core import common as com
 from pandas.core.sorting import (
     decons_group_index, get_group_index, is_int64_overflow_possible,
@@ -180,13 +179,6 @@ class TestSorting:
                           na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
-
-    def test_nargsort_datetimearray_warning(self):
-        # https://github.com/pandas-dev/pandas/issues/25439
-        # can be removed once the FutureWarning for np.array(DTA) is removed
-        data = to_datetime([0, 2, 0, 1]).tz_localize('Europe/Brussels')
-        with tm.assert_produces_warning(None):
-            nargsort(data)
 
 
 class TestMerge:

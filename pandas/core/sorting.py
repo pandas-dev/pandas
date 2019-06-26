@@ -1,6 +1,4 @@
 """ miscellaneous sorting / groupby utilities """
-import warnings
-
 import numpy as np
 
 from pandas._libs import algos, hashtable, lib
@@ -238,13 +236,15 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
     handles NaNs. It adds ascending and na_position parameters.
     GH #6399, #5231
     """
+    from pandas.core.internals.arrays import extract_array
 
+    items = extract_array(items)
+    mask = np.asarray(isna(items))
     # specially handle Categorical
     if is_categorical_dtype(items):
         if na_position not in {'first', 'last'}:
             raise ValueError('invalid na_position: {!r}'.format(na_position))
 
-        mask = isna(items)
         cnt_null = mask.sum()
         sorted_idx = items.argsort(ascending=ascending, kind=kind)
         if ascending and na_position == 'last':
@@ -255,15 +255,12 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
             sorted_idx = np.roll(sorted_idx, cnt_null)
         return sorted_idx
 
-    with warnings.catch_warnings():
-        # https://github.com/pandas-dev/pandas/issues/25439
-        # can be removed once ExtensionArrays are properly handled by nargsort
-        warnings.filterwarnings(
-            "ignore", category=FutureWarning,
-            message="Converting timezone-aware DatetimeArray to")
+    if is_extension_array_dtype(items):
+        items = items._values_for_argsort()
+    else:
         items = np.asanyarray(items)
+
     idx = np.arange(len(items))
-    mask = isna(items)
     non_nans = items[~mask]
     non_nan_idx = idx[~mask]
     nan_idx = np.nonzero(mask)[0]
