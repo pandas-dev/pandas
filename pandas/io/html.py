@@ -4,7 +4,6 @@ HTML IO.
 """
 
 from collections import abc
-from distutils.version import LooseVersion
 import numbers
 import os
 import re
