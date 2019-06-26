@@ -485,13 +485,12 @@ class Docstring(object):
                      for line in self.doc._parsed_data['Parameters'][i][-1]
                      if line]
         # Find and strip out any sphinx directives
-        for directive in DIRECTIVES:
-            full_directive = '.. {}'.format(directive)
-            for desc_item in desc_list:
-                if full_directive in desc_item:
-                    # Only retain any description before the directive
-                    desc_list = desc_list[:desc_list.index(desc_item)]
-                    break
+        directives_pattern = re.compile('.. ({})'.format('|'.join(DIRECTIVES)))
+        for desc_item in desc_list:
+            if re.match(directives_pattern, desc_item):
+                # Only retain any description before the directive
+                desc_list = desc_list[:desc_list.index(desc_item)]
+                break
         return desc_list
 
     def has_proper_punctuation(self, param):
