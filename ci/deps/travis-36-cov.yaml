@@ -39,6 +39,7 @@ dependencies:
   # universal
   - pytest>=4.0.2
   - pytest-xdist
+  - pytest-azurepipelines
   - pytest-cov
   - pytest-mock
   - hypothesis>=3.58.0
