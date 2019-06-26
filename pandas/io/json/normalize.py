@@ -42,7 +42,7 @@ def nested_to_record(ds, prefix="", sep=".", level=0):
 
         .. versionadded:: 0.20.0
 
-    level: the number of levels in the jason string, optional, default: 0
+    level: the number of levels in the json string, optional, default: 0
 
     Returns
     -------
@@ -198,7 +198,7 @@ def json_normalize(data, record_path=None, meta=None,
         data = [data]
 
     if record_path is None:
-        if any([isinstance(x, dict) for x in y.values()] for y in data):
+        if any(any(isinstance(x, dict) for x in y.values()) for y in data):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:
