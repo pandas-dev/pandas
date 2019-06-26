@@ -699,7 +699,7 @@ See :ref:`contributing.warnings` for more.
 Type Hints
 ----------
 
-*pandas* strongly encourages the use of :pep:`484` style type hints. New development should contain type hints and pull requests to annotate existing code is strongly encouraged.
+*pandas* strongly encourages the use of :pep:`484` style type hints. New development should contain type hints and pull requests to annotate existing code are accepted as well!
 
 Syntax Requirements
 ~~~~~~~~~~~~~~~~~~~
@@ -714,18 +714,18 @@ Whereas this is **NOT** allowed:
 
 .. code-block:: python
 
-   primes: List[int] = []
+   primes: List[int] = []  # not supported in Python 3.5!
 
 Note that function signatures can always be annotated per :pep:`3107`:
 
 .. code-block:: python
 
-   def sum_of_primes(primes: List[int] = [])  -> int: # this is a valid annotation!
+   def sum_of_primes(primes: List[int] = [])  -> int:
 
 Style Guidelines
 ~~~~~~~~~~~~~~~~
 
-Types imports should follow the ``from typing import ...`` convention. So rather than either of
+Types imports should follow the ``from typing import ...`` convention. So rather than
 
 .. code-block:: python
 
@@ -757,7 +757,7 @@ You should write
 
    maybe_primes = []  # type: Optional[int]
 
-If a function accepts multiple arguments, every parameter should appear on a separate line. So rather than doing this:
+If a function accepts multiple arguments, every parameter should appear on a separate line. So rather than
 
 .. code-block:: python
 
@@ -770,7 +770,7 @@ The preferred style would be
    def some_func(a: str,
 		 b: float,
 		 c: Union[int, float]
-       ) -> float:
+   ) -> float:
 
 When dealing with parameters with a default argument of ``None``, you should not use ``Optional`` as this will be inferred by the static type checker. So instead of:
 
@@ -797,8 +797,6 @@ Validating Type Hints
 .. code-block:: shell
 
    mypy pandas
-
-From the project root.
 
 .. _contributing.ci:
 
