@@ -696,6 +696,109 @@ You'll also need to
 
 See :ref:`contributing.warnings` for more.
 
+Type Hints
+----------
+
+*pandas* strongly encourages the use of :pep:`484` style type hints. New development should contain type hints and pull requests to annotate existing code is strongly encouraged.
+
+Syntax Requirements
+~~~~~~~~~~~~~~~~~~~
+
+Because *pandas* still supports Python 3.5, :pep:`526` does not apply and variables **must** be annotated with type comments. Specifically, this is a valid annotation within pandas:
+
+.. code-block:: python
+
+   primes = []  # type: List[int]
+
+Whereas this is **NOT** allowed:
+
+.. code-block:: python
+
+   primes: List[int] = []
+
+Note that function signatures can always be annotated per :pep:`3107`:
+
+.. code-block:: python
+
+   def sum_of_primes(primes: List[int] = [])  -> int: # this is a valid annotation!
+
+Style Guidelines
+~~~~~~~~~~~~~~~~
+
+Types imports should follow the ``from typing import ...`` convention. So rather than either of
+
+.. code-block:: python
+
+   import typing
+
+   primes = []  # type: typing.List[int]
+
+You should write
+
+.. code-block:: python
+
+   from typing import List
+
+   primes = []  # type: List[int]
+
+``Optional`` should be used where applicable, so instead of
+
+.. code-block:: python
+
+   from typing import Union
+
+   maybe_primes = []  # type: Union[int, None]
+
+You should write
+
+.. code-block:: python
+
+   from typing import Optional
+
+   maybe_primes = []  # type: Optional[int]
+
+If a function accepts multiple arguments, every parameter should appear on a separate line. So rather than doing this:
+
+.. code-block:: python
+
+   def some_func(a: str, b: float, c: Union[int, float]) -> float:
+
+The preferred style would be
+
+.. code-block:: python
+
+   def some_func(a: str,
+		 b: float,
+		 c: Union[int, float]
+       ) -> float:
+
+When dealing with parameters with a default argument of ``None``, you should not use ``Optional`` as this will be inferred by the static type checker. So instead of:
+
+.. code-block:: python
+
+   def maybe_upcase(value: Optional[str] = None) -> Optional[str]:
+
+You should write
+
+.. code-block:: python
+
+   def maybe_upcase(value: str = None) -> Optional[str]:
+
+Pandas-specific Types
+~~~~~~~~~~~~~~~~~~~~~
+
+Commonly used types specific to *pandas* will appear in pandas._typing and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
+
+Validating Type Hints
+~~~~~~~~~~~~~~~~~~~~~
+
+*pandas* uses `mypy <http://mypy-lang.org>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
+
+.. code-block:: shell
+
+   mypy pandas
+
+From the project root.
 
 .. _contributing.ci:
 
