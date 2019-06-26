@@ -12,6 +12,51 @@ from pandas.core.arrays.base import ExtensionArray
 from pandas.core.dtypes.generic import ABCPandasArray
 
 
+def _with_own_shape(name):
+    """
+    Implement a ReshapeableArray method that dispatches to the matching
+    method on its _1dvalues and wraps the result with its own shape.
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    method
+    """
+    def method(self, *args, **kwargs):
+        result = getattr(self._1dvalues, name)(*args, **kwargs)
+        if isinstance(result, np.ndarray):
+            return result.reshape(self.shape)
+        return type(self)(result, shape=self.shape)
+
+    method.__name__ = name
+    return method
+
+
+def _with_size(name):
+    """
+    Implement a ReshapeableArray method that dispatches to the matching
+    method on its _1dvalues and wraps the result in a 1D ReshapeableArray.
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    method
+    """
+
+    def method(self, *args, **kwargs):
+        result = getattr(self._1dvalues, name)(*args, **kwargs)
+        return type(self)(result, shape=(result.size,))
+
+    method.__name__ = name
+    return method
+
+
 class ReshapeableArray(ExtensionArray):
     """
     ReshapeableArray holds a non-reshape-able ExtensionArray and supports
@@ -38,6 +83,17 @@ class ReshapeableArray(ExtensionArray):
     # --------------------------------------------------
     # Direct pass-through attributes
 
+    copy = _with_own_shape("copy")
+    fillna = _with_own_shape("fillna")
+    isna = _with_own_shape("isna")
+    astype = _with_own_shape("astype")
+
+    # NB: the next few are not classmethods because we need access
+    #  to self._1dvalues
+    _from_factorized = _with_size("_from_factorized")
+    _from_sequence = _with_size("_from_sequence")
+    _concat_same_type = _with_size("_concat_same_type")
+
     @property
     def dtype(self):
         return self._1dvalues.dtype
@@ -50,35 +106,12 @@ class ReshapeableArray(ExtensionArray):
     def nbytes(self) -> int:
         return self._1dvalues.nbytes
 
-    def copy(self, deep: bool = False):
-        result = self._1dvalues.copy(deep=deep)
-        return type(self)(result, shape=self.shape)
-
     def _formatting_values(self):
         # TODO: should this be reshaped?
         return self._1dvalues._formatting_values()
 
-    # NB: Not a classmethod since we need access to self._1dvalues
-    def _from_factorized(self, values, original):
-        result = self._1dvalues._from_factorized(values, original)
-        shape = (result.size,)
-        return type(self)(result, shape=shape)
-
-    # NB: Not a classmethod since we need access to self._1dvalues
-    def _from_sequence(self, scalars, dtype=None, copy=False):
-        result = self._1dvalues._from_sequence(scalars, dtype=dtype, copy=copy)
-        shape = (result.size,)
-        return type(self)(result, shape=shape)
-
-    # NB: Not a classmethod since we need access to self._1dvalues
-    def _concat_same_type(self, to_concat):
-        result = self._1dvalues._concat_same_type(to_concat)
-        shape = (result.size,)
-        return type(self)(result, shape=shape)
-
     def shift(self, periods: int = 1, fill_value: object = None):
         # FIXME: technically wrong to allow if we dont have ndim == 1
-
         result = self._1dvalues.shift(periods, fill_value=fill_value)
         return type(self)(result, shape=self.shape)
 
@@ -99,26 +132,6 @@ class ReshapeableArray(ExtensionArray):
             for n in range(len(self)):
                 yield self[n]
 
-    def isna(self):
-        result = self._1dvalues.isna()
-        if isinstance(result, np.ndarray):
-            result = result.reshape(self.shape)
-        else:
-            result = type(self)(result, shape=self.shape)
-        return result
-
-    def astype(self, dtype, copy=True):
-        result = self._1dvalues.astype(dtype=dtype, copy=copy)
-        if isinstance(result, np.ndarray):
-            result = result.reshape(self.shape)
-        else:
-            result = type(self)(result, shape=self.shape)
-        return result
-
-    def fillna(self, value=None, method=None, limit=None):
-        result = self._1dvalues.fillna(value=value, method=method, limit=limit)
-        return type(self)(result, shape=self.shape)
-
     def __sub__(self, other):
         assert isinstance(other, type(self))
         assert other.shape == self.shape
@@ -126,6 +139,7 @@ class ReshapeableArray(ExtensionArray):
         return type(self)(result, shape=self.shape)
 
     def __array__(self, dtype=None):
+        # TODO: can we use self._1dvalues.__array__?
         result = np.array(self._1dvalues, dtype=dtype)
         return result.reshape(self.shape)
 
