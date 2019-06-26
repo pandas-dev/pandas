@@ -952,9 +952,13 @@ class PlotAccessor(pandas.core.base.PandasObject):
                           pandas.core.dtypes.generic.ABCDataFrame):
             raise ValueError(
                 "plot kind hexbin can only be used for data frames")
-        return self(kind='hexbin', x=x, y=y, C=C,
-                    reduce_C_function=reduce_C_function, gridsize=gridsize,
-                    **kwargs)
+
+        if reduce_C_function is not None:
+            kwargs['reduce_C_function'] = reduce_C_function
+        if gridsize is not None:
+            kwargs['gridsize'] = gridsize
+
+        return self(kind='hexbin', x=x, y=y, C=C, **kwargs)
 
 
 def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
