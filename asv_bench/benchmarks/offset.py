@@ -9,7 +9,7 @@ except ImportError:
     pass
 
 hcal = pd.tseries.holiday.USFederalHolidayCalendar()
-# These offests currently raise a NotImplimentedError with .apply_index()
+# These offsets currently raise a NotImplimentedError with .apply_index()
 non_apply = [pd.offsets.Day(),
              pd.offsets.BYearEnd(),
              pd.offsets.BYearBegin(),

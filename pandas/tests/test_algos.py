@@ -712,7 +712,7 @@ class TestIsin:
         # GH 22160
         # nan is special, because from " a is b" doesn't follow "a == b"
         # at least, isin() should follow python's "np.nan in [nan] == True"
-        # casting to -> np.float64 -> another float-object somewher on
+        # casting to -> np.float64 -> another float-object somewhere on
         # the way could lead jepardize this behavior
         comps = [np.nan]  # could be casted to float64
         values = [np.nan]

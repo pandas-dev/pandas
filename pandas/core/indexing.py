@@ -955,7 +955,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def _getitem_nested_tuple(self, tup):
         # we have a nested tuple so have at least 1 multi-index level
-        # we should be able to match up the dimensionaility here
+        # we should be able to match up the dimensionality here
 
         # we have too many indexers for our dim, but have at least 1
         # multi-index dimension, try to see if we have something like

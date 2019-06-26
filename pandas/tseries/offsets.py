@@ -116,7 +116,7 @@ class DateOffset(BaseOffset):
     off specifying n in the keywords you use, but regardless it is
     there for you. n is needed for DateOffset subclasses.
 
-    DateOffets work as follows.  Each offset specify a set of dates
+    DateOffset work as follows.  Each offset specify a set of dates
     that conform to the DateOffset.  For example, Bday defines this
     set to be the set of dates that are weekdays (M-F).  To test if a
     date is in the set of a DateOffset dateOffset we can use the

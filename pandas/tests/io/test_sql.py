@@ -1338,7 +1338,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         # this is parsed on Travis (linux), but not on macosx for some reason
         # even with the same versions of psycopg2 & sqlalchemy, possibly a
-        # Postgrsql server version difference
+        # Postgresql server version difference
         col = df.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
 
