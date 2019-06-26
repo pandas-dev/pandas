@@ -5,7 +5,7 @@ import pandas.util.testing as tm
 from pandas import (Series, DataFrame, MultiIndex,
                     Int64Index, UInt64Index, Float64Index,
                     IntervalIndex, CategoricalIndex,
-                    IndexSlice, concat, date_range)
+                    IndexSlice, concat, date_range, option_context)
 
 
 class NumericSeriesIndexing:
@@ -333,6 +333,22 @@ class InsertColumns:
         np.random.seed(1234)
         for i in range(100):
             self.df[i] = np.random.randn(self.N)
+
+
+class ChainIndexing:
+
+    params = [None, 'warn']
+    param_names = ['mode']
+
+    def setup(self, mode):
+        self.N = 1000000
+
+    def time_chained_indexing(self, mode):
+        with warnings.catch_warnings(record=True):
+            with option_context('mode.chained_assignment', mode):
+                df = DataFrame({'A': np.arange(self.N), 'B': 'foo'})
+                df2 = df[df.A > self.N // 2]
+                df2['C'] = 1.0
 
 
 from .pandas_vb_common import setup  # noqa: F401
