@@ -833,7 +833,7 @@ def _parser_dispatch(flavor):
                 "BeautifulSoup4 (bs4) not found, please install it")
         import bs4
         minimum_bs4_version = VERSIONS['bs4']
-        if LooseVersion(bs4.__version__) <= LooseVersion(minimum_bs4_version):
+        if LooseVersion(bs4.__version__) < LooseVersion(minimum_bs4_version):
             raise ImportError(version_message.format(
                 minimum_bs4_version,
                 'bs4',

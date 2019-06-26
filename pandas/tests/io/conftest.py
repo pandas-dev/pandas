@@ -43,7 +43,6 @@ def s3_resource(tips_file, jsonl_file):
     """
     pytest.importorskip('s3fs')
     boto3 = pytest.importorskip('boto3')
-    botocore = pytest.importorskip('botocore')
 
     with tm.ensure_safe_environment_variables():
         # temporary workaround as moto fails for botocore >= 1.11 otherwise,
