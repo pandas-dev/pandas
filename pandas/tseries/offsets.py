@@ -98,6 +98,8 @@ def apply_wraps(func):
             if tz is not None and result.tzinfo is None:
                 result = conversion.localize_pydatetime(result, tz)
 
+            result = Timestamp(result)
+
         return result
     return wrapper
 
@@ -115,7 +117,7 @@ class DateOffset(BaseOffset):
     off specifying n in the keywords you use, but regardless it is
     there for you. n is needed for DateOffset subclasses.
 
-    DateOffets work as follows.  Each offset specify a set of dates
+    DateOffset work as follows.  Each offset specify a set of dates
     that conform to the DateOffset.  For example, Bday defines this
     set to be the set of dates that are weekdays (M-F).  To test if a
     date is in the set of a DateOffset dateOffset we can use the
@@ -2428,7 +2430,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             # an exception, when we call using the + operator,
             # we directly call the known method
             result = other.__add__(self)
-            if result == NotImplemented:
+            if result is NotImplemented:
                 raise OverflowError
             return result
         elif isinstance(other, (datetime, np.datetime64, date)):
@@ -2565,6 +2567,11 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
         while cur <= end:
             yield cur
 
+            if cur == end:
+                # GH#24252 avoid overflows by not performing the addition
+                # in offset.apply unless we have to
+                break
+
             # faster than cur + offset
             next_date = offset.apply(cur)
             if next_date <= cur:
@@ -2574,6 +2581,11 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
     else:
         while cur >= end:
             yield cur
+
+            if cur == end:
+                # GH#24252 avoid overflows by not performing the addition
+                # in offset.apply unless we have to
+                break
 
             # faster than cur + offset
             next_date = offset.apply(cur)

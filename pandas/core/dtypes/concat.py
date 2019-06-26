@@ -73,10 +73,7 @@ def _get_series_result_type(result, objs=None):
             return DataFrame
 
     # otherwise it is a SingleBlockManager (axis = 0)
-    if result._block.is_sparse:
-        return SparseSeries
-    else:
-        return objs[0]._constructor
+    return objs[0]._constructor
 
 
 def _get_frame_result_type(result, objs):
@@ -132,7 +129,7 @@ def _concat_compat(to_concat, axis=0):
     _contains_period = any(typ.startswith('period') for typ in typs)
 
     if 'category' in typs:
-        # this must be priort to _concat_datetime,
+        # this must be prior to _concat_datetime,
         # to support Categorical + datetime-like
         return _concat_categorical(to_concat, axis=axis)
 

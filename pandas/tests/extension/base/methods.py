@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas.core.sorting import nargsort
 import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
@@ -30,6 +31,13 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.Series([0, 1])
         self.assert_series_equal(result, expected)
 
+    def test_series_count(self, data_missing):
+        # GH#26835
+        ser = pd.Series(data_missing)
+        result = ser.count()
+        expected = 1
+        assert result == expected
+
     def test_apply_simple_series(self, data):
         result = pd.Series(data).apply(id)
         assert isinstance(result, pd.Series)
@@ -43,6 +51,15 @@ class BaseMethodsTests(BaseExtensionTests):
         result = pd.Series(data_missing_for_sorting).argsort()
         expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
         self.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('na_position, expected', [
+        ('last', np.array([2, 0, 1], dtype='int64')),
+        ('first', np.array([1, 2, 0], dtype='int64'))
+    ])
+    def test_nargsort(self, data_missing_for_sorting, na_position, expected):
+        # GH 25439
+        result = nargsort(data_missing_for_sorting, na_position=na_position)
+        tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize('ascending', [True, False])
     def test_sort_values(self, data_for_sorting, ascending):

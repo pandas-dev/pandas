@@ -71,7 +71,10 @@ def test_on_offset_implementations(dt, offset):
     assert offset.onOffset(dt) == (compare == dt)
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason="res_v2 below is incorrect, needs to use the "
+                          "commented-out version with tz_localize.  "
+                          "But with that fix in place, hypothesis then "
+                          "has errors in timezone generation.")
 @given(gen_yqm_offset, gen_date_range)
 def test_apply_index_implementations(offset, rng):
     # offset.apply_index(dti)[i] should match dti[i] + offset
@@ -82,6 +85,7 @@ def test_apply_index_implementations(offset, rng):
 
     res = rng + offset
     res_v2 = offset.apply_index(rng)
+    # res_v2 = offset.apply_index(rng.tz_localize(None)).tz_localize(rng.tz)
     assert (res == res_v2).all()
 
     assert res[0] == rng[0] + offset
@@ -93,7 +97,7 @@ def test_apply_index_implementations(offset, rng):
     # TODO: Check randomly assorted entries, not just first/last
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail  # TODO: reason?
 @given(gen_yqm_offset)
 def test_shift_across_dst(offset):
     # GH#18319 check that 1) timezone is correctly normalized and

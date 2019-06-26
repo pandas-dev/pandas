@@ -130,7 +130,7 @@ def test_groupby_return_type():
     assert isinstance(result, DataFrame)
 
     # GH5592
-    # inconcistent return type
+    # inconsistent return type
     df = DataFrame(dict(A=['Tiger', 'Tiger', 'Tiger', 'Lamb', 'Lamb',
                            'Pony', 'Pony'], B=Series(
                                np.arange(7), dtype='int64'), C=date_range(
@@ -1306,12 +1306,12 @@ def test_skip_group_keys():
     assert_series_equal(result, expected)
 
 
-def test_no_nonsense_name(frame):
+def test_no_nonsense_name(float_frame):
     # GH #995
-    s = frame['C'].copy()
+    s = float_frame['C'].copy()
     s.name = None
 
-    result = s.groupby(frame['A']).agg(np.sum)
+    result = s.groupby(float_frame['A']).agg(np.sum)
     assert result.name is None
 
 

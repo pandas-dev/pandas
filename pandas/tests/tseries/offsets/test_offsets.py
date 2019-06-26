@@ -115,7 +115,7 @@ class Base:
             assert t.tzinfo == result.tzinfo
 
         except OutOfBoundsDatetime:
-            raise
+            pass
         except (ValueError, KeyError):
             # we are creating an invalid offset
             # so ignore
@@ -904,7 +904,7 @@ class TestBusinessHour(Base):
         assert self.offset10(self.d) == datetime(2014, 7, 1, 1)
 
     def test_sub(self):
-        # we have to override test_sub here becasue self.offset2 is not
+        # we have to override test_sub here because self.offset2 is not
         # defined as self._offset(2)
         off = self.offset2
         msg = "Cannot subtract datetime from offset"
