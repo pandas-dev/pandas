@@ -162,6 +162,11 @@ class PlotAccessor(pandas.core.base.PandasObject):
 
         This function makes this unified `__call__` method compatible with both
         """
+        if args and isinstance(data, ABCSeries):
+            # TODO raise warning here, positional arguments shouldn't be
+            # used anymore, so we can add x, y and kind to the signature
+            pass
+
         if isinstance(data, ABCSeries):
             arg_def = [
                 ('kind', 'line'), ('ax', None), ('figsize', None),
@@ -189,11 +194,8 @@ class PlotAccessor(pandas.core.base.PandasObject):
                               'Series or DataFrame').format(
                                   type(data).__name__))
 
-        if args:
-            # TODO raise warning here, positional arguments shouldn't be used
-            # anymore
-            pos_args = {name: value for value, (name, _) in zip(args, arg_def)}
-            kwargs = dict(arg_def, **pos_args, **kwargs)
+        pos_args = {name: value for value, (name, _) in zip(args, arg_def)}
+        kwargs = dict(arg_def, **pos_args, **kwargs)
 
         x = kwargs.pop('x', None)
         y = kwargs.pop('y', None)
