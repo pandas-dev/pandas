@@ -250,7 +250,8 @@ def create_msgpack_data():
     del data['frame']['cat_onecol']
     del data['frame']['cat_and_float']
     del data['scalars']['period']
-    if _loose_version < LooseVersion('0.23.0'):
+    if (_loose_version >= LooseVersion('0.21')
+        and _loose_version < LooseVersion('0.23.0')):
         del data['index']['interval']
     del data['offsets']
     return _u(data)
