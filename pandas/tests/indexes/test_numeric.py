@@ -1118,3 +1118,29 @@ class TestUInt64Index(NumericInt):
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
+
+
+@pytest.mark.parametrize("dtype", ['int64', 'uint64'])
+def test_int_float_union_dtype(dtype):
+    # https://github.com/pandas-dev/pandas/issues/26778
+    # [u]int | float -> float
+    index = pd.Index([0, 2, 3], dtype=dtype)
+    other = pd.Float64Index([0.5, 1.5])
+    expected = pd.Float64Index([0.0, 0.5, 1.5, 2.0, 3.0])
+    result = index.union(other)
+    tm.assert_index_equal(result, expected)
+
+    result = other.union(index)
+    tm.assert_index_equal(result, expected)
+
+
+def test_range_float_union_dtype():
+    # https://github.com/pandas-dev/pandas/issues/26778
+    index = pd.RangeIndex(start=0, stop=3)
+    other = pd.Float64Index([0.5, 1.5])
+    result = index.union(other)
+    expected = pd.Float64Index([0.0, 0.5, 1, 1.5, 2.0])
+    tm.assert_index_equal(result, expected)
+
+    result = other.union(index)
+    tm.assert_index_equal(result, expected)

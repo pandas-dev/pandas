@@ -347,6 +347,11 @@ considered commutative, such that ``A.union(B) == B.union(A)`` (:issue:`23525`).
     pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
     pd.Index([], dtype=object).union(pd.Index([1, 2, 3]))
 
+Note that integer- and floating-dtype indexes are considered "compatible". The integer
+values are coerced to floating point, which may result in loss of precision. See
+:ref:`indexing.set_ops` for more.
+
+
 ``DataFrame`` groupby ffill/bfill no longer return group labels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
