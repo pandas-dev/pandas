@@ -1526,7 +1526,7 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
 
     if allow_fill:
         # Pandas style, -1 means NA
-        validate_indices(indices, len(arr))
+        validate_indices(indices, arr.shape[axis])
         result = take_1d(arr, indices, axis=axis, allow_fill=True,
                          fill_value=fill_value)
     else:
