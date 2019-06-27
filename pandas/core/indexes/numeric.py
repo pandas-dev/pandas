@@ -7,9 +7,11 @@ from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
     is_bool, is_bool_dtype, is_dtype_equal, is_extension_array_dtype, is_float,
-    is_integer_dtype, is_scalar, needs_i8_conversion, pandas_dtype)
+    is_float_dtype, is_integer_dtype, is_scalar, needs_i8_conversion,
+    pandas_dtype)
 import pandas.core.dtypes.concat as _concat
-from pandas.core.dtypes.generic import ABCInt64Index, ABCRangeIndex
+from pandas.core.dtypes.generic import (
+    ABCFloat64Index, ABCInt64Index, ABCRangeIndex, ABCUInt64Index)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
@@ -123,6 +125,24 @@ class NumericIndex(Index):
             item = self._na_value
         return super().insert(loc, item)
 
+    def _union(self, other, sort):
+        # Right now, we treat union(int, float) a bit special.
+        # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
+        # We may change union(int, float) to go to object.
+        # float | [u]int -> float  (the special case)
+        # <T>   | <T>    -> T
+        # <T>   | <U>    -> object
+        needs_cast = (
+            (is_integer_dtype(self.dtype) and is_float_dtype(other.dtype)) or
+            (is_integer_dtype(other.dtype) and is_float_dtype(self.dtype))
+        )
+        if needs_cast:
+            first = self.astype("float")
+            second = other.astype("float")
+            return first._union(second, sort)
+        else:
+            return super()._union(other, sort)
+
 
 _num_index_shared_docs['class_descr'] = """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
@@ -225,7 +245,9 @@ class Int64Index(IntegerIndex):
     def _is_compatible_with_other(self, other):
         return (
             super()._is_compatible_with_other(other)
-            or all(isinstance(type(obj), (ABCInt64Index, ABCRangeIndex))
+            or all(isinstance(type(obj), (ABCInt64Index,
+                                          ABCFloat64Index,
+                                          ABCRangeIndex))
                    for obj in [self, other])
         )
 
@@ -300,6 +322,14 @@ class UInt64Index(IntegerIndex):
             if not np.array_equal(data, subarr):
                 raise TypeError('Unsafe NumPy casting, you must '
                                 'explicitly cast')
+
+    def _is_compatible_with_other(self, other):
+        return (
+            super()._is_compatible_with_other(other)
+            or all(isinstance(type(obj), (ABCUInt64Index,
+                                          ABCFloat64Index))
+                   for obj in [self, other])
+        )
 
 
 UInt64Index._add_numeric_methods()
@@ -446,6 +476,16 @@ class Float64Index(NumericIndex):
         if level is not None:
             self._validate_index_level(level)
         return algorithms.isin(np.array(self), values)
+
+    def _is_compatible_with_other(self, other):
+        return (
+            super()._is_compatible_with_other(other)
+            or all(isinstance(type(obj), (ABCInt64Index,
+                                          ABCFloat64Index,
+                                          ABCUInt64Index,
+                                          ABCRangeIndex))
+                   for obj in [self, other])
+        )
 
 
 Float64Index._add_numeric_methods()

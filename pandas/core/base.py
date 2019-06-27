@@ -1137,7 +1137,7 @@ class IndexOpsMixin:
         -------
         iterator
         """
-        # We are explicity making element iterators.
+        # We are explicitly making element iterators.
         if is_datetimelike(self._values):
             return map(com.maybe_box_datetimelike, self._values)
         elif is_extension_array_dtype(self._values):
