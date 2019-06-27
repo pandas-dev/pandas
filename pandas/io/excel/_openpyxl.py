@@ -1,23 +1,11 @@
 from typing import List
-from collections import OrderedDict
-from distutils.version import LooseVersion
 
 import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
-from pandas.core.api import isnull
-from pandas.core.dtypes.common import (
-    ensure_int_or_float, is_float_dtype, is_integer, is_integer_dtype,
-    is_list_like, is_object_dtype)
 
-from pandas.core.frame import DataFrame
-
-from pandas.io.common import _validate_header_arg
-from pandas.io.excel._base import (
-    ExcelWriter, _BaseExcelReader, _fill_mi_header, _maybe_convert_usecols,
-    _pop_header_name)
+from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
 from pandas.io.excel._util import _validate_freeze_panes
-from pandas.io.parsers import _validate_usecols_arg, _validate_usecols_names
 
 
 class _OpenpyxlWriter(ExcelWriter):
@@ -529,6 +517,7 @@ class _OpenpyxlReader(_BaseExcelReader):
                        convert_float: bool) -> List[List]:
         data = []  # type: List[List]
         for row in sheet.rows:
-            data.append([self._convert_cell(cell, convert_float) for cell in row])
+            data.append(
+                [self._convert_cell(cell, convert_float) for cell in row])
 
         return data
