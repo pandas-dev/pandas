@@ -685,7 +685,8 @@ Missing
 
 - Fixed misleading exception message in :meth:`Series.interpolate` if argument ``order`` is required, but omitted (:issue:`10633`, :issue:`24014`).
 - Fixed class type displayed in exception message in :meth:`DataFrame.dropna` if invalid ``axis`` parameter passed (:issue:`25555`)
--
+- Fixed not throwing ValueError in :meth:`DataFrame.fillna` when called with a negative ``limit`` parameter value (:issue:`27042`)
+- 
 
 MultiIndex
 ^^^^^^^^^^
