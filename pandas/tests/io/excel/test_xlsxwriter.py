@@ -5,10 +5,6 @@ import pytest
 from pandas import DataFrame
 from pandas.util.testing import ensure_clean
 
-from pandas.core.indexes.multi import MultiIndex
-from pandas.core.indexes.period import Period, PeriodIndex
-import numpy as np
-
 from pandas.io.excel import ExcelWriter
 
 xlsxwriter = pytest.importorskip("xlsxwriter")
