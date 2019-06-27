@@ -15,8 +15,8 @@ What's New in 0.25.0 (April XX, 2019)
 
 .. warning::
 
-   ``read_pickle`` and ``read_msgpack`` are only guaranteed backwards compatible back to
-   pandas version 0.20.3
+   :func:`read_pickle` and :func:`read_msgpack` are only guaranteed backwards compatible back to
+   pandas version 0.20.3 (:issue:`27082`)
 
 {{ header }}
 

@@ -3319,16 +3319,7 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. warning::
 
-   Several internal refactoring have been done while still preserving
-   compatibility with pickles created with older versions of pandas. However,
-   for such cases, pickled ``DataFrames``, ``Series`` etc, must be read with
-   ``pd.read_pickle``, rather than ``pickle.load``.
-
-   See `here <https://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0130-refactoring>`__
-   and `here <https://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0150-refactoring>`__
-   for some examples of compatibility-breaking changes. See
-   `this question <https://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
-   for a detailed explanation.
+   :func:`read_pickle` is only guaranteed backwards compatible back to pandas version 0.20.3
 
 .. _io.pickle.compression:
 
@@ -3405,6 +3396,10 @@ both on the writing (serialization), and reading (deserialization).
    This is a very new feature of pandas. We intend to provide certain
    optimizations in the io of the ``msgpack`` data. Since this is marked
    as an EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
+
+.. warning::
+
+   :func:`read_msgpack` is only guaranteed backwards compatible back to pandas version 0.20.3
 
 .. ipython:: python
 
