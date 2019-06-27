@@ -1274,6 +1274,8 @@ def format_percentiles(percentiles):
 
 def _is_dates_only(values):
     # return a boolean if we are only dates (and don't have a timezone)
+    assert values.ndim == 1
+
     values = DatetimeIndex(values)
     if values.tz is not None:
         return False
@@ -1325,6 +1327,12 @@ def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
 
 def _get_format_datetime64_from_values(values, date_format):
     """ given values and a date_format, return a string format """
+
+    if isinstance(values, np.ndarray) and values.ndim > 1:
+        # We don't actaully care about the order of values, and DatetimeIndex
+        #  only accepts 1D values
+        values = values.ravel()
+
     is_dates_only = _is_dates_only(values)
     if is_dates_only:
         return date_format or "%Y-%m-%d"
