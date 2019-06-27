@@ -516,6 +516,22 @@ class TestDataFrameMissingData:
         # it works!
         df.fillna(np.nan)
 
+    @pytest.mark.parametrize("type", [int, float])
+    def test_fillna_positive_limit(self, type):
+        df = DataFrame(np.random.randn(10, 4)).astype(type)
+
+        msg = "Limit must be greater than 0"
+        with pytest.raises(ValueError, match=msg):
+            df.fillna(0, limit=-5)
+
+    @pytest.mark.parametrize("type", [int, float])
+    def test_fillna_integer_limit(self, type):
+        df = DataFrame(np.random.randn(10, 4)).astype(type)
+
+        msg = "Limit must be an integer"
+        with pytest.raises(ValueError, match=msg):
+            df.fillna(0, limit=0.5)
+
     def test_fillna_inplace(self):
         df = DataFrame(np.random.randn(10, 4))
         df[1][:4] = np.nan

@@ -344,12 +344,6 @@ class Block(PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
-        if not self._can_hold_na:
-            if inplace:
-                return self
-            else:
-                return self.copy()
-
         mask = isna(self.values)
         if limit is not None:
             if not is_integer(limit):
@@ -360,6 +354,12 @@ class Block(PandasObject):
                 raise NotImplementedError("number of dimensions for 'fillna' "
                                           "is currently limited to 2")
             mask[mask.cumsum(self.ndim - 1) > limit] = False
+
+        if not self._can_hold_na:
+            if inplace:
+                return self
+            else:
+                return self.copy()
 
         # fillna, but if we cannot coerce, then try again as an ObjectBlock
         try:
