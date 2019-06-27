@@ -203,7 +203,9 @@ class TestDataFrameSelectReindex:
             result = df1.join(df2, on='a')
         tm.assert_frame_equal(result, expected)
 
-    def test_reindex(self, float_frame, datetime_series):
+    def test_reindex(self, float_frame):
+        datetime_series = tm.makeTimeSeries(nper=30)
+
         newFrame = float_frame.reindex(datetime_series.index)
 
         for col in newFrame.columns:
@@ -906,7 +908,7 @@ class TestDataFrameSelectReindex:
         result = empty.filter(like='foo')
         assert_frame_equal(result, empty)
 
-    def test_take(self):
+    def test_take(self, float_frame):
         # homogeneous
         order = [3, 1, 2, 0]
         for df in [float_frame]:
@@ -952,6 +954,8 @@ class TestDataFrameSelectReindex:
         with pytest.raises(IndexError, match=msg):
             df.take([3, 1, 2, -5], axis=1)
 
+    def test_take_mixed_type(self, float_string_frame):
+
         # mixed-dtype
         order = [4, 1, 2, 0, 3]
         for df in [float_string_frame]:
@@ -978,6 +982,7 @@ class TestDataFrameSelectReindex:
             expected = df.loc[:, ['foo', 'B', 'D']]
             assert_frame_equal(result, expected)
 
+    def test_take_mixed_numeric(self, mixed_float_frame, mixed_int_frame):
         # by dtype
         order = [1, 2, 0, 3]
         for df in [mixed_float_frame, mixed_int_frame]:
