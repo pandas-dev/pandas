@@ -2,7 +2,6 @@
 Tests for DatetimeIndex timezone-related methods
 """
 from datetime import date, datetime, time, timedelta, tzinfo
-from distutils.version import LooseVersion
 
 import dateutil
 from dateutil.tz import gettz, tzlocal
@@ -554,14 +553,10 @@ class TestDatetimeIndexTimezones:
         assert times[0] == Timestamp('2013-10-26 23:00', tz=tz, freq="H")
 
         if str(tz).startswith('dateutil'):
-            if LooseVersion(dateutil.__version__) < LooseVersion('2.6.0'):
-                # see GH#14621
-                assert times[-1] == Timestamp('2013-10-27 01:00:00+0000',
-                                              tz=tz, freq="H")
-            elif LooseVersion(dateutil.__version__) > LooseVersion('2.6.0'):
-                # fixed ambiguous behavior
-                assert times[-1] == Timestamp('2013-10-27 01:00:00+0100',
-                                              tz=tz, freq="H")
+            # fixed ambiguous behavior
+            # see GH#14621
+            assert times[-1] == Timestamp('2013-10-27 01:00:00+0100',
+                                          tz=tz, freq="H")
         else:
             assert times[-1] == Timestamp('2013-10-27 01:00:00+0000',
                                           tz=tz, freq="H")

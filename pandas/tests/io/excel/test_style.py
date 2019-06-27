@@ -1,5 +1,3 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pytest
 
@@ -107,15 +105,8 @@ def test_styler_to_excel(engine):
                     assert cell1.font.color.rgb != cell2.font.color.rgb
                     assert cell2.font.color.rgb == alpha + '0000FF'
                 elif ref == 'D4':
-                    # This fails with engine=xlsxwriter due to
-                    # https://bitbucket.org/openpyxl/openpyxl/issues/800
-                    if engine == 'xlsxwriter' \
-                       and (LooseVersion(openpyxl.__version__) <
-                            LooseVersion('2.4.6')):
-                        pass
-                    else:
-                        assert cell1.font.underline != cell2.font.underline
-                        assert cell2.font.underline == 'single'
+                    assert cell1.font.underline != cell2.font.underline
+                    assert cell2.font.underline == 'single'
                 elif ref == 'B5':
                     assert not cell1.border.left.style
                     assert (cell2.border.top.style ==

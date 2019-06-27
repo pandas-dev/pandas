@@ -538,6 +538,7 @@ Other API changes
 - Most Pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
 - The ``.str``-accessor has been disabled for 1-level :class:`MultiIndex`, use :meth:`MultiIndex.to_flat_index` if necessary (:issue:`23679`)
 - Removed support of gtk package for clipboards (:issue:`26563`)
+- Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
 
 .. _whatsnew_0250.deprecations:
 

@@ -5,7 +5,6 @@ to disk
 
 import copy
 from datetime import date, datetime
-from distutils.version import LooseVersion
 import itertools
 import os
 import re
@@ -226,10 +225,6 @@ def _tables():
     if _table_mod is None:
         import tables
         _table_mod = tables
-
-        # version requirements
-        if LooseVersion(tables.__version__) < LooseVersion('3.0.0'):
-            raise ImportError("PyTables version >= 3.0.0 is required")
 
         # set the file open policy
         # return the file open policy; this changes as of pytables 3.1

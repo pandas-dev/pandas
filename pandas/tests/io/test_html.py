@@ -54,7 +54,7 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
 def test_bs4_version_fails(monkeypatch, datapath):
     import bs4
     monkeypatch.setattr(bs4, '__version__', '4.2')
-    with pytest.raises(ValueError, match="minimum version"):
+    with pytest.raises(ImportError, match="Pandas requires version"):
         read_html(datapath("io", "data", "spam.html"), flavor='bs4')
 
 
