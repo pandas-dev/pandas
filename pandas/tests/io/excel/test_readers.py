@@ -473,9 +473,7 @@ class TestReaders:
             pytest.skip("failing on %s" %
                         ' '.join(platform.uname()).strip())
 
-        # TODO: remove the by_blocks=True, investigate why this
-        #  causes this test to fail
-        tm.assert_frame_equal(url_table, local_table, by_blocks=True)
+        tm.assert_frame_equal(url_table, local_table)
 
     def test_read_from_pathlib_path(self, read_ext):
 
