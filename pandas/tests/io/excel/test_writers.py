@@ -1176,6 +1176,7 @@ class TestExcelWriter(_WriterBase):
                                     inplace=True)
         tm.assert_frame_equal(expected, result)
 
+
 class TestExcelWriterEngineTests:
 
     @pytest.mark.parametrize('klass,ext', [
