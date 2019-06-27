@@ -14,8 +14,13 @@ dti = date_range(start=datetime(2005, 1, 1),
                  end=datetime(2005, 1, 10), freq='Min')
 
 test_series = Series(np.random.rand(len(dti)), dti)
-test_frame = DataFrame(
+_test_frame = DataFrame(
     {'A': test_series, 'B': test_series, 'C': np.arange(len(dti))})
+
+
+@pytest.fixture
+def test_frame():
+    return _test_frame.copy()
 
 
 def test_str():
@@ -76,7 +81,7 @@ def test_groupby_resample_on_api():
     assert_frame_equal(result, expected)
 
 
-def test_pipe():
+def test_pipe(test_frame):
     # GH17905
 
     # series
@@ -92,7 +97,7 @@ def test_pipe():
     tm.assert_frame_equal(result, expected)
 
 
-def test_getitem():
+def test_getitem(test_frame):
 
     r = test_frame.resample('H')
     tm.assert_index_equal(r._selected_obj.columns, test_frame.columns)
@@ -111,7 +116,7 @@ def test_getitem():
 
 
 @pytest.mark.parametrize('key', [['D'], ['A', 'D']])
-def test_select_bad_cols(key):
+def test_select_bad_cols(key, test_frame):
     g = test_frame.resample('H')
     # 'A' should not be referenced as a bad column...
     # will have to rethink regex if you change message!
@@ -120,7 +125,7 @@ def test_select_bad_cols(key):
         g[key]
 
 
-def test_attribute_access():
+def test_attribute_access(test_frame):
 
     r = test_frame.resample('H')
     tm.assert_series_equal(r.A.sum(), r['A'].sum())
@@ -143,7 +148,7 @@ def test_api_compat_before_use():
         getattr(rs, attr)
 
 
-def tests_skip_nuisance():
+def tests_skip_nuisance(test_frame):
 
     df = test_frame
     df['D'] = 'foo'
