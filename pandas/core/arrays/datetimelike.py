@@ -605,7 +605,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         values = np.concatenate([x.asi8 for x in to_concat])
         return cls(values, dtype=dtype)
 
-    def copy(self, deep=False):
+    def copy(self):
         values = self.asi8.copy()
         return type(self)._simple_new(values, dtype=self.dtype, freq=self.freq)
 
