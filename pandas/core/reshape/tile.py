@@ -20,7 +20,7 @@ import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
 
 
-def cut(x, bins, right=True, labels=True, retbins=False, precision=3,
+def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         include_lowest=False, duplicates='raise'):
     """
     Bin values into discrete intervals.
@@ -245,7 +245,7 @@ def cut(x, bins, right=True, labels=True, retbins=False, precision=3,
                                 series_index, name, dtype)
 
 
-def qcut(x, q, labels=True, retbins=False, precision=3, duplicates='raise'):
+def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     """
     Quantile-based discretization function. Discretize variable into
     equal-sized buckets based on rank or based on sample quantiles. For example
@@ -317,7 +317,7 @@ def qcut(x, q, labels=True, retbins=False, precision=3, duplicates='raise'):
                                 series_index, name, dtype)
 
 
-def _bins_to_cuts(x, bins, right=True, labels=True,
+def _bins_to_cuts(x, bins, right=True, labels=None,
                   precision=3, include_lowest=False,
                   dtype=None, duplicates='raise'):
 
@@ -351,7 +351,7 @@ def _bins_to_cuts(x, bins, right=True, labels=True,
     has_nas = na_mask.any()
 
     if labels is not False:
-        if labels is True:
+        if labels is None or labels is True:
             labels = _format_labels(bins, precision, right=right,
                                     include_lowest=include_lowest,
                                     dtype=dtype)
