@@ -2147,11 +2147,9 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous,
     # 1) freq = a Timedelta-like frequency (Tick)
     # 2) freq = None i.e. generating a linspaced range
     if is_none is None and is_not_none is not None:
-        if ambiguous == 'infer':
-            # Note: We can't infer a singular ambiguous time; however,
-            # we have historically decided that 'infer' in this case means
-            # ambiguous = False...
-            ambiguous = False
+        # Note: We can't ambiguous='infer' a singular ambiguous time; however,
+        # we have historically defaulted ambiguous=False
+        ambiguous = ambiguous if ambiguous != 'infer' else False
         localize_args = {'ambiguous': ambiguous, 'nonexistent': nonexistent,
                          'tz': None}
         if isinstance(freq, Tick) or freq is None:
