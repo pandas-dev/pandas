@@ -73,14 +73,14 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     # properties there.  They can be made into cache_readonly for Index
     # subclasses bc they are immutable
     inferred_freq = cache_readonly(
-        DatetimeLikeArrayMixin.inferred_freq.fget
-    )  # type: ignore
+        DatetimeLikeArrayMixin.inferred_freq.fget  # type: ignore
+    )
     _isnan = cache_readonly(DatetimeLikeArrayMixin._isnan.fget)  # type: ignore
     hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)  # type: ignore
     _hasnans = hasnans  # for index / array -agnostic code
     _resolution = cache_readonly(
-        DatetimeLikeArrayMixin._resolution.fget
-    )  # type: ignore
+        DatetimeLikeArrayMixin._resolution.fget  # type: ignore
+    )
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)  # type: ignore
 
     _maybe_mask_results = ea_passthrough(DatetimeLikeArrayMixin._maybe_mask_results)
