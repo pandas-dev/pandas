@@ -866,11 +866,7 @@ class TestMsgpack:
                 assert kind in data[typ], msg
 
     def compare(self, current_data, all_data, vf, version):
-        # GH12277 encoding default used to be latin-1, now utf-8
-        if LooseVersion(version) < LooseVersion('0.18.0'):
-            data = read_msgpack(vf, encoding='latin-1')
-        else:
-            data = read_msgpack(vf)
+        data = read_msgpack(vf)
 
         self.check_min_structure(data, version)
         for typ, dv in data.items():
@@ -897,33 +893,16 @@ class TestMsgpack:
         return data
 
     def compare_series_dt_tz(self, result, expected, typ, version):
-        # 8260
-        # dtype is object < 0.17.0
-        if LooseVersion(version) < LooseVersion('0.17.0'):
-            expected = expected.astype(object)
-            tm.assert_series_equal(result, expected)
-        else:
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def compare_frame_dt_mixed_tzs(self, result, expected, typ, version):
-        # 8260
-        # dtype is object < 0.17.0
-        if LooseVersion(version) < LooseVersion('0.17.0'):
-            expected = expected.astype(object)
-            tm.assert_frame_equal(result, expected)
-        else:
-            tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_msgpacks_legacy(self, current_packers_data, all_packers_data,
                              legacy_packer, datapath):
 
         version = os.path.basename(os.path.dirname(legacy_packer))
 
-        # GH12142 0.17 files packed in P2 can't be read in P3
-        if (version.startswith('0.17.') and
-                legacy_packer.split('.')[-4][-1] == '2'):
-            msg = "Files packed in Py2 can't be read in Py3 ({})"
-            pytest.skip(msg.format(version))
         try:
             with catch_warnings(record=True):
                 self.compare(current_packers_data, all_packers_data,
