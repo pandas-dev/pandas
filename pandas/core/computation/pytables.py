@@ -230,7 +230,7 @@ class BinOp(ops.BinOp):
 
 class FilterBinOp(BinOp):
 
-    def __unicode__(self):
+    def __str__(self):
         return pprint_thing("[Filter : [{lhs}] -> [{op}]"
                             .format(lhs=self.filter[0], op=self.filter[1]))
 
@@ -302,7 +302,7 @@ class JointFilterBinOp(FilterBinOp):
 
 class ConditionBinOp(BinOp):
 
-    def __unicode__(self):
+    def __str__(self):
         return pprint_thing("[Condition : [{cond}]]"
                             .format(cond=self.condition))
 
@@ -410,7 +410,7 @@ class ExprVisitor(BaseExprVisitor):
         return self.visit(cmpr)
 
     def visit_Subscript(self, node, **kwargs):
-        # only allow simple suscripts
+        # only allow simple subscripts
 
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
@@ -549,7 +549,7 @@ class Expr(expr.Expr):
                                         encoding=encoding)
             self.terms = self.parse()
 
-    def __unicode__(self):
+    def __str__(self):
         if self.terms is not None:
             return pprint_thing(self.terms)
         return pprint_thing(self.expr)

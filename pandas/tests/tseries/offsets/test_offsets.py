@@ -115,7 +115,7 @@ class Base:
             assert t.tzinfo == result.tzinfo
 
         except OutOfBoundsDatetime:
-            raise
+            pass
         except (ValueError, KeyError):
             # we are creating an invalid offset
             # so ignore
@@ -813,7 +813,7 @@ class TestBusinessHour(Base):
         assert self.offset4(self.d) == datetime(2014, 6, 30, 14)
 
     def test_sub(self):
-        # we have to override test_sub here becasue self.offset2 is not
+        # we have to override test_sub here because self.offset2 is not
         # defined as self._offset(2)
         off = self.offset2
         msg = "Cannot subtract datetime from offset"
@@ -1286,6 +1286,23 @@ class TestBusinessHour(Base):
         datetime(2014, 7, 5, 4): datetime(2014, 7, 5, 3),
         datetime(2014, 7, 7, 19, 30): datetime(2014, 7, 5, 4, 30),
         datetime(2014, 7, 7, 19, 30, 30): datetime(2014, 7, 5, 4, 30, 30)}))
+
+    # long business hours (see gh-26381)
+    apply_cases.append((BusinessHour(n=4, start='00:00', end='23:00'), {
+        datetime(2014, 7, 3, 22): datetime(2014, 7, 4, 3),
+        datetime(2014, 7, 4, 22): datetime(2014, 7, 7, 3),
+        datetime(2014, 7, 3, 22, 30): datetime(2014, 7, 4, 3, 30),
+        datetime(2014, 7, 3, 22, 20): datetime(2014, 7, 4, 3, 20),
+        datetime(2014, 7, 4, 22, 30, 30): datetime(2014, 7, 7, 3, 30, 30),
+        datetime(2014, 7, 4, 22, 30, 20): datetime(2014, 7, 7, 3, 30, 20)}))
+
+    apply_cases.append((BusinessHour(n=-4, start='00:00', end='23:00'), {
+        datetime(2014, 7, 4, 3): datetime(2014, 7, 3, 22),
+        datetime(2014, 7, 7, 3): datetime(2014, 7, 4, 22),
+        datetime(2014, 7, 4, 3, 30): datetime(2014, 7, 3, 22, 30),
+        datetime(2014, 7, 4, 3, 20): datetime(2014, 7, 3, 22, 20),
+        datetime(2014, 7, 7, 3, 30, 30): datetime(2014, 7, 4, 22, 30, 30),
+        datetime(2014, 7, 7, 3, 30, 20): datetime(2014, 7, 4, 22, 30, 20)}))
 
     @pytest.mark.parametrize('case', apply_cases)
     def test_apply(self, case):

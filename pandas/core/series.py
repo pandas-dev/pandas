@@ -1,7 +1,7 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
-from collections import OrderedDict, abc
+from collections import OrderedDict
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
@@ -28,6 +28,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import (
     isna, na_value_for_dtype, notna, remove_na_arraylike)
 
+import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, SparseArray
@@ -48,7 +49,7 @@ from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
-import pandas.plotting._core as gfx
+import pandas.plotting
 
 __all__ = ['Series']
 
@@ -141,6 +142,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Override cache_readonly bc Series is mutable
     hasnans = property(base.IndexOpsMixin.hasnans.func,
                        doc=base.IndexOpsMixin.hasnans.__doc__)
+    _data = None  # type: SingleBlockManager
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -219,15 +221,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif isinstance(data, (set, frozenset)):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
-            # If data is Iterable but not list-like, consume into list.
-            elif (isinstance(data, abc.Iterable) and
-                  not isinstance(data, abc.Sized)):
-                data = list(data)
-            else:
-
+            elif isinstance(data, ABCSparseArray):
                 # handle sparse passed here (and force conversion)
-                if isinstance(data, ABCSparseArray):
-                    data = data.to_dense()
+                data = data.to_dense()
+            else:
+                data = com.maybe_iterable_to_list(data)
 
             if index is None:
                 if not is_list_like(data):
@@ -422,14 +420,30 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def ftype(self):
         """
         Return if the data is sparse|dense.
+
+        .. deprecated:: 0.25.0
+           Use :func:`dtype` instead.
         """
+        warnings.warn("Series.ftype is deprecated and will "
+                      "be removed in a future version. "
+                      "Use Series.dtype instead.",
+                      FutureWarning, stacklevel=2)
+
         return self._data.ftype
 
     @property
     def ftypes(self):
         """
         Return if the data is sparse|dense.
+
+        .. deprecated:: 0.25.0
+           Use :func:`dtypes` instead.
         """
+        warnings.warn("Series.ftypes is deprecated and will "
+                      "be removed in a future version. "
+                      "Use Series.dtype instead.",
+                      FutureWarning, stacklevel=2)
+
         return self._data.ftype
 
     @property
@@ -1387,9 +1401,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def __unicode__(self):
+    def __repr__(self):
         """
-        Return a unicode string representation for a particular DataFrame.
+        Return a string representation for a particular Series.
         """
         buf = StringIO("")
         width, height = get_terminal_size()
@@ -1467,7 +1481,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Lazily iterate over (index, value) tuples.
 
         This method returns an iterable tuple (index, value). This is
-        convienient if you want to create a lazy iterator. Note that the
+        convenient if you want to create a lazy iterator. Note that the
         methods Series.items and Series.iteritems are the same methods.
 
         Returns
@@ -1578,6 +1592,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Convert Series to SparseSeries.
 
+        .. deprecated:: 0.25.0
+
         Parameters
         ----------
         kind : {'block', 'integer'}, default 'block'
@@ -1589,13 +1605,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         SparseSeries
             Sparse representation of the Series.
         """
-        # TODO: deprecate
+
+        warnings.warn("Series.to_sparse is deprecated and will be removed "
+                      "in a future version", FutureWarning, stacklevel=2)
         from pandas.core.sparse.series import SparseSeries
 
         values = SparseArray(self, kind=kind, fill_value=fill_value)
-        return SparseSeries(
-            values, index=self.index, name=self.name
-        ).__finalize__(self)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="SparseSeries")
+            return SparseSeries(
+                values, index=self.index, name=self.name
+            ).__finalize__(self)
 
     def _set_name(self, name, inplace=False):
         """
@@ -1639,7 +1659,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2
         """
         if level is None:
-            return notna(com.values_from_object(self)).sum()
+            return notna(self.array).sum()
 
         if isinstance(level, str):
             level = self.index._get_level_number(level)
@@ -2670,7 +2690,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # do in _values_from_sequence. We still want ops to work
                 # though, so we catch any regular Exception.
                 pass
-
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other):
@@ -3703,8 +3722,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 mapped = lib.map_infer(values, f, convert=convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], Series):
-            from pandas.core.frame import DataFrame
-            return DataFrame(mapped.tolist(), index=self.index)
+            # GH 25959 use pd.array instead of tolist
+            # so extension arrays can be used
+            return self._constructor_expanddim(pd.array(mapped),
+                                               index=self.index)
         else:
             return self._constructor(mapped,
                                      index=self.index).__finalize__(self)
@@ -3732,6 +3753,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif is_datetime64_dtype(delegate):
             # use DatetimeIndex implementation to handle skipna correctly
             delegate = DatetimeIndex(delegate)
+        elif is_timedelta64_dtype(delegate) and hasattr(TimedeltaIndex, name):
+            # use TimedeltaIndex to handle skipna correctly
+            # TODO: remove hasattr check after TimedeltaIndex has `std` method
+            delegate = TimedeltaIndex(delegate)
 
         # dispatch to numpy arrays
         elif isinstance(delegate, np.ndarray):
@@ -4013,7 +4038,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         >>> s = pd.Series(range(3))
         >>> s.memory_usage()
-        104
+        152
 
         Not including the index gives the size of the rest of the data, which
         is necessarily smaller:
@@ -4027,9 +4052,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.values
         array(['a', 'b'], dtype=object)
         >>> s.memory_usage()
-        96
+        144
         >>> s.memory_usage(deep=True)
-        212
+        260
         """
         v = super().memory_usage(deep=deep)
         if index:
@@ -4505,12 +4530,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     str = CachedAccessor("str", StringMethods)
     dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
     cat = CachedAccessor("cat", CategoricalAccessor)
-    plot = CachedAccessor("plot", gfx.SeriesPlotMethods)
+    plot = CachedAccessor("plot", pandas.plotting.SeriesPlotMethods)
     sparse = CachedAccessor("sparse", SparseAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
-    hist = gfx.hist_series
+    hist = pandas.plotting.hist_series
 
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0},

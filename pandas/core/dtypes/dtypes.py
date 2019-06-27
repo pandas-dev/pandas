@@ -14,7 +14,7 @@ from pandas.errors import AbstractMethodError
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex, ABCDateOffset, ABCIndexClass)
 
-from .base import ExtensionDtype, _DtypeOpsMixin
+from .base import ExtensionDtype
 from .inference import is_list_like
 
 str_type = str
@@ -109,7 +109,7 @@ class Registry:
 registry = Registry()
 
 
-class PandasExtensionDtype(_DtypeOpsMixin):
+class PandasExtensionDtype(ExtensionDtype):
     """
     A np.dtype duck-typed class, suitable for holding a custom dtype.
 
@@ -131,27 +131,11 @@ class PandasExtensionDtype(_DtypeOpsMixin):
     isnative = 0
     _cache = {}  # type: Dict[str_type, 'PandasExtensionDtype']
 
-    def __unicode__(self) -> str_type:
-        return self.name
-
-    @property
-    def name(self) -> str_type:
-        raise AbstractMethodError(self)
-
     def __str__(self) -> str_type:
         """
         Return a string representation for a particular Object
         """
-        return self.__unicode__()
-
-    def __bytes__(self) -> bytes:
-        """
-        Return a string representation for a particular object.
-        """
-        from pandas._config import get_option
-
-        encoding = get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
+        return self.name
 
     def __repr__(self) -> str_type:
         """
@@ -476,16 +460,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         from pandas import Categorical
         return Categorical
 
-    @classmethod
-    def construct_from_string(cls, string: str_type) -> 'CategoricalDtype':
-        """
-        attempt to construct this type from a string, raise a TypeError if
-        it's not possible """
-        if string == 'category':
-            return cls()
-        else:
-            raise TypeError("cannot construct a CategoricalDtype")
-
     @staticmethod
     def validate_ordered(ordered: bool) -> None:
         """
@@ -599,7 +573,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
 
 @register_extension_dtype
-class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
+class DatetimeTZDtype(PandasExtensionDtype):
     """
     An ExtensionDtype for timezone-aware datetime data.
 
@@ -678,12 +652,16 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
     @property
     def unit(self):
-        """The precision of the datetime data."""
+        """
+        The precision of the datetime data.
+        """
         return self._unit
 
     @property
     def tz(self):
-        """The timezone."""
+        """
+        The timezone.
+        """
         return self._tz
 
     @classmethod
@@ -729,7 +707,7 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
         raise TypeError("Could not construct DatetimeTZDtype")
 
-    def __unicode__(self):
+    def __str__(self):
         return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
 
     @property
@@ -759,7 +737,7 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
 
 @register_extension_dtype
-class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
+class PeriodDtype(PandasExtensionDtype):
     """
     An ExtensionDtype for Period data.
 
@@ -824,7 +802,9 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
 
     @property
     def freq(self):
-        """The frequency object of this PeriodDtype."""
+        """
+        The frequency object of this PeriodDtype.
+        """
         return self._freq
 
     @classmethod
@@ -859,12 +839,12 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
                 pass
         raise TypeError("could not construct PeriodDtype")
 
-    def __unicode__(self):
-        return str(self.name)
+    def __str__(self):
+        return self.name
 
     @property
     def name(self):
-        return str("period[{freq}]".format(freq=self.freq.freqstr))
+        return "period[{freq}]".format(freq=self.freq.freqstr)
 
     @property
     def na_value(self):
@@ -916,7 +896,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
 
 
 @register_extension_dtype
-class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
+class IntervalDtype(PandasExtensionDtype):
     """
     An ExtensionDtype for Interval data.
 
@@ -991,7 +971,9 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @property
     def subtype(self):
-        """The dtype of the Interval bounds."""
+        """
+        The dtype of the Interval bounds.
+        """
         return self._subtype
 
     @classmethod
@@ -1029,7 +1011,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     def type(self):
         return Interval
 
-    def __unicode__(self):
+    def __str__(self):
         if self.subtype is None:
             return "interval"
         return "interval[{subtype}]".format(subtype=self.subtype)

@@ -7,8 +7,6 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import lrange
-
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -28,7 +26,7 @@ NGROUPS = 8
 
 
 def get_test_data(ngroups=NGROUPS, n=N):
-    unique_groups = lrange(ngroups)
+    unique_groups = list(range(ngroups))
     arr = np.asarray(np.tile(unique_groups, n // ngroups))
 
     if len(arr) < n:
@@ -184,13 +182,11 @@ class TestMerge:
                   right_on=['key1', 'key2'])
 
     def test_index_and_on_parameters_confusion(self):
-        msg = ("right_index parameter must be of type bool, not"
-               r" <(class|type) 'list'>")
+        msg = "right_index parameter must be of type bool, not <class 'list'>"
         with pytest.raises(ValueError, match=msg):
             merge(self.df, self.df2, how='left',
                   left_index=False, right_index=['key1', 'key2'])
-        msg = ("left_index parameter must be of type bool, not "
-               r"<(class|type) 'list'>")
+        msg = "left_index parameter must be of type bool, not <class 'list'>"
         with pytest.raises(ValueError, match=msg):
             merge(self.df, self.df2, how='left',
                   left_index=['key1', 'key2'], right_index=False)
@@ -229,8 +225,8 @@ class TestMerge:
         tm.assert_series_equal(merged['value_y'], exp)
 
     def test_merge_copy(self):
-        left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))
-        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=lrange(10))
+        left = DataFrame({'a': 0, 'b': 1}, index=range(10))
+        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=range(10))
 
         merged = merge(left, right, left_index=True,
                        right_index=True, copy=True)
@@ -242,8 +238,8 @@ class TestMerge:
         assert (right['d'] == 'bar').all()
 
     def test_merge_nocopy(self):
-        left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))
-        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=lrange(10))
+        left = DataFrame({'a': 0, 'b': 1}, index=range(10))
+        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=range(10))
 
         merged = merge(left, right, left_index=True,
                        right_index=True, copy=False)
@@ -258,9 +254,10 @@ class TestMerge:
         # #733, be a bit more 1337 about not returning unconsolidated DataFrame
 
         left = DataFrame({'key': [1, 1, 2, 2, 3],
-                          'value': lrange(5)}, columns=['value', 'key'])
+                          'value': list(range(5))},
+                         columns=['value', 'key'])
         right = DataFrame({'key': [1, 1, 2, 3, 4, 5],
-                           'rvalue': lrange(6)})
+                           'rvalue': list(range(6))})
 
         joined = merge(left, right, on='key', how='outer')
         expected = DataFrame({'key': [1, 1, 1, 1, 2, 2, 3, 4, 5],
@@ -295,8 +292,9 @@ class TestMerge:
 
     def test_handle_join_key_pass_array(self):
         left = DataFrame({'key': [1, 1, 2, 2, 3],
-                          'value': lrange(5)}, columns=['value', 'key'])
-        right = DataFrame({'rvalue': lrange(6)})
+                          'value': np.arange(5)},
+                         columns=['value', 'key'])
+        right = DataFrame({'rvalue': np.arange(6)})
         key = np.array([1, 1, 2, 3, 4, 5])
 
         merged = merge(left, right, left_on='key', right_on=key, how='outer')
@@ -306,8 +304,8 @@ class TestMerge:
         assert merged['key'].notna().all()
         assert merged2['key'].notna().all()
 
-        left = DataFrame({'value': lrange(5)}, columns=['value'])
-        right = DataFrame({'rvalue': lrange(6)})
+        left = DataFrame({'value': np.arange(5)}, columns=['value'])
+        right = DataFrame({'rvalue': np.arange(6)})
         lkey = np.array([1, 1, 2, 2, 3])
         rkey = np.array([1, 1, 2, 3, 4, 5])
 
@@ -316,8 +314,8 @@ class TestMerge:
                                                         2, 3, 4, 5],
                                                        name='key_0'))
 
-        left = DataFrame({'value': lrange(3)})
-        right = DataFrame({'rvalue': lrange(6)})
+        left = DataFrame({'value': np.arange(3)})
+        right = DataFrame({'rvalue': np.arange(6)})
 
         key = np.array([0, 1, 1, 2, 2, 3], dtype=np.int64)
         merged = merge(left, right, left_index=True, right_on=key, how='outer')
@@ -605,7 +603,7 @@ class TestMerge:
                       'datetime64[ns]']:
 
             df2 = s.astype(dtype).to_frame('days')
-            # coerces to datetime64[ns], thus sholuld not be affected
+            # coerces to datetime64[ns], thus should not be affected
             assert df2['days'].dtype == 'datetime64[ns]'
 
             result = df1.merge(df2, left_on='entity_id', right_index=True)
@@ -654,7 +652,7 @@ class TestMerge:
 
         # #2649, #10639
         df2.columns = ['key1', 'foo', 'foo']
-        msg = (r"Data columns not unique: Index\(\[u?'foo', u?'foo'\],"
+        msg = (r"Data columns not unique: Index\(\['foo', 'foo'\],"
                r" dtype='object'\)")
         with pytest.raises(MergeError, match=msg):
             merge(df, df2)
@@ -1245,9 +1243,9 @@ class TestMergeDtypes:
         ([0, 1], pd.Series([False, True], dtype=bool)),
     ])
     def test_merge_incompat_dtypes_are_ok(self, df1_vals, df2_vals):
-        # these are explicity allowed incompat merges, that pass thru
+        # these are explicitly allowed incompat merges, that pass thru
         # the result type is dependent on if the values on the rhs are
-        # inferred, otherwise these will be coereced to object
+        # inferred, otherwise these will be coerced to object
 
         df1 = DataFrame({'A': df1_vals})
         df2 = DataFrame({'A': df2_vals})

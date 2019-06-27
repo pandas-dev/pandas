@@ -11,7 +11,7 @@ from os.path import join as pjoin
 
 import pkg_resources
 import platform
-from distutils.sysconfig import get_config_var
+from distutils.sysconfig import get_config_vars
 import sys
 import shutil
 from distutils.version import LooseVersion
@@ -33,8 +33,8 @@ def is_platform_mac():
 min_numpy_ver = '1.13.3'
 setuptools_kwargs = {
     'install_requires': [
-        'python-dateutil >= 2.5.0',
-        'pytz >= 2015.4',
+        'python-dateutil >= 2.6.1',
+        'pytz >= 2017.2',
         'numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver),
     ],
     'setup_requires': ['numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver)],
@@ -214,9 +214,7 @@ CLASSIFIERS = [
     'Operating System :: OS Independent',
     'Intended Audience :: Science/Research',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',
@@ -444,18 +442,18 @@ else:
     if debugging_symbols_requested:
         extra_compile_args.append('-g')
 
-# For mac, ensure extensions are built for macos 10.9 when compiling on a
-# 10.9 system or above, overriding distuitls behaviour which is to target
-# the version that python was built for. This may be overridden by setting
+# Build for at least macOS 10.9 when compiling on a 10.9 system or above,
+# overriding CPython distuitls behaviour which is to target the version that
+# python was built for. This may be overridden by setting
 # MACOSX_DEPLOYMENT_TARGET before calling setup.py
 if is_platform_mac():
     if 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:
-        current_system = LooseVersion(platform.mac_ver()[0])
-        python_target = LooseVersion(
-            get_config_var('MACOSX_DEPLOYMENT_TARGET'))
-        if python_target < '10.9' and current_system >= '10.9':
+        current_system = platform.mac_ver()[0]
+        python_target = get_config_vars().get('MACOSX_DEPLOYMENT_TARGET',
+                                              current_system)
+        if (LooseVersion(python_target) < '10.9' and
+                LooseVersion(current_system) >= '10.9'):
             os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
-
 
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
@@ -634,7 +632,8 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
-        'include': []},
+        'depends': ['pandas/_libs/src/parser/tokenizer.h'],
+        'sources': ['pandas/_libs/src/parser/tokenizer.c']},
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
         'include': ts_include,
@@ -762,6 +761,9 @@ _move_ext = Extension('pandas.util._move',
                       extra_link_args=extra_link_args)
 extensions.append(_move_ext)
 
+# ----------------------------------------------------------------------
+
+
 # The build cache system does string matching below this point.
 # if you change something, be careful.
 
@@ -781,5 +783,13 @@ setup(name=DISTNAME,
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       platforms='any',
-      python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*',
+      python_requires='>=3.5',
+      extras_require={
+          'test': [
+              # sync with setup.cfg minversion & install.rst
+              'pytest>=4.0.2',
+              'pytest-xdist',
+              'hypothesis>=3.58',
+          ]
+      },
       **setuptools_kwargs)

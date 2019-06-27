@@ -13,7 +13,8 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-class TestDataFrameAlterAxes():
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+class TestDataFrameAlterAxes:
 
     def test_set_index_directly(self, float_string_frame):
         df = float_string_frame
@@ -460,9 +461,13 @@ class TestDataFrameAlterAxes():
                       name='B')
         tm.assert_series_equal(result, comp)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning) as m:
             result = idx.to_series(index=[0, 1])
         tm.assert_series_equal(result, expected.dt.tz_convert(None))
+        msg = ("The default of the 'keep_tz' keyword in "
+               "DatetimeIndex.to_series will change to True in a future "
+               "release.")
+        assert msg in str(m[0].message)
 
         with tm.assert_produces_warning(FutureWarning):
             result = idx.to_series(keep_tz=False, index=[0, 1])
@@ -1372,6 +1377,7 @@ class TestDataFrameAlterAxes():
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestIntervalIndex:
 
     def test_setitem(self):

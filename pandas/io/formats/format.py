@@ -191,6 +191,8 @@ class SeriesFormatter:
                 series = concat((series.iloc[:row_num],
                                  series.iloc[-row_num:]))
             self.tr_row_num = row_num
+        else:
+            self.tr_row_num = None
         self.tr_series = series
         self.truncate_v = truncate_v
 
@@ -255,7 +257,8 @@ class SeriesFormatter:
         footer = self._get_footer()
 
         if len(series) == 0:
-            return 'Series([], ' + footer + ')'
+            return "{name}([], {footer})".format(
+                name=self.series.__class__.__name__, footer=footer)
 
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
@@ -499,6 +502,8 @@ class DataFrameFormatter(TableFormatter):
                 frame = concat((frame.iloc[:row_num, :],
                                 frame.iloc[-row_num:, :]))
             self.tr_row_num = row_num
+        else:
+            self.tr_row_num = None
 
         self.tr_frame = frame
         self.truncate_h = truncate_h
@@ -729,7 +734,7 @@ class DataFrameFormatter(TableFormatter):
             Whether the generated HTML is for IPython Notebook.
         border : int
             A ``border=border`` attribute is included in the opening
-            ``<table>`` tag. Default ``pd.options.html.border``.
+            ``<table>`` tag. Default ``pd.options.display.html.border``.
 
             .. versionadded:: 0.19.0
          """
@@ -1246,7 +1251,7 @@ def format_percentiles(percentiles):
             raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
-    int_idx = (percentiles.astype(int) == percentiles)
+    int_idx = np.isclose(percentiles.astype(int), percentiles)
 
     if np.all(int_idx):
         out = percentiles.astype(int).astype(str)
@@ -1269,6 +1274,8 @@ def format_percentiles(percentiles):
 
 def _is_dates_only(values):
     # return a boolean if we are only dates (and don't have a timezone)
+    assert values.ndim == 1
+
     values = DatetimeIndex(values)
     if values.tz is not None:
         return False
@@ -1320,6 +1327,12 @@ def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
 
 def _get_format_datetime64_from_values(values, date_format):
     """ given values and a date_format, return a string format """
+
+    if isinstance(values, np.ndarray) and values.ndim > 1:
+        # We don't actaully care about the order of values, and DatetimeIndex
+        #  only accepts 1D values
+        values = values.ravel()
+
     is_dates_only = _is_dates_only(values)
     if is_dates_only:
         return date_format or "%Y-%m-%d"
@@ -1563,7 +1576,7 @@ class EngFormatter:
 
         formatted = format_str.format(mant=mant, prefix=prefix)
 
-        return formatted  # .strip()
+        return formatted
 
 
 def set_eng_float_format(accuracy=3, use_eng_prefix=False):

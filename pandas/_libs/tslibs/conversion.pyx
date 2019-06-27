@@ -275,6 +275,10 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         - iso8601 string object
         - python datetime object
         - another timestamp object
+
+    Raises
+    ------
+    OutOfBoundsDatetime : ts cannot be converted within implementation bounds
     """
     cdef:
         _TSObject obj
@@ -294,6 +298,11 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         if obj.value != NPY_NAT:
             dt64_to_dtstruct(obj.value, &obj.dts)
     elif is_integer_object(ts):
+        try:
+            ts = <int64_t>ts
+        except OverflowError:
+            # GH#26651 re-raise as OutOfBoundsDatetime
+            raise OutOfBoundsDatetime(ts)
         if ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
@@ -392,16 +401,15 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     return obj
 
 
-cdef _TSObject create_tsobject_tz_using_offset(int64_t value,
+cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
                                                int tzoffset, object tz=None):
     """
-    Convert a numpy datetime64 `value`, along with initial timezone offset
+    Convert a datetimestruct `dts`, along with initial timezone offset
     `tzoffset` to a _TSObject (with timezone object `tz` - optional).
 
     Parameters
     ----------
-    value: int64_t
-        numpy dt64
+    dts: npy_datetimestruct
     tzoffset: int
     tz : tzinfo or None
         timezone for the timezone-aware output.
@@ -411,12 +419,14 @@ cdef _TSObject create_tsobject_tz_using_offset(int64_t value,
     obj : _TSObject
     """
     cdef:
-        _TSObject obj
+        _TSObject obj = _TSObject()
+        int64_t value  # numpy dt64
         datetime dt
 
-    tzinfo = pytz.FixedOffset(tzoffset)
-    value = tz_convert_single(value, tzinfo, UTC)
-    obj = convert_to_tsobject(value, tzinfo, None, 0, 0)
+    value = dtstruct_to_dt64(&dts)
+    obj.dts = dts
+    obj.tzinfo = pytz.FixedOffset(tzoffset)
+    obj.value = tz_convert_single(value, obj.tzinfo, UTC)
     if tz is None:
         check_overflows(obj)
         return obj
@@ -459,7 +469,6 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
     """
     cdef:
         npy_datetimestruct dts
-        int64_t value  # numpy dt64
         int out_local = 0, out_tzoffset = 0
         bint do_parse_datetime_string = False
 
@@ -487,12 +496,11 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
         try:
             if not string_to_dts_failed:
                 check_dts_bounds(&dts)
-                value = dtstruct_to_dt64(&dts)
                 if out_local == 1:
-                    return create_tsobject_tz_using_offset(value,
+                    return create_tsobject_tz_using_offset(dts,
                                                            out_tzoffset, tz)
                 else:
-                    ts = value
+                    ts = dtstruct_to_dt64(&dts)
                     if tz is not None:
                         # shift for localize_tso
                         ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,

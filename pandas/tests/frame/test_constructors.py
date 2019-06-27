@@ -5,9 +5,10 @@ import itertools
 
 import numpy as np
 import numpy.ma as ma
+import numpy.ma.mrecords as mrecords
 import pytest
 
-from pandas.compat import PY36, is_platform_little_endian, lmap
+from pandas.compat import PY36, is_platform_little_endian
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
@@ -33,11 +34,13 @@ class TestDataFrameConstructors(TestData):
         lambda: DataFrame(()),
         lambda: DataFrame([]),
         lambda: DataFrame((x for x in [])),
+        lambda: DataFrame(range(0)),
         lambda: DataFrame(data=None),
         lambda: DataFrame(data={}),
         lambda: DataFrame(data=()),
         lambda: DataFrame(data=[]),
-        lambda: DataFrame(data=(x for x in []))
+        lambda: DataFrame(data=(x for x in [])),
+        lambda: DataFrame(data=range(0)),
     ])
     def test_empty_constructor(self, constructor):
         expected = DataFrame()
@@ -146,7 +149,7 @@ class TestDataFrameConstructors(TestData):
                 if d in df:
                     assert(df.dtypes[d] == d)
 
-        # mixed floating and integer coexinst in the same frame
+        # mixed floating and integer coexist in the same frame
         df = _make_mixed_dtypes_df('float')
         _check_mixed_dtypes(df)
 
@@ -433,6 +436,11 @@ class TestDataFrameConstructors(TestData):
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B'], index=[1, 2])
 
+        # gh-26429
+        msg = "2 columns passed, passed data had 10 columns"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame((range(10), range(10, 20)), columns=('ones', 'twos'))
+
         msg = ("If using all scalar "
                "values, you must pass "
                "an index")
@@ -525,6 +533,30 @@ class TestDataFrameConstructors(TestData):
         result = DataFrame(data)
         expected = DataFrame({k: list(v) for k, v in data.items()})
         tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    def test_constructor_dict_of_ranges(self):
+        # GH 26356
+        data = {'a': range(3), 'b': range(3, 6)}
+
+        result = DataFrame(data)
+        expected = DataFrame({'a': [0, 1, 2], 'b': [3, 4, 5]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_dict_of_iterators(self):
+        # GH 26349
+        data = {'a': iter(range(3)), 'b': reversed(range(3))}
+
+        result = DataFrame(data)
+        expected = DataFrame({'a': [0, 1, 2], 'b': [2, 1, 0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_dict_of_generators(self):
+        # GH 26349
+        data = {'a': (i for i in (range(3))),
+                'b': (i for i in reversed(range(3)))}
+        result = DataFrame(data)
+        expected = DataFrame({'a': [0, 1, 2], 'b': [2, 1, 0]})
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_dict_multiindex(self):
         def check(result, expected):
@@ -808,7 +840,7 @@ class TestDataFrameConstructors(TestData):
         data = np.ma.array(
             np.ma.zeros(5, dtype=[('date', '<f8'), ('price', '<f8')]),
             mask=[False] * 5)
-        data = data.view(ma.mrecords.mrecarray)
+        data = data.view(mrecords.mrecarray)
         result = pd.DataFrame(data, dtype=int)
         expected = pd.DataFrame(np.zeros((5, 2), dtype=int),
                                 columns=['date', 'price'])
@@ -837,7 +869,7 @@ class TestDataFrameConstructors(TestData):
         # call assert_frame_equal for all selections of 3 arrays
         for comb in itertools.combinations(arrays, 3):
             names, data = zip(*comb)
-            mrecs = ma.mrecords.fromarrays(data, names=names)
+            mrecs = mrecords.fromarrays(data, names=names)
 
             # fill the comb
             comb = {k: (v.filled() if hasattr(v, 'filled') else v)
@@ -999,9 +1031,20 @@ class TestDataFrameConstructors(TestData):
                             array.array('i', range(10))])
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_constructor_range(self):
+        # GH26342
+        result = DataFrame(range(10))
+        expected = DataFrame(list(range(10)))
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_ranges(self):
+        result = DataFrame([range(10), range(10)])
+        expected = DataFrame([list(range(10)), list(range(10))])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_iterable(self):
         # GH 21987
-        class Iter():
+        class Iter:
             def __iter__(self):
                 for i in range(10):
                     yield [1, 2, 3]
@@ -1011,9 +1054,13 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_iterator(self):
+        result = DataFrame(iter(range(10)))
+        expected = DataFrame(list(range(10)))
+        tm.assert_frame_equal(result, expected)
 
+    def test_constructor_list_of_iterators(self):
+        result = DataFrame([iter(range(10)), iter(range(10))])
         expected = DataFrame([list(range(10)), list(range(10))])
-        result = DataFrame([range(10), range(10)])
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_generator(self):
@@ -2224,7 +2271,7 @@ class TestDataFrameConstructors(TestData):
                 return iter(self.args)
 
         recs = [Record(1, 2, 3), Record(4, 5, 6), Record(7, 8, 9)]
-        tups = lmap(tuple, recs)
+        tups = [tuple(rec) for rec in recs]
 
         result = DataFrame.from_records(recs)
         expected = DataFrame.from_records(tups)
@@ -2251,8 +2298,13 @@ class TestDataFrameConstructors(TestData):
 
     @pytest.mark.parametrize('dtype', [None, 'uint8', 'category'])
     def test_constructor_range_dtype(self, dtype):
-        # GH 16804
         expected = DataFrame({'A': [0, 1, 2, 3, 4]}, dtype=dtype or 'int64')
+
+        # GH 26342
+        result = DataFrame(range(5), columns=['A'], dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+        # GH 16804
         result = DataFrame({'A': range(5)}, dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
@@ -2348,3 +2400,32 @@ class TestDataFrameConstructorWithDatetimeTZ(TestData):
             index=pd.Index([2001, 2002, 2003])
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_from_tzaware_object_array(self):
+        # GH#26825 2D object array of tzaware timestamps should not raise
+        dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
+        data = dti._data.astype(object).reshape(1, -1)
+        df = pd.DataFrame(data)
+        assert df.shape == (1, 3)
+        assert (df.dtypes == dti.dtype).all()
+        assert (df == dti).all().all()
+
+    def test_from_tzaware_mixed_object_array(self):
+        # GH#26825
+        arr = np.array([
+            [Timestamp('2013-01-01 00:00:00'),
+             Timestamp('2013-01-02 00:00:00'),
+             Timestamp('2013-01-03 00:00:00')],
+            [Timestamp('2013-01-01 00:00:00-0500', tz='US/Eastern'),
+             pd.NaT,
+             Timestamp('2013-01-03 00:00:00-0500', tz='US/Eastern')],
+            [Timestamp('2013-01-01 00:00:00+0100', tz='CET'),
+             pd.NaT,
+             Timestamp('2013-01-03 00:00:00+0100', tz='CET')]],
+            dtype=object).T
+        res = DataFrame(arr, columns=['A', 'B', 'C'])
+
+        expected_dtypes = ['datetime64[ns]',
+                           'datetime64[ns, US/Eastern]',
+                           'datetime64[ns, CET]']
+        assert (res.dtypes == expected_dtypes).all()

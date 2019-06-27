@@ -47,10 +47,11 @@ class TestPDApi(Base):
                'DatetimeTZDtype',
                'Int8Dtype', 'Int16Dtype', 'Int32Dtype', 'Int64Dtype',
                'UInt8Dtype', 'UInt16Dtype', 'UInt32Dtype', 'UInt64Dtype',
+               'NamedAgg',
                ]
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['TimeGrouper', 'Panel']
+    deprecated_classes = ['Panel']
 
     # these should be deprecated in the future
     deprecated_classes_in_future = []
@@ -80,7 +81,7 @@ class TestPDApi(Base):
                   'read_gbq', 'read_hdf', 'read_html', 'read_json',
                   'read_msgpack', 'read_pickle', 'read_sas', 'read_sql',
                   'read_sql_query', 'read_sql_table', 'read_stata',
-                  'read_table', 'read_feather', 'read_parquet']
+                  'read_table', 'read_feather', 'read_parquet', 'read_spss']
 
     # top-level to_* funcs
     funcs_to = ['to_datetime', 'to_msgpack',
@@ -130,17 +131,6 @@ class TestTesting(Base):
 
         from pandas import testing
         self.check(testing, self.funcs)
-
-
-class TestTopLevelDeprecations:
-
-    # top-level API deprecations
-    # GH 13790
-
-    def test_TimeGrouper(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.TimeGrouper(freq='D')
 
 
 class TestCDateRange:

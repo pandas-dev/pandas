@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.internals import BlockPlacement
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -706,21 +705,6 @@ class TestBlockManager:
             mgr.get('d').internal_values(),
             reindexed.get('d').internal_values())
 
-    def test_multiindex_xs(self):
-        mgr = create_mgr('a,b,c: f8; d,e,f: i8')
-
-        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
-                                                                  'three']],
-                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                           names=['first', 'second'])
-
-        mgr.set_axis(1, index)
-        result = mgr.xs('bar', axis=1)
-        assert result.shape == (6, 2)
-        assert result.axes[1][0] == ('bar', 'one')
-        assert result.axes[1][1] == ('bar', 'two')
-
     def test_get_numeric_data(self):
         mgr = create_mgr('int: int; float: float; complex: complex;'
                          'str: object; bool: bool; obj: object; dt: datetime',
@@ -907,7 +891,7 @@ class TestIndexing:
 
                 # fancy indexer
                 assert_slice_ok(mgr, ax, [])
-                assert_slice_ok(mgr, ax, lrange(mgr.shape[ax]))
+                assert_slice_ok(mgr, ax, list(range(mgr.shape[ax])))
 
                 if mgr.shape[ax] >= 3:
                     assert_slice_ok(mgr, ax, [0, 1, 2])
@@ -925,13 +909,13 @@ class TestIndexing:
         for mgr in self.MANAGERS:
             for ax in range(mgr.ndim):
                 # take/fancy indexer
-                assert_take_ok(mgr, ax, [])
-                assert_take_ok(mgr, ax, [0, 0, 0])
-                assert_take_ok(mgr, ax, lrange(mgr.shape[ax]))
+                assert_take_ok(mgr, ax, indexer=[])
+                assert_take_ok(mgr, ax, indexer=[0, 0, 0])
+                assert_take_ok(mgr, ax, indexer=list(range(mgr.shape[ax])))
 
                 if mgr.shape[ax] >= 3:
-                    assert_take_ok(mgr, ax, [0, 1, 2])
-                    assert_take_ok(mgr, ax, [-1, -2, -3])
+                    assert_take_ok(mgr, ax, indexer=[0, 1, 2])
+                    assert_take_ok(mgr, ax, indexer=[-1, -2, -3])
 
     def test_reindex_axis(self):
         def assert_reindex_axis_is_ok(mgr, axis, new_labels, fill_value):

@@ -5,8 +5,6 @@ Currently only includes SparseSeries.to_coo helpers.
 """
 from collections import OrderedDict
 
-from pandas.compat import lmap
-
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
 
@@ -44,7 +42,7 @@ def _to_ijv(ss, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
             values_ilabels = [x[0] for x in values_ilabels]
 
         # # performance issues with groupby ###################################
-        # TODO: these two lines can rejplace the code below but
+        # TODO: these two lines can replace the code below but
         # groupby is too slow (in some cases at least)
         # labels_to_i = ss.groupby(level=levels, sort=sort_labels).first()
         # labels_to_i[:] = np.arange(labels_to_i.shape[0])
@@ -53,7 +51,7 @@ def _to_ijv(ss, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
             """ Return OrderedDict of unique labels to number.
             Optionally sort by label.
             """
-            labels = Index(lmap(tuple, labels)).unique().tolist()  # squish
+            labels = Index(map(tuple, labels)).unique().tolist()  # squish
             if sort_labels:
                 labels = sorted(list(labels))
             d = OrderedDict((k, i) for i, k in enumerate(labels))
@@ -118,14 +116,41 @@ def _sparse_series_to_coo(ss, row_levels=(0, ), column_levels=(1, ),
     return sparse_matrix, rows, columns
 
 
-def _coo_to_sparse_series(A, dense_index=False):
+def _coo_to_sparse_series(A, dense_index: bool = False,
+                          sparse_series: bool = True):
     """
     Convert a scipy.sparse.coo_matrix to a SparseSeries.
-    Use the defaults given in the SparseSeries constructor.
+
+    Parameters
+    ----------
+    A : scipy.sparse.coo.coo_matrix
+    dense_index : bool, default False
+    sparse_series : bool, default True
+
+    Returns
+    -------
+    Series or SparseSeries
+
+    Raises
+    ------
+    TypeError if A is not a coo_matrix
+
     """
-    s = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
+    from pandas import SparseDtype
+
+    try:
+        s = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
+    except AttributeError:
+        raise TypeError('Expected coo_matrix. Got {} instead.'
+                        .format(type(A).__name__))
     s = s.sort_index()
-    s = s.to_sparse()  # TODO: specify kind?
+    if sparse_series:
+        # TODO(SparseSeries): remove this and the sparse_series keyword.
+        # This is just here to avoid a DeprecationWarning when
+        # _coo_to_sparse_series is called via Series.sparse.from_coo
+        s = s.to_sparse()  # TODO: specify kind?
+    else:
+        s = s.astype(SparseDtype(s.dtype))
     if dense_index:
         # is there a better constructor method to use here?
         i = range(A.shape[0])

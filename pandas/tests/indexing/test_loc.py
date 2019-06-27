@@ -5,8 +5,6 @@ from warnings import catch_warnings, filterwarnings
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
 from pandas.api.types import is_scalar
@@ -18,7 +16,7 @@ class TestLoc(Base):
 
     def test_loc_getitem_dups(self):
         # GH 5678
-        # repeated gettitems on a dup index returning a ndarray
+        # repeated getitems on a dup index returning a ndarray
         df = DataFrame(
             np.random.random_sample((20, 5)),
             index=['ABCDE' [x % 5] for x in range(20)])
@@ -196,7 +194,17 @@ class TestLoc(Base):
                           typs=['ints', 'uints', 'labels',
                                 'mixed', 'ts', 'floats'])
         self.check_result('bool', 'loc', b, 'ix', b, typs=['empty'],
-                          fails=KeyError)
+                          fails=IndexError)
+
+    @pytest.mark.parametrize('index', [[True, False],
+                                       [True, False, True, False]])
+    def test_loc_getitem_bool_diff_len(self, index):
+        # GH26658
+        s = Series([1, 2, 3])
+        with pytest.raises(IndexError,
+                           match=('Item wrong length {} instead of {}.'.format(
+                               len(index), len(s)))):
+            _ = s.loc[index]
 
     def test_loc_getitem_int_slice(self):
 
@@ -234,7 +242,7 @@ class TestLoc(Base):
         with pytest.raises(KeyError, match=msg):
             s.loc[[-1, -2]]
 
-        msg = (r"\"None of \[Index\(\[u?'4'\], dtype='object'\)\] are"
+        msg = (r"\"None of \[Index\(\['4'\], dtype='object'\)\] are"
                r" in the \[index\]\"")
         with pytest.raises(KeyError, match=msg):
             s.loc[['4']]
@@ -620,7 +628,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         def gen_test(l, l2):
             return pd.concat([
                 DataFrame(np.random.randn(l, len(columns)),
-                          index=lrange(l), columns=columns),
+                          index=np.arange(l), columns=columns),
                 DataFrame(np.ones((l2, len(columns))),
                           index=[0] * l2, columns=columns)])
 
@@ -656,7 +664,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert result == 'index_name'
 
         with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             result = df.ix[[0, 1]].index.name
         assert result == 'index_name'
 

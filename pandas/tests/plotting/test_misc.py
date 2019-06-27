@@ -7,7 +7,6 @@ from numpy import random
 from numpy.random import randn
 import pytest
 
-from pandas.compat import lmap
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -22,7 +21,7 @@ def test_import_error_message():
     # GH-19810
     df = DataFrame({"A": [1, 2]})
 
-    with pytest.raises(ImportError, match='matplotlib is required'):
+    with pytest.raises(ImportError, match="No module named 'matplotlib'"):
         df.plot()
 
 
@@ -115,7 +114,7 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(andrews_curves, frame=df,
                                class_column='Name', colormap=cm.jet)
-        cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
+        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df['Name'].nunique())]
         self._check_colors(
             ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
 
@@ -141,7 +140,7 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(andrews_curves, frame=df,
                                class_column='Name', colormap=cm.jet)
-        cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
+        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df['Name'].nunique())]
         self._check_colors(
             ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
 
@@ -183,7 +182,7 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(parallel_coordinates,
                                frame=df, class_column='Name', colormap=cm.jet)
-        cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
+        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df['Name'].nunique())]
         self._check_colors(
             ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
 
@@ -250,7 +249,7 @@ class TestDataFramePlots(TestPlotBase):
 
         _check_plot_works(radviz, frame=df,
                           class_column='Name', colormap=cm.jet)
-        cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
+        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df['Name'].nunique())]
         patches = [p for p in ax.patches[:20] if p.get_label() != '']
         self._check_colors(patches, facecolors=cmaps, mapping=df['Name'][:10])
 
@@ -309,13 +308,13 @@ class TestDataFramePlots(TestPlotBase):
         assert rand1 != rand2
 
         # Make sure it produces the same colors every time it's called
-        from pandas.plotting._style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import _get_standard_colors
         color1 = _get_standard_colors(1, color_type='random')
         color2 = _get_standard_colors(1, color_type='random')
         assert color1 == color2
 
     def test_get_standard_colors_default_num_colors(self):
-        from pandas.plotting._style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import _get_standard_colors
 
         # Make sure the default color_types returns the specified amount
         color1 = _get_standard_colors(1, color_type='default')
@@ -337,8 +336,7 @@ class TestDataFramePlots(TestPlotBase):
                         'rank': [52, 525, 32],
                         })
         ax = df.client.value_counts().plot.bar()
-        colors = lmap(lambda rect: rect.get_facecolor(),
-                      ax.get_children()[0:3])
+        colors = [rect.get_facecolor() for rect in ax.get_children()[0:3]]
         assert all(color == colors[0] for color in colors)
 
     def test_get_standard_colors_no_appending(self):
@@ -347,9 +345,9 @@ class TestDataFramePlots(TestPlotBase):
         # Make sure not to add more colors so that matplotlib can cycle
         # correctly.
         from matplotlib import cm
+        from pandas.plotting._matplotlib.style import _get_standard_colors
         color_before = cm.gnuplot(range(5))
-        color_after = plotting._style._get_standard_colors(
-            1, color=color_before)
+        color_after = _get_standard_colors(1, color=color_before)
         assert len(color_after) == len(color_before)
 
         df = DataFrame(np.random.randn(48, 4), columns=list("ABCD"))

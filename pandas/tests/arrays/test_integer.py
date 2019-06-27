@@ -164,13 +164,13 @@ class TestArithmeticOps(BaseOpsUtil):
             self._check_op_integer(result, expected, mask, s, op_name, other)
 
     def _check_op_float(self, result, expected, mask, s, op_name, other):
-        # check comparisions that are resulting in float dtypes
+        # check comparisons that are resulting in float dtypes
 
         expected[mask] = np.nan
         tm.assert_series_equal(result, expected)
 
     def _check_op_integer(self, result, expected, mask, s, op_name, other):
-        # check comparisions that are resulting in integer dtypes
+        # check comparisons that are resulting in integer dtypes
 
         # to compare properly, we convert the expected
         # to float, mask to nans and convert infs
@@ -611,6 +611,19 @@ def test_to_integer_array_float():
     # for float dtypes, the itemsize is not preserved
     result = integer_array(np.array([1., 2.], dtype='float32'))
     assert result.dtype == Int64Dtype()
+
+
+@pytest.mark.parametrize(
+    'bool_values, int_values, target_dtype, expected_dtype',
+    [([False, True], [0, 1], Int64Dtype(), Int64Dtype()),
+     ([False, True], [0, 1], 'Int64', Int64Dtype()),
+     ([False, True, np.nan], [0, 1, np.nan], Int64Dtype(), Int64Dtype())])
+def test_to_integer_array_bool(bool_values, int_values, target_dtype,
+                               expected_dtype):
+    result = integer_array(bool_values, dtype=target_dtype)
+    assert result.dtype == expected_dtype
+    expected = integer_array(int_values, dtype=target_dtype)
+    tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(

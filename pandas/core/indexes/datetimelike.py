@@ -2,6 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 import operator
+from typing import Set
 import warnings
 
 import numpy as np
@@ -57,22 +58,26 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
-    _data = None  # type: DatetimeLikeArrayMixin
+    _data = None
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
     # subclasses bc they are immutable
-    inferred_freq = cache_readonly(DatetimeLikeArrayMixin.inferred_freq.fget)
-    _isnan = cache_readonly(DatetimeLikeArrayMixin._isnan.fget)
-    hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)
+    inferred_freq = cache_readonly(
+        DatetimeLikeArrayMixin.inferred_freq.fget)  # type: ignore
+    _isnan = cache_readonly(DatetimeLikeArrayMixin._isnan.fget)  # type: ignore
+    hasnans = cache_readonly(
+        DatetimeLikeArrayMixin._hasnans.fget)  # type: ignore
     _hasnans = hasnans  # for index / array -agnostic code
-    _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
-    resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
+    _resolution = cache_readonly(
+        DatetimeLikeArrayMixin._resolution.fget)  # type: ignore
+    resolution = cache_readonly(
+        DatetimeLikeArrayMixin.resolution.fget)  # type: ignore
 
-    _box_values = ea_passthrough(DatetimeLikeArrayMixin._box_values)
     _maybe_mask_results = ea_passthrough(
         DatetimeLikeArrayMixin._maybe_mask_results)
     __iter__ = ea_passthrough(DatetimeLikeArrayMixin.__iter__)
+    mean = ea_passthrough(DatetimeLikeArrayMixin.mean)
 
     @property
     def freq(self):
@@ -130,11 +135,11 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     # Abstract data attributes
 
     @property
-    def values(self) -> np.ndarray:
+    def values(self):
         # Note: PeriodArray overrides this to return an ndarray of objects.
         return self._data._data
 
-    @property
+    @property  # type: ignore # https://github.com/python/mypy/issues/1362
     @Appender(DatetimeLikeArrayMixin.asi8.__doc__)
     def asi8(self):
         return self._data.asi8
@@ -220,9 +225,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
-    def map(self, f):
+    def map(self, mapper, na_action=None):
         try:
-            result = f(self)
+            result = mapper(self)
 
             # Try to use this result if we can
             if isinstance(result, np.ndarray):
@@ -232,7 +237,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
                 raise TypeError('The map function must return an Index object')
             return result
         except Exception:
-            return self.astype(object).map(f)
+            return self.astype(object).map(mapper)
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
@@ -430,8 +435,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _format_with_header(self, header, **kwargs):
-        return header + list(self._format_native_types(**kwargs))
+    def _format_with_header(self, header, na_rep='NaT', **kwargs):
+        return header + list(self._format_native_types(na_rep, **kwargs))
 
     @property
     def _formatter_func(self):
@@ -509,7 +514,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         cls.__rsub__ = __rsub__
 
-    def isin(self, values):
+    def isin(self, values, level=None):
         """
         Compute boolean array of whether each index value is found in the
         passed set of values.
@@ -522,6 +527,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         -------
         is_contained : ndarray (boolean dtype)
         """
+        if level is not None:
+            self._validate_index_level(level)
+
         if not isinstance(values, type(self)):
             try:
                 values = type(self)(values)
@@ -758,9 +766,9 @@ class DatetimelikeDelegateMixin(PandasDelegate):
         boxed in an index, after being returned from the array
     """
     # raw_methods : dispatch methods that shouldn't be boxed in an Index
-    _raw_methods = set()
+    _raw_methods = set()  # type: Set[str]
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
-    _raw_properties = set()
+    _raw_properties = set()  # type: Set[str]
     name = None
     _data = None
 
