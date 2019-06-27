@@ -507,7 +507,7 @@ class TestParquetFastParquet(Base):
             df.to_parquet(path, engine="fastparquet",
                           partition_cols=partition_cols, compression=None)
             assert os.path.exists(path)
-            import fastparquet
+            import fastparquet  # noqa: F811
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
 
@@ -519,7 +519,7 @@ class TestParquetFastParquet(Base):
             df.to_parquet(path, engine="fastparquet", compression=None,
                           partition_on=partition_cols)
             assert os.path.exists(path)
-            import fastparquet
+            import fastparquet  # noqa: F811
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
 
