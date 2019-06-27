@@ -697,6 +697,27 @@ def test_preserve_categorical_dtype():
         tm.assert_frame_equal(result2, expected)
 
 
+@pytest.mark.parametrize(
+    'func, values',
+    [('first', ['second', 'first']),
+     ('last', ['fourth', 'third']),
+     ('min', ['fourth', 'first']),
+     ('max', ['second', 'third'])])
+def test_preserve_on_ordered_ops(func, values):
+    # gh-18502
+    # preserve the categoricals on ops
+    c = pd.Categorical(['first', 'second', 'third', 'fourth'], ordered=True)
+    df = pd.DataFrame(
+        {'payload': [-1, -2, -1, -2],
+         'col': c})
+    g = df.groupby('payload')
+    result = getattr(g, func)()
+    expected = pd.DataFrame(
+        {'payload': [-2, -1],
+         'col': pd.Series(values, dtype=c.dtype)}).set_index('payload')
+    tm.assert_frame_equal(result, expected)
+
+
 def test_categorical_no_compress():
     data = Series(np.random.randn(9))
 
