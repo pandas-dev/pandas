@@ -84,7 +84,6 @@ def check_arbitrary(a, b):
         assert(a == b)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestPackers:
 
     def setup_method(self, method):
@@ -99,7 +98,6 @@ class TestPackers:
             return read_msgpack(p, **kwargs)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestAPI(TestPackers):
 
     def test_string_io(self):
@@ -463,7 +461,6 @@ class TestCategorical(TestPackers):
                 assert_categorical_equal(i, i_rec)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestNDFrame(TestPackers):
 
     def setup_method(self, method):
@@ -842,7 +839,6 @@ def legacy_packer(request, datapath):
     return datapath(request.param)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestMsgpack:
     """
@@ -858,15 +854,11 @@ class TestMsgpack:
     minimum_structure = {'series': ['float', 'int', 'mixed',
                                     'ts', 'mi', 'dup'],
                          'frame': ['float', 'int', 'mixed', 'mi'],
-                         'panel': ['float'],
                          'index': ['int', 'date', 'period'],
                          'mi': ['reg2']}
 
     def check_min_structure(self, data, version):
         for typ, v in self.minimum_structure.items():
-            if typ == "panel":
-                # FIXME: kludge; get this key out of the legacy file
-                continue
 
             assert typ in data, '"{0}" not found in unpacked data'.format(typ)
             for kind in v:
@@ -879,10 +871,6 @@ class TestMsgpack:
             data = read_msgpack(vf, encoding='latin-1')
         else:
             data = read_msgpack(vf)
-
-        if "panel" in data:
-            # FIXME: kludge; get the key out of the stored file
-            del data["panel"]
 
         self.check_min_structure(data, version)
         for typ, dv in data.items():
