@@ -3,7 +3,7 @@
 {{ header }}
 
 ********************
-Options and Settings
+Options and settings
 ********************
 
 Overview
@@ -68,7 +68,7 @@ with no argument ``describe_option`` will print out the descriptions for all ava
 
    pd.reset_option("all")
 
-Getting and Setting Options
+Getting and setting options
 ---------------------------
 
 As described above, :func:`~pandas.get_option` and :func:`~pandas.set_option`
@@ -120,10 +120,10 @@ are restored automatically when you exit the `with` block:
    print(pd.get_option("display.max_columns"))
 
 
-Setting Startup Options in python/ipython Environment
+Setting startup options in Python/IPython environment
 -----------------------------------------------------
 
-Using startup scripts for the python/ipython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default ipython profile can be found at:
+Using startup scripts for the Python/IPython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default ipython profile can be found at:
 
 .. code-block:: none
 
@@ -266,7 +266,7 @@ The options are 'right', and 'left'.
 
 .. _options.available:
 
-Available Options
+Available options
 -----------------
 
 ======================================= ============ ==================================
@@ -444,7 +444,7 @@ plotting.matplotlib.register_converters True         Register custom converters 
 
 .. _basics.console_output:
 
-Number Formatting
+Number formatting
 ------------------
 
 pandas also allows you to set how numbers are displayed in the console.
@@ -475,7 +475,7 @@ To round floats on a case-by-case basis, you can also use :meth:`~pandas.Series.
 
 .. _options.east_asian_width:
 
-Unicode Formatting
+Unicode formatting
 ------------------
 
 .. warning::
@@ -538,7 +538,7 @@ However, setting this option incorrectly for your terminal will cause these char
 
 .. _options.table_schema:
 
-Table Schema Display
+Table schema display
 --------------------
 
 .. versionadded:: 0.20.0
