@@ -96,11 +96,12 @@ def nested_to_record(ds, prefix="", sep=".", level=0):
     return new_ds
 
 
-def json_normalize(data, fill_value=None, record_path=None, meta=None,
+def json_normalize(data, record_path=None, meta=None,
                    meta_prefix=None,
                    record_prefix=None,
                    errors='raise',
-                   sep='.'):
+                   sep='.',
+                   fill_value=None):
     """
     Normalize semi-structured JSON data into a flat table.
 
@@ -151,7 +152,7 @@ def json_normalize(data, fill_value=None, record_path=None, meta=None,
     1  NaN         NaN      Regner        NaN       Mose       NaN
     2  2.0  Faye Raker         NaN        NaN        NaN       NaN
 
-    >>> json_normalize(data, fill_value={'id' : -1})
+    >>> json_normalize(data, fill_value={'id': -1})
        id        name name.family name.first name.given name.last
     0   1         NaN         NaN     Coleen        NaN      Volk
     1  -1         NaN      Regner        NaN       Mose       NaN

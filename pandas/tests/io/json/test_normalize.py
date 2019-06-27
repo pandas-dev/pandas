@@ -38,6 +38,32 @@ def deep_nested():
              }
             ]
 
+@pytest.fixture
+def deep_nested_missing():
+    # deeply nested data with some missing values
+    return [{'country': 'USA',
+             'states': [{'name': 'California',
+                         'cities': [{'name': 'San Francisco',
+                                     'pop': 12345},
+                                    {'name': 'Los Angeles',
+                                     'pop': 12346}]
+                         },
+                        {'name': 'Ohio',
+                         'cities': [{'name': 'Columbus',
+                                     'pop': 1234},
+                                    {'pop': 1236}]}
+                        ]
+             },
+            {'country': 'Germany',
+             'states': [{'name': 'Bayern',
+                         'cities': [{'name': 'Munich'}]
+                         },
+                        {'name': 'Nordrhein-Westfalen',
+                         'cities': [{'name': 'Duesseldorf', 'pop': 1238},
+                                    {'name': 'Koeln'}]}
+                        ]
+             }
+            ]
 
 @pytest.fixture
 def state_data():
@@ -292,6 +318,43 @@ class TestJSONNormalize:
              'info.last_updated': '26/05/2012'}
         ]
         expected = DataFrame(ex_data)
+        tm.assert_frame_equal(result, expected)
+
+    def test_fill_value(self, author_missing_data, deep_nested_missing):
+        # GH16918
+        result = json_normalize(
+            author_missing_data,
+            fill_value={'info.last_updated': '27/06/2019'})
+        ex_data = [
+            {'info': np.nan,
+             'author_name.first': np.nan,
+             'author_name.last_name': np.nan,
+             'info.created_at': np.nan,
+             'info.last_updated': '27/06/2019'},
+            {'info': None,
+             'author_name.first': 'Jane',
+             'author_name.last_name': 'Doe',
+             'info.created_at': '11/08/1993',
+             'info.last_updated': '26/05/2012'}
+        ]
+        expected = DataFrame(ex_data)
+        print(result['info'], expected['info'])
+        tm.assert_frame_equal(result, expected)
+
+        result = json_normalize(deep_nested_missing, ['states', 'cities'],
+                                meta=['country', ['states', 'name']],
+                                fill_value={'pop': 0, 'name': 'N/A'})
+        # meta_prefix={'states': 'state_'})
+
+        ex_data = {'country': ['USA'] * 4 + ['Germany'] * 3,
+                   'states.name': ['California', 'California', 'Ohio', 'Ohio',
+                                   'Bayern', 'Nordrhein-Westfalen',
+                                   'Nordrhein-Westfalen'],
+                   'name': ['San Francisco', 'Los Angeles', 'Columbus',
+                            'N/A', 'Munich', 'Duesseldorf', 'Koeln'],
+                   'pop': [12345, 12346, 1234, 1236, 0, 1238, 0]}
+
+        expected = DataFrame(ex_data, columns=result.columns)
         tm.assert_frame_equal(result, expected)
 
 
