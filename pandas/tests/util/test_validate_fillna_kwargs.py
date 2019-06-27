@@ -11,15 +11,12 @@ def test_no_value_or_method():
         validate_fillna_kwargs(None, None, None)
 
 
-@pytest.mark.parametrize("value",
-                         [0, {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4}])
-@pytest.mark.parametrize("method", ['backfill', 'bfill', 'pad', 'ffill'])
-def test_value_and_method(value, method):
+def test_value_and_method():
 
     msg = "Cannot specify both 'value' and 'method'."
 
     with pytest.raises(ValueError, match=msg):
-        validate_fillna_kwargs(value, method, None)
+        validate_fillna_kwargs(0, 'ffill', None)
 
 
 @pytest.mark.parametrize("value", [(1, 2, 3), [1, 2, 3]])
