@@ -1127,8 +1127,8 @@ def test_int_float_union_dtype(dtype):
     index = pd.Index([0, 2, 3], dtype=dtype)
     other = pd.Float64Index([0.5, 1.5])
     expected = pd.Float64Index([0.0, 0.5, 1.5, 2.0, 3.0])
-    # result = index.union(other)
-    # tm.assert_index_equal(result, expected)
+    result = index.union(other)
+    tm.assert_index_equal(result, expected)
 
     result = other.union(index)
     tm.assert_index_equal(result, expected)
