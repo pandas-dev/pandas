@@ -11,12 +11,13 @@ import pandas.util.testing as tm
 class TestPivotTable:
 
     def setup_method(self, method):
+        rs = np.random.RandomState(0)
         self.dense = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
                                          'foo', 'bar', 'foo', 'foo'],
                                    'B': ['one', 'one', 'two', 'three',
                                          'two', 'two', 'one', 'three'],
-                                   'C': np.random.randn(8),
-                                   'D': np.random.randn(8),
+                                   'C': rs.randn(8),
+                                   'D': rs.randn(8),
                                    'E': [np.nan, np.nan, 1, 2,
                                          np.nan, 1, np.nan, np.nan]})
         self.sparse = self.dense.to_sparse()
