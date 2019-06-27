@@ -1,12 +1,15 @@
+from typing import Hashable, List
 from collections import OrderedDict
 from distutils.version import LooseVersion
 
+import numpy as np
+
 from pandas.compat._optional import import_optional_dependency
+from pandas.core.api import isnull
 from pandas.core.dtypes.common import (
     ensure_int_or_float, is_float_dtype, is_integer, is_integer_dtype,
     is_list_like, is_object_dtype)
 
-from pandas.core.internals.construction import get_names_from_index
 from pandas.core.frame import DataFrame
 
 from pandas.io.common import _validate_header_arg
@@ -671,7 +674,17 @@ class _OpenpyxlReader(_BaseExcelReader):
             if header_names:
                 frame = frame.columns.set_names(header_names)
 
-        frame.columns = get_names_from_index(frame.columns)
+        # TODO: align Unnamed filling logic with TextParser._infer_columns
+        # and handle potentially missing MultiIndex labels
+        if frame.columns.nlevels == 1:
+            new_labels = []  # type: List[Hashable]
+            for index, name in enumerate(frame.columns):
+                if isnull(name):
+                    new_labels.append("Unnamed: {}".format(index))
+                else:
+                    new_labels.append(name)
+
+        frame.columns = new_labels
 
         return frame
 
