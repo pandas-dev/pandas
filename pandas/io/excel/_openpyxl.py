@@ -596,7 +596,7 @@ class _OpenpyxlReader(_BaseExcelReader):
             TYPE_ERROR = Cell.TYPE_ERROR
 
         for row in rows:
-            return [np.nan
+            yield [np.nan
                    if cell.data_type == TYPE_ERROR
                    else cell.value
                    for cell in row]
