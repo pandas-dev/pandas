@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
@@ -8,7 +6,7 @@ from pandas import Index, Int64Index, NaT, Period, PeriodIndex, period_range
 import pandas.util.testing as tm
 
 
-class TestPeriodIndexAsType(object):
+class TestPeriodIndexAsType:
     @pytest.mark.parametrize('dtype', [
         float, 'timedelta64', 'timedelta64[ns]'])
     def test_astype_raises(self, dtype):
@@ -40,6 +38,12 @@ class TestPeriodIndexAsType(object):
         result = idx.astype('i8')
         tm.assert_index_equal(result, Index(idx.asi8))
         tm.assert_numpy_array_equal(result.values, idx.asi8)
+
+    def test_astype_uint(self):
+        arr = period_range('2000', periods=2)
+        expected = pd.UInt64Index(np.array([10957, 10958], dtype='uint64'))
+        tm.assert_index_equal(arr.astype("uint64"), expected)
+        tm.assert_index_equal(arr.astype("uint32"), expected)
 
     def test_astype_object(self):
         idx = pd.PeriodIndex([], freq='M')

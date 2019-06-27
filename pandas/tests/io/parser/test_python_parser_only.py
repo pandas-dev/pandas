@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that apply specifically to the Python parser. Unless specifically
 stated as a Python-specific issue, the goal is to eventually move as many of
@@ -8,12 +6,10 @@ arguments when parsing.
 """
 
 import csv
-import sys
+from io import BytesIO, StringIO
 
 import pytest
 
-import pandas.compat as compat
-from pandas.compat import BytesIO, StringIO, u
 from pandas.errors import ParserError
 
 from pandas import DataFrame, Index, MultiIndex
@@ -83,12 +79,10 @@ baz|7|8|9
 """
 
     if encoding is not None:
-        data = u(data).encode(encoding)
+        from io import TextIOWrapper
+        data = data.encode(encoding)
         data = BytesIO(data)
-
-        if compat.PY3:
-            from io import TextIOWrapper
-            data = TextIOWrapper(data, encoding=encoding)
+        data = TextIOWrapper(data, encoding=encoding)
     else:
         data = StringIO(data)
 
@@ -248,8 +242,7 @@ def test_multi_char_sep_quotes(python_parser_only, quoting):
         fail_read()
 
 
-@tm.capture_stderr
-def test_none_delimiter(python_parser_only):
+def test_none_delimiter(python_parser_only, capsys):
     # see gh-13374 and gh-17465
     parser = python_parser_only
     data = "a,b,c\n0,1,2\n3,4,5,6\n7,8,9"
@@ -263,8 +256,8 @@ def test_none_delimiter(python_parser_only):
                              error_bad_lines=False)
     tm.assert_frame_equal(result, expected)
 
-    warning = sys.stderr.getvalue()
-    assert "Skipping line 3" in warning
+    captured = capsys.readouterr()
+    assert "Skipping line 3" in captured.err
 
 
 @pytest.mark.parametrize("data", [

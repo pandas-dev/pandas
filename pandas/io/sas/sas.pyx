@@ -1,8 +1,9 @@
 # cython: profile=False
 # cython: boundscheck=False, initializedcheck=False
+from cython import Py_ssize_t
 
 import numpy as np
-import sas_constants as const
+import pandas.io.sas.sas_constants as const
 
 ctypedef signed long long   int64_t
 ctypedef unsigned char      uint8_t
@@ -11,15 +12,16 @@ ctypedef unsigned short     uint16_t
 # rle_decompress decompresses data using a Run Length Encoding
 # algorithm.  It is partially documented here:
 #
-# https://cran.r-project.org/web/packages/sas7bdat/vignettes/sas7bdat.pdf
+# https://cran.r-project.org/package=sas7bdat/vignettes/sas7bdat.pdf
 cdef const uint8_t[:] rle_decompress(int result_length,
                                      const uint8_t[:] inbuff):
 
     cdef:
         uint8_t control_byte, x
         uint8_t[:] result = np.zeros(result_length, np.uint8)
-        int rpos = 0, ipos = 0, length = len(inbuff)
+        int rpos = 0
         int i, nbytes, end_of_first_byte
+        Py_ssize_t ipos = 0, length = len(inbuff)
 
     while ipos < length:
         control_byte = inbuff[ipos] & 0xF0
@@ -123,12 +125,13 @@ cdef const uint8_t[:] rdc_decompress(int result_length,
     cdef:
         uint8_t cmd
         uint16_t ctrl_bits, ctrl_mask = 0, ofs, cnt
-        int ipos = 0, rpos = 0, k
+        int rpos = 0, k
         uint8_t[:] outbuff = np.zeros(result_length, dtype=np.uint8)
+        Py_ssize_t ipos = 0, length = len(inbuff)
 
     ii = -1
 
-    while ipos < len(inbuff):
+    while ipos < length:
         ii += 1
         ctrl_mask = ctrl_mask >> 1
         if ctrl_mask == 0:
@@ -203,14 +206,15 @@ cdef enum ColumnTypes:
 
 
 # type the page_data types
-cdef int page_meta_type = const.page_meta_type
-cdef int page_mix_types_0 = const.page_mix_types[0]
-cdef int page_mix_types_1 = const.page_mix_types[1]
-cdef int page_data_type = const.page_data_type
-cdef int subheader_pointers_offset = const.subheader_pointers_offset
+cdef:
+    int page_meta_type = const.page_meta_type
+    int page_mix_types_0 = const.page_mix_types[0]
+    int page_mix_types_1 = const.page_mix_types[1]
+    int page_data_type = const.page_data_type
+    int subheader_pointers_offset = const.subheader_pointers_offset
 
 
-cdef class Parser(object):
+cdef class Parser:
 
     cdef:
         int column_count

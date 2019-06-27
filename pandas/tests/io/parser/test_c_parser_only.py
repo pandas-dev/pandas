@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that apply specifically to the CParser. Unless specifically stated
 as a CParser-specific issue, the goal is to eventually move as many of
@@ -7,16 +5,14 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
-from io import TextIOWrapper
+from io import BytesIO, StringIO, TextIOWrapper
 import mmap
 import os
-import sys
 import tarfile
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY3, BytesIO, StringIO, lrange, range
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -112,7 +108,24 @@ nan 2
                         names=["a", "b"], dtype={"a": np.int32})
 
 
-def test_unsupported_dtype(c_parser_only):
+@pytest.mark.parametrize("match,kwargs", [
+    # For each of these cases, all of the dtypes are valid, just unsupported.
+    (("the dtype datetime64 is not supported for parsing, "
+      "pass this column using parse_dates instead"),
+     dict(dtype={"A": "datetime64", "B": "float64"})),
+
+    (("the dtype datetime64 is not supported for parsing, "
+      "pass this column using parse_dates instead"),
+     dict(dtype={"A": "datetime64", "B": "float64"},
+          parse_dates=["B"])),
+
+    ("the dtype timedelta64 is not supported for parsing",
+     dict(dtype={"A": "timedelta64", "B": "float64"})),
+
+    ("the dtype <U8 is not supported for parsing",
+     dict(dtype={"A": "U8"}))
+], ids=["dt64-0", "dt64-1", "td64", "<U8"])
+def test_unsupported_dtype(c_parser_only, match, kwargs):
     parser = c_parser_only
     df = DataFrame(np.random.rand(5, 2), columns=list(
         "AB"), index=["1A", "1B", "1C", "1D", "1E"])
@@ -120,23 +133,8 @@ def test_unsupported_dtype(c_parser_only):
     with tm.ensure_clean("__unsupported_dtype__.csv") as path:
         df.to_csv(path)
 
-        # valid but we don"t support it (date)
-        pytest.raises(TypeError, parser.read_csv, path,
-                      dtype={"A": "datetime64", "B": "float64"},
-                      index_col=0)
-        pytest.raises(TypeError, parser.read_csv, path,
-                      dtype={"A": "datetime64", "B": "float64"},
-                      index_col=0, parse_dates=["B"])
-
-        # valid but we don"t support it
-        pytest.raises(TypeError, parser.read_csv, path,
-                      dtype={"A": "timedelta64", "B": "float64"},
-                      index_col=0)
-
-        # valid but unsupported - fixed width unicode string
-        pytest.raises(TypeError, parser.read_csv, path,
-                      dtype={"A": "U8"},
-                      index_col=0)
+        with pytest.raises(TypeError, match=match):
+            parser.read_csv(path, index_col=0, **kwargs)
 
 
 @td.skip_if_32bit
@@ -246,10 +244,9 @@ def test_parse_ragged_csv(c_parser_only):
     # too many columns, cause segfault if not careful
     data = "1,2\n3,4,5"
 
-    result = parser.read_csv(StringIO(data), header=None,
-                             names=lrange(50))
+    result = parser.read_csv(StringIO(data), header=None, names=range(50))
     expected = parser.read_csv(StringIO(data), header=None,
-                               names=lrange(3)).reindex(columns=lrange(50))
+                               names=range(3)).reindex(columns=range(50))
 
     tm.assert_frame_equal(result, expected)
 
@@ -415,7 +412,7 @@ def test_read_nrows_large(c_parser_only):
 
 
 def test_float_precision_round_trip_with_text(c_parser_only):
-    # see gh-15140 - This should not segfault on Python 2.7+
+    # see gh-15140
     parser = c_parser_only
     df = parser.read_csv(StringIO("a"), header=None,
                          float_precision="round_trip")
@@ -449,8 +446,7 @@ def test_data_after_quote(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
-@tm.capture_stderr
-def test_comment_whitespace_delimited(c_parser_only):
+def test_comment_whitespace_delimited(c_parser_only, capsys):
     parser = c_parser_only
     test_input = """\
 1 2
@@ -466,10 +462,10 @@ def test_comment_whitespace_delimited(c_parser_only):
     df = parser.read_csv(StringIO(test_input), comment="#", header=None,
                          delimiter="\\s+", skiprows=0,
                          error_bad_lines=False)
-    error = sys.stderr.getvalue()
+    captured = capsys.readouterr()
     # skipped lines 2, 3, 4, 9
     for line_num in (2, 3, 4, 9):
-        assert "Skipping line {}".format(line_num) in error, error
+        assert "Skipping line {}".format(line_num) in captured.err
     expected = DataFrame([[1, 2],
                           [5, 2],
                           [6, 2],
@@ -500,17 +496,11 @@ def test_file_like_no_next(c_parser_only):
 
 def test_buffer_rd_bytes_bad_unicode(c_parser_only):
     # see gh-22748
-    parser = c_parser_only
     t = BytesIO(b"\xB0")
-
-    if PY3:
-        msg = "'utf-8' codec can't encode character"
-        t = TextIOWrapper(t, encoding="ascii", errors="surrogateescape")
-    else:
-        msg = "'utf8' codec can't decode byte"
-
+    t = TextIOWrapper(t, encoding="ascii", errors="surrogateescape")
+    msg = "'utf-8' codec can't encode character"
     with pytest.raises(UnicodeError, match=msg):
-        parser.read_csv(t, encoding="UTF-8")
+        c_parser_only.read_csv(t, encoding="UTF-8")
 
 
 @pytest.mark.parametrize("tar_suffix", [".tar", ".tar.gz"])
@@ -572,6 +562,19 @@ def test_file_handles_mmap(c_parser_only, csv1):
         m = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
         parser.read_csv(m)
 
-        if PY3:
-            assert not m.closed
+        assert not m.closed
         m.close()
+
+
+def test_file_binary_mode(c_parser_only):
+    # see gh-23779
+    parser = c_parser_only
+    expected = DataFrame([[1, 2, 3], [4, 5, 6]])
+
+    with tm.ensure_clean() as path:
+        with open(path, "w") as f:
+            f.write("1,2,3\n4,5,6")
+
+        with open(path, "rb") as f:
+            result = parser.read_csv(f, header=None)
+            tm.assert_frame_equal(result, expected)

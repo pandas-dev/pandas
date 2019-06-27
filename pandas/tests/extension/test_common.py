@@ -35,7 +35,7 @@ class DummyArray(ExtensionArray):
         return np.array(self, dtype=dtype, copy=copy)
 
 
-class TestExtensionArrayDtype(object):
+class TestExtensionArrayDtype:
 
     @pytest.mark.parametrize('values', [
         pd.Categorical([]),
@@ -75,14 +75,6 @@ def test_astype_no_copy():
 
     result = arr.astype(arr.dtype)
     assert arr is not result
-
-
-@pytest.mark.parametrize('dtype', [
-    dtypes.DatetimeTZDtype('ns', 'US/Central'),
-])
-def test_is_not_extension_array_dtype(dtype):
-    assert not isinstance(dtype, dtypes.ExtensionDtype)
-    assert not is_extension_array_dtype(dtype)
 
 
 @pytest.mark.parametrize('dtype', [

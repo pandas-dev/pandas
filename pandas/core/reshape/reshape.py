@@ -1,33 +1,31 @@
-# pylint: disable=E1101,E1103
-# pylint: disable=W0703,W0622,W0613,W0201
 from functools import partial
 import itertools
 
 import numpy as np
 
-from pandas._libs import algos as _algos, reshape as _reshape
+import pandas._libs.algos as _algos
+import pandas._libs.reshape as _reshape
 from pandas._libs.sparse import IntIndex
-from pandas.compat import PY2, range, text_type, u, zip
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
-    ensure_platform_int, is_bool_dtype, is_extension_array_dtype, is_list_like,
-    is_object_dtype, needs_i8_conversion)
+    ensure_platform_int, is_bool_dtype, is_extension_array_dtype,
+    is_integer_dtype, is_list_like, is_object_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import notna
 
-from pandas import compat
 import pandas.core.algorithms as algos
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import _factorize_from_iterable
 from pandas.core.frame import DataFrame
 from pandas.core.index import Index, MultiIndex
+from pandas.core.internals.arrays import extract_array
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index, decons_obs_group_ids, get_compressed_ids,
     get_group_index)
 
 
-class _Unstacker(object):
+class _Unstacker:
     """
     Helper class to unstack data / pivot with multi-level index
 
@@ -107,6 +105,21 @@ class _Unstacker(object):
         self.removed_name = self.new_index_names.pop(self.level)
         self.removed_level = self.new_index_levels.pop(self.level)
         self.removed_level_full = index.levels[self.level]
+
+        # Bug fix GH 20601
+        # If the data frame is too big, the number of unique index combination
+        # will cause int32 overflow on windows environments.
+        # We want to check and raise an error before this happens
+        num_rows = np.max([index_level.size for index_level
+                           in self.new_index_levels])
+        num_columns = self.removed_level.size
+
+        # GH20601: This forces an overflow if the number of cells is too high.
+        num_cells = np.multiply(num_rows, num_columns, dtype=np.int32)
+
+        if num_rows > 0 and num_columns > 0 and num_cells <= 0:
+            raise ValueError('Unstacked DataFrame is too big, '
+                             'causing int32 overflow')
 
         self._make_sorted_values_labels()
         self._make_selectors()
@@ -432,7 +445,7 @@ def _unstack_extension_series(series, level, fill_value):
                         level=level, fill_value=-1).get_result()
 
     out = []
-    values = series.array
+    values = extract_array(series, extract_numpy=False)
 
     for col, indices in result.iteritems():
         out.append(Series(values.take(indices.values,
@@ -685,19 +698,20 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
                 columns=None, sparse=False, drop_first=False, dtype=None):
     """
-    Convert categorical variable into dummy/indicator variables
+    Convert categorical variable into dummy/indicator variables.
 
     Parameters
     ----------
     data : array-like, Series, or DataFrame
-    prefix : string, list of strings, or dict of strings, default None
+        Data of which to get dummy indicators.
+    prefix : str, list of str, or dict of str, default None
         String to append DataFrame column names.
         Pass a list with length equal to the number of columns
         when calling get_dummies on a DataFrame. Alternatively, `prefix`
         can be a dictionary mapping column names to prefixes.
-    prefix_sep : string, default '_'
+    prefix_sep : str, default '_'
         If appending prefix, separator/delimiter to use. Or pass a
-        list or dictionary as with `prefix.`
+        list or dictionary as with `prefix`.
     dummy_na : bool, default False
         Add a column to indicate NaNs, if False NaNs are ignored.
     columns : list-like, default None
@@ -705,7 +719,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         If `columns` is None then all the columns with
         `object` or `category` dtype will be converted.
     sparse : bool, default False
-        Whether the dummy-encoded columns should be be backed by
+        Whether the dummy-encoded columns should be backed by
         a :class:`SparseArray` (True) or a regular NumPy array (False).
     drop_first : bool, default False
         Whether to get k-1 dummies out of k categorical levels by removing the
@@ -720,11 +734,12 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
     Returns
     -------
-    dummies : DataFrame
+    DataFrame
+        Dummy-coded data.
 
     See Also
     --------
-    Series.str.get_dummies
+    Series.str.get_dummies : Convert Series to dummy codes.
 
     Examples
     --------
@@ -809,7 +824,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         check_len(prefix, 'prefix')
         check_len(prefix_sep, 'prefix_sep')
 
-        if isinstance(prefix, compat.string_types):
+        if isinstance(prefix, str):
             prefix = cycle([prefix])
         if isinstance(prefix, dict):
             prefix = [prefix[col] for col in data_to_encode.columns]
@@ -818,7 +833,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
             prefix = data_to_encode.columns
 
         # validate separators
-        if isinstance(prefix_sep, compat.string_types):
+        if isinstance(prefix_sep, str):
             prefix_sep = cycle([prefix_sep])
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
@@ -853,6 +868,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
                     sparse=False, drop_first=False, dtype=None):
+    from pandas.core.reshape.concat import concat
     # Series avoids inconsistent NaN handling
     codes, levels = _factorize_from_iterable(Series(data))
 
@@ -892,10 +908,6 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         # PY2 embedded unicode, gh-22084
         def _make_col_name(prefix, prefix_sep, level):
             fstr = '{prefix}{prefix_sep}{level}'
-            if PY2 and (isinstance(prefix, text_type) or
-                        isinstance(prefix_sep, text_type) or
-                        isinstance(level, text_type)):
-                fstr = u(fstr)
             return fstr.format(prefix=prefix,
                                prefix_sep=prefix_sep,
                                level=level)
@@ -909,7 +921,15 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         index = None
 
     if sparse:
-        sparse_series = {}
+
+        if is_integer_dtype(dtype):
+            fill_value = 0
+        elif dtype == bool:
+            fill_value = False
+        else:
+            fill_value = 0.0
+
+        sparse_series = []
         N = len(data)
         sp_indices = [[] for _ in range(len(dummy_cols))]
         mask = codes != -1
@@ -926,12 +946,12 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             dummy_cols = dummy_cols[1:]
         for col, ixs in zip(dummy_cols, sp_indices):
             sarr = SparseArray(np.ones(len(ixs), dtype=dtype),
-                               sparse_index=IntIndex(N, ixs), fill_value=0,
+                               sparse_index=IntIndex(N, ixs),
+                               fill_value=fill_value,
                                dtype=dtype)
-            sparse_series[col] = Series(data=sarr, index=index)
+            sparse_series.append(Series(data=sarr, index=index, name=col))
 
-        out = DataFrame(sparse_series, index=index, columns=dummy_cols,
-                        dtype=dtype)
+        out = concat(sparse_series, axis=1, copy=False)
         return out
 
     else:

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=E1101,W0612
-
 from copy import deepcopy
 from distutils.version import LooseVersion
 from operator import methodcaller
@@ -8,7 +5,6 @@ from operator import methodcaller
 import numpy as np
 import pytest
 
-from pandas.compat import range
 import pandas.util._test_decorators as td
 
 import pandas as pd

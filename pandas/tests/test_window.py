@@ -1,24 +1,25 @@
 from collections import OrderedDict
+from datetime import datetime, timedelta
 from itertools import product
-import pytest
 import warnings
 from warnings import catch_warnings
 
-from datetime import datetime, timedelta
-from numpy.random import randn
 import numpy as np
+from numpy.random import randn
+import pytest
+
+from pandas.errors import UnsupportedFunctionCall
+import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (Series, DataFrame, bdate_range,
-                    isna, notna, concat, Timestamp, Index)
-import pandas.core.window as rwindow
-import pandas.tseries.offsets as offsets
+from pandas import (
+    DataFrame, Index, Series, Timestamp, bdate_range, concat, isna, notna)
 from pandas.core.base import SpecificationError
-from pandas.errors import UnsupportedFunctionCall
 from pandas.core.sorting import safe_sort
+import pandas.core.window as rwindow
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.compat import range, zip
+
+import pandas.tseries.offsets as offsets
 
 N, K = 100, 10
 
@@ -41,12 +42,13 @@ def win_types(request):
     return request.param
 
 
-@pytest.fixture(params=['kaiser', 'gaussian', 'general_gaussian'])
+@pytest.fixture(params=['kaiser', 'gaussian', 'general_gaussian',
+                        'exponential'])
 def win_types_special(request):
     return request.param
 
 
-class Base(object):
+class Base:
 
     _nan_locs = np.arange(20, 40)
     _inf_locs = np.array([])
@@ -87,9 +89,8 @@ class TestApi(Base):
     def test_select_bad_cols(self):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
         g = df.rolling(window=5)
-        pytest.raises(KeyError, g.__getitem__, ['C'])  # g[['C']]
-
-        pytest.raises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
+        with pytest.raises(KeyError, match="Columns not found: 'C'"):
+            g[['C']]
         with pytest.raises(KeyError, match='^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
@@ -100,7 +101,9 @@ class TestApi(Base):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
         r = df.rolling(window=5)
         tm.assert_series_equal(r.A.sum(), r['A'].sum())
-        pytest.raises(AttributeError, lambda: r.F)
+        msg = "'Rolling' object has no attribute 'F'"
+        with pytest.raises(AttributeError, match=msg):
+            r.F
 
     def tests_skip_nuisance(self):
 
@@ -215,11 +218,10 @@ class TestApi(Base):
         df = DataFrame({'A': range(5), 'B': range(0, 10, 2)})
         r = df.rolling(window=3)
 
-        def f():
+        msg = r"cannot perform renaming for (r1|r2) with a nested dictionary"
+        with pytest.raises(SpecificationError, match=msg):
             r.aggregate({'r1': {'A': ['mean', 'sum']},
                          'r2': {'B': ['mean', 'sum']}})
-
-        pytest.raises(SpecificationError, f)
 
         expected = concat([r['A'].mean(), r['A'].std(),
                            r['B'].mean(), r['B'].std()], axis=1)
@@ -518,6 +520,26 @@ class TestRolling(Base):
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
 
+    @pytest.mark.parametrize("func", ['min', 'max'])
+    def test_closed_one_entry(self, func):
+        # GH24718
+        ser = pd.Series(data=[2], index=pd.date_range('2000', periods=1))
+        result = getattr(ser.rolling('10D', closed='left'), func)()
+        tm.assert_series_equal(result, pd.Series([np.nan], index=ser.index))
+
+    @pytest.mark.parametrize("func", ['min', 'max'])
+    def test_closed_one_entry_groupby(self, func):
+        # GH24718
+        ser = pd.DataFrame(data={'A': [1, 1, 2], 'B': [3, 2, 1]},
+                           index=pd.date_range('2000', periods=3))
+        result = getattr(
+            ser.groupby('A', sort=False)['B'].rolling('10D', closed='left'),
+            func)()
+        exp_idx = pd.MultiIndex.from_arrays(arrays=[[1, 1, 2], ser.index],
+                                            names=('A', None))
+        expected = pd.Series(data=[np.nan, 3, np.nan], index=exp_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("input_dtype", ['int', 'float'])
     @pytest.mark.parametrize("func,closed,expected", [
         ('min', 'right', [0.0, 0, 0, 1, 2, 3, 4, 5, 6, 7]),
@@ -572,6 +594,25 @@ class TestRolling(Base):
         expected = pd.Series(expected, index=ser.index)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("closed,expected", [
+        ('right', [0, 0.5, 1, 2, 3, 4, 5, 6, 7, 8]),
+        ('both', [0, 0.5, 1, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5]),
+        ('neither', [np.nan, 0, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5]),
+        ('left', [np.nan, 0, 0.5, 1, 2, 3, 4, 5, 6, 7])
+    ])
+    def test_closed_median_quantile(self, closed, expected):
+        # GH 26005
+        ser = pd.Series(data=np.arange(10),
+                        index=pd.date_range('2000', periods=10))
+        roll = ser.rolling('3D', closed=closed)
+        expected = pd.Series(expected, index=ser.index)
+
+        result = roll.median()
+        tm.assert_series_equal(result, expected)
+
+        result = roll.quantile(0.5)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize('roller', ['1s', 1])
     def tests_empty_df_rolling(self, roller):
         # GH 15819 Verifies that datetime and integer rolling windows can be
@@ -585,6 +626,17 @@ class TestRolling(Base):
         expected = DataFrame(index=pd.DatetimeIndex([]))
         result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
+
+    def test_empty_window_median_quantile(self):
+        # GH 26005
+        expected = pd.Series([np.nan, np.nan, np.nan])
+        roll = pd.Series(np.arange(3)).rolling(0)
+
+        result = roll.median()
+        tm.assert_series_equal(result, expected)
+
+        result = roll.quantile(0.1)
+        tm.assert_series_equal(result, expected)
 
     def test_missing_minp_zero(self):
         # https://github.com/pandas-dev/pandas/pull/18921
@@ -627,7 +679,7 @@ class TestRolling(Base):
         with pytest.raises(NotImplementedError):
             iter(obj.rolling(2))
 
-    def test_rolling_axis(self, axis_frame):
+    def test_rolling_axis_sum(self, axis_frame):
         # see gh-23372.
         df = DataFrame(np.ones((10, 20)))
         axis = df._get_axis_number(axis_frame)
@@ -644,6 +696,20 @@ class TestRolling(Base):
             ] * 10)
 
         result = df.rolling(3, axis=axis_frame).sum()
+        tm.assert_frame_equal(result, expected)
+
+    def test_rolling_axis_count(self, axis_frame):
+        # see gh-26055
+        df = DataFrame({'x': range(3), 'y': range(3)})
+
+        axis = df._get_axis_number(axis_frame)
+
+        if axis in [0, 'index']:
+            expected = DataFrame({'x': [1.0, 2.0, 2.0], 'y': [1.0, 2.0, 2.0]})
+        else:
+            expected = DataFrame({'x': [1.0, 1.0, 1.0], 'y': [2.0, 2.0, 2.0]})
+
+        result = df.rolling(2, axis=axis_frame).count()
         tm.assert_frame_equal(result, expected)
 
 
@@ -825,7 +891,7 @@ class TestEWM(Base):
 #
 # further note that we are only checking rolling for fully dtype
 # compliance (though both expanding and ewm inherit)
-class Dtype(object):
+class Dtype:
     window = 2
 
     funcs = {
@@ -1225,7 +1291,8 @@ class TestMoments(Base):
         kwds = {
             'kaiser': {'beta': 1.},
             'gaussian': {'std': 1.},
-            'general_gaussian': {'power': 2., 'width': 2.}}
+            'general_gaussian': {'power': 2., 'width': 2.},
+            'exponential': {'tau': 10}}
 
         vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 16.68, 9.48,
                          10.63, 14.48])
@@ -1236,7 +1303,9 @@ class TestMoments(Base):
             'general_gaussian': [np.nan, np.nan, 9.85011, 10.71589, 11.73161,
                                  13.08516, 12.95111, 12.74577, np.nan, np.nan],
             'kaiser': [np.nan, np.nan, 9.86851, 11.02969, 11.65161, 12.75129,
-                       12.90702, 12.83757, np.nan, np.nan]
+                       12.90702, 12.83757, np.nan, np.nan],
+            'exponential': [np.nan, np.nan, 9.83364, 11.10472, 11.64551,
+                            12.66138, 12.92379, 12.83770, np.nan, np.nan],
         }
 
         xp = Series(xps[win_types_special])
@@ -1252,7 +1321,8 @@ class TestMoments(Base):
             'kaiser': {'beta': 1.},
             'gaussian': {'std': 1.},
             'general_gaussian': {'power': 2., 'width': 2.},
-            'slepian': {'width': 0.5}}
+            'slepian': {'width': 0.5},
+            'exponential': {'tau': 10}}
 
         vals = np.array(range(10), dtype=np.float)
         xp = vals.copy()
@@ -1317,7 +1387,7 @@ class TestMoments(Base):
 
     def test_rolling_quantile_np_percentile(self):
         # #9413: Tests that rolling window's quantile default behavior
-        # is analogus to Numpy's percentile
+        # is analogous to Numpy's percentile
         row = 10
         col = 5
         idx = pd.date_range('20100101', periods=row, freq='B')
@@ -1784,26 +1854,38 @@ class TestMoments(Base):
     def test_ewm_domain_checks(self):
         # GH 12492
         s = Series(self.arr)
-        # com must satisfy: com >= 0
-        pytest.raises(ValueError, s.ewm, com=-0.1)
+        msg = "comass must satisfy: comass >= 0"
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(com=-0.1)
         s.ewm(com=0.0)
         s.ewm(com=0.1)
-        # span must satisfy: span >= 1
-        pytest.raises(ValueError, s.ewm, span=-0.1)
-        pytest.raises(ValueError, s.ewm, span=0.0)
-        pytest.raises(ValueError, s.ewm, span=0.9)
+
+        msg = "span must satisfy: span >= 1"
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(span=-0.1)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(span=0.0)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(span=0.9)
         s.ewm(span=1.0)
         s.ewm(span=1.1)
-        # halflife must satisfy: halflife > 0
-        pytest.raises(ValueError, s.ewm, halflife=-0.1)
-        pytest.raises(ValueError, s.ewm, halflife=0.0)
+
+        msg = "halflife must satisfy: halflife > 0"
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(halflife=-0.1)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(halflife=0.0)
         s.ewm(halflife=0.1)
-        # alpha must satisfy: 0 < alpha <= 1
-        pytest.raises(ValueError, s.ewm, alpha=-0.1)
-        pytest.raises(ValueError, s.ewm, alpha=0.0)
+
+        msg = "alpha must satisfy: 0 < alpha <= 1"
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(alpha=-0.1)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(alpha=0.0)
         s.ewm(alpha=0.1)
         s.ewm(alpha=1.0)
-        pytest.raises(ValueError, s.ewm, alpha=1.1)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(alpha=1.1)
 
     @pytest.mark.parametrize('method', ['mean', 'vol', 'var'])
     def test_ew_empty_series(self, method):
@@ -1867,7 +1949,7 @@ class TestMoments(Base):
         assert result2.dtype == np.float_
 
 
-class TestPairwise(object):
+class TestPairwise:
 
     # GH 7738
     df1s = [DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[0, 1]),
@@ -1921,7 +2003,7 @@ class TestPairwise(object):
 
         # DataFrame with itself, pairwise=True
         # note that we may construct the 1st level of the MI
-        # in a non-motononic way, so compare accordingly
+        # in a non-monotonic way, so compare accordingly
         results = []
         for i, df in enumerate(self.df1s):
             result = f(df)
@@ -2072,7 +2154,7 @@ def _create_consistency_data():
     def no_nans(x):
         return x.notna().all().all()
 
-    # data is a tuple(object, is_contant, no_nans)
+    # data is a tuple(object, is_constant, no_nans)
     data = create_series() + create_dataframes()
 
     return [(x, is_constant(x), no_nans(x)) for x in data]
@@ -2129,7 +2211,7 @@ class TestMomentsConsistency(Base):
     ]
 
     def _create_data(self):
-        super(TestMomentsConsistency, self)._create_data()
+        super()._create_data()
         self.data = _consistency_data
 
     def setup_method(self, method):
@@ -2576,7 +2658,10 @@ class TestMomentsConsistency(Base):
     def test_flex_binary_moment(self):
         # GH3155
         # don't blow the stack
-        pytest.raises(TypeError, rwindow._flex_binary_moment, 5, 6, None)
+        msg = ("arguments to moment function must be of type"
+               " np.ndarray/Series/DataFrame")
+        with pytest.raises(TypeError, match=msg):
+            rwindow._flex_binary_moment(5, 6, None)
 
     def test_corr_sanity(self):
         # GH 3155
@@ -2660,7 +2745,10 @@ class TestMomentsConsistency(Base):
                 Series([1.]), Series([1.]), 50, min_periods=min_periods)
             tm.assert_series_equal(result, Series([np.NaN]))
 
-        pytest.raises(Exception, func, A, randn(50), 20, min_periods=5)
+        msg = "Input arrays must be of the same type!"
+        # exception raised is Exception
+        with pytest.raises(Exception, match=msg):
+            func(A, randn(50), 20, min_periods=5)
 
     def test_expanding_apply_args_kwargs(self, raw):
 
@@ -3235,7 +3323,7 @@ class TestMomentsConsistency(Base):
             assert result.dtypes[0] == np.dtype("f8")
 
 
-class TestGrouperGrouping(object):
+class TestGrouperGrouping:
 
     def setup_method(self, method):
         self.series = Series(np.arange(10))
@@ -3244,9 +3332,9 @@ class TestGrouperGrouping(object):
 
     def test_mutated(self):
 
-        def f():
+        msg = r"group\(\) got an unexpected keyword argument 'foo'"
+        with pytest.raises(TypeError, match=msg):
             self.frame.groupby('A', foo=1)
-        pytest.raises(TypeError, f)
 
         g = self.frame.groupby('A')
         assert not g.mutated
@@ -3404,7 +3492,7 @@ class TestGrouperGrouping(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestRollingTS(object):
+class TestRollingTS:
 
     # rolling time-series friendly
     # xref GH13327

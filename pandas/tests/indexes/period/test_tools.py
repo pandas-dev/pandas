@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.ccalendar import MONTHS
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -14,13 +13,13 @@ import pandas.core.indexes.period as period
 import pandas.util.testing as tm
 
 
-class TestPeriodRepresentation(object):
+class TestPeriodRepresentation:
     """
     Wish to match NumPy units
     """
 
     def _check_freq(self, freq, base_date):
-        rng = PeriodIndex(start=base_date, periods=10, freq=freq)
+        rng = period_range(start=base_date, periods=10, freq=freq)
         exp = np.arange(10, dtype=np.int64)
 
         tm.assert_numpy_array_equal(rng.asi8, exp)
@@ -54,9 +53,9 @@ class TestPeriodRepresentation(object):
         repr(period)
 
 
-class TestPeriodIndex(object):
+class TestPeriodIndex:
     def test_to_timestamp(self):
-        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        index = period_range(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index, name='foo')
 
         exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
@@ -91,7 +90,7 @@ class TestPeriodIndex(object):
         exp_index = exp_index + Timedelta(1, 's') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
 
-        index = PeriodIndex(freq='H', start='1/1/2001', end='1/2/2001')
+        index = period_range(freq='H', start='1/1/2001', end='1/2/2001')
         series = Series(1, index=index, name='foo')
 
         exp_index = date_range('1/1/2001 00:59:59', end='1/2/2001 00:59:59',
@@ -195,8 +194,8 @@ class TestPeriodIndex(object):
     def test_combine_first(self):
         # GH#3367
         didx = pd.date_range(start='1950-01-31', end='1950-07-31', freq='M')
-        pidx = pd.PeriodIndex(start=pd.Period('1950-1'),
-                              end=pd.Period('1950-7'), freq='M')
+        pidx = pd.period_range(start=pd.Period('1950-1'),
+                               end=pd.Period('1950-7'), freq='M')
         # check to be consistent with DatetimeIndex
         for idx in [didx, pidx]:
             a = pd.Series([1, np.nan, np.nan, 4, 5, np.nan, 7], index=idx)
@@ -227,9 +226,9 @@ class TestPeriodIndex(object):
             pidx.searchsorted(pd.Period('2014-01-01', freq='5D'))
 
 
-class TestPeriodIndexConversion(object):
+class TestPeriodIndexConversion:
     def test_tolist(self):
-        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        index = period_range(freq='A', start='1/1/2001', end='12/1/2009')
         rs = index.tolist()
         for x in rs:
             assert isinstance(x, Period)
@@ -264,8 +263,8 @@ class TestPeriodIndexConversion(object):
             result.to_period(freq='-2A')
 
     def test_to_timestamp_preserve_name(self):
-        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009',
-                            name='foo')
+        index = period_range(freq='A', start='1/1/2001', end='12/1/2009',
+                             name='foo')
         assert index.name == 'foo'
 
         conv = index.to_timestamp('D')
@@ -273,7 +272,7 @@ class TestPeriodIndexConversion(object):
 
     def test_to_timestamp_quarterly_bug(self):
         years = np.arange(1960, 2000).repeat(4)
-        quarters = np.tile(lrange(1, 5), 40)
+        quarters = np.tile(list(range(1, 5)), 40)
 
         pindex = PeriodIndex(year=years, quarter=quarters)
 
@@ -297,7 +296,7 @@ class TestPeriodIndexConversion(object):
         tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_pi_combined(self):
-        idx = PeriodIndex(start='2011', periods=2, freq='1D1H', name='idx')
+        idx = period_range(start='2011', periods=2, freq='1D1H', name='idx')
 
         result = idx.to_timestamp()
         expected = DatetimeIndex(['2011-01-01 00:00', '2011-01-02 01:00'],

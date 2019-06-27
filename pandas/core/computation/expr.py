@@ -2,23 +2,25 @@
 """
 
 import ast
-from functools import partial
+from functools import partial, reduce
+from io import StringIO
+import itertools as it
+import operator
 import tokenize
+from typing import Type
 
 import numpy as np
 
-from pandas.compat import StringIO, lmap, reduce, string_types, zip
-
 import pandas as pd
-from pandas import compat
 from pandas.core import common as com
 from pandas.core.base import StringMixin
+from pandas.core.computation.common import (
+    _BACKTICK_QUOTED_STRING, _remove_spaces_column_name)
 from pandas.core.computation.ops import (
     _LOCAL_TAG, BinOp, Constant, Div, FuncNode, Op, Term, UnaryOp,
     UndefinedVariableError, _arith_ops_syms, _bool_ops_syms, _cmp_ops_syms,
     _mathops, _reductions, _unary_ops_syms, is_term)
 from pandas.core.computation.scope import Scope
-from pandas.core.reshape.util import compose
 
 import pandas.io.formats.printing as printing
 
@@ -32,7 +34,17 @@ def tokenize_string(source):
         A Python source code string
     """
     line_reader = StringIO(source).readline
-    for toknum, tokval, _, _, _ in tokenize.generate_tokens(line_reader):
+    token_generator = tokenize.generate_tokens(line_reader)
+
+    # Loop over all tokens till a backtick (`) is found.
+    # Then, take all tokens till the next backtick to form a backtick quoted
+    # string.
+    for toknum, tokval, _, _, _ in token_generator:
+        if tokval == '`':
+            tokval = " ".join(it.takewhile(
+                lambda tokval: tokval != '`',
+                map(operator.itemgetter(1), token_generator)))
+            toknum = _BACKTICK_QUOTED_STRING
         yield toknum, tokval
 
 
@@ -103,8 +115,45 @@ def _replace_locals(tok):
     return toknum, tokval
 
 
-def _preparse(source, f=compose(_replace_locals, _replace_booleans,
-                                _rewrite_assign)):
+def _clean_spaces_backtick_quoted_names(tok):
+    """Clean up a column name if surrounded by backticks.
+
+    Backtick quoted string are indicated by a certain tokval value. If a string
+    is a backtick quoted token it will processed by
+    :func:`_remove_spaces_column_name` so that the parser can find this
+    string when the query is executed.
+    See also :meth:`NDFrame._get_space_character_free_column_resolver`.
+
+    Parameters
+    ----------
+    tok : tuple of int, str
+        ints correspond to the all caps constants in the tokenize module
+
+    Returns
+    -------
+    t : tuple of int, str
+        Either the input or token or the replacement values
+    """
+    toknum, tokval = tok
+    if toknum == _BACKTICK_QUOTED_STRING:
+        return tokenize.NAME, _remove_spaces_column_name(tokval)
+    return toknum, tokval
+
+
+def _compose2(f, g):
+    """Compose 2 callables"""
+    return lambda *args, **kwargs: f(g(*args, **kwargs))
+
+
+def _compose(*funcs):
+    """Compose 2 or more callables"""
+    assert len(funcs) > 1, 'At least 2 callables must be passed to compose'
+    return reduce(_compose2, funcs)
+
+
+def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
+                                 _rewrite_assign,
+                                 _clean_spaces_backtick_quoted_names)):
     """Compose a collection of tokenization functions
 
     Parameters
@@ -129,7 +178,7 @@ def _preparse(source, f=compose(_replace_locals, _replace_booleans,
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), 'f must be callable'
-    return tokenize.untokenize(lmap(f, tokenize_string(source)))
+    return tokenize.untokenize((f(x) for x in tokenize_string(source)))
 
 
 def _is_type(t):
@@ -138,7 +187,7 @@ def _is_type(t):
 
 
 _is_list = _is_type(list)
-_is_str = _is_type(string_types)
+_is_str = _is_type(str)
 
 
 # partition all AST nodes
@@ -250,7 +299,7 @@ _op_classes = {'binary': BinOp, 'unary': UnaryOp}
 def add_ops(op_classes):
     """Decorator to add default implementation of ops."""
     def f(cls):
-        for op_attr_name, op_class in compat.iteritems(op_classes):
+        for op_attr_name, op_class in op_classes.items():
             ops = getattr(cls, '{name}_ops'.format(name=op_attr_name))
             ops_map = getattr(cls, '{name}_op_nodes_map'.format(
                 name=op_attr_name))
@@ -277,7 +326,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     parser : str
     preparser : callable
     """
-    const_type = Constant
+    const_type = Constant  # type: Type[Term]
     term_type = Term
 
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
@@ -305,7 +354,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         self.assigner = None
 
     def visit(self, node, **kwargs):
-        if isinstance(node, string_types):
+        if isinstance(node, str):
             clean = self.preparser(node)
             try:
                 node = ast.fix_missing_locations(ast.parse(clean))
@@ -368,11 +417,13 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     def _maybe_downcast_constants(self, left, right):
         f32 = np.dtype(np.float32)
-        if left.is_scalar and not right.is_scalar and right.return_type == f32:
+        if (left.is_scalar and hasattr(left, 'value') and
+                not right.is_scalar and right.return_type == f32):
             # right is a float32 array, left is a scalar
             name = self.env.add_tmp(np.float32(left.value))
             left = self.term_type(name, self.env)
-        if right.is_scalar and not left.is_scalar and left.return_type == f32:
+        if (right.is_scalar and hasattr(right, 'value') and
+                not left.is_scalar and left.return_type == f32):
             # left is a float32 array, right is a scalar
             name = self.env.add_tmp(np.float32(right.value))
             right = self.term_type(name, self.env)
@@ -539,9 +590,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         raise ValueError("Invalid Attribute context {name}"
                          .format(name=ctx.__name__))
 
-    def visit_Call_35(self, node, side=None, **kwargs):
-        """ in 3.5 the starargs attribute was changed to be more flexible,
-        #11097 """
+    def visit_Call(self, node, side=None, **kwargs):
 
         if isinstance(node.func, ast.Attribute):
             res = self.visit_Attribute(node.func)
@@ -584,63 +633,9 @@ class BaseExprVisitor(ast.NodeVisitor):
                                      "'{func}'".format(func=node.func.id))
 
                 if key.arg:
-                    # TODO: bug?
-                    kwargs.append(ast.keyword(
-                        keyword.arg, self.visit(keyword.value)))  # noqa
+                    kwargs[key.arg] = self.visit(key.value).value
 
             return self.const_type(res(*new_args, **kwargs), self.env)
-
-    def visit_Call_legacy(self, node, side=None, **kwargs):
-
-        # this can happen with: datetime.datetime
-        if isinstance(node.func, ast.Attribute):
-            res = self.visit_Attribute(node.func)
-        elif not isinstance(node.func, ast.Name):
-            raise TypeError("Only named functions are supported")
-        else:
-            try:
-                res = self.visit(node.func)
-            except UndefinedVariableError:
-                # Check if this is a supported function name
-                try:
-                    res = FuncNode(node.func.id)
-                except ValueError:
-                    # Raise original error
-                    raise
-
-        if res is None:
-            raise ValueError("Invalid function call {func}"
-                             .format(func=node.func.id))
-        if hasattr(res, 'value'):
-            res = res.value
-
-        if isinstance(res, FuncNode):
-            args = [self.visit(targ) for targ in node.args]
-
-            if node.starargs is not None:
-                args += self.visit(node.starargs)
-
-            if node.keywords or node.kwargs:
-                raise TypeError("Function \"{name}\" does not support keyword "
-                                "arguments".format(name=res.name))
-
-            return res(*args, **kwargs)
-
-        else:
-            args = [self.visit(targ).value for targ in node.args]
-            if node.starargs is not None:
-                args += self.visit(node.starargs).value
-
-            keywords = {}
-            for key in node.keywords:
-                if not isinstance(key, ast.keyword):
-                    raise ValueError("keyword error in function call "
-                                     "'{func}'".format(func=node.func.id))
-                keywords[key.arg] = self.visit(key.value).value
-            if node.kwargs is not None:
-                keywords.update(self.visit(node.kwargs).value)
-
-            return self.const_type(res(*args, **keywords), self.env)
 
     def translate_In(self, op):
         return op
@@ -683,14 +678,6 @@ class BaseExprVisitor(ast.NodeVisitor):
         return reduce(visitor, operands)
 
 
-# ast.Call signature changed on 3.5,
-# conditionally change which methods is named
-# visit_Call depending on Python version, #11097
-if compat.PY35:
-    BaseExprVisitor.visit_Call = BaseExprVisitor.visit_Call_35
-else:
-    BaseExprVisitor.visit_Call = BaseExprVisitor.visit_Call_legacy
-
 _python_not_supported = frozenset(['Dict', 'BoolOp', 'In', 'NotIn'])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
 
@@ -701,17 +688,17 @@ _numexpr_supported_calls = frozenset(_reductions + _mathops)
 class PandasExprVisitor(BaseExprVisitor):
 
     def __init__(self, env, engine, parser,
-                 preparser=partial(_preparse, f=compose(_replace_locals,
-                                                        _replace_booleans))):
-        super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
+                 preparser=partial(_preparse, f=_compose(
+                     _replace_locals, _replace_booleans,
+                     _clean_spaces_backtick_quoted_names))):
+        super().__init__(env, engine, parser, preparser)
 
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(['Not']))
 class PythonExprVisitor(BaseExprVisitor):
 
     def __init__(self, env, engine, parser, preparser=lambda x: x):
-        super(PythonExprVisitor, self).__init__(env, engine, parser,
-                                                preparser=preparser)
+        super().__init__(env, engine, parser, preparser=preparser)
 
 
 class Expr(StringMixin):
@@ -745,7 +732,7 @@ class Expr(StringMixin):
     def __call__(self):
         return self.terms(self.env)
 
-    def __unicode__(self):
+    def __str__(self):
         return printing.pprint_thing(self.terms)
 
     def __len__(self):

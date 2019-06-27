@@ -1,12 +1,12 @@
+from numpy import nan
 import pytest
+
 import pandas as pd
 from pandas import DataFrame, merge_ordered
 from pandas.util.testing import assert_frame_equal
 
-from numpy import nan
 
-
-class TestMergeOrdered(object):
+class TestMergeOrdered:
 
     def setup_method(self, method):
         self.left = DataFrame({'key': ['a', 'c', 'e'],

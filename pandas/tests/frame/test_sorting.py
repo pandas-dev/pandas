@@ -1,22 +1,16 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
-import pytest
 import random
+
 import numpy as np
+import pytest
 
 import pandas as pd
-from pandas.compat import lrange
+from pandas import (
+    Categorical, DataFrame, IntervalIndex, MultiIndex, NaT, Series, Timestamp,
+    date_range)
 from pandas.api.types import CategoricalDtype
-from pandas import (DataFrame, Series, MultiIndex, Timestamp,
-                    date_range, NaT, IntervalIndex, Categorical)
-
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-
-import pandas.util.testing as tm
-
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestDataFrameSorting(TestData):
@@ -54,8 +48,10 @@ class TestDataFrameSorting(TestData):
         sorted_df = frame.sort_values(by=['B', 'A'], ascending=[True, False])
         assert_frame_equal(sorted_df, expected)
 
-        pytest.raises(ValueError, lambda: frame.sort_values(
-            by=['A', 'B'], axis=2, inplace=True))
+        msg = ("No axis named 2 for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            frame.sort_values(by=['A', 'B'], axis=2, inplace=True)
 
         # by row (axis=1): GH 10806
         sorted_df = frame.sort_values(by=3, axis=1)
@@ -230,6 +226,18 @@ class TestDataFrameSorting(TestData):
                                    na_position='first',
                                    kind='mergesort')
         assert_frame_equal(sorted_df, expected)
+
+    def test_sort_multi_index(self):
+        # GH 25775, testing that sorting by index works with a multi-index.
+        df = DataFrame({'a': [3, 1, 2], 'b': [0, 0, 0],
+                        'c': [0, 1, 2], 'd': list('abc')})
+        result = df.set_index(list('abc')).sort_index(level=list('ba'))
+
+        expected = DataFrame({'a': [1, 2, 3], 'b': [0, 0, 0],
+                              'c': [1, 2, 0], 'd': list('bca')})
+        expected = expected.set_index(list('abc'))
+
+        tm.assert_frame_equal(result, expected)
 
     def test_stable_categorial(self):
         # GH 16793
@@ -444,7 +452,7 @@ class TestDataFrameSortIndexKinds(TestData):
 
         # with 9816, these are all translated to .sort_values
 
-        df = DataFrame([lrange(5, 9), lrange(4)],
+        df = DataFrame([range(5, 9), range(4)],
                        columns=['a', 'a', 'b', 'b'])
 
         with pytest.raises(ValueError, match='not unique'):
@@ -496,11 +504,28 @@ class TestDataFrameSortIndexKinds(TestData):
     def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         df = DataFrame([[1, 2], [3, 4]], mi)
-        res = df.sort_index(level='A', sort_remaining=False)
-        assert_frame_equal(df, res)
 
-        res = df.sort_index(level=['A', 'B'], sort_remaining=False)
-        assert_frame_equal(df, res)
+        result = df.sort_index(level='A', sort_remaining=False)
+        expected = df
+        assert_frame_equal(result, expected)
+
+        result = df.sort_index(level=['A', 'B'], sort_remaining=False)
+        expected = df
+        assert_frame_equal(result, expected)
+
+        # Error thrown by sort_index when
+        # first index is sorted last (#26053)
+        result = df.sort_index(level=['C', 'B', 'A'])
+        expected = df.iloc[[1, 0]]
+        assert_frame_equal(result, expected)
+
+        result = df.sort_index(level=['B', 'C', 'A'])
+        expected = df.iloc[[1, 0]]
+        assert_frame_equal(result, expected)
+
+        result = df.sort_index(level=['C', 'A'])
+        expected = df.iloc[[1, 0]]
+        assert_frame_equal(result, expected)
 
     def test_sort_index_categorical_index(self):
 

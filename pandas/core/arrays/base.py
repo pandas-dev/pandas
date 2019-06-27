@@ -6,22 +6,30 @@
    without warning.
 """
 import operator
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
-from pandas.compat import PY3, set_function_name
+from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray, ABCIndexClass, ABCSeries)
+from pandas.core.dtypes.missing import isna
 
+from pandas._typing import ArrayLike
 from pandas.core import ops
 
 _not_implemented_message = "{} does not implement {}."
 
+_extension_array_shared_docs = dict()  # type: Dict[str, str]
 
-class ExtensionArray(object):
+
+class ExtensionArray:
     """
     Abstract base class for custom 1-D array types.
 
@@ -64,6 +72,7 @@ class ExtensionArray(object):
     * unique
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
+    * searchsorted
 
     The remaining methods implemented on this class should be performant,
     as they only compose abstract methods. Still, a more efficient
@@ -72,6 +81,11 @@ class ExtensionArray(object):
     One can implement methods to handle array reductions.
 
     * _reduce
+
+    One can implement methods to handle parsing from strings that will be used
+    in methods such as ``pandas.io.parsers.read_csv``.
+
+    * _from_sequence_of_strings
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -101,6 +115,7 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Constructors
     # ------------------------------------------------------------------------
+
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         """
@@ -120,6 +135,30 @@ class ExtensionArray(object):
         Returns
         -------
         ExtensionArray
+        """
+        raise AbstractMethodError(cls)
+
+    @classmethod
+    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+        """Construct a new ExtensionArray from a sequence of strings.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        strings : Sequence
+            Each element will be an instance of the scalar type for this
+            array, ``cls.dtype.type``.
+        dtype : dtype, optional
+            Construct for this particular dtype. This should be a Dtype
+            compatible with the ExtensionArray.
+        copy : boolean, default False
+            If True, copy the underlying data.
+
+        Returns
+        -------
+        ExtensionArray
+
         """
         raise AbstractMethodError(cls)
 
@@ -178,8 +217,7 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
-    def __setitem__(self, key, value):
-        # type: (Union[int, np.ndarray], Any) -> None
+    def __setitem__(self, key: Union[int, np.ndarray], value: Any) -> None:
         """
         Set one or more values inplace.
 
@@ -226,8 +264,7 @@ class ExtensionArray(object):
             type(self), '__setitem__')
         )
 
-    def __len__(self):
-        # type: () -> int
+    def __len__(self) -> int:
         """
         Length of this array
 
@@ -250,33 +287,30 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Required attributes
     # ------------------------------------------------------------------------
+
     @property
-    def dtype(self):
-        # type: () -> ExtensionDtype
+    def dtype(self) -> ExtensionDtype:
         """
         An instance of 'ExtensionDtype'.
         """
         raise AbstractMethodError(self)
 
     @property
-    def shape(self):
-        # type: () -> Tuple[int, ...]
+    def shape(self) -> Tuple[int, ...]:
         """
         Return a tuple of the array dimensions.
         """
         return (len(self),)
 
     @property
-    def ndim(self):
-        # type: () -> int
+    def ndim(self) -> int:
         """
         Extension Arrays are only allowed to be 1-dimensional.
         """
         return 1
 
     @property
-    def nbytes(self):
-        # type: () -> int
+    def nbytes(self) -> int:
         """
         The number of bytes needed to store this object in memory.
         """
@@ -287,6 +321,7 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Additional Methods
     # ------------------------------------------------------------------------
+
     def astype(self, dtype, copy=True):
         """
         Cast to a NumPy array with 'dtype'.
@@ -307,8 +342,7 @@ class ExtensionArray(object):
         """
         return np.array(self, dtype=dtype, copy=copy)
 
-    def isna(self):
-        # type: () -> Union[ExtensionArray, np.ndarray]
+    def isna(self) -> ArrayLike:
         """
         A 1-D array indicating if each value is missing.
 
@@ -330,8 +364,7 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
-    def _values_for_argsort(self):
-        # type: () -> ndarray
+    def _values_for_argsort(self) -> np.ndarray:
         """
         Return values for sorting.
 
@@ -446,8 +479,10 @@ class ExtensionArray(object):
         """
         return self[~self.isna()]
 
-    def shift(self, periods=1):
-        # type: (int) -> ExtensionArray
+    def shift(
+            self,
+            periods: int = 1,
+            fill_value: object = None) -> ABCExtensionArray:
         """
         Shift values by desired number.
 
@@ -461,6 +496,12 @@ class ExtensionArray(object):
         periods : int, default 1
             The number of periods to shift. Negative values are allowed
             for shifting backwards.
+
+        fill_value : object, optional
+            The scalar value to use for newly introduced missing values.
+            The default is ``self.dtype.na_value``
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -480,8 +521,11 @@ class ExtensionArray(object):
         if not len(self) or periods == 0:
             return self.copy()
 
+        if isna(fill_value):
+            fill_value = self.dtype.na_value
+
         empty = self._from_sequence(
-            [self.dtype.na_value] * min(abs(periods), len(self)),
+            [fill_value] * min(abs(periods), len(self)),
             dtype=self.dtype
         )
         if periods > 0:
@@ -505,8 +549,55 @@ class ExtensionArray(object):
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
 
-    def _values_for_factorize(self):
-        # type: () -> Tuple[ndarray, Any]
+    def searchsorted(self, value, side="left", sorter=None):
+        """
+        Find indices where elements should be inserted to maintain order.
+
+        .. versionadded:: 0.24.0
+
+        Find the indices into a sorted array `self` (a) such that, if the
+        corresponding elements in `value` were inserted before the indices,
+        the order of `self` would be preserved.
+
+        Assuming that `self` is sorted:
+
+        ======  ================================
+        `side`  returned index `i` satisfies
+        ======  ================================
+        left    ``self[i-1] < value <= self[i]``
+        right   ``self[i-1] <= value < self[i]``
+        ======  ================================
+
+        Parameters
+        ----------
+        value : array_like
+            Values to insert into `self`.
+        side : {'left', 'right'}, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index.  If there is no suitable
+            index, return either 0 or N (where N is the length of `self`).
+        sorter : 1-D array_like, optional
+            Optional array of integer indices that sort array a into ascending
+            order. They are typically the result of argsort.
+
+        Returns
+        -------
+        array of ints
+            Array of insertion points with the same shape as `value`.
+
+        See Also
+        --------
+        numpy.searchsorted : Similar method from NumPy.
+        """
+        # Note: the base tests provided by pandas only test the basics.
+        # We do not test
+        # 1. Values outside the range of the `data_for_sorting` fixture
+        # 2. Values between the values in the `data_for_sorting` fixture
+        # 3. Missing values.
+        arr = self.astype(object)
+        return arr.searchsorted(value, side=side, sorter=sorter)
+
+    def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """
         Return an array and missing value suitable for factorization.
 
@@ -530,8 +621,10 @@ class ExtensionArray(object):
         """
         return self.astype(object), np.nan
 
-    def factorize(self, na_sentinel=-1):
-        # type: (int) -> Tuple[ndarray, ExtensionArray]
+    def factorize(
+            self,
+            na_sentinel: int = -1,
+    ) -> Tuple[np.ndarray, ABCExtensionArray]:
         """
         Encode the extension array as an enumerated type.
 
@@ -562,7 +655,7 @@ class ExtensionArray(object):
         -----
         :meth:`pandas.factorize` offers a `sort` keyword as well.
         """
-        # Impelmentor note: There are two ways to override the behavior of
+        # Implementer note: There are two ways to override the behavior of
         # pandas.factorize
         # 1. _values_for_factorize and _from_factorize.
         #    Specify the values passed to pandas' internal factorization
@@ -580,12 +673,65 @@ class ExtensionArray(object):
         uniques = self._from_factorized(uniques, self)
         return labels, uniques
 
+    _extension_array_shared_docs['repeat'] = """
+        Repeat elements of a %(klass)s.
+
+        Returns a new %(klass)s where each element of the current %(klass)s
+        is repeated consecutively a given number of times.
+
+        Parameters
+        ----------
+        repeats : int or array of ints
+            The number of repetitions for each element. This should be a
+            non-negative integer. Repeating 0 times will return an empty
+            %(klass)s.
+        axis : None
+            Must be ``None``. Has no effect but is accepted for compatibility
+            with numpy.
+
+        Returns
+        -------
+        repeated_array : %(klass)s
+            Newly created %(klass)s with repeated elements.
+
+        See Also
+        --------
+        Series.repeat : Equivalent function for Series.
+        Index.repeat : Equivalent function for Index.
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
+        ExtensionArray.take : Take arbitrary positions.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(['a', 'b', 'c'])
+        >>> cat
+        [a, b, c]
+        Categories (3, object): [a, b, c]
+        >>> cat.repeat(2)
+        [a, a, b, b, c, c]
+        Categories (3, object): [a, b, c]
+        >>> cat.repeat([1, 2, 3])
+        [a, b, b, c, c, c]
+        Categories (3, object): [a, b, c]
+        """
+
+    @Substitution(klass='ExtensionArray')
+    @Appender(_extension_array_shared_docs['repeat'])
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
+        ind = np.arange(len(self)).repeat(repeats)
+        return self.take(ind)
+
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------
 
-    def take(self, indices, allow_fill=False, fill_value=None):
-        # type: (Sequence[int], bool, Optional[Any]) -> ExtensionArray
+    def take(
+            self,
+            indices: Sequence[int],
+            allow_fill: bool = False,
+            fill_value: Any = None
+    ) -> ABCExtensionArray:
         """
         Take elements from an array.
 
@@ -674,8 +820,7 @@ class ExtensionArray(object):
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self, deep=False):
-        # type: (bool) -> ExtensionArray
+    def copy(self, deep: bool = False) -> ABCExtensionArray:
         """
         Return a copy of the array.
 
@@ -693,26 +838,29 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
+
     def __repr__(self):
         from pandas.io.formats.printing import format_object_summary
 
         template = (
-            u'{class_name}'
-            u'{data}\n'
-            u'Length: {length}, dtype: {dtype}'
+            '{class_name}'
+            '{data}\n'
+            'Length: {length}, dtype: {dtype}'
         )
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
         data = format_object_summary(self, self._formatter(),
                                      indent_for_name=False).rstrip(', \n')
-        class_name = u'<{}>\n'.format(self.__class__.__name__)
+        class_name = '<{}>\n'.format(self.__class__.__name__)
         return template.format(class_name=class_name, data=data,
                                length=len(self),
                                dtype=self.dtype)
 
-    def _formatter(self, boxed=False):
-        # type: (bool) -> Callable[[Any], Optional[str]]
+    def _formatter(
+            self,
+            boxed: bool = False,
+    ) -> Callable[[Any], Optional[str]]:
         """Formatting function for scalar values.
 
         This is used in the default '__repr__'. The returned formatting
@@ -739,8 +887,7 @@ class ExtensionArray(object):
             return str
         return repr
 
-    def _formatting_values(self):
-        # type: () -> np.ndarray
+    def _formatting_values(self) -> np.ndarray:
         # At the moment, this has to be an array since we use result.dtype
         """
         An array of values to be printed in, e.g. the Series repr
@@ -756,8 +903,10 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
-        # type: (Sequence[ExtensionArray]) -> ExtensionArray
+    def _concat_same_type(
+            cls,
+            to_concat: Sequence[ABCExtensionArray]
+    ) -> ABCExtensionArray:
         """
         Concatenate multiple array
 
@@ -779,8 +928,7 @@ class ExtensionArray(object):
     _can_hold_na = True
 
     @property
-    def _ndarray_values(self):
-        # type: () -> np.ndarray
+    def _ndarray_values(self) -> np.ndarray:
         """
         Internal pandas method for lossy conversion to a NumPy ndarray.
 
@@ -819,7 +967,7 @@ class ExtensionArray(object):
             name=name, dtype=self.dtype))
 
 
-class ExtensionOpsMixin(object):
+class ExtensionOpsMixin:
     """
     A base class for linking the operators to their dunder names.
 
@@ -846,10 +994,6 @@ class ExtensionOpsMixin(object):
         cls.__rfloordiv__ = cls._create_arithmetic_method(ops.rfloordiv)
         cls.__truediv__ = cls._create_arithmetic_method(operator.truediv)
         cls.__rtruediv__ = cls._create_arithmetic_method(ops.rtruediv)
-        if not PY3:
-            cls.__div__ = cls._create_arithmetic_method(operator.div)
-            cls.__rdiv__ = cls._create_arithmetic_method(ops.rdiv)
-
         cls.__divmod__ = cls._create_arithmetic_method(divmod)
         cls.__rdivmod__ = cls._create_arithmetic_method(ops.rdivmod)
 
@@ -918,8 +1062,8 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
             `op` cannot be stored in the ExtensionArray. The dtype of the
             ndarray uses NumPy's normal inference rules.
 
-        Example
-        -------
+        Examples
+        --------
         Given an ExtensionArray subclass called MyExtensionArray, use
 
         >>> __add__ = cls._create_method(operator.add)

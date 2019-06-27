@@ -76,6 +76,14 @@ class ArrowBoolArray(ExtensionArray):
     def __len__(self):
         return len(self._data)
 
+    def astype(self, dtype, copy=True):
+        # needed to fix this astype for the Series constructor.
+        if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:
+            if copy:
+                return self.copy()
+            return self
+        return super().astype(dtype, copy)
+
     @property
     def dtype(self):
         return self._dtype
@@ -102,10 +110,11 @@ class ArrowBoolArray(ExtensionArray):
 
     def copy(self, deep=False):
         if deep:
-            return copy.deepcopy(self._data)
+            return type(self)(copy.deepcopy(self._data))
         else:
-            return copy.copy(self._data)
+            return type(self)(copy.copy(self._data))
 
+    @classmethod
     def _concat_same_type(cls, to_concat):
         chunks = list(itertools.chain.from_iterable(x._data.chunks
                                                     for x in to_concat))

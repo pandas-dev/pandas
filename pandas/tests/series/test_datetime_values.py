@@ -1,6 +1,3 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 import calendar
 from datetime import date, datetime, time
 import locale
@@ -17,14 +14,14 @@ from pandas.core.dtypes.common import is_integer_dtype, is_list_like
 import pandas as pd
 from pandas import (
     DataFrame, DatetimeIndex, Index, PeriodIndex, Series, TimedeltaIndex,
-    bdate_range, compat, date_range, period_range, timedelta_range)
+    bdate_range, date_range, period_range, timedelta_range)
 from pandas.core.arrays import PeriodArray
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 
-class TestSeriesDatetimeValues():
+class TestSeriesDatetimeValues:
 
     def test_dt_namespace_accessor(self):
 
@@ -289,7 +286,7 @@ class TestSeriesDatetimeValues():
     def test_dt_round_tz_nonexistent(self, method, ts_str, freq):
         # GH 23324 round near "spring forward" DST
         s = Series([pd.Timestamp(ts_str, tz='America/Chicago')])
-        result = getattr(s.dt, method)(freq, nonexistent='shift')
+        result = getattr(s.dt, method)(freq, nonexistent='shift_forward')
         expected = Series(
             [pd.Timestamp('2018-03-11 03:00:00', tz='America/Chicago')]
         )
@@ -300,7 +297,7 @@ class TestSeriesDatetimeValues():
         tm.assert_series_equal(result, expected)
 
         with pytest.raises(pytz.NonExistentTimeError,
-                           message='2018-03-11 02:00:00'):
+                           match='2018-03-11 02:00:00'):
             getattr(s.dt, method)(freq, nonexistent='raise')
 
     def test_dt_namespace_accessor_categorical(self):
@@ -353,9 +350,8 @@ class TestSeriesDatetimeValues():
         expected = Series([month.capitalize() for month in expected_months])
 
         # work around https://github.com/pandas-dev/pandas/issues/22342
-        if not compat.PY2:
-            result = result.str.normalize("NFD")
-            expected = expected.str.normalize("NFD")
+        result = result.str.normalize("NFD")
+        expected = expected.str.normalize("NFD")
 
         tm.assert_series_equal(result, expected)
 
@@ -363,9 +359,8 @@ class TestSeriesDatetimeValues():
             result = s_date.month_name(locale=time_locale)
             expected = expected.capitalize()
 
-            if not compat.PY2:
-                result = unicodedata.normalize("NFD", result)
-                expected = unicodedata.normalize("NFD", expected)
+            result = unicodedata.normalize("NFD", result)
+            expected = unicodedata.normalize("NFD", expected)
 
             assert result == expected
 
@@ -485,6 +480,13 @@ class TestSeriesDatetimeValues():
             ser.dt
         assert not hasattr(ser, 'dt')
 
+    def test_dt_accessor_updates_on_inplace(self):
+        s = Series(pd.date_range('2018-01-01', periods=10))
+        s[2] = None
+        s.fillna(pd.Timestamp('2018-01-01'), inplace=True)
+        result = s.dt.date
+        assert result[0] == result[2]
+
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20).astype(object))
         s[::2] = np.nan
@@ -530,24 +532,6 @@ class TestSeriesDatetimeValues():
                            time(22, 14, tzinfo=tz)])
         result = s.dt.timetz
         tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('nat', [
-        pd.Series([pd.NaT, pd.NaT]),
-        pd.Series([pd.NaT, pd.Timedelta('nat')]),
-        pd.Series([pd.Timedelta('nat'), pd.Timedelta('nat')])])
-    def test_minmax_nat_series(self, nat):
-        # GH 23282
-        assert nat.min() is pd.NaT
-        assert nat.max() is pd.NaT
-
-    @pytest.mark.parametrize('nat', [
-        # GH 23282
-        pd.DataFrame([pd.NaT, pd.NaT]),
-        pd.DataFrame([pd.NaT, pd.Timedelta('nat')]),
-        pd.DataFrame([pd.Timedelta('nat'), pd.Timedelta('nat')])])
-    def test_minmax_nat_dataframe(self, nat):
-        assert nat.min()[0] is pd.NaT
-        assert nat.max()[0] is pd.NaT
 
     def test_setitem_with_string_index(self):
         # GH 23451

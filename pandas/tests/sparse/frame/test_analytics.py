@@ -1,9 +1,11 @@
-import pytest
 import numpy as np
-from pandas import SparseDataFrame, DataFrame, SparseSeries
+import pytest
+
+from pandas import DataFrame, SparseDataFrame, SparseSeries
 from pandas.util import testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH#17386)')
 def test_quantile():
     # GH 17386
@@ -21,6 +23,7 @@ def test_quantile():
     tm.assert_sp_series_equal(result, sparse_expected)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH#17386)')
 def test_quantile_multi():
     # GH 17386

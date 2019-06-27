@@ -17,6 +17,7 @@ import os
 import sys
 import json
 import re
+import glob
 import functools
 import collections
 import argparse
@@ -25,6 +26,8 @@ import inspect
 import importlib
 import doctest
 import tempfile
+import ast
+import textwrap
 
 import flake8.main.application
 
@@ -47,7 +50,6 @@ BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.insert(0, os.path.join(BASE_PATH))
 import pandas
-from pandas.compat import signature
 
 sys.path.insert(1, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
 from numpydoc.docscrape import NumpyDocString
@@ -104,6 +106,11 @@ ERROR_MSGS = {
     'PR10': 'Parameter "{param_name}" requires a space before the colon '
             'separating the parameter name and type',
     'RT01': 'No Returns section found',
+    'RT02': 'The first line of the Returns section should contain only the '
+            'type, unless multiple values are being returned',
+    'RT03': 'Return value has no description',
+    'RT04': 'Return value description should start with a capital letter',
+    'RT05': 'Return value description should finish with "."',
     'YD01': 'No Yields section found',
     'SA01': 'See Also section not found',
     'SA02': 'Missing period at end of description for See Also '
@@ -143,7 +150,7 @@ def error(code, **kwargs):
     code : str
         Error code.
     message : str
-        Error message with varaibles replaced.
+        Error message with variables replaced.
     """
     return (code, ERROR_MSGS[code].format(**kwargs))
 
@@ -216,7 +223,7 @@ def get_api_items(api_doc_fd):
         previous_line = line
 
 
-class Docstring(object):
+class Docstring:
     def __init__(self, name):
         self.name = name
         obj = self._load_obj(name)
@@ -261,7 +268,7 @@ class Docstring(object):
             else:
                 continue
 
-        if 'module' not in locals():
+        if 'obj' not in locals():
             raise ImportError('No module can be imported '
                               'from "{}"'.format(name))
 
@@ -412,7 +419,7 @@ class Docstring(object):
                 # accessor classes have a signature but don't want to show this
                 return tuple()
         try:
-            sig = signature(self.obj)
+            sig = inspect.getfullargspec(self.obj)
         except (TypeError, ValueError):
             # Some objects, mainly in C extensions do not support introspection
             # of the signature
@@ -420,8 +427,8 @@ class Docstring(object):
         params = sig.args
         if sig.varargs:
             params.append("*" + sig.varargs)
-        if sig.keywords:
-            params.append("**" + sig.keywords)
+        if sig.varkw:
+            params.append("**" + sig.varkw)
         params = tuple(params)
         if params and params[0] in ('self', 'cls'):
             return params[1:]
@@ -465,9 +472,12 @@ class Docstring(object):
 
     @property
     def see_also(self):
-        return collections.OrderedDict((name, ''.join(desc))
-                                       for name, desc, _
-                                       in self.doc['See Also'])
+        result = collections.OrderedDict()
+        for funcs, desc in self.doc['See Also']:
+            for func, _ in funcs:
+                result[func] = ''.join(desc)
+
+        return result
 
     @property
     def examples(self):
@@ -484,9 +494,45 @@ class Docstring(object):
     @property
     def method_source(self):
         try:
-            return inspect.getsource(self.obj)
+            source = inspect.getsource(self.obj)
         except TypeError:
             return ''
+        return textwrap.dedent(source)
+
+    @property
+    def method_returns_something(self):
+        '''
+        Check if the docstrings method can return something.
+
+        Bare returns, returns valued None and returns from nested functions are
+        disconsidered.
+
+        Returns
+        -------
+        bool
+            Whether the docstrings method can return something.
+        '''
+
+        def get_returns_not_on_nested_functions(node):
+            returns = [node] if isinstance(node, ast.Return) else []
+            for child in ast.iter_child_nodes(node):
+                # Ignore nested functions and its subtrees.
+                if not isinstance(child, ast.FunctionDef):
+                    child_returns = get_returns_not_on_nested_functions(child)
+                    returns.extend(child_returns)
+            return returns
+
+        tree = ast.parse(self.method_source).body
+        if tree:
+            returns = get_returns_not_on_nested_functions(tree[0])
+            return_values = [r.value for r in returns]
+            # Replace NameConstant nodes valued None for None.
+            for i, v in enumerate(return_values):
+                if isinstance(v, ast.NameConstant) and v.value is None:
+                    return_values[i] = None
+            return any(return_values)
+        else:
+            return False
 
     @property
     def first_line_ends_in_dot(self):
@@ -494,13 +540,8 @@ class Docstring(object):
             return self.doc.split('\n')[0][-1] == '.'
 
     @property
-    def deprecated_with_directive(self):
-        return '.. deprecated:: ' in (self.summary + self.extended_summary)
-
-    @property
     def deprecated(self):
-        return (self.name.startswith('pandas.Panel')
-                or self.deprecated_with_directive)
+        return '.. deprecated:: ' in (self.summary + self.extended_summary)
 
     @property
     def mentioned_private_classes(self):
@@ -537,7 +578,7 @@ class Docstring(object):
         application = flake8.main.application.Application()
         application.initialize(["--quiet"])
 
-        with tempfile.NamedTemporaryFile(mode='w') as file:
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8') as file:
             file.write(content)
             file.flush()
             application.run_checks([file.name])
@@ -628,7 +669,7 @@ def get_validation_data(doc):
         errs.append(error('GL07',
                           correct_sections=', '.join(correct_order)))
 
-    if (doc.deprecated_with_directive
+    if (doc.deprecated
             and not doc.extended_summary.startswith('.. deprecated:: ')):
         errs.append(error('GL09'))
 
@@ -684,8 +725,22 @@ def get_validation_data(doc):
                 errs.append(error('PR09', param_name=param))
 
     if doc.is_function_or_method:
-        if not doc.returns and 'return' in doc.method_source:
-            errs.append(error('RT01'))
+        if not doc.returns:
+            if doc.method_returns_something:
+                errs.append(error('RT01'))
+        else:
+            if len(doc.returns) == 1 and doc.returns[0].name:
+                errs.append(error('RT02'))
+            for name_or_type, type_, desc in doc.returns:
+                if not desc:
+                    errs.append(error('RT03'))
+                else:
+                    desc = ' '.join(desc)
+                    if not desc[0].isupper():
+                        errs.append(error('RT04'))
+                    if not desc.endswith('.'):
+                        errs.append(error('RT05'))
+
         if not doc.yields and 'yield' in doc.method_source:
             errs.append(error('YD01'))
 
@@ -776,9 +831,12 @@ def validate_all(prefix, ignore_deprecated=False):
     seen = {}
 
     # functions from the API docs
-    api_doc_fname = os.path.join(BASE_PATH, 'doc', 'source', 'api.rst')
-    with open(api_doc_fname) as f:
-        api_items = list(get_api_items(f))
+    api_doc_fnames = os.path.join(
+        BASE_PATH, 'doc', 'source', 'reference', '*.rst')
+    api_items = []
+    for api_doc_fname in glob.glob(api_doc_fnames):
+        with open(api_doc_fname) as f:
+            api_items += list(get_api_items(f))
     for func_name, func_obj, section, subsection in api_items:
         if prefix and not func_name.startswith(prefix):
             continue
@@ -796,9 +854,9 @@ def validate_all(prefix, ignore_deprecated=False):
 
         seen[shared_code_key] = func_name
 
-    # functions from introspecting Series, DataFrame and Panel
+    # functions from introspecting Series and DataFrame
     api_item_names = set(list(zip(*api_items))[0])
-    for class_ in (pandas.Series, pandas.DataFrame, pandas.Panel):
+    for class_ in (pandas.Series, pandas.DataFrame):
         for member in inspect.getmembers(class_):
             func_name = 'pandas.{}.{}'.format(class_.__name__, member[0])
             if (not member[0].startswith('_')

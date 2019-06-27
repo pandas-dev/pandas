@@ -1,8 +1,9 @@
-import pytest
 import numpy as np
-from pandas import SparseDataFrame, DataFrame, Series, bdate_range
-from pandas.core.sparse.api import SparseDtype
+import pytest
+
+from pandas import DataFrame, Series, SparseDataFrame, bdate_range
 from pandas.core import nanops
+from pandas.core.sparse.api import SparseDtype
 from pandas.util import testing as tm
 
 
@@ -36,17 +37,22 @@ def fill_frame(frame):
                            index=frame.index)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 def test_apply(frame):
     applied = frame.apply(np.sqrt)
     assert isinstance(applied, SparseDataFrame)
     tm.assert_almost_equal(applied.values, np.sqrt(frame.values))
 
     # agg / broadcast
-    with tm.assert_produces_warning(FutureWarning):
+    # two FutureWarnings, so we can't check stacklevel properly.
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
         broadcasted = frame.apply(np.sum, broadcast=True)
     assert isinstance(broadcasted, SparseDataFrame)
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
         exp = frame.to_dense().apply(np.sum, broadcast=True)
     tm.assert_frame_equal(broadcasted.to_dense(), exp)
 
@@ -55,15 +61,19 @@ def test_apply(frame):
                            frame.to_dense().apply(nanops.nansum).to_sparse())
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_apply_fill(fill_frame):
     applied = fill_frame.apply(np.sqrt)
     assert applied['A'].fill_value == np.sqrt(2)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_apply_empty(empty):
     assert empty.apply(np.sqrt) is empty
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 def test_apply_nonuq():
     orig = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                      index=['a', 'a', 'c'])
@@ -87,12 +97,14 @@ def test_apply_nonuq():
     # tm.assert_series_equal(res.to_dense(), exp)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_applymap(frame):
     # just test that it works
     result = frame.applymap(lambda x: x * 2)
     assert isinstance(result, SparseDataFrame)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_apply_keep_sparse_dtype():
     # GH 23744
     sdf = SparseDataFrame(np.array([[0, 1, 0], [0, 0, 0], [0, 0, 1]]),

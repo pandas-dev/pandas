@@ -4,12 +4,12 @@ from textwrap import dedent
 import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa
-from pandas.compat import PY2, callable, signature
 
 
 def deprecate(name, alternative, version, alt_name=None,
               klass=None, stacklevel=2, msg=None):
-    """Return a new function that emits a deprecation warning on use.
+    """
+    Return a new function that emits a deprecation warning on use.
 
     To use this method for a deprecated function, another function
     `alternative` with the same signature must exist. The deprecated
@@ -196,22 +196,21 @@ def rewrite_axis_style_signature(name, extra_params):
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
 
-        if not PY2:
-            kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
-            params = [
-                inspect.Parameter('self', kind),
-                inspect.Parameter(name, kind, default=None),
-                inspect.Parameter('index', kind, default=None),
-                inspect.Parameter('columns', kind, default=None),
-                inspect.Parameter('axis', kind, default=None),
-            ]
+        kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
+        params = [
+            inspect.Parameter('self', kind),
+            inspect.Parameter(name, kind, default=None),
+            inspect.Parameter('index', kind, default=None),
+            inspect.Parameter('columns', kind, default=None),
+            inspect.Parameter('axis', kind, default=None),
+        ]
 
-            for pname, default in extra_params:
-                params.append(inspect.Parameter(pname, kind, default=default))
+        for pname, default in extra_params:
+            params.append(inspect.Parameter(pname, kind, default=default))
 
-            sig = inspect.Signature(params)
+        sig = inspect.Signature(params)
 
-            func.__signature__ = sig
+        func.__signature__ = sig
         return wrapper
     return decorate
 
@@ -219,7 +218,7 @@ def rewrite_axis_style_signature(name, extra_params):
 # module http://matplotlib.org/users/license.html
 
 
-class Substitution(object):
+class Substitution:
     """
     A decorator to take a function's docstring and perform string
     substitution on it.
@@ -280,7 +279,7 @@ class Substitution(object):
         return result
 
 
-class Appender(object):
+class Appender:
     """
     A function decorator that will append an addendum to the docstring
     of the target function.
@@ -320,33 +319,3 @@ def indent(text, indents=1):
         return ''
     jointext = ''.join(['\n'] + ['    '] * indents)
     return jointext.join(text.split('\n'))
-
-
-def make_signature(func):
-    """
-    Returns a tuple containing the paramenter list with defaults
-    and parameter list.
-
-    Examples
-    --------
-    >>> def f(a, b, c=2):
-    >>>     return a * b * c
-    >>> print(make_signature(f))
-    (['a', 'b', 'c=2'], ['a', 'b', 'c'])
-    """
-
-    spec = signature(func)
-    if spec.defaults is None:
-        n_wo_defaults = len(spec.args)
-        defaults = ('',) * n_wo_defaults
-    else:
-        n_wo_defaults = len(spec.args) - len(spec.defaults)
-        defaults = ('',) * n_wo_defaults + tuple(spec.defaults)
-    args = []
-    for var, default in zip(spec.args, defaults):
-        args.append(var if default == '' else var + '=' + repr(default))
-    if spec.varargs:
-        args.append('*' + spec.varargs)
-    if spec.keywords:
-        args.append('**' + spec.keywords)
-    return args, spec.args

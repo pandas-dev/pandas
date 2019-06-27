@@ -3,13 +3,15 @@ import warnings
 import numpy as np
 
 from pandas._libs import index as libindex
-import pandas.compat as compat
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    is_bool, is_bool_dtype, is_dtype_equal, is_float, is_integer_dtype,
-    is_scalar, needs_i8_conversion, pandas_dtype)
+    is_bool, is_bool_dtype, is_dtype_equal, is_extension_array_dtype, is_float,
+    is_float_dtype, is_integer_dtype, is_scalar, needs_i8_conversion,
+    pandas_dtype)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.generic import (
+    ABCFloat64Index, ABCInt64Index, ABCRangeIndex, ABCUInt64Index)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
@@ -44,7 +46,7 @@ class NumericIndex(Index):
         # is_scalar, generators handled in coerce_to_ndarray
         data = cls._coerce_to_ndarray(data)
 
-        if issubclass(data.dtype.type, compat.string_types):
+        if issubclass(data.dtype.type, str):
             cls._string_data_error(data)
 
         if copy or not is_dtype_equal(data.dtype, cls._default_dtype):
@@ -69,8 +71,7 @@ class NumericIndex(Index):
         if values is not None and not self._can_hold_na:
             # Ensure we are not returning an Int64Index with float data:
             return self._shallow_copy_with_infer(values=values, **kwargs)
-        return (super(NumericIndex, self)._shallow_copy(values=values,
-                                                        **kwargs))
+        return super()._shallow_copy(values=values, **kwargs)
 
     def _convert_for_op(self, value):
         """ Convert value to be insertable to ndarray """
@@ -122,7 +123,25 @@ class NumericIndex(Index):
         # treat NA values as nans:
         if is_scalar(item) and isna(item):
             item = self._na_value
-        return super(NumericIndex, self).insert(loc, item)
+        return super().insert(loc, item)
+
+    def _union(self, other, sort):
+        # Right now, we treat union(int, float) a bit special.
+        # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
+        # We may change union(int, float) to go to object.
+        # float | [u]int -> float  (the special case)
+        # <T>   | <T>    -> T
+        # <T>   | <U>    -> object
+        needs_cast = (
+            (is_integer_dtype(self.dtype) and is_float_dtype(other.dtype)) or
+            (is_integer_dtype(other.dtype) and is_float_dtype(self.dtype))
+        )
+        if needs_cast:
+            first = self.astype("float")
+            second = other.astype("float")
+            return first._union(second, sort)
+        else:
+            return super()._union(other, sort)
 
 
 _num_index_shared_docs['class_descr'] = """
@@ -207,8 +226,7 @@ class Int64Index(IntegerIndex):
         # don't coerce ilocs to integers
         if kind != 'iloc':
             key = self._maybe_cast_indexer(key)
-        return (super(Int64Index, self)
-                ._convert_scalar_indexer(key, kind=kind))
+        return super()._convert_scalar_indexer(key, kind=kind)
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
@@ -223,6 +241,15 @@ class Int64Index(IntegerIndex):
             if not np.array_equal(data, subarr):
                 raise TypeError('Unsafe NumPy casting, you must '
                                 'explicitly cast')
+
+    def _is_compatible_with_other(self, other):
+        return (
+            super()._is_compatible_with_other(other)
+            or all(isinstance(type(obj), (ABCInt64Index,
+                                          ABCFloat64Index,
+                                          ABCRangeIndex))
+                   for obj in [self, other])
+        )
 
 
 Int64Index._add_numeric_methods()
@@ -261,8 +288,7 @@ class UInt64Index(IntegerIndex):
         # don't coerce ilocs to integers
         if kind != 'iloc':
             key = self._maybe_cast_indexer(key)
-        return (super(UInt64Index, self)
-                ._convert_scalar_indexer(key, kind=kind))
+        return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(_index_shared_docs['_convert_arr_indexer'])
     def _convert_arr_indexer(self, keyarr):
@@ -297,6 +323,14 @@ class UInt64Index(IntegerIndex):
                 raise TypeError('Unsafe NumPy casting, you must '
                                 'explicitly cast')
 
+    def _is_compatible_with_other(self, other):
+        return (
+            super()._is_compatible_with_other(other)
+            or all(isinstance(type(obj), (ABCUInt64Index,
+                                          ABCFloat64Index))
+                   for obj in [self, other])
+        )
+
 
 UInt64Index._add_numeric_methods()
 UInt64Index._add_logical_methods()
@@ -328,10 +362,12 @@ class Float64Index(NumericIndex):
             msg = ('Cannot convert Float64Index to dtype {dtype}; integer '
                    'values are required for conversion').format(dtype=dtype)
             raise TypeError(msg)
-        elif is_integer_dtype(dtype) and self.hasnans:
+        elif (is_integer_dtype(dtype) and
+              not is_extension_array_dtype(dtype)) and self.hasnans:
+            # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
             raise ValueError('Cannot convert NA to integer')
-        return super(Float64Index, self).astype(dtype, copy=copy)
+        return super().astype(dtype, copy=copy)
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
@@ -349,8 +385,7 @@ class Float64Index(NumericIndex):
             return key
 
         if kind == 'iloc':
-            return super(Float64Index, self)._convert_slice_indexer(key,
-                                                                    kind=kind)
+            return super()._convert_slice_indexer(key, kind=kind)
 
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
@@ -399,7 +434,7 @@ class Float64Index(NumericIndex):
             return False
 
     def __contains__(self, other):
-        if super(Float64Index, self).__contains__(other):
+        if super().__contains__(other):
             return True
 
         try:
@@ -430,18 +465,27 @@ class Float64Index(NumericIndex):
                     return nan_idxs
         except (TypeError, NotImplementedError):
             pass
-        return super(Float64Index, self).get_loc(key, method=method,
-                                                 tolerance=tolerance)
+        return super().get_loc(key, method=method, tolerance=tolerance)
 
     @cache_readonly
     def is_unique(self):
-        return super(Float64Index, self).is_unique and self._nan_idxs.size < 2
+        return super().is_unique and self._nan_idxs.size < 2
 
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):
         if level is not None:
             self._validate_index_level(level)
         return algorithms.isin(np.array(self), values)
+
+    def _is_compatible_with_other(self, other):
+        return (
+            super()._is_compatible_with_other(other)
+            or all(isinstance(type(obj), (ABCInt64Index,
+                                          ABCFloat64Index,
+                                          ABCUInt64Index,
+                                          ABCRangeIndex))
+                   for obj in [self, other])
+        )
 
 
 Float64Index._add_numeric_methods()

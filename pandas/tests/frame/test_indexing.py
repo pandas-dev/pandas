@@ -1,41 +1,26 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
+from datetime import date, datetime, time, timedelta
 from warnings import catch_warnings, simplefilter
 
-from datetime import datetime, date, timedelta, time
-
-from pandas.compat import map, zip, range, lrange, lzip, long
-from pandas import compat
-
-from numpy import nan
-from numpy.random import randn
-
-import pytest
 import numpy as np
+import pytest
 
-import pandas.core.common as com
-from pandas import (DataFrame, Index, Series, notna, isna,
-                    MultiIndex, DatetimeIndex, Timestamp,
-                    date_range, Categorical)
+from pandas._libs.tslib import iNaT
+
+from pandas.core.dtypes.common import is_float_dtype, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-
-from pandas._libs.tslib import iNaT
-from pandas.tseries.offsets import BDay
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer,
-    is_scalar)
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
-                                 assert_frame_equal)
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series,
+    Timestamp, date_range, isna, notna)
+import pandas.core.common as com
 from pandas.core.indexing import IndexingError
-
-import pandas.util.testing as tm
-
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
+
+from pandas.tseries.offsets import BDay
 
 
 class TestDataFrameIndexing(TestData):
@@ -46,11 +31,11 @@ class TestDataFrameIndexing(TestData):
         assert len(sl.index) == 20
 
         # Column access
-        for _, series in compat.iteritems(sl):
+        for _, series in sl.items():
             assert len(series.index) == 20
             assert tm.equalContents(series.index, sl.index)
 
-        for key, _ in compat.iteritems(self.frame._series):
+        for key, _ in self.frame._series.items():
             assert self.frame[key] is not None
 
         assert 'random' not in self.frame
@@ -58,9 +43,9 @@ class TestDataFrameIndexing(TestData):
             self.frame['random']
 
         df = self.frame.copy()
-        df['$10'] = randn(len(df))
+        df['$10'] = np.random.randn(len(df))
 
-        ad = randn(len(df))
+        ad = np.random.randn(len(df))
         df['@awesome_domain'] = ad
 
         with pytest.raises(KeyError):
@@ -111,7 +96,7 @@ class TestDataFrameIndexing(TestData):
             frame, missing = self.frame, 'food'
         else:
             # MultiIndex columns
-            frame = DataFrame(randn(8, 3),
+            frame = DataFrame(np.random.randn(8, 3),
                               columns=Index([('foo', 'bar'), ('baz', 'qux'),
                                              ('peek', 'aboo')],
                                             name=('sth', 'sth2')))
@@ -173,7 +158,8 @@ class TestDataFrameIndexing(TestData):
         with pytest.raises(ValueError, match=msg):
             data['A'] = range(len(data.index) - 1)
 
-        df = DataFrame(0, lrange(3), ['tt1', 'tt2'], dtype=np.int_)
+        df = DataFrame(0, index=range(3), columns=['tt1', 'tt2'],
+                       dtype=np.int_)
         df.loc[1, ['tt1', 'tt2']] = [1, 2]
 
         result = df.loc[df.index[1], ['tt1', 'tt2']]
@@ -192,7 +178,7 @@ class TestDataFrameIndexing(TestData):
         assert_almost_equal(self.frame[['A', 'B']].values, data)
 
     def test_setitem_list_of_tuples(self):
-        tuples = lzip(self.frame['A'], self.frame['B'])
+        tuples = list(zip(self.frame['A'], self.frame['B']))
         self.frame['tuples'] = tuples
 
         result = self.frame['tuples']
@@ -280,7 +266,7 @@ class TestDataFrameIndexing(TestData):
         # test df[df > 0]
         for df in [self.tsframe, self.mixed_frame,
                    self.mixed_float, self.mixed_int]:
-            if compat.PY3 and df is self.mixed_frame:
+            if df is self.mixed_frame:
                 continue
 
             data = df._get_numeric_data()
@@ -346,7 +332,7 @@ class TestDataFrameIndexing(TestData):
         _checkit([False, False, False])
 
     def test_getitem_boolean_iadd(self):
-        arr = randn(5, 5)
+        arr = np.random.randn(5, 5)
 
         df = DataFrame(arr.copy(), columns=['A', 'B', 'C', 'D', 'E'])
 
@@ -375,7 +361,7 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = df.ix[[1, 10]]
             expected = df.ix[Index([1, 10], dtype=object)]
         assert_frame_equal(result, expected)
@@ -395,56 +381,58 @@ class TestDataFrameIndexing(TestData):
 
     def test_getitem_setitem_ix_negative_integers(self):
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = self.frame.ix[:, -1]
         assert_series_equal(result, self.frame['D'])
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = self.frame.ix[:, [-1]]
         assert_frame_equal(result, self.frame[['D']])
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = self.frame.ix[:, [-1, -2]]
         assert_frame_equal(result, self.frame[['D', 'C']])
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             self.frame.ix[:, [-1]] = 0
         assert (self.frame['D'] == 0).all()
 
         df = DataFrame(np.random.randn(8, 4))
         # ix does label-based indexing when having an integer index
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             with pytest.raises(KeyError):
                 df.ix[[-1]]
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             with pytest.raises(KeyError):
                 df.ix[:, [-1]]
 
         # #1942
-        a = DataFrame(randn(20, 2), index=[chr(x + 65) for x in range(20)])
+        a = DataFrame(np.random.randn(20, 2),
+                      index=[chr(x + 65) for x in range(20)])
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             a.ix[-1] = a.ix[-2]
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             assert_series_equal(a.ix[-1], a.ix[-2], check_names=False)
             assert a.ix[-1].name == 'T'
             assert a.ix[-2].name == 'S'
 
     def test_getattr(self):
         assert_series_equal(self.frame.A, self.frame['A'])
-        pytest.raises(AttributeError, getattr, self.frame,
-                      'NONEXISTENT_NAME')
+        msg = "'DataFrame' object has no attribute 'NONEXISTENT_NAME'"
+        with pytest.raises(AttributeError, match=msg):
+            self.frame.NONEXISTENT_NAME
 
     def test_setattr_column(self):
-        df = DataFrame({'foobar': 1}, index=lrange(10))
+        df = DataFrame({'foobar': 1}, index=range(10))
 
         df.foobar = 5
         assert (df.foobar == 5).all()
@@ -467,10 +455,10 @@ class TestDataFrameIndexing(TestData):
         tm.assert_series_equal(series, self.frame['col6'], check_names=False)
 
         with pytest.raises(KeyError):
-            self.frame[randn(len(self.frame) + 1)] = 1
+            self.frame[np.random.randn(len(self.frame) + 1)] = 1
 
         # set ndarray
-        arr = randn(len(self.frame))
+        arr = np.random.randn(len(self.frame))
         self.frame['col9'] = arr
         assert (self.frame['col9'] == arr).all()
 
@@ -505,7 +493,7 @@ class TestDataFrameIndexing(TestData):
 
     @pytest.mark.parametrize("dtype", ["int32", "int64", "float32", "float64"])
     def test_setitem_dtype(self, dtype):
-        arr = randn(len(self.frame))
+        arr = np.random.randn(len(self.frame))
 
         self.frame[dtype] = np.array(arr, dtype=dtype)
         assert self.frame[dtype].dtype.name == dtype
@@ -519,7 +507,7 @@ class TestDataFrameIndexing(TestData):
         s = self.frame['A'].copy()
         self.frame['E'] = s
 
-        self.frame['E'][5:10] = nan
+        self.frame['E'][5:10] = np.nan
         assert notna(s[5:10]).all()
 
     def test_setitem_boolean(self):
@@ -562,8 +550,8 @@ class TestDataFrameIndexing(TestData):
         # index with DataFrame
         mask = df > np.abs(df)
         expected = df.copy()
-        df[df > np.abs(df)] = nan
-        expected.values[mask.values] = nan
+        df[df > np.abs(df)] = np.nan
+        expected.values[mask.values] = np.nan
         assert_frame_equal(df, expected)
 
         # set from DataFrame
@@ -648,8 +636,7 @@ class TestDataFrameIndexing(TestData):
     def test_frame_setitem_timestamp(self):
         # GH#2155
         columns = date_range(start='1/1/2012', end='2/1/2012', freq=BDay())
-        index = lrange(10)
-        data = DataFrame(columns=columns, index=index)
+        data = DataFrame(columns=columns, index=range(10))
         t = datetime(2012, 11, 1)
         ts = Timestamp(t)
         data[ts] = np.nan  # works, mostly a smoke-test
@@ -717,11 +704,11 @@ class TestDataFrameIndexing(TestData):
         from decimal import Decimal
 
         # Created as float type
-        dm = DataFrame(index=lrange(3), columns=lrange(3))
+        dm = DataFrame(index=range(3), columns=range(3))
 
         coercable_series = Series([Decimal(1) for _ in range(3)],
-                                  index=lrange(3))
-        uncoercable_series = Series(['foo', 'bzr', 'baz'], index=lrange(3))
+                                  index=range(3))
+        uncoercable_series = Series(['foo', 'bzr', 'baz'], index=range(3))
 
         dm[0] = np.ones(3)
         assert len(dm.columns) == 3
@@ -802,7 +789,8 @@ class TestDataFrameIndexing(TestData):
         f = self.frame.copy()
         del f['D']
         assert len(f.columns) == 3
-        pytest.raises(KeyError, f.__delitem__, 'D')
+        with pytest.raises(KeyError, match=r"^'D'$"):
+            del f['D']
         del f['B']
         assert len(f.columns) == 2
 
@@ -810,19 +798,19 @@ class TestDataFrameIndexing(TestData):
         f = self.frame
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             assert_frame_equal(f.ix[:, ['B', 'A']],
                                f.reindex(columns=['B', 'A']))
 
         subidx = self.frame.index[[5, 4, 1]]
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             assert_frame_equal(f.ix[subidx, ['B', 'A']],
                                f.reindex(index=subidx, columns=['B', 'A']))
 
         # slicing rows, etc.
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             assert_frame_equal(f.ix[5:10], f[5:10])
             assert_frame_equal(f.ix[5:10, :], f[5:10])
             assert_frame_equal(f.ix[:5, ['A', 'B']],
@@ -831,27 +819,29 @@ class TestDataFrameIndexing(TestData):
 
         # slice rows with labels, inclusive!
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             expected = f.ix[5:11]
             result = f.ix[f.index[5]:f.index[10]]
         assert_frame_equal(expected, result)
 
         # slice columns
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             assert_frame_equal(f.ix[:, :2], f.reindex(columns=['A', 'B']))
 
         # get view
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             exp = f.copy()
             f.ix[5:10].values[:] = 5
             exp.values[5:10] = 5
             assert_frame_equal(f, exp)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
-            pytest.raises(ValueError, f.ix.__getitem__, f > 0.5)
+            simplefilter("ignore", FutureWarning)
+            msg = "Cannot index with multidimensional key"
+            with pytest.raises(ValueError, match=msg):
+                f.ix[f > 0.5]
 
     def test_slice_floats(self):
         index = [52195.504153, 52196.303147, 52198.369883]
@@ -875,7 +865,7 @@ class TestDataFrameIndexing(TestData):
         assert isna(df.iloc[:8:2]).values.all()
 
     def test_getitem_setitem_integer_slice_keyerrors(self):
-        df = DataFrame(np.random.randn(10, 5), index=lrange(0, 20, 2))
+        df = DataFrame(np.random.randn(10, 5), index=range(0, 20, 2))
 
         # this is OK
         cp = df.copy()
@@ -895,9 +885,11 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(result2, expected)
 
         # non-monotonic, raise KeyError
-        df2 = df.iloc[lrange(5) + lrange(5, 10)[::-1]]
-        pytest.raises(KeyError, df2.loc.__getitem__, slice(3, 11))
-        pytest.raises(KeyError, df2.loc.__setitem__, slice(3, 11), 0)
+        df2 = df.iloc[list(range(5)) + list(range(5, 10))[::-1]]
+        with pytest.raises(KeyError, match=r"^3$"):
+            df2.loc[3:11]
+        with pytest.raises(KeyError, match=r"^3$"):
+            df2.loc[3:11] = 0
 
     def test_setitem_fancy_2d(self):
 
@@ -906,7 +898,7 @@ class TestDataFrameIndexing(TestData):
         expected = frame.copy()
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             frame.ix[:, ['B', 'A']] = 1
         expected['B'] = 1.
         expected['A'] = 1.
@@ -919,10 +911,10 @@ class TestDataFrameIndexing(TestData):
         expected = frame.copy()
 
         subidx = self.frame.index[[5, 4, 1]]
-        values = randn(3, 2)
+        values = np.random.randn(3, 2)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             frame.ix[subidx, ['B', 'A']] = values
             frame2.ix[[5, 4, 1], ['B', 'A']] = values
 
@@ -936,23 +928,23 @@ class TestDataFrameIndexing(TestData):
         frame = self.frame.copy()
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             expected1 = self.frame.copy()
             frame.ix[5:10] = 1.
             expected1.values[5:10] = 1.
         assert_frame_equal(frame, expected1)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             expected2 = self.frame.copy()
-            arr = randn(5, len(frame.columns))
+            arr = np.random.randn(5, len(frame.columns))
             frame.ix[5:10] = arr
             expected2.values[5:10] = arr
         assert_frame_equal(frame, expected2)
 
         # case 4
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             frame = self.frame.copy()
             frame.ix[5:10, :] = 1.
             assert_frame_equal(frame, expected1)
@@ -961,12 +953,12 @@ class TestDataFrameIndexing(TestData):
 
         # case 5
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             frame = self.frame.copy()
             frame2 = self.frame.copy()
 
             expected = self.frame.copy()
-            values = randn(5, 2)
+            values = np.random.randn(5, 2)
 
             frame.ix[:5, ['A', 'B']] = values
             expected['A'][:5] = values[:, 0]
@@ -974,13 +966,13 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(frame, expected)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             frame2.ix[:5, [0, 1]] = values
         assert_frame_equal(frame2, expected)
 
         # case 6: slice rows with labels, inclusive!
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             frame = self.frame.copy()
             expected = self.frame.copy()
 
@@ -990,7 +982,7 @@ class TestDataFrameIndexing(TestData):
 
         # case 7: slice columns
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             frame = self.frame.copy()
             frame2 = self.frame.copy()
             expected = self.frame.copy()
@@ -1005,11 +997,11 @@ class TestDataFrameIndexing(TestData):
             assert_frame_equal(frame, expected)
 
         # new corner case of boolean slicing / setting
-        frame = DataFrame(lzip([2, 3, 9, 6, 7], [np.nan] * 5),
+        frame = DataFrame(zip([2, 3, 9, 6, 7], [np.nan] * 5),
                           columns=['a', 'b'])
         lst = [100]
         lst.extend([np.nan] * 4)
-        expected = DataFrame(lzip([100, 3, 9, 6, 7], lst),
+        expected = DataFrame(zip([100, 3, 9, 6, 7], lst),
                              columns=['a', 'b'])
         frame[frame['a'] == 2] = 100
         assert_frame_equal(frame, expected)
@@ -1033,7 +1025,7 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame(np.random.randn(10, 5), index=np.arange(0, 20, 2))
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             tmp = df.copy()
             exp = df.copy()
             tmp.ix[[0, 2, 4]] = 5
@@ -1041,7 +1033,7 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(tmp, exp)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             tmp = df.copy()
             exp = df.copy()
             tmp.ix[6] = 5
@@ -1049,7 +1041,7 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(tmp, exp)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             tmp = df.copy()
             exp = df.copy()
             tmp.ix[:, 2] = 5
@@ -1063,25 +1055,25 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame(np.random.randn(10, 5), index=np.arange(0, 20, 2))
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = df.ix[[4, 2, 0], [2, 0]]
             expected = df.reindex(index=[4, 2, 0], columns=[2, 0])
         assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = df.ix[[4, 2, 0]]
             expected = df.reindex(index=[4, 2, 0])
         assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = df.ix[4]
             expected = df.xs(4)
         assert_series_equal(result, expected)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = df.ix[:, 3]
             expected = df[3]
         assert_series_equal(result, expected)
@@ -1090,17 +1082,21 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame(np.random.randn(10, 5), index=np.arange(0, 20, 2))
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
 
             # labels that aren't contained
-            pytest.raises(KeyError, df.ix.__setitem__,
-                          ([0, 1, 2], [2, 3, 4]), 5)
+            with pytest.raises(KeyError, match=r"\[1\] not in index"):
+                df.ix[[0, 1, 2], [2, 3, 4]] = 5
 
             # try to set indices not contained in frame
-            pytest.raises(KeyError, self.frame.ix.__setitem__,
-                          ['foo', 'bar', 'baz'], 1)
-            pytest.raises(KeyError, self.frame.ix.__setitem__,
-                          (slice(None, None), ['E']), 1)
+            msg = (r"None of \[Index\(\['foo', 'bar', 'baz'\],"
+                   r" dtype='object'\)\] are in the \[index\]")
+            with pytest.raises(KeyError, match=msg):
+                self.frame.ix[['foo', 'bar', 'baz']] = 1
+            msg = (r"None of \[Index\(\['E'\], dtype='object'\)\] are in the"
+                   r" \[columns\]")
+            with pytest.raises(KeyError, match=msg):
+                self.frame.ix[:, ['E']] = 1
 
             # partial setting now allows this GH2578
             # pytest.raises(KeyError, self.frame.ix.__setitem__,
@@ -1109,7 +1105,7 @@ class TestDataFrameIndexing(TestData):
     def test_setitem_fancy_mixed_2d(self):
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             self.mixed_frame.ix[:5, ['C', 'B', 'A']] = 5
             result = self.mixed_frame.ix[:5, ['C', 'B', 'A']]
             assert (result.values == 5).all()
@@ -1123,7 +1119,7 @@ class TestDataFrameIndexing(TestData):
 
         # #1432
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             df = DataFrame({1: [1., 2., 3.],
                             2: [3, 4, 5]})
             assert df._is_mixed_type
@@ -1136,37 +1132,37 @@ class TestDataFrameIndexing(TestData):
             assert_frame_equal(df, expected)
 
     def test_ix_align(self):
-        b = Series(randn(10), name=0).sort_values()
-        df_orig = DataFrame(randn(10, 4))
+        b = Series(np.random.randn(10), name=0).sort_values()
+        df_orig = DataFrame(np.random.randn(10, 4))
         df = df_orig.copy()
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             df.ix[:, 0] = b
             assert_series_equal(df.ix[:, 0].reindex(b.index), b)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             dft = df_orig.T
             dft.ix[0, :] = b
             assert_series_equal(dft.ix[0, :].reindex(b.index), b)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             df = df_orig.copy()
             df.ix[:5, 0] = b
             s = df.ix[:5, 0]
             assert_series_equal(s, b.reindex(s.index))
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             dft = df_orig.T
             dft.ix[0, :5] = b
             s = dft.ix[0, :5]
             assert_series_equal(s, b.reindex(s.index))
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             df = df_orig.copy()
             idx = [0, 1, 3, 5]
             df.ix[idx, 0] = b
@@ -1174,7 +1170,7 @@ class TestDataFrameIndexing(TestData):
             assert_series_equal(s, b.reindex(s.index))
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             dft = df_orig.T
             dft.ix[0, idx] = b
             s = dft.ix[0, idx]
@@ -1182,11 +1178,11 @@ class TestDataFrameIndexing(TestData):
 
     def test_ix_frame_align(self):
         b = DataFrame(np.random.randn(3, 4))
-        df_orig = DataFrame(randn(10, 4))
+        df_orig = DataFrame(np.random.randn(10, 4))
         df = df_orig.copy()
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             df.ix[:3] = b
             out = b.ix[:3]
             assert_frame_equal(out, b)
@@ -1194,14 +1190,14 @@ class TestDataFrameIndexing(TestData):
         b.sort_index(inplace=True)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             df = df_orig.copy()
             df.ix[[0, 1, 2]] = b
             out = df.ix[[0, 1, 2]].reindex(b.index)
             assert_frame_equal(out, b)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             df = df_orig.copy()
             df.ix[:3] = b
             out = df.ix[:3]
@@ -1244,7 +1240,7 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame(np.random.randn(3, 2), index=['x', 'y', 'z'],
                        columns=['a', 'b'])
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             rs = df.ix[[0], [0]]
         xp = df.reindex(['x'], columns=['a'])
         assert_frame_equal(rs, xp)
@@ -1253,7 +1249,7 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame(np.random.randn(3, 2), index=['x', 'y', 'z'],
                        columns=[['a', 'b'], ['1', '2']])
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             rs = df.ix[[0], [0]]
         xp = df.reindex(['x'], columns=[('a', '1')])
         assert_frame_equal(rs, xp)
@@ -1263,17 +1259,17 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame(np.random.randn(len(idx), 3), idx)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             sub = df.ix[:'d']
             assert_frame_equal(sub, df)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             sub = df.ix['a':'c']
             assert_frame_equal(sub, df.ix[0:4])
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             sub = df.ix['b':'d']
             assert_frame_equal(sub, df.ix[2:])
 
@@ -1282,57 +1278,57 @@ class TestDataFrameIndexing(TestData):
 
         # return self if no slicing...for now
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             assert f.ix[:, :] is f
 
         # low dimensional slice
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             xs1 = f.ix[2, ['C', 'B', 'A']]
         xs2 = f.xs(f.index[2]).reindex(['C', 'B', 'A'])
         tm.assert_series_equal(xs1, xs2)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             ts1 = f.ix[5:10, 2]
         ts2 = f[f.columns[2]][5:10]
         tm.assert_series_equal(ts1, ts2)
 
         # positional xs
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             xs1 = f.ix[0]
         xs2 = f.xs(f.index[0])
         tm.assert_series_equal(xs1, xs2)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             xs1 = f.ix[f.index[5]]
         xs2 = f.xs(f.index[5])
         tm.assert_series_equal(xs1, xs2)
 
         # single column
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             assert_series_equal(f.ix[:, 'A'], f['A'])
 
         # return view
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             exp = f.copy()
             exp.values[5] = 4
             f.ix[5][:] = 4
         tm.assert_frame_equal(exp, f)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             exp.values[:, 1] = 6
             f.ix[:, 1][:] = 6
         tm.assert_frame_equal(exp, f)
 
         # slice of mixed-frame
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             xs = self.mixed_frame.ix[5]
         exp = self.mixed_frame.xs(self.mixed_frame.index[5])
         tm.assert_series_equal(xs, exp)
@@ -1344,7 +1340,7 @@ class TestDataFrameIndexing(TestData):
         expected = self.frame.copy()
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             frame.ix[2, ['C', 'B', 'A']] = [1., 2., 3.]
         expected['C'][2] = 1.
         expected['B'][2] = 2.
@@ -1352,7 +1348,7 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(frame, expected)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             frame2 = self.frame.copy()
             frame2.ix[2, [3, 2, 1]] = [1., 2., 3.]
         assert_frame_equal(frame, expected)
@@ -1362,14 +1358,14 @@ class TestDataFrameIndexing(TestData):
         expected = self.frame.copy()
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
-            vals = randn(5)
+            simplefilter("ignore", FutureWarning)
+            vals = np.random.randn(5)
             expected.values[5:10, 2] = vals
             frame.ix[5:10, 2] = vals
         assert_frame_equal(frame, expected)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             frame2 = self.frame.copy()
             frame2.ix[5:10, 'B'] = vals
         assert_frame_equal(frame, expected)
@@ -1379,13 +1375,13 @@ class TestDataFrameIndexing(TestData):
         expected = self.frame.copy()
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             frame.ix[4] = 5.
             expected.values[4] = 5.
         assert_frame_equal(frame, expected)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             frame.ix[frame.index[4]] = 6.
             expected.values[4] = 6.
         assert_frame_equal(frame, expected)
@@ -1395,7 +1391,7 @@ class TestDataFrameIndexing(TestData):
         expected = self.frame.copy()
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             frame.ix[:, 'A'] = 7.
             expected['A'] = 7.
         assert_frame_equal(frame, expected)
@@ -1420,7 +1416,7 @@ class TestDataFrameIndexing(TestData):
             ts = f[col]  # noqa
             for idx in f.index[::5]:
                 i = f.index.get_loc(idx)
-                val = randn()
+                val = np.random.randn()
                 expected.values[i, j] = val
 
                 ix[idx, col] = val
@@ -1546,7 +1542,11 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame(np.random.randn(5, 5), index=index)
 
         # positional slicing only via iloc!
-        pytest.raises(TypeError, lambda: df.iloc[1.0:5])
+        msg = ("cannot do slice indexing on"
+               r" <class 'pandas\.core\.indexes\.numeric\.Float64Index'> with"
+               r" these indexers \[1.0\] of <class 'float'>")
+        with pytest.raises(TypeError, match=msg):
+            df.iloc[1.0:5]
 
         result = df.iloc[4:5]
         expected = df.reindex([5.0])
@@ -1596,15 +1596,16 @@ class TestDataFrameIndexing(TestData):
         assert (result == 0).values.all()
 
     def test_setitem_single_column_mixed(self):
-        df = DataFrame(randn(5, 3), index=['a', 'b', 'c', 'd', 'e'],
+        df = DataFrame(np.random.randn(5, 3), index=['a', 'b', 'c', 'd', 'e'],
                        columns=['foo', 'bar', 'baz'])
         df['str'] = 'qux'
-        df.loc[df.index[::2], 'str'] = nan
-        expected = np.array([nan, 'qux', nan, 'qux', nan], dtype=object)
+        df.loc[df.index[::2], 'str'] = np.nan
+        expected = np.array([np.nan, 'qux', np.nan, 'qux', np.nan],
+                            dtype=object)
         assert_almost_equal(df['str'].values, expected)
 
     def test_setitem_single_column_mixed_datetime(self):
-        df = DataFrame(randn(5, 3), index=['a', 'b', 'c', 'd', 'e'],
+        df = DataFrame(np.random.randn(5, 3), index=['a', 'b', 'c', 'd', 'e'],
                        columns=['foo', 'bar', 'baz'])
 
         df['timestamp'] = Timestamp('20010102')
@@ -1619,17 +1620,17 @@ class TestDataFrameIndexing(TestData):
         assert isna(df.loc['b', 'timestamp'])
 
         # allow this syntax
-        df.loc['c', 'timestamp'] = nan
+        df.loc['c', 'timestamp'] = np.nan
         assert isna(df.loc['c', 'timestamp'])
 
         # allow this syntax
-        df.loc['d', :] = nan
+        df.loc['d', :] = np.nan
         assert not isna(df.loc['c', :]).all()
 
         # as of GH 3216 this will now work!
         # try to set with a list like item
         # pytest.raises(
-        #    Exception, df.loc.__setitem__, ('d', 'timestamp'), [nan])
+        #    Exception, df.loc.__setitem__, ('d', 'timestamp'), [np.nan])
 
     def test_setitem_mixed_datetime(self):
         # GH 9336
@@ -1752,11 +1753,16 @@ class TestDataFrameIndexing(TestData):
         # #2199
         df = DataFrame({'a': [1, 2, 3]})
 
-        pytest.raises(KeyError, df.loc.__getitem__, False)
-        pytest.raises(KeyError, df.loc.__getitem__, True)
+        with pytest.raises(KeyError, match=r"^False$"):
+            df.loc[False]
+        with pytest.raises(KeyError, match=r"^True$"):
+            df.loc[True]
 
-        pytest.raises(KeyError, df.loc.__setitem__, False, 0)
-        pytest.raises(KeyError, df.loc.__setitem__, True, 0)
+        msg = "cannot use a single bool to index into setitem"
+        with pytest.raises(KeyError, match=msg):
+            df.loc[False] = 0
+        with pytest.raises(KeyError, match=msg):
+            df.loc[True] = 0
 
     def test_getitem_list_duplicates(self):
         # #1943
@@ -1857,10 +1863,13 @@ class TestDataFrameIndexing(TestData):
         assert isna(res3['baz'].drop(['foobar'])).all()
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            pytest.raises(ValueError, res3.set_value, 'foobar', 'baz', 'sam')
+            msg = "could not convert string to float: 'sam'"
+            with pytest.raises(ValueError, match=msg):
+                res3.set_value('foobar', 'baz', 'sam')
 
     def test_set_value_with_index_dtype_change(self):
-        df_orig = DataFrame(randn(3, 3), index=lrange(3), columns=list('ABC'))
+        df_orig = DataFrame(np.random.randn(3, 3),
+                            index=range(3), columns=list('ABC'))
 
         # this is actually ambiguous as the 2 is interpreted as a positional
         # so column is not created
@@ -1892,17 +1901,18 @@ class TestDataFrameIndexing(TestData):
     def test_get_set_value_no_partial_indexing(self):
         # partial w/ MultiIndex raise exception
         index = MultiIndex.from_tuples([(0, 1), (0, 2), (1, 1), (1, 2)])
-        df = DataFrame(index=index, columns=lrange(4))
+        df = DataFrame(index=index, columns=range(4))
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            pytest.raises(KeyError, df.get_value, 0, 1)
+            with pytest.raises(KeyError, match=r"^0$"):
+                df.get_value(0, 1)
 
     def test_single_element_ix_dont_upcast(self):
         self.frame['E'] = 1
         assert issubclass(self.frame['E'].dtype.type, (int, np.integer))
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = self.frame.ix[self.frame.index[5], 'E']
             assert is_integer(result)
 
@@ -1914,7 +1924,7 @@ class TestDataFrameIndexing(TestData):
         df["b"] = 666
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = df.ix[0, "b"]
         assert is_integer(result)
         result = df.loc[0, "b"]
@@ -1922,14 +1932,14 @@ class TestDataFrameIndexing(TestData):
 
         expected = Series([666], [0], name='b')
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = df.ix[[0], "b"]
         assert_series_equal(result, expected)
         result = df.loc[[0], "b"]
         assert_series_equal(result, expected)
 
     def test_iloc_row(self):
-        df = DataFrame(np.random.randn(10, 4), index=lrange(0, 20, 2))
+        df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
 
         result = df.iloc[1]
         exp = df.loc[2]
@@ -1960,7 +1970,7 @@ class TestDataFrameIndexing(TestData):
 
     def test_iloc_col(self):
 
-        df = DataFrame(np.random.randn(4, 10), columns=lrange(0, 20, 2))
+        df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
 
         result = df.iloc[:, 1]
         exp = df.loc[:, 2]
@@ -1994,14 +2004,14 @@ class TestDataFrameIndexing(TestData):
 
         result = df.iloc[0]
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result2 = df.ix[0]
         assert isinstance(result, Series)
         assert_almost_equal(result.values, df.values[0])
         assert_series_equal(result, result2)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = df.T.iloc[:, 0]
             result2 = df.T.ix[:, 0]
         assert isinstance(result, Series)
@@ -2014,19 +2024,19 @@ class TestDataFrameIndexing(TestData):
                        index=[['i', 'i', 'j'], ['X', 'X', 'Y']])
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             rs = df.iloc[0]
             xp = df.ix[0]
         assert_series_equal(rs, xp)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             rs = df.iloc[:, 0]
             xp = df.T.ix[0]
         assert_series_equal(rs, xp)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             rs = df.iloc[:, [0]]
             xp = df.ix[:, [0]]
         assert_frame_equal(rs, xp)
@@ -2063,6 +2073,7 @@ class TestDataFrameIndexing(TestData):
         df.loc[trange[bool_idx], "A"] += 6
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_iloc_sparse_propegate_fill_value(self):
         from pandas.core.sparse.api import SparseDataFrame
         df = SparseDataFrame({'A': [999, 1]}, default_fill_value=999)
@@ -2147,7 +2158,7 @@ class TestDataFrameIndexing(TestData):
         rng = date_range('1/1/2000 00:00:00', periods=10, freq='10s')
         df = DataFrame({'A': np.random.randn(len(rng)), 'B': rng})
 
-        result = df.reindex(lrange(15))
+        result = df.reindex(range(15))
         assert np.issubdtype(result['B'].dtype, np.dtype('M8[ns]'))
 
         mask = com.isna(result)['B']
@@ -2165,10 +2176,15 @@ class TestDataFrameIndexing(TestData):
         df_rev = pd.DataFrame(data, index=dr[[3, 4, 5] + [0, 1, 2]],
                               columns=list('A'))
         # index is not monotonic increasing or decreasing
-        pytest.raises(ValueError, df_rev.reindex, df.index, method='pad')
-        pytest.raises(ValueError, df_rev.reindex, df.index, method='ffill')
-        pytest.raises(ValueError, df_rev.reindex, df.index, method='bfill')
-        pytest.raises(ValueError, df_rev.reindex, df.index, method='nearest')
+        msg = "index must be monotonic increasing or decreasing"
+        with pytest.raises(ValueError, match=msg):
+            df_rev.reindex(df.index, method='pad')
+        with pytest.raises(ValueError, match=msg):
+            df_rev.reindex(df.index, method='ffill')
+        with pytest.raises(ValueError, match=msg):
+            df_rev.reindex(df.index, method='bfill')
+        with pytest.raises(ValueError, match=msg):
+            df_rev.reindex(df.index, method='nearest')
 
     def test_reindex_level(self):
         from itertools import permutations
@@ -2176,7 +2192,7 @@ class TestDataFrameIndexing(TestData):
 
         def verify_first_level(df, level, idx, check_index_type=True):
             def f(val):
-                return np.nonzero(df[level] == val)[0]
+                return np.nonzero((df[level] == val).to_numpy())[0]
             i = np.concatenate(list(map(f, idx)))
             left = df.set_index(icol).reindex(idx, level=level)
             right = df.iloc[i].set_index(icol)
@@ -2248,7 +2264,7 @@ class TestDataFrameIndexing(TestData):
         expect = df.iloc[1:]
         assert_frame_equal(df.loc[0.2], expect)
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             assert_frame_equal(df.ix[0.2], expect)
 
         expect = df.iloc[1:, 0]
@@ -2258,7 +2274,7 @@ class TestDataFrameIndexing(TestData):
         expect = df.iloc[1:]
         assert_frame_equal(df.loc[0.2], expect)
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             assert_frame_equal(df.ix[0.2], expect)
 
         expect = df.iloc[1:, 0]
@@ -2269,7 +2285,7 @@ class TestDataFrameIndexing(TestData):
         expect = df.iloc[1:-1]
         assert_frame_equal(df.loc[0.2], expect)
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             assert_frame_equal(df.ix[0.2], expect)
 
         expect = df.iloc[1:-1, 0]
@@ -2279,7 +2295,7 @@ class TestDataFrameIndexing(TestData):
         expect = df.iloc[[1, -1]]
         assert_frame_equal(df.loc[0.2], expect)
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             assert_frame_equal(df.ix[0.2], expect)
 
         expect = df.iloc[[1, -1], 0]
@@ -2373,7 +2389,7 @@ class TestDataFrameIndexing(TestData):
 
     def test_at_time_between_time_datetimeindex(self):
         index = date_range("2012-01-01", "2012-01-05", freq='30min')
-        df = DataFrame(randn(len(index), 5), index=index)
+        df = DataFrame(np.random.randn(len(index), 5), index=index)
         akey = time(12, 0, 0)
         bkey = slice(time(13, 0, 0), time(14, 0, 0))
         ainds = [24, 72, 120, 168]
@@ -2420,7 +2436,7 @@ class TestDataFrameIndexing(TestData):
     def test_xs(self):
         idx = self.frame.index[5]
         xs = self.frame.xs(idx)
-        for item, value in compat.iteritems(xs):
+        for item, value in xs.items():
             if np.isnan(value):
                 assert np.isnan(self.frame[item][idx])
             else:
@@ -2471,7 +2487,7 @@ class TestDataFrameIndexing(TestData):
         assert_series_equal(result, expected)
 
     def test_xs_duplicates(self):
-        df = DataFrame(randn(5, 2), index=['b', 'b', 'c', 'b', 'a'])
+        df = DataFrame(np.random.randn(5, 2), index=['b', 'b', 'c', 'b', 'a'])
 
         cross = df.xs('c')
         exp = df.iloc[2]
@@ -2495,7 +2511,7 @@ class TestDataFrameIndexing(TestData):
         # this is numpy dependent
 
         dm = DataFrame(np.arange(20.).reshape(4, 5),
-                       index=lrange(4), columns=lrange(5))
+                       index=range(4), columns=range(5))
 
         dm.xs(2)[:] = 10
         assert (dm.xs(2) == 10).all()
@@ -2510,7 +2526,7 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame([(1, 2), (3, 4)], index=index, columns=["A", "B"])
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = df.ix[IndexType("foo", "bar")]["A"]
         assert result == 1
 
@@ -2518,7 +2534,7 @@ class TestDataFrameIndexing(TestData):
         assert result == 1
 
     def test_boolean_indexing(self):
-        idx = lrange(3)
+        idx = list(range(3))
         cols = ['A', 'B', 'C']
         df1 = DataFrame(index=idx, columns=cols,
                         data=np.array([[0.0, 0.5, 1.0],
@@ -2540,19 +2556,14 @@ class TestDataFrameIndexing(TestData):
 
     def test_boolean_indexing_mixed(self):
         df = DataFrame({
-            long(0): {35: np.nan, 40: np.nan, 43: np.nan,
-                      49: np.nan, 50: np.nan},
-            long(1): {35: np.nan,
-                      40: 0.32632316859446198,
-                      43: np.nan,
-                      49: 0.32632316859446198,
-                      50: 0.39114724480578139},
-            long(2): {35: np.nan, 40: np.nan, 43: 0.29012581014105987,
-                      49: np.nan, 50: np.nan},
-            long(3): {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan,
-                      50: np.nan},
-            long(4): {35: 0.34215328467153283, 40: np.nan, 43: np.nan,
-                      49: np.nan, 50: np.nan},
+            0: {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},
+            1: {35: np.nan, 40: 0.32632316859446198, 43: np.nan,
+                49: 0.32632316859446198, 50: 0.39114724480578139},
+            2: {35: np.nan, 40: np.nan, 43: 0.29012581014105987, 49: np.nan,
+                50: np.nan},
+            3: {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},
+            4: {35: 0.34215328467153283, 40: np.nan, 43: np.nan, 49: np.nan,
+                50: np.nan},
             'y': {35: 0, 40: 0, 43: 0, 49: 0, 50: 1}})
 
         # mixed int/float ok
@@ -2566,11 +2577,9 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(df2, expected)
 
         df['foo'] = 'test'
-        msg = ("boolean setting on mixed-type|"
-               "not supported between|"
-               "unorderable types")
+        msg = "not supported between instances|unorderable types"
+
         with pytest.raises(TypeError, match=msg):
-            # TODO: This message should be the same in PY2/PY3
             df[df > 0.3] = 1
 
     def test_where(self):
@@ -2584,7 +2593,7 @@ class TestDataFrameIndexing(TestData):
                         s.dtype != 'uint8')
 
             return DataFrame(dict((c, s + 1) if is_ok(s) else (c, s)
-                                  for c, s in compat.iteritems(df)))
+                                  for c, s in df.items()))
 
         def _check_get(df, cond, check_dtypes=True):
             other1 = _safe_add(df)
@@ -2603,7 +2612,7 @@ class TestDataFrameIndexing(TestData):
         # check getting
         for df in [default_frame, self.mixed_frame,
                    self.mixed_float, self.mixed_int]:
-            if compat.PY3 and df is self.mixed_frame:
+            if df is self.mixed_frame:
                 with pytest.raises(TypeError):
                     df > 0
                 continue
@@ -2654,7 +2663,7 @@ class TestDataFrameIndexing(TestData):
                 assert (rs.dtypes == df.dtypes).all()
 
         for df in [self.mixed_frame, self.mixed_float, self.mixed_int]:
-            if compat.PY3 and df is self.mixed_frame:
+            if df is self.mixed_frame:
                 with pytest.raises(TypeError):
                     df > 0
                 continue
@@ -2676,14 +2685,20 @@ class TestDataFrameIndexing(TestData):
         # invalid conditions
         df = default_frame
         err1 = (df + 1).values[0:2, :]
-        pytest.raises(ValueError, df.where, cond, err1)
+        msg = "other must be the same shape as self when an ndarray"
+        with pytest.raises(ValueError, match=msg):
+            df.where(cond, err1)
 
         err2 = cond.iloc[:2, :].values
         other1 = _safe_add(df)
-        pytest.raises(ValueError, df.where, err2, other1)
+        msg = "Array conditional must be same shape as self"
+        with pytest.raises(ValueError, match=msg):
+            df.where(err2, other1)
 
-        pytest.raises(ValueError, df.mask, True)
-        pytest.raises(ValueError, df.mask, 0)
+        with pytest.raises(ValueError, match=msg):
+            df.mask(True)
+        with pytest.raises(ValueError, match=msg):
+            df.mask(0)
 
         # where inplace
         def _check_set(df, cond, check_dtypes=True):
@@ -2696,14 +2711,14 @@ class TestDataFrameIndexing(TestData):
 
             # dtypes (and confirm upcasts)x
             if check_dtypes:
-                for k, v in compat.iteritems(df.dtypes):
+                for k, v in df.dtypes.items():
                     if issubclass(v.type, np.integer) and not cond[k].all():
                         v = np.dtype('float64')
                     assert dfi[k].dtype == v
 
         for df in [default_frame, self.mixed_frame, self.mixed_float,
                    self.mixed_int]:
-            if compat.PY3 and df is self.mixed_frame:
+            if df is self.mixed_frame:
                 with pytest.raises(TypeError):
                     df > 0
                 continue
@@ -2714,7 +2729,7 @@ class TestDataFrameIndexing(TestData):
             cond = df >= 0
             _check_set(df, cond)
 
-            # aligining
+            # aligning
             cond = (df >= 0)[1:]
             _check_set(df, cond)
 
@@ -3127,7 +3142,7 @@ class TestDataFrameIndexing(TestData):
         # GH4071
         df = DataFrame([[1, 2]])
         res = df.mask(DataFrame([[True, False]]))
-        expec = DataFrame([[nan, 2]])
+        expec = DataFrame([[np.nan, 2]])
         assert_frame_equal(res, expec)
 
     def test_mask_callable(self):
@@ -3252,8 +3267,8 @@ class TestDataFrameIndexingDatetimeWithTZ(TestData):
         # are copies)
         b1 = df._data.blocks[1]
         b2 = df._data.blocks[2]
-        assert b1.values.equals(b2.values)
-        assert id(b1.values.values.base) != id(b2.values.values.base)
+        tm.assert_extension_array_equal(b1.values, b2.values)
+        assert id(b1.values._data.base) != id(b2.values._data.base)
 
         # with nan
         df2 = df.copy()
@@ -3346,7 +3361,7 @@ class TestDataFrameIndexingUInt64(TestData):
         assert_frame_equal(result, expected)
 
 
-class TestDataFrameIndexingCategorical(object):
+class TestDataFrameIndexingCategorical:
 
     def test_assignment(self):
         # assignment
@@ -3676,7 +3691,7 @@ class TestDataFrameIndexingCategorical(object):
             df.at["j", "cats"] = "c"
 
         # Assigning a Category to parts of a int/... column uses the values of
-        # the Catgorical
+        # the Categorical
         df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
         exp = DataFrame({"a": [1, "b", "b", 1, 1], "b": list("aabba")})
         df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])

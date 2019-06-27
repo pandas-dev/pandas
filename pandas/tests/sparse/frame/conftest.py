@@ -1,8 +1,7 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
-from pandas import SparseDataFrame, SparseArray, DataFrame, bdate_range
+from pandas import DataFrame, SparseArray, SparseDataFrame, bdate_range
 
 data = {'A': [np.nan, np.nan, np.nan, 0, 1, 2, 3, 4, 5, 6],
         'B': [0, 1, 2, np.nan, np.nan, np.nan, 3, 4, 5, 6],

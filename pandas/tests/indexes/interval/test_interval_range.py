@@ -1,16 +1,15 @@
-from __future__ import division
-
 from datetime import timedelta
 
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
+from pandas.core.dtypes.common import is_integer
+
 from pandas import (
     DateOffset, Interval, IntervalIndex, Timedelta, Timestamp, date_range,
-    interval_range, timedelta_range
-)
-from pandas.core.dtypes.common import is_integer
+    interval_range, timedelta_range)
+import pandas.util.testing as tm
+
 from pandas.tseries.offsets import Day
 
 
@@ -19,7 +18,7 @@ def name(request):
     return request.param
 
 
-class TestIntervalRange(object):
+class TestIntervalRange:
 
     @pytest.mark.parametrize('freq, periods', [
         (1, 100), (2.5, 40), (5, 20), (25, 4)])

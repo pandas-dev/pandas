@@ -1,13 +1,12 @@
 """Utilities for conversion to writer-agnostic Excel representation
 """
 
+from functools import reduce
 import itertools
 import re
 import warnings
 
 import numpy as np
-
-from pandas.compat import reduce
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
@@ -21,7 +20,7 @@ from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
 
 
-class ExcelCell(object):
+class ExcelCell:
     __fields__ = ('row', 'col', 'val', 'style', 'mergestart', 'mergeend')
     __slots__ = __fields__
 
@@ -35,7 +34,7 @@ class ExcelCell(object):
         self.mergeend = mergeend
 
 
-class CSSToExcelConverter(object):
+class CSSToExcelConverter:
     """A callable for converting CSS declarations to ExcelWriter styles
 
     Supports parts of CSS 2.2, with minimal CSS 3.0 support (e.g. text-shadow),
@@ -58,8 +57,7 @@ class CSSToExcelConverter(object):
 
     def __init__(self, inherited=None):
         if inherited is not None:
-            inherited = self.compute_css(inherited,
-                                         self.compute_css.INITIAL_STYLE)
+            inherited = self.compute_css(inherited)
 
         self.inherited = inherited
 
@@ -310,7 +308,7 @@ class CSSToExcelConverter(object):
         return {'format_code': props.get('number-format')}
 
 
-class ExcelFormatter(object):
+class ExcelFormatter:
     """
     Class for formatting a DataFrame to a list of ExcelCells,
 
@@ -342,6 +340,9 @@ class ExcelFormatter(object):
         It should have signature css_declarations string -> excel style.
         This is only called for body cells.
     """
+
+    max_rows = 2**20
+    max_cols = 2**14
 
     def __init__(self, df, na_rep='', float_format=None, cols=None,
                  header=True, index=True, index_label=None, merge_cells=False,
@@ -556,7 +557,7 @@ class ExcelFormatter(object):
 
             # MultiIndex columns require an extra row
             # with index names (blank if None) for
-            # unambigous round-trip, unless not merging,
+            # unambiguous round-trip, unless not merging,
             # in which case the names all go on one row Issue #11328
             if isinstance(self.columns, ABCMultiIndex) and self.merge_cells:
                 self.rowcounter += 1
@@ -649,6 +650,13 @@ class ExcelFormatter(object):
         """
         from pandas.io.excel import ExcelWriter
         from pandas.io.common import _stringify_path
+
+        num_rows, num_cols = self.df.shape
+        if num_rows > self.max_rows or num_cols > self.max_cols:
+            raise ValueError("This sheet is too large! Your sheet size is: " +
+                             "{}, {} ".format(num_rows, num_cols) +
+                             "Max sheet size is: {}, {}".
+                             format(self.max_rows, self.max_cols))
 
         if isinstance(writer, ExcelWriter):
             need_save = False

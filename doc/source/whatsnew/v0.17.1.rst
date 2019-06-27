@@ -5,11 +5,6 @@ v0.17.1 (November 21, 2015)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
 
 .. note::
 
@@ -57,7 +52,7 @@ Here's a quick example:
   .. ipython:: python
 
     np.random.seed(123)
-    df = DataFrame(np.random.randn(10, 5), columns=list('abcde'))
+    df = pd.DataFrame(np.random.randn(10, 5), columns=list('abcde'))
     html = df.style.background_gradient(cmap='viridis', low=.5)
 
 We can render the HTML to get the following table.
@@ -66,7 +61,7 @@ We can render the HTML to get the following table.
    :file: whatsnew_0171_html_table.html
 
 :class:`~pandas.core.style.Styler` interacts nicely with the Jupyter Notebook.
-See the :ref:`documentation </style.ipynb>` for more.
+See the :ref:`documentation </user_guide/style.ipynb>` for more.
 
 .. _whatsnew_0171.enhancements:
 
@@ -85,7 +80,7 @@ Enhancements
 
   .. ipython:: python
 
-     df = DataFrame({'A' : ['foo']*1000})
+     df = pd.DataFrame({'A': ['foo'] * 1000})  # noqa: F821
      df['B'] = df['A'].astype('category')
 
      # shows the '+' as we have object dtypes

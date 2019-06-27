@@ -1,9 +1,8 @@
 """ parquet compat """
 
-from distutils.version import LooseVersion
 from warnings import catch_warnings
 
-from pandas.compat import string_types
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
@@ -43,7 +42,7 @@ def get_engine(engine):
         return FastParquetImpl()
 
 
-class BaseImpl(object):
+class BaseImpl:
 
     api = None  # module
 
@@ -59,7 +58,7 @@ class BaseImpl(object):
 
         # index level names must be strings
         valid_names = all(
-            isinstance(name, string_types)
+            isinstance(name, str)
             for name in df.index.names
             if name is not None
         )
@@ -76,28 +75,11 @@ class BaseImpl(object):
 class PyArrowImpl(BaseImpl):
 
     def __init__(self):
-        # since pandas is a dependency of pyarrow
-        # we need to import on first use
-        try:
-            import pyarrow
-            import pyarrow.parquet
-        except ImportError:
-            raise ImportError(
-                "pyarrow is required for parquet support\n\n"
-                "you can install via conda\n"
-                "conda install pyarrow -c conda-forge\n"
-                "\nor via pip\n"
-                "pip install -U pyarrow\n"
-            )
-        if LooseVersion(pyarrow.__version__) < '0.7.0':
-            raise ImportError(
-                "pyarrow >= 0.7.0 is required for parquet support\n\n"
-                "you can install via conda\n"
-                "conda install pyarrow -c conda-forge\n"
-                "\nor via pip\n"
-                "pip install -U pyarrow\n"
-            )
-
+        pyarrow = import_optional_dependency(
+            "pyarrow",
+            extra="pyarrow is required for parquet support."
+        )
+        import pyarrow.parquet
         self.api = pyarrow
 
     def write(self, df, path, compression='snappy',
@@ -141,25 +123,10 @@ class FastParquetImpl(BaseImpl):
     def __init__(self):
         # since pandas is a dependency of fastparquet
         # we need to import on first use
-        try:
-            import fastparquet
-        except ImportError:
-            raise ImportError(
-                "fastparquet is required for parquet support\n\n"
-                "you can install via conda\n"
-                "conda install fastparquet -c conda-forge\n"
-                "\nor via pip\n"
-                "pip install -U fastparquet"
-            )
-        if LooseVersion(fastparquet.__version__) < '0.1.2':
-            raise ImportError(
-                "fastparquet >= 0.1.2 is required for parquet "
-                "support\n\n"
-                "you can install via conda\n"
-                "conda install fastparquet -c conda-forge\n"
-                "\nor via pip\n"
-                "pip install -U fastparquet"
-            )
+        fastparquet = import_optional_dependency(
+            "fastparquet",
+            extra="fastparquet is required for parquet support."
+        )
         self.api = fastparquet
 
     def write(self, df, path, compression='snappy', index=None,
@@ -262,16 +229,17 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
     ----------
     path : string
         File path
-    columns : list, default=None
-        If not None, only these columns will be read from the file.
-
-        .. versionadded 0.21.1
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
-    kwargs are passed to the engine
+    columns : list, default=None
+        If not None, only these columns will be read from the file.
+
+        .. versionadded 0.21.1
+    **kwargs
+        Any additional kwargs are passed to the engine.
 
     Returns
     -------

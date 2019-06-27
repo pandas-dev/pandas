@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas.core.sorting import nargsort
 import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
@@ -30,6 +31,13 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.Series([0, 1])
         self.assert_series_equal(result, expected)
 
+    def test_series_count(self, data_missing):
+        # GH#26835
+        ser = pd.Series(data_missing)
+        result = ser.count()
+        expected = 1
+        assert result == expected
+
     def test_apply_simple_series(self, data):
         result = pd.Series(data).apply(id)
         assert isinstance(result, pd.Series)
@@ -43,6 +51,15 @@ class BaseMethodsTests(BaseExtensionTests):
         result = pd.Series(data_missing_for_sorting).argsort()
         expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
         self.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('na_position, expected', [
+        ('last', np.array([2, 0, 1], dtype=np.dtype('intp'))),
+        ('first', np.array([1, 2, 0], dtype=np.dtype('intp')))
+    ])
+    def test_nargsort(self, data_missing_for_sorting, na_position, expected):
+        # GH 25439
+        result = nargsort(data_missing_for_sorting, na_position=na_position)
+        tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize('ascending', [True, False])
     def test_sort_values(self, data_for_sorting, ascending):
@@ -104,6 +121,14 @@ class BaseMethodsTests(BaseExtensionTests):
 
         tm.assert_numpy_array_equal(l1, l2)
         self.assert_extension_array_equal(u1, u2)
+
+    def test_factorize_empty(self, data):
+        labels, uniques = pd.factorize(data[:0])
+        expected_labels = np.array([], dtype=np.intp)
+        expected_uniques = type(data)._from_sequence([], dtype=data[:0].dtype)
+
+        tm.assert_numpy_array_equal(labels, expected_labels)
+        self.assert_extension_array_equal(uniques, expected_uniques)
 
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
@@ -221,7 +246,17 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = empty
         self.assert_extension_array_equal(result, expected)
 
-    @pytest.mark.parametrize("as_frame", [True, False])
+    def test_shift_fill_value(self, data):
+        arr = data[:4]
+        fill_value = data[0]
+        result = arr.shift(1, fill_value=fill_value)
+        expected = data.take([0, 0, 1, 2])
+        self.assert_extension_array_equal(result, expected)
+
+        result = arr.shift(-2, fill_value=fill_value)
+        expected = data.take([2, 3, 0, 0])
+        self.assert_extension_array_equal(result, expected)
+
     def test_hash_pandas_object_works(self, data, as_frame):
         # https://github.com/pandas-dev/pandas/issues/23066
         data = pd.Series(data)
@@ -231,7 +266,30 @@ class BaseMethodsTests(BaseExtensionTests):
         b = pd.util.hash_pandas_object(data)
         self.assert_equal(a, b)
 
-    @pytest.mark.parametrize("as_frame", [True, False])
+    def test_searchsorted(self, data_for_sorting, as_series):
+        b, c, a = data_for_sorting
+        arr = type(data_for_sorting)._from_sequence([a, b, c])
+
+        if as_series:
+            arr = pd.Series(arr)
+        assert arr.searchsorted(a) == 0
+        assert arr.searchsorted(a, side="right") == 1
+
+        assert arr.searchsorted(b) == 1
+        assert arr.searchsorted(b, side="right") == 2
+
+        assert arr.searchsorted(c) == 2
+        assert arr.searchsorted(c, side="right") == 3
+
+        result = arr.searchsorted(arr.take([0, 2]))
+        expected = np.array([0, 2], dtype=np.intp)
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        # sorter
+        sorter = np.array([1, 2, 0])
+        assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
+
     def test_where_series(self, data, na_value, as_frame):
         assert data[0] != data[1]
         cls = type(data)
@@ -264,3 +322,31 @@ class BaseMethodsTests(BaseExtensionTests):
         if as_frame:
             expected = expected.to_frame(name='a')
         self.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
+    def test_repeat(self, data, repeats, as_series, use_numpy):
+        arr = type(data)._from_sequence(data[:3], dtype=data.dtype)
+        if as_series:
+            arr = pd.Series(arr)
+
+        result = np.repeat(arr, repeats) if use_numpy else arr.repeat(repeats)
+
+        repeats = [repeats] * 3 if isinstance(repeats, int) else repeats
+        expected = [x for x, n in zip(arr, repeats) for _ in range(n)]
+        expected = type(data)._from_sequence(expected, dtype=data.dtype)
+        if as_series:
+            expected = pd.Series(expected, index=arr.index.repeat(repeats))
+
+        self.assert_equal(result, expected)
+
+    @pytest.mark.parametrize('repeats, kwargs, error, msg', [
+        (2, dict(axis=1), ValueError, "'axis"),
+        (-1, dict(), ValueError, "negative"),
+        ([1, 2], dict(), ValueError, "shape"),
+        (2, dict(foo='bar'), TypeError, "'foo'")])
+    def test_repeat_raises(self, data, repeats, kwargs, error, msg, use_numpy):
+        with pytest.raises(error, match=msg):
+            if use_numpy:
+                np.repeat(data, repeats, **kwargs)
+            else:
+                data.repeat(repeats, **kwargs)

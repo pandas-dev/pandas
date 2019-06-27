@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 from datetime import date, datetime, timedelta
 import functools
 import operator
+from typing import Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -13,10 +13,8 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError, BaseOffset, _get_calendar, _is_normalized, _to_dt64,
     apply_index_wraps, as_datetime, roll_yearday, shift_month)
-import pandas.compat as compat
-from pandas.compat import range
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.generic import ABCPeriod
 
@@ -99,6 +97,8 @@ def apply_wraps(func):
             if tz is not None and result.tzinfo is None:
                 result = conversion.localize_pydatetime(result, tz)
 
+            result = Timestamp(result)
+
         return result
     return wrapper
 
@@ -116,7 +116,7 @@ class DateOffset(BaseOffset):
     off specifying n in the keywords you use, but regardless it is
     there for you. n is needed for DateOffset subclasses.
 
-    DateOffets work as follows.  Each offset specify a set of dates
+    DateOffset work as follows.  Each offset specify a set of dates
     that conform to the DateOffset.  For example, Bday defines this
     set to be the set of dates that are weekdays (M-F).  To test if a
     date is in the set of a DateOffset dateOffset we can use the
@@ -275,7 +275,7 @@ class DateOffset(BaseOffset):
                        kwds.get('months', 0)) * self.n)
             if months:
                 shifted = liboffsets.shift_months(i.asi8, months)
-                i = type(i)(shifted, freq=i.freq, dtype=i.dtype)
+                i = type(i)(shifted, dtype=i.dtype)
 
             weeks = (kwds.get('weeks', 0)) * self.n
             if weeks:
@@ -335,6 +335,11 @@ class DateOffset(BaseOffset):
     def rollback(self, dt):
         """
         Roll provided date backward to next offset only if not on offset.
+
+        Returns
+        -------
+        TimeStamp
+            Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
@@ -344,6 +349,11 @@ class DateOffset(BaseOffset):
     def rollforward(self, dt):
         """
         Roll provided date forward to next offset only if not on offset.
+
+        Returns
+        -------
+        TimeStamp
+            Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
@@ -411,7 +421,7 @@ class SingleConstructorOffset(DateOffset):
         return cls()
 
 
-class _CustomMixin(object):
+class _CustomMixin:
     """
     Mixin for classes that define and validate calendar, holidays,
     and weekdays attributes.
@@ -429,7 +439,7 @@ class _CustomMixin(object):
         object.__setattr__(self, "calendar", calendar)
 
 
-class BusinessMixin(object):
+class BusinessMixin:
     """
     Mixin to business types to provide related functions.
     """
@@ -681,7 +691,6 @@ class BusinessHourMixin(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        daytime = self._get_daytime_flag
         businesshours = self._get_business_hours_by_sec
         bhdelta = timedelta(seconds=businesshours)
 
@@ -723,21 +732,19 @@ class BusinessHourMixin(BusinessMixin):
             result = other + timedelta(hours=hours, minutes=minutes)
 
             # because of previous adjustment, time will be larger than start
-            if ((daytime and (result.time() < self.start or
-                              self.end < result.time())) or
-                    not daytime and (self.end < result.time() < self.start)):
-                if n >= 0:
-                    bday_edge = self._prev_opening_time(other)
-                    bday_edge = bday_edge + bhdelta
-                    # calculate remainder
+            if n >= 0:
+                bday_edge = self._prev_opening_time(other) + bhdelta
+                if bday_edge < result:
                     bday_remain = result - bday_edge
                     result = self._next_opening_time(other)
                     result += bday_remain
-                else:
-                    bday_edge = self._next_opening_time(other)
+            else:
+                bday_edge = self._next_opening_time(other)
+                if bday_edge > result:
                     bday_remain = result - bday_edge
                     result = self._next_opening_time(result) + bhdelta
                     result += bday_remain
+
             # edge handling
             if n >= 0:
                 if result.time() == self.end:
@@ -785,7 +792,7 @@ class BusinessHourMixin(BusinessMixin):
             return False
 
     def _repr_attrs(self):
-        out = super(BusinessHourMixin, self)._repr_attrs()
+        out = super()._repr_attrs()
         start = self.start.strftime('%H:%M')
         end = self.end.strftime('%H:%M')
         attrs = ['{prefix}={start}-{end}'.format(prefix=self._prefix,
@@ -807,7 +814,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     def __init__(self, n=1, normalize=False, start='09:00',
                  end='17:00', offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
-        super(BusinessHour, self).__init__(start=start, end=end, offset=offset)
+        super().__init__(start=start, end=end, offset=offset)
 
 
 class CustomBusinessDay(_CustomMixin, BusinessDay):
@@ -935,7 +942,7 @@ class MonthOffset(SingleConstructorOffset):
         shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
         # TODO: going through __new__ raises on call to _validate_frequency;
         #  are we passing incorrect freq?
-        return type(i)._simple_new(shifted, freq=i.freq, tz=i.tz)
+        return type(i)._simple_new(shifted, freq=i.freq, dtype=i.dtype)
 
 
 class MonthEnd(MonthOffset):
@@ -972,21 +979,25 @@ class BusinessMonthBegin(MonthOffset):
 
 class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
     """
-    DateOffset subclass representing one custom business month, incrementing
-    between [BEGIN/END] of month dates.
+    DateOffset subclass representing custom business month(s).
+
+    Increments between %(bound)s of month dates.
 
     Parameters
     ----------
     n : int, default 1
+        The number of months represented.
     normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
+        Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
-        weekmask of valid business days, passed to ``numpy.busdaycalendar``
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
     holidays : list
-        list/array of dates to exclude from the set of valid business days,
-        passed to ``numpy.busdaycalendar``
+        List/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``.
     calendar : pd.HolidayCalendar or np.busdaycalendar
+        Calendar to integrate.
     offset : timedelta, default timedelta(0)
+        Time offset to apply.
     """
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])
@@ -1053,18 +1064,15 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         return result
 
 
+@Substitution(bound="end")
+@Appender(_CustomBusinessMonth.__doc__)
 class CustomBusinessMonthEnd(_CustomBusinessMonth):
-    # TODO(py27): Replace condition with Subsitution after dropping Py27
-    if _CustomBusinessMonth.__doc__:
-        __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'end')
     _prefix = 'CBM'
 
 
+@Substitution(bound="beginning")
+@Appender(_CustomBusinessMonth.__doc__)
 class CustomBusinessMonthBegin(_CustomBusinessMonth):
-    # TODO(py27): Replace condition with Subsitution after dropping Py27
-    if _CustomBusinessMonth.__doc__:
-        __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]',
-                                                       'beginning')
     _prefix = 'CBMS'
 
 
@@ -1414,7 +1422,7 @@ class Week(DateOffset):
         return cls(weekday=weekday)
 
 
-class _WeekOfMonthMixin(object):
+class _WeekOfMonthMixin:
     """
     Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
     """
@@ -1583,8 +1591,8 @@ class QuarterOffset(DateOffset):
     """
     Quarter representation - doesn't call super.
     """
-    _default_startingMonth = None
-    _from_name_startingMonth = None
+    _default_startingMonth = None  # type: Optional[int]
+    _from_name_startingMonth = None   # type: Optional[int]
     _adjust_dst = True
     _attributes = frozenset(['n', 'normalize', 'startingMonth'])
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
@@ -1642,7 +1650,7 @@ class QuarterOffset(DateOffset):
         # TODO: going through __new__ raises on call to _validate_frequency;
         #  are we passing incorrect freq?
         return type(dtindex)._simple_new(shifted, freq=dtindex.freq,
-                                         tz=dtindex.tz)
+                                         dtype=dtindex.dtype)
 
 
 class BQuarterEnd(QuarterOffset):
@@ -1722,7 +1730,7 @@ class YearOffset(DateOffset):
         # TODO: going through __new__ raises on call to _validate_frequency;
         #  are we passing incorrect freq?
         return type(dtindex)._simple_new(shifted, freq=dtindex.freq,
-                                         tz=dtindex.tz)
+                                         dtype=dtindex.dtype)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -2269,7 +2277,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                                 "will overflow".format(self=self, other=other))
 
     def __eq__(self, other):
-        if isinstance(other, compat.string_types):
+        if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
@@ -2290,7 +2298,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         return hash(self._params)
 
     def __ne__(self, other):
-        if isinstance(other, compat.string_types):
+        if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
@@ -2324,7 +2332,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             # an exception, when we call using the + operator,
             # we directly call the known method
             result = other.__add__(self)
-            if result == NotImplemented:
+            if result is NotImplemented:
                 raise OverflowError
             return result
         elif isinstance(other, (datetime, np.datetime64, date)):
@@ -2343,7 +2351,8 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
 
 
 def _delta_to_tick(delta):
-    if delta.microseconds == 0:
+    if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
+        # nanoseconds only for pd.Timedelta
         if delta.seconds == 0:
             return Day(delta.days)
         else:
@@ -2460,6 +2469,11 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
         while cur <= end:
             yield cur
 
+            if cur == end:
+                # GH#24252 avoid overflows by not performing the addition
+                # in offset.apply unless we have to
+                break
+
             # faster than cur + offset
             next_date = offset.apply(cur)
             if next_date <= cur:
@@ -2469,6 +2483,11 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
     else:
         while cur >= end:
             yield cur
+
+            if cur == end:
+                # GH#24252 avoid overflows by not performing the addition
+                # in offset.apply unless we have to
+                break
 
             # faster than cur + offset
             next_date = offset.apply(cur)

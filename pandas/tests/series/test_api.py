@@ -1,14 +1,9 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
 from collections import OrderedDict
 import pydoc
 import warnings
 
 import numpy as np
 import pytest
-
-import pandas.compat as compat
-from pandas.compat import isidentifier, lzip, range, string_types
 
 import pandas as pd
 from pandas import (
@@ -24,7 +19,7 @@ import pandas.io.formats.printing as printing
 from .common import TestData
 
 
-class SharedWithSparse(object):
+class SharedWithSparse:
     """
     A collection of tests Series and SparseSeries can share.
 
@@ -127,6 +122,8 @@ class SharedWithSparse(object):
         result = self.ts.sort_index(ascending=False)
         assert result.name == self.ts.name
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_to_sparse_pass_name(self):
         result = self.ts.to_sparse()
         assert result.name == self.ts.name
@@ -145,7 +142,7 @@ class SharedWithSparse(object):
     def test_constructor_subclass_dict(self):
         data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
         series = self.series_klass(data)
-        expected = self.series_klass(dict(compat.iteritems(data)))
+        expected = self.series_klass(dict(data.items()))
         self._assert_series_equal(series, expected)
 
     def test_constructor_ordereddict(self):
@@ -199,10 +196,18 @@ class SharedWithSparse(object):
         )
         self._assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_from_array_deprecated(self):
 
-        with tm.assert_produces_warning(FutureWarning):
+        # multiple FutureWarnings, so can't assert stacklevel
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
             self.series_klass.from_array([1, 2, 3])
+
+    def test_sparse_accessor_updates_on_inplace(self):
+        s = pd.Series([1, 1, 2, 3], dtype="Sparse[int]")
+        s.drop([0, 1], inplace=True)
+        assert s.sparse.density == 1.0
 
 
 class TestSeriesMisc(TestData, SharedWithSparse):
@@ -240,10 +245,11 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
     def test_tab_completion_with_categorical(self):
         # test the tab completion display
-        ok_for_cat = ['categories', 'codes', 'ordered', 'set_categories',
-                      'add_categories', 'remove_categories',
-                      'rename_categories', 'reorder_categories',
-                      'remove_unused_categories', 'as_ordered', 'as_unordered']
+        ok_for_cat = ['name', 'index', 'categorical', 'categories', 'codes',
+                      'ordered', 'set_categories', 'add_categories',
+                      'remove_categories', 'rename_categories',
+                      'reorder_categories', 'remove_unused_categories',
+                      'as_ordered', 'as_unordered']
 
         def get_dir(s):
             results = [r for r in s.cat.__dir__() if not r.startswith('_')]
@@ -267,24 +273,27 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         tm.makeFloatIndex(10),
         Index([True, False]),
         Index(['a{}'.format(i) for i in range(101)]),
-        pd.MultiIndex.from_tuples(lzip('ABCD', 'EFGH')),
-        pd.MultiIndex.from_tuples(lzip([0, 1, 2, 3], 'EFGH')), ])
+        pd.MultiIndex.from_tuples(zip('ABCD', 'EFGH')),
+        pd.MultiIndex.from_tuples(zip([0, 1, 2, 3], 'EFGH')), ])
     def test_index_tab_completion(self, index):
         # dir contains string-like values of the Index.
         s = pd.Series(index=index)
         dir_s = dir(s)
         for i, x in enumerate(s.index.unique(level=0)):
             if i < 100:
-                assert (not isinstance(x, string_types) or
-                        not isidentifier(x) or x in dir_s)
+                assert (not isinstance(x, str) or
+                        not x.isidentifier() or x in dir_s)
             else:
                 assert x not in dir_s
 
     def test_not_hashable(self):
         s_empty = Series()
         s = Series([1])
-        pytest.raises(TypeError, hash, s_empty)
-        pytest.raises(TypeError, hash, s)
+        msg = "'Series' objects are mutable, thus they cannot be hashed"
+        with pytest.raises(TypeError, match=msg):
+            hash(s_empty)
+        with pytest.raises(TypeError, match=msg):
+            hash(s)
 
     def test_contains(self):
         tm.assert_contains_all(self.ts.index, self.ts)
@@ -306,10 +315,10 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         tm.assert_almost_equal(self.ts.values, self.ts, check_dtype=False)
 
     def test_iteritems(self):
-        for idx, val in compat.iteritems(self.series):
+        for idx, val in self.series.items():
             assert val == self.series[idx]
 
-        for idx, val in compat.iteritems(self.ts):
+        for idx, val in self.ts.items():
             assert val == self.ts[idx]
 
         # assert is lazy (genrators don't define reverse, lists do)
@@ -327,7 +336,8 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
     def test_raise_on_info(self):
         s = Series(np.random.randn(10))
-        with pytest.raises(AttributeError):
+        msg = "'Series' object has no attribute 'info'"
+        with pytest.raises(AttributeError, match=msg):
             s.info()
 
     def test_copy(self):
@@ -352,7 +362,8 @@ class TestSeriesMisc(TestData, SharedWithSparse):
                 assert np.isnan(s2[0])
                 assert np.isnan(s[0])
 
-        # GH 11794
+    def test_copy_tzaware(self):
+        # GH#11794
         # copy of tz-aware
         expected = Series([Timestamp('2012/01/01', tz='UTC')])
         expected2 = Series([Timestamp('1999/01/01', tz='UTC')])
@@ -447,6 +458,11 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         exp = Series([], dtype='float64', index=Index([], dtype='float64'))
         tm.assert_series_equal(result, exp)
 
+    def test_str_accessor_updates_on_inplace(self):
+        s = pd.Series(list('abc'))
+        s.drop([0], inplace=True)
+        assert len(s.str.lower()) == 2
+
     def test_str_attribute(self):
         # GH9068
         methods = ['strip', 'rstrip', 'lstrip']
@@ -478,8 +494,15 @@ class TestSeriesMisc(TestData, SharedWithSparse):
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('s.', 1))
 
+    def test_integer_series_size(self):
+        # GH 25580
+        s = Series(range(9))
+        assert s.size == 9
+        s = Series(range(9), dtype="Int64")
+        assert s.size == 9
 
-class TestCategoricalSeries(object):
+
+class TestCategoricalSeries:
 
     @pytest.mark.parametrize(
         "method",
@@ -535,22 +558,30 @@ class TestCategoricalSeries(object):
                            match="You cannot add any new attribute"):
             c.cat.xlabel = "a"
 
+    def test_cat_accessor_updates_on_inplace(self):
+        s = Series(list('abc')).astype('category')
+        s.drop(0, inplace=True)
+        s.cat.remove_unused_categories(inplace=True)
+        assert len(s.cat.categories) == 2
+
     def test_categorical_delegations(self):
 
         # invalid accessor
-        pytest.raises(AttributeError, lambda: Series([1, 2, 3]).cat)
-        with pytest.raises(AttributeError,
-                           match=(r"Can only use .cat accessor "
-                                  r"with a 'category' dtype")):
+        msg = r"Can only use \.cat accessor with a 'category' dtype"
+        with pytest.raises(AttributeError, match=msg):
+            Series([1, 2, 3]).cat
+        with pytest.raises(AttributeError, match=msg):
             Series([1, 2, 3]).cat()
-        pytest.raises(AttributeError, lambda: Series(['a', 'b', 'c']).cat)
-        pytest.raises(AttributeError, lambda: Series(np.arange(5.)).cat)
-        pytest.raises(AttributeError,
-                      lambda: Series([Timestamp('20130101')]).cat)
+        with pytest.raises(AttributeError, match=msg):
+            Series(['a', 'b', 'c']).cat
+        with pytest.raises(AttributeError, match=msg):
+            Series(np.arange(5.)).cat
+        with pytest.raises(AttributeError, match=msg):
+            Series([Timestamp('20130101')]).cat
 
         # Series should delegate calls to '.categories', '.codes', '.ordered'
         # and the methods '.set_categories()' 'drop_unused_categories()' to the
-        # categorical# -*- coding: utf-8 -*-
+        # categorical
         s = Series(Categorical(["a", "b", "c", "a"], ordered=True))
         exp_categories = Index(["a", "b", "c"])
         tm.assert_index_equal(s.cat.categories, exp_categories)
@@ -588,10 +619,10 @@ class TestCategoricalSeries(object):
 
         # This method is likely to be confused, so test that it raises an error
         # on wrong inputs:
-        def f():
+        msg = "'Series' object has no attribute 'set_categories'"
+        with pytest.raises(AttributeError, match=msg):
             s.set_categories([4, 3, 2, 1])
 
-        pytest.raises(Exception, f)
         # right: s.cat.set_categories([4,3,2,1])
 
         # GH18862 (let Series.cat.rename_categories take callables)

@@ -1,14 +1,12 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import PeriodIndex
+from pandas import PeriodIndex, period_range
 import pandas.util.testing as tm
 
 
-class TestPeriodIndexArithmetic(object):
+class TestPeriodIndexArithmetic:
     # ---------------------------------------------------------------
     # PeriodIndex.shift is used by __add__ and __sub__
 
@@ -26,36 +24,36 @@ class TestPeriodIndexArithmetic(object):
         tm.assert_index_equal(result, expected)
 
     def test_shift(self):
-        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='A', start='1/1/2002', end='12/1/2010')
+        pi1 = period_range(freq='A', start='1/1/2001', end='12/1/2009')
+        pi2 = period_range(freq='A', start='1/1/2002', end='12/1/2010')
 
         tm.assert_index_equal(pi1.shift(0), pi1)
 
         assert len(pi1) == len(pi2)
         tm.assert_index_equal(pi1.shift(1), pi2)
 
-        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='A', start='1/1/2000', end='12/1/2008')
+        pi1 = period_range(freq='A', start='1/1/2001', end='12/1/2009')
+        pi2 = period_range(freq='A', start='1/1/2000', end='12/1/2008')
         assert len(pi1) == len(pi2)
         tm.assert_index_equal(pi1.shift(-1), pi2)
 
-        pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='M', start='2/1/2001', end='1/1/2010')
+        pi1 = period_range(freq='M', start='1/1/2001', end='12/1/2009')
+        pi2 = period_range(freq='M', start='2/1/2001', end='1/1/2010')
         assert len(pi1) == len(pi2)
         tm.assert_index_equal(pi1.shift(1), pi2)
 
-        pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='M', start='12/1/2000', end='11/1/2009')
+        pi1 = period_range(freq='M', start='1/1/2001', end='12/1/2009')
+        pi2 = period_range(freq='M', start='12/1/2000', end='11/1/2009')
         assert len(pi1) == len(pi2)
         tm.assert_index_equal(pi1.shift(-1), pi2)
 
-        pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='D', start='1/2/2001', end='12/2/2009')
+        pi1 = period_range(freq='D', start='1/1/2001', end='12/1/2009')
+        pi2 = period_range(freq='D', start='1/2/2001', end='12/2/2009')
         assert len(pi1) == len(pi2)
         tm.assert_index_equal(pi1.shift(1), pi2)
 
-        pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='D', start='12/31/2000', end='11/30/2009')
+        pi1 = period_range(freq='D', start='1/1/2001', end='12/1/2009')
+        pi2 = period_range(freq='D', start='12/31/2000', end='11/30/2009')
         assert len(pi1) == len(pi2)
         tm.assert_index_equal(pi1.shift(-1), pi2)
 
@@ -100,7 +98,7 @@ class TestPeriodIndexArithmetic(object):
 
     def test_shift_periods(self):
         # GH #22458 : argument 'n' was deprecated in favor of 'periods'
-        idx = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        idx = period_range(freq='A', start='1/1/2001', end='12/1/2009')
         tm.assert_index_equal(idx.shift(periods=0), idx)
         tm.assert_index_equal(idx.shift(0), idx)
         with tm.assert_produces_warning(FutureWarning,

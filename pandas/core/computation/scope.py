@@ -4,6 +4,7 @@ Module for scope operations
 
 import datetime
 import inspect
+from io import StringIO
 import itertools
 import pprint
 import struct
@@ -11,9 +12,9 @@ import sys
 
 import numpy as np
 
-from pandas.compat import DeepChainMap, StringIO, map
+from pandas._libs.tslibs import Timestamp
+from pandas.compat.chainmap import DeepChainMap
 
-import pandas as pd  # noqa
 from pandas.core.base import StringMixin
 import pandas.core.computation as compu
 
@@ -48,7 +49,7 @@ def _raw_hex_id(obj):
 
 
 _DEFAULT_GLOBALS = {
-    'Timestamp': pd._libs.tslib.Timestamp,
+    'Timestamp': Timestamp,
     'datetime': datetime.datetime,
     'True': True,
     'False': False,
@@ -134,7 +135,7 @@ class Scope(StringMixin):
         self.resolvers = DeepChainMap(*resolvers)
         self.temps = {}
 
-    def __unicode__(self):
+    def __str__(self):
         scope_keys = _get_pretty_string(list(self.scope.keys()))
         res_keys = _get_pretty_string(list(self.resolvers.keys()))
         unicode_str = '{name}(scope={scope_keys}, resolvers={res_keys})'
@@ -160,7 +161,7 @@ class Scope(StringMixin):
 
         Parameters
         ----------
-        key : text_type
+        key : str
             A variable name
         is_local : bool
             Flag indicating whether the variable is local or not (prefixed with

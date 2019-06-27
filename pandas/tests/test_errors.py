@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
-
 import pytest
-import pandas  # noqa
-import pandas as pd
+
 from pandas.errors import AbstractMethodError
+
+import pandas as pd  # noqa
 
 
 @pytest.mark.parametrize(
@@ -46,7 +45,7 @@ def test_error_rename():
         pass
 
 
-class Foo(object):
+class Foo:
     @classmethod
     def classmethod(cls):
         raise AbstractMethodError(cls, methodtype='classmethod')

@@ -1,12 +1,14 @@
-# -*- coding: utf-8 -*-
+from io import StringIO
+
 import pytest
+
 import pandas as pd
 from pandas import DataFrame, read_json
-from pandas.compat import StringIO
-from pandas.io.json.json import JsonReader
 import pandas.util.testing as tm
-from pandas.util.testing import (assert_frame_equal, assert_series_equal,
-                                 ensure_clean)
+from pandas.util.testing import (
+    assert_frame_equal, assert_series_equal, ensure_clean)
+
+from pandas.io.json.json import JsonReader
 
 
 @pytest.fixture
@@ -30,14 +32,14 @@ def test_read_jsonl_unicode_chars():
     json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
     json = StringIO(json)
     result = read_json(json, lines=True)
-    expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+    expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]],
                          columns=['a', 'b'])
     assert_frame_equal(result, expected)
 
     # simulate string
     json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
     result = read_json(json, lines=True)
-    expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+    expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]],
                          columns=['a', 'b'])
     assert_frame_equal(result, expected)
 

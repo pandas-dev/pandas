@@ -1,14 +1,15 @@
-# pylint: disable-msg=E1101,W0612
-import pytest
-
-import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
-from pandas.errors import PerformanceWarning
 import itertools
 
+import numpy as np
+import pytest
 
-class TestSparseArrayConcat(object):
+from pandas.errors import PerformanceWarning
+
+import pandas as pd
+import pandas.util.testing as tm
+
+
+class TestSparseArrayConcat:
     @pytest.mark.parametrize('kind', ['integer', 'block'])
     def test_basic(self, kind):
         a = pd.SparseArray([1, 0, 0, 2], kind=kind)
@@ -34,7 +35,8 @@ class TestSparseArrayConcat(object):
         assert result.kind == kind
 
 
-class TestSparseSeriesConcat(object):
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+class TestSparseSeriesConcat:
 
     @pytest.mark.parametrize('kind', [
         'integer',
@@ -81,14 +83,16 @@ class TestSparseSeriesConcat(object):
             sparse1 = pd.SparseSeries(val1, name='x', kind=kind)
             sparse2 = pd.SparseSeries(val2, name='y', kind=kind, fill_value=0)
 
-            with tm.assert_produces_warning(PerformanceWarning):
+            with tm.assert_produces_warning(PerformanceWarning,
+                                            raise_on_extra_warnings=False):
                 res = pd.concat([sparse1, sparse2])
 
             exp = pd.concat([pd.Series(val1), pd.Series(val2)])
             exp = pd.SparseSeries(exp, kind=kind)
             tm.assert_sp_series_equal(res, exp)
 
-            with tm.assert_produces_warning(PerformanceWarning):
+            with tm.assert_produces_warning(PerformanceWarning,
+                                            raise_on_extra_warnings=False):
                 res = pd.concat([sparse2, sparse1])
 
             exp = pd.concat([pd.Series(val2), pd.Series(val1)])
@@ -175,7 +179,9 @@ class TestSparseSeriesConcat(object):
         tm.assert_series_equal(res, exp)
 
 
-class TestSparseDataFrameConcat(object):
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
+class TestSparseDataFrameConcat:
 
     def setup_method(self, method):
 
@@ -244,12 +250,14 @@ class TestSparseDataFrameConcat(object):
         sparse = self.dense1.to_sparse()
         sparse2 = self.dense2.to_sparse(fill_value=0)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             res = pd.concat([sparse, sparse2])
         exp = pd.concat([self.dense1, self.dense2]).to_sparse()
         tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             res = pd.concat([sparse2, sparse])
         exp = pd.concat([self.dense2, self.dense1]).to_sparse(fill_value=0)
         exp._default_fill_value = np.nan
@@ -259,9 +267,15 @@ class TestSparseDataFrameConcat(object):
         sparse = self.dense1.to_sparse()
         sparse3 = self.dense3.to_sparse()
 
-        with tm.assert_produces_warning(FutureWarning):
+        # stacklevel is wrong since we have two FutureWarnings,
+        # one for depr, one for sorting.
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False,
+                                        raise_on_extra_warnings=False):
             res = pd.concat([sparse, sparse3])
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False,
+                                        raise_on_extra_warnings=False,):
             exp = pd.concat([self.dense1, self.dense3])
 
         exp = exp.to_sparse()

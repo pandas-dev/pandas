@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # pandas documentation build configuration file, created by
 #
@@ -13,22 +12,15 @@
 
 import sys
 import os
-import re
 import inspect
 import importlib
 import logging
-import warnings
-
+import jinja2
 from sphinx.ext.autosummary import _import_by_name
 from numpydoc.docscrape import NumpyDocString
-from numpydoc.docscrape_sphinx import SphinxDocString
+
 
 logger = logging.getLogger(__name__)
-
-try:
-    raw_input          # Python 2
-except NameError:
-    raw_input = input  # Python 3
 
 # https://github.com/sphinx-doc/sphinx/pull/2325/files
 # Workaround for sphinx-build recursion limit overflow:
@@ -77,18 +69,49 @@ extensions = ['sphinx.ext.autodoc',
               ]
 
 exclude_patterns = ['**.ipynb_checkpoints']
+try:
+    import nbconvert
+except ImportError:
+    logger.warn('nbconvert not installed. Skipping notebooks.')
+    exclude_patterns.append('**/*.ipynb')
+else:
+    try:
+        nbconvert.utils.pandoc.get_pandoc_version()
+    except nbconvert.utils.pandoc.PandocMissing:
+        logger.warn('Pandoc not installed. Skipping notebooks.')
+        exclude_patterns.append('**/*.ipynb')
 
-with open("index.rst") as f:
-    index_rst_lines = f.readlines()
+# sphinx_pattern can be '-api' to exclude the API pages,
+# the path to a file, or a Python object
+# (e.g. '10min.rst' or 'pandas.DataFrame.head')
+source_path = os.path.dirname(os.path.abspath(__file__))
+pattern = os.environ.get('SPHINX_PATTERN')
+if pattern:
+    for dirname, dirs, fnames in os.walk(source_path):
+        for fname in fnames:
+            if os.path.splitext(fname)[-1] in ('.rst', '.ipynb'):
+                fname = os.path.relpath(os.path.join(dirname, fname),
+                                        source_path)
 
-# only include the slow autosummary feature if we're building the API section
-# of the docs
+                if (fname == 'index.rst'
+                        and os.path.abspath(dirname) == source_path):
+                    continue
+                elif pattern == '-api' and dirname == 'reference':
+                    exclude_patterns.append(fname)
+                elif pattern != '-api' and fname != pattern:
+                    exclude_patterns.append(fname)
 
-# JP: added from sphinxdocs
-autosummary_generate = False
+with open(os.path.join(source_path, 'index.rst.template')) as f:
+    t = jinja2.Template(f.read())
+with open(os.path.join(source_path, 'index.rst'), 'w') as f:
+    f.write(t.render(include_api=pattern is None,
+                     single_doc=(pattern
+                                 if pattern is not None and pattern != '-api'
+                                 else None)))
+autosummary_generate = True if pattern is None else ['index']
 
-if any(re.match(r"\s*api\s*", l) for l in index_rst_lines):
-    autosummary_generate = True
+# numpydoc
+numpydoc_attributes_as_param_list = False
 
 # matplotlib plot directive
 plot_include_source = True
@@ -113,8 +136,8 @@ source_encoding = 'utf-8'
 master_doc = 'index'
 
 # General information about the project.
-project = u'pandas'
-copyright = u'2008-2014, the pandas development team'
+project = 'pandas'
+copyright = '2008-2014, the pandas development team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -277,10 +300,11 @@ for old, new in moved_classes:
              "{new}.{method}".format(new=new, method=method))
         )
 
-html_additional_pages = {
-    'generated/' + page[0]: 'api_redirect.html'
-    for page in moved_api_pages
-}
+if pattern is None:
+    html_additional_pages = {
+        'generated/' + page[0]: 'api_redirect.html'
+        for page in moved_api_pages
+    }
 
 
 header = """\
@@ -296,7 +320,10 @@ header = """\
    np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
    pd.options.display.max_rows = 15
-"""
+
+   import os
+   os.chdir(r'{}')
+""".format(os.path.dirname(os.path.dirname(__file__)))
 
 
 html_context = {
@@ -367,29 +394,23 @@ latex_documents = [
 # latex_use_modindex = True
 
 
-intersphinx_mapping = {
-    'statsmodels': ('http://www.statsmodels.org/devel/', None),
-    'matplotlib': ('https://matplotlib.org/', None),
-    'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
-    'python': ('https://docs.python.org/3/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
-    'py': ('https://pylib.readthedocs.io/en/latest/', None)
-}
-import glob
-autosummary_generate = glob.glob("*.rst")
+if pattern is None:
+    intersphinx_mapping = {
+        'dateutil': ("https://dateutil.readthedocs.io/en/latest/", None),
+        'matplotlib': ('https://matplotlib.org/', None),
+        'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+        'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
+        'py': ('https://pylib.readthedocs.io/en/latest/', None),
+        'python': ('https://docs.python.org/3/', None),
+        'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
+        'statsmodels': ('http://www.statsmodels.org/devel/', None),
+    }
 
 # extlinks alias
 extlinks = {'issue': ('https://github.com/pandas-dev/pandas/issues/%s',
                       'GH'),
             'wiki': ('https://github.com/pandas-dev/pandas/wiki/%s',
                      'wiki ')}
-
-
-# ignore all deprecation warnings from Panel during doc build
-# (to avoid the need to add :okwarning: in many places)
-warnings.filterwarnings("ignore", message="\nPanel is deprecated",
-                        category=FutureWarning)
 
 
 ipython_warning_is_error = False
@@ -403,62 +424,6 @@ ipython_exec_lines = [
     'pd.options.display.encoding="utf8"'
 ]
 
-
-def sphinxdocstring_str(self, indent=0, func_role="obj"):
-    # Pandas displays Attributes section in style like Methods section
-
-    # Function is copy of `SphinxDocString.__str__`
-    ns = {
-        'signature': self._str_signature(),
-        'index': self._str_index(),
-        'summary': self._str_summary(),
-        'extended_summary': self._str_extended_summary(),
-        'parameters': self._str_param_list('Parameters'),
-        'returns': self._str_returns('Returns'),
-        'yields': self._str_returns('Yields'),
-        'other_parameters': self._str_param_list('Other Parameters'),
-        'raises': self._str_param_list('Raises'),
-        'warns': self._str_param_list('Warns'),
-        'warnings': self._str_warnings(),
-        'see_also': self._str_see_also(func_role),
-        'notes': self._str_section('Notes'),
-        'references': self._str_references(),
-        'examples': self._str_examples(),
-        # Replaced `self._str_param_list('Attributes', fake_autosummary=True)`
-        # with `self._str_member_list('Attributes')`
-        'attributes': self._str_member_list('Attributes'),
-        'methods': self._str_member_list('Methods'),
-    }
-    ns = {k: '\n'.join(v) for k, v in ns.items()}
-
-    rendered = self.template.render(**ns)
-    return '\n'.join(self._str_indent(rendered.split('\n'), indent))
-
-
-SphinxDocString.__str__ = sphinxdocstring_str
-
-
-# Fix "WARNING: Inline strong start-string without end-string."
-# PR #155 "Escape the * in *args and **kwargs" from numpydoc
-# Can be removed after PR merges in v0.9.0
-def decorate_process_param(func):
-    def _escape_args_and_kwargs(name):
-        if name[:2] == '**':
-            return r'\*\*' + name[2:]
-        elif name[:1] == '*':
-            return r'\*' + name[1:]
-        else:
-            return name
-
-    def func_wrapper(self, param, desc, fake_autosummary):
-        param = _escape_args_and_kwargs(param.strip())
-        return func(self, param, desc, fake_autosummary)
-
-    return func_wrapper
-
-
-func = SphinxDocString._process_param
-SphinxDocString._process_param = decorate_process_param(func)
 
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
@@ -712,6 +677,10 @@ suppress_warnings = [
     # suppress this warning.
     'app.add_directive'
 ]
+if pattern:
+    # When building a single document we don't want to warn because references
+    # to other documents are unknown, as it's expected
+    suppress_warnings.append('ref.ref')
 
 
 def rstjinja(app, docname, source):

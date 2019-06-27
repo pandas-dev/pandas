@@ -2,7 +2,8 @@
 Module for applying conditional formatting to
 DataFrames and Series.
 """
-from collections import MutableMapping, defaultdict
+
+from collections import defaultdict
 from contextlib import contextmanager
 import copy
 from functools import partial
@@ -11,27 +12,23 @@ from uuid import uuid1
 
 import numpy as np
 
-from pandas.compat import range
+from pandas._config import get_option
+
+from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_float, is_string_like
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas as pd
-from pandas.api.types import is_list_like
+from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.generic import _shared_docs
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 
-try:
-    from jinja2 import (
-        PackageLoader, Environment, ChoiceLoader, FileSystemLoader
-    )
-except ImportError:
-    raise ImportError("pandas.Styler requires jinja2. "
-                      "Please install with `conda install Jinja2`\n"
-                      "or `pip install Jinja2`")
+jinja2 = import_optional_dependency(
+    "jinja2", extra="DataFrame.style requires jinja2."
+)
 
 
 try:
@@ -51,7 +48,7 @@ def _mpl(func):
         raise ImportError(no_mpl_message.format(func.__name__))
 
 
-class Styler(object):
+class Styler:
     """
     Helps style a DataFrame or Series according to the data with HTML and CSS.
 
@@ -74,13 +71,13 @@ class Styler(object):
 
     Attributes
     ----------
-    env : Jinja2 Environment
+    env : Jinja2 jinja2.Environment
     template : Jinja2 Template
     loader : Jinja2 Loader
 
     See Also
     --------
-    pandas.DataFrame.style
+    DataFrame.style
 
     Notes
     -----
@@ -111,8 +108,8 @@ class Styler(object):
     * Blank cells include ``blank``
     * Data cells include ``data``
     """
-    loader = PackageLoader("pandas", "io/formats/templates")
-    env = Environment(
+    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    env = jinja2.Environment(
         loader=loader,
         trim_blocks=True,
     )
@@ -401,7 +398,7 @@ class Styler(object):
             row_locs = self.data.index.get_indexer_for(sub_df.index)
             col_locs = self.data.columns.get_indexer_for(sub_df.columns)
 
-        if isinstance(formatter, MutableMapping):
+        if is_dict_like(formatter):
             for col, col_formatter in formatter.items():
                 # formatter must be callable, so '{}' are converted to lambdas
                 col_formatter = _maybe_wrap_formatter(col_formatter)
@@ -423,16 +420,18 @@ class Styler(object):
 
         Parameters
         ----------
-        `**kwargs` : Any additional keyword arguments are passed through
-        to ``self.template.render``. This is useful when you need to provide
-        additional variables for a custom template.
+        **kwargs
+            Any additional keyword arguments are passed
+            through to ``self.template.render``.
+            This is useful when you need to provide
+            additional variables for a custom template.
 
             .. versionadded:: 0.20
 
         Returns
         -------
         rendered : str
-            the rendered HTML
+            The rendered HTML.
 
         Notes
         -----
@@ -573,10 +572,10 @@ class Styler(object):
             on ``axis``), and return an object with the same shape.
             Must return a DataFrame with identical index and
             column labels when ``axis=None``
-        axis : int, str or None
-            apply to each column (``axis=0`` or ``'index'``)
-            or to each row (``axis=1`` or ``'columns'``) or
-            to the entire DataFrame at once with ``axis=None``
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
+            with ``axis=None``.
         subset : IndexSlice
             a valid indexer to limit ``data`` to *before* applying the
             function. Consider using a pandas.IndexSlice
@@ -891,10 +890,12 @@ class Styler(object):
             matplotlib colormap
         low, high : float
             compress the range by these values.
-        axis : int or str
-            1 or 'columns' for columnwise, 0 or 'index' for rowwise
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
+            with ``axis=None``.
         subset : IndexSlice
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for ``data`` to limit the style application to.
         text_color_threshold : float or int
             luminance threshold for determining text color. Facilitates text
             visibility across varying background colors. From 0 to 1.
@@ -1078,10 +1079,10 @@ class Styler(object):
         ----------
         subset : IndexSlice, optional
             A valid slice for `data` to limit the style application to.
-        axis : int, str or None, default 0
-            Apply to each column (`axis=0` or `'index'`)
-            or to each row (`axis=1` or `'columns'`) or
-            to the entire DataFrame at once with `axis=None`.
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
+            with ``axis=None``.
         color : str or 2-tuple/list
             If a str is passed, the color is the same for both
             negative and positive numbers. If 2-tuple/list is used, the
@@ -1146,11 +1147,12 @@ class Styler(object):
         Parameters
         ----------
         subset : IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
-        axis : int, str, or None; default 0
-            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
-            or ``None`` for tablewise
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
+            with ``axis=None``.
 
         Returns
         -------
@@ -1166,11 +1168,12 @@ class Styler(object):
         Parameters
         ----------
         subset : IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
-        axis : int, str, or None; default 0
-            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
-            or ``None`` for tablewise
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
+            with ``axis=None``.
 
         Returns
         -------
@@ -1222,15 +1225,15 @@ class Styler(object):
         Returns
         -------
         MyStyler : subclass of Styler
-            has the correct ``env`` and ``template`` class attributes set.
+            Has the correct ``env`` and ``template`` class attributes set.
         """
-        loader = ChoiceLoader([
-            FileSystemLoader(searchpath),
+        loader = jinja2.ChoiceLoader([
+            jinja2.FileSystemLoader(searchpath),
             cls.loader,
         ])
 
         class MyStyler(cls):
-            env = Environment(loader=loader)
+            env = jinja2.Environment(loader=loader)
             template = env.get_template(name)
 
         return MyStyler
@@ -1321,7 +1324,7 @@ def _get_level_lengths(index, hidden_elements=None):
 
     Result is a dictionary of (level, inital_position): span
     """
-    sentinel = com.sentinel_factory()
+    sentinel = object()
     levels = index.format(sparsify=sentinel, adjoin=False, names=False)
 
     if hidden_elements is None:

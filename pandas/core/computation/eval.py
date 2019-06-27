@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-"""Top level ``eval`` module.
+"""
+Top level ``eval`` module.
 """
 
 import tokenize
 import warnings
 
-from pandas.compat import string_types
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import _engines
@@ -16,7 +16,8 @@ from pandas.io.formats.printing import pprint_thing
 
 
 def _check_engine(engine):
-    """Make sure a valid engine is passed.
+    """
+    Make sure a valid engine is passed.
 
     Parameters
     ----------
@@ -32,7 +33,6 @@ def _check_engine(engine):
     Returns
     -------
     string engine
-
     """
     from pandas.core.computation.check import _NUMEXPR_INSTALLED
 
@@ -61,7 +61,8 @@ def _check_engine(engine):
 
 
 def _check_parser(parser):
-    """Make sure a valid parser is passed.
+    """
+    Make sure a valid parser is passed.
 
     Parameters
     ----------
@@ -89,7 +90,8 @@ def _check_resolvers(resolvers):
 
 
 def _check_expression(expr):
-    """Make sure an expression is not an empty string
+    """
+    Make sure an expression is not an empty string
 
     Parameters
     ----------
@@ -106,7 +108,8 @@ def _check_expression(expr):
 
 
 def _convert_expression(expr):
-    """Convert an object to an expression.
+    """
+    Convert an object to an expression.
 
     Thus function converts an object to an expression (a unicode string) and
     checks to make sure it isn't empty after conversion. This is used to
@@ -156,7 +159,8 @@ def _check_for_locals(expr, stack_level, parser):
 def eval(expr, parser='pandas', engine=None, truediv=True,
          local_dict=None, global_dict=None, resolvers=(), level=0,
          target=None, inplace=False):
-    """Evaluate a Python expression as a string using various backends.
+    """
+    Evaluate a Python expression as a string using various backends.
 
     The following arithmetic operations are supported: ``+``, ``-``, ``*``,
     ``/``, ``**``, ``%``, ``//`` (python engine only) along with the following
@@ -205,7 +209,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         A list of objects implementing the ``__getitem__`` special method that
         you can use to inject an additional collection of namespaces to use for
         variable lookup. For example, this is used in the
-        :meth:`~pandas.DataFrame.query` method to inject the
+        :meth:`~DataFrame.query` method to inject the
         ``DataFrame.index`` and ``DataFrame.columns``
         variables that refer to their respective :class:`~pandas.DataFrame`
         instance attributes.
@@ -248,8 +252,8 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
     See Also
     --------
-    pandas.DataFrame.query
-    pandas.DataFrame.eval
+    DataFrame.query
+    DataFrame.eval
 
     Notes
     -----
@@ -263,7 +267,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
     inplace = validate_bool_kwarg(inplace, "inplace")
 
-    if isinstance(expr, string_types):
+    if isinstance(expr, str):
         _check_expression(expr)
         exprs = [e.strip() for e in expr.splitlines() if e.strip() != '']
     else:

@@ -1,15 +1,14 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime
+import re
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import range
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
+from pandas.api.types import pandas_dtype
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
 
@@ -156,9 +155,18 @@ class TestFloat64Index(Numeric):
     def test_constructor_invalid(self):
 
         # invalid
-        pytest.raises(TypeError, Float64Index, 0.)
-        pytest.raises(TypeError, Float64Index, ['a', 'b', 0.])
-        pytest.raises(TypeError, Float64Index, [Timestamp('20130101')])
+        msg = (r"Float64Index\(\.\.\.\) must be called with a collection of"
+               r" some kind, 0\.0 was passed")
+        with pytest.raises(TypeError, match=msg):
+            Float64Index(0.)
+        msg = ("String dtype not supported, you may need to explicitly cast to"
+               " a numeric type")
+        with pytest.raises(TypeError, match=msg):
+            Float64Index(['a', 'b', 0.])
+        msg = (r"float\(\) argument must be a string or a number, not"
+               " 'Timestamp'")
+        with pytest.raises(TypeError, match=msg):
+            Float64Index([Timestamp('20130101')])
 
     def test_constructor_coerce(self):
 
@@ -216,12 +224,17 @@ class TestFloat64Index(Numeric):
 
         # invalid
         for dtype in ['M8[ns]', 'm8[ns]']:
-            pytest.raises(TypeError, lambda: i.astype(dtype))
+            msg = ("Cannot convert Float64Index to dtype {}; integer values"
+                   " are required for conversion").format(pandas_dtype(dtype))
+            with pytest.raises(TypeError, match=re.escape(msg)):
+                i.astype(dtype)
 
         # GH 13149
         for dtype in ['int16', 'int32', 'int64']:
             i = Float64Index([0, 1.1, np.NAN])
-            pytest.raises(ValueError, lambda: i.astype(dtype))
+            msg = "Cannot convert NA to integer"
+            with pytest.raises(ValueError, match=msg):
+                i.astype(dtype)
 
     def test_type_coercion_fail(self, any_int_dtype):
         # see gh-15832
@@ -275,12 +288,16 @@ class TestFloat64Index(Numeric):
             assert idx.get_loc(1.1, method) == loc
             assert idx.get_loc(1.1, method, tolerance=0.9) == loc
 
-        pytest.raises(KeyError, idx.get_loc, 'foo')
-        pytest.raises(KeyError, idx.get_loc, 1.5)
-        pytest.raises(KeyError, idx.get_loc, 1.5, method='pad',
-                      tolerance=0.1)
-        pytest.raises(KeyError, idx.get_loc, True)
-        pytest.raises(KeyError, idx.get_loc, False)
+        with pytest.raises(KeyError, match="^'foo'$"):
+            idx.get_loc('foo')
+        with pytest.raises(KeyError, match=r"^1\.5$"):
+            idx.get_loc(1.5)
+        with pytest.raises(KeyError, match=r"^1\.5$"):
+            idx.get_loc(1.5, method='pad', tolerance=0.1)
+        with pytest.raises(KeyError, match="^True$"):
+            idx.get_loc(True)
+        with pytest.raises(KeyError, match="^False$"):
+            idx.get_loc(False)
 
         with pytest.raises(ValueError, match='must be numeric'):
             idx.get_loc(1.4, method='nearest', tolerance='foo')
@@ -310,15 +327,20 @@ class TestFloat64Index(Numeric):
         # not representable by slice
         idx = Float64Index([np.nan, 1, np.nan, np.nan])
         assert idx.get_loc(1) == 1
-        pytest.raises(KeyError, idx.slice_locs, np.nan)
+        msg = "'Cannot get left slice bound for non-unique label: nan"
+        with pytest.raises(KeyError, match=msg):
+            idx.slice_locs(np.nan)
 
     def test_get_loc_missing_nan(self):
         # GH 8569
         idx = Float64Index([1, 2])
         assert idx.get_loc(1) == 0
-        pytest.raises(KeyError, idx.get_loc, 3)
-        pytest.raises(KeyError, idx.get_loc, np.nan)
-        pytest.raises(KeyError, idx.get_loc, [np.nan])
+        with pytest.raises(KeyError, match=r"^3\.0$"):
+            idx.get_loc(3)
+        with pytest.raises(KeyError, match="^nan$"):
+            idx.get_loc(np.nan)
+        with pytest.raises(KeyError, match=r"^\[nan\]$"):
+            idx.get_loc([np.nan])
 
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
@@ -499,13 +521,17 @@ class NumericInt(Numeric):
         tm.assert_index_equal(result, expected)
 
     def test_cant_or_shouldnt_cast(self):
+        msg = ("String dtype not supported, you may need to explicitly cast to"
+               " a numeric type")
         # can't
         data = ['foo', 'bar', 'baz']
-        pytest.raises(TypeError, self._holder, data)
+        with pytest.raises(TypeError, match=msg):
+            self._holder(data)
 
         # shouldn't
         data = ['0', '1', '2']
-        pytest.raises(TypeError, self._holder, data)
+        with pytest.raises(TypeError, match=msg):
+            self._holder(data)
 
     def test_view_index(self):
         self.index.view(Index)
@@ -576,7 +602,10 @@ class TestInt64Index(NumericInt):
         tm.assert_index_equal(index, expected)
 
         # scalar raise Exception
-        pytest.raises(TypeError, Int64Index, 5)
+        msg = (r"Int64Index\(\.\.\.\) must be called with a collection of some"
+               " kind, 5 was passed")
+        with pytest.raises(TypeError, match=msg):
+            Int64Index(5)
 
         # copy
         arr = self.index.values
@@ -1089,3 +1118,29 @@ class TestUInt64Index(NumericInt):
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
+
+
+@pytest.mark.parametrize("dtype", ['int64', 'uint64'])
+def test_int_float_union_dtype(dtype):
+    # https://github.com/pandas-dev/pandas/issues/26778
+    # [u]int | float -> float
+    index = pd.Index([0, 2, 3], dtype=dtype)
+    other = pd.Float64Index([0.5, 1.5])
+    expected = pd.Float64Index([0.0, 0.5, 1.5, 2.0, 3.0])
+    result = index.union(other)
+    tm.assert_index_equal(result, expected)
+
+    result = other.union(index)
+    tm.assert_index_equal(result, expected)
+
+
+def test_range_float_union_dtype():
+    # https://github.com/pandas-dev/pandas/issues/26778
+    index = pd.RangeIndex(start=0, stop=3)
+    other = pd.Float64Index([0.5, 1.5])
+    result = index.union(other)
+    expected = pd.Float64Index([0.0, 0.5, 1, 1.5, 2.0])
+    tm.assert_index_equal(result, expected)
+
+    result = other.union(index)
+    tm.assert_index_equal(result, expected)

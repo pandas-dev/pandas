@@ -1,8 +1,8 @@
-import pytest
 import numpy as np
-from pandas import SparseDataFrame, DataFrame
-from pandas.util import testing as tm
+import pytest
 
+from pandas import DataFrame, SparseDataFrame
+from pandas.util import testing as tm
 
 pytestmark = pytest.mark.skip("Wrong SparseBlock initialization (GH 17386)")
 

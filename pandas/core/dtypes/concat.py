@@ -9,13 +9,10 @@ from pandas._libs import tslib, tslibs
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, is_bool_dtype, is_categorical_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype, is_dtype_equal,
-    is_extension_array_dtype, is_interval_dtype, is_object_dtype,
-    is_period_dtype, is_sparse, is_timedelta64_dtype)
+    is_extension_array_dtype, is_object_dtype, is_sparse, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex, ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame,
-    ABCTimedeltaIndex)
-
-from pandas import compat
+    ABCDatetimeArray, ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex,
+    ABCRangeIndex, ABCSparseDataFrame, ABCTimedeltaIndex)
 
 
 def get_dtype_kinds(l):
@@ -51,9 +48,7 @@ def get_dtype_kinds(l):
             typ = 'object'
         elif is_bool_dtype(dtype):
             typ = 'bool'
-        elif is_period_dtype(dtype):
-            typ = str(arr.dtype)
-        elif is_interval_dtype(dtype):
+        elif is_extension_array_dtype(dtype):
             typ = str(arr.dtype)
         else:
             typ = dtype.kind
@@ -66,22 +61,19 @@ def _get_series_result_type(result, objs=None):
     return appropriate class of Series concat
     input is either dict or array-like
     """
+    from pandas import SparseSeries, SparseDataFrame, DataFrame
+
     # concat Series with axis 1
     if isinstance(result, dict):
         # concat Series with axis 1
-        if all(is_sparse(c) for c in compat.itervalues(result)):
-            from pandas.core.sparse.api import SparseDataFrame
+        if all(isinstance(c, (SparseSeries, SparseDataFrame))
+               for c in result.values()):
             return SparseDataFrame
         else:
-            from pandas.core.frame import DataFrame
             return DataFrame
 
     # otherwise it is a SingleBlockManager (axis = 0)
-    if result._block.is_sparse:
-        from pandas.core.sparse.api import SparseSeries
-        return SparseSeries
-    else:
-        return objs[0]._constructor
+    return objs[0]._constructor
 
 
 def _get_frame_result_type(result, objs):
@@ -92,8 +84,7 @@ def _get_frame_result_type(result, objs):
     """
 
     if (result.blocks and (
-            all(is_sparse(b) for b in result.blocks) or
-            all(isinstance(obj, ABCSparseDataFrame) for obj in objs))):
+            any(isinstance(obj, ABCSparseDataFrame) for obj in objs))):
         from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:
@@ -126,8 +117,6 @@ def _concat_compat(to_concat, axis=0):
         except Exception:
             return True
 
-    nonempty = [x for x in to_concat if is_nonempty(x)]
-
     # If all arrays are empty, there's nothing to convert, just short-cut to
     # the concatenation, #3121.
     #
@@ -136,12 +125,11 @@ def _concat_compat(to_concat, axis=0):
     # np.concatenate which has them both implemented is compiled.
 
     typs = get_dtype_kinds(to_concat)
-
     _contains_datetime = any(typ.startswith('datetime') for typ in typs)
     _contains_period = any(typ.startswith('period') for typ in typs)
 
     if 'category' in typs:
-        # this must be priort to _concat_datetime,
+        # this must be prior to _concat_datetime,
         # to support Categorical + datetime-like
         return _concat_categorical(to_concat, axis=axis)
 
@@ -152,11 +140,11 @@ def _concat_compat(to_concat, axis=0):
     elif 'sparse' in typs:
         return _concat_sparse(to_concat, axis=axis, typs=typs)
 
-    extensions = [is_extension_array_dtype(x) for x in to_concat]
-    if any(extensions) and axis == 1:
+    all_empty = all(not is_nonempty(x) for x in to_concat)
+    if any(is_extension_array_dtype(x) for x in to_concat) and axis == 1:
         to_concat = [np.atleast_2d(x.astype('object')) for x in to_concat]
 
-    if not nonempty:
+    if all_empty:
         # we have all empties, but may need to coerce the result dtype to
         # object if we have non-numeric type operands (numpy would otherwise
         # cast this to float)
@@ -253,7 +241,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     -----
 
     To learn more about categories, see `link
-    <http://pandas.pydata.org/pandas-docs/stable/categorical.html#unioning>`__
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html#unioning>`__
 
     Examples
     --------
@@ -426,8 +414,7 @@ def _concat_datetime(to_concat, axis=0, typs=None):
     if any(typ.startswith('datetime') for typ in typs):
 
         if 'datetime' in typs:
-            to_concat = [np.array(x, copy=False).view(np.int64)
-                         for x in to_concat]
+            to_concat = [x.astype(np.int64, copy=False) for x in to_concat]
             return _concatenate_2d(to_concat, axis=axis).view(_NS_DTYPE)
         else:
             # when to_concat has different tz, len(typs) > 1.
@@ -451,7 +438,7 @@ def _convert_datetimelike_to_object(x):
     # if dtype is of datetimetz or timezone
     if x.dtype.kind == _NS_DTYPE.kind:
         if getattr(x, 'tz', None) is not None:
-            x = x.astype(object).values
+            x = np.asarray(x.astype(object))
         else:
             shape = x.shape
             x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(),
@@ -472,7 +459,15 @@ def _concat_datetimetz(to_concat, name=None):
     all inputs must be DatetimeIndex
     it is used in DatetimeIndex.append also
     """
-    return to_concat[0]._concat_same_dtype(to_concat, name=name)
+    # Right now, internals will pass a List[DatetimeArray] here
+    # for reductions like quantile. I would like to disentangle
+    # all this before we get here.
+    sample = to_concat[0]
+
+    if isinstance(sample, ABCIndexClass):
+        return sample._concat_same_dtype(to_concat, name=name)
+    elif isinstance(sample, ABCDatetimeArray):
+        return sample._concat_same_type(to_concat)
 
 
 def _concat_index_same_dtype(indexes, klass=None):
@@ -543,36 +538,37 @@ def _concat_rangeindex_same_dtype(indexes):
     """
     from pandas import Int64Index, RangeIndex
 
-    start = step = next = None
+    start = step = next_ = None
 
     # Filter the empty indexes
     non_empty_indexes = [obj for obj in indexes if len(obj)]
 
     for obj in non_empty_indexes:
+        rng = obj._range  # type: range
 
         if start is None:
             # This is set by the first non-empty index
-            start = obj._start
-            if step is None and len(obj) > 1:
-                step = obj._step
+            start = rng.start
+            if step is None and len(rng) > 1:
+                step = rng.step
         elif step is None:
             # First non-empty index had only one element
-            if obj._start == start:
+            if rng.start == start:
                 return _concat_index_same_dtype(indexes, klass=Int64Index)
-            step = obj._start - start
+            step = rng.start - start
 
-        non_consecutive = ((step != obj._step and len(obj) > 1) or
-                           (next is not None and obj._start != next))
+        non_consecutive = ((step != rng.step and len(rng) > 1) or
+                           (next_ is not None and rng.start != next_))
         if non_consecutive:
             return _concat_index_same_dtype(indexes, klass=Int64Index)
 
         if step is not None:
-            next = obj[-1] + step
+            next_ = rng[-1] + step
 
     if non_empty_indexes:
         # Get the stop value from "next" or alternatively
         # from the last non-empty index
-        stop = non_empty_indexes[-1]._stop if next is None else next
+        stop = non_empty_indexes[-1].stop if next_ is None else next_
         return RangeIndex(start, stop, step)
 
     # Here all "indexes" had 0 length, i.e. were empty.

@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
 from datetime import timedelta
 import re
+from typing import Dict
 
 import numpy as np
 from pytz import AmbiguousTimeError
@@ -8,18 +8,13 @@ from pytz import AmbiguousTimeError
 from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import Timedelta, Timestamp
 from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, int_to_weekday
-from pandas._libs.tslibs.conversion import tz_convert
 from pandas._libs.tslibs.fields import build_field_sarray
 import pandas._libs.tslibs.frequencies as libfreqs
-from pandas._libs.tslibs.frequencies import (  # noqa, semi-public API
-    FreqGroup, get_base_alias, get_freq, get_freq_code, get_to_timestamp_base,
-    is_subperiod, is_superperiod)
-from pandas._libs.tslibs.offsets import _offset_to_period_map  # noqa:E402
+from pandas._libs.tslibs.offsets import _offset_to_period_map
 import pandas._libs.tslibs.resolution as libresolution
 from pandas._libs.tslibs.resolution import Resolution
 from pandas._libs.tslibs.timezones import UTC
-import pandas.compat as compat
-from pandas.compat import zip
+from pandas._libs.tslibs.tzconversion import tz_convert
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -28,19 +23,8 @@ from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.algorithms import unique
 
-from pandas.tseries.offsets import (  # noqa
-    BDay, BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd, BYearBegin,
-    BYearEnd, CDay, DateOffset, Day, Hour, Micro, Milli, Minute, MonthBegin,
-    MonthEnd, Nano, QuarterBegin, QuarterEnd, Second, Week, YearBegin, YearEnd,
-    prefix_mapping)
-
-RESO_NS = 0
-RESO_US = 1
-RESO_MS = 2
-RESO_SEC = 3
-RESO_MIN = 4
-RESO_HR = 5
-RESO_DAY = 6
+from pandas.tseries.offsets import (
+    DateOffset, Day, Hour, Micro, Milli, Minute, Nano, Second, prefix_mapping)
 
 _ONE_MICRO = 1000
 _ONE_MILLI = (_ONE_MICRO * 1000)
@@ -52,13 +36,8 @@ _ONE_DAY = (24 * _ONE_HOUR)
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
 
-try:
-    cday = CDay()
-except NotImplementedError:
-    cday = None
-
 #: cache of previously seen offsets
-_offset_map = {}
+_offset_map = {}  # type: Dict[str, DateOffset]
 
 
 def get_period_alias(offset_str):
@@ -86,8 +65,8 @@ def to_offset(freq):
 
     Returns
     -------
-    delta : DateOffset
-        None if freq is None
+    DateOffset
+        None if freq is None.
 
     Raises
     ------
@@ -96,7 +75,7 @@ def to_offset(freq):
 
     See Also
     --------
-    pandas.DateOffset
+    DateOffset
 
     Examples
     --------
@@ -127,7 +106,7 @@ def to_offset(freq):
     if isinstance(freq, tuple):
         name = freq[0]
         stride = freq[1]
-        if isinstance(stride, compat.string_types):
+        if isinstance(stride, str):
             name, stride = stride, name
         name, _ = libfreqs._base_and_stride(name)
         delta = get_offset(name) * stride
@@ -216,8 +195,6 @@ def get_offset(name):
     return _offset_map[name]
 
 
-getOffset = get_offset
-
 # ---------------------------------------------------------------------
 # Period codes
 
@@ -235,7 +212,7 @@ def infer_freq(index, warn=True):
 
     Returns
     -------
-    freq : string or None
+    str or None
         None if no discernible frequency
         TypeError if the index is not datetime-like
         ValueError if there are less than three values.
@@ -275,7 +252,7 @@ def infer_freq(index, warn=True):
     return inferer.get_freq()
 
 
-class _FrequencyInferer(object):
+class _FrequencyInferer:
     """
     Not sure if I can avoid the state machine here
     """
@@ -314,14 +291,14 @@ class _FrequencyInferer(object):
     def is_unique_asi8(self):
         return len(self.deltas_asi8) == 1
 
-    def get_freq(self):  # noqa:F811
+    def get_freq(self):
         """
         Find the appropriate frequency string to describe the inferred
         frequency of self.values
 
         Returns
         -------
-        freqstr : str or None
+        str or None
         """
         if not self.is_monotonic or not self.index._is_unique:
             return None

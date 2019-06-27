@@ -1,7 +1,5 @@
 import subprocess
 
-from pandas.compat import PY2, text_type
-
 from .exceptions import PyperclipException
 
 EXCEPT_MSG = """
@@ -22,26 +20,6 @@ def init_osx_clipboard():
         return stdout.decode('utf-8')
 
     return copy_osx, paste_osx
-
-
-def init_gtk_clipboard():
-    import gtk
-
-    def copy_gtk(text):
-        global cb
-        cb = gtk.Clipboard()
-        cb.set_text(text)
-        cb.store()
-
-    def paste_gtk():
-        clipboardContents = gtk.Clipboard().wait_for_text()
-        # for python 2, returns None if the clipboard is blank.
-        if clipboardContents is None:
-            return ''
-        else:
-            return clipboardContents
-
-    return copy_gtk, paste_gtk
 
 
 def init_qt_clipboard():
@@ -66,7 +44,7 @@ def init_qt_clipboard():
 
     def paste_qt():
         cb = app.clipboard()
-        return text_type(cb.text())
+        return str(cb.text())
 
     return copy_qt, paste_qt
 
@@ -130,16 +108,12 @@ def init_klipper_clipboard():
 
 
 def init_no_clipboard():
-    class ClipboardUnavailable(object):
+    class ClipboardUnavailable:
 
         def __call__(self, *args, **kwargs):
             raise PyperclipException(EXCEPT_MSG)
 
-        if PY2:
-            def __nonzero__(self):
-                return False
-        else:
-            def __bool__(self):
-                return False
+        def __bool__(self):
+            return False
 
     return ClipboardUnavailable(), ClipboardUnavailable()

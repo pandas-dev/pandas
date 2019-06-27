@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
 """
-
+from io import BytesIO, StringIO
 import os
-import sys
 
 import numpy as np
 from numpy import nan
@@ -14,8 +11,6 @@ import pytest
 
 import pandas._libs.parsers as parser
 from pandas._libs.parsers import TextReader
-import pandas.compat as compat
-from pandas.compat import BytesIO, StringIO, map
 
 from pandas import DataFrame
 import pandas.util.testing as tm
@@ -24,7 +19,7 @@ from pandas.util.testing import assert_frame_equal
 from pandas.io.parsers import TextFileReader, read_csv
 
 
-class TestTextReader(object):
+class TestTextReader:
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
@@ -135,8 +130,7 @@ class TestTextReader(object):
         expected = DataFrame([123456, 12500])
         tm.assert_frame_equal(result, expected)
 
-    @tm.capture_stderr
-    def test_skip_bad_lines(self):
+    def test_skip_bad_lines(self, capsys):
         # too many lines, see #2430 for why
         data = ('a:b:c\n'
                 'd:e:f\n'
@@ -147,7 +141,10 @@ class TestTextReader(object):
 
         reader = TextReader(StringIO(data), delimiter=':',
                             header=None)
-        pytest.raises(parser.ParserError, reader.read)
+        msg = (r"Error tokenizing data\. C error: Expected 3 fields in"
+               " line 4, saw 4")
+        with pytest.raises(parser.ParserError, match=msg):
+            reader.read()
 
         reader = TextReader(StringIO(data), delimiter=':',
                             header=None,
@@ -164,10 +161,10 @@ class TestTextReader(object):
                             error_bad_lines=False,
                             warn_bad_lines=True)
         reader.read()
-        val = sys.stderr.getvalue()
+        captured = capsys.readouterr()
 
-        assert 'Skipping line 4' in val
-        assert 'Skipping line 6' in val
+        assert 'Skipping line 4' in captured.err
+        assert 'Skipping line 6' in captured.err
 
     def test_header_not_enough_lines(self):
         data = ('skip this\n'
@@ -347,6 +344,6 @@ a,b,c
 
 
 def assert_array_dicts_equal(left, right):
-    for k, v in compat.iteritems(left):
-        assert tm.assert_numpy_array_equal(np.asarray(v),
-                                           np.asarray(right[k]))
+    for k, v in left.items():
+        tm.assert_numpy_array_equal(np.asarray(v),
+                                    np.asarray(right[k]))

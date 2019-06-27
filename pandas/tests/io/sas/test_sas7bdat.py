@@ -1,17 +1,19 @@
-import pandas as pd
-from pandas.compat import PY2
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.errors import EmptyDataError
-import os
 import io
+import os
+
 import numpy as np
 import pytest
+
+from pandas.errors import EmptyDataError
+import pandas.util._test_decorators as td
+
+import pandas as pd
+import pandas.util.testing as tm
 
 
 # https://github.com/cython/cython/issues/1720
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
-class TestSAS7BDAT(object):
+class TestSAS7BDAT:
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
@@ -31,11 +33,6 @@ class TestSAS7BDAT(object):
                 col = df.iloc[:, k]
                 if col.dtype == np.int64:
                     df.iloc[:, k] = df.iloc[:, k].astype(np.float64)
-                elif col.dtype == np.dtype('O'):
-                    if PY2:
-                        f = lambda x: (x.decode('utf-8') if
-                                       isinstance(x, str) else x)
-                        df.iloc[:, k] = df.iloc[:, k].apply(f)
             self.data.append(df)
 
     def test_from_file(self):

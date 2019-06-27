@@ -1,16 +1,17 @@
-# -*- coding: utf-8 -*-
 """
 Testing that we work in the downstream packages
 """
+import importlib
 import subprocess
 import sys
 
-import pytest
 import numpy as np  # noqa
-from pandas import DataFrame
+import pytest
+
 from pandas.compat import PY36
+
+from pandas import DataFrame
 from pandas.util import testing as tm
-import importlib
 
 
 def import_module(name):
@@ -114,6 +115,7 @@ def test_pandas_datareader():
 @pytest.mark.filterwarnings("ignore:The 'warn':DeprecationWarning")
 @pytest.mark.filterwarnings("ignore:pandas.util:DeprecationWarning")
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
+@pytest.mark.skip(reason="gh-25778: geopandas stack issue")
 def test_geopandas():
 
     geopandas = import_module('geopandas')  # noqa
@@ -129,3 +131,22 @@ def test_pyarrow(df):
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.xfail(reason="pandas-wheels-50", strict=False)
+def test_missing_required_dependency():
+    # GH 23868
+    # To ensure proper isolation, we pass these flags
+    # -S : disable site-packages
+    # -s : disable user site-packages
+    # -E : disable PYTHON* env vars, especially PYTHONPATH
+    # And, that's apparently not enough, so we give up.
+    # https://github.com/MacPython/pandas-wheels/pull/50
+    call = ['python', '-sSE', '-c', 'import pandas']
+
+    with pytest.raises(subprocess.CalledProcessError) as exc:
+        subprocess.check_output(call, stderr=subprocess.STDOUT)
+
+    output = exc.value.stdout.decode()
+    for name in ['numpy', 'pytz', 'dateutil']:
+        assert name in output

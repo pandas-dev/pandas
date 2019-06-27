@@ -24,7 +24,6 @@ class BaseSetitemTests(BaseExtensionTests):
         assert data[0] == original[1]
         assert data[1] == original[0]
 
-    @pytest.mark.parametrize('as_array', [True, False])
     def test_setitem_sequence_mismatched_length_raises(self, data, as_array):
         ser = pd.Series(data)
         original = ser.copy()
@@ -182,3 +181,8 @@ class BaseSetitemTests(BaseExtensionTests):
         arr = data[:5].copy()
         arr[:5] = data[-5:]
         self.assert_extension_array_equal(arr, data[-5:])
+
+    def test_setitem_scalar_key_sequence_raise(self, data):
+        arr = data[:5].copy()
+        with pytest.raises(ValueError):
+            arr[0] = arr[[0, 1]]

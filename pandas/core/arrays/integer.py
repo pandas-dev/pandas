@@ -1,11 +1,12 @@
 import copy
 import sys
+from typing import Type
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat import range, set_function_name, string_types
+from pandas.compat import set_function_name
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -19,6 +20,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.tools.numeric import to_numeric
 
 
 class _IntegerDtype(ExtensionDtype):
@@ -26,13 +28,19 @@ class _IntegerDtype(ExtensionDtype):
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
     These specific implementations are subclasses of the non-public
-    _IntegerDtype. For example we have Int8Dtype to represnt signed int 8s.
+    _IntegerDtype. For example we have Int8Dtype to represent signed int 8s.
 
     The attributes name & type are set when these subclasses are created.
     """
-    name = None
-    type = None
+    name = None  # type: str
+    base = None
+    type = None  # type: Type
     na_value = np.nan
+
+    def __repr__(self):
+        sign = 'U' if self.is_unsigned_integer else ''
+        return "{sign}Int{size}Dtype()".format(sign=sign,
+                                               size=8 * self.itemsize)
 
     @cache_readonly
     def is_signed_integer(self):
@@ -69,17 +77,6 @@ class _IntegerDtype(ExtensionDtype):
         type
         """
         return IntegerArray
-
-    @classmethod
-    def construct_from_string(cls, string):
-        """
-        Construction from a string, raise a TypeError if not
-        possible
-        """
-        if string == cls.name:
-            return cls()
-        raise TypeError("Cannot construct a '{}' from "
-                        "'{}'".format(cls, string))
 
 
 def integer_array(values, dtype=None, copy=False):
@@ -147,11 +144,12 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             dtype = values.dtype
 
     if dtype is not None:
-        if (isinstance(dtype, string_types) and
+        if (isinstance(dtype, str) and
                 (dtype.startswith("Int") or dtype.startswith("UInt"))):
             # Avoid DeprecationWarning from NumPy about np.dtype("Int64")
             # https://github.com/numpy/numpy/pull/7476
             dtype = dtype.lower()
+
         if not issubclass(type(dtype), _IntegerDtype):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]
@@ -170,14 +168,17 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
 
     values = np.array(values, copy=copy)
     if is_object_dtype(values):
-        inferred_type = lib.infer_dtype(values)
-        if inferred_type is 'mixed' and isna(values).all():
+        inferred_type = lib.infer_dtype(values, skipna=True)
+        if inferred_type == 'empty':
             values = np.empty(len(values))
             values.fill(np.nan)
         elif inferred_type not in ['floating', 'integer',
                                    'mixed-integer', 'mixed-integer-float']:
             raise TypeError("{} cannot be converted to an IntegerDtype".format(
                 values.dtype))
+
+    elif is_bool_dtype(values) and is_integer_dtype(dtype):
+        values = np.array(values, dtype=int, copy=copy)
 
     elif not (is_integer_dtype(values) or is_float_dtype(values)):
         raise TypeError("{} cannot be converted to an IntegerDtype".format(
@@ -217,24 +218,65 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     """
     Array of integer (optional missing) values.
 
+    .. versionadded:: 0.24.0
+
+    .. warning::
+
+       IntegerArray is currently experimental, and its API or internal
+       implementation may change without warning.
+
     We represent an IntegerArray with 2 numpy arrays:
 
     - data: contains a numpy integer array of the appropriate dtype
     - mask: a boolean array holding a mask on the data, True is missing
 
     To construct an IntegerArray from generic array-like input, use
-    ``integer_array`` function instead.
+    :func:`pandas.array` with one of the integer dtypes (see examples).
+
+    See :ref:`integer_na` for more.
 
     Parameters
     ----------
-    values : integer 1D numpy array
-    mask : boolean 1D numpy array
+    values : numpy.ndarray
+        A 1-d integer-dtype array.
+    mask : numpy.ndarray
+        A 1-d boolean-dtype array indicating missing values.
     copy : bool, default False
+        Whether to copy the `values` and `mask`.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
 
     Returns
     -------
     IntegerArray
 
+    Examples
+    --------
+    Create an IntegerArray with :func:`pandas.array`.
+
+    >>> int_array = pd.array([1, None, 3], dtype=pd.Int32Dtype())
+    >>> int_array
+    <IntegerArray>
+    [1, NaN, 3]
+    Length: 3, dtype: Int32
+
+    String aliases for the dtypes are also available. They are capitalized.
+
+    >>> pd.array([1, None, 3], dtype='Int32')
+    <IntegerArray>
+    [1, NaN, 3]
+    Length: 3, dtype: Int32
+
+    >>> pd.array([1, None, 3], dtype='UInt16')
+    <IntegerArray>
+    [1, NaN, 3]
+    Length: 3, dtype: UInt16
     """
 
     @cache_readonly
@@ -260,6 +302,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return integer_array(scalars, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+        scalars = to_numeric(strings, errors="raise")
+        return cls._from_sequence(scalars, dtype, copy)
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -406,8 +453,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return astype_nansafe(data, dtype, copy=None)
 
     @property
-    def _ndarray_values(self):
-        # type: () -> np.ndarray
+    def _ndarray_values(self) -> np.ndarray:
         """Internal pandas method for lossy conversion to a NumPy ndarray.
 
         This method is not part of the pandas interface.
@@ -463,8 +509,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         return Series(array, index=index)
 
-    def _values_for_argsort(self):
-        # type: () -> ndarray
+    def _values_for_argsort(self) -> np.ndarray:
         """Return values for sorting.
 
         Returns
@@ -515,7 +560,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             else:
                 mask = self._mask | mask
 
-            result[mask] = True if op_name == 'ne' else False
+            result[mask] = op_name == 'ne'
             return result
 
         name = '__{name}__'.format(name=op.__name__)
@@ -638,22 +683,90 @@ IntegerArray._add_comparison_ops()
 
 module = sys.modules[__name__]
 
+_dtype_docstring = """
+An ExtensionDtype for {dtype} integer data.
+
+Attributes
+----------
+None
+
+Methods
+-------
+None
+"""
 
 # create the Dtype
-_dtypes = {}
-for dtype in ['int8', 'int16', 'int32', 'int64',
-              'uint8', 'uint16', 'uint32', 'uint64']:
+Int8Dtype = register_extension_dtype(
+    type('Int8Dtype', (_IntegerDtype, ), {
+        'type': np.int8,
+        'name': 'Int8',
+        '__doc__': _dtype_docstring.format(dtype='int8')
+    })
+)
 
-    if dtype.startswith('u'):
-        name = "U{}".format(dtype[1:].capitalize())
-    else:
-        name = dtype.capitalize()
-    classname = "{}Dtype".format(name)
-    attributes_dict = {'type': getattr(np, dtype),
-                       'name': name}
-    dtype_type = register_extension_dtype(
-        type(classname, (_IntegerDtype, ), attributes_dict)
-    )
-    setattr(module, classname, dtype_type)
+Int16Dtype = register_extension_dtype(
+    type('Int16Dtype', (_IntegerDtype, ), {
+        'type': np.int16,
+        'name': 'Int16',
+        '__doc__': _dtype_docstring.format(dtype='int16')
+    })
+)
 
-    _dtypes[dtype] = dtype_type()
+Int32Dtype = register_extension_dtype(
+    type('Int32Dtype', (_IntegerDtype, ), {
+        'type': np.int32,
+        'name': 'Int32',
+        '__doc__': _dtype_docstring.format(dtype='int32')
+    })
+)
+
+Int64Dtype = register_extension_dtype(
+    type('Int64Dtype', (_IntegerDtype, ), {
+        'type': np.int64,
+        'name': 'Int64',
+        '__doc__': _dtype_docstring.format(dtype='int64')
+    })
+)
+
+UInt8Dtype = register_extension_dtype(
+    type('UInt8Dtype', (_IntegerDtype, ), {
+        'type': np.uint8,
+        'name': 'UInt8',
+        '__doc__': _dtype_docstring.format(dtype='uint8')
+    })
+)
+
+UInt16Dtype = register_extension_dtype(
+    type('UInt16Dtype', (_IntegerDtype, ), {
+        'type': np.uint16,
+        'name': 'UInt16',
+        '__doc__': _dtype_docstring.format(dtype='uint16')
+    })
+)
+
+UInt32Dtype = register_extension_dtype(
+    type('UInt32Dtype', (_IntegerDtype, ), {
+        'type': np.uint32,
+        'name': 'UInt32',
+        '__doc__': _dtype_docstring.format(dtype='uint32')
+    })
+)
+
+UInt64Dtype = register_extension_dtype(
+    type('UInt64Dtype', (_IntegerDtype, ), {
+        'type': np.uint64,
+        'name': 'UInt64',
+        '__doc__': _dtype_docstring.format(dtype='uint64')
+    })
+)
+
+_dtypes = {
+    'int8': Int8Dtype(),
+    'int16': Int16Dtype(),
+    'int32': Int32Dtype(),
+    'int64': Int64Dtype(),
+    'uint8': UInt8Dtype(),
+    'uint16': UInt16Dtype(),
+    'uint32': UInt32Dtype(),
+    'uint64': UInt64Dtype(),
+}

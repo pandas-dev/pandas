@@ -1,6 +1,7 @@
-import pytest
 import numpy as np
-from pandas import MultiIndex, DataFrame
+import pytest
+
+from pandas import DataFrame, MultiIndex
 from pandas.util import testing as tm
 
 
@@ -30,18 +31,8 @@ def ts():
 
 
 @pytest.fixture
-def seriesd():
-    return tm.getSeriesData()
-
-
-@pytest.fixture
 def tsd():
     return tm.getTimeSeriesData()
-
-
-@pytest.fixture
-def frame(seriesd):
-    return DataFrame(seriesd)
 
 
 @pytest.fixture

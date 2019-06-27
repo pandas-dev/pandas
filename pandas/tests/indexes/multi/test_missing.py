@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
 from pandas._libs.tslib import iNaT
+
+import pandas as pd
+from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+import pandas.util.testing as tm
 
 
 def test_fillna(idx):
@@ -73,6 +72,21 @@ def test_dropna():
     msg = "invalid how option: xxx"
     with pytest.raises(ValueError, match=msg):
         idx.dropna(how='xxx')
+
+    # GH26408
+    # test if missing values are dropped for multiindex constructed
+    # from codes and values
+    idx = MultiIndex(levels=[[np.nan, None, pd.NaT, "128", 2],
+                             [np.nan, None, pd.NaT, "128", 2]],
+                     codes=[[0, -1, 1, 2, 3, 4],
+                            [0, -1, 3, 3, 3, 4]])
+    expected = MultiIndex.from_arrays([["128", 2], ["128", 2]])
+    tm.assert_index_equal(idx.dropna(), expected)
+    tm.assert_index_equal(idx.dropna(how='any'), expected)
+
+    expected = MultiIndex.from_arrays([[np.nan, np.nan, "128", 2],
+                                       ["128", "128", "128", 2]])
+    tm.assert_index_equal(idx.dropna(how='all'), expected)
 
 
 def test_nulls(idx):

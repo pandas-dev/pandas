@@ -9,7 +9,6 @@ import pytest
 import pytz
 from pytz import timezone
 
-import pandas.compat as compat
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -24,7 +23,7 @@ from pandas.tseries.offsets import (
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-class TestTimestampEquivDateRange(object):
+class TestTimestampEquivDateRange:
     # Older tests in TestTimeSeries constructed their `stamp` objects
     # using `date_range` instead of the `Timestamp` constructor.
     # TestTimestampEquivDateRange checks that these are equivalent in the
@@ -87,6 +86,67 @@ class TestDateRanges(TestData):
             date_range(start='2016-01-01', end=pd.NaT, freq='D')
         with pytest.raises(ValueError, match=msg):
             date_range(start=pd.NaT, end='2016-01-01', freq='D')
+
+    def test_date_range_multiplication_overflow(self):
+        # GH#24255
+        # check that overflows in calculating `addend = periods * stride`
+        #  are caught
+        with tm.assert_produces_warning(None):
+            # we should _not_ be seeing a overflow RuntimeWarning
+            dti = date_range(start='1677-09-22', periods=213503, freq='D')
+
+        assert dti[0] == Timestamp('1677-09-22')
+        assert len(dti) == 213503
+
+        msg = "Cannot generate range with"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            date_range('1969-05-04', periods=200000000, freq='30000D')
+
+    def test_date_range_unsigned_overflow_handling(self):
+        # GH#24255
+        # case where `addend = periods * stride` overflows int64 bounds
+        #  but not uint64 bounds
+        dti = date_range(start='1677-09-22', end='2262-04-11', freq='D')
+
+        dti2 = date_range(start=dti[0], periods=len(dti), freq='D')
+        assert dti2.equals(dti)
+
+        dti3 = date_range(end=dti[-1], periods=len(dti), freq='D')
+        assert dti3.equals(dti)
+
+    def test_date_range_int64_overflow_non_recoverable(self):
+        # GH#24255
+        # case with start later than 1970-01-01, overflow int64 but not uint64
+        msg = "Cannot generate range with"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            date_range(start='1970-02-01', periods=106752 * 24, freq='H')
+
+        # case with end before 1970-01-01, overflow int64 but not uint64
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            date_range(end='1969-11-14', periods=106752 * 24, freq='H')
+
+    def test_date_range_int64_overflow_stride_endpoint_different_signs(self):
+        # cases where stride * periods overflow int64 and stride/endpoint
+        #  have different signs
+        start = Timestamp('2262-02-23')
+        end = Timestamp('1969-11-14')
+
+        expected = date_range(start=start, end=end, freq='-1H')
+        assert expected[0] == start
+        assert expected[-1] == end
+
+        dti = date_range(end=end, periods=len(expected), freq='-1H')
+        tm.assert_index_equal(dti, expected)
+
+        start2 = Timestamp('1970-02-01')
+        end2 = Timestamp('1677-10-22')
+
+        expected2 = date_range(start=start2, end=end2, freq='-1H')
+        assert expected2[0] == start2
+        assert expected2[-1] == end2
+
+        dti2 = date_range(start=start2, periods=len(expected2), freq='-1H')
+        tm.assert_index_equal(dti2, expected2)
 
     def test_date_range_out_of_bounds(self):
         # GH#14187
@@ -274,19 +334,20 @@ class TestDateRanges(TestData):
         with pytest.raises(ValueError, match=msg):
             date_range()
 
-    @pytest.mark.parametrize('f', [compat.long, int])
-    def test_compat_replace(self, f):
+    def test_compat_replace(self):
         # https://github.com/statsmodels/statsmodels/issues/3349
         # replace should take ints/longs for compat
         result = date_range(Timestamp('1960-04-01 00:00:00', freq='QS-JAN'),
-                            periods=f(76), freq='QS-JAN')
+                            periods=76, freq='QS-JAN')
         assert len(result) == 76
 
     def test_catch_infinite_loop(self):
         offset = offsets.DateOffset(minute=5)
         # blow up, don't loop forever
-        pytest.raises(Exception, date_range, datetime(2011, 11, 11),
-                      datetime(2011, 11, 12), freq=offset)
+        msg = "Offset <DateOffset: minute=5> did not increment date"
+        with pytest.raises(ValueError, match=msg):
+            date_range(datetime(2011, 11, 11), datetime(2011, 11, 12),
+                       freq=offset)
 
     @pytest.mark.parametrize('periods', (1, 2))
     def test_wom_len(self, periods):
@@ -537,7 +598,7 @@ class TestDateRanges(TestData):
         tm.assert_index_equal(result, expected)
 
 
-class TestGenRangeGeneration(object):
+class TestGenRangeGeneration:
 
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=BDay()))
@@ -605,7 +666,7 @@ class TestGenRangeGeneration(object):
             pd.date_range(start, end, freq=BDay())
 
 
-class TestBusinessDateRange(object):
+class TestBusinessDateRange:
 
     def test_constructor(self):
         bdate_range(START, END, freq=BDay())
@@ -679,8 +740,21 @@ class TestBusinessDateRange(object):
         expected = pd.date_range(bday_start, bday_end, freq='D')
         tm.assert_index_equal(result, expected)
 
+    def test_bday_near_overflow(self):
+        # GH#24252 avoid doing unnecessary addition that _would_ overflow
+        start = pd.Timestamp.max.floor("D").to_pydatetime()
+        rng = pd.date_range(start, end=None, periods=1, freq='B')
+        expected = pd.DatetimeIndex([start], freq='B')
+        tm.assert_index_equal(rng, expected)
 
-class TestCustomDateRange(object):
+    def test_bday_overflow_error(self):
+        # GH#24252 check that we get OutOfBoundsDatetime and not OverflowError
+        start = pd.Timestamp.max.floor("D").to_pydatetime()
+        with pytest.raises(OutOfBoundsDatetime):
+            pd.date_range(start, periods=2, freq='B')
+
+
+class TestCustomDateRange:
 
     def test_constructor(self):
         bdate_range(START, END, freq=CDay())
