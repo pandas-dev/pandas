@@ -13,6 +13,11 @@ What's New in 0.25.0 (April XX, 2019)
    `Panel` has been fully removed. For N-D labeled data structures, please
    use `xarray <https://xarray.pydata.org/en/stable/>`_
 
+.. warning::
+
+   :func:`read_pickle` and :func:`read_msgpack` are only guaranteed backwards compatible back to
+   pandas version 0.20.3 (:issue:`27082`)
+
 {{ header }}
 
 These are the changes in pandas 0.25.0. See :ref:`release` for a full changelog
