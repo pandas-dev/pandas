@@ -22,7 +22,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDateOffset, ABCDatetimeIndex, ABCPeriodIndex, ABCSeries,
     ABCTimedeltaIndex)
 
-from pandas.core.base import PandasObject, SelectionMixin
+from pandas.core.base import PandasObject, SelectionMixin, DataError
 import pandas.core.common as com
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
@@ -291,7 +291,7 @@ class _Window(PandasObject, SelectionMixin):
             columns = [c for c in columns if c not in exclude]
 
             if not columns:
-                return Series()
+                raise DataError('No numeric types to aggregate')
 
         if not len(final):
             return obj.astype('float64')
@@ -690,8 +690,7 @@ class Window(_Window):
                     exclude.extend(b.columns)
                     continue
                 else:
-                    from pandas import Series
-                    return Series()
+                    raise DataError('No numeric types to aggregate')
 
             if values.size == 0:
                 results.append(values.copy())
@@ -867,8 +866,7 @@ class _Rolling(_Window):
                     exclude.extend(b.columns)
                     continue
                 else:
-                    from pandas import Series
-                    return Series()
+                    raise DataError('No numeric types to aggregate')
 
             if values.size == 0:
                 results.append(values.copy())
@@ -2323,8 +2321,7 @@ class EWM(_Rolling):
                     exclude.extend(b.columns)
                     continue
                 else:
-                    from pandas import Series
-                    return Series()
+                    raise DataError('No numeric types to aggregate')
 
             if values.size == 0:
                 results.append(values.copy())

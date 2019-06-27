@@ -14,7 +14,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame, Index, Series, Timestamp, bdate_range, concat, isna, notna)
-from pandas.core.base import SpecificationError
+from pandas.core.base import SpecificationError, DataError
 from pandas.core.sorting import safe_sort
 import pandas.core.window as rwindow
 import pandas.util.testing as tm
@@ -1071,14 +1071,13 @@ class DatetimeLike(Dtype):
     def check_dtypes(self, f, f_name, d, d_name, exp):
 
         roll = d.rolling(window=self.window)
-        result = f(roll)
-
         if f_name == 'count':
+            result = f(roll)
             tm.assert_almost_equal(result, exp)
 
         else:
-            exp = Series()
-            tm.assert_equal(result, exp)
+            with pytest.raises(DataError):
+                f(roll)
 
 
 class TestDtype_timedelta(DatetimeLike):
