@@ -687,7 +687,10 @@ def sanitize_array(data, index, dtype=None, copy=False,
                 data = np.array(data, dtype=dtype, copy=False)
             subarr = np.array(data, dtype=object, copy=copy)
 
-    if is_object_dtype(subarr.dtype) and dtype != 'object':
+    if (not (is_extension_array_dtype(subarr.dtype) or
+             is_extension_array_dtype(dtype)) and
+            is_object_dtype(subarr.dtype) and
+            not is_object_dtype(dtype)):
         inferred = lib.infer_dtype(subarr, skipna=False)
         if inferred == 'period':
             try:
