@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
 
 from dateutil.tz import gettz
@@ -17,7 +16,7 @@ import pandas.util.testing as tm
 from pandas.tseries.frequencies import to_offset
 
 
-class TestTimestampUnaryOps(object):
+class TestTimestampUnaryOps:
 
     # --------------------------------------------------------------
     # Timestamp.round
@@ -113,7 +112,7 @@ class TestTimestampUnaryOps(object):
     ])
     @pytest.mark.parametrize('rounder', ['ceil', 'floor', 'round'])
     def test_round_minute_freq(self, test_input, freq, expected, rounder):
-        # Ensure timestamps that shouldnt round dont!
+        # Ensure timestamps that shouldn't round dont!
         # GH#21262
 
         dt = Timestamp(test_input)

@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
-
-from pandas.compat import long
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -32,7 +29,7 @@ zeros = [box_cls([0] * 5, dtype=dtype)
          for dtype in [np.int64, np.uint64, np.float64]]
 zeros.extend([np.array(0, dtype=dtype)
               for dtype in [np.int64, np.uint64, np.float64]])
-zeros.extend([0, 0.0, long(0)])
+zeros.extend([0, 0.0])
 
 
 @pytest.fixture(params=zeros)

@@ -3,19 +3,15 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
-# necessary to enforce truediv in Python 2.X
-from __future__ import division
-
 import datetime
 import operator
 import textwrap
+from typing import Dict, Optional
 import warnings
 
 import numpy as np
 
 from pandas._libs import algos as libalgos, lib, ops as libops
-import pandas.compat as compat
-from pandas.compat import bind_method
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -28,7 +24,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_list_like, is_object_dtype, is_period_dtype,
     is_scalar, is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCIndex, ABCIndexClass, ABCPanel, ABCSeries, ABCSparseArray,
+    ABCDataFrame, ABCIndex, ABCIndexClass, ABCSeries, ABCSparseArray,
     ABCSparseSeries)
 from pandas.core.dtypes.missing import isna, notna
 
@@ -168,7 +164,7 @@ def rmod(left, right):
     # check if right is a string as % is the string
     # formatting operation; this is a TypeError
     # otherwise perform the op
-    if isinstance(right, compat.string_types):
+    if isinstance(right, str):
         raise TypeError("{typ} cannot perform the operation mod".format(
             typ=type(left).__name__))
 
@@ -239,7 +235,7 @@ def _gen_eval_kwargs(name):
     """
     kwargs = {}
 
-    # Series and Panel appear to only pass __add__, __radd__, ...
+    # Series appear to only pass __add__, __radd__, ...
     # but DataFrame gets both these dunder names _and_ non-dunder names
     # add, radd, ...
     name = name.replace('__', '')
@@ -630,15 +626,13 @@ _op_descriptions = {
            'desc': 'Greater than or equal to',
            'reverse': None,
            'series_examples': None}
-}
+}  # type: Dict[str, Dict[str, Optional[str]]]
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
-    _op_descriptions[key]['reversed'] = False
     reverse_op = _op_descriptions[key]['reverse']
     if reverse_op is not None:
         _op_descriptions[reverse_op] = _op_descriptions[key].copy()
-        _op_descriptions[reverse_op]['reversed'] = True
         _op_descriptions[reverse_op]['reverse'] = key
 
 _flex_doc_SERIES = """
@@ -889,7 +883,7 @@ DataFrame.gt : Compare DataFrames for strictly greater than
     inequality elementwise.
 
 Notes
---------
+-----
 Mismatched indices will be unioned together.
 `NaN` values are considered different (i.e. `NaN` != `NaN`).
 
@@ -996,40 +990,6 @@ Q2 A  False     True
    C   True    False
 """
 
-_flex_doc_PANEL = """
-Return {desc} of series and other, element-wise (binary operator `{op_name}`).
-Equivalent to ``{equiv}``.
-
-Parameters
-----------
-other : DataFrame or Panel
-axis : {{items, major_axis, minor_axis}}
-    Axis to broadcast over
-
-Returns
--------
-Panel
-
-See Also
---------
-Panel.{reverse}
-"""
-
-
-_agg_doc_PANEL = """
-Wrapper method for {op_name}
-
-Parameters
-----------
-other : DataFrame or Panel
-axis : {{items, major_axis, minor_axis}}
-    Axis to broadcast over
-
-Returns
--------
-Panel
-"""
-
 
 def _make_flex_doc(op_name, typ):
     """
@@ -1049,7 +1009,7 @@ def _make_flex_doc(op_name, typ):
     op_name = op_name.replace('__', '')
     op_desc = _op_descriptions[op_name]
 
-    if op_desc['reversed']:
+    if op_name.startswith('r'):
         equiv = 'other ' + op_desc['op'] + ' ' + typ
     else:
         equiv = typ + ' ' + op_desc['op'] + ' other'
@@ -1068,14 +1028,6 @@ def _make_flex_doc(op_name, typ):
             doc = doc_no_examples
     elif typ == 'dataframe':
         base_doc = _flex_doc_FRAME
-        doc = base_doc.format(
-            desc=op_desc['desc'],
-            op_name=op_name,
-            equiv=equiv,
-            reverse=op_desc['reverse']
-        )
-    elif typ == 'panel':
-        base_doc = _flex_doc_PANEL
         doc = base_doc.format(
             desc=op_desc['desc'],
             op_name=op_name,
@@ -1125,7 +1077,7 @@ def fill_binop(left, right, fill_value):
     return left, right
 
 
-def mask_cmp_op(x, y, op, allowed_types):
+def mask_cmp_op(x, y, op):
     """
     Apply the function `op` to only non-null points in x and y.
 
@@ -1134,16 +1086,14 @@ def mask_cmp_op(x, y, op, allowed_types):
     x : array-like
     y : array-like
     op : binary operation
-    allowed_types : class or tuple of classes
 
     Returns
     -------
     result : ndarray[bool]
     """
-    # TODO: Can we make the allowed_types arg unnecessary?
     xrav = x.ravel()
     result = np.empty(x.size, dtype=bool)
-    if isinstance(y, allowed_types):
+    if isinstance(y, (np.ndarray, ABCSeries)):
         yrav = y.ravel()
         mask = notna(xrav) & notna(yrav)
         result[mask] = op(np.array(list(xrav[mask])),
@@ -1462,12 +1412,6 @@ def _get_method_wrappers(cls):
         arith_special = _arith_method_SPARSE_ARRAY
         comp_special = _arith_method_SPARSE_ARRAY
         bool_special = _arith_method_SPARSE_ARRAY
-    elif issubclass(cls, ABCPanel):
-        arith_flex = _flex_method_PANEL
-        comp_flex = _comp_method_PANEL
-        arith_special = _arith_method_PANEL
-        comp_special = _comp_method_PANEL
-        bool_special = _arith_method_PANEL
     elif issubclass(cls, ABCDataFrame):
         # Same for DataFrame and SparseDataFrame
         arith_flex = _arith_method_FRAME
@@ -1548,7 +1492,7 @@ def add_methods(cls, new_methods):
         force = not (issubclass(cls, ABCSparseArray) and
                      name.startswith('__i'))
         if force or name not in cls.__dict__:
-            bind_method(cls, name, method)
+            setattr(cls, name, method)
 
 
 # ----------------------------------------------------------------------
@@ -1595,8 +1539,6 @@ def add_special_arithmetic_methods(cls):
              __ifloordiv__=_wrap_inplace_method(new_methods["__floordiv__"]),
              __imod__=_wrap_inplace_method(new_methods["__mod__"]),
              __ipow__=_wrap_inplace_method(new_methods["__pow__"])))
-    if not compat.PY3:
-        new_methods["__idiv__"] = _wrap_inplace_method(new_methods["__div__"])
 
     new_methods.update(
         dict(__iand__=_wrap_inplace_method(new_methods["__and__"]),
@@ -1689,38 +1631,37 @@ def _arith_method_SERIES(cls, op, special):
                         if op in [divmod, rdivmod] else _construct_result)
 
     def na_op(x, y):
+        """
+        Return the result of evaluating op on the passed in values.
+
+        If native types are not compatible, try coersion to object dtype.
+
+        Parameters
+        ----------
+        x : array-like
+        y : array-like or scalar
+
+        Returns
+        -------
+        array-like
+
+        Raises
+        ------
+        TypeError : invalid operation
+        """
         import pandas.core.computation.expressions as expressions
         try:
             result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
             result = masked_arith_op(x, y, op)
+        except Exception:  # TODO: more specific?
+            if is_object_dtype(x):
+                return libalgos.arrmap_object(x,
+                                              lambda val: op(val, y))
+            raise
 
         result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
         return result
-
-    def safe_na_op(lvalues, rvalues):
-        """
-        return the result of evaluating na_op on the passed in values
-
-        try coercion to object type if the native types are not compatible
-
-        Parameters
-        ----------
-        lvalues : array-like
-        rvalues : array-like
-
-        Raises
-        ------
-        TypeError: invalid operation
-        """
-        try:
-            with np.errstate(all='ignore'):
-                return na_op(lvalues, rvalues)
-        except Exception:
-            if is_object_dtype(lvalues):
-                return libalgos.arrmap_object(lvalues,
-                                              lambda x: op(x, rvalues))
-            raise
 
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
@@ -1769,7 +1710,8 @@ def _arith_method_SERIES(cls, op, special):
         if isinstance(rvalues, ABCSeries):
             rvalues = rvalues.values
 
-        result = safe_na_op(lvalues, rvalues)
+        with np.errstate(all='ignore'):
+            result = na_op(lvalues, rvalues)
         return construct_result(left, result,
                                 index=left.index, name=res_name, dtype=None)
 
@@ -2192,7 +2134,6 @@ def _arith_method_FRAME(cls, op, special):
             result = masked_arith_op(x, y, op)
 
         result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-
         return result
 
     if op_name in _op_descriptions:
@@ -2239,7 +2180,7 @@ def _flex_comp_method_FRAME(cls, op, special):
             with np.errstate(invalid='ignore'):
                 result = op(x, y)
         except TypeError:
-            result = mask_cmp_op(x, y, op, (np.ndarray, ABCSeries))
+            result = mask_cmp_op(x, y, op)
         return result
 
     doc = _flex_comp_doc_FRAME.format(op_name=op_name,
@@ -2303,94 +2244,6 @@ def _comp_method_FRAME(cls, func, special):
 
 
 # -----------------------------------------------------------------------------
-# Panel
-
-def _arith_method_PANEL(cls, op, special):
-    # work only for scalars
-    op_name = _get_op_name(op, special)
-
-    def f(self, other):
-        if not is_scalar(other):
-            raise ValueError('Simple arithmetic with {name} can only be '
-                             'done with scalar values'
-                             .format(name=self._constructor.__name__))
-
-        return self._combine(other, op)
-
-    f.__name__ = op_name
-    return f
-
-
-def _comp_method_PANEL(cls, op, special):
-    str_rep = _get_opstr(op, cls)
-    op_name = _get_op_name(op, special)
-
-    def na_op(x, y):
-        import pandas.core.computation.expressions as expressions
-
-        try:
-            result = expressions.evaluate(op, str_rep, x, y)
-        except TypeError:
-            result = mask_cmp_op(x, y, op, np.ndarray)
-        return result
-
-    @Appender('Wrapper for comparison method {name}'.format(name=op_name))
-    def f(self, other, axis=None):
-        # Validate the axis parameter
-        if axis is not None:
-            self._get_axis_number(axis)
-
-        if isinstance(other, self._constructor):
-            return self._compare_constructor(other, na_op)
-        elif isinstance(other, (self._constructor_sliced, ABCDataFrame,
-                                ABCSeries)):
-            raise Exception("input needs alignment for this object [{object}]"
-                            .format(object=self._constructor))
-        else:
-            return self._combine_const(other, na_op)
-
-    f.__name__ = op_name
-
-    return f
-
-
-def _flex_method_PANEL(cls, op, special):
-    str_rep = _get_opstr(op, cls)
-    op_name = _get_op_name(op, special)
-    eval_kwargs = _gen_eval_kwargs(op_name)
-    fill_zeros = _gen_fill_zeros(op_name)
-
-    def na_op(x, y):
-        import pandas.core.computation.expressions as expressions
-
-        try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          errors='raise',
-                                          **eval_kwargs)
-        except TypeError:
-            result = op(x, y)
-
-        # handles discrepancy between numpy and numexpr on division/mod
-        # by 0 though, given that these are generally (always?)
-        # non-scalars, I'm not sure whether it's worth it at the moment
-        result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-        return result
-
-    if op_name in _op_descriptions:
-        doc = _make_flex_doc(op_name, 'panel')
-    else:
-        # doc strings substitors
-        doc = _agg_doc_PANEL.format(op_name=op_name)
-
-    @Appender(doc)
-    def f(self, other, axis=0):
-        return self._combine(other, na_op, axis=axis)
-
-    f.__name__ = op_name
-    return f
-
-
-# -----------------------------------------------------------------------------
 # Sparse
 
 def _cast_sparse_series_op(left, right, opname):
@@ -2416,10 +2269,10 @@ def _cast_sparse_series_op(left, right, opname):
     # TODO: This should be moved to the array?
     if is_integer_dtype(left) and is_integer_dtype(right):
         # series coerces to float64 if result should have NaN/inf
-        if opname in ('floordiv', 'mod') and (right.values == 0).any():
+        if opname in ('floordiv', 'mod') and (right.to_dense() == 0).any():
             left = left.astype(SparseDtype(np.float64, left.fill_value))
             right = right.astype(SparseDtype(np.float64, right.fill_value))
-        elif opname in ('rfloordiv', 'rmod') and (left.values == 0).any():
+        elif opname in ('rfloordiv', 'rmod') and (left.to_dense() == 0).any():
             left = left.astype(SparseDtype(np.float64, left.fill_value))
             right = right.astype(SparseDtype(np.float64, right.fill_value))
 

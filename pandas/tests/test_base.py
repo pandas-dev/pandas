@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function
-
 from datetime import datetime, timedelta
+from io import StringIO
 import re
 import sys
 
@@ -9,7 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import PYPY, StringIO, long
+from pandas.compat import PYPY
 from pandas.compat.numpy import np_array_datetime64_compat
 
 from pandas.core.dtypes.common import (
@@ -28,7 +26,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 import pandas.util.testing as tm
 
 
-class CheckStringMixin(object):
+class CheckStringMixin:
 
     def test_string_methods_dont_fail(self):
         repr(self.container)
@@ -40,10 +38,9 @@ class CheckStringMixin(object):
             pytest.skip('Need unicode_container to test with this')
         repr(self.unicode_container)
         str(self.unicode_container)
-        bytes(self.unicode_container)
 
 
-class CheckImmutable(object):
+class CheckImmutable:
     mutable_regex = re.compile('does not support mutable operations')
 
     def check_mutable_error(self, *args, **kwargs):
@@ -88,9 +85,9 @@ class CheckImmutable(object):
         assert result == expected
 
 
-class TestPandasDelegate(object):
+class TestPandasDelegate:
 
-    class Delegator(object):
+    class Delegator:
         _properties = ['foo']
         _methods = ['bar']
 
@@ -150,7 +147,7 @@ class TestPandasDelegate(object):
         sys.getsizeof(delegate)
 
 
-class Ops(object):
+class Ops:
 
     def _allow_na_ops(self, obj):
         """Whether to skip test cases including NaN"""
@@ -209,7 +206,7 @@ class Ops(object):
 
                 result = getattr(o, op)
 
-                # these couuld be series, arrays or scalars
+                # these could be series, arrays or scalars
                 if isinstance(result, Series) and isinstance(expected, Series):
                     tm.assert_series_equal(result, expected)
                 elif isinstance(result, Index) and isinstance(expected, Index):
@@ -258,7 +255,7 @@ class Ops(object):
 class TestIndexOps(Ops):
 
     def setup_method(self, method):
-        super(TestIndexOps, self).setup_method(method)
+        super().setup_method(method)
         self.is_valid_objs = self.objs
         self.not_valid_objs = []
 
@@ -980,7 +977,7 @@ class TestTranspose(Ops):
                 np.transpose(obj, axes=1)
 
 
-class TestNoNewAttributesMixin(object):
+class TestNoNewAttributesMixin:
 
     def test_mixin(self):
         class T(NoNewAttributesMixin):
@@ -1002,18 +999,18 @@ class TestNoNewAttributesMixin(object):
         assert not hasattr(t, "b")
 
 
-class TestToIterable(object):
+class TestToIterable:
     # test that we convert an iterable to python types
 
     dtypes = [
-        ('int8', (int, long)),
-        ('int16', (int, long)),
-        ('int32', (int, long)),
-        ('int64', (int, long)),
-        ('uint8', (int, long)),
-        ('uint16', (int, long)),
-        ('uint32', (int, long)),
-        ('uint64', (int, long)),
+        ('int8', int),
+        ('int16', int),
+        ('int32', int),
+        ('int64', int),
+        ('uint8', int),
+        ('uint16', int),
+        ('uint32', int),
+        ('uint64', int),
         ('float16', float),
         ('float32', float),
         ('float64', float),
@@ -1046,9 +1043,9 @@ class TestToIterable(object):
         'dtype, rdtype, obj',
         [
             ('object', object, 'a'),
-            ('object', (int, long), 1),
+            ('object', int, 1),
             ('category', object, 'a'),
-            ('category', (int, long), 1)])
+            ('category', int, 1)])
     @pytest.mark.parametrize(
         'method',
         [
@@ -1083,8 +1080,8 @@ class TestToIterable(object):
     @pytest.mark.parametrize(
         'dtype, rdtype',
         dtypes + [
-            ('object', (int, long)),
-            ('category', (int, long))])
+            ('object', int),
+            ('category', int)])
     @pytest.mark.parametrize('typ', [Series, Index])
     @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     # TODO(GH-24559): Remove the filterwarnings
@@ -1344,3 +1341,41 @@ def test_to_numpy_dtype(as_series):
     expected = np.array(['2000-01-01T05', '2001-01-01T05'],
                         dtype='M8[ns]')
     tm.assert_numpy_array_equal(result, expected)
+
+
+class TestConstruction:
+    # test certain constructor behaviours on dtype inference across Series,
+    # Index and DataFrame
+
+    @pytest.mark.parametrize("klass", [
+        Series,
+        lambda x, **kwargs: DataFrame({'a': x}, **kwargs)['a'],
+        pytest.param(lambda x, **kwargs: DataFrame(x, **kwargs)[0],
+                     marks=pytest.mark.xfail),
+        Index,
+    ])
+    @pytest.mark.parametrize("a", [
+        np.array(['2263-01-01'], dtype='datetime64[D]'),
+        np.array([datetime(2263, 1, 1)], dtype=object),
+        np.array([np.datetime64('2263-01-01', 'D')], dtype=object),
+        np.array(["2263-01-01"], dtype=object)
+    ], ids=['datetime64[D]', 'object-datetime.datetime',
+            'object-numpy-scalar', 'object-string'])
+    def test_constructor_datetime_outofbound(self, a, klass):
+        # GH-26853 (+ bug GH-26206 out of bound non-ns unit)
+
+        # No dtype specified (dtype inference)
+        # datetime64[non-ns] raise error, other cases result in object dtype
+        # and preserve original data
+        if a.dtype.kind == 'M':
+            with pytest.raises(pd.errors.OutOfBoundsDatetime):
+                klass(a)
+        else:
+            result = klass(a)
+            assert result.dtype == 'object'
+            tm.assert_numpy_array_equal(result.to_numpy(), a)
+
+        # Explicit dtype specified
+        # Forced conversion fails for all -> all cases raise error
+        with pytest.raises(pd.errors.OutOfBoundsDatetime):
+            klass(a, dtype='datetime64[ns]')

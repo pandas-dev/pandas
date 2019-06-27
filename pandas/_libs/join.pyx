@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 
@@ -121,7 +119,8 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
     right_indexer = _get_result_indexer(right_sorter, right_indexer)
 
     if not sort:  # if not asked to sort, revert to original order
-        if len(left) == len(left_indexer):
+        # cast to avoid build warning GH#26757
+        if <Py_ssize_t>len(left) == len(left_indexer):
             # no multiple matches for any row on the left
             # this is a short-cut to avoid groupsort_indexer
             # otherwise, the `else` path also works in this case

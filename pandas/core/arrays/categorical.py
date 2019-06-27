@@ -1,13 +1,12 @@
-# pylint: disable=E1101,W0232
-
+from shutil import get_terminal_size
 import textwrap
 from warnings import warn
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import algos as libalgos, lib
-import pandas.compat as compat
-from pandas.compat import lzip, u
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
@@ -32,12 +31,10 @@ import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import factorize, take, take_1d, unique1d
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
-from pandas.io.formats.terminal import get_terminal_size
 
 from .base import ExtensionArray, _extension_array_shared_docs
 
@@ -92,25 +89,23 @@ def _cat_compare_op(op):
             else:
                 other_codes = other._codes
 
-            na_mask = (self._codes == -1) | (other_codes == -1)
+            mask = (self._codes == -1) | (other_codes == -1)
             f = getattr(self._codes, op)
             ret = f(other_codes)
-            if na_mask.any():
+            if mask.any():
                 # In other series, the leads to False, so do that here too
-                ret[na_mask] = False
+                ret[mask] = False
             return ret
 
-        # Numpy < 1.13 may convert a scalar to a zerodim array during
-        # comparison operation when second arg has higher priority, e.g.
-        #
-        #     cat[0] < cat
-        #
-        # With cat[0], for example, being ``np.int64(1)`` by the time it gets
-        # into this function would become ``np.array(1)``.
         if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
-                return getattr(self._codes, op)(i)
+                ret = getattr(self._codes, op)(i)
+
+                # check for NaN in self
+                mask = (self._codes == -1)
+                ret[mask] = False
+                return ret
             else:
                 if op == '__eq__':
                     return np.repeat(False, len(self))
@@ -186,7 +181,7 @@ def contains(cat, key, container):
     #  can't be in container either.
     try:
         loc = cat.categories.get_loc(key)
-    except KeyError:
+    except (KeyError, TypeError):
         return False
 
     # loc is the location of key in categories, but also the *value*
@@ -201,7 +196,7 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-_codes_doc = """\
+_codes_doc = """
 The category codes of this categorical.
 
 Level codes are an array if integer which are the positions of the real
@@ -282,7 +277,8 @@ class Categorical(ExtensionArray, PandasObject):
     Notes
     -----
     See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/categorical.html>`_ for more.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html>`_
+    for more.
 
     Examples
     --------
@@ -628,6 +624,10 @@ class Categorical(ExtensionArray, PandasObject):
                When `dtype` is provided, neither `categories` nor `ordered`
                should be provided.
 
+        Returns
+        -------
+        Categorical
+
         Examples
         --------
         >>> dtype = pd.CategoricalDtype(['a', 'b'], ordered=True)
@@ -765,6 +765,11 @@ class Categorical(ExtensionArray, PandasObject):
         inplace : bool, default False
            Whether or not to set the ordered attribute in-place or return
            a copy of this categorical with ordered set to True.
+
+        Returns
+        -------
+        Categorical
+            Ordered Categorical.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         return self.set_ordered(True, inplace=inplace)
@@ -778,6 +783,11 @@ class Categorical(ExtensionArray, PandasObject):
         inplace : bool, default False
            Whether or not to set the ordered attribute in-place or return
            a copy of this categorical with ordered set to False.
+
+        Returns
+        -------
+        Categorical
+            Unordered Categorical.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         return self.set_ordered(False, inplace=inplace)
@@ -1323,7 +1333,7 @@ class Categorical(ExtensionArray, PandasObject):
             state['_dtype'] = CategoricalDtype(state['_categories'],
                                                state['_ordered'])
 
-        for k, v in compat.iteritems(state):
+        for k, v in state.items():
             setattr(self, k, v)
 
     @property
@@ -1473,7 +1483,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         if dropna or clean:
             obs = code if clean else code[mask]
-            count = bincount(obs, minlength=ncat or None)
+            count = bincount(obs, minlength=ncat or 0)
         else:
             count = bincount(np.where(mask, code, ncat))
             ix = np.append(ix, -1)
@@ -1558,7 +1568,7 @@ class Categorical(ExtensionArray, PandasObject):
         array([3, 0, 1, 2])
         """
         # Keep the implementation here just for the docstring.
-        return super(Categorical, self).argsort(*args, **kwargs)
+        return super().argsort(*args, **kwargs)
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
         """
@@ -1947,12 +1957,12 @@ class Categorical(ExtensionArray, PandasObject):
         head = self[:num]._get_repr(length=False, footer=False)
         tail = self[-(max_vals - num):]._get_repr(length=False, footer=False)
 
-        result = u('{head}, ..., {tail}').format(head=head[:-1], tail=tail[1:])
+        result = '{head}, ..., {tail}'.format(head=head[:-1], tail=tail[1:])
         if footer:
-            result = u('{result}\n{footer}').format(result=result,
-                                                    footer=self._repr_footer())
+            result = '{result}\n{footer}'.format(
+                result=result, footer=self._repr_footer())
 
-        return compat.text_type(result)
+        return str(result)
 
     def _repr_categories(self):
         """
@@ -2008,7 +2018,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def _repr_footer(self):
 
-        return u('Length: {length}\n{info}').format(
+        return 'Length: {length}\n{info}'.format(
             length=len(self), info=self._repr_categories_info())
 
     def _get_repr(self, length=True, na_rep='NaN', footer=True):
@@ -2016,11 +2026,11 @@ class Categorical(ExtensionArray, PandasObject):
         formatter = fmt.CategoricalFormatter(self, length=length,
                                              na_rep=na_rep, footer=footer)
         result = formatter.to_string()
-        return compat.text_type(result)
+        return str(result)
 
-    def __unicode__(self):
+    def __repr__(self):
         """
-        Unicode representation.
+        String representation.
         """
         _maxlen = 10
         if len(self._codes) > _maxlen:
@@ -2032,10 +2042,6 @@ class Categorical(ExtensionArray, PandasObject):
             result = ('[], {repr_msg}'.format(repr_msg=msg))
 
         return result
-
-    def __repr__(self):
-        # We want PandasObject.__repr__, which dispatches to __unicode__
-        return super(ExtensionArray, self).__repr__()
 
     def _maybe_coerce_indexer(self, indexer):
         """
@@ -2136,23 +2142,18 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         dict of categories -> indexers
 
-        Example
-        -------
-        In [1]: c = pd.Categorical(list('aabca'))
-
-        In [2]: c
-        Out[2]:
+        Examples
+        --------
+        >>> c = pd.Categorical(list('aabca'))
+        >>> c
         [a, a, b, c, a]
         Categories (3, object): [a, b, c]
-
-        In [3]: c.categories
-        Out[3]: Index([u'a', u'b', u'c'], dtype='object')
-
-        In [4]: c.codes
-        Out[4]: array([0, 0, 1, 2, 0], dtype=int8)
-
-        In [5]: c._reverse_indexer()
-        Out[5]: {'a': array([0, 1, 4]), 'b': array([2]), 'c': array([3])}
+        >>> c.categories
+        Index(['a', 'b', 'c'], dtype='object')
+        >>> c.codes
+        array([0, 0, 1, 2, 0], dtype=int8)
+        >>> c._reverse_indexer()
+        {'a': array([0, 1, 4]), 'b': array([2]), 'c': array([3])}
 
         """
         categories = self.categories
@@ -2665,9 +2666,11 @@ def _factorize_from_iterable(values):
         raise TypeError("Input must be list-like")
 
     if is_categorical(values):
-        if isinstance(values, (ABCCategoricalIndex, ABCSeries)):
-            values = values._values
-        categories = CategoricalIndex(values.categories, dtype=values.dtype)
+        values = CategoricalIndex(values)
+        # The CategoricalIndex level we want to build has the same categories
+        # as values but its codes are by def [0, ..., len(n_categories) - 1]
+        cat_codes = np.arange(len(values.categories), dtype=values.codes.dtype)
+        categories = values._create_from_codes(cat_codes)
         codes = values.codes
     else:
         # The value of ordered is irrelevant since we don't use cat as such,
@@ -2701,4 +2704,4 @@ def _factorize_from_iterables(iterables):
     if len(iterables) == 0:
         # For consistency, it should return a list of 2 lists.
         return [[], []]
-    return map(list, lzip(*[_factorize_from_iterable(it) for it in iterables]))
+    return map(list, zip(*(_factorize_from_iterable(it) for it in iterables)))

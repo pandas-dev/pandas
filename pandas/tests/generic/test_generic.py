@@ -1,12 +1,7 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=E1101,W0612
-
 from copy import copy, deepcopy
 
 import numpy as np
 import pytest
-
-from pandas.compat import range, zip
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -19,7 +14,7 @@ from pandas.util.testing import assert_frame_equal, assert_series_equal
 # Generic types test cases
 
 
-class Generic(object):
+class Generic:
 
     @property
     def _ndim(self):
@@ -582,7 +577,7 @@ class Generic(object):
             tm.assert_series_equal(res, Series(exp))
 
 
-class TestNDFrame(object):
+class TestNDFrame:
     # tests that don't fit elsewhere
 
     def test_sample(sel):
@@ -923,3 +918,17 @@ class TestNDFrame(object):
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == \
                 box._get_block_manager_axis(v)
+
+    def test_deprecated_to_dense(self):
+        # GH 26557: DEPR
+        # Deprecated 0.25.0
+
+        df = pd.DataFrame({"A": [1, 2, 3]})
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.to_dense()
+        tm.assert_frame_equal(result, df)
+
+        ser = pd.Series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning):
+            result = ser.to_dense()
+        tm.assert_series_equal(result, ser)

@@ -1,19 +1,15 @@
-# -*- coding: utf-8 -*-
 """
 Module for formatting output data in HTML.
 """
 
-from __future__ import print_function
-
 from collections import OrderedDict
 from textwrap import dedent
 
-from pandas.compat import lzip, map, range, u, unichr, zip
+from pandas._config import get_option
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas import compat, option_context
-from pandas.core.config import get_option
+from pandas import option_context
 
 from pandas.io.common import _is_url
 from pandas.io.formats.format import TableFormatter, get_level_lengths
@@ -47,6 +43,9 @@ class HTMLFormatter(TableFormatter):
         self.border = border
         self.table_id = self.fmt.table_id
         self.render_links = self.fmt.render_links
+        if isinstance(self.fmt.col_space, int):
+            self.fmt.col_space = ('{colspace}px'
+                                  .format(colspace=self.fmt.col_space))
 
     @property
     def show_row_idx_names(self):
@@ -71,6 +70,9 @@ class HTMLFormatter(TableFormatter):
         # not showing (row) index
         return 0
 
+    def _get_columns_formatted_values(self):
+        return self.columns
+
     @property
     def is_truncated(self):
         return self.fmt.is_truncated
@@ -83,8 +85,30 @@ class HTMLFormatter(TableFormatter):
         rs = pprint_thing(s)
         self.elements.append(' ' * indent + rs)
 
-    def write_th(self, s, indent=0, tags=None):
-        if self.fmt.col_space is not None and self.fmt.col_space > 0:
+    def write_th(self, s, header=False, indent=0, tags=None):
+        """
+        Method for writting a formatted <th> cell.
+
+        If col_space is set on the formatter then that is used for
+        the value of min-width.
+
+        Parameters
+        ----------
+        s : object
+            The data to be written inside the cell.
+        header : boolean, default False
+            Set to True if the <th> is for use inside <thead>.  This will
+            cause min-width to be set if there is one.
+        indent : int, default 0
+            The indentation level of the cell.
+        tags : string, default None
+            Tags to include in the cell.
+
+        Returns
+        -------
+        A written <th> cell.
+        """
+        if header and self.fmt.col_space is not None:
             tags = (tags or "")
             tags += ('style="min-width: {colspace};"'
                      .format(colspace=self.fmt.col_space))
@@ -117,7 +141,7 @@ class HTMLFormatter(TableFormatter):
         else:
             end_a = ''
 
-        self.write(u'{start}{rs}{end_a}</{kind}>'.format(
+        self.write('{start}{rs}{end_a}</{kind}>'.format(
             start=start_tag, rs=rs, end_a=end_a, kind=kind), indent)
 
     def write_tr(self, line, indent=0, indent_delta=0, header=False,
@@ -135,7 +159,7 @@ class HTMLFormatter(TableFormatter):
         for i, s in enumerate(line):
             val_tag = tags.get(i, None)
             if header or (self.bold_rows and i < nindex_levels):
-                self.write_th(s, indent, tags=val_tag)
+                self.write_th(s, indent=indent, header=header, tags=val_tag)
             else:
                 self.write_td(s, indent, tags=val_tag)
 
@@ -146,8 +170,8 @@ class HTMLFormatter(TableFormatter):
         self._write_table()
 
         if self.should_show_dimensions:
-            by = chr(215) if compat.PY3 else unichr(215)  # ×
-            self.write(u('<p>{rows} rows {by} {cols} columns</p>')
+            by = chr(215)  # ×
+            self.write('<p>{rows} rows {by} {cols} columns</p>'
                        .format(rows=len(self.frame),
                                by=by,
                                cols=len(self.frame.columns)))
@@ -211,7 +235,7 @@ class HTMLFormatter(TableFormatter):
                             elif tag + span > ins_col:
                                 recs_new[tag] = span + 1
                                 if lnum == inner_lvl:
-                                    values = (values[:ins_col] + (u('...'),) +
+                                    values = (values[:ins_col] + ('...',) +
                                               values[ins_col:])
                                 else:
                                     # sparse col headers do not receive a ...
@@ -224,7 +248,7 @@ class HTMLFormatter(TableFormatter):
                             # get ...
                             if tag + span == ins_col:
                                 recs_new[ins_col] = 1
-                                values = (values[:ins_col] + (u('...'),) +
+                                values = (values[:ins_col] + ('...',) +
                                           values[ins_col:])
                         records = recs_new
                         inner_lvl = len(level_lengths) - 1
@@ -239,7 +263,7 @@ class HTMLFormatter(TableFormatter):
                                 recs_new[tag] = span
                         recs_new[ins_col] = 1
                         records = recs_new
-                        values = (values[:ins_col] + [u('...')] +
+                        values = (values[:ins_col] + ['...'] +
                                   values[ins_col:])
 
                 # see gh-22579
@@ -293,7 +317,7 @@ class HTMLFormatter(TableFormatter):
                     row.append(self.columns.name or '')
                 else:
                     row.append('')
-            row.extend(self.columns)
+            row.extend(self._get_columns_formatted_values())
             align = self.fmt.justify
 
             if truncate_h:
@@ -388,7 +412,7 @@ class HTMLFormatter(TableFormatter):
 
         idx_values = frame.index.format(sparsify=False, adjoin=False,
                                         names=False)
-        idx_values = lzip(*idx_values)
+        idx_values = list(zip(*idx_values))
 
         if self.fmt.sparsify:
             # GH3547
@@ -414,12 +438,12 @@ class HTMLFormatter(TableFormatter):
                             # GH 14882 - Make sure insertion done once
                             if not inserted:
                                 dot_row = list(idx_values[ins_row - 1])
-                                dot_row[-1] = u('...')
+                                dot_row[-1] = '...'
                                 idx_values.insert(ins_row, tuple(dot_row))
                                 inserted = True
                             else:
                                 dot_row = list(idx_values[ins_row])
-                                dot_row[inner_lvl - lnum] = u('...')
+                                dot_row[inner_lvl - lnum] = '...'
                                 idx_values[ins_row] = tuple(dot_row)
                         else:
                             rec_new[tag] = span
@@ -429,12 +453,12 @@ class HTMLFormatter(TableFormatter):
                             rec_new[ins_row] = 1
                             if lnum == 0:
                                 idx_values.insert(ins_row, tuple(
-                                    [u('...')] * len(level_lengths)))
+                                    ['...'] * len(level_lengths)))
 
                             # GH 14882 - Place ... in correct level
                             elif inserted:
                                 dot_row = list(idx_values[ins_row])
-                                dot_row[inner_lvl - lnum] = u('...')
+                                dot_row[inner_lvl - lnum] = '...'
                                 idx_values[ins_row] = tuple(dot_row)
                     level_lengths[lnum] = rec_new
 
@@ -495,6 +519,9 @@ class NotebookFormatter(HTMLFormatter):
     def _get_formatted_values(self):
         return {i: self.fmt._format_col(i) for i in range(self.ncols)}
 
+    def _get_columns_formatted_values(self):
+        return self.columns.format()
+
     def write_style(self):
         # We use the "scoped" attribute here so that the desired
         # style properties for the data frame are not then applied
@@ -535,6 +562,6 @@ class NotebookFormatter(HTMLFormatter):
     def render(self):
         self.write('<div>')
         self.write_style()
-        super(NotebookFormatter, self).render()
+        super().render()
         self.write('</div>')
         return self.elements

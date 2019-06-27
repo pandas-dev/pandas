@@ -1,10 +1,6 @@
-# -*- coding: utf-8 -*-
-
 """
 test cython .agg behavior
 """
-
-from __future__ import print_function
 
 import numpy as np
 import pytest

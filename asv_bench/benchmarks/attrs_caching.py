@@ -6,7 +6,7 @@ except ImportError:
     from pandas.util.decorators import cache_readonly
 
 
-class DataFrameAttributes(object):
+class DataFrameAttributes:
 
     def setup(self):
         self.df = DataFrame(np.random.randn(10, 6))
@@ -19,7 +19,7 @@ class DataFrameAttributes(object):
         self.df.index = self.cur_index
 
 
-class CacheReadonly(object):
+class CacheReadonly:
 
     def setup(self):
 

@@ -2,9 +2,8 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
-from __future__ import division
-
 from textwrap import dedent
+from typing import Dict
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
@@ -29,7 +28,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
 
-_shared_docs = {}
+_shared_docs = {}  # type: Dict[str, str]
 
 
 # --------------- #
@@ -619,22 +618,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
     if sort and len(uniques) > 0:
         from pandas.core.sorting import safe_sort
-        if na_sentinel == -1:
-            # GH-25409 take_1d only works for na_sentinels of -1
-            try:
-                order = uniques.argsort()
-                order2 = order.argsort()
-                labels = take_1d(order2, labels, fill_value=na_sentinel)
-                uniques = uniques.take(order)
-            except TypeError:
-                # Mixed types, where uniques.argsort fails.
-                uniques, labels = safe_sort(uniques, labels,
-                                            na_sentinel=na_sentinel,
-                                            assume_unique=True)
-        else:
-            uniques, labels = safe_sort(uniques, labels,
-                                        na_sentinel=na_sentinel,
-                                        assume_unique=True)
+        uniques, labels = safe_sort(uniques, labels, na_sentinel=na_sentinel,
+                                    assume_unique=True, verify=False)
 
     uniques = _reconstruct_data(uniques, dtype, original)
 
@@ -1049,7 +1034,7 @@ def quantile(x, q, interpolation_method='fraction'):
 # select n        #
 # --------------- #
 
-class SelectN(object):
+class SelectN:
 
     def __init__(self, obj, n, keep):
         self.obj = obj
@@ -1120,6 +1105,10 @@ class SelectNSeries(SelectN):
                 # GH 21426: ensure reverse ordering at boundaries
                 arr -= 1
 
+            elif is_bool_dtype(pandas_dtype):
+                # GH 26154: ensure False is smaller than True
+                arr = 1 - (-arr)
+
         if self.keep == 'last':
             arr = arr[::-1]
 
@@ -1157,7 +1146,7 @@ class SelectNFrame(SelectN):
     """
 
     def __init__(self, obj, n, keep, columns):
-        super(SelectNFrame, self).__init__(obj, n, keep)
+        super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
         columns = list(columns)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # TODO: Needs a better name; too many modules are already called "concat"
 from collections import defaultdict
 import copy
@@ -99,7 +98,7 @@ def get_mgr_concatenation_plan(mgr, indexers):
     return plan
 
 
-class JoinUnit(object):
+class JoinUnit:
 
     def __init__(self, block, shape, indexers=None):
         # Passing shape explicitly is required for cases when block is None.
@@ -187,8 +186,6 @@ class JoinUnit(object):
                                      dtype=empty_dtype)
                     pass
                 elif getattr(self.block, 'is_categorical', False):
-                    pass
-                elif getattr(self.block, 'is_sparse', False):
                     pass
                 elif getattr(self.block, 'is_extension', False):
                     pass

@@ -10,14 +10,11 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import lrange, range
 import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Series, date_range
-from pandas.tests.plotting.common import (
-    TestPlotBase, _check_plot_works, _ok_for_gaussian_kde,
-    _skip_if_no_scipy_gaussian_kde)
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 import pandas.util.testing as tm
 
 import pandas.plotting as plotting
@@ -61,8 +58,6 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.iseries.plot)
 
         for kind in ['line', 'bar', 'barh', 'kde', 'hist', 'box']:
-            if not _ok_for_gaussian_kde(kind):
-                continue
             _check_plot_works(self.series[:5].plot, kind=kind)
 
         _check_plot_works(self.series[:10].plot.barh)
@@ -534,7 +529,7 @@ class TestSeriesPlots(TestPlotBase):
         assert ax.right_ax.get_yaxis().get_visible()
         tm.close()
 
-        # seconcary -> secondary (without passing ax)
+        # secondary -> secondary (without passing ax)
         _, ax = self.plt.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
         s.plot(legend=True, secondary_y=True, ax=ax)
@@ -571,16 +566,21 @@ class TestSeriesPlots(TestPlotBase):
         tm.close()
 
     @pytest.mark.slow
-    def test_secondary_logy(self):
+    @pytest.mark.parametrize("input_logy, expected_scale", [
+        (True, 'log'),
+        ('sym', 'symlog')
+    ])
+    def test_secondary_logy(self, input_logy, expected_scale):
         # GH 25545
         s1 = Series(np.random.randn(30))
         s2 = Series(np.random.randn(30))
 
-        ax1 = s1.plot(logy=True)
-        ax2 = s2.plot(secondary_y=True, logy=True)
+        # GH 24980
+        ax1 = s1.plot(logy=input_logy)
+        ax2 = s2.plot(secondary_y=True, logy=input_logy)
 
-        assert ax1.get_yscale() == 'log'
-        assert ax2.get_yscale() == 'log'
+        assert ax1.get_yscale() == expected_scale
+        assert ax2.get_yscale() == expected_scale
 
     @pytest.mark.slow
     def test_plot_fails_with_dupe_color_and_style(self):
@@ -602,7 +602,6 @@ class TestSeriesPlots(TestPlotBase):
         ylabels = ax.get_yticklabels()
         self._check_text_labels(ylabels, [''] * len(ylabels))
 
-        _skip_if_no_scipy_gaussian_kde()
         _check_plot_works(self.ts.plot.kde)
         _check_plot_works(self.ts.plot.density)
         _, ax = self.plt.subplots()
@@ -616,8 +615,6 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_kwargs(self):
-        _skip_if_no_scipy_gaussian_kde()
-
         sample_points = np.linspace(-100, 100, 20)
         _check_plot_works(self.ts.plot.kde, bw_method='scott', ind=20)
         _check_plot_works(self.ts.plot.kde, bw_method=None, ind=20)
@@ -634,8 +631,6 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
-        _skip_if_no_scipy_gaussian_kde()
-
         s = Series(np.random.uniform(size=50))
         s[0] = np.nan
         axes = _check_plot_works(s.plot.kde)
@@ -669,7 +664,6 @@ class TestSeriesPlots(TestPlotBase):
         assert len(ax.patches) == 10
         self._check_colors(ax.patches, facecolors=['b'] * 10)
 
-        _skip_if_no_scipy_gaussian_kde()
         _, ax = self.plt.subplots()
         ax = self.ts.plot.kde(logy=True, color='r', ax=ax)
         self._check_ax_scales(ax, yaxis='log')
@@ -694,8 +688,7 @@ class TestSeriesPlots(TestPlotBase):
                  plotting._core._series_kinds)
         _, ax = self.plt.subplots()
         for kind in kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
+
             s.plot(kind=kind, ax=ax)
             getattr(s.plot, kind)()
 
@@ -704,8 +697,6 @@ class TestSeriesPlots(TestPlotBase):
         s = Series(list('abcd'))
         _, ax = self.plt.subplots()
         for kind in plotting._core._common_kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
 
             msg = "no numeric data to plot"
             with pytest.raises(TypeError, match=msg):
@@ -713,18 +704,14 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_valid_object_plot(self):
-        s = Series(lrange(10), dtype=object)
+        s = Series(range(10), dtype=object)
         for kind in plotting._core._common_kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
             _check_plot_works(s.plot, kind=kind)
 
     def test_partially_invalid_plot_data(self):
         s = Series(['a', 'b', 1.0, 2])
         _, ax = self.plt.subplots()
         for kind in plotting._core._common_kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
 
             msg = "no numeric data to plot"
             with pytest.raises(TypeError, match=msg):
@@ -783,12 +770,9 @@ class TestSeriesPlots(TestPlotBase):
             s.plot(yerr=np.arange(11))
 
         s_err = ['zzz'] * 10
-        # MPL > 2.0.0 will most likely use TypeError here
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(TypeError):
             s.plot(yerr=s_err)
 
-    # This XPASSES when tested with mpl == 3.0.1
-    @td.xfail_if_mpl_2_2
     def test_table(self):
         _check_plot_works(self.series.plot, table=True)
         _check_plot_works(self.series.plot, table=self.series)
@@ -802,7 +786,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_standard_colors(self):
-        from pandas.plotting._style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import _get_standard_colors
 
         for c in ['r', 'red', 'green', '#FF0000']:
             result = _get_standard_colors(1, color=c)
@@ -820,7 +804,7 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     def test_standard_colors_all(self):
         import matplotlib.colors as colors
-        from pandas.plotting._style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import _get_standard_colors
 
         # multiple colors like mediumaquamarine
         for c in colors.cnames:

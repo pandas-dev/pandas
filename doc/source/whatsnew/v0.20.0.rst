@@ -119,7 +119,7 @@ fixed-width text files and :func:`read_excel` for parsing Excel files, now accep
 .. ipython:: python
    :suppress:
 
-   from pandas.compat import StringIO
+   from io import StringIO
 
 .. ipython:: python
 
@@ -339,6 +339,7 @@ See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:
 All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
 
 .. ipython:: python
+   :okwarning:
 
    from scipy.sparse import csr_matrix
    arr = np.random.random(size=(1000, 5))
@@ -386,7 +387,7 @@ For example, after running the following, ``styled.xlsx`` renders as below:
    import os
    os.remove('styled.xlsx')
 
-See the :ref:`Style documentation </style.ipynb#Export-to-Excel>` for more detail.
+See the :ref:`Style documentation </user_guide/style.ipynb#Export-to-Excel>` for more detail.
 
 .. _whatsnew_0200.enhancements.intervalindex:
 
@@ -395,7 +396,7 @@ IntervalIndex
 
 pandas has gained an ``IntervalIndex`` with its own dtype, ``interval`` as well as the ``Interval`` scalar type. These allow first-class support for interval
 notation, specifically as a return type for the categories in :func:`cut` and :func:`qcut`. The ``IntervalIndex`` allows some unique indexing, see the
-:ref:`docs <indexing.intervallindex>`. (:issue:`7640`, :issue:`8625`)
+:ref:`docs <advanced.intervalindex>`. (:issue:`7640`, :issue:`8625`)
 
 .. warning::
 
@@ -496,7 +497,7 @@ Other Enhancements
 - ``DataFrame.to_excel()`` has a new ``freeze_panes`` parameter to turn on Freeze Panes when exporting to Excel (:issue:`15160`)
 - ``pd.read_html()`` will parse multiple header rows, creating a MutliIndex header. (:issue:`13434`).
 - HTML table output skips ``colspan`` or ``rowspan`` attribute if equal to 1. (:issue:`15403`)
-- :class:`pandas.io.formats.style.Styler` template now has blocks for easier extension, see the :ref:`example notebook </style.ipynb#Subclassing>` (:issue:`15649`)
+- :class:`pandas.io.formats.style.Styler` template now has blocks for easier extension, see the :ref:`example notebook </user_guide/style.ipynb#Subclassing>` (:issue:`15649`)
 - :meth:`Styler.render() <pandas.io.formats.style.Styler.render>` now accepts ``**kwargs`` to allow user-defined variables in the template (:issue:`15649`)
 - Compatibility with Jupyter notebook 5.0; MultiIndex column labels are left-aligned and MultiIndex row-labels are top-aligned (:issue:`15379`)
 - ``TimedeltaIndex`` now has a custom date-tick formatter specifically designed for nanosecond level precision (:issue:`8711`)
@@ -1563,7 +1564,7 @@ Removal of prior version deprecations/changes
 
 - The ``pandas.rpy`` module is removed. Similar functionality can be accessed
   through the `rpy2 <https://rpy2.readthedocs.io/>`__ project.
-  See the :ref:`R interfacing docs <rpy>` for more details.
+  See the `R interfacing docs <https://pandas.pydata.org/pandas-docs/version/0.20/r_interface.html>`__ for more details.
 - The ``pandas.io.ga`` module with a ``google-analytics`` interface is removed (:issue:`11308`).
   Similar functionality can be found in the `Google2Pandas <https://github.com/panalysis/Google2Pandas>`__ package.
 - ``pd.to_datetime`` and ``pd.to_timedelta`` have dropped the ``coerce`` parameter in favor of ``errors`` (:issue:`13602`)

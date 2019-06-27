@@ -1,14 +1,9 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
 from collections import OrderedDict
 import pydoc
 import warnings
 
 import numpy as np
 import pytest
-
-import pandas.compat as compat
-from pandas.compat import isidentifier, lzip, range, string_types
 
 import pandas as pd
 from pandas import (
@@ -24,7 +19,7 @@ import pandas.io.formats.printing as printing
 from .common import TestData
 
 
-class SharedWithSparse(object):
+class SharedWithSparse:
     """
     A collection of tests Series and SparseSeries can share.
 
@@ -127,6 +122,8 @@ class SharedWithSparse(object):
         result = self.ts.sort_index(ascending=False)
         assert result.name == self.ts.name
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_to_sparse_pass_name(self):
         result = self.ts.to_sparse()
         assert result.name == self.ts.name
@@ -145,7 +142,7 @@ class SharedWithSparse(object):
     def test_constructor_subclass_dict(self):
         data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
         series = self.series_klass(data)
-        expected = self.series_klass(dict(compat.iteritems(data)))
+        expected = self.series_klass(dict(data.items()))
         self._assert_series_equal(series, expected)
 
     def test_constructor_ordereddict(self):
@@ -199,9 +196,12 @@ class SharedWithSparse(object):
         )
         self._assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_from_array_deprecated(self):
 
-        with tm.assert_produces_warning(FutureWarning):
+        # multiple FutureWarnings, so can't assert stacklevel
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
             self.series_klass.from_array([1, 2, 3])
 
     def test_sparse_accessor_updates_on_inplace(self):
@@ -273,16 +273,16 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         tm.makeFloatIndex(10),
         Index([True, False]),
         Index(['a{}'.format(i) for i in range(101)]),
-        pd.MultiIndex.from_tuples(lzip('ABCD', 'EFGH')),
-        pd.MultiIndex.from_tuples(lzip([0, 1, 2, 3], 'EFGH')), ])
+        pd.MultiIndex.from_tuples(zip('ABCD', 'EFGH')),
+        pd.MultiIndex.from_tuples(zip([0, 1, 2, 3], 'EFGH')), ])
     def test_index_tab_completion(self, index):
         # dir contains string-like values of the Index.
         s = pd.Series(index=index)
         dir_s = dir(s)
         for i, x in enumerate(s.index.unique(level=0)):
             if i < 100:
-                assert (not isinstance(x, string_types) or
-                        not isidentifier(x) or x in dir_s)
+                assert (not isinstance(x, str) or
+                        not x.isidentifier() or x in dir_s)
             else:
                 assert x not in dir_s
 
@@ -315,10 +315,10 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         tm.assert_almost_equal(self.ts.values, self.ts, check_dtype=False)
 
     def test_iteritems(self):
-        for idx, val in compat.iteritems(self.series):
+        for idx, val in self.series.items():
             assert val == self.series[idx]
 
-        for idx, val in compat.iteritems(self.ts):
+        for idx, val in self.ts.items():
             assert val == self.ts[idx]
 
         # assert is lazy (genrators don't define reverse, lists do)
@@ -362,7 +362,8 @@ class TestSeriesMisc(TestData, SharedWithSparse):
                 assert np.isnan(s2[0])
                 assert np.isnan(s[0])
 
-        # GH 11794
+    def test_copy_tzaware(self):
+        # GH#11794
         # copy of tz-aware
         expected = Series([Timestamp('2012/01/01', tz='UTC')])
         expected2 = Series([Timestamp('1999/01/01', tz='UTC')])
@@ -501,7 +502,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         assert s.size == 9
 
 
-class TestCategoricalSeries(object):
+class TestCategoricalSeries:
 
     @pytest.mark.parametrize(
         "method",
@@ -580,7 +581,7 @@ class TestCategoricalSeries(object):
 
         # Series should delegate calls to '.categories', '.codes', '.ordered'
         # and the methods '.set_categories()' 'drop_unused_categories()' to the
-        # categorical# -*- coding: utf-8 -*-
+        # categorical
         s = Series(Categorical(["a", "b", "c", "a"], ordered=True))
         exp_categories = Index(["a", "b", "c"])
         tm.assert_index_equal(s.cat.categories, exp_categories)

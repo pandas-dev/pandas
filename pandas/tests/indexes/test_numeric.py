@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime
 import re
 
@@ -7,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import range
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, Series, UInt64Index

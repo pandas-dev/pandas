@@ -137,7 +137,7 @@ usecols : list-like or callable, default ``None``
 
   .. ipython:: python
 
-     from pandas.compat import StringIO, BytesIO
+     from io import StringIO, BytesIO
      data = ('col1,col2,col3\n'
              'a,b,1\n'
              'a,b,2\n'
@@ -271,6 +271,12 @@ date_parser : function, default ``None``
   (corresponding to the columns defined by parse_dates) as arguments.
 dayfirst : boolean, default ``False``
   DD/MM format dates, international and European format.
+cache_dates : boolean, default True
+  If True, use a cache of unique, converted dates to apply the datetime
+  conversion. May produce significant speed-up when parsing duplicate
+  date strings, especially ones with timezone offsets.
+
+  .. versionadded:: 0.25.0
 
 Iteration
 +++++++++
@@ -482,7 +488,7 @@ specification:
 
 .. versionadded:: 0.21.0
 
-Specifying ``dtype='cateogry'`` will result in an unordered ``Categorical``
+Specifying ``dtype='category'`` will result in an unordered ``Categorical``
 whose ``categories`` are the unique values observed in the data. For more
 control on the categories and order, create a
 :class:`~pandas.api.types.CategoricalDtype` ahead of time, and pass that for
@@ -1673,7 +1679,7 @@ S3 URLs are handled as well but require installing the `S3Fs
 
    df = pd.read_csv('s3://pandas-test/tips.csv')
 
-If your S3 bucket requires cedentials you will need to set them as environment
+If your S3 bucket requires credentials you will need to set them as environment
 variables or in the ``~/.aws/credentials`` config file, refer to the `S3Fs
 documentation on credentials
 <https://s3fs.readthedocs.io/en/latest/#credentials>`_.
@@ -2072,7 +2078,7 @@ Dates written in nanoseconds need to be read back in nanoseconds:
 
    json = dfj2.to_json(date_unit='ns')
 
-   # Try to parse timestamps as millseconds -> Won't Work
+   # Try to parse timestamps as milliseconds -> Won't Work
    dfju = pd.read_json(json, date_unit='ms')
    dfju
 
@@ -2335,10 +2341,10 @@ round-trippable manner.
   .. ipython:: python
 
    df = pd.DataFrame({'foo': [1, 2, 3, 4],
-		      'bar': ['a', 'b', 'c', 'd'],
-		      'baz': pd.date_range('2018-01-01', freq='d', periods=4),
-		      'qux': pd.Categorical(['a', 'b', 'c', 'c'])
-		      }, index=pd.Index(range(4), name='idx'))
+          'bar': ['a', 'b', 'c', 'd'],
+          'baz': pd.date_range('2018-01-01', freq='d', periods=4),
+          'qux': pd.Categorical(['a', 'b', 'c', 'c'])
+          }, index=pd.Index(range(4), name='idx'))
    df
    df.dtypes
 
@@ -2858,6 +2864,19 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
     data = pd.read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'],
                          index_col=None, na_values=['NA'])
 
+``ExcelFile`` can also be called with a ``xlrd.book.Book`` object
+as a parameter. This allows the user to control how the excel file is read.
+For example, sheets can be loaded on demand by calling ``xlrd.open_workbook()``
+with ``on_demand=True``.
+
+.. code-block:: python
+
+    import xlrd
+    xlrd_book = xlrd.open_workbook('path_to_file.xls', on_demand=True)
+    with pd.ExcelFile(xlrd_book) as xls:
+        df1 = pd.read_excel(xls, 'Sheet1')
+        df2 = pd.read_excel(xls, 'Sheet2')
+
 .. _io.excel.specifying_sheets:
 
 Specifying Sheets
@@ -3230,30 +3249,41 @@ And then import the data directly to a ``DataFrame`` by calling:
 
 .. code-block:: python
 
-   clipdf = pd.read_clipboard()
-
-.. ipython:: python
-
-   clipdf
-
+    >>> clipdf = pd.read_clipboard()
+    >>> clipdf
+      A B C
+    x 1 4 p
+    y 2 5 q
+    z 3 6 r
 
 The ``to_clipboard`` method can be used to write the contents of a ``DataFrame`` to
 the clipboard. Following which you can paste the clipboard contents into other
 applications (CTRL-V on many operating systems). Here we illustrate writing a
 ``DataFrame`` into clipboard and reading it back.
 
-.. ipython:: python
+.. code-block:: python
 
-    df = pd.DataFrame(np.random.randn(5, 3))
-    df
-    df.to_clipboard()
-    pd.read_clipboard()
+    >>> df = pd.DataFrame({'A': [1, 2, 3],
+    ...                    'B': [4, 5, 6],
+    ...                    'C': ['p', 'q', 'r']},
+    ...                   index=['x', 'y', 'z'])
+    >>> df
+      A B C
+    x 1 4 p
+    y 2 5 q
+    z 3 6 r
+    >>> df.to_clipboard()
+    >>> pd.read_clipboard()
+      A B C
+    x 1 4 p
+    y 2 5 q
+    z 3 6 r
 
 We can see that we got the same content back, which we had earlier written to the clipboard.
 
 .. note::
 
-   You may need to install xclip or xsel (with gtk, PyQt5, PyQt4 or qtpy) on Linux to use these methods.
+   You may need to install xclip or xsel (with PyQt5, PyQt4 or qtpy) on Linux to use these methods.
 
 .. _io.pickle:
 
@@ -3563,13 +3593,6 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
    :suppress:
 
    os.remove('file.h5')
-
-
-.. ipython:: python
-   :suppress:
-
-   os.remove('file.h5')
-
 
 
 .. _io.hdf5-fixed:
@@ -4691,6 +4714,7 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
 Write to a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    df.to_parquet('example_pa.parquet', engine='pyarrow')
    df.to_parquet('example_fp.parquet', engine='fastparquet')
@@ -4708,10 +4732,12 @@ Read from a parquet file.
 Read only certain columns of a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_parquet('example_fp.parquet',
                             engine='fastparquet', columns=['a', 'b'])
-
+   result = pd.read_parquet('example_pa.parquet',
+                            engine='pyarrow', columns=['a', 'b'])
    result.dtypes
 
 
@@ -4729,6 +4755,7 @@ Serializing a ``DataFrame`` to parquet may include the implicit index as one or
 more columns in the output file. Thus, this code:
 
 .. ipython:: python
+   :okwarning:
 
     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     df.to_parquet('test.parquet', engine='pyarrow')
@@ -4745,6 +4772,7 @@ If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
 :func:`~pandas.DataFrame.to_parquet`:
 
 .. ipython:: python
+   :okwarning:
 
     df.to_parquet('test.parquet', index=False)
 

@@ -12,7 +12,9 @@ from uuid import uuid1
 
 import numpy as np
 
-from pandas.compat import range
+from pandas._config import get_option
+
+from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_float, is_string_like
@@ -21,18 +23,12 @@ from pandas.core.dtypes.generic import ABCSeries
 import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.generic import _shared_docs
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 
-try:
-    from jinja2 import (
-        PackageLoader, Environment, ChoiceLoader, FileSystemLoader
-    )
-except ImportError:
-    raise ImportError("pandas.Styler requires jinja2. "
-                      "Please install with `conda install Jinja2`\n"
-                      "or `pip install Jinja2`")
+jinja2 = import_optional_dependency(
+    "jinja2", extra="DataFrame.style requires jinja2."
+)
 
 
 try:
@@ -52,7 +48,7 @@ def _mpl(func):
         raise ImportError(no_mpl_message.format(func.__name__))
 
 
-class Styler(object):
+class Styler:
     """
     Helps style a DataFrame or Series according to the data with HTML and CSS.
 
@@ -75,7 +71,7 @@ class Styler(object):
 
     Attributes
     ----------
-    env : Jinja2 Environment
+    env : Jinja2 jinja2.Environment
     template : Jinja2 Template
     loader : Jinja2 Loader
 
@@ -112,8 +108,8 @@ class Styler(object):
     * Blank cells include ``blank``
     * Data cells include ``data``
     """
-    loader = PackageLoader("pandas", "io/formats/templates")
-    env = Environment(
+    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    env = jinja2.Environment(
         loader=loader,
         trim_blocks=True,
     )
@@ -1231,13 +1227,13 @@ class Styler(object):
         MyStyler : subclass of Styler
             Has the correct ``env`` and ``template`` class attributes set.
         """
-        loader = ChoiceLoader([
-            FileSystemLoader(searchpath),
+        loader = jinja2.ChoiceLoader([
+            jinja2.FileSystemLoader(searchpath),
             cls.loader,
         ])
 
         class MyStyler(cls):
-            env = Environment(loader=loader)
+            env = jinja2.Environment(loader=loader)
             template = env.get_template(name)
 
         return MyStyler

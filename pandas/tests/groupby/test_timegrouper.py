@@ -1,22 +1,22 @@
 """ test with the TimeGrouper / grouping with datetimes """
 
 from datetime import datetime
+from io import StringIO
 
 import numpy as np
 from numpy import nan
 import pytest
 import pytz
 
-from pandas.compat import StringIO
-
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
+from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestGroupBy(object):
+class TestGroupBy:
 
     def test_groupby_with_timegrouper(self):
         # GH 4161
@@ -92,7 +92,7 @@ class TestGroupBy(object):
     def test_timegrouper_with_reg_groups(self):
 
         # GH 3794
-        # allow combinateion of timegrouper/reg groups
+        # allow combination of timegrouper/reg groups
 
         df_original = DataFrame({
             'Branch': 'A A A A A A A B'.split(),
@@ -366,10 +366,8 @@ class TestGroupBy(object):
             return x.value.sum()
 
         expected = df.groupby(pd.Grouper(key='date')).apply(sumfunc_value)
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = (df_dt.groupby(pd.TimeGrouper(freq='M', key='date'))
-                      .apply(sumfunc_value))
+        result = (df_dt.groupby(Grouper(freq='M', key='date'))
+                  .apply(sumfunc_value))
         assert_series_equal(result.reset_index(drop=True),
                             expected.reset_index(drop=True))
 

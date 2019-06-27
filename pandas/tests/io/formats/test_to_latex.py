@@ -3,29 +3,22 @@ from datetime import datetime
 
 import pytest
 
-from pandas.compat import u
-
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.util import testing as tm
 
 
-@pytest.fixture
-def frame():
-    return DataFrame(tm.getSeriesData())
+class TestToLatex:
 
-
-class TestToLatex(object):
-
-    def test_to_latex_filename(self, frame):
+    def test_to_latex_filename(self, float_frame):
         with tm.ensure_clean('test.tex') as path:
-            frame.to_latex(path)
+            float_frame.to_latex(path)
 
             with open(path, 'r') as f:
-                assert frame.to_latex() == f.read()
+                assert float_frame.to_latex() == f.read()
 
         # test with utf-8 and encoding option (GH 7061)
-        df = DataFrame([[u'au\xdfgangen']])
+        df = DataFrame([['au\xdfgangen']])
         with tm.ensure_clean('test.tex') as path:
             df.to_latex(path, encoding='utf-8')
             with codecs.open(path, 'r', encoding='utf-8') as f:
@@ -37,9 +30,9 @@ class TestToLatex(object):
             with codecs.open(path, 'r', encoding='utf-8') as f:
                 assert df.to_latex() == f.read()
 
-    def test_to_latex(self, frame):
+    def test_to_latex(self, float_frame):
         # it works!
-        frame.to_latex()
+        float_frame.to_latex()
 
         df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
         withindex_result = df.to_latex()
@@ -68,9 +61,9 @@ class TestToLatex(object):
 
         assert withoutindex_result == withoutindex_expected
 
-    def test_to_latex_format(self, frame):
+    def test_to_latex_format(self, float_frame):
         # GH Bug #9402
-        frame.to_latex(column_format='ccc')
+        float_frame.to_latex(column_format='ccc')
 
         df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
         withindex_result = df.to_latex(column_format='ccc')
@@ -343,9 +336,9 @@ c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
         a = 'a'
         b = 'b'
 
-        test_dict = {u('co$e^x$'): {a: "a",
+        test_dict = {'co$e^x$': {a: "a",
                                     b: "b"},
-                     u('co^l1'): {a: "a",
+                     'co^l1': {a: "a",
                                   b: "b"}}
 
         unescaped_result = DataFrame(test_dict).to_latex(escape=False)
@@ -392,6 +385,7 @@ b &       b &     b \\
         assert escaped_result == escaped_expected
 
     def test_to_latex_longtable(self):
+
         df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
         withindex_result = df.to_latex(longtable=True)
         withindex_expected = r"""\begin{longtable}{lrl}
@@ -687,9 +681,9 @@ AA &  BB \\
         with pytest.raises(ValueError):
             df.to_latex(header=['A'])
 
-    def test_to_latex_decimal(self, frame):
+    def test_to_latex_decimal(self, float_frame):
         # GH 12031
-        frame.to_latex()
+        float_frame.to_latex()
 
         df = DataFrame({'a': [1.0, 2.1], 'b': ['b1', 'b2']})
         withindex_result = df.to_latex(decimal=',')

@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
-
-from pandas.compat import long
 
 from pandas import Timedelta, Timestamp
 import pandas.util.testing as tm
@@ -13,7 +10,7 @@ from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
 
 
-class TestTimestampArithmetic(object):
+class TestTimestampArithmetic:
     def test_overflow_offset(self):
         # no overflow expected
 
@@ -63,7 +60,7 @@ class TestTimestampArithmetic(object):
             stamp - offset_overflow
 
     def test_delta_preserve_nanos(self):
-        val = Timestamp(long(1337299200000000123))
+        val = Timestamp(1337299200000000123)
         result = val + timedelta(1)
         assert result.nanosecond == val.nanosecond
 
@@ -115,3 +112,23 @@ class TestTimestampArithmetic(object):
         td64 = np.timedelta64(1, 'D')
         assert (ts + td64).freq == original_freq
         assert (ts - td64).freq == original_freq
+
+    @pytest.mark.parametrize('td', [Timedelta(hours=3),
+                                    np.timedelta64(3, 'h'),
+                                    timedelta(hours=3)])
+    def test_radd_tdscalar(self, td):
+        # GH#24775 timedelta64+Timestamp should not raise
+        ts = Timestamp.now()
+        assert td + ts == ts + td
+
+    @pytest.mark.parametrize('other,expected_difference', [
+        (np.timedelta64(-123, 'ns'), -123),
+        (np.timedelta64(1234567898, 'ns'), 1234567898),
+        (np.timedelta64(-123, 'us'), -123000),
+        (np.timedelta64(-123, 'ms'), -123000000)
+    ])
+    def test_timestamp_add_timedelta64_unit(self, other, expected_difference):
+        ts = Timestamp(datetime.utcnow())
+        result = ts + other
+        valdiff = result.value - ts.value
+        assert valdiff == expected_difference

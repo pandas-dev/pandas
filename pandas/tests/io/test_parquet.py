@@ -83,7 +83,7 @@ def df_full():
          'string_with_nan': ['a', np.nan, 'c'],
          'string_with_none': ['a', None, 'c'],
          'bytes': [b'foo', b'bar', b'baz'],
-         'unicode': [u'foo', u'bar', u'baz'],
+         'unicode': ['foo', 'bar', 'baz'],
          'int': list(range(1, 4)),
          'uint': np.arange(3, 6).astype('u1'),
          'float': np.arange(4.0, 7.0, dtype='float64'),
@@ -220,7 +220,7 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
             tm.assert_frame_equal(result, df[['a', 'd']])
 
 
-class Base(object):
+class Base:
 
     def check_error_on_write(self, df, engine, exc):
         # check that we are raising the exception on writing
@@ -241,7 +241,7 @@ class TestBasic(Base):
                            'int': list(range(1, 4))})
 
         # unicode
-        df.columns = [u'foo', u'bar']
+        df.columns = ['foo', 'bar']
         check_round_trip(df, engine)
 
     def test_columns_dtypes_invalid(self, engine):
@@ -305,7 +305,7 @@ class TestBasic(Base):
         check_round_trip(df, engine)
 
     def test_write_multiindex(self, pa):
-        # Not suppoprted in fastparquet as of 0.1.3 or older pyarrow version
+        # Not supported in fastparquet as of 0.1.3 or older pyarrow version
         engine = pa
 
         df = pd.DataFrame({'A': [1, 2, 3]})
