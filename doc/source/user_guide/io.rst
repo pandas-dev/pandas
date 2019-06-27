@@ -488,7 +488,7 @@ specification:
 
 .. versionadded:: 0.21.0
 
-Specifying ``dtype='cateogry'`` will result in an unordered ``Categorical``
+Specifying ``dtype='category'`` will result in an unordered ``Categorical``
 whose ``categories`` are the unique values observed in the data. For more
 control on the categories and order, create a
 :class:`~pandas.api.types.CategoricalDtype` ahead of time, and pass that for
@@ -1679,7 +1679,7 @@ S3 URLs are handled as well but require installing the `S3Fs
 
    df = pd.read_csv('s3://pandas-test/tips.csv')
 
-If your S3 bucket requires cedentials you will need to set them as environment
+If your S3 bucket requires credentials you will need to set them as environment
 variables or in the ``~/.aws/credentials`` config file, refer to the `S3Fs
 documentation on credentials
 <https://s3fs.readthedocs.io/en/latest/#credentials>`_.
@@ -2078,7 +2078,7 @@ Dates written in nanoseconds need to be read back in nanoseconds:
 
    json = dfj2.to_json(date_unit='ns')
 
-   # Try to parse timestamps as millseconds -> Won't Work
+   # Try to parse timestamps as milliseconds -> Won't Work
    dfju = pd.read_json(json, date_unit='ms')
    dfju
 
@@ -3249,24 +3249,35 @@ And then import the data directly to a ``DataFrame`` by calling:
 
 .. code-block:: python
 
-   clipdf = pd.read_clipboard()
-
-.. ipython:: python
-
-   clipdf
-
+    >>> clipdf = pd.read_clipboard()
+    >>> clipdf
+      A B C
+    x 1 4 p
+    y 2 5 q
+    z 3 6 r
 
 The ``to_clipboard`` method can be used to write the contents of a ``DataFrame`` to
 the clipboard. Following which you can paste the clipboard contents into other
 applications (CTRL-V on many operating systems). Here we illustrate writing a
 ``DataFrame`` into clipboard and reading it back.
 
-.. ipython:: python
+.. code-block:: python
 
-    df = pd.DataFrame(np.random.randn(5, 3))
-    df
-    df.to_clipboard()
-    pd.read_clipboard()
+    >>> df = pd.DataFrame({'A': [1, 2, 3],
+    ...                    'B': [4, 5, 6],
+    ...                    'C': ['p', 'q', 'r']},
+    ...                   index=['x', 'y', 'z'])
+    >>> df
+      A B C
+    x 1 4 p
+    y 2 5 q
+    z 3 6 r
+    >>> df.to_clipboard()
+    >>> pd.read_clipboard()
+      A B C
+    x 1 4 p
+    y 2 5 q
+    z 3 6 r
 
 We can see that we got the same content back, which we had earlier written to the clipboard.
 
@@ -4703,6 +4714,7 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
 Write to a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    df.to_parquet('example_pa.parquet', engine='pyarrow')
    df.to_parquet('example_fp.parquet', engine='fastparquet')
@@ -4720,6 +4732,7 @@ Read from a parquet file.
 Read only certain columns of a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_parquet('example_fp.parquet',
                             engine='fastparquet', columns=['a', 'b'])
@@ -4742,6 +4755,7 @@ Serializing a ``DataFrame`` to parquet may include the implicit index as one or
 more columns in the output file. Thus, this code:
 
 .. ipython:: python
+   :okwarning:
 
     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     df.to_parquet('test.parquet', engine='pyarrow')
@@ -4758,6 +4772,7 @@ If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
 :func:`~pandas.DataFrame.to_parquet`:
 
 .. ipython:: python
+   :okwarning:
 
     df.to_parquet('test.parquet', index=False)
 

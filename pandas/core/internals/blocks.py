@@ -36,7 +36,6 @@ from pandas.core.arrays import (
     Categorical, DatetimeArray, ExtensionArray, PandasDtype, TimedeltaArray)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexing import check_setitem_lengths
 from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
@@ -63,9 +62,7 @@ class Block(PandasObject):
     is_bool = False
     is_object = False
     is_categorical = False
-    is_sparse = False
     is_extension = False
-    _box_to_block_values = True
     _can_hold_na = False
     _can_consolidate = True
     _verify_integrity = True
@@ -182,10 +179,6 @@ class Block(PandasObject):
 
     def to_dense(self):
         return self.values.view()
-
-    @property
-    def _na_value(self):
-        return np.nan
 
     @property
     def fill_value(self):
@@ -417,17 +410,14 @@ class Block(PandasObject):
         new_values = self.values
 
         def make_a_block(nv, ref_loc):
-            if isinstance(nv, Block):
-                block = nv
-            elif isinstance(nv, list):
+            if isinstance(nv, list):
+                assert len(nv) == 1, nv
+                assert isinstance(nv[0], Block)
                 block = nv[0]
             else:
                 # Put back the dimension that was taken from it and make
                 # a block out of the result.
-                try:
-                    nv = _block_shape(nv, ndim=self.ndim)
-                except (AttributeError, NotImplementedError):
-                    pass
+                nv = _block_shape(nv, ndim=self.ndim)
                 block = self.make_block(values=nv,
                                         placement=ref_loc)
             return block
@@ -657,24 +647,13 @@ class Block(PandasObject):
         if self.is_integer or self.is_bool or self.is_datetime:
             pass
         elif self.is_float and result.dtype == self.dtype:
-
             # protect against a bool/object showing up here
             if isinstance(dtype, str) and dtype == 'infer':
                 return result
-            if not isinstance(dtype, type):
-                dtype = dtype.type
-            if issubclass(dtype, (np.bool_, np.object_)):
-                if issubclass(dtype, np.bool_):
-                    if isna(result).all():
-                        return result.astype(np.bool_)
-                    else:
-                        result = result.astype(np.object_)
-                        result[result == 1] = True
-                        result[result == 0] = False
-                        return result
-                else:
-                    return result.astype(np.object_)
 
+            # This is only reached via Block.setitem, where dtype is always
+            #  either "infer", self.dtype, or values.dtype.
+            assert dtype == self.dtype, (dtype, self.dtype)
             return result
 
         # may need to change the dtype here
@@ -1193,8 +1172,6 @@ class Block(PandasObject):
         # sparse is treated like an ndarray, but needs .get_values() shaping
 
         values = self.values
-        if self.is_sparse:
-            values = self.get_values()
 
         if fill_tuple is None:
             fill_value = self.fill_value
@@ -1415,6 +1392,9 @@ class Block(PandasObject):
         -------
         Block
         """
+        # We should always have ndim == 2 becase Series dispatches to DataFrame
+        assert self.ndim == 2
+
         if self.is_datetimetz:
             # TODO: cleanup this special case.
             # We need to operate on i8 values for datetimetz
@@ -1424,8 +1404,7 @@ class Block(PandasObject):
 
             # TODO: NonConsolidatableMixin shape
             # Usual shape inconsistencies for ExtensionBlocks
-            if self.ndim > 1:
-                values = values[None, :]
+            values = values[None, :]
         else:
             values = self.get_values()
             values, _ = self._try_coerce_args(values, values)
@@ -1437,14 +1416,11 @@ class Block(PandasObject):
             qs = [qs]
 
         if is_empty:
-            if self.ndim == 1:
-                result = self._na_value
-            else:
-                # create the array of na_values
-                # 2d len(values) * len(qs)
-                result = np.repeat(np.array([self.fill_value] * len(qs)),
-                                   len(values)).reshape(len(values),
-                                                        len(qs))
+            # create the array of na_values
+            # 2d len(values) * len(qs)
+            result = np.repeat(np.array([self.fill_value] * len(qs)),
+                               len(values)).reshape(len(values),
+                                                    len(qs))
         else:
             # asarray needed for Sparse, see GH#24600
             # TODO: Why self.values and not values?
@@ -1455,8 +1431,7 @@ class Block(PandasObject):
                                    interpolation=interpolation)
 
             result = np.array(result, copy=False)
-            if self.ndim > 1:
-                result = result.T
+            result = result.T
 
         if orig_scalar and not lib.is_scalar(result):
             # result could be scalar in case with is_empty and self.ndim == 1
@@ -2029,10 +2004,6 @@ class DatetimeLikeBlockMixin:
         return DatetimeArray
 
     @property
-    def _na_value(self):
-        return tslibs.NaT
-
-    @property
     def fill_value(self):
         return tslibs.iNaT
 
@@ -2094,7 +2065,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if is_datetime64tz_dtype(dtype):
             values = self.values
             if getattr(values, 'tz', None) is None:
-                values = DatetimeIndex(values).tz_localize('UTC')
+                values = DatetimeArray(values).tz_localize('UTC')
             values = values.tz_convert(dtype.tz)
             return self.make_block(values)
 
@@ -2423,7 +2394,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         except (ValueError, TypeError):
             newb = make_block(self.values.astype(object),
                               placement=self.mgr_locs,
-                              klass=ObjectBlock,)
+                              klass=ObjectBlock)
             return newb.setitem(indexer, value)
 
     def equals(self, other):
@@ -2629,10 +2600,10 @@ class ObjectBlock(Block):
             values = fn(v.ravel(), **fn_kwargs)
             try:
                 values = values.reshape(shape)
-                values = _block_shape(values, ndim=self.ndim)
             except (AttributeError, NotImplementedError):
                 pass
 
+            values = _block_shape(values, ndim=self.ndim)
             return values
 
         if by_item and not self._is_single_block:
@@ -3168,8 +3139,6 @@ def _putmask_smart(v, m, n):
     # n should be the length of the mask or a scalar here
     if not is_list_like(n):
         n = np.repeat(n, len(m))
-    elif isinstance(n, np.ndarray) and n.ndim == 0:  # numpy scalar
-        n = np.repeat(np.array(n, ndmin=1), len(m))
 
     # see if we are only masking values that if putted
     # will work in the current dtype

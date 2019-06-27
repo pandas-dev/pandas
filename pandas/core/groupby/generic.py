@@ -11,7 +11,7 @@ import copy
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, FrozenSet, Iterator, List, Type, Union
 import warnings
 
 import numpy as np
@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_interval_dtype, is_numeric_dtype, is_scalar)
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
@@ -41,11 +42,56 @@ from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.sparse.frame import SparseDataFrame
 
-from pandas.plotting._core import boxplot_frame_groupby
+from pandas.plotting import boxplot_frame_groupby
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
+
+
+def whitelist_method_generator(base_class: Type[GroupBy],
+                               klass: Type[FrameOrSeries],
+                               whitelist: FrozenSet[str],
+                               ) -> Iterator[str]:
+    """
+    Yields all GroupBy member defs for DataFrame/Series names in whitelist.
+
+    Parameters
+    ----------
+    base_class : Groupby class
+        base class
+    klass : DataFrame or Series class
+        class where members are defined.
+    whitelist : frozenset
+        Set of names of klass methods to be constructed
+
+    Returns
+    -------
+    The generator yields a sequence of strings, each suitable for exec'ing,
+    that define implementations of the named methods for DataFrameGroupBy
+    or SeriesGroupBy.
+
+    Since we don't want to override methods explicitly defined in the
+    base class, any such name is skipped.
+    """
+    property_wrapper_template = \
+        """@property
+def %(name)s(self) :
+    \"""%(doc)s\"""
+    return self.__getattr__('%(name)s')"""
+
+    for name in whitelist:
+        # don't override anything that was explicitly defined
+        # in the base class
+        if hasattr(base_class, name):
+            continue
+        # ugly, but we need the name string itself in the method.
+        f = getattr(klass, name)
+        doc = f.__doc__
+        doc = doc if type(doc) == str else ''
+        wrapper_template = property_wrapper_template
+        params = {'name': name, 'doc': doc}
+        yield wrapper_template % params
 
 
 class NDFrameGroupBy(GroupBy):
@@ -434,7 +480,7 @@ class NDFrameGroupBy(GroupBy):
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
-                if (so.ndim == 2 and so.dtypes.apply(is_datetimelike).any()):
+                if so.ndim == 2 and so.dtypes.apply(is_datetimelike).any():
                     result = result.apply(
                         lambda x: to_numeric(x, errors='ignore'))
                     date_cols = self._selected_obj.select_dtypes(
@@ -685,7 +731,7 @@ class SeriesGroupBy(GroupBy):
     # Make class defs of attributes on SeriesGroupBy whitelist
 
     _apply_whitelist = base.series_apply_whitelist
-    for _def_str in base.whitelist_method_generator(
+    for _def_str in whitelist_method_generator(
             GroupBy, Series, _apply_whitelist):
         exec(_def_str)
 
@@ -735,6 +781,17 @@ class SeriesGroupBy(GroupBy):
        min  max
     1    1    2
     2    3    4
+
+    The output column names can be controlled by passing
+    the desired column names and aggregations as keyword arguments.
+
+    >>> s.groupby([1, 1, 2, 2]).agg(
+    ...     minimum='min',
+    ...     maximum='max',
+    ... )
+       minimum  maximum
+    1        1        2
+    2        3        4
     """)
 
     @Appender(_apply_docs['template']
@@ -749,8 +806,24 @@ class SeriesGroupBy(GroupBy):
                   klass='Series',
                   axis='')
     @Appender(_shared_docs['aggregate'])
-    def aggregate(self, func_or_funcs, *args, **kwargs):
+    def aggregate(self, func_or_funcs=None, *args, **kwargs):
         _level = kwargs.pop('_level', None)
+
+        relabeling = func_or_funcs is None
+        columns = None
+        no_arg_message = ("Must provide 'func_or_funcs' or named "
+                          "aggregation **kwargs.")
+        if relabeling:
+            columns = list(kwargs)
+            if not PY36:
+                # sort for 3.5 and earlier
+                columns = list(sorted(columns))
+
+            func_or_funcs = [kwargs[col] for col in columns]
+            kwargs = {}
+            if not columns:
+                raise TypeError(no_arg_message)
+
         if isinstance(func_or_funcs, str):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
@@ -759,6 +832,8 @@ class SeriesGroupBy(GroupBy):
             # but not the class list / tuple itself.
             ret = self._aggregate_multiple_funcs(func_or_funcs,
                                                  (_level or 0) + 1)
+            if relabeling:
+                ret.columns = columns
         else:
             cyfunc = self._is_cython_func(func_or_funcs)
             if cyfunc and not args and not kwargs:
@@ -793,11 +868,14 @@ class SeriesGroupBy(GroupBy):
             # have not shown a higher level one
             # GH 15931
             if isinstance(self._selected_obj, Series) and _level <= 1:
-                warnings.warn(
-                    ("using a dict on a Series for aggregation\n"
-                     "is deprecated and will be removed in a future "
-                     "version"),
-                    FutureWarning, stacklevel=3)
+                msg = dedent("""\
+                using a dict on a Series for aggregation
+                is deprecated and will be removed in a future version. Use \
+                named aggregation instead.
+
+                    >>> grouper.agg(name_1=func_1, name_2=func_2)
+                """)
+                warnings.warn(msg, FutureWarning, stacklevel=3)
 
             columns = list(arg.keys())
             arg = arg.items()
@@ -1238,7 +1316,7 @@ class SeriesGroupBy(GroupBy):
         return func(self)
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
-        """Calcuate pct_change of each value to previous entry in group"""
+        """Calculate pct_change of each value to previous entry in group"""
         # TODO: Remove this conditional when #23918 is fixed
         if freq:
             return self.apply(lambda x: x.pct_change(periods=periods,
@@ -1257,7 +1335,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     #
     # Make class defs of attributes on DataFrameGroupBy whitelist.
-    for _def_str in base.whitelist_method_generator(
+    for _def_str in whitelist_method_generator(
             GroupBy, DataFrame, _apply_whitelist):
         exec(_def_str)
 
@@ -1562,7 +1640,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
 def _is_multi_agg_with_relabel(**kwargs):
     """
-    Check whether the kwargs pass to .agg look like multi-agg with relabling.
+    Check whether kwargs passed to .agg look like multi-agg with relabeling.
 
     Parameters
     ----------

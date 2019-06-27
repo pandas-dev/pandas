@@ -191,6 +191,8 @@ class SeriesFormatter:
                 series = concat((series.iloc[:row_num],
                                  series.iloc[-row_num:]))
             self.tr_row_num = row_num
+        else:
+            self.tr_row_num = None
         self.tr_series = series
         self.truncate_v = truncate_v
 
@@ -255,7 +257,8 @@ class SeriesFormatter:
         footer = self._get_footer()
 
         if len(series) == 0:
-            return 'Series([], ' + footer + ')'
+            return "{name}([], {footer})".format(
+                name=self.series.__class__.__name__, footer=footer)
 
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
@@ -499,6 +502,8 @@ class DataFrameFormatter(TableFormatter):
                 frame = concat((frame.iloc[:row_num, :],
                                 frame.iloc[-row_num:, :]))
             self.tr_row_num = row_num
+        else:
+            self.tr_row_num = None
 
         self.tr_frame = frame
         self.truncate_h = truncate_h
@@ -1246,7 +1251,7 @@ def format_percentiles(percentiles):
             raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
-    int_idx = (percentiles.astype(int) == percentiles)
+    int_idx = np.isclose(percentiles.astype(int), percentiles)
 
     if np.all(int_idx):
         out = percentiles.astype(int).astype(str)
@@ -1563,7 +1568,7 @@ class EngFormatter:
 
         formatted = format_str.format(mant=mant, prefix=prefix)
 
-        return formatted  # .strip()
+        return formatted
 
 
 def set_eng_float_format(accuracy=3, use_eng_prefix=False):

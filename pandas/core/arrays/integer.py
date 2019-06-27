@@ -28,7 +28,7 @@ class _IntegerDtype(ExtensionDtype):
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
     These specific implementations are subclasses of the non-public
-    _IntegerDtype. For example we have Int8Dtype to represnt signed int 8s.
+    _IntegerDtype. For example we have Int8Dtype to represent signed int 8s.
 
     The attributes name & type are set when these subclasses are created.
     """
@@ -77,17 +77,6 @@ class _IntegerDtype(ExtensionDtype):
         type
         """
         return IntegerArray
-
-    @classmethod
-    def construct_from_string(cls, string):
-        """
-        Construction from a string, raise a TypeError if not
-        possible
-        """
-        if string == cls.name:
-            return cls()
-        raise TypeError("Cannot construct a '{}' from "
-                        "'{}'".format(cls, string))
 
 
 def integer_array(values, dtype=None, copy=False):
@@ -254,6 +243,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         A 1-d boolean-dtype array indicating missing values.
     copy : bool, default False
         Whether to copy the `values` and `mask`.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
 
     Returns
     -------

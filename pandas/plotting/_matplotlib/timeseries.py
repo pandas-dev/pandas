@@ -1,8 +1,8 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 import functools
+import warnings
 
-from matplotlib import pylab
 import numpy as np
 
 from pandas._libs.tslibs.frequencies import (
@@ -13,7 +13,7 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._converter import (
+from pandas.plotting._matplotlib.converter import (
     TimeSeries_DateFormatter, TimeSeries_DateLocator,
     TimeSeries_TimedeltaFormatter)
 import pandas.tseries.frequencies as frequencies
@@ -24,7 +24,6 @@ from pandas.tseries.offsets import DateOffset
 
 
 def tsplot(series, plotf, ax=None, **kwargs):
-    import warnings
     """
     Plots a Series on the given Matplotlib axes or the current axes
 
@@ -41,13 +40,13 @@ def tsplot(series, plotf, ax=None, **kwargs):
     .. deprecated:: 0.23.0
        Use Series.plot() instead
     """
+    import matplotlib.pyplot as plt
     warnings.warn("'tsplot' is deprecated and will be removed in a "
                   "future version. Please use Series.plot() instead.",
                   FutureWarning, stacklevel=2)
 
     # Used inferred freq is possible, need a test case for inferred
     if ax is None:
-        import matplotlib.pyplot as plt
         ax = plt.gca()
 
     freq, series = _maybe_resample(series, ax, kwargs)
@@ -144,8 +143,12 @@ def _replot_ax(ax, freq, kwargs):
 
             # for tsplot
             if isinstance(plotf, str):
-                from pandas.plotting._core import _plot_klass
-                plotf = _plot_klass[plotf]._plot
+                # XXX _plot_classes is private and shouldn't be imported
+                # here. But as tsplot is deprecated, and we'll remove this
+                # code soon, it's probably better to not overcomplicate
+                # things, and just leave this the way it was implemented
+                from pandas.plotting._core import _plot_classes
+                plotf = _plot_classes()[plotf]._plot
 
             lines.append(plotf(ax, series.index._mpl_repr(),
                                series.values, **kwds)[0])
@@ -319,6 +322,7 @@ def format_dateaxis(subplot, freq, index):
     default, changing the limits of the x axis will intelligently change
     the positions of the ticks.
     """
+    from matplotlib import pylab
 
     # handle index specific formatting
     # Note: DatetimeIndex does not use this

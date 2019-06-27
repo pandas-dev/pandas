@@ -529,7 +529,7 @@ class TestSeriesPlots(TestPlotBase):
         assert ax.right_ax.get_yaxis().get_visible()
         tm.close()
 
-        # seconcary -> secondary (without passing ax)
+        # secondary -> secondary (without passing ax)
         _, ax = self.plt.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
         s.plot(legend=True, secondary_y=True, ax=ax)
@@ -786,7 +786,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_standard_colors(self):
-        from pandas.plotting._style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import _get_standard_colors
 
         for c in ['r', 'red', 'green', '#FF0000']:
             result = _get_standard_colors(1, color=c)
@@ -804,7 +804,7 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     def test_standard_colors_all(self):
         import matplotlib.colors as colors
-        from pandas.plotting._style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import _get_standard_colors
 
         # multiple colors like mediumaquamarine
         for c in colors.cnames:

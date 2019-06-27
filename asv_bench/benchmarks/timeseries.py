@@ -5,7 +5,7 @@ import numpy as np
 from pandas import to_datetime, date_range, Series, DataFrame, period_range
 from pandas.tseries.frequencies import infer_freq
 try:
-    from pandas.plotting._converter import DatetimeConverter
+    from pandas.plotting._matplotlib.converter import DatetimeConverter
 except ImportError:
     from pandas.tseries.converter import DatetimeConverter
 
