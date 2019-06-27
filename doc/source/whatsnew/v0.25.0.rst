@@ -579,6 +579,7 @@ Performance Improvements
 - Improved performance of :attr:`IntervalIndex.is_unique` by removing conversion to ``MultiIndex`` (:issue:`24813`)
 - Restored performance of :meth:`DatetimeIndex.__iter__` by re-enabling specialized code path (:issue:`26702`)
 - Improved performance when building :class:`MultiIndex` with at least one :class:`CategoricalIndex` level (:issue:`22044`)
+- Improved performance by removing the need for a garbage collect when checking for ``SettingWithCopyWarning`` (:issue:`27031`)
 
 .. _whatsnew_0250.bug_fixes:
 
