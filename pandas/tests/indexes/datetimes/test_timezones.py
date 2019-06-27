@@ -563,6 +563,24 @@ class TestDatetimeIndexTimezones:
             assert times[-1] == Timestamp('2013-10-27 01:00:00+0000',
                                           tz=tz, freq="H")
 
+    @pytest.mark.parametrize('tz, option, expected', [
+        ['US/Pacific', 'shift_forward', "2019-03-10 03:00"],
+        ['dateutil/US/Pacific', 'shift_forward', "2019-03-10 03:00"],
+        ['US/Pacific', 'shift_backward', "2019-03-10 01:00"],
+        ['dateutil/US/Pacific', 'shift_backward', "2019-03-10 00:00"],
+        ['US/Pacific', timedelta(hours=1), "2019-03-10 03:00"]
+    ])
+    def test_dti_construction_nonexistent_endpoint(self, tz, option, expected):
+        # construction with an nonexistent end-point
+
+        with pytest.raises(pytz.NonExistentTimeError):
+            date_range("2019-03-10 00:00", "2019-03-10 02:00",
+                       tz="US/Pacific", freq="H")
+
+        times = date_range("2019-03-10 00:00", "2019-03-10 02:00", freq="H",
+                           tz=tz, nonexistent=option)
+        assert times[-1] == Timestamp(expected, tz=tz, freq="H")
+
     def test_dti_tz_localize_bdate_range(self):
         dr = pd.bdate_range('1/1/2009', '1/1/2010')
         dr_utc = pd.bdate_range('1/1/2009', '1/1/2010', tz=pytz.utc)
