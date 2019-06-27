@@ -509,10 +509,10 @@ class _OpenpyxlReader(_BaseExcelReader):
         # TODO: replace with openpyxl constants
         if cell.data_type == 'e':
             return np.nan
-        elif not cell.value:
-            return ''  # compat with xlrd
         elif cell.data_type == 'b':
             return bool(cell.value)
+        elif not cell.value:
+            return ''  # compat with xlrd
         elif convert_float and cell.data_type == 'n' and cell.value:
             # GH5394
             val = int(cell.value)
