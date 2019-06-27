@@ -254,7 +254,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
     def fillna(self, value=None, method=None, limit=None):
         # TODO(_values_for_fillna): remove this
-        value, method = validate_fillna_kwargs(value, method)
+        value, method, limit = validate_fillna_kwargs(value, method, limit)
 
         mask = self.isna()
 

@@ -445,7 +445,7 @@ class ExtensionArray:
         from pandas.util._validators import validate_fillna_kwargs
         from pandas.core.missing import pad_1d, backfill_1d
 
-        value, method = validate_fillna_kwargs(value, method)
+        value, method, limit = validate_fillna_kwargs(value, method, limit)
 
         mask = self.isna()
 

@@ -4,7 +4,7 @@ for validating data or function arguments
 """
 import warnings
 
-from pandas.core.dtypes.common import is_bool
+from pandas.core.dtypes.common import is_bool, is_integer
 
 
 def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
@@ -322,7 +322,8 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     return out
 
 
-def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
+def validate_fillna_kwargs(value, method, limit,
+                           validate_scalar_dict_value=True):
     """Validate the keyword arguments to 'fillna'.
 
     This checks that exactly one of 'value' and 'method' is specified.
@@ -355,4 +356,10 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
     elif value is not None and method is not None:
         raise ValueError("Cannot specify both 'value' and 'method'.")
 
-    return value, method
+    if limit is not None:
+        if not is_integer(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
+
+    return value, method, limit

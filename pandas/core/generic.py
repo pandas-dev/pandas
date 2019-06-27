@@ -6025,7 +6025,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3   NaN 3.0 NaN 4
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        value, method = validate_fillna_kwargs(value, method)
+        value, method, limit = validate_fillna_kwargs(value, method, limit)
 
         self._consolidate_inplace()
 

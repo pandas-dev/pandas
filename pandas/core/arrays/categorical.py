@@ -1756,8 +1756,8 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         filled : Categorical with NA/NaN filled
         """
-        value, method = validate_fillna_kwargs(
-            value, method, validate_scalar_dict_value=False
+        value, method, limit = validate_fillna_kwargs(
+            value, method, limit, validate_scalar_dict_value=False
         )
 
         if value is None:

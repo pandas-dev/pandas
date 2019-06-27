@@ -767,7 +767,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         if isinstance(value, ABCSeries):
             value = value.array
 
-        value, method = validate_fillna_kwargs(value, method)
+        value, method, limit = validate_fillna_kwargs(value, method, limit)
 
         mask = self.isna()
 
