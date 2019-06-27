@@ -722,7 +722,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         if len(alignable) > 1:
             # This triggers alignment.
-            # TODO: I'm sure there's a better way to get the expected index.
+            # At the moment, there aren't any ufuncs with more than two inputs
+            # so this ends up just being x1.index | x2.index, but we write
+            # it to handle *args.
             index = alignable[0].index
             for s in alignable[1:]:
                 index |= s.index
