@@ -708,6 +708,8 @@ Because *pandas* still supports Python 3.5, :pep:`526` does not apply and variab
 
 .. code-block:: python
 
+   from typing import List
+
    primes = []  # type: List[int]
 
 Whereas this is **NOT** allowed:
@@ -720,7 +722,8 @@ Note that function signatures can always be annotated per :pep:`3107`:
 
 .. code-block:: python
 
-   def sum_of_primes(primes: List[int] = [])  -> int:
+   def sum_of_primes(primes: List[int] = []) -> int:
+       ...
 
 Style Guidelines
 ~~~~~~~~~~~~~~~~
@@ -761,13 +764,15 @@ When dealing with parameters with a default argument of ``None``, you should not
 
 .. code-block:: python
 
-   def maybe_upcase(value: Optional[str] = None) -> Optional[str]:
+   def maybe_upcase_wrong(value: Optional[str] = None) -> Optional[str]:
+       ...
 
 You should write
 
 .. code-block:: python
 
-   def maybe_upcase(value: str = None) -> Optional[str]:
+   def maybe_upcase_right(value: str = None) -> Optional[str]:
+       ...
 
 Pandas-specific Types
 ~~~~~~~~~~~~~~~~~~~~~
@@ -781,6 +786,7 @@ For example, quite a few functions in *pandas* accept a ``dtype`` argument. This
    from pandas._typing import Dtype
 
    def as_type(dtype: Dtype) -> ...:
+       ...
 
 This module will ultimately house types for repeatedly used concepts like "path-like", "array-like", "numeric", etc... and can also hold aliases for commonly appearing parameters like `axis`. Development of this module is active so be sure to refer to the source for the most up to date list of available types.
 
