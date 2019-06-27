@@ -591,14 +591,12 @@ class _OpenpyxlReader(_BaseExcelReader):
     def _replace_type_error_with_nan(self, rows):
         try:
             from openpyxl.cell.cell import TYPE_ERROR
-        except ImportError:
-            # Work around for import error in Linux py35_compat test that I
-            # can't reproduce
-            TYPE_ERROR = 'e'
+        except ImportError:  # openpyxl < 2.6
+            from openpyxl.cell.cell import Cell
+            TYPE_ERROR = Cell.TYPE_ERROR
 
-        nan = float('nan')
         for row in rows:
-            yield [nan
+            return [np.nan
                    if cell.data_type == TYPE_ERROR
                    else cell.value
                    for cell in row]
