@@ -647,24 +647,13 @@ class Block(PandasObject):
         if self.is_integer or self.is_bool or self.is_datetime:
             pass
         elif self.is_float and result.dtype == self.dtype:
-
             # protect against a bool/object showing up here
             if isinstance(dtype, str) and dtype == 'infer':
                 return result
-            if not isinstance(dtype, type):
-                dtype = dtype.type
-            if issubclass(dtype, (np.bool_, np.object_)):
-                if issubclass(dtype, np.bool_):
-                    if isna(result).all():
-                        return result.astype(np.bool_)
-                    else:
-                        result = result.astype(np.object_)
-                        result[result == 1] = True
-                        result[result == 0] = False
-                        return result
-                else:
-                    return result.astype(np.object_)
 
+            # This is only reached via Block.setitem, where dtype is always
+            #  either "infer", self.dtype, or values.dtype.
+            assert dtype == self.dtype, (dtype, self.dtype)
             return result
 
         # may need to change the dtype here
