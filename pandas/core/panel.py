@@ -856,13 +856,7 @@ class Panel(NDFrame):
         if axis == 0:
             return self[key]
 
-        self._consolidate_inplace()
-        axis_number = self._get_axis_number(axis)
-        new_data = self._data.xs(key, axis=axis_number, copy=False)
-        result = self._construct_return_type(new_data)
-        copy = new_data.is_mixed_type
-        result._set_is_copy(self, copy=copy)
-        return result
+        raise NotImplementedError("Panel is removed in pandas 0.25.0")
 
     _xs = xs
 
