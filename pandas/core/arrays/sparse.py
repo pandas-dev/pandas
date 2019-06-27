@@ -1868,15 +1868,6 @@ def _maybe_to_dense(obj):
     return obj
 
 
-def _maybe_to_sparse(array):
-    """
-    array must be SparseSeries or SparseArray
-    """
-    if isinstance(array, ABCSparseSeries):
-        array = array.array.copy()
-    return array
-
-
 def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
     """
     Convert ndarray to sparse format
