@@ -1162,6 +1162,20 @@ class TestExcelWriter(_WriterBase):
                                        path="foo.{ext}".format(ext=ext))
         tm.assert_frame_equal(result, df)
 
+    def test_merged_cell_custom_objects(self, engine, ext):
+        # see GH-27006
+        mipix = MultiIndex.from_tuples([(pd.Period('2018'), pd.Period('2018Q1')),
+                                        (pd.Period('2018'), pd.Period('2018Q2'))])
+        expected = DataFrame(np.random.rand(2, len(mipix)), columns=mipix)
+        expected.to_excel(self.path)
+        result = pd.read_excel(self.path, header=[0, 1], index_col=0)
+        
+        # need to convert PeriodIndexes to standard Indexes for assert comparison
+        expected.columns.set_levels([[str(i) for i in mipix.levels[0]],
+                                     [str(i) for i in mipix.levels[1]]],
+                                    level=[0, 1],
+                                    inplace=True)
+        tm.assert_frame_equal(expected, result)
 
 class TestExcelWriterEngineTests:
 
