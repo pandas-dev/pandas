@@ -830,22 +830,6 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def view(self, dtype=None) -> ABCExtensionArray:
-        """
-        Return a view on the array.
-
-        Parameters
-        ----------
-        dtype : NumPy dtype or pandas dtype
-
-        Returns
-        -------
-        ExtensionArray
-        """
-        if dtype is None:
-            return self
-        raise AbstractMethodError(self)
-
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
