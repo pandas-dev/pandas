@@ -820,19 +820,30 @@ class ExtensionArray:
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self, deep: bool = False) -> ABCExtensionArray:
+    def copy(self) -> ABCExtensionArray:
         """
         Return a copy of the array.
-
-        Parameters
-        ----------
-        deep : bool, default False
-            Also copy the underlying data backing this array.
 
         Returns
         -------
         ExtensionArray
         """
+        raise AbstractMethodError(self)
+
+    def view(self, dtype=None) -> ABCExtensionArray:
+        """
+        Return a view on the array.
+
+        Parameters
+        ----------
+        dtype : NumPy dtype or pandas dtype
+
+        Returns
+        -------
+        ExtensionArray
+        """
+        if dtype is None:
+            return self
         raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------

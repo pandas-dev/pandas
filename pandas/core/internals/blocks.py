@@ -2212,7 +2212,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """ copy constructor """
         values = self.values
         if deep:
-            values = values.copy(deep=True)
+            values = values.copy()
         return self.make_block_same_class(values)
 
     def get_values(self, dtype=None):

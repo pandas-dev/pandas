@@ -1,4 +1,3 @@
-import copy
 import sys
 from typing import Type
 import warnings
@@ -375,14 +374,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         return type(self)(result, mask, copy=False)
 
-    def copy(self, deep=False):
+    def copy(self):
         data, mask = self._data, self._mask
-        if deep:
-            data = copy.deepcopy(data)
-            mask = copy.deepcopy(mask)
-        else:
-            data = data.copy()
-            mask = mask.copy()
+        data = data.copy()
+        mask = mask.copy()
         return type(self)(data, mask, copy=False)
 
     def __setitem__(self, key, value):
