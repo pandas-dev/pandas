@@ -68,12 +68,14 @@ def test_write_append_mode_raises(ext):
         with pytest.raises(ValueError, match=msg):
             ExcelWriter(f, engine='xlsxwriter', mode='a')
 
+
+@pytest.mark.parametrize("ext", ['test.xlsx'])
 def test_merged_cell_custom_objects(ext):
-    # Test that custom object types residing within merged (grouped) 
+    # Test that custom object types residing within merged (grouped)
     # cells are converted to python data types before being passed to
     # the xlsxwriter package. Test for issue #27006
 
-    #create a custom object type, and place it in a grouped dataframe
+    # create a custom object type, and place it in a grouped dataframe
     pixy = PeriodIndex(['2018', '2018', '2018', '2018',
                         '2019', '2019', '2019', '2019'], freq='Y')
     pixq = PeriodIndex(['2018Q1', '2018Q2', '2018Q3', '2018Q4',
@@ -82,7 +84,7 @@ def test_merged_cell_custom_objects(ext):
     mipix = MultiIndex.from_arrays(pixarr, names=['year', 'quarter'])
     df = DataFrame(np.random.rand(2, len(mipix)), columns=mipix)
 
-    #write the dataframe to excel
+    # write the dataframe to excel
     try:
         with ensure_clean(ext) as path:
             writer = ExcelWriter(path)
