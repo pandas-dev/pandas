@@ -5,7 +5,6 @@ to disk
 
 import copy
 from datetime import date, datetime
-from distutils.version import LooseVersion
 import itertools
 import os
 import re
@@ -226,10 +225,6 @@ def _tables():
     if _table_mod is None:
         import tables
         _table_mod = tables
-
-        # version requirements
-        if LooseVersion(tables.__version__) < LooseVersion('3.0.0'):
-            raise ImportError("PyTables version >= 3.0.0 is required")
 
         # set the file open policy
         # return the file open policy; this changes as of pytables 3.1
@@ -824,7 +819,7 @@ class HDFStore:
                 raise ValueError(
                     "all tables must have exactly the same nrows!")
 
-        # axis is the concentation axes
+        # axis is the concentration axes
         axis = list({t.non_index_axes[0][0] for t in tbls})[0]
 
         def func(_start, _stop, _where):
@@ -948,7 +943,7 @@ class HDFStore:
             of the object are indexed. See `here
             <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         min_itemsize : dict of columns that specify minimum string sizes
-        nan_rep      : string to use as string nan represenation
+        nan_rep      : string to use as string nan representation
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
         encoding     : default None, provide an encoding for strings
@@ -1343,7 +1338,7 @@ class HDFStore:
 
             else:
 
-                # distiguish between a frame/table
+                # distinguish between a frame/table
                 tt = 'legacy_panel'
                 try:
                     fields = group.table._v_attrs.fields
@@ -3316,7 +3311,7 @@ class Table(Fixed):
                 warnings.warn(ws, IncompatibilityWarning)
 
     def validate_min_itemsize(self, min_itemsize):
-        """validate the min_itemisze doesn't contain items that are not in the
+        """validate the min_itemsize doesn't contain items that are not in the
         axes this needs data_columns to be defined
         """
         if min_itemsize is None:
@@ -3500,7 +3495,7 @@ class Table(Fixed):
     def create_axes(self, axes, obj, validate=True, nan_rep=None,
                     data_columns=None, min_itemsize=None, **kwargs):
         """ create and return the axes
-        leagcy tables create an indexable column, indexable index,
+        legacy tables create an indexable column, indexable index,
         non-indexable fields
 
             Parameters

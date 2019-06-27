@@ -99,7 +99,7 @@ Splitting
    df[df.AAA <= 5]
    df[df.AAA > 5]
 
-Building Criteria
+Building criteria
 *****************
 
 `Select with multi-column criteria
@@ -245,7 +245,7 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
 
    df[~((df.AAA <= 6) & (df.index.isin([0, 2, 4])))]
 
-New Columns
+New columns
 ***********
 
 `Efficiently and dynamically creating new columns using applymap
@@ -399,7 +399,7 @@ Sorting
 
    df.sort_values(by=('Labs', 'II'), ascending=False)
 
-`Partial Selection, the need for sortedness;
+`Partial selection, the need for sortedness;
 <https://github.com/pandas-dev/pandas/issues/2995>`__
 
 Levels
@@ -413,7 +413,7 @@ Levels
 
 .. _cookbook.missing_data:
 
-Missing Data
+Missing data
 ------------
 
 The :ref:`missing data<missing_data>` docs.
@@ -485,7 +485,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    expected_df = gb.apply(GrowUp)
    expected_df
 
-`Expanding Apply
+`Expanding apply
 <http://stackoverflow.com/questions/14542145/reductions-down-a-column-in-pandas>`__
 
 .. ipython:: python
@@ -595,7 +595,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df.A.groupby((df.A != df.A.shift()).cumsum()).groups
    df.A.groupby((df.A != df.A.shift()).cumsum()).cumsum()
 
-Expanding Data
+Expanding data
 **************
 
 `Alignment and to-date
@@ -690,7 +690,7 @@ To create year and month cross tabulation:
 Apply
 *****
 
-`Rolling Apply to Organize - Turning embedded lists into a MultiIndex frame
+`Rolling apply to organize - Turning embedded lists into a MultiIndex frame
 <http://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__
 
 .. ipython:: python
@@ -706,7 +706,7 @@ Apply
                         for ind, row in df.iterrows()})
    df_orgz
 
-`Rolling Apply with a DataFrame returning a Series
+`Rolling apply with a DataFrame returning a Series
 <http://stackoverflow.com/questions/19121854/using-rolling-apply-on-a-dataframe-object>`__
 
 Rolling Apply to multiple columns where function calculates a Series before a Scalar from the Series is returned
@@ -1099,7 +1099,7 @@ HDFStore
 
 The :ref:`HDFStores <io.hdf5>` docs
 
-`Simple Queries with a Timestamp Index
+`Simple queries with a Timestamp Index
 <http://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
 
 `Managing heterogeneous data using a linked multiple table hierarchy
@@ -1169,7 +1169,7 @@ Storing Attributes to a group node
 
 .. _cookbook.binary:
 
-Binary Files
+Binary files
 ************
 
 pandas readily accepts NumPy record arrays, if you need to read in a binary
@@ -1334,7 +1334,7 @@ Values can be set to NaT using np.nan, similar to datetime
    y[1] = np.nan
    y
 
-Aliasing Axis Names
+Aliasing axis names
 -------------------
 
 To globally provide aliases for axis names, one can define these 2 functions:
@@ -1361,7 +1361,7 @@ To globally provide aliases for axis names, one can define these 2 functions:
    df2.sum(axis='myaxis2')
    clear_axis_alias(pd.DataFrame, 'columns', 'myaxis2')
 
-Creating Example Data
+Creating example data
 ---------------------
 
 To create a dataframe from every combination of some given values, like R's ``expand.grid()``

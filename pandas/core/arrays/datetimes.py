@@ -309,6 +309,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                 "ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg.format(type(values).__name__))
+        if values.ndim != 1:
+            raise ValueError("Only 1-dimensional input arrays are supported.")
 
         if values.dtype == 'i8':
             # for compat with datetime/timedelta/period shared methods,
@@ -676,7 +678,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     def _has_same_tz(self, other):
         zzone = self._timezone
 
-        # vzone sholdn't be None if value is non-datetime like
+        # vzone shouldn't be None if value is non-datetime like
         if isinstance(other, np.datetime64):
             # convert to Timestamp as np.datetime64 doesn't have tz attr
             other = Timestamp(other)

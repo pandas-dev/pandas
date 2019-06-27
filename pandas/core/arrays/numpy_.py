@@ -285,7 +285,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
                       fill_value=fill_value)
         return type(self)(result)
 
-    def copy(self, deep=False):
+    def copy(self):
         return type(self)(self._ndarray.copy())
 
     def _values_for_argsort(self):
