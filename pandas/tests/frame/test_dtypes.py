@@ -978,9 +978,11 @@ class TestDataFrameDatetimeWithTZ(TestData):
                               Timestamp('2013-01-03 00:00:00+0100',
                                         tz='CET')]],
                             dtype=object).T
+        expected = DataFrame(expected,
+                             index=self.tzframe.index,
+                             columns=self.tzframe.columns, dtype=object)
         result = self.tzframe.astype(object)
-        assert_frame_equal(result, DataFrame(
-            expected, index=self.tzframe.index, columns=self.tzframe.columns))
+        assert_frame_equal(result, expected)
 
         result = self.tzframe.astype('datetime64[ns]')
         expected = DataFrame({'A': date_range('20130101', periods=3),

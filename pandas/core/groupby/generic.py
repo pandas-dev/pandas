@@ -21,10 +21,12 @@ from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    maybe_convert_objects, maybe_downcast_to_dtype)
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_platform_int, is_bool, is_datetimelike,
-    is_integer_dtype, is_interval_dtype, is_numeric_dtype, is_scalar)
+    is_integer_dtype, is_interval_dtype, is_numeric_dtype, is_object_dtype,
+    is_scalar)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas._typing import FrameOrSeries
@@ -334,7 +336,6 @@ class NDFrameGroupBy(GroupBy):
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         from pandas.core.index import _all_indexes_same
-        from pandas.core.tools.numeric import to_numeric
 
         if len(keys) == 0:
             return DataFrame(index=keys)
@@ -406,7 +407,6 @@ class NDFrameGroupBy(GroupBy):
                     # provide a reduction (Frame -> Series) if groups are
                     # unique
                     if self.squeeze:
-
                         # assign the name to this series
                         if singular_series:
                             values[0].name = keys[0]
@@ -481,14 +481,7 @@ class NDFrameGroupBy(GroupBy):
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
                 if so.ndim == 2 and so.dtypes.apply(is_datetimelike).any():
-                    result = result.apply(
-                        lambda x: to_numeric(x, errors='ignore'))
-                    date_cols = self._selected_obj.select_dtypes(
-                        include=['datetime', 'timedelta']).columns
-                    date_cols = date_cols.intersection(result.columns)
-                    result[date_cols] = (result[date_cols]
-                                         ._convert(datetime=True,
-                                                   coerce=True))
+                    result = _recast_datetimelike_result(result)
                 else:
                     result = result._convert(datetime=True)
 
@@ -1710,3 +1703,35 @@ def _normalize_keyword_aggregation(kwargs):
         order.append((column,
                       com.get_callable_name(aggfunc) or aggfunc))
     return aggspec, columns, order
+
+
+def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
+    """
+    If we have date/time like in the original, then coerce dates
+    as we are stacking can easily have object dtypes here.
+
+    Parameters
+    ----------
+    result : DataFrame
+
+    Returns
+    -------
+    DataFrame
+
+    Notes
+    -----
+    - Assumes Groupby._selected_obj has ndim==2 and at least one
+    datetimelike column
+    """
+    result = result.copy()
+
+    obj_cols = [idx for idx in range(len(result.columns))
+                if is_object_dtype(result.dtypes[idx])]
+
+    # See GH#26285
+    for n in obj_cols:
+        converted = maybe_convert_objects(result.iloc[:, n].values,
+                                          convert_numeric=False)
+
+        result.iloc[:, n] = converted
+    return result

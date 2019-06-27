@@ -869,10 +869,8 @@ class TestTimedeltaArraylikeAddSubOps:
         idx = TimedeltaIndex(['1 day', '2 day'])
         expected = DatetimeIndex(['2011-01-02', '2011-01-03'], tz=tz)
 
-        # FIXME: fails with transpose=True because of tz-aware DataFrame
-        #  transpose bug
-        idx = tm.box_expected(idx, box_with_array, transpose=False)
-        expected = tm.box_expected(expected, box_with_array, transpose=False)
+        idx = tm.box_expected(idx, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = idx + other
         tm.assert_equal(result, expected)
