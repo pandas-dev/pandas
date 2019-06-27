@@ -2,7 +2,9 @@ from collections import OrderedDict
 from distutils.version import LooseVersion
 
 from pandas.compat._optional import import_optional_dependency
-from pandas.core.dtypes.common import is_integer, is_list_like
+from pandas.core.dtypes.common import (
+    ensure_int_or_float, is_float_dtype, is_integer, is_integer_dtype,
+    is_list_like, is_object_dtype)
 
 from pandas.core.frame import DataFrame
 
@@ -543,20 +545,17 @@ class _OpenpyxlReader(_BaseExcelReader):
         # is implicitly done when reading and excel file with xlrd, that
         # behaviour is replicated here.
 
-        if series.dtype == object:
+        if is_object_dtype(series):
             try:
-                series = series.astype('int64')
-            except (ValueError, TypeError):
-                try:
-                    series = series.astype('float64')
-                except (ValueError, TypeError):
-                    return series
+                series = ensure_int_or_float(series)
+            except (ValueError):
+                return series
         elif (convert_float
-                and series.dtype >= float
+                and is_float_dtype(series)
                 and all(series % 1 == 0)):
             series = series.astype('int64')
         elif not convert_float:
-            if series.dtype >= int:
+            if is_integer_dtype(series):
                 series = series.astype('float64')
         return series
 
