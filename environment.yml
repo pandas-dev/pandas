@@ -79,5 +79,4 @@ dependencies:
   - xlrd  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlsxwriter  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlwt  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
-  - pip:
-    - pyreadstat  # pandas.read_spss
+  - pyreadstat  # pandas.read_spss
