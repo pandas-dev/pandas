@@ -109,8 +109,6 @@ def json_normalize(data, record_path=None, meta=None,
     ----------
     data : dict or list of dicts
         Unserialized JSON objects
-    fill_value: dict, default None
-        default na values for specified columns
     record_path : string or list of strings, default None
         Path in each object to list of records. If not passed, data will be
         assumed to be an array of records
@@ -134,6 +132,11 @@ def json_normalize(data, record_path=None, meta=None,
         e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
 
         .. versionadded:: 0.20.0
+
+    fill_value : dict, default None
+        default na values for specified columns
+
+        .. versionadded:: 0.25.0
 
     Returns
     -------

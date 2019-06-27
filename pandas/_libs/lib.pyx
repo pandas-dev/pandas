@@ -321,7 +321,8 @@ def dicts_to_array(dicts: list, columns: list, fill_value=None):
 
     result = np.empty((n, k), dtype='O')
     if fill_value:
-        onan = [fill_value[col] if col in fill_value else np.nan for col in columns]
+        onan = ([fill_value[col] if col in fill_value
+                else np.nan for col in columns])
     else:
         onan = list(np.full(k, np.nan))
 

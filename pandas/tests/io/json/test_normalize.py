@@ -38,6 +38,7 @@ def deep_nested():
              }
             ]
 
+
 @pytest.fixture
 def deep_nested_missing():
     # deeply nested data with some missing values
@@ -64,6 +65,7 @@ def deep_nested_missing():
                         ]
              }
             ]
+
 
 @pytest.fixture
 def state_data():
