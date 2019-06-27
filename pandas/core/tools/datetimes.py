@@ -363,7 +363,7 @@ def _adjust_to_origin(arg, origin, unit):
             raise ValueError("incompatible 'arg' type for given "
                              "'origin'='julian'")
 
-        # premptively check this for a nice range
+        # preemptively check this for a nice range
         j_max = Timestamp.max.to_julian_date() - j0
         j_min = Timestamp.min.to_julian_date() - j0
         if np.any(arg > j_max) or np.any(arg < j_min):
@@ -456,7 +456,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         - If False returns ndarray of values.
 
         .. deprecated:: 0.25.0
-            Use :meth:`.to_numpy` or :meth:`Timestamp.to_datetime64`
+            Use :meth:`Series.to_numpy` or :meth:`Timestamp.to_datetime64`
             instead to get an ndarray of values or numpy.datetime64,
             respectively.
 

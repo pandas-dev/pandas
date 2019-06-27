@@ -1,4 +1,4 @@
-# Arithmetc tests for DataFrame/Series/Index/Array classes that should
+# Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for Period dtype
 import operator
@@ -20,17 +20,27 @@ from pandas.tseries.frequencies import to_offset
 # Comparisons
 
 
-class TestPeriodIndexComparisons:
+class TestPeriodArrayLikeComparisons:
+    # Comparison tests for PeriodDtype vectors fully parametrized over
+    #  DataFrame/Series/PeriodIndex/PeriodArray.  Ideally all comparison
+    #  tests will eventually end up here.
 
-    # TODO: parameterize over boxes
-    def test_compare_zerodim(self):
+    def test_compare_zerodim(self, box_with_array):
         # GH#26689 make sure we unbox zero-dimensional arrays
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
+
         pi = pd.period_range('2000', periods=4)
         other = np.array(pi.to_numpy()[0])
 
+        pi = tm.box_expected(pi, box_with_array)
         result = pi <= other
         expected = np.array([True, False, False, False])
-        tm.assert_numpy_array_equal(result, expected)
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(result, expected)
+
+
+class TestPeriodIndexComparisons:
+    # TODO: parameterize over boxes
 
     @pytest.mark.parametrize("other", ["2017", 2017])
     def test_eq(self, other):

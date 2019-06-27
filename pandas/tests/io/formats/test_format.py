@@ -533,7 +533,7 @@ class TestDataFrameFormatting:
         assert result == '  c/\u03c3\n' + '0   1\n1   2\n2   3'
 
     def test_east_asian_unicode_false(self):
-        # not alighned properly because of east asian width
+        # not aligned properly because of east asian width
 
         # mid col
         df = DataFrame({'a': ['あ', 'いいい', 'う', 'ええええええ'],
@@ -2738,6 +2738,14 @@ def test_format_percentiles():
         fmt.format_percentiles([2, 0.1, 0.5])
     with pytest.raises(ValueError, match=msg):
         fmt.format_percentiles([0.1, 0.5, 'a'])
+
+
+def test_format_percentiles_integer_idx():
+    # Issue #26660
+    result = fmt.format_percentiles(np.linspace(0, 1, 10 + 1))
+    expected = ['0%', '10%', '20%', '30%', '40%', '50%',
+                '60%', '70%', '80%', '90%', '100%']
+    assert result == expected
 
 
 def test_repr_html_ipython_config(ip):
