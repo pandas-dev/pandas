@@ -62,7 +62,7 @@ Window functions have been refactored to be methods on ``Series/DataFrame`` obje
    df = pd.DataFrame({'A': range(10), 'B': np.random.randn(10)})
    df
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -82,7 +82,7 @@ Previous Behavior:
    8   7  0.079587
    9   8 -0.954504
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -145,14 +145,14 @@ This continues to work as before for function or dict-like values.
 
 .. _whatsnew_0180.enhancements.rangeindex:
 
-Range Index
+Range index
 ^^^^^^^^^^^
 
 A ``RangeIndex`` has been added to the ``Int64Index`` sub-classes to support a memory saving alternative for common use cases. This has a similar implementation to the python ``range`` object (``xrange`` in python 2), in that it only stores the start, stop, and step values for the index. It will transparently interact with the user API, converting to ``Int64Index`` if needed.
 
 This will now be the default constructed index for ``NDFrame`` objects, rather than previous an ``Int64Index``. (:issue:`939`, :issue:`12070`, :issue:`12071`, :issue:`12109`, :issue:`12888`)
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -168,7 +168,7 @@ Previous Behavior:
    Out[6]: 8000
 
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -341,13 +341,13 @@ In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available throug
    s
    s.dt.round('D')
 
-Formatting of Integers in FloatIndex
+Formatting of integers in FloatIndex
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Integers in ``FloatIndex``, e.g. 1., are now formatted with a decimal point and a ``0`` digit, e.g. ``1.0`` (:issue:`11713`)
 This change not only affects the display to the console, but also the output of IO methods like ``.to_csv`` or ``.to_html``.
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -369,7 +369,7 @@ Previous Behavior:
    2,3
 
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -383,7 +383,7 @@ Changes to dtype assignment behaviors
 
 When a DataFrame's slice is updated with a new slice of the same dtype, the dtype of the DataFrame will now remain the same. (:issue:`10503`)
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -406,7 +406,7 @@ Previous Behavior:
    b    int64
    dtype: object
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -419,7 +419,7 @@ New Behavior:
 
 When a DataFrame's integer slice is partially updated with a new slice of floats that could potentially be down-casted to integer without losing precision, the dtype of the slice will be set to float instead of integer.
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -443,7 +443,7 @@ Previous Behavior:
      10  4  5  1
    8 12  7  8  9
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -484,7 +484,7 @@ See the `xarray full-documentation here <http://xarray.pydata.org/en/stable/>`__
      * major_axis  (major_axis) int64 0 1 2
      * minor_axis  (minor_axis) int64 0 1 2 3
 
-Latex Representation
+Latex representation
 ^^^^^^^^^^^^^^^^^^^^
 
 ``DataFrame`` has gained a ``._repr_latex_()`` method in order to allow for conversion to latex in a ipython/jupyter notebook using nbconvert. (:issue:`11778`)
@@ -981,7 +981,7 @@ assignments are valid for multi-line expressions.
 
 .. _whatsnew_0180.api:
 
-Other API Changes
+Other API changes
 ^^^^^^^^^^^^^^^^^
 - ``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing of date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
 
@@ -1074,7 +1074,7 @@ In 0.18.0, this deprecation warning is removed and these will now raise a ``Type
    s2 = pd.Series([1, 2, 3], index=list('abc'))
    s2
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -1104,7 +1104,7 @@ Previous Behavior:
    c     3
    dtype: int64
 
-New Behavior:
+New behavior:
 
 For iloc, getting & setting via a float scalar will always raise.
 
@@ -1180,7 +1180,7 @@ Removal of prior version deprecations/changes
 
 .. _whatsnew_0180.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of ``andrews_curves`` (:issue:`11534`)

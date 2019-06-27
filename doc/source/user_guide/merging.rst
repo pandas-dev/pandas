@@ -814,7 +814,7 @@ The ``indicator`` argument will also accept string arguments, in which case the 
 
 .. _merging.dtypes:
 
-Merge Dtypes
+Merge dtypes
 ~~~~~~~~~~~~
 
 .. versionadded:: 0.19.0
@@ -1361,7 +1361,7 @@ Timeseries friendly merging
 
 .. _merging.merge_ordered:
 
-Merging Ordered Data
+Merging ordered data
 ~~~~~~~~~~~~~~~~~~~~
 
 A :func:`merge_ordered` function allows combining time series and other
@@ -1381,7 +1381,7 @@ fill/interpolate missing data:
 
 .. _merging.merge_asof:
 
-Merging AsOf
+Merging asof
 ~~~~~~~~~~~~
 
 .. versionadded:: 0.19.0

@@ -216,7 +216,7 @@ when sampling from rows.
 
 .. _whatsnew_0161.enhancements.string:
 
-String Methods Enhancements
+String methods enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :ref:`Continuing from v0.16.0 <whatsnew_0160.enhancements.string>`, the following
@@ -279,7 +279,7 @@ enhancements make string operations easier and more consistent with standard pyt
 
 .. _whatsnew_0161.enhancements.other:
 
-Other Enhancements
+Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - ``BusinessHour`` offset is now supported, which represents business hours starting from 09:00 - 17:00 on ``BusinessDay`` by default. See :ref:`Here <timeseries.businesshour>` for details. (:issue:`7905`)
@@ -351,12 +351,12 @@ Deprecations
 
 .. _whatsnew_0161.index_repr:
 
-Index Representation
+Index representation
 ~~~~~~~~~~~~~~~~~~~~
 
 The string representation of ``Index`` and its sub-classes have now been unified. These will show a single-line display if there are few values; a wrapped multi-line display for a lot of values (but less than ``display.max_seq_items``; if lots of items (> ``display.max_seq_items``) will show a truncated display (the head and tail of the data). The formatting for ``MultiIndex`` is unchanged (a multi-line wrapped display). The display width responds to the option ``display.max_seq_items``, which is defaulted to 100. (:issue:`6482`)
 
-Previous Behavior
+Previous behavior
 
 .. code-block:: ipython
 
@@ -378,7 +378,7 @@ Previous Behavior
    [2013-01-01 00:00:00-05:00, ..., 2013-04-14 00:00:00-04:00]
    Length: 104, Freq: D, Timezone: US/Eastern
 
-New Behavior
+New behavior
 
 .. ipython:: python
 
@@ -399,7 +399,7 @@ New Behavior
 
 .. _whatsnew_0161.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved csv write performance with mixed dtypes, including datetimes by up to 5x (:issue:`9940`)
@@ -409,7 +409,7 @@ Performance Improvements
 
 .. _whatsnew_0161.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug where labels did not appear properly in the legend of ``DataFrame.plot()``, passing ``label=`` arguments works, and Series indices are no longer mutated. (:issue:`9542`)

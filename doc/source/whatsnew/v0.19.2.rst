@@ -39,7 +39,7 @@ The ``pd.merge_asof()``, added in 0.19.0, gained some improvements:
 
 .. _whatsnew_0192.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Performance regression with ``PeriodIndex`` (:issue:`14822`)
@@ -50,7 +50,7 @@ Performance Improvements
 
 .. _whatsnew_0192.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 - Compat with python 3.6 for pickling of some offsets (:issue:`14685`)
 - Compat with python 3.6 for some indexing exception types (:issue:`14684`, :issue:`14689`)

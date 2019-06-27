@@ -20,7 +20,7 @@ and bug fixes. We recommend that all users upgrade to this version.
 
 .. _whatsnew_0203.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Fixed a bug in failing to compute rolling computations of a column-MultiIndexed ``DataFrame`` (:issue:`16789`, :issue:`16825`)

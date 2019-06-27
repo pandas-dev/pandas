@@ -1,6 +1,6 @@
 .. _whatsnew_0233:
 
-What's New in 0.23.3 (July 7, 2018)
+What's new in 0.23.3 (July 7, 2018)
 -----------------------------------
 
 {{ header }}

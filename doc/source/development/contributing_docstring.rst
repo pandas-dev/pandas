@@ -929,7 +929,7 @@ plot will be generated automatically when building the documentation.
 
 .. _docstring.sharing:
 
-Sharing Docstrings
+Sharing docstrings
 ------------------
 
 Pandas has a system for sharing docstrings, with slight variations, between

@@ -3,7 +3,7 @@
 {{ header }}
 
 *********************
-Enhancing Performance
+Enhancing performance
 *********************
 
 In this part of the tutorial, we will investigate how to speed up certain
@@ -15,7 +15,7 @@ when we use Cython and Numba on a test function operating row-wise on the
 
 .. _enhancingperf.cython:
 
-Cython (Writing C extensions for pandas)
+Cython (writing C extensions for pandas)
 ----------------------------------------
 
 For many use cases writing pandas in pure Python and NumPy is sufficient. In some
@@ -33,7 +33,7 @@ faster than the pure Python solution.
 
 .. _enhancingperf.pure:
 
-Pure python
+Pure Python
 ~~~~~~~~~~~
 
 We have a ``DataFrame`` to which we want to apply a function row-wise.
@@ -429,7 +429,7 @@ Read more in the `Numba docs <http://numba.pydata.org/>`__.
 
 .. _enhancingperf.eval:
 
-Expression Evaluation via :func:`~pandas.eval`
+Expression evaluation via :func:`~pandas.eval`
 -----------------------------------------------
 
 The top-level function :func:`pandas.eval` implements expression evaluation of
@@ -465,7 +465,7 @@ engine in addition to some extensions available only in pandas.
    The larger the frame and the larger the expression the more speedup you will
    see from using :func:`~pandas.eval`.
 
-Supported Syntax
+Supported syntax
 ~~~~~~~~~~~~~~~~
 
 These operations are supported by :func:`pandas.eval`:
@@ -505,7 +505,7 @@ This Python syntax is **not** allowed:
 
 
 
-:func:`~pandas.eval` Examples
+:func:`~pandas.eval` examples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :func:`pandas.eval` works well with expressions containing large arrays.
@@ -669,7 +669,7 @@ whether the query modifies the original frame.
    Unlike with ``eval``, the default value for ``inplace`` for ``query``
    is ``False``.  This is consistent with prior versions of pandas.
 
-Local Variables
+Local variables
 ~~~~~~~~~~~~~~~
 
 You must *explicitly reference* any local variable that you want to use in an
@@ -714,7 +714,7 @@ standard Python.
    pd.eval('a + b')
 
 
-:func:`pandas.eval` Parsers
+:func:`pandas.eval` parsers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There are two different parsers and two different engines you can use as
@@ -754,7 +754,7 @@ The ``and`` and ``or`` operators here have the same precedence that they would
 in vanilla Python.
 
 
-:func:`pandas.eval` Backends
+:func:`pandas.eval` backends
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There's also the option to make :func:`~pandas.eval` operate identical to plain
@@ -779,7 +779,7 @@ is a bit slower (not by much) than evaluating the same expression in Python
    %timeit pd.eval('df1 + df2 + df3 + df4', engine='python')
 
 
-:func:`pandas.eval` Performance
+:func:`pandas.eval` performance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :func:`~pandas.eval` is intended to speed up certain kinds of operations. In
@@ -804,7 +804,7 @@ computation. The two lines are two different engines.
 This plot was created using a ``DataFrame`` with 3 columns each containing
 floating point values generated using ``numpy.random.randn()``.
 
-Technical Minutia Regarding Expression Evaluation
+Technical minutia regarding expression evaluation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Expressions that would result in an object dtype or involve datetime operations

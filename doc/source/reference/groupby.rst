@@ -40,7 +40,7 @@ Function application
    GroupBy.transform
    GroupBy.pipe
 
-Computations / Descriptive Stats
+Computations / descriptive stats
 --------------------------------
 .. autosummary::
    :toctree: api/

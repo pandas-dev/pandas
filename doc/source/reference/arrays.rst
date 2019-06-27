@@ -3,7 +3,7 @@
 .. _api.arrays:
 
 =============
-Pandas Arrays
+Pandas arrays
 =============
 
 .. currentmodule:: pandas
@@ -37,7 +37,7 @@ stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFra
 
 .. _api.arrays.datetime:
 
-Datetime Data
+Datetime data
 -------------
 
 NumPy cannot natively represent timezone-aware datetimes. Pandas supports this
@@ -156,7 +156,7 @@ If the data are tz-aware, then every value in the array must have the same timez
 
 .. _api.arrays.timedelta:
 
-Timedelta Data
+Timedelta data
 --------------
 
 NumPy can natively represent timedeltas. Pandas provides :class:`Timedelta`
@@ -211,7 +211,7 @@ A collection of timedeltas may be stored in a :class:`TimedeltaArray`.
 
 .. _api.arrays.period:
 
-Timespan Data
+Timespan data
 -------------
 
 Pandas represents spans of times as :class:`Period` objects.
@@ -277,7 +277,7 @@ Every period in a ``PeriodArray`` must have the same ``freq``.
 
 .. _api.arrays.interval:
 
-Interval Data
+Interval data
 -------------
 
 Arbitrary intervals can be represented as :class:`Interval` objects.
@@ -342,7 +342,7 @@ A collection of intervals may be stored in an :class:`arrays.IntervalArray`.
 
 .. _api.arrays.integer_na:
 
-Nullable Integer
+Nullable integer
 ----------------
 
 :class:`numpy.ndarray` cannot natively represent integer-data with missing values.
@@ -369,7 +369,7 @@ Pandas provides this through :class:`arrays.IntegerArray`.
 
 .. _api.arrays.categorical:
 
-Categorical Data
+Categorical data
 ----------------
 
 Pandas defines a custom data type for representing data that can take only a
@@ -434,7 +434,7 @@ data. See :ref:`api.series.cat` for more.
 
 .. _api.arrays.sparse:
 
-Sparse Data
+Sparse data
 -----------
 
 Data where a single value is repeated many times (e.g. ``0`` or ``NaN``) may

@@ -3,7 +3,7 @@
 {{ header }}
 
 ******************************
-MultiIndex / Advanced Indexing
+MultiIndex / advanced indexing
 ******************************
 
 This section covers :ref:`indexing with a MultiIndex <advanced.hierarchical>`
@@ -179,7 +179,7 @@ on a deeper level.
 
 .. _advanced.shown_levels:
 
-Defined Levels
+Defined levels
 ~~~~~~~~~~~~~~
 
 The :class:`MultiIndex` keeps all the defined levels of an index, even
@@ -642,7 +642,7 @@ And now selection works as expected.
 
    dfm.loc[(0, 'y'):(1, 'z')]
 
-Take Methods
+Take methods
 ------------
 
 .. _advanced.take:
@@ -712,7 +712,7 @@ faster than fancy indexing.
 
 .. _indexing.index_types:
 
-Index Types
+Index types
 -----------
 
 We have discussed ``MultiIndex`` in the previous sections pretty extensively.
@@ -981,7 +981,7 @@ bins, with ``NaN`` representing a missing value similar to other dtypes.
    pd.cut([0, 3, 5, 1], bins=c.categories)
 
 
-Generating Ranges of Intervals
+Generating ranges of intervals
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If we need intervals on a regular frequency, we can use the :func:`interval_range` function

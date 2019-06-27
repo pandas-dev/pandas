@@ -35,7 +35,7 @@ Enhancements
 
 .. _whatsnew_0202.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Performance regression fix when indexing with a list-like (:issue:`16285`)
@@ -46,7 +46,7 @@ Performance Improvements
 
 .. _whatsnew_0202.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Silenced a warning on some Windows environments about "tput: terminal attributes: No such device or address" when
@@ -97,7 +97,7 @@ Plotting
 
 
 
-Groupby/Resample/Rolling
+Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in creating a time-based rolling window on an empty ``DataFrame`` (:issue:`15819`)

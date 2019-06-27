@@ -22,7 +22,7 @@ We recommend that all users upgrade to this version.
 
 .. _whatsnew_0191.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Fixed performance regression in factorization of ``Period`` data (:issue:`14338`)
@@ -34,7 +34,7 @@ Performance Improvements
 
 .. _whatsnew_0191.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Source installs from PyPI will now again work without ``cython`` installed, as in previous versions (:issue:`14204`)

@@ -191,7 +191,7 @@ Performance
 
 .. _whatsnew_0152.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in concat of Series with ``category`` dtype which were coercing to ``object``. (:issue:`8641`)

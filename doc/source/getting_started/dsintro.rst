@@ -3,7 +3,7 @@
 {{ header }}
 
 ************************
-Intro to Data Structures
+Intro to data structures
 ************************
 
 We'll start with a quick, non-comprehensive overview of the fundamental data
@@ -399,7 +399,7 @@ The result will be a DataFrame with the same index as the input Series, and
 with one column whose name is the original name of the Series (only if no other
 column name provided).
 
-**Missing Data**
+**Missing data**
 
 Much more will be said on this topic in the :ref:`Missing data <missing_data>`
 section. To construct a DataFrame with missing data, we use ``np.nan`` to
@@ -407,7 +407,7 @@ represent missing values. Alternatively, you may pass a ``numpy.MaskedArray``
 as the data argument to the DataFrame constructor, and its masked entries will
 be considered missing.
 
-Alternate Constructors
+Alternate constructors
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. _basics.dataframe.from_dict:
@@ -498,7 +498,7 @@ available to insert at a particular location in the columns:
 
 .. _dsintro.chained_assignment:
 
-Assigning New Columns in Method Chains
+Assigning new columns in method chains
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Inspired by `dplyr's
@@ -614,7 +614,7 @@ To write code compatible with all versions of Python, split the assignment in tw
 
 
 
-Indexing / Selection
+Indexing / selection
 ~~~~~~~~~~~~~~~~~~~~
 The basics of indexing are as follows:
 

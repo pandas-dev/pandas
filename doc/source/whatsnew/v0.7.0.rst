@@ -109,7 +109,7 @@ New features
 - :ref:`Added <advanced.xs>` ``level`` argument to ``xs`` method of DataFrame.
 
 
-API Changes to integer indexing
+API changes to integer indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 One of the potentially riskiest API changes in 0.7.0, but also one of the most
@@ -255,7 +255,7 @@ In the case of integer indexes, the behavior will be exactly as before
 If you wish to do indexing with sequences and slicing on an integer index with
 label semantics, use ``ix``.
 
-Other API Changes
+Other API changes
 ~~~~~~~~~~~~~~~~~
 
 - The deprecated ``LongPanel`` class has been completely removed

@@ -3,7 +3,7 @@
 .. _api.io:
 
 ============
-Input/Output
+Input/output
 ============
 .. currentmodule:: pandas
 
@@ -14,7 +14,7 @@ Pickling
 
    read_pickle
 
-Flat File
+Flat file
 ~~~~~~~~~
 .. autosummary::
    :toctree: api/
