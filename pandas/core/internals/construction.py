@@ -218,8 +218,10 @@ def init_dict(data, index, columns, dtype=None):
         arrays = (com.maybe_iterable_to_list(data[k]) for k in keys)
         # GH#24096 need copy to be deep for datetime64tz case
         # TODO: See if we can avoid these copies
+        arrays = [arr if not isinstance(arr, ABCIndexClass) else arr._data
+                  for arr in arrays]
         arrays = [arr if not is_datetime64tz_dtype(arr) else
-                  arr.copy(deep=True) for arr in arrays]
+                  arr.copy() for arr in arrays]
     return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)
 
 

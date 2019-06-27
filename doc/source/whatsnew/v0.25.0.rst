@@ -805,6 +805,7 @@ ExtensionArray
 
 - Bug in :func:`factorize` when passing an ``ExtensionArray`` with a custom ``na_sentinel`` (:issue:`25696`).
 - :meth:`Series.count` miscounts NA values in ExtensionArrays (:issue:`26835`)
+- Keyword argument ``deep`` has been removed from :method:`ExtensionArray.copy` (:issue:`27083`)
 
 Other
 ^^^^^

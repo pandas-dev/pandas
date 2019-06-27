@@ -66,3 +66,11 @@ class BaseInterfaceTests(BaseExtensionTests):
             assert not na.all()
 
             assert na.dtype._is_boolean
+
+    def test_copy(self, data):
+        # GH#27083 removing deep keyword from EA.copy
+        assert data[0] != data[1]
+        result = data.copy()
+
+        data[1] = data[0]
+        assert result[1] != result[0]

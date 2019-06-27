@@ -820,14 +820,9 @@ class ExtensionArray:
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self, deep: bool = False) -> ABCExtensionArray:
+    def copy(self) -> ABCExtensionArray:
         """
         Return a copy of the array.
-
-        Parameters
-        ----------
-        deep : bool, default False
-            Also copy the underlying data backing this array.
 
         Returns
         -------

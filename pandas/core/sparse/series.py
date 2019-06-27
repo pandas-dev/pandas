@@ -450,7 +450,9 @@ class SparseSeries(Series):
         """
         # TODO: https://github.com/pandas-dev/pandas/issues/22314
         # We skip the block manager till that is resolved.
-        new_data = self.values.copy(deep=deep)
+        new_data = self.values
+        if deep:
+            new_data = new_data.copy()
         return self._constructor(new_data, sparse_index=self.sp_index,
                                  fill_value=self.fill_value,
                                  index=self.index.copy(),
