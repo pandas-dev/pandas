@@ -906,43 +906,7 @@ class TestDataFrameSelectReindex:
         result = empty.filter(like='foo')
         assert_frame_equal(result, empty)
 
-    def test_select(self, float_frame, datetime_frame):
-
-        # deprecated: gh-12410
-        f = lambda x: x.weekday() == 2
-        index = datetime_frame.index[[f(x) for x in datetime_frame.index]]
-        expected_weekdays = datetime_frame.reindex(index=index)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = datetime_frame.select(f, axis=0)
-            assert_frame_equal(result, expected_weekdays)
-
-            result = float_frame.select(lambda x: x in ('B', 'D'), axis=1)
-            expected = float_frame.reindex(columns=['B', 'D'])
-            assert_frame_equal(result, expected, check_names=False)
-
-        # replacement
-        f = lambda x: x.weekday == 2
-        result = datetime_frame.loc(axis=0)[f(datetime_frame.index)]
-        assert_frame_equal(result, expected_weekdays)
-
-        crit = lambda x: x in ['B', 'D']
-        result = float_frame.loc(axis=1)[(float_frame.columns.map(crit))]
-        expected = float_frame.reindex(columns=['B', 'D'])
-        assert_frame_equal(result, expected, check_names=False)
-
-        # doc example
-        df = DataFrame({'A': [1, 2, 3]}, index=['foo', 'bar', 'baz'])
-
-        crit = lambda x: x in ['bar', 'baz']
-        with tm.assert_produces_warning(FutureWarning):
-            expected = df.select(crit)
-        result = df.loc[df.index.map(crit)]
-        assert_frame_equal(result, expected, check_names=False)
-
-    def test_take(self, float_frame, float_string_frame,
-                  mixed_float_frame, mixed_int_frame):
+    def test_take(self):
         # homogeneous
         order = [3, 1, 2, 0]
         for df in [float_frame]:

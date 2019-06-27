@@ -12,7 +12,7 @@ import pandas as pd
 from pandas import (
     DataFrame, Index, MultiIndex, Series, Timestamp, date_range, isna)
 import pandas.core.nanops as nanops
-from pandas.util import testing as tm
+from pandas.util import _test_decorators as td, testing as tm
 
 
 @pytest.mark.parametrize("agg_func", ['any', 'all'])
@@ -144,6 +144,7 @@ def test_arg_passthru():
         index=Index([1, 2], name='group'),
         columns=['int', 'float', 'category_int',
                  'datetime', 'datetimetz', 'timedelta'])
+
     for attr in ['mean', 'median']:
         f = getattr(df.groupby('group'), attr)
         result = f()
@@ -459,35 +460,33 @@ def test_groupby_cumprod():
     tm.assert_series_equal(actual, expected)
 
 
-def test_ops_general():
-    ops = [('mean', np.mean),
-           ('median', np.median),
-           ('std', np.std),
-           ('var', np.var),
-           ('sum', np.sum),
-           ('prod', np.prod),
-           ('min', np.min),
-           ('max', np.max),
-           ('first', lambda x: x.iloc[0]),
-           ('last', lambda x: x.iloc[-1]),
-           ('count', np.size), ]
-    try:
-        from scipy.stats import sem
-    except ImportError:
-        pass
-    else:
-        ops.append(('sem', sem))
+def scipy_sem(*args, **kwargs):
+    from scipy.stats import sem
+    return sem(*args, ddof=1, **kwargs)
+
+
+@pytest.mark.parametrize(
+    'op,targop',
+    [('mean', np.mean),
+     ('median', np.median),
+     ('std', np.std),
+     ('var', np.var),
+     ('sum', np.sum),
+     ('prod', np.prod),
+     ('min', np.min),
+     ('max', np.max),
+     ('first', lambda x: x.iloc[0]),
+     ('last', lambda x: x.iloc[-1]),
+     ('count', np.size),
+     pytest.param(
+         'sem', scipy_sem, marks=td.skip_if_no_scipy)])
+def test_ops_general(op, targop):
     df = DataFrame(np.random.randn(1000))
     labels = np.random.randint(0, 50, size=1000).astype(float)
 
-    for op, targop in ops:
-        result = getattr(df.groupby(labels), op)().astype(float)
-        expected = df.groupby(labels).agg(targop)
-        try:
-            tm.assert_frame_equal(result, expected)
-        except BaseException as exc:
-            exc.args += ('operation: %s' % op, )
-            raise
+    result = getattr(df.groupby(labels), op)().astype(float)
+    expected = df.groupby(labels).agg(targop)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_max_nan_bug():
@@ -963,12 +962,14 @@ def test_count():
 
     df['9th'] = df['9th'].astype('category')
 
-    for key in '1st', '2nd', ['1st', '2nd']:
+    for key in ['1st', '2nd', ['1st', '2nd']]:
         left = df.groupby(key).count()
         right = df.groupby(key).apply(DataFrame.count).drop(key, axis=1)
         tm.assert_frame_equal(left, right)
 
-    # GH5610
+
+def test_count_non_nulls():
+    # GH#5610
     # count counts non-nulls
     df = pd.DataFrame([[1, 2, 'foo'],
                        [1, np.nan, 'bar'],

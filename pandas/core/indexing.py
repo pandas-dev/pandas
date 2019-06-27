@@ -955,7 +955,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def _getitem_nested_tuple(self, tup):
         # we have a nested tuple so have at least 1 multi-index level
-        # we should be able to match up the dimensionaility here
+        # we should be able to match up the dimensionality here
 
         # we have too many indexers for our dim, but have at least 1
         # multi-index dimension, try to see if we have something like
@@ -1190,7 +1190,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             KeyError in the future, you can use .reindex() as an alternative.
 
             See the documentation here:
-            https://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike""")  # noqa
+            https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike""")  # noqa
 
             if not (ax.is_categorical() or ax.is_interval()):
                 warnings.warn(_missing_key_warning,
@@ -1311,7 +1311,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
 
 class _IXIndexer(_NDFrameIndexer):
-    """A primarily label-location based indexer, with integer position
+    """
+    A primarily label-location based indexer, with integer position
     fallback.
 
     Warning: Starting in 0.20.0, the .ix indexer is deprecated, in
@@ -1339,7 +1340,7 @@ class _IXIndexer(_NDFrameIndexer):
         .iloc for positional indexing
 
         See the documentation here:
-        http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated""")  # noqa
+        http://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#ix-indexer-is-deprecated""")  # noqa
 
     def __init__(self, name, obj):
         warnings.warn(self._ix_deprecation_warning,
@@ -2406,28 +2407,53 @@ def convert_to_index_sliceable(obj, key):
     return None
 
 
-def check_bool_indexer(ax, key):
-    # boolean indexing, need to check that the data are aligned, otherwise
-    # disallowed
+def check_bool_indexer(index: Index, key) -> np.ndarray:
+    """
+    Check if key is a valid boolean indexer for an object with such index and
+    perform reindexing or conversion if needed.
 
-    # this function assumes that is_bool_indexer(key) == True
+    This function assumes that is_bool_indexer(key) == True.
 
+    Parameters
+    ----------
+    index : Index
+        Index of the object on which the indexing is done
+    key : list-like
+        Boolean indexer to check
+
+    Returns
+    -------
+    result: np.array
+        Resulting key
+
+    Raises
+    ------
+    IndexError
+        If the key does not have the same length as index
+
+    IndexingError
+        If the index of the key is unalignable to index
+
+    """
     result = key
-    if isinstance(key, ABCSeries) and not key.index.equals(ax):
-        result = result.reindex(ax)
+    if isinstance(key, ABCSeries) and not key.index.equals(index):
+        result = result.reindex(index)
         mask = isna(result._values)
         if mask.any():
             raise IndexingError('Unalignable boolean Series provided as '
                                 'indexer (index of the boolean Series and of '
-                                'the indexed object do not match')
+                                'the indexed object do not match).')
         result = result.astype(bool)._values
-    elif is_sparse(result):
-        result = result.to_dense()
-        result = np.asarray(result, dtype=bool)
     else:
-        # is_bool_indexer has already checked for nulls in the case of an
-        # object array key, so no check needed here
+        if is_sparse(result):
+            result = result.to_dense()
         result = np.asarray(result, dtype=bool)
+
+        # GH26658
+        if len(result) != len(index):
+            raise IndexError(
+                'Item wrong length {} instead of {}.'.format(len(result),
+                                                             len(index)))
 
     return result
 

@@ -129,6 +129,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     floor
     ceil
     to_frame
+    mean
 
     See Also
     --------
@@ -141,7 +142,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     Notes
     -----
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Creating a TimedeltaIndex based on `start`, `periods`, and `end` has
     been deprecated in favor of :func:`timedelta_range`.
@@ -550,11 +551,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
 
         if isinstance(label, str):
             parsed = Timedelta(label)
-            lbound = parsed.round(parsed.resolution)
+            lbound = parsed.round(parsed.resolution_string)
             if side == 'left':
                 return lbound
             else:
-                return (lbound + to_offset(parsed.resolution) -
+                return (lbound + to_offset(parsed.resolution_string) -
                         Timedelta(1, 'ns'))
         elif ((is_integer(label) or is_float(label)) and
               not is_timedelta64_dtype(label)):
@@ -730,7 +731,7 @@ def timedelta_range(start=None, end=None, periods=None, freq=None,
     ``start`` and ``end`` (closed on both sides).
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------

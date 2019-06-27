@@ -1,4 +1,4 @@
-# Arithmetc tests for DataFrame/Series/Index/Array classes that should
+# Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for numeric dtypes
 from collections import abc
@@ -587,7 +587,7 @@ class TestMultiplicationDivision:
         tm.assert_series_equal(ts / ts, ts / df['A'],
                                check_names=False)
 
-    # TODO: this came from tests.series.test_analytics, needs cleannup and
+    # TODO: this came from tests.series.test_analytics, needs cleanup and
     #  de-duplication with test_modulo above
     def test_modulo2(self):
         with np.errstate(all='ignore'):
@@ -712,10 +712,9 @@ class TestAdditionSubtraction:
         tm.assert_series_equal(df['result'], df['expected'], check_names=False)
 
     # TODO: taken from tests.frame.test_operators, needs cleanup
-    def test_frame_operators(self):
-        seriesd = tm.getSeriesData()
-        frame = pd.DataFrame(seriesd)
-        frame2 = pd.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
+    def test_frame_operators(self, float_frame):
+        frame = float_frame
+        frame2 = pd.DataFrame(float_frame, columns=['D', 'C', 'B', 'A'])
 
         garbage = np.random.random(4)
         colSeries = pd.Series(garbage, index=np.array(frame.columns))

@@ -46,7 +46,7 @@ user_guide/sparse.html#migrating for more.
 class SparseSeries(Series):
     """Data structure for labeled, sparse floating point data
 
-    .. deprectaed:: 0.25.0
+    .. deprecated:: 0.25.0
 
        Use a Series with sparse values instead.
 
@@ -123,26 +123,6 @@ class SparseSeries(Series):
                                  sparse_index=self.sp_index,
                                  fill_value=result.fill_value,
                                  copy=False).__finalize__(self)
-
-    def __array_wrap__(self, result, context=None):
-        """
-        Gets called prior to a ufunc (and after)
-
-        See SparseArray.__array_wrap__ for detail.
-        """
-        result = self.values.__array_wrap__(result, context=context)
-        return self._constructor(result, index=self.index,
-                                 sparse_index=self.sp_index,
-                                 fill_value=result.fill_value,
-                                 copy=False).__finalize__(self)
-
-    def __array_finalize__(self, obj):
-        """
-        Gets called after any ufunc or other array operations, necessary
-        to pass on the index.
-        """
-        self.name = getattr(obj, 'name', None)
-        self.fill_value = getattr(obj, 'fill_value', None)
 
     # unary ops
     # TODO: See if this can be shared
@@ -234,10 +214,12 @@ class SparseSeries(Series):
                            fill_value=fill_value, kind=kind, copy=copy)
 
     def __repr__(self):
-        series_rep = Series.__repr__(self)
-        rep = '{series}\n{index!r}'.format(series=series_rep,
-                                           index=self.sp_index)
-        return rep
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Sparse")
+            series_rep = Series.__repr__(self)
+            rep = '{series}\n{index!r}'.format(series=series_rep,
+                                               index=self.sp_index)
+            return rep
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
@@ -468,7 +450,9 @@ class SparseSeries(Series):
         """
         # TODO: https://github.com/pandas-dev/pandas/issues/22314
         # We skip the block manager till that is resolved.
-        new_data = self.values.copy(deep=deep)
+        new_data = self.values
+        if deep:
+            new_data = new_data.copy()
         return self._constructor(new_data, sparse_index=self.sp_index,
                                  fill_value=self.fill_value,
                                  index=self.index.copy(),

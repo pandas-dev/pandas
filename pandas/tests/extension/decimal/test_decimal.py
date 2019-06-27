@@ -192,7 +192,11 @@ class TestCasting(BaseDecimal, base.BaseCastingTests):
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
-    pass
+
+    @pytest.mark.xfail(
+        reason="needs to correctly define __eq__ to handle nans, xref #27081.")
+    def test_groupby_apply_identity(self, data_for_grouping):
+        super().test_groupby_apply_identity(data_for_grouping)
 
 
 class TestSetitem(BaseDecimal, base.BaseSetitemTests):
@@ -200,7 +204,13 @@ class TestSetitem(BaseDecimal, base.BaseSetitemTests):
 
 
 class TestPrinting(BaseDecimal, base.BasePrintingTests):
-    pass
+
+    def test_series_repr(self, data):
+        # Overriding this base test to explicitly test that
+        # the custom _formatter is used
+        ser = pd.Series(data)
+        assert data.dtype.name in repr(ser)
+        assert "Decimal: " in repr(ser)
 
 
 # TODO(extension)

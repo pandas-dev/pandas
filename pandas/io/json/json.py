@@ -6,10 +6,9 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas.compat import to_str
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
 from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas.core.reshape.concat import concat
@@ -181,7 +180,7 @@ class JSONTableWriter(FrameWriter):
 
         self.schema = build_table_schema(obj, index=self.index)
 
-        # NotImplementd on a column MultiIndex
+        # NotImplemented on a column MultiIndex
         if obj.ndim == 2 and isinstance(obj.columns, MultiIndex):
             raise NotImplementedError(
                 "orient='table' is not supported for MultiIndex")
@@ -330,8 +329,8 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
 
     chunksize : integer, default None
         Return JsonReader object for iteration.
-        See the `line-delimted json docs
-        <http://pandas.pydata.org/pandas-docs/stable/io.html#io-jsonl>`_
+        See the `line-delimited json docs
+        <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
@@ -545,8 +544,7 @@ class JsonReader(BaseIterator):
         if self.lines and self.chunksize:
             obj = concat(self)
         elif self.lines:
-
-            data = to_str(self.data)
+            data = ensure_str(self.data)
             obj = self._get_object_parser(
                 self._combine_lines(data.split('\n'))
             )

@@ -42,7 +42,7 @@ def _to_ijv(ss, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
             values_ilabels = [x[0] for x in values_ilabels]
 
         # # performance issues with groupby ###################################
-        # TODO: these two lines can rejplace the code below but
+        # TODO: these two lines can replace the code below but
         # groupby is too slow (in some cases at least)
         # labels_to_i = ss.groupby(level=levels, sort=sort_labels).first()
         # labels_to_i[:] = np.arange(labels_to_i.shape[0])
@@ -130,10 +130,19 @@ def _coo_to_sparse_series(A, dense_index: bool = False,
     Returns
     -------
     Series or SparseSeries
+
+    Raises
+    ------
+    TypeError if A is not a coo_matrix
+
     """
     from pandas import SparseDtype
 
-    s = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
+    try:
+        s = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
+    except AttributeError:
+        raise TypeError('Expected coo_matrix. Got {} instead.'
+                        .format(type(A).__name__))
     s = s.sort_index()
     if sparse_series:
         # TODO(SparseSeries): remove this and the sparse_series keyword.

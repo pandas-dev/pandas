@@ -5,6 +5,7 @@ import itertools
 
 import numpy as np
 import numpy.ma as ma
+import numpy.ma.mrecords as mrecords
 import pytest
 
 from pandas.compat import PY36, is_platform_little_endian
@@ -15,7 +16,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, MultiIndex, RangeIndex, Series, Timedelta,
-    Timestamp, compat, date_range, isna)
+    Timestamp, date_range, isna)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -113,7 +114,6 @@ class TestDataFrameConstructors(TestData):
         assert df.loc[1, 0] is None
         assert df.loc[0, 1] == '2'
 
-    @pytest.mark.xfail(compat.numpy._is_numpy_dev, reason="GH-26546")
     def test_constructor_list_frames(self):
         # see gh-3243
         result = DataFrame([DataFrame()])
@@ -149,7 +149,7 @@ class TestDataFrameConstructors(TestData):
                 if d in df:
                     assert(df.dtypes[d] == d)
 
-        # mixed floating and integer coexinst in the same frame
+        # mixed floating and integer coexist in the same frame
         df = _make_mixed_dtypes_df('float')
         _check_mixed_dtypes(df)
 
@@ -840,7 +840,7 @@ class TestDataFrameConstructors(TestData):
         data = np.ma.array(
             np.ma.zeros(5, dtype=[('date', '<f8'), ('price', '<f8')]),
             mask=[False] * 5)
-        data = data.view(ma.mrecords.mrecarray)
+        data = data.view(mrecords.mrecarray)
         result = pd.DataFrame(data, dtype=int)
         expected = pd.DataFrame(np.zeros((5, 2), dtype=int),
                                 columns=['date', 'price'])
@@ -869,7 +869,7 @@ class TestDataFrameConstructors(TestData):
         # call assert_frame_equal for all selections of 3 arrays
         for comb in itertools.combinations(arrays, 3):
             names, data = zip(*comb)
-            mrecs = ma.mrecords.fromarrays(data, names=names)
+            mrecs = mrecords.fromarrays(data, names=names)
 
             # fill the comb
             comb = {k: (v.filled() if hasattr(v, 'filled') else v)
@@ -2400,3 +2400,32 @@ class TestDataFrameConstructorWithDatetimeTZ(TestData):
             index=pd.Index([2001, 2002, 2003])
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_from_tzaware_object_array(self):
+        # GH#26825 2D object array of tzaware timestamps should not raise
+        dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
+        data = dti._data.astype(object).reshape(1, -1)
+        df = pd.DataFrame(data)
+        assert df.shape == (1, 3)
+        assert (df.dtypes == dti.dtype).all()
+        assert (df == dti).all().all()
+
+    def test_from_tzaware_mixed_object_array(self):
+        # GH#26825
+        arr = np.array([
+            [Timestamp('2013-01-01 00:00:00'),
+             Timestamp('2013-01-02 00:00:00'),
+             Timestamp('2013-01-03 00:00:00')],
+            [Timestamp('2013-01-01 00:00:00-0500', tz='US/Eastern'),
+             pd.NaT,
+             Timestamp('2013-01-03 00:00:00-0500', tz='US/Eastern')],
+            [Timestamp('2013-01-01 00:00:00+0100', tz='CET'),
+             pd.NaT,
+             Timestamp('2013-01-03 00:00:00+0100', tz='CET')]],
+            dtype=object).T
+        res = DataFrame(arr, columns=['A', 'B', 'C'])
+
+        expected_dtypes = ['datetime64[ns]',
+                           'datetime64[ns, US/Eastern]',
+                           'datetime64[ns, CET]']
+        assert (res.dtypes == expected_dtypes).all()

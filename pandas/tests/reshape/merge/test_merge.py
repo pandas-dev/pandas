@@ -603,7 +603,7 @@ class TestMerge:
                       'datetime64[ns]']:
 
             df2 = s.astype(dtype).to_frame('days')
-            # coerces to datetime64[ns], thus sholuld not be affected
+            # coerces to datetime64[ns], thus should not be affected
             assert df2['days'].dtype == 'datetime64[ns]'
 
             result = df1.merge(df2, left_on='entity_id', right_index=True)
@@ -1243,9 +1243,9 @@ class TestMergeDtypes:
         ([0, 1], pd.Series([False, True], dtype=bool)),
     ])
     def test_merge_incompat_dtypes_are_ok(self, df1_vals, df2_vals):
-        # these are explicity allowed incompat merges, that pass thru
+        # these are explicitly allowed incompat merges, that pass thru
         # the result type is dependent on if the values on the rhs are
-        # inferred, otherwise these will be coereced to object
+        # inferred, otherwise these will be coerced to object
 
         df1 = DataFrame({'A': df1_vals})
         df2 = DataFrame({'A': df2_vals})

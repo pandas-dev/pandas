@@ -12,6 +12,8 @@ from pytz import FixedOffset, utc
 import pandas.util._test_decorators as td
 
 import pandas as pd
+from pandas import DataFrame
+import pandas.util.testing as tm
 
 hypothesis.settings.register_profile(
     "ci",
@@ -120,7 +122,7 @@ def observed(request):
     """ pass in the observed keyword to groupby for [True, False]
     This indicates whether categoricals should return values for
     values which are not in the grouper [False / None], or only values which
-    appear in the grouper [True]. [None] is supported for future compatiblity
+    appear in the grouper [True]. [None] is supported for future compatibility
     if we decide to change the default (and would need to warn if this
     parameter is not passed)"""
     return request.param
@@ -376,10 +378,11 @@ TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
              FixedOffset(0), FixedOffset(-300), timezone.utc,
              timezone(timedelta(hours=1)),
              timezone(timedelta(hours=-1), name='foo')]
+TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
-@td.parametrize_fixture_doc(str(TIMEZONES))
-@pytest.fixture(params=TIMEZONES)
+@td.parametrize_fixture_doc(str(TIMEZONE_IDS))
+@pytest.fixture(params=TIMEZONES, ids=TIMEZONE_IDS)
 def tz_naive_fixture(request):
     """
     Fixture for trying timezones including default (None): {0}
@@ -387,8 +390,8 @@ def tz_naive_fixture(request):
     return request.param
 
 
-@td.parametrize_fixture_doc(str(TIMEZONES[1:]))
-@pytest.fixture(params=TIMEZONES[1:])
+@td.parametrize_fixture_doc(str(TIMEZONE_IDS[1:]))
+@pytest.fixture(params=TIMEZONES[1:], ids=TIMEZONE_IDS[1:])
 def tz_aware_fixture(request):
     """
     Fixture for trying explicit timezones: {0}
@@ -396,8 +399,14 @@ def tz_aware_fixture(request):
     return request.param
 
 
+# Generate cartesian product of tz_aware_fixture:
+tz_aware_fixture2 = tz_aware_fixture
+
+
 # ----------------------------------------------------------------
 # Dtypes
+# ----------------------------------------------------------------
+
 UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_EA_INT_DTYPES = ["UInt8", "UInt16", "UInt32", "UInt64"]
 SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
@@ -409,8 +418,8 @@ FLOAT_DTYPES = [float, "float32", "float64"]
 COMPLEX_DTYPES = [complex, "complex64", "complex128"]
 STRING_DTYPES = [str, 'str', 'U']
 
-DATETIME_DTYPES = ['datetime64[ns]', 'M8[ns]']
-TIMEDELTA_DTYPES = ['timedelta64[ns]', 'm8[ns]']
+DATETIME64_DTYPES = ['datetime64[ns]', 'M8[ns]']
+TIMEDELTA64_DTYPES = ['timedelta64[ns]', 'm8[ns]']
 
 BOOL_DTYPES = [bool, 'bool']
 BYTES_DTYPES = [bytes, 'bytes']
@@ -418,7 +427,7 @@ OBJECT_DTYPES = [object, 'object']
 
 ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
 ALL_NUMPY_DTYPES = (ALL_REAL_DTYPES + COMPLEX_DTYPES + STRING_DTYPES +
-                    DATETIME_DTYPES + TIMEDELTA_DTYPES + BOOL_DTYPES +
+                    DATETIME64_DTYPES + TIMEDELTA64_DTYPES + BOOL_DTYPES +
                     OBJECT_DTYPES + BYTES_DTYPES)
 
 
@@ -429,6 +438,46 @@ def string_dtype(request):
     * str
     * 'str'
     * 'U'
+    """
+    return request.param
+
+
+@pytest.fixture(params=BYTES_DTYPES)
+def bytes_dtype(request):
+    """Parametrized fixture for bytes dtypes.
+
+    * bytes
+    * 'bytes'
+    """
+    return request.param
+
+
+@pytest.fixture(params=OBJECT_DTYPES)
+def object_dtype(request):
+    """Parametrized fixture for object dtypes.
+
+    * object
+    * 'object'
+    """
+    return request.param
+
+
+@pytest.fixture(params=DATETIME64_DTYPES)
+def datetime64_dtype(request):
+    """Parametrized fixture for datetime64 dtypes.
+
+    * 'datetime64[ns]'
+    * 'M8[ns]'
+    """
+    return request.param
+
+
+@pytest.fixture(params=TIMEDELTA64_DTYPES)
+def timedelta64_dtype(request):
+    """Parametrized fixture for timedelta64 dtypes.
+
+    * 'timedelta64[ns]'
+    * 'm8[ns]'
     """
     return request.param
 
@@ -682,3 +731,32 @@ for name in 'QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd'.split():
         normalize=st.booleans(),
         startingMonth=st.integers(min_value=1, max_value=12)
     ))
+
+
+@pytest.fixture
+def float_frame():
+    """
+    Fixture for DataFrame of floats with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D'].
+
+                       A         B         C         D
+    P7GACiRnxd -0.465578 -0.361863  0.886172 -0.053465
+    qZKh6afn8n -0.466693 -0.373773  0.266873  1.673901
+    tkp0r6Qble  0.148691 -0.059051  0.174817  1.598433
+    wP70WOCtv8  0.133045 -0.581994 -0.992240  0.261651
+    M2AeYQMnCz -1.207959 -0.185775  0.588206  0.563938
+    QEPzyGDYDo -0.381843 -0.758281  0.502575 -0.565053
+    r78Jwns6dn -0.653707  0.883127  0.682199  0.206159
+    ...              ...       ...       ...       ...
+    IHEGx9NO0T -0.277360  0.113021 -1.018314  0.196316
+    lPMj8K27FA -1.313667 -0.604776 -1.305618 -0.863999
+    qa66YMWQa5  1.110525  0.475310 -0.747865  0.032121
+    yOa0ATsmcE -0.431457  0.067094  0.096567 -0.264962
+    65znX3uRNG  1.528446  0.160416 -0.109635 -0.032987
+    eCOBvKqf3e  0.235281  1.622222  0.781255  0.392871
+    xSucinXxuV -1.263557  0.252799 -0.552247  0.400426
+
+    [30 rows x 4 columns]
+    """
+    return DataFrame(tm.getSeriesData())

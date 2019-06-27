@@ -62,6 +62,7 @@ def _td_array_cmp(cls, op):
     nat_result = opname == '__ne__'
 
     def wrapper(self, other):
+        other = lib.item_from_zerodim(other)
         if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
             return NotImplemented
 
@@ -126,6 +127,14 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     freq : Offset, optional
     copy : bool, default False
         Whether to copy the underlying array of data.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _typ = "timedeltaarray"
     _scalar_type = Timedelta
