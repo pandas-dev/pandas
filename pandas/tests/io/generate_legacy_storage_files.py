@@ -45,8 +45,8 @@ import numpy as np
 
 import pandas
 from pandas import (
-    Categorical, DataFrame, Index, MultiIndex, NaT, Period, Series,
-    SparseDataFrame, SparseSeries, Timestamp, bdate_range, date_range,
+    Categorical, DataFrame, Index, MultiIndex, NaT, Period, RangeIndex,
+    Series, SparseDataFrame, SparseSeries, Timestamp, bdate_range, date_range,
     period_range, timedelta_range, to_msgpack)
 
 from pandas.tseries.offsets import (
@@ -118,7 +118,6 @@ def create_data():
                  uint=Index(np.arange(10, dtype=np.uint64)),
                  timedelta=timedelta_range('00:00:00', freq='30T', periods=10))
 
-    from pandas import RangeIndex
     index['range'] = RangeIndex(10)
 
     if _loose_version >= LooseVersion('0.21'):
