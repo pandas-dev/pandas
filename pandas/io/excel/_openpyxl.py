@@ -513,11 +513,14 @@ class _OpenpyxlReader(_BaseExcelReader):
             return bool(cell.value)
         elif cell.value is None:
             return ''  # compat with xlrd
-        elif convert_float and cell.data_type == 'n' and cell.value:
+        elif cell.data_type == 'n':
             # GH5394
-            val = int(cell.value)
-            if val == cell.value:
-                return val
+            if convert_float:
+                val = int(cell.value)
+                if val == cell.value:
+                    return val
+            else:
+                return float(cell.value)
 
         return cell.value
 
