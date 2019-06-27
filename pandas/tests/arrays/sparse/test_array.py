@@ -591,9 +591,9 @@ class TestSparseArray:
         with pytest.raises(ValueError, match=msg):
             arr.fill_value = val
 
-    def test_copy_shallow(self):
-        arr2 = self.arr.copy(deep=False)
-        assert arr2.sp_values is self.arr.sp_values
+    def test_copy(self):
+        arr2 = self.arr.copy()
+        assert arr2.sp_values is not self.arr.sp_values
         assert arr2.sp_index is self.arr.sp_index
 
     def test_values_asarray(self):
