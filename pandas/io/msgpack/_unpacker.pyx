@@ -128,13 +128,13 @@ def unpackb(object packed, object object_hook=None, object list_hook=None,
         char* cenc = NULL
         char* cerr = NULL
         Py_buffer view
+        bytes extra_bytes
 
-    # Effectively re-implement deprecated PyObject_AsReadBuffer;
+    # GH#26769 Effectively re-implement deprecated PyObject_AsReadBuffer;
     # based on https://xpra.org/trac/ticket/1884
     PyObject_GetBuffer(packed, &view, PyBUF_SIMPLE)
     buf = <char*>view.buf
     buf_len = view.len
-    PyBuffer_Release(&view)
 
     if encoding is not None:
         if isinstance(encoding, unicode):
@@ -153,10 +153,13 @@ def unpackb(object packed, object object_hook=None, object list_hook=None,
     if ret == 1:
         obj = unpack_data(&ctx)
         if <Py_ssize_t> off < buf_len:
-            raise ExtraData(obj, PyBytes_FromStringAndSize(
-                buf + off, buf_len - off))
+            extra_bytes = PyBytes_FromStringAndSize(buf + off, buf_len - off)
+            PyBuffer_Release(&view)
+            raise ExtraData(obj, extra_bytes)
+        PyBuffer_Release(&view)
         return obj
     else:
+        PyBuffer_Release(&view)
         raise UnpackValueError("Unpack failed: error = {ret}".format(ret=ret))
 
 
