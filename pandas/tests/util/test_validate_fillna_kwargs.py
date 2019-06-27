@@ -25,22 +25,22 @@ def test_value_and_method(value, method):
 @pytest.mark.parametrize("value", [(1, 2, 3), [1, 2, 3]])
 def test_valid_value(value):
 
-        msg = ('"value" parameter must be a scalar or dict, but '
-               'you passed a "{0}"'.format(type(value).__name__))
+    msg = ('"value" parameter must be a scalar or dict, but '
+           'you passed a "{0}"'.format(type(value).__name__))
 
-        with pytest.raises(TypeError, match=msg):
-                validate_fillna_kwargs(value, None, None)
+    with pytest.raises(TypeError, match=msg):
+        validate_fillna_kwargs(value, None, None)
 
 
 def test_integer_limit():
 
-        msg = "Limit must be an integer"
-        with pytest.raises(ValueError, match=msg):
-                validate_fillna_kwargs(0, None, 0.5)
+    msg = "Limit must be an integer"
+    with pytest.raises(ValueError, match=msg):
+        validate_fillna_kwargs(0, None, 0.5)
 
 
 def test_positive_limit():
 
-        msg = "Limit must be greater than 0"
-        with pytest.raises(ValueError, match=msg):
-                validate_fillna_kwargs(5, None, -5)
+    msg = "Limit must be greater than 0"
+    with pytest.raises(ValueError, match=msg):
+        validate_fillna_kwargs(5, None, -5)
