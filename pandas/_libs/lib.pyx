@@ -308,17 +308,22 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def dicts_to_array(dicts: list, columns: list):
+def dicts_to_array(dicts: list, columns: list, fill_value=None):
     cdef:
         Py_ssize_t i, j, k, n
         ndarray[object, ndim=2] result
         dict row
-        object col, onan = np.nan
+        object col
+        list onan
 
     k = len(columns)
     n = len(dicts)
 
     result = np.empty((n, k), dtype='O')
+    if fill_value:
+        onan = [fill_value[col] if col in fill_value else np.nan for col in columns]
+    else:
+        onan = list(np.full(k, np.nan))
 
     for i in range(n):
         row = dicts[i]
@@ -327,7 +332,7 @@ def dicts_to_array(dicts: list, columns: list):
             if col in row:
                 result[i, j] = row[col]
             else:
-                result[i, j] = onan
+                result[i, j] = onan[j]
 
     return result
 

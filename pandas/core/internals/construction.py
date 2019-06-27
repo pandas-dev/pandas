@@ -371,7 +371,7 @@ def _get_axes(N, K, index, columns):
 # ---------------------------------------------------------------------
 # Conversion of Inputs to Arrays
 
-def to_arrays(data, columns, coerce_float=False, dtype=None):
+def to_arrays(data, columns, coerce_float=False, dtype=None, fill_value=None):
     """
     Return list of arrays, columns.
     """
@@ -396,7 +396,8 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
                                dtype=dtype)
     elif isinstance(data[0], abc.Mapping):
         return _list_of_dict_to_arrays(data, columns,
-                                       coerce_float=coerce_float, dtype=dtype)
+                                       coerce_float=coerce_float, dtype=dtype,
+                                       fill_value=fill_value)
     elif isinstance(data[0], ABCSeries):
         return _list_of_series_to_arrays(data, columns,
                                          coerce_float=coerce_float,
@@ -463,7 +464,8 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
         return values.T, columns
 
 
-def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
+def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None,
+                            fill_value=None):
     if columns is None:
         gen = (list(x.keys()) for x in data)
         sort = not any(isinstance(d, OrderedDict) for d in data)
@@ -473,7 +475,8 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     # classes
     data = [(type(d) is dict) and d or dict(d) for d in data]
 
-    content = list(lib.dicts_to_array(data, list(columns)).T)
+    content = list(lib.dicts_to_array(data, list(columns),
+                                      fill_value=fill_value).T)
     return _convert_object_array(content, columns, dtype=dtype,
                                  coerce_float=coerce_float)
 

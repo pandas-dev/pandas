@@ -96,7 +96,7 @@ def nested_to_record(ds, prefix="", sep=".", level=0):
     return new_ds
 
 
-def json_normalize(data, record_path=None, meta=None,
+def json_normalize(data, fill_value=None, record_path=None, meta=None,
                    meta_prefix=None,
                    record_prefix=None,
                    errors='raise',
@@ -108,6 +108,8 @@ def json_normalize(data, record_path=None, meta=None,
     ----------
     data : dict or list of dicts
         Unserialized JSON objects
+    fill_value: dict, default None
+        default na values for specified columns
     record_path : string or list of strings, default None
         Path in each object to list of records. If not passed, data will be
         assumed to be an array of records
@@ -148,6 +150,12 @@ def json_normalize(data, record_path=None, meta=None,
     0  1.0         NaN         NaN     Coleen        NaN      Volk
     1  NaN         NaN      Regner        NaN       Mose       NaN
     2  2.0  Faye Raker         NaN        NaN        NaN       NaN
+
+    >>> json_normalize(data, fill_value={'id' : -1})
+       id        name name.family name.first name.given name.last
+    0   1         NaN         NaN     Coleen        NaN      Volk
+    1  -1         NaN      Regner        NaN       Mose       NaN
+    2   2  Faye Raker         NaN        NaN        NaN       NaN
 
     >>> data = [{'state': 'Florida',
     ...          'shortname': 'FL',
@@ -197,6 +205,9 @@ def json_normalize(data, record_path=None, meta=None,
     if isinstance(data, dict):
         data = [data]
 
+    if fill_value and not isinstance(fill_value, dict):
+        raise ValueError('Invalid fill_value, fill_value only accepts a dict')
+
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):
             # naive normalization, this is idempotent for flat records
@@ -207,7 +218,7 @@ def json_normalize(data, record_path=None, meta=None,
             # TODO: handle record value which are lists, at least error
             #       reasonably
             data = nested_to_record(data, sep=sep)
-        return DataFrame(data)
+        return DataFrame(data, fill_value=fill_value)
     elif not isinstance(record_path, list):
         record_path = [record_path]
 
@@ -265,7 +276,7 @@ def json_normalize(data, record_path=None, meta=None,
 
     _recursive_extract(data, record_path, {}, level=0)
 
-    result = DataFrame(records)
+    result = DataFrame(records, fill_value=fill_value)
 
     if record_prefix is not None:
         result = result.rename(
