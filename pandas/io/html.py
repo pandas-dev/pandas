@@ -40,7 +40,7 @@ def _importers():
                                      on_version="ignore")
     _HAS_BS4 = bs4 is not None
 
-    lxml = import_optional_dependency("lxml", raise_on_missing=False,
+    lxml = import_optional_dependency("lxml.etree", raise_on_missing=False,
                                       on_version="ignore")
     _HAS_LXML = lxml is not None
 
