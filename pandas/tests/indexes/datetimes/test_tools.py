@@ -133,6 +133,25 @@ class TestTimeConversionFormats:
         result = to_datetime(s, format='%Y%m', cache=cache)
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('int_date, expected', [
+        # valid date, length == 8
+        [20121030, datetime(2012, 10, 30)],
+        # short valid date, length == 6
+        [199934, datetime(1999, 3, 4)],
+        # long integer date partially parsed to datetime(2012,1,1), length > 8
+        [2012010101, 2012010101],
+        # invalid date partially parsed to datetime(2012,9,9), length == 8
+        [20129930, 20129930],
+        # short integer date partially parsed to datetime(2012,9,9), length < 8
+        [2012993, 2012993],
+        # short invalid date, length == 4
+        [2121, 2121]])
+    def test_int_to_datetime_format_YYYYMMDD_typeerror(self, int_date,
+                                                       expected):
+        # GH 26583
+        result = to_datetime(int_date, format='%Y%m%d', errors='ignore')
+        assert result == expected
+
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_format_microsecond(self, cache):
 
@@ -182,7 +201,7 @@ class TestTimeConversionFormats:
     def test_parse_nanoseconds_with_formula(self, cache):
 
         # GH8989
-        # trunctaing the nanoseconds when a format was provided
+        # truncating the nanoseconds when a format was provided
         for v in ["2012-01-01 09:00:00.000000001",
                   "2012-01-01 09:00:00.000001",
                   "2012-01-01 09:00:00.001",
@@ -364,7 +383,7 @@ class TestToDatetime:
     def test_to_datetime_today(self):
         # See GH#18666
         # Test with one timezone far ahead of UTC and another far behind, so
-        # one of these will _almost_ alawys be in a different day from UTC.
+        # one of these will _almost_ always be in a different day from UTC.
         # Unfortunately this test between 12 and 1 AM Samoa time
         # this both of these timezones _and_ UTC will all be in the same day,
         # so this test will not detect the regression introduced in #18666.
@@ -587,7 +606,7 @@ class TestToDatetime:
         ], tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
         assert is_datetime64_ns_dtype(i)
 
-        # tz coerceion
+        # tz coercion
         result = pd.to_datetime(i, errors='coerce', cache=cache)
         tm.assert_index_equal(result, i)
 

@@ -665,7 +665,7 @@ class TestWhereCoercion(CoercionBase):
 
 class TestFillnaSeriesCoercion(CoercionBase):
 
-    # not indexing, but place here for consisntency
+    # not indexing, but place here for consistency
 
     method = 'fillna'
 

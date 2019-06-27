@@ -1,23 +1,18 @@
 """ Google BigQuery support """
+from pandas.compat._optional import import_optional_dependency
 
 
 def _try_import():
     # since pandas is a dependency of pandas-gbq
     # we need to import on first use
-    try:
-        import pandas_gbq
-    except ImportError:
-
-        # give a nice error message
-        raise ImportError("Load data from Google BigQuery\n"
-                          "\n"
-                          "the pandas-gbq package is not installed\n"
-                          "see the docs: https://pandas-gbq.readthedocs.io\n"
-                          "\n"
-                          "you can install via pip or conda:\n"
-                          "pip install pandas-gbq\n"
-                          "conda install pandas-gbq -c conda-forge\n")
-
+    msg = (
+        "pandas-gbq is required to load data from Google BigQuery. "
+        "See the docs: https://pandas-gbq.readthedocs.io."
+    )
+    pandas_gbq = import_optional_dependency(
+        "pandas_gbq",
+        extra=msg,
+    )
     return pandas_gbq
 
 

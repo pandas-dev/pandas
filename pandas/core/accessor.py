@@ -196,7 +196,7 @@ def _register_accessor(name, cls):
     return decorator
 
 
-_doc = """\
+_doc = """
 Register a custom accessor on %(klass)s objects.
 
 Parameters

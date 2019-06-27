@@ -23,7 +23,6 @@ import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
-from pandas.plotting._compat import _mpl_ge_3_1_0
 
 
 @td.skip_if_no_mpl
@@ -50,6 +49,8 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_plot(self):
+        from pandas.plotting._matplotlib.compat import _mpl_ge_3_1_0
+
         df = self.tdf
         _check_plot_works(df.plot, grid=False)
         # _check_plot_works adds an ax so catch warning. see GH #13188
@@ -383,8 +384,10 @@ class TestDataFramePlots(TestPlotBase):
             for ax in axes[:-2]:
                 self._check_visible(ax.xaxis)  # xaxis must be visible for grid
                 self._check_visible(ax.get_xticklabels(), visible=False)
-                self._check_visible(
-                    ax.get_xticklabels(minor=True), visible=False)
+                if not (kind == 'bar' and self.mpl_ge_3_1_0):
+                    # change https://github.com/pandas-dev/pandas/issues/26714
+                    self._check_visible(
+                        ax.get_xticklabels(minor=True), visible=False)
                 self._check_visible(ax.xaxis.get_label(), visible=False)
                 self._check_visible(ax.get_yticklabels())
 
@@ -800,7 +803,10 @@ class TestDataFramePlots(TestPlotBase):
                 with pytest.raises(ValueError):
                     mixed_df.plot(stacked=True)
 
-                _check_plot_works(df.plot, kind=kind, logx=True, stacked=True)
+                # Use an index with strictly positive values, preventing
+                #  matplotlib from warning about ignoring xlim
+                df2 = df.set_index(df.index + 1)
+                _check_plot_works(df2.plot, kind=kind, logx=True, stacked=True)
 
     def test_line_area_nan_df(self):
         values1 = [1, 2, np.nan, 3]
@@ -2732,7 +2738,7 @@ class TestDataFramePlots(TestPlotBase):
         import gc
 
         results = {}
-        for kind in plotting._core._plot_klass.keys():
+        for kind in plotting._core._plot_classes().keys():
 
             args = {}
             if kind in ['hexbin', 'scatter', 'pie']:
@@ -2946,7 +2952,7 @@ class TestDataFramePlots(TestPlotBase):
         fig.add_axes([0.2, 0.2, 0.2, 0.2])
         Series(rand(10)).plot(ax=ax)
 
-        # suppliad ax itself is a plain Axes, but because the cmap keyword
+        # supplied ax itself is a plain Axes, but because the cmap keyword
         # a new ax is created for the colorbar -> also multiples axes (GH11520)
         df = DataFrame({'a': randn(8), 'b': randn(8)})
         fig = self.plt.figure()
