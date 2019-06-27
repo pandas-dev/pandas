@@ -79,6 +79,26 @@ a dict to a Series groupby aggregation (:ref:`whatsnew_0200.api_breaking.depreca
 
 See :ref:`groupby.aggregate.named` for more.
 
+.. _whatsnew_0250.enhancements.multiple_lambdas:
+
+Groupby Aggregation with multiple lambdas
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can now provide multiple lambda functions to a list-like aggregation in
+:class:`pandas.core.groupby.GroupBy.agg` (:issue:`26430`).
+
+.. ipython:: python
+
+   animals.groupby('kind').height.agg([
+       lambda x: x.iloc[0], lambda x: x.iloc[-1]
+   ])
+
+   animals.groupby('kind').agg([
+       lambda x: x.iloc[0] - x.iloc[1],
+       lambda x: x.iloc[0] + x.iloc[1]
+   ])
+
+Previously, these raised a ``SpecificationError``.
 
 .. _whatsnew_0250.enhancements.multi_index_repr:
 

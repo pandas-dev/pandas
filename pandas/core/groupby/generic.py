@@ -5,13 +5,13 @@ classes that hold the groupby interfaces (and some implementations).
 These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
-
 from collections import OrderedDict, abc, namedtuple
 import copy
+import functools
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import Any, Callable, FrozenSet, Iterator, List, Type, Union
+from typing import Any, Callable, FrozenSet, Iterator, Sequence, Type, Union
 import warnings
 
 import numpy as np
@@ -24,9 +24,9 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.cast import (
     maybe_convert_objects, maybe_downcast_to_dtype)
 from pandas.core.dtypes.common import (
-    ensure_int64, ensure_platform_int, is_bool, is_datetimelike,
-    is_integer_dtype, is_interval_dtype, is_numeric_dtype, is_object_dtype,
-    is_scalar)
+    ensure_int64, ensure_platform_int, is_bool, is_datetimelike, is_dict_like,
+    is_integer_dtype, is_interval_dtype, is_list_like, is_numeric_dtype,
+    is_object_dtype, is_scalar)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas._typing import FrameOrSeries
@@ -49,6 +49,10 @@ from pandas.plotting import boxplot_frame_groupby
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
+# TODO: validate types on ScalarResult and move to _typing
+# Blocked from using by https://github.com/python/mypy/issues/1484
+# See note at _mangle_lambda_list
+ScalarResult = typing.TypeVar("ScalarResult")
 
 
 def whitelist_method_generator(base_class: Type[GroupBy],
@@ -216,6 +220,8 @@ class NDFrameGroupBy(GroupBy):
             # nicer error message
             raise TypeError("Must provide 'func' or tuples of "
                             "'(column, aggfunc).")
+
+        func = _maybe_mangle_lambdas(func)
 
         result, how = self._aggregate(func, _level=_level, *args, **kwargs)
         if how is None:
@@ -830,6 +836,7 @@ class SeriesGroupBy(GroupBy):
         if isinstance(func_or_funcs, abc.Iterable):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
+            func_or_funcs = _maybe_mangle_lambdas(func_or_funcs)
             ret = self._aggregate_multiple_funcs(func_or_funcs,
                                                  (_level or 0) + 1)
             if relabeling:
@@ -1698,7 +1705,10 @@ def _normalize_keyword_aggregation(kwargs):
     # process normally, then fixup the names.
     # TODO(Py35): When we drop python 3.5, change this to
     # defaultdict(list)
-    aggspec = OrderedDict()  # type: typing.OrderedDict[str, List[AggScalar]]
+    # TODO: aggspec type: typing.OrderedDict[str, List[AggScalar]]
+    # May be hitting https://github.com/python/mypy/issues/5958
+    # saying it doesn't have an attribute __name__
+    aggspec = OrderedDict()
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
@@ -1710,6 +1720,90 @@ def _normalize_keyword_aggregation(kwargs):
         order.append((column,
                       com.get_callable_name(aggfunc) or aggfunc))
     return aggspec, columns, order
+
+
+# TODO: Can't use, because mypy doesn't like us setting __name__
+#   error: "partial[Any]" has no attribute "__name__"
+# the type is:
+#   typing.Sequence[Callable[..., ScalarResult]]
+#     -> typing.Sequence[Callable[..., ScalarResult]]:
+
+def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
+    """
+    Possibly mangle a list of aggfuncs.
+
+    Parameters
+    ----------
+    aggfuncs : Sequence
+
+    Returns
+    -------
+    mangled: list-like
+        A new AggSpec sequence, where lambdas have been converted
+        to have unique names.
+
+    Notes
+    -----
+    If just one aggfunc is passed, the name will not be mangled.
+    """
+    if len(aggfuncs) <= 1:
+        # don't mangle for .agg([lambda x: .])
+        return aggfuncs
+    i = 0
+    mangled_aggfuncs = []
+    for aggfunc in aggfuncs:
+        if com.get_callable_name(aggfunc) == "<lambda>":
+            aggfunc = functools.partial(aggfunc)
+            aggfunc.__name__ = '<lambda_{}>'.format(i)
+            i += 1
+        mangled_aggfuncs.append(aggfunc)
+
+    return mangled_aggfuncs
+
+
+def _maybe_mangle_lambdas(agg_spec: Any) -> Any:
+    """
+    Make new lambdas with unique names.
+
+    Parameters
+    ----------
+    agg_spec : Any
+        An argument to NDFrameGroupBy.agg.
+        Non-dict-like `agg_spec` are pass through as is.
+        For dict-like `agg_spec` a new spec is returned
+        with name-mangled lambdas.
+
+    Returns
+    -------
+    mangled : Any
+        Same type as the input.
+
+    Examples
+    --------
+    >>> _maybe_mangle_lambdas('sum')
+    'sum'
+
+    >>> _maybe_mangle_lambdas([lambda: 1, lambda: 2])  # doctest: +SKIP
+    [<function __main__.<lambda_0>,
+     <function pandas...._make_lambda.<locals>.f(*args, **kwargs)>]
+    """
+    is_dict = is_dict_like(agg_spec)
+    if not (is_dict or is_list_like(agg_spec)):
+        return agg_spec
+    mangled_aggspec = type(agg_spec)()  # dict or OrderdDict
+
+    if is_dict:
+        for key, aggfuncs in agg_spec.items():
+            if is_list_like(aggfuncs) and not is_dict_like(aggfuncs):
+                mangled_aggfuncs = _managle_lambda_list(aggfuncs)
+            else:
+                mangled_aggfuncs = aggfuncs
+
+            mangled_aggspec[key] = mangled_aggfuncs
+    else:
+        mangled_aggspec = _managle_lambda_list(agg_spec)
+
+    return mangled_aggspec
 
 
 def _recast_datetimelike_result(result: DataFrame) -> DataFrame:

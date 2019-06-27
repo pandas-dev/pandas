@@ -568,6 +568,29 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
                             'mean': 'bar',
                             'std': 'baz'}))
 
+.. note::
+
+   In general, the output column names should be unique. You can't apply
+   the same function (or two functions with the same name) to the same
+   column.
+
+   .. ipython:: python
+      :okexcept:
+
+      grouped['C'].agg(['sum', 'sum'])
+
+
+   Pandas *does* allow you to provide multiple lambdas. In this case, pandas
+   will mangle the name of the (nameless) lambda functions, appending ``_<i>``
+   to each subsequent lambda.
+
+   .. ipython:: python
+
+      grouped['C'].agg([lambda x: x.max() - x.min(),
+                        lambda x: x.median() - x.mean()])
+
+
+
 .. _groupby.aggregate.named:
 
 Named aggregation
