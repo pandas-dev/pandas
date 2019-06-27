@@ -347,6 +347,11 @@ considered commutative, such that ``A.union(B) == B.union(A)`` (:issue:`23525`).
     pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
     pd.Index([], dtype=object).union(pd.Index([1, 2, 3]))
 
+Note that integer- and floating-dtype indexes are considered "compatible". The integer
+values are coerced to floating point, which may result in loss of precision. See
+:ref:`indexing.set_ops` for more.
+
+
 ``DataFrame`` groupby ffill/bfill no longer return group labels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -578,6 +583,7 @@ Performance improvements
 - Improved performance of :attr:`IntervalIndex.is_unique` by removing conversion to ``MultiIndex`` (:issue:`24813`)
 - Restored performance of :meth:`DatetimeIndex.__iter__` by re-enabling specialized code path (:issue:`26702`)
 - Improved performance when building :class:`MultiIndex` with at least one :class:`CategoricalIndex` level (:issue:`22044`)
+- Improved performance by removing the need for a garbage collect when checking for ``SettingWithCopyWarning`` (:issue:`27031`)
 
 .. _whatsnew_0250.bug_fixes:
 
@@ -686,6 +692,7 @@ Missing
 
 - Fixed misleading exception message in :meth:`Series.interpolate` if argument ``order`` is required, but omitted (:issue:`10633`, :issue:`24014`).
 - Fixed class type displayed in exception message in :meth:`DataFrame.dropna` if invalid ``axis`` parameter passed (:issue:`25555`)
+- A ``ValueError`` will now be thrown by :meth:`DataFrame.fillna` when ``limit`` is not a positive integer (:issue:`27042`)
 -
 
 MultiIndex
@@ -776,6 +783,7 @@ Reshaping
 - Bug in :func:`DataFrame.sort_index` where an error is thrown when a multi-indexed ``DataFrame`` is sorted on all levels with the initial level sorted last (:issue:`26053`)
 - Bug in :meth:`Series.nlargest` treats ``True`` as smaller than ``False`` (:issue:`26154`)
 - Bug in :func:`DataFrame.pivot_table` with a :class:`IntervalIndex` as pivot index would raise ``TypeError`` (:issue:`25814`)
+- Bug in :meth:`DataFrame.transpose` where transposing a DataFrame with a timezone-aware datetime column would incorrectly raise ``ValueError`` (:issue:`26825`)
 
 Sparse
 ^^^^^^
@@ -803,6 +811,7 @@ Other
 - Removed unused C functions from vendored UltraJSON implementation (:issue:`26198`)
 - Allow :class:`Index` and :class:`RangeIndex` to be passed to numpy ``min`` and ``max`` functions (:issue:`26125`)
 - Use actual class name in repr of empty objects of a ``Series`` subclass (:issue:`27001`).
+- Bug in :class:`DataFrame` where passing an object array of timezone-aware `datetime` objects would incorrectly raise ``ValueError`` (:issue:`13287`)
 
 .. _whatsnew_0.250.contributors:
 

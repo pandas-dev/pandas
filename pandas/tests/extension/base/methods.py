@@ -53,8 +53,8 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('na_position, expected', [
-        ('last', np.array([2, 0, 1], dtype='int64')),
-        ('first', np.array([1, 2, 0], dtype='int64'))
+        ('last', np.array([2, 0, 1], dtype=np.dtype('intp'))),
+        ('first', np.array([1, 2, 0], dtype=np.dtype('intp')))
     ])
     def test_nargsort(self, data_missing_for_sorting, na_position, expected):
         # GH 25439
