@@ -745,32 +745,17 @@ You should write
 
 .. code-block:: python
 
-   from typing import Union
+   from typing import List, Union
 
-   maybe_primes = []  # type: Union[int, None]
+   maybe_primes = []  # type: List[Union[int, None]]
 
 You should write
 
 .. code-block:: python
 
-   from typing import Optional
+   from typing import List, Optional
 
-   maybe_primes = []  # type: Optional[int]
-
-If a function accepts multiple arguments, every parameter should appear on a separate line. So rather than
-
-.. code-block:: python
-
-   def some_func(a: str, b: float, c: Union[int, float]) -> float:
-
-The preferred style would be
-
-.. code-block:: python
-
-   def some_func(a: str,
-		 b: float,
-		 c: Union[int, float]
-   ) -> float:
+   maybe_primes = []  # type: List[Optional[int]]
 
 When dealing with parameters with a default argument of ``None``, you should not use ``Optional`` as this will be inferred by the static type checker. So instead of:
 
@@ -788,6 +773,16 @@ Pandas-specific Types
 ~~~~~~~~~~~~~~~~~~~~~
 
 Commonly used types specific to *pandas* will appear in pandas._typing and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
+
+For example, quite a few functions in *pandas* accept a ``dtype`` argument. This can be expressed as a string like ``"object"``, a numpy.dtype like ``np.int64`` or even a pandas ``ExtensionDtype`` like ``pd.CategoricalDtype``. Rather than burden the user with having to constantly annotate all of those options, this can simply be imported and reused from the pandas._typing module
+
+.. code-block:: python
+
+   from pandas._typing import Dtype
+
+   def as_type(dtype: Dtype) -> ...:
+
+This module will ultimately house types for repeatedly used concepts like "path-like", "array-like", "numeric", etc... and can also hold aliases for commonly appearing parameters like `axis`. Development of this module is active so be sure to refer to the source for the most up to date list of available types.
 
 Validating Type Hints
 ~~~~~~~~~~~~~~~~~~~~~
