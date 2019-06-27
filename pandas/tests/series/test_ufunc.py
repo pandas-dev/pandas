@@ -257,3 +257,19 @@ def test_object_series_ok():
     tm.assert_series_equal(np.add(ser, ser), pd.Series(np.add(ser, arr)))
     tm.assert_series_equal(np.add(ser, Dummy(1)),
                            pd.Series(np.add(ser, Dummy(1))))
+
+
+@pytest.mark.parametrize('values', [
+    pd.array([1, 3, 2]),
+    pytest.param(
+        pd.array([1, 10, 0], dtype='Sparse[int]'),
+        marks=pytest.mark.xfail(resason='GH-27080. Bug in SparseArray')
+    ),
+    pd.to_datetime(['2000', '2010', '2001']),
+    pd.to_datetime(['2000', '2010', '2001']).tz_localize("CET"),
+    pd.to_datetime(['2000', '2010', '2001']).to_period(freq="D"),
+
+])
+def test_reduce(values):
+    a = pd.Series(values)
+    assert np.maximum.reduce(a) == values[1]

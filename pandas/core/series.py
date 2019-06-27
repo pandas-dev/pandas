@@ -726,8 +726,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             index = alignable[0].index
             for s in alignable[1:]:
                 index |= s.index
-            inputs = [x.reindex(index) for x, t in zip(inputs, types)
-                      if issubclass(t, Series)]
+            inputs = [x.reindex(index) if issubclass(t, Series) else x
+                      for x, t in zip(inputs, types)]
         else:
             index = self.index
 
@@ -754,6 +754,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             name = None
 
         def construct_return(result):
+            if lib.is_scalar(result):
+                return result
             return self._constructor(result,
                                      index=index,
                                      name=name,

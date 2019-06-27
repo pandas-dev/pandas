@@ -11,8 +11,7 @@ Universal Functions
 -------------------
 
 :class:`Series` implements ``__array_ufunc__``, which allows it to work with NumPy's
-`universal functions <https://docs.scipy.org/doc/numpy/reference/ufuncs.html>`_
-to be applied.
+`universal functions <https://docs.scipy.org/doc/numpy/reference/ufuncs.html>`_.
 
 The ufunc is applied to the underlying array in a Series.
 
@@ -21,7 +20,7 @@ The ufunc is applied to the underlying array in a Series.
    ser = pd.Series([1, 2, 3, 4])
    np.exp(ser)
 
-Like other parts of of the library, pandas will automatically align labeled inputs
+Like other parts of the library, pandas will automatically align labeled inputs
 as part of a ufunc with multiple inputs. For example, using :meth:`numpy.remainder`
 on two :class:`Series` with differently ordered labels will align before the operation.
 
