@@ -112,6 +112,12 @@ def test_resample_integerarray():
                       dtype="Int64")
     assert_series_equal(result, expected)
 
+    result = ts.resample('3T').mean()
+    expected = Series([1, 4, 7],
+                      index=pd.date_range('1/1/2000', periods=3, freq='3T'),
+                      dtype='Int64')
+    assert_series_equal(result, expected)
+
 
 def test_resample_basic_grouper(series):
     s = series

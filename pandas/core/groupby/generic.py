@@ -158,12 +158,19 @@ class NDFrameGroupBy(GroupBy):
 
                 obj = self.obj[data.items[locs]]
                 s = groupby(obj, self.grouper)
-                result = s.aggregate(lambda x: alt(x, axis=self.axis))
+                try:
+                    result = s.aggregate(lambda x: alt(x, axis=self.axis))
+                except TypeError:
+                    # we may have an exception in trying to aggregate
+                    # continue and exclude the block
+                    pass
 
             finally:
 
+                dtype = block.values.dtype
+
                 # see if we can cast the block back to the original dtype
-                result = block._try_coerce_and_cast_result(result)
+                result = block._try_coerce_and_cast_result(result, dtype=dtype)
                 newb = block.make_block(result)
 
             new_items.append(locs)

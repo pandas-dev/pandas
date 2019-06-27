@@ -72,11 +72,12 @@ class disallow:
 
 class bottleneck_switch:
 
-    def __init__(self, **kwargs):
+    def __init__(self, name=None, **kwargs):
+        self.name = name
         self.kwargs = kwargs
 
     def __call__(self, alt):
-        bn_name = alt.__name__
+        bn_name = self.name or alt.__name__
 
         try:
             bn_func = getattr(bn, bn_name)
@@ -804,7 +805,8 @@ def nansem(values, axis=None, skipna=True, ddof=1, mask=None):
 
 
 def _nanminmax(meth, fill_value_typ):
-    @bottleneck_switch()
+
+    @bottleneck_switch(name='nan' + meth)
     def reduction(values, axis=None, skipna=True, mask=None):
 
         values, mask, dtype, dtype_max, fill_value = _get_values(
@@ -824,7 +826,6 @@ def _nanminmax(meth, fill_value_typ):
         result = _wrap_results(result, dtype, fill_value)
         return _maybe_null_out(result, axis, mask, values.shape)
 
-    reduction.__name__ = 'nan' + meth
     return reduction
 
 
