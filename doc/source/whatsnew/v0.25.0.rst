@@ -347,6 +347,11 @@ considered commutative, such that ``A.union(B) == B.union(A)`` (:issue:`23525`).
     pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
     pd.Index([], dtype=object).union(pd.Index([1, 2, 3]))
 
+Note that integer- and floating-dtype indexes are considered "compatible". The integer
+values are coerced to floating point, which may result in loss of precision. See
+:ref:`indexing.set_ops` for more.
+
+
 ``DataFrame`` groupby ffill/bfill no longer return group labels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -579,6 +584,7 @@ Performance Improvements
 - Improved performance of :attr:`IntervalIndex.is_unique` by removing conversion to ``MultiIndex`` (:issue:`24813`)
 - Restored performance of :meth:`DatetimeIndex.__iter__` by re-enabling specialized code path (:issue:`26702`)
 - Improved performance when building :class:`MultiIndex` with at least one :class:`CategoricalIndex` level (:issue:`22044`)
+- Improved performance by removing the need for a garbage collect when checking for ``SettingWithCopyWarning`` (:issue:`27031`)
 
 .. _whatsnew_0250.bug_fixes:
 
@@ -687,6 +693,7 @@ Missing
 
 - Fixed misleading exception message in :meth:`Series.interpolate` if argument ``order`` is required, but omitted (:issue:`10633`, :issue:`24014`).
 - Fixed class type displayed in exception message in :meth:`DataFrame.dropna` if invalid ``axis`` parameter passed (:issue:`25555`)
+- A ``ValueError`` will now be thrown by :meth:`DataFrame.fillna` when ``limit`` is not a positive integer (:issue:`27042`)
 -
 
 MultiIndex
