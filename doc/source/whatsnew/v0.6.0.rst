@@ -11,7 +11,7 @@ v.0.6.0 (November 25, 2011)
    from pandas import * # noqa F401, F403
 
 
-New Features
+New features
 ~~~~~~~~~~~~
 - :ref:`Added <reshaping.melt>` ``melt`` function to ``pandas.core.reshape``
 - :ref:`Added <groupby.multiindex>` ``level`` parameter to group by level in Series and DataFrame descriptive statistics (:issue:`313`)
@@ -49,7 +49,7 @@ New Features
 - :ref:`Added <basics.apply>` ``raw`` option to ``DataFrame.apply`` for performance if only need ndarray (:issue:`309`)
 - Added proper, tested weighted least squares to standard and panel OLS (:issue:`303`)
 
-Performance Enhancements
+Performance enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - VBENCH Cythonized ``cache_readonly``, resulting in substantial micro-performance enhancements throughout the code base (:issue:`361`)
 - VBENCH Special Cython matrix iterator for applying arbitrary reduction operations with 3-5x better performance than `np.apply_along_axis` (:issue:`309`)

@@ -26,7 +26,7 @@ use HDF5 files, see :ref:`io.external_compatibility` for an
 example.
 
 
-Quick Reference
+Quick reference
 ---------------
 
 We'll start off with a quick reference guide pairing some common R
@@ -35,7 +35,7 @@ operations using `dplyr
 pandas equivalents.
 
 
-Querying, Filtering, Sampling
+Querying, filtering, sampling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ===========================================  ===========================================
@@ -85,7 +85,7 @@ R                                            pandas
 ===========================================  ===========================================
 
 
-Grouping and Summarizing
+Grouping and summarizing
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 ==============================================  ===========================================

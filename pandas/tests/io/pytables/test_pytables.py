@@ -43,8 +43,7 @@ xfail_non_writeable = pytest.mark.xfail(
             'release beyong 3.4.4 to support numpy 1.16x'))
 
 
-_default_compressor = ('blosc' if LooseVersion(tables.__version__) >=
-                       LooseVersion('2.2') else 'zlib')
+_default_compressor = 'blosc'
 
 
 ignore_natural_naming_warning = pytest.mark.filterwarnings(
