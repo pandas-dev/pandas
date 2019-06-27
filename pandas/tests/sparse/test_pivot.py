@@ -42,12 +42,12 @@ class TestPivotTable:
                                    values='E', aggfunc='mean')
         tm.assert_frame_equal(res_sparse, res_dense)
 
-        # ToDo: sum doesn't handle nan properly
-        # res_sparse = pd.pivot_table(self.sparse, index='A', columns='B',
-        #                             values='E', aggfunc='sum')
-        # res_dense = pd.pivot_table(self.dense, index='A', columns='B',
-        #                            values='E', aggfunc='sum')
-        # tm.assert_frame_equal(res_sparse, res_dense)
+    def test_pivot_table_with_nans(self):
+        res_sparse = pd.pivot_table(self.sparse, index='A', columns='B',
+                                    values='E', aggfunc='sum')
+        res_dense = pd.pivot_table(self.dense, index='A', columns='B',
+                                   values='E', aggfunc='sum')
+        tm.assert_frame_equal(res_sparse, res_dense)
 
     @pytest.mark.xfail(not _np_version_under1p17,
                        reason="failing occasionally on numpy > 1.17",

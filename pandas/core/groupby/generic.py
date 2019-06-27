@@ -160,7 +160,7 @@ class NDFrameGroupBy(GroupBy):
                 s = groupby(obj, self.grouper)
                 try:
                     result = s.aggregate(lambda x: alt(x, axis=self.axis))
-                except Exception:
+                except TypeError:
                     # we may have an exception in trying to aggregate
                     # continue and exclude the block
                     pass
