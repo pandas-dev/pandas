@@ -2997,7 +2997,7 @@ def _block_shape(values, ndim=1, shape=None):
             # TODO: https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
-            values = values.reshape(tuple((1, ) + shape))
+            values = values.reshape(tuple((1,) + shape))
     return values
 
 
