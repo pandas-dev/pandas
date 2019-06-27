@@ -1,4 +1,4 @@
-from typing import Hashable, List
+from typing import List
 from collections import OrderedDict
 from distutils.version import LooseVersion
 
@@ -497,241 +497,35 @@ class _OpenpyxlReader(_BaseExcelReader):
     def sheet_names(self):
         return self.book.sheetnames
 
-    @staticmethod
-    def _handle_usecols(frame, usecols):
-        column_names = frame.columns.values
-        if usecols:
-            _validate_usecols_arg(usecols)
-            usecols = sorted(usecols)
-            if any(isinstance(i, str) for i in usecols):
-                _validate_usecols_names(usecols, column_names)
-                frame = frame[usecols]
-            else:
-                frame = frame.iloc[:, usecols]
-        return frame
-
-    def _handle_sheet_name(self, sheet_name):
-        """Handle the sheet_name keyword."""
-        # Keep sheetname to maintain backwards compatibility.
-        if isinstance(sheet_name, list):
-            sheets = sheet_name
-        elif sheet_name is None:
-            sheets = self.sheet_names
-        else:
-            sheets = [sheet_name]
-        return sheets
-
-    @staticmethod
-    def _handle_header_keywords(data, header, skiprows, index_col):
-        """Handle keywords relating to header parsing."""
-        # forward fill and pull out names for MultiIndex column
-        header_names = None
-        if header is not None and is_list_like(header):
-            header_names = []
-            control_row = [True] * len(data[0])
-
-            for row in header:
-                if is_integer(skiprows):
-                    row += skiprows
-
-                data[row], control_row = _fill_mi_header(data[row],
-                                                         control_row)
-
-                if index_col is not None:
-                    header_name, _ = _pop_header_name(data[row], index_col)
-                    header_names.append(header_name)
-        return header_names
-
-    @staticmethod
-    def _handle_convert_float(series, convert_float):
-        """Handle the convert_float keyword."""
-        # attempt to convert object columns to integer. Only because this
-        # is implicitly done when reading and excel file with xlrd, that
-        # behaviour is replicated here.
-
-        if is_object_dtype(series):
-            try:
-                series = ensure_int_or_float(series)
-            except (ValueError):
-                return series
-        elif (convert_float
-                and is_float_dtype(series)
-                and all(series % 1 == 0)):
-            series = series.astype('int64')
-        elif not convert_float:
-            if is_integer_dtype(series):
-                series = series.astype('float64')
-        return series
-
-    @staticmethod
-    def _handle_index_col(frame, index_col):
-        column_names = frame.columns.values
-        if index_col is None:
-            return frame
-        if is_list_like(index_col):
-            if any(isinstance(i, str) for i in index_col):
-                # TODO: see if there is already a method for this in
-                # pandas.io.parsers
-                frame = frame.set_index(index_col)
-                if len(index_col) == 1:
-                    # TODO: understand why this is needed
-                    raise TypeError("list indices must be integers.*, not str")
-            else:
-                frame = frame.set_index([column_names[i] for i in index_col])
-        else:
-            if isinstance(index_col, str):
-                frame = frame.set_index(index_col)
-            else:
-                frame = frame.set_index(column_names[index_col])
-        return frame
-
     def get_sheet_by_name(self, name):
         return self.book[name]
 
     def get_sheet_by_index(self, index):
         return self.book.worksheets[index]
 
-    def _replace_type_error_with_nan(self, rows):
-        try:
-            from openpyxl.cell.cell import TYPE_ERROR
-        except ImportError:  # openpyxl < 2.6
-            from openpyxl.cell.cell import Cell
-            TYPE_ERROR = Cell.TYPE_ERROR
+    def _convert_cell(self,
+                      cell: 'openpyxl.cell.cell.Cell',
+                      convert_float: bool):
+        # TODO: replace with openpyxl constants
+        if cell.data_type == 'e':
+            return np.nan
+        elif not cell.value:
+            return ''  # compat with xlrd
+        elif cell.data_type == 'b':
+            return bool(cell.value)
+        elif convert_float and cell.data_type == 'n' and cell.value:
+            # GH5394
+            val = int(cell.value)
+            if val == cell.value:
+                return val
 
-        for row in rows:
-            yield [np.nan
-                   if cell.data_type == TYPE_ERROR
-                   else cell.value
-                   for cell in row]
+        return cell.value
 
-    def get_sheet_data(self, sheet):
-        data = self._replace_type_error_with_nan(sheet.rows)
-        return list(data)
+    def get_sheet_data(self,
+                       sheet: 'openpyxl.worksheet.worksheet.Worksheet',
+                       convert_float: bool) -> List[List]:
+        data = []  # type: List[List]
+        for row in sheet.rows:
+            data.append([self._convert_cell(cell, convert_float) for cell in row])
 
-    def _parse_sheet(self, sheet, convert_float, usecols, header, skiprows,
-                     index_col, converters, skipfooter, dtype, squeeze):
-        """Parse a single sheet into a dataframe."""
-
-        data = self.get_sheet_data(sheet)
-        if not data or data == [[None]]:
-            return DataFrame()
-
-        usecols = _maybe_convert_usecols(usecols)
-
-        if is_list_like(header) and len(header) == 1:
-            header = header[0]
-
-        header_names = self._handle_header_keywords(data, header, skiprows,
-                                                    index_col)
-
-        # TODO: implement whatever this should do
-        # has_index_names = is_list_like(header) and len(header) > 1
-
-        if skiprows:
-            data = [row for i, row in enumerate(data) if i not in skiprows]
-
-        if skipfooter:
-            data = data[:-skipfooter]
-
-        column_names = [cell for cell in data.pop(0)]
-
-        frame = DataFrame(data, columns=column_names)
-        frame = self._handle_usecols(frame, usecols)
-
-        if not converters:
-            converters = dict()
-        if not dtype:
-            dtype = dict()
-
-        # handle columns referenced by number so all references are by
-        # column name
-        handled_converters = {}
-        for k, v in converters.items():
-            if k not in frame.columns and isinstance(k, int):
-                k = frame.columns[k]
-            handled_converters[k] = v
-        converters = handled_converters
-
-        if len(frame) > 0:
-            for column in set(frame) - set(dtype.keys()):
-                frame[column] = self._handle_convert_float(frame[column],
-                                                           convert_float)
-
-        if converters:
-            for k, v in converters.items():
-                # for compatibiliy reasons
-                if frame[k].dtype == float and convert_float:
-                    frame[k] = frame[k].fillna('')
-                frame[k] = frame[k].apply(v)
-
-        if dtype:
-            for k, v in dtype.items():
-                frame[k] = frame[k].astype(v)
-
-        frame = self._handle_index_col(frame, index_col)
-
-        if not squeeze or isinstance(frame, DataFrame):
-            if header_names:
-                frame = frame.columns.set_names(header_names)
-
-        # TODO: align Unnamed filling logic with TextParser._infer_columns
-        # and handle potentially missing MultiIndex labels
-        if frame.columns.nlevels == 1:
-            new_labels = []  # type: List[Hashable]
-            for index, name in enumerate(frame.columns):
-                if isnull(name):
-                    new_labels.append("Unnamed: {}".format(index))
-                else:
-                    new_labels.append(name)
-
-        frame.columns = new_labels
-
-        return frame
-
-    def parse(self,
-              sheet_name=0,
-              header=0,
-              names=None,
-              index_col=None,
-              usecols=None,
-              squeeze=False,
-              converters=None,
-              dtype=None,
-              true_values=None,
-              false_values=None,
-              skiprows=None,
-              nrows=None,
-              na_values=None,
-              verbose=False,
-              parse_dates=False,
-              date_parser=None,
-              thousands=None,
-              comment=None,
-              skipfooter=0,
-              convert_float=True,
-              mangle_dupe_cols=True,
-              **kwds):
-
-        _validate_header_arg(header)
-
-        sheets = self._handle_sheet_name(sheet_name)
-        ret_dict = len(sheets) != 1
-        output = OrderedDict()
-
-        for asheetname in sheets:
-            if verbose:
-                print("Reading sheet {sheet}".format(sheet=asheetname))
-
-            if isinstance(asheetname, str):
-                sheet = self.get_sheet_by_name(asheetname)
-            else:  # assume an integer if not a string
-                sheet = self.get_sheet_by_index(asheetname)
-
-            output[asheetname] = self._parse_sheet(
-                sheet, convert_float, usecols, header, skiprows, index_col,
-                converters, skipfooter, dtype, squeeze)
-
-        if ret_dict:
-            return output
-        else:
-            return output[asheetname]
+        return data
