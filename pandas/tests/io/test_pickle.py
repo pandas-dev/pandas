@@ -11,7 +11,6 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
 import bz2
-from distutils.version import LooseVersion
 import glob
 import gzip
 import lzma

@@ -1,5 +1,4 @@
 import datetime
-from distutils.version import LooseVersion
 import glob
 from io import BytesIO
 import os
