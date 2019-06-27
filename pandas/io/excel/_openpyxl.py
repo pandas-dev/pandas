@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from distutils.version import LooseVersion
 
+from pandas.compat._optional import import_optional_dependency
 from pandas.core.dtypes.common import is_integer, is_list_like
 
 from pandas.core.frame import DataFrame
@@ -474,16 +475,7 @@ class _OpenpyxlReader(_BaseExcelReader):
         filepath_or_buffer : string, path object or Workbook
             Object to be parsed.
         """
-        err_msg = "Install openpyxl >= 2.4.0 for Excel with Openpyxl support"
-
-        try:
-            import openpyxl
-        except ImportError:
-            raise ImportError(err_msg)
-        else:
-            if openpyxl.__version__ < LooseVersion('2.4.0'):
-                raise ImportError(err_msg +
-                                  ". Current version " + openpyxl.__version__)
+        import_optional_dependency("openpyxl")
         super().__init__(filepath_or_buffer)
 
     @property
