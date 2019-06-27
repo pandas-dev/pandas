@@ -321,7 +321,7 @@ Index level names may be supplied as keys.
 
 More on the ``sum`` function and aggregation later.
 
-Grouping DataFrame with index levels and columns
+Grouping DataFrame with Index levels and columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 A DataFrame may be grouped by a combination of columns and index levels by
 specifying the column names as strings and the index levels as ``pd.Grouper``

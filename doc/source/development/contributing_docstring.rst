@@ -505,7 +505,7 @@ If the method yields its value:
 
 .. _docstring.see_also:
 
-Section 5: See also
+Section 5: See Also
 ~~~~~~~~~~~~~~~~~~~
 
 This section is used to let users know about pandas functionality

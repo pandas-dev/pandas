@@ -1099,7 +1099,7 @@ HDFStore
 
 The :ref:`HDFStores <io.hdf5>` docs
 
-`Simple queries with a timestamp index
+`Simple queries with a Timestamp Index
 <http://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
 
 `Managing heterogeneous data using a linked multiple table hierarchy

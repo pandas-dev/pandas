@@ -120,7 +120,7 @@ are restored automatically when you exit the `with` block:
    print(pd.get_option("display.max_columns"))
 
 
-Setting startup options in Python/Ipython environment
+Setting startup options in Python/IPython environment
 -----------------------------------------------------
 
 Using startup scripts for the Python/IPython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default ipython profile can be found at:

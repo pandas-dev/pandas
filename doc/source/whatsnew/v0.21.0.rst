@@ -507,7 +507,7 @@ The configuration option ``pd.options.mode.use_inf_as_null`` is deprecated, and 
 
 .. _whatsnew_0210.api_breaking.iteration_scalars:
 
-Iteration of series/index will now return Python scalars
+Iteration of Series/Index will now return Python scalars
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously, when using certain iteration methods for a ``Series`` with dtype ``int`` or ``float``, you would receive a ``numpy`` scalar, e.g. a ``np.int64``, rather than a Python ``int``. Issue (:issue:`10904`) corrected this for ``Series.tolist()`` and ``list(Series)``. This change makes all iteration methods consistent, in particular, for ``__iter__()`` and ``.map()``; note that this only affects int/float dtypes. (:issue:`13236`, :issue:`13258`, :issue:`14216`).

@@ -119,7 +119,7 @@ Binary operator functions
    Series.product
    Series.dot
 
-Function application, GroupBy & window
+Function application, groupby & window
 --------------------------------------
 .. autosummary::
    :toctree: api/
