@@ -107,8 +107,8 @@ def nested_to_record(ds, prefix: str = "", sep: str = ".", level: int = 0,
 
 
 def json_normalize(data: List[Dict],
-                   record_path: Union[str, List[str]] = None,
-                   meta: Union[str, List, List[str], List[List[str]]] = None,
+                   record_path: Union[str, List] = None,
+                   meta: Union[str, List] = None,
                    meta_prefix: str = None,
                    record_prefix: str = None,
                    errors: str = 'raise',

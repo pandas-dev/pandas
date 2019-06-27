@@ -85,6 +85,15 @@ def missing_metadata():
     ]
 
 
+def max_level_test_input_data():
+    return [{
+        'CreatedBy': {'Name': 'User001'},
+        'Lookup': {'TextField': 'Some text',
+                   'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+        'Image': {'a': 'b'}
+    }]
+
+
 class TestJSONNormalize:
 
     def test_simple_records(self):
@@ -488,69 +497,58 @@ class TestNestedToRecord:
             'location.country.state.town.info.z': 27.572303771972656}
         assert result == expected
 
-    @pytest.mark.parametrize("max_level, expected", [
-        (None, [{'CreatedBy.Name': 'User001',
-                 'Lookup.TextField': 'Some text',
-                 'Lookup.UserField.Id': 'ID001',
-                 'Lookup.UserField.Name': 'Name001',
-                 'Image.a': 'b'
-                 }]),
-        (0, [{'CreatedBy': {'Name': 'User001'},
-              'Lookup': {'TextField': 'Some text',
-                         'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
-              'Image': {'a': 'b'}
-              }]),
-        (1, [{'CreatedBy.Name': 'User001',
-              'Lookup.TextField': 'Some text',
-              'Lookup.UserField': {'Id': 'ID001',
-                                   'Name': 'Name001'},
-              'Image.a': 'b'
-              }])])
-    def test_with_max_level_none(self, max_level, expected):
-        # GH23843: Enhanced JSON normalize
-        data = [{
-            'CreatedBy': {'Name': 'User001'},
-            'Lookup': {'TextField': 'Some text',
-                       'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
-            'Image': {'a': 'b'}
-        }]
-        output = nested_to_record(data, max_level=max_level)
-        assert output == expected
-
-    def test_with_large_max_level(self):
-        # GH23843: Enhanced JSON normalize
-        data = [
-            {'CreatedBy': {
-                "user": {
-                    "name": {"firstname": "Leo",
-                             "LastName": "Thomson"},
-                    "family_tree": {
+    @pytest.mark.parametrize("max_level, input_data, expected", [
+        (None, max_level_test_input_data(),
+         [{'CreatedBy.Name': 'User001',
+           'Lookup.TextField': 'Some text',
+           'Lookup.UserField.Id': 'ID001',
+           'Lookup.UserField.Name': 'Name001',
+           'Image.a': 'b'
+           }]),
+        (0, max_level_test_input_data(),
+         [{'CreatedBy': {'Name': 'User001'},
+           'Lookup': {'TextField': 'Some text',
+                      'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+           'Image': {'a': 'b'}
+           }]),
+        (1, max_level_test_input_data(),
+         [{'CreatedBy.Name': 'User001',
+           'Lookup.TextField': 'Some text',
+           'Lookup.UserField': {'Id': 'ID001',
+                                'Name': 'Name001'},
+           'Image.a': 'b'
+           }]),
+        (100, [{'CreatedBy': {
+            "user": {
+                "name": {"firstname": "Leo",
+                         "LastName": "Thomson"},
+                "family_tree": {
+                    "father": {
+                        "name": "Father001",
                         "father": {
-                            "name": "Father001",
+                            "Name": "Father002",
                             "father": {
-                                "Name": "Father002",
+                                "name": "Father003",
                                 "father": {
-                                    "name": "Father003",
-                                    "father": {
-                                        "Name": "Father004",
-                                    },
+                                    "Name": "Father004",
                                 },
-                            }
+                            },
                         }
                     }
                 }
-            }}
-        ]
-        expected_output = [
-            {'CreatedBy.user.name.firstname': 'Leo',
-             'CreatedBy.user.name.LastName': 'Thomson',
-             'CreatedBy.user.family_tree.father.name': 'Father001',
-             'CreatedBy.user.family_tree.father.father.Name': 'Father002',
-             'CreatedBy.user.family_tree.father.father.father.name':
-                 'Father003',
-             'CreatedBy.user.family_tree.father.father.father.father.Name':
-                 'Father004'}
-        ]
-
-        output = nested_to_record(data, max_level=100)
-        assert output == expected_output
+            }
+        }}],
+            [{'CreatedBy.user.name.firstname': 'Leo',
+              'CreatedBy.user.name.LastName': 'Thomson',
+              'CreatedBy.user.family_tree.father.name': 'Father001',
+              'CreatedBy.user.family_tree.father.father.Name': 'Father002',
+              'CreatedBy.user.family_tree.father.father.father.name':
+                  'Father003',
+              'CreatedBy.user.family_tree.father.father.father.father.Name':
+                  'Father004'}
+             ])
+    ])
+    def test_with_max_level(self, max_level, input_data, expected):
+        # GH23843: Enhanced JSON normalize
+        output = nested_to_record(input_data, max_level=max_level)
+        assert output == expected
