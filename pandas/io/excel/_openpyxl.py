@@ -6,6 +6,7 @@ from pandas.core.dtypes.common import (
     ensure_int_or_float, is_float_dtype, is_integer, is_integer_dtype,
     is_list_like, is_object_dtype)
 
+from pandas.core.internals.construction import get_names_from_index
 from pandas.core.frame import DataFrame
 
 from pandas.io.common import _validate_header_arg
@@ -670,12 +671,8 @@ class _OpenpyxlReader(_BaseExcelReader):
             if header_names:
                 frame = frame.columns.set_names(header_names)
 
-        # name unnamed columns
-        unnamed = 0
-        for i, col_name in enumerate(frame.columns.values):
-            if col_name is None:
-                frame.columns.values[i] = "Unnamed: {n}".format(n=unnamed)
-                unnamed += 1
+        frame.columns = get_names_from_index(frame.columns)
+
         return frame
 
     def parse(self,
