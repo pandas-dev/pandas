@@ -2135,8 +2135,8 @@ class TestDataFrameAnalytics:
         nan_round_Series = Series({"col1": np.nan, "col2": 1})
 
         # TODO(wesm): unused?
-        expected_nan_round = DataFrame(
-            {"col1": [1.123, 2.123, 3.123], "col2": [1.2, 2.2, 3.2]}  # noqa
+        expected_nan_round = DataFrame(  # noqa
+            {"col1": [1.123, 2.123, 3.123], "col2": [1.2, 2.2, 3.2]}
         )
 
         with pytest.raises(TypeError):

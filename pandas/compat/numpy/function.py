@@ -108,8 +108,7 @@ def validate_argmax_with_skipna(skipna, args, kwargs):
     return skipna
 
 
-ARGSORT_DEFAULTS = OrderedDict()
-# type: OrderedDict[str, Optional[Union[int, str]]]
+ARGSORT_DEFAULTS = OrderedDict()  # type: OrderedDict[str, Optional[Union[int, str]]]
 ARGSORT_DEFAULTS["axis"] = -1
 ARGSORT_DEFAULTS["kind"] = "quicksort"
 ARGSORT_DEFAULTS["order"] = None
@@ -125,8 +124,7 @@ validate_argsort = CompatValidator(
 
 # two different signatures of argsort, this second validation
 # for when the `kind` param is supported
-ARGSORT_DEFAULTS_KIND = OrderedDict()
-# type: OrderedDict[str, Optional[int]]
+ARGSORT_DEFAULTS_KIND = OrderedDict()  # type: OrderedDict[str, Optional[int]]
 ARGSORT_DEFAULTS_KIND["axis"] = -1
 ARGSORT_DEFAULTS_KIND["order"] = None
 validate_argsort_kind = CompatValidator(
@@ -243,8 +241,7 @@ validate_round = CompatValidator(
     ROUND_DEFAULTS, fname="round", method="both", max_fname_arg_count=1
 )
 
-SORT_DEFAULTS = OrderedDict()
-# type: OrderedDict[str, Optional[Union[int, str]]]
+SORT_DEFAULTS = OrderedDict()  # type: OrderedDict[str, Optional[Union[int, str]]]
 SORT_DEFAULTS["axis"] = -1
 SORT_DEFAULTS["kind"] = "quicksort"
 SORT_DEFAULTS["order"] = None
@@ -278,8 +275,7 @@ validate_median = CompatValidator(
     MEDIAN_DEFAULTS, fname="median", method="both", max_fname_arg_count=1
 )
 
-STAT_DDOF_FUNC_DEFAULTS = OrderedDict()
-# type: OrderedDict[str, Optional[bool]]
+STAT_DDOF_FUNC_DEFAULTS = OrderedDict()  # type: OrderedDict[str, Optional[bool]]
 STAT_DDOF_FUNC_DEFAULTS["dtype"] = None
 STAT_DDOF_FUNC_DEFAULTS["out"] = None
 STAT_DDOF_FUNC_DEFAULTS["keepdims"] = False

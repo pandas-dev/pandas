@@ -102,8 +102,8 @@ class TestDataFrameEval(TestData):
                 ("/", "__truediv__", "__rtruediv__"),
             ]:
 
-                base = DataFrame(
-                    np.tile(m.values, n).reshape(n, -1), columns=list("abcd")  # noqa
+                base = DataFrame(  # noqa
+                    np.tile(m.values, n).reshape(n, -1), columns=list("abcd")
                 )
 
                 expected = eval("base{op}df".format(op=op_str))
