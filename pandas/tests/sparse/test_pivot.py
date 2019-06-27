@@ -3,6 +3,7 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
+from pandas import _np_version_under1p17
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
@@ -48,6 +49,8 @@ class TestPivotTable:
         #                            values='E', aggfunc='sum')
         # tm.assert_frame_equal(res_sparse, res_dense)
 
+    @pytest.mark.xfail(not _np_version_under1p17,
+                       reason="failing occasionally on numpy > 1.17")
     def test_pivot_table_multi(self):
         res_sparse = pd.pivot_table(self.sparse, index='A', columns='B',
                                     values=['D', 'E'])
