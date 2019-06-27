@@ -16,7 +16,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_float64, ensure_int64, ensure_object, ensure_platform_int,
     ensure_uint64, is_array_like, is_bool_dtype, is_categorical_dtype,
-    is_complex_dtype, is_datetime64_any_dtype, is_datetime64ns_dtype,
+    is_complex_dtype, is_datetime64_any_dtype, is_datetime64_ns_dtype,
     is_datetime64tz_dtype, is_datetimelike, is_extension_array_dtype,
     is_float_dtype, is_integer, is_integer_dtype, is_interval_dtype,
     is_list_like, is_numeric_dtype, is_object_dtype, is_period_dtype,
@@ -104,7 +104,7 @@ def _ensure_data(values, dtype=None):
             dtype = values.dtype
         else:
             # Datetime
-            if values.ndim > 1 and is_datetime64ns_dtype(values):
+            if values.ndim > 1 and is_datetime64_ns_dtype(values):
                 # Avoid calling the DatetimeIndex constructor as it is 1D only
                 asi8 = values.view('i8')
                 dtype = values.dtype
