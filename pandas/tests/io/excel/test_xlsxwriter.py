@@ -69,7 +69,6 @@ def test_write_append_mode_raises(ext):
             ExcelWriter(f, engine='xlsxwriter', mode='a')
 
 
-@pytest.mark.parametrize("ext", ['test.xlsx'])
 def test_merged_cell_custom_objects(ext):
     # Test that custom object types residing within merged (grouped)
     # cells are converted to python data types before being passed to
