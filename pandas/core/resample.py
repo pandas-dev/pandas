@@ -48,7 +48,7 @@ class Resampler(_GroupBy):
     groupby : a TimeGrouper object
     axis : int, default 0
     kind : str or None
-        'period', 'timestamp' to override default index treatement
+        'period', 'timestamp' to override default index treatment
 
     Returns
     -------
@@ -204,8 +204,7 @@ class Resampler(_GroupBy):
     >>> df.resample('2D').pipe(lambda x: x.max() - x.min())
                 A
     2012-08-02  1
-    2012-08-04  1
-    """)
+    2012-08-04  1""")
     @Appender(_pipe_template)
     def pipe(self, func, *args, **kwargs):
         return super().pipe(func, *args, **kwargs)
@@ -1603,7 +1602,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
     """
-    Adjust the `first` Timestamp to the preceeding Timestamp that resides on
+    Adjust the `first` Timestamp to the preceding Timestamp that resides on
     the provided offset. Adjust the `last` Timestamp to the following
     Timestamp that resides on the provided offset. Input Timestamps that
     already reside on the offset will be adjusted depending on the type of

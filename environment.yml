@@ -6,7 +6,7 @@ dependencies:
   # required
   - numpy>=1.15
   - python=3
-  - python-dateutil>=2.5.0
+  - python-dateutil>=2.6.1
   - pytz
 
   # benchmarks
@@ -26,7 +26,8 @@ dependencies:
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
-  - sphinx
+  # some styling is broken with sphinx >= 2 (https://github.com/pandas-dev/pandas/issues/26058)
+  - sphinx=1.8.5
   - numpydoc>=0.9.0
 
   # documentation (jupyter notebooks)
@@ -63,7 +64,7 @@ dependencies:
   - scipy>=1.1
 
   # optional for io
-  - beautifulsoup4>=4.2.1  # pandas.read_html
+  - beautifulsoup4>=4.6.0  # pandas.read_html
   - fastparquet>=0.2.1  # pandas.read_parquet, DataFrame.to_parquet
   - html5lib  # pandas.read_html
   - lxml  # pandas.read_html
@@ -78,3 +79,4 @@ dependencies:
   - xlrd  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlsxwriter  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlwt  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
+  - pyreadstat  # pandas.read_spss

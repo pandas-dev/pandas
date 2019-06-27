@@ -963,12 +963,14 @@ def test_count():
 
     df['9th'] = df['9th'].astype('category')
 
-    for key in '1st', '2nd', ['1st', '2nd']:
+    for key in ['1st', '2nd', ['1st', '2nd']]:
         left = df.groupby(key).count()
         right = df.groupby(key).apply(DataFrame.count).drop(key, axis=1)
         tm.assert_frame_equal(left, right)
 
-    # GH5610
+
+def test_count_non_nulls():
+    # GH#5610
     # count counts non-nulls
     df = pd.DataFrame([[1, 2, 'foo'],
                        [1, np.nan, 'bar'],

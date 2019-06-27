@@ -275,7 +275,7 @@ Enhancements
 
 .. _whatsnew_0151.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in unpickling of a ``CustomBusinessDay`` object (:issue:`8591`)

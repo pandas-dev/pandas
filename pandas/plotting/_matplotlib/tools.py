@@ -2,7 +2,8 @@
 from math import ceil
 import warnings
 
-import matplotlib.pyplot as plt
+import matplotlib.table
+import matplotlib.ticker as ticker
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
@@ -37,7 +38,6 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
 
     cellText = data.values
 
-    import matplotlib.table
     table = matplotlib.table.table(ax, cellText=cellText,
                                    rowLabels=rowLabels,
                                    colLabels=colLabels, **kwargs)
@@ -133,7 +133,7 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
       Number of rows and columns of the subplot grid.
       If not specified, calculated from naxes and layout_type
 
-    layout_type : {'box', 'horziontal', 'vertical'}, default 'box'
+    layout_type : {'box', 'horizontal', 'vertical'}, default 'box'
       Specify how to layout the subplot grid.
 
     fig_kw : Other keyword arguments to be passed to the figure() call.
@@ -167,6 +167,7 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
     # Four polar axes
     plt.subplots(2, 2, subplot_kw=dict(polar=True))
     """
+    import matplotlib.pyplot as plt
     if subplot_kw is None:
         subplot_kw = {}
 
@@ -260,7 +261,6 @@ def _remove_labels_from_axis(axis):
     try:
         # set_visible will not be effective if
         # minor axis has NullLocator and NullFormattor (default)
-        import matplotlib.ticker as ticker
         if isinstance(axis.get_minor_locator(), ticker.NullLocator):
             axis.set_minor_locator(ticker.AutoLocator())
         if isinstance(axis.get_minor_formatter(), ticker.NullFormatter):
@@ -345,6 +345,7 @@ def _get_xlim(lines):
 
 def _set_ticks_props(axes, xlabelsize=None, xrot=None,
                      ylabelsize=None, yrot=None):
+    import matplotlib.pyplot as plt
     for ax in _flatten(axes):
         if xlabelsize is not None:
             plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)

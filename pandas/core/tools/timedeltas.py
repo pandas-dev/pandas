@@ -44,7 +44,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
           values of dtype timedelta64[ns].
 
         .. deprecated:: 0.25.0
-            Use :meth:`.to_numpy` or :meth:`Timedelta.to_timedelta64`
+            Use :meth:`Series.to_numpy` or :meth:`Timedelta.to_timedelta64`
             instead to get an ndarray of values or numpy.timedelta64,
             respectively.
 
