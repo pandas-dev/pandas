@@ -987,7 +987,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 result[i] = Interval(left[i], right[i], closed)
         return result
 
-    _interval_shared_docs['to_tuples'] = """\
+    _interval_shared_docs['to_tuples'] = """
         Return an %(return_type)s of tuples of the form (left, right)
 
         Parameters
@@ -1002,7 +1002,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         tuples: %(return_type)s
         %(examples)s\
-    """
+        """
 
     @Appender(_interval_shared_docs['to_tuples'] % dict(
         return_type='ndarray',

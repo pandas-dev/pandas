@@ -117,7 +117,7 @@ def ints_to_pytimedelta(int64_t[:] arr, box=False):
 
         value = arr[i]
         if value == NPY_NAT:
-            result[i] = NaT
+            result[i] = <object>NaT
         else:
             if box:
                 result[i] = Timedelta(value)
@@ -950,6 +950,64 @@ cdef class _Timedelta(timedelta):
         return np.int64(self.value).view('m8[ns]')
 
     @property
+    def resolution_string(self):
+        """
+        Return a string representing the lowest timedelta resolution.
+
+        Each timedelta has a defined resolution that represents the lowest OR
+        most granular level of precision. Each level of resolution is
+        represented by a short string as defined below:
+
+        Resolution:     Return value
+
+        * Days:         'D'
+        * Hours:        'H'
+        * Minutes:      'T'
+        * Seconds:      'S'
+        * Milliseconds: 'L'
+        * Microseconds: 'U'
+        * Nanoseconds:  'N'
+
+        Returns
+        -------
+        str
+            Timedelta resolution.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
+        >>> td.resolution
+        'N'
+
+        >>> td = pd.Timedelta('1 days 2 min 3 us')
+        >>> td.resolution
+        'U'
+
+        >>> td = pd.Timedelta('2 min 3 s')
+        >>> td.resolution
+        'S'
+
+        >>> td = pd.Timedelta(36, unit='us')
+        >>> td.resolution
+        'U'
+        """
+        self._ensure_components()
+        if self._ns:
+            return "N"
+        elif self._us:
+            return "U"
+        elif self._ms:
+            return "L"
+        elif self._s:
+            return "S"
+        elif self._m:
+            return "T"
+        elif self._h:
+            return "H"
+        else:
+            return "D"
+
+    @property
     def resolution(self):
         """
         Return a string representing the lowest timedelta resolution.
@@ -991,22 +1049,13 @@ cdef class _Timedelta(timedelta):
         >>> td.resolution
         'U'
         """
-
-        self._ensure_components()
-        if self._ns:
-            return "N"
-        elif self._us:
-            return "U"
-        elif self._ms:
-            return "L"
-        elif self._s:
-            return "S"
-        elif self._m:
-            return "T"
-        elif self._h:
-            return "H"
-        else:
-            return "D"
+        # See GH#21344
+        warnings.warn("Timedelta.resolution is deprecated, in a future "
+                      "version will behave like the standard library "
+                      "datetime.timedelta.resolution attribute.  "
+                      "Use Timedelta.resolution_string instead.",
+                      FutureWarning)
+        return self.resolution_string
 
     @property
     def nanoseconds(self):

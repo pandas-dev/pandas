@@ -1,5 +1,5 @@
 """ common type operations """
-from typing import Union
+from typing import Any, Union
 import warnings
 
 import numpy as np
@@ -67,6 +67,17 @@ ensure_int16 = algos.ensure_int16
 ensure_int8 = algos.ensure_int8
 ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
+
+
+def ensure_str(value: Union[bytes, Any]) -> str:
+    """
+    Ensure that bytes and non-strings get converted into ``str`` objects.
+    """
+    if isinstance(value, bytes):
+        value = value.decode('utf-8')
+    elif not isinstance(value, str):
+        value = str(value)
+    return value
 
 
 def ensure_categorical(arr):
@@ -1824,7 +1835,7 @@ def is_complex_dtype(arr_or_dtype):
     Returns
     -------
     boolean
-        Whether or not the array or dtype is of a compex dtype.
+        Whether or not the array or dtype is of a complex dtype.
 
     Examples
     --------
@@ -1918,7 +1929,7 @@ def _is_dtype_type(arr_or_dtype, condition):
 
     Returns
     -------
-    bool : if the condition is satisifed for the arr_or_dtype
+    bool : if the condition is satisfied for the arr_or_dtype
     """
 
     if arr_or_dtype is None:

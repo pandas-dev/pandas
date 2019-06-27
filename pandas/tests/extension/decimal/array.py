@@ -137,6 +137,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def _na_value(self):
         return decimal.Decimal('NaN')
 
+    def _formatter(self, boxed=False):
+        if boxed:
+            return "Decimal: {0}".format
+        return repr
+
     @classmethod
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))

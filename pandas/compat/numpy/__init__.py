@@ -1,4 +1,4 @@
-""" support numpy compatiblitiy across versions """
+""" support numpy compatibility across versions """
 
 from distutils.version import LooseVersion
 import re
@@ -62,6 +62,7 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
 
 
 __all__ = ['np',
+           '_np_version',
            '_np_version_under1p14',
            '_np_version_under1p15',
            '_np_version_under1p16',
