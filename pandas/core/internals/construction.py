@@ -159,9 +159,28 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
     if dtype is None and is_object_dtype(values):
-        values = maybe_infer_to_datetimelike(values)
 
-    return create_block_manager_from_blocks([values], [columns, index])
+        if values.ndim == 2 and values.shape[0] != 1:
+            # transpose and separate blocks
+
+            dvals_list = [maybe_infer_to_datetimelike(row) for row in values]
+            for n in range(len(dvals_list)):
+                if isinstance(dvals_list[n], np.ndarray):
+                    dvals_list[n] = dvals_list[n].reshape(1, -1)
+
+            from pandas.core.internals.blocks import make_block
+
+            # TODO: What about re-joining object columns?
+            block_values = [make_block(dvals_list[n], placement=[n])
+                            for n in range(len(dvals_list))]
+
+        else:
+            datelike_vals = maybe_infer_to_datetimelike(values)
+            block_values = [datelike_vals]
+    else:
+        block_values = [values]
+
+    return create_block_manager_from_blocks(block_values, [columns, index])
 
 
 def init_dict(data, index, columns, dtype=None):
@@ -199,8 +218,10 @@ def init_dict(data, index, columns, dtype=None):
         arrays = (com.maybe_iterable_to_list(data[k]) for k in keys)
         # GH#24096 need copy to be deep for datetime64tz case
         # TODO: See if we can avoid these copies
+        arrays = [arr if not isinstance(arr, ABCIndexClass) else arr._data
+                  for arr in arrays]
         arrays = [arr if not is_datetime64tz_dtype(arr) else
-                  arr.copy(deep=True) for arr in arrays]
+                  arr.copy() for arr in arrays]
     return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)
 
 
