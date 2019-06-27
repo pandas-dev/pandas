@@ -511,7 +511,7 @@ class _OpenpyxlReader(_BaseExcelReader):
             return np.nan
         elif cell.data_type == 'b':
             return bool(cell.value)
-        elif not cell.value:
+        elif cell.value is None:
             return ''  # compat with xlrd
         elif convert_float and cell.data_type == 'n' and cell.value:
             # GH5394
