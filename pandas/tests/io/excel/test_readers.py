@@ -19,27 +19,16 @@ from pandas.io.excel import ExcelFile
 
 
 @contextlib.contextmanager
-def ignore_engine_warnings():
+def ignore_xlrd_time_clock_warning():
     """
-    Context manager to ignore warnings raised by the excel engine that would
-    interfere with asserting warnings are reaised.
+    Context manager to ignore warnings raised by the xlrd library,
+    regarding the deprecation of `time.clock` in Python 3.7.
     """
     with warnings.catch_warnings():
-        # raised by the xlrd library, regarding the deprecation of `time.clock`
-        # in Python 3.7.
         warnings.filterwarnings(
             action='ignore',
             message='time.clock has been deprecated',
             category=DeprecationWarning)
-
-        # raised by the openpyxl library, if unsupported extensions to the
-        # xlsx specification are used in .xslx file. E.g. conditional
-        # formatting, conditional formatting etc. See also
-        # https://stackoverflow.com/questions/34322231/python-2-7-openpyxl-userwarning
-        warnings.filterwarnings(
-            action='ignore',
-            message='Unknown extension is not supported and will be removed',
-            category=UserWarning)
         yield
 
 
@@ -70,14 +59,14 @@ class TestReaders:
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            with ignore_engine_warnings():
+            with ignore_xlrd_time_clock_warning():
                 df1 = pd.read_excel("test1" + read_ext, "Sheet1",
                                     index_col=0, usecols=3)
 
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            with ignore_engine_warnings():
+            with ignore_xlrd_time_clock_warning():
                 df2 = pd.read_excel("test1" + read_ext, "Sheet2", skiprows=[1],
                                     index_col=0, usecols=3)
 
@@ -304,11 +293,6 @@ class TestReaders:
         actual = pd.read_excel(
             basename + read_ext, 'Sheet1', converters=converters)
 
-        if pd.read_excel.keywords['engine'] == 'openpyxl':
-            pytest.skip(
-                "There doesn't seem to be a sensible way to support this for "
-                "openpyxl")
-
         tm.assert_frame_equal(actual, expected)
 
     def test_reader_dtype(self, read_ext):
@@ -363,11 +347,6 @@ class TestReaders:
         basename = "testdtype"
 
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
-
-        if pd.read_excel.keywords['engine'] == 'openpyxl':
-            pytest.skip(
-                "There doesn't seem to be a sensible way to support this for "
-                "openpyxl")
         tm.assert_frame_equal(actual, expected)
 
     def test_reading_all_sheets(self, read_ext):
@@ -423,13 +402,8 @@ class TestReaders:
                                  [1e+20, 'Timothy Brown']],
                                 columns=['DateColWithBigInt', 'StringCol'])
 
-        if pd.read_excel.keywords['engine'] == 'openpyxl':
-            with pytest.raises(OverflowError):
-                # openpyxl does not support reading invalid dates
-                result = pd.read_excel('testdateoverflow' + read_ext)
-        else:
-            result = pd.read_excel('testdateoverflow' + read_ext)
-            tm.assert_frame_equal(result, expected)
+        result = pd.read_excel('testdateoverflow' + read_ext)
+        tm.assert_frame_equal(result, expected)
 
     def test_sheet_name(self, read_ext, df_ref):
         filename = "test1"
@@ -437,7 +411,7 @@ class TestReaders:
 
         df1 = pd.read_excel(filename + read_ext,
                             sheet_name=sheet_name, index_col=0)  # doc
-        with ignore_engine_warnings():
+        with ignore_xlrd_time_clock_warning():
             df2 = pd.read_excel(filename + read_ext, index_col=0,
                                 sheet_name=sheet_name)
 
@@ -464,9 +438,7 @@ class TestReaders:
         url_table = pd.read_excel(url)
         local_table = pd.read_excel('test1' + read_ext)
 
-        # TODO: remove the by_blocks=True, investigate why this
-        #  causes this test to fail
-        tm.assert_frame_equal(url_table, local_table, by_blocks=True)
+        tm.assert_frame_equal(url_table, local_table)
 
     @td.skip_if_not_us_locale
     def test_read_from_s3_url(self, read_ext, s3_resource):
@@ -479,9 +451,7 @@ class TestReaders:
         url_table = pd.read_excel(url)
         local_table = pd.read_excel('test1' + read_ext)
 
-        # TODO: remove the by_blocks=True, investigate why this
-        #  causes this test to fail
-        tm.assert_frame_equal(url_table, local_table, by_blocks=True)
+        tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.slow
     # ignore warning from old xlrd
