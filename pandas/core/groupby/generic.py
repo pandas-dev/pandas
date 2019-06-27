@@ -11,7 +11,7 @@ import functools
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import Any, Callable, FrozenSet, Iterator, Type, Union
+from typing import Any, Callable, FrozenSet, Iterator, Sequence, Type, Union
 import warnings
 
 import numpy as np
@@ -1729,7 +1729,7 @@ def _normalize_keyword_aggregation(kwargs):
 #   typing.Sequence[Callable[..., ScalarResult]]
 #     -> typing.Sequence[Callable[..., ScalarResult]]:
 
-def _managle_lambda_list(aggfuncs):
+def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
     """
     Possibly mangle a list of aggfuncs.
 
@@ -1762,7 +1762,7 @@ def _managle_lambda_list(aggfuncs):
     return mangled_aggfuncs
 
 
-def _maybe_mangle_lambdas(agg_spec):
+def _maybe_mangle_lambdas(agg_spec: Any) -> Any:
     """
     Make new lambdas with unique names.
 
