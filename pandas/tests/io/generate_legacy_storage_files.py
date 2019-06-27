@@ -45,8 +45,8 @@ import numpy as np
 
 import pandas
 from pandas import (
-    Categorical, DataFrame, Index, MultiIndex, NaT, Period, RangeIndex,
-    Series, SparseDataFrame, SparseSeries, Timestamp, bdate_range, date_range,
+    Categorical, DataFrame, Index, MultiIndex, NaT, Period, RangeIndex, Series,
+    SparseDataFrame, SparseSeries, Timestamp, bdate_range, date_range,
     period_range, timedelta_range, to_msgpack)
 
 from pandas.tseries.offsets import (
