@@ -14,7 +14,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame, Index, Series, Timestamp, bdate_range, concat, isna, notna)
-from pandas.core.base import SpecificationError, DataError
+from pandas.core.base import DataError, SpecificationError
 from pandas.core.sorting import safe_sort
 import pandas.core.window as rwindow
 import pandas.util.testing as tm
