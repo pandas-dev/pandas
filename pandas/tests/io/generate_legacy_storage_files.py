@@ -4,10 +4,10 @@
 self-contained to write legacy storage (pickle/msgpack) files
 
 To use this script. Create an environment where you want
-generate pickles, say its for 0.18.1, with your pandas clone
+generate pickles, say its for 0.20.3, with your pandas clone
 in ~/pandas
 
-. activate pandas_0.18.1
+. activate pandas_0.20.3
 cd ~/
 
 $ python pandas/pandas/tests/io/generate_legacy_storage_files.py \
@@ -15,10 +15,10 @@ $ python pandas/pandas/tests/io/generate_legacy_storage_files.py \
 
 This script generates a storage file for the current arch, system,
 and python version
-  pandas version: 0.18.1
+  pandas version: 0.20.3
   output dir    : pandas/pandas/tests/io/data/legacy_pickle/0.18.1/
   storage format: pickle
-created pickle file: 0.18.1_x86_64_darwin_3.5.2.pickle
+created pickle file: 0.20.3_x86_64_darwin_3.5.2.pickle
 
 The idea here is you are using the *current* version of the
 generate_legacy_storage_files with an *older* version of pandas to
@@ -45,7 +45,7 @@ import numpy as np
 
 import pandas
 from pandas import (
-    Categorical, DataFrame, Index, MultiIndex, NaT, Period, Series,
+    Categorical, DataFrame, Index, MultiIndex, NaT, Period, RangeIndex, Series,
     SparseDataFrame, SparseSeries, Timestamp, bdate_range, date_range,
     period_range, timedelta_range, to_msgpack)
 
@@ -118,9 +118,7 @@ def create_data():
                  uint=Index(np.arange(10, dtype=np.uint64)),
                  timedelta=timedelta_range('00:00:00', freq='30T', periods=10))
 
-    if _loose_version >= LooseVersion('0.18'):
-        from pandas import RangeIndex
-        index['range'] = RangeIndex(10)
+    index['range'] = RangeIndex(10)
 
     if _loose_version >= LooseVersion('0.21'):
         from pandas import interval_range
@@ -191,14 +189,9 @@ def create_data():
                      nat=NaT,
                      tz=Timestamp('2011-01-01', tz='US/Eastern'))
 
-    if _loose_version < LooseVersion('0.19.2'):
-        timestamp['freq'] = Timestamp('2011-01-01', offset='D')
-        timestamp['both'] = Timestamp('2011-01-01', tz='Asia/Tokyo',
-                                      offset='M')
-    else:
-        timestamp['freq'] = Timestamp('2011-01-01', freq='D')
-        timestamp['both'] = Timestamp('2011-01-01', tz='Asia/Tokyo',
-                                      freq='M')
+    timestamp['freq'] = Timestamp('2011-01-01', freq='D')
+    timestamp['both'] = Timestamp('2011-01-01', tz='Asia/Tokyo',
+                                  freq='M')
 
     off = {'DateOffset': DateOffset(years=1),
            'DateOffset_h_ns': DateOffset(hour=6, nanoseconds=5824),
@@ -239,14 +232,6 @@ def create_data():
 def create_pickle_data():
     data = create_data()
 
-    # Pre-0.14.1 versions generated non-unpicklable mixed-type frames and
-    # panels if their columns/items were non-unique.
-    if _loose_version < LooseVersion('0.14.1'):
-        del data['frame']['mixed_dup']
-        del data['panel']['mixed_dup']
-    if _loose_version < LooseVersion('0.17.0'):
-        del data['series']['period']
-        del data['scalars']['period']
     return data
 
 
@@ -256,14 +241,6 @@ def _u(x):
 
 def create_msgpack_data():
     data = create_data()
-    if _loose_version < LooseVersion('0.17.0'):
-        del data['frame']['mixed_dup']
-        del data['panel']['mixed_dup']
-        del data['frame']['dup']
-        del data['panel']['dup']
-    if _loose_version < LooseVersion('0.18.0'):
-        del data['series']['dt_tz']
-        del data['frame']['dt_mixed_tzs']
     # Not supported
     del data['sp_series']
     del data['sp_frame']
@@ -272,7 +249,8 @@ def create_msgpack_data():
     del data['frame']['cat_onecol']
     del data['frame']['cat_and_float']
     del data['scalars']['period']
-    if _loose_version < LooseVersion('0.23.0'):
+    if _loose_version >= LooseVersion('0.21') and (
+            _loose_version < LooseVersion('0.23.0')):
         del data['index']['interval']
     del data['offsets']
     return _u(data)
@@ -285,7 +263,6 @@ def platform_name():
 
 def write_legacy_pickles(output_dir):
 
-    # make sure we are < 0.13 compat (in py3)
     version = pandas.__version__
 
     print("This script generates a storage file for the current arch, system, "

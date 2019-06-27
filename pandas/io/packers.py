@@ -134,6 +134,11 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
     Returns
     -------
     obj : same type as object stored in file
+
+    Notes
+    -----
+    read_msgpack is only guaranteed to be backwards compatible to pandas
+    0.20.3.
     """
     path_or_buf, _, _, should_close = get_filepath_or_buffer(path_or_buf)
     if iterator:
