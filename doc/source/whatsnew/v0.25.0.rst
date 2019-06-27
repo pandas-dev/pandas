@@ -322,6 +322,35 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
     s
     s.str.startswith(b'a')
 
+.. _whatsnew_0250.api_breaking.groupby_categorical:
+
+Categorical dtypes are preserved during groupby
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Previously, columns that were categorical, but not the groupby key(s) would be converted to ``object`` dtype during groupby operations. Pandas now will preserve these dtypes. (:issue:`18502`)
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {'payload': [-1, -2, -1, -2],
+        'col': pd.Categorical(["foo", "bar", "bar", "qux"], ordered=True)})
+   df
+   df.dtypes
+
+*Previous Behavior*:
+
+.. code-block:: python
+
+   In [5]: df.groupby('payload').first().col.dtype
+   Out[5]: dtype('O')
+
+*New Behavior*:
+
+.. ipython:: python
+
+   df.groupby('payload').first().col.dtype
+
+
 .. _whatsnew_0250.api_breaking.incompatible_index_unions:
 
 Incompatible Index type unions
@@ -809,7 +838,7 @@ ExtensionArray
 
 - Bug in :func:`factorize` when passing an ``ExtensionArray`` with a custom ``na_sentinel`` (:issue:`25696`).
 - :meth:`Series.count` miscounts NA values in ExtensionArrays (:issue:`26835`)
-- Keyword argument ``deep`` has been removed from :method:`ExtensionArray.copy` (:issue:`27083`)
+- Keyword argument ``deep`` has been removed from :meth:`ExtensionArray.copy` (:issue:`27083`)
 
 Other
 ^^^^^
