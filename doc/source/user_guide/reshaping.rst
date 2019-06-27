@@ -3,7 +3,7 @@
 {{ header }}
 
 **************************
-Reshaping and Pivot Tables
+Reshaping and pivot tables
 **************************
 
 Reshaping by pivoting DataFrame objects
@@ -186,7 +186,7 @@ removed.
 
 .. _reshaping.stack_multiple:
 
-Multiple Levels
+Multiple levels
 ~~~~~~~~~~~~~~~
 
 You may also stack or unstack more than one level at a time by passing a list
@@ -214,7 +214,7 @@ not a mixture of the two).
     # from above is equivalent to:
     df.stack(level=[1, 2])
 
-Missing Data
+Missing data
 ~~~~~~~~~~~~
 
 These functions are intelligent about handling missing data and do not expect
@@ -509,7 +509,7 @@ each group defined by the first two ``Series``:
 
    pd.crosstab(df.A, df.B, values=df.C, aggfunc=np.sum)
 
-Adding Margins
+Adding margins
 ~~~~~~~~~~~~~~
 
 Finally, one can also add margins or normalize this output.
@@ -727,7 +727,7 @@ DataFrame will be pivoted in the answers below.
 
    df
 
-Pivoting with Single Aggregations
+Pivoting with single aggregations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Suppose we wanted to pivot ``df`` such that the ``col`` values are columns,
@@ -775,7 +775,7 @@ and rows occur together a.k.a. "cross tabulation". To do this, we can pass
 
    df.pivot_table(index='row', columns='col', fill_value=0, aggfunc='size')
 
-Pivoting with Multiple Aggregations
+Pivoting with multiple aggregations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can also perform multiple aggregations. For example, to perform both a

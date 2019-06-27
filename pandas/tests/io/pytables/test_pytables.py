@@ -1070,47 +1070,41 @@ class TestHDFStore(Base):
             result = store.select('df', Term('columns=A', encoding='ascii'))
             tm.assert_frame_equal(result, expected)
 
-    def test_latin_encoding(self):
+    @pytest.mark.parametrize('val', [
+        [b'E\xc9, 17', b'', b'a', b'b', b'c'],
+        [b'E\xc9, 17', b'a', b'b', b'c'],
+        [b'EE, 17', b'', b'a', b'b', b'c'],
+        [b'E\xc9, 17', b'\xf8\xfc', b'a', b'b', b'c'],
+        [b'', b'a', b'b', b'c'],
+        [b'\xf8\xfc', b'a', b'b', b'c'],
+        [b'A\xf8\xfc', b'', b'a', b'b', b'c'],
+        [np.nan, b'', b'b', b'c'],
+        [b'A\xf8\xfc', np.nan, b'', b'b', b'c']
+    ])
+    @pytest.mark.parametrize('dtype', ['category', object])
+    def test_latin_encoding(self, dtype, val):
+        enc = 'latin-1'
+        nan_rep = ''
+        key = 'data'
 
-        values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],
-                  [b'E\xc9, 17', b'a', b'b', b'c'],
-                  [b'EE, 17', b'', b'a', b'b', b'c'],
-                  [b'E\xc9, 17', b'\xf8\xfc', b'a', b'b', b'c'],
-                  [b'', b'a', b'b', b'c'],
-                  [b'\xf8\xfc', b'a', b'b', b'c'],
-                  [b'A\xf8\xfc', b'', b'a', b'b', b'c'],
-                  [np.nan, b'', b'b', b'c'],
-                  [b'A\xf8\xfc', np.nan, b'', b'b', b'c']]
+        val = [x.decode(enc) if isinstance(x, bytes) else x for x in val]
+        ser = pd.Series(val, dtype=dtype)
 
-        def _try_decode(x, encoding='latin-1'):
-            try:
-                return x.decode(encoding)
-            except AttributeError:
-                return x
-        # not sure how to remove latin-1 from code in python 2 and 3
-        values = [[_try_decode(x) for x in y] for y in values]
+        with ensure_clean_path(self.path) as store:
+            ser.to_hdf(store, key, format='table', encoding=enc,
+                       nan_rep=nan_rep)
+            retr = read_hdf(store, key)
 
-        examples = []
-        for dtype in ['category', object]:
-            for val in values:
-                examples.append(pd.Series(val, dtype=dtype))
+        s_nan = ser.replace(nan_rep, np.nan)
 
-        def roundtrip(s, key='data', encoding='latin-1', nan_rep=''):
-            with ensure_clean_path(self.path) as store:
-                s.to_hdf(store, key, format='table', encoding=encoding,
-                         nan_rep=nan_rep)
-                retr = read_hdf(store, key)
-                s_nan = s.replace(nan_rep, np.nan)
-                if is_categorical_dtype(s_nan):
-                    assert is_categorical_dtype(retr)
-                    assert_series_equal(s_nan, retr, check_dtype=False,
-                                        check_categorical=False)
-                else:
-                    assert_series_equal(s_nan, retr)
+        if is_categorical_dtype(s_nan):
+            assert is_categorical_dtype(retr)
+            assert_series_equal(s_nan, retr, check_dtype=False,
+                                check_categorical=False)
+        else:
+            assert_series_equal(s_nan, retr)
 
-        for s in examples:
-            roundtrip(s)
-
+        # FIXME: don't leave commented-out
         # fails:
         # for x in examples:
         #     roundtrip(s, nan_rep=b'\xf8\xfc')
