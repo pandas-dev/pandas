@@ -1762,7 +1762,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         try:
 
             result = self._holder._from_sequence(
-                np.asarray(result).ravel(), dtype=dtype)
+                result.ravel(), dtype=dtype)
         except Exception:
             pass
 
