@@ -52,6 +52,13 @@ fi
 ### LINTING ###
 if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
+    echo "black --version"
+    black --version
+
+    MSG='Checking black formatting' ; echo $MSG
+    black . --check
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # `setup.cfg` contains the list of error codes that are being ignored in flake8
 
     echo "flake8 --version"
