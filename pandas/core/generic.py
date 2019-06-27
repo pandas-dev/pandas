@@ -3263,58 +3263,50 @@ class NDFrame(PandasObject, SelectionMixin):
 
         """
 
-        if force or self._is_copy:
+        # return early if the check is not needed
+        if not (force or self._is_copy):
+            return
 
-            value = config.get_option('mode.chained_assignment')
-            if value is None:
+        value = config.get_option('mode.chained_assignment')
+        if value is None:
+            return
+
+        # see if the copy is not actually referred; if so, then dissolve
+        # the copy weakref
+        if self._is_copy is not None and not isinstance(self._is_copy, str):
+            r = self._is_copy()
+            if not gc.get_referents(r) or r.shape == self.shape:
+                self._is_copy = None
                 return
 
-            # see if the copy is not actually referred; if so, then dissolve
-            # the copy weakref
-            try:
-                gc.collect(2)
-                if not gc.get_referents(self._is_copy()):
-                    self._is_copy = None
-                    return
-            except Exception:
-                pass
+        # a custom message
+        if isinstance(self._is_copy, str):
+            t = self._is_copy
 
-            # we might be a false positive
-            try:
-                if self._is_copy().shape == self.shape:
-                    self._is_copy = None
-                    return
-            except Exception:
-                pass
+        elif t == 'referant':
+            t = ("\n"
+                 "A value is trying to be set on a copy of a slice from a "
+                 "DataFrame\n\n"
+                 "See the caveats in the documentation: "
+                 "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                 "indexing.html#returning-a-view-versus-a-copy"
+                 )
 
-            # a custom message
-            if isinstance(self._is_copy, str):
-                t = self._is_copy
+        else:
+            t = ("\n"
+                 "A value is trying to be set on a copy of a slice from a "
+                 "DataFrame.\n"
+                 "Try using .loc[row_indexer,col_indexer] = value "
+                 "instead\n\nSee the caveats in the documentation: "
+                 "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                 "indexing.html#returning-a-view-versus-a-copy"
+                 )
 
-            elif t == 'referant':
-                t = ("\n"
-                     "A value is trying to be set on a copy of a slice from a "
-                     "DataFrame\n\n"
-                     "See the caveats in the documentation: "
-                     "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
-                     "indexing.html#returning-a-view-versus-a-copy"
-                     )
-
-            else:
-                t = ("\n"
-                     "A value is trying to be set on a copy of a slice from a "
-                     "DataFrame.\n"
-                     "Try using .loc[row_indexer,col_indexer] = value "
-                     "instead\n\nSee the caveats in the documentation: "
-                     "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
-                     "indexing.html#returning-a-view-versus-a-copy"
-                     )
-
-            if value == 'raise':
-                raise com.SettingWithCopyError(t)
-            elif value == 'warn':
-                warnings.warn(t, com.SettingWithCopyWarning,
-                              stacklevel=stacklevel)
+        if value == 'raise':
+            raise com.SettingWithCopyError(t)
+        elif value == 'warn':
+            warnings.warn(t, com.SettingWithCopyWarning,
+                          stacklevel=stacklevel)
 
     def __delitem__(self, key):
         """
