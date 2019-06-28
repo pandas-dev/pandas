@@ -2,10 +2,8 @@
 
 import calendar
 from datetime import datetime, time
-from distutils.version import LooseVersion
 import locale
 
-import dateutil
 from dateutil.parser import parse
 from dateutil.tz.tz import tzoffset
 import numpy as np
@@ -1739,8 +1737,6 @@ class TestDatetimeParsingWrappers:
         # 2.5.2 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
         # 2.5.3 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
 
-        is_lt_253 = LooseVersion(dateutil.__version__) < LooseVersion('2.5.3')
-
         # str : dayfirst, yearfirst, expected
         cases = {'10-11-12': [(False, False,
                                datetime(2012, 10, 11)),
@@ -1761,11 +1757,6 @@ class TestDatetimeParsingWrappers:
 
         for date_str, values in cases.items():
             for dayfirst, yearfirst, expected in values:
-
-                # odd comparisons across version
-                # let's just skip
-                if dayfirst and yearfirst and is_lt_253:
-                    continue
 
                 # compare with dateutil result
                 dateutil_result = parse(date_str, dayfirst=dayfirst,
