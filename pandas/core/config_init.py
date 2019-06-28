@@ -77,6 +77,13 @@ pc_max_rows_doc = """
     correct auto-detection.
 """
 
+pc_min_rows_doc = """
+: int
+    The numbers of rows to show in a truncated view (when `max_rows` is
+    exceeded). Ignored when `max_rows` is set to None or 0. When set to
+    None, follows the value of `max_rows`.
+"""
+
 pc_max_cols_doc = """
 : int
     If max_cols is exceeded, switch to truncate view. Depending on
@@ -305,6 +312,8 @@ with cf.config_prefix('display'):
     cf.register_option('max_info_rows', 1690785, pc_max_info_rows_doc,
                        validator=is_instance_factory((int, type(None))))
     cf.register_option('max_rows', 60, pc_max_rows_doc,
+                       validator=is_instance_factory([type(None), int]))
+    cf.register_option('min_rows', 10, pc_min_rows_doc,
                        validator=is_instance_factory([type(None), int]))
     cf.register_option('max_categories', 8, pc_max_categories_doc,
                        validator=is_int)

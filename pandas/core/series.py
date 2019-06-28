@@ -1409,17 +1409,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         width, height = get_terminal_size()
         max_rows = (height if get_option("display.max_rows") == 0 else
                     get_option("display.max_rows"))
+        min_rows = (height if get_option("display.max_rows") == 0 else
+                    get_option("display.min_rows"))
         show_dimensions = get_option("display.show_dimensions")
 
         self.to_string(buf=buf, name=self.name, dtype=self.dtype,
-                       max_rows=max_rows, length=show_dimensions)
+                       min_rows=min_rows, max_rows=max_rows,
+                       length=show_dimensions)
         result = buf.getvalue()
 
         return result
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None, header=True,
                   index=True, length=False, dtype=False, name=False,
-                  max_rows=None):
+                  min_rows=None, max_rows=None):
         """
         Render a string representation of the Series.
 
@@ -1456,6 +1459,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                         header=header, index=index,
                                         dtype=dtype, na_rep=na_rep,
                                         float_format=float_format,
+                                        min_rows=min_rows,
                                         max_rows=max_rows)
         result = formatter.to_string()
 
