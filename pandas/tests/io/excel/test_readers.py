@@ -38,13 +38,17 @@ class TestReaders:
         # Add any engines to test here
         pytest.param('xlrd', marks=pytest.mark.skipif(
             not td.safe_import("xlrd"), reason="no xlrd")),
+        pytest.param('openpyxl', marks=pytest.mark.skipif(
+            not td.safe_import("openpyxl"), reason="no openpyxl")),
         pytest.param(None, marks=pytest.mark.skipif(
             not td.safe_import("xlrd"), reason="no xlrd")),
     ])
-    def cd_and_set_engine(self, request, datapath, monkeypatch):
+    def cd_and_set_engine(self, request, datapath, monkeypatch, read_ext):
         """
         Change directory and set engine for read_excel calls.
         """
+        if request.param == 'openpyxl' and read_ext == '.xls':
+            pytest.skip()
         func = partial(pd.read_excel, engine=request.param)
         monkeypatch.chdir(datapath("io", "data"))
         monkeypatch.setattr(pd, 'read_excel', func)
@@ -397,6 +401,9 @@ class TestReaders:
                                  [1e+20, 'Timothy Brown']],
                                 columns=['DateColWithBigInt', 'StringCol'])
 
+        if pd.read_excel.keywords['engine'] == 'openpyxl':
+            pytest.xfail("Maybe not supported by openpyxl")
+
         result = pd.read_excel('testdateoverflow' + read_ext)
         tm.assert_frame_equal(result, expected)
 
@@ -724,6 +731,8 @@ class TestExcelFileRead:
         # Add any engines to test here
         pytest.param('xlrd', marks=pytest.mark.skipif(
             not td.safe_import("xlrd"), reason="no xlrd")),
+        pytest.param('openpyxl', marks=pytest.mark.skipif(
+            not td.safe_import("openpyxl"), reason="no openpyxl")),
         pytest.param(None, marks=pytest.mark.skipif(
             not td.safe_import("xlrd"), reason="no xlrd")),
     ])

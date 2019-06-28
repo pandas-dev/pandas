@@ -422,7 +422,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             data = self.get_sheet_data(sheet, convert_float)
             usecols = _maybe_convert_usecols(usecols)
 
-            if sheet.nrows == 0:
+            if not data:
                 output[asheetname] = DataFrame()
                 continue
 
@@ -769,9 +769,11 @@ class ExcelFile:
     """
 
     from pandas.io.excel._xlrd import _XlrdReader
+    from pandas.io.excel._openpyxl import _OpenpyxlReader
 
     _engines = {
         'xlrd': _XlrdReader,
+        'openpyxl': _OpenpyxlReader,
     }
 
     def __init__(self, io, engine=None):

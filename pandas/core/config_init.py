@@ -411,7 +411,43 @@ with cf.config_prefix('mode'):
     cf.register_option('chained_assignment', 'warn', chained_assignment,
                        validator=is_one_of_factory([None, 'warn', 'raise']))
 
-# Set up the io.excel specific configuration.
+
+# Set up the io.excel specific reader configuration.
+reader_engine_doc = """
+: string
+    The default Excel reader engine for '{ext}' files. Available options:
+    auto, {others}.
+"""
+
+_xls_options = ['xlrd']
+_xlsm_options = ['xlrd', 'openpyxl']
+_xlsx_options = ['xlrd', 'openpyxl']
+
+
+with cf.config_prefix("io.excel.xls"):
+    cf.register_option("reader", "auto",
+                       reader_engine_doc.format(
+                           ext='xls',
+                           others=', '.join(_xls_options)),
+                       validator=str)
+
+with cf.config_prefix("io.excel.xlsm"):
+    cf.register_option("reader", "auto",
+                       reader_engine_doc.format(
+                           ext='xlsm',
+                           others=', '.join(_xlsm_options)),
+                       validator=str)
+
+
+with cf.config_prefix("io.excel.xlsx"):
+    cf.register_option("reader", "auto",
+                       reader_engine_doc.format(
+                           ext='xlsx',
+                           others=', '.join(_xlsx_options)),
+                       validator=str)
+
+
+# Set up the io.excel specific writer configuration.
 writer_engine_doc = """
 : string
     The default Excel writer engine for '{ext}' files. Available options:
