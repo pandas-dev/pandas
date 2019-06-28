@@ -696,34 +696,12 @@ You'll also need to
 
 See :ref:`contributing.warnings` for more.
 
+.. _contributing.type_hints:
+
 Type Hints
 ----------
 
 *pandas* strongly encourages the use of :pep:`484` style type hints. New development should contain type hints and pull requests to annotate existing code are accepted as well!
-
-Syntax Requirements
-~~~~~~~~~~~~~~~~~~~
-
-Because *pandas* still supports Python 3.5, :pep:`526` does not apply and variables **must** be annotated with type comments. Specifically, this is a valid annotation within pandas:
-
-.. code-block:: python
-
-   from typing import List
-
-   primes = []  # type: List[int]
-
-Whereas this is **NOT** allowed:
-
-.. code-block:: python
-
-   primes: List[int] = []  # not supported in Python 3.5!
-
-Note that function signatures can always be annotated per :pep:`3107`:
-
-.. code-block:: python
-
-   def sum_of_primes(primes: List[int] = []) -> int:
-       ...
 
 Style Guidelines
 ~~~~~~~~~~~~~~~~
@@ -760,26 +738,54 @@ You should write
 
    maybe_primes = []  # type: List[Optional[int]]
 
-When dealing with parameters with a default argument of ``None``, you should not use ``Optional`` as this will be inferred by the static type checker. So instead of:
+In some cases in the code base classes may defined class variables that shadow builtins. This causes an issue as described in `Mypy 1775 <https://github.com/python/mypy/issues/1775#issuecomment-310969854>`_. The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
 
 .. code-block:: python
 
-   def maybe_upcase_wrong(value: Optional[str] = None) -> Optional[str]:
-       ...
+   class SomeClass:
+       str = None
 
-You should write
+The appropriate way to annotate this would be as follows
 
 .. code-block:: python
 
-   def maybe_upcase_right(value: str = None) -> Optional[str]:
+   str_type = str
+
+   class SomeClass:
+       str = None  # type: str_type
+
+
+Syntax Requirements
+~~~~~~~~~~~~~~~~~~~
+
+Because *pandas* still supports Python 3.5, :pep:`526` does not apply and variables **must** be annotated with type comments. Specifically, this is a valid annotation within pandas:
+
+.. code-block:: python
+
+   from typing import List
+
+   primes = []  # type: List[int]
+
+Whereas this is **NOT** allowed:
+
+.. code-block:: python
+
+   primes: List[int] = []  # not supported in Python 3.5!
+
+Note that function signatures can always be annotated per :pep:`3107`:
+
+.. code-block:: python
+
+   def sum_of_primes(primes: List[int] = []) -> int:
        ...
+
 
 Pandas-specific Types
 ~~~~~~~~~~~~~~~~~~~~~
 
-Commonly used types specific to *pandas* will appear in pandas._typing and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
+Commonly used types specific to *pandas* will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/master/pandas/_typing.py>`_ and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
 
-For example, quite a few functions in *pandas* accept a ``dtype`` argument. This can be expressed as a string like ``"object"``, a numpy.dtype like ``np.int64`` or even a pandas ``ExtensionDtype`` like ``pd.CategoricalDtype``. Rather than burden the user with having to constantly annotate all of those options, this can simply be imported and reused from the pandas._typing module
+For example, quite a few functions in *pandas* accept a ``dtype`` argument. This can be expressed as a string like ``"object"``, a ``numpy.dtype`` like ``np.int64`` or even a pandas ``ExtensionDtype`` like ``pd.CategoricalDtype``. Rather than burden the user with having to constantly annotate all of those options, this can simply be imported and reused from the pandas._typing module
 
 .. code-block:: python
 
