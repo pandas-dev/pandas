@@ -718,7 +718,7 @@ You should write
 
 .. code-block:: python
 
-   from typing import List
+   from typing import List, Optional, Union
 
    primes = []  # type: List[int]
 
@@ -726,15 +726,11 @@ You should write
 
 .. code-block:: python
 
-   from typing import List, Union
-
    maybe_primes = []  # type: List[Union[int, None]]
 
 You should write
 
 .. code-block:: python
-
-   from typing import List, Optional
 
    maybe_primes = []  # type: List[Optional[int]]
 
@@ -742,7 +738,7 @@ In some cases in the code base classes may defined class variables that shadow b
 
 .. code-block:: python
 
-   class SomeClass:
+   class SomeClass1:
        str = None
 
 The appropriate way to annotate this would be as follows
@@ -751,7 +747,7 @@ The appropriate way to annotate this would be as follows
 
    str_type = str
 
-   class SomeClass:
+   class SomeClass2:
        str = None  # type: str_type
 
 
