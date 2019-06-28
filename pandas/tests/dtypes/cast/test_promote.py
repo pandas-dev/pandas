@@ -11,7 +11,7 @@ from pandas._libs.tslibs import NaT, iNaT
 from pandas.compat import is_platform_windows
 
 from pandas.core.dtypes.cast import (
-    maybe_promote, _maybe_promote_with_array, _maybe_promote_with_scalar)
+    _maybe_promote_with_array, _maybe_promote_with_scalar, maybe_promote)
 from pandas.core.dtypes.common import (
     is_complex_dtype, is_datetime64_dtype, is_datetime_or_timedelta_dtype,
     is_float_dtype, is_integer_dtype, is_object_dtype, is_scalar,
