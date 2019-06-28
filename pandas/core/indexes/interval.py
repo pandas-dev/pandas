@@ -797,11 +797,8 @@ class IntervalIndex(IntervalMixin, Index):
         >>> index.get_loc(1)
         0
 
-        You can also supply an interval or an location for a point inside an
-        interval.
+        You can also supply a point inside an interval.
 
-        >>> index.get_loc(pd.Interval(0, 2))
-        array([0, 1], dtype=int64)
         >>> index.get_loc(1.5)
         1
 
@@ -809,9 +806,13 @@ class IntervalIndex(IntervalMixin, Index):
         relevant intervals.
 
         >>> i3 = pd.Interval(0, 2)
-        >>> overlapping_index = pd.IntervalIndex([i2, i3])
-        >>> overlapping_index.get_loc(1.5)
-        array([0, 1], dtype=int64)
+        >>> overlapping_index = pd.IntervalIndex([i1, i2, i3])
+        >>> overlapping_index.get_loc(0.5)
+        array([ True, False,  True])
+
+        Only exact matches will be returned if an interval is provided.
+        >>> index.get_loc(pd.Interval(0, 1))
+        0
         """
         self._check_method(method)
         if is_list_like(key):

@@ -779,7 +779,8 @@ Categorical
 
 - Bug in :func:`DataFrame.at` and :func:`Series.at` that would raise exception if the index was a :class:`CategoricalIndex` (:issue:`20629`)
 - Fixed bug in comparison of ordered :class:`Categorical` that contained missing values with a scalar which sometimes incorrectly resulted in ``True`` (:issue:`26504`)
--
+- Bug in :meth:`DataFrame.dropna` when the :class:`DataFrame` has a :class:`CategoricalIndex` containing :class:`Interval` objects incorrectly raised a ``TypeError`` (:issue:`25087`)
+- Bug in :class:`Categorical` and  :class:`CategoricalIndex` with :class:`Interval` values when using the ``in`` operator (``__contains``) with objects that are not comparable to the values in the ``Interval`` (:issue:`23705`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -856,7 +857,7 @@ Interval
 
 - Construction of :class:`Interval` is restricted to numeric, :class:`Timestamp` and :class:`Timedelta` endpoints (:issue:`23013`)
 - Fixed bug in :class:`Series`/:class:`DataFrame` not displaying ``NaN`` in :class:`IntervalIndex` with missing values (:issue:`25984`)
--
+- Bug in :meth:`IntervalIndex.get_loc` where a ``KeyError`` would be incorrectly raised for a decreasing :class:`IntervalIndex` (:issue:`25860`)
 
 Indexing
 ^^^^^^^^
