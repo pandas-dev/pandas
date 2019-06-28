@@ -172,7 +172,7 @@ _apply_docs = dict(
     {examples}
     """)
 
-_pipe_template = """\
+_pipe_template = """
 Apply a function `func` with arguments to this %(klass)s object and return
 the function's result.
 
@@ -223,7 +223,8 @@ See more `here
 
 Examples
 --------
-%(examples)s"""
+%(examples)s
+"""
 
 _transform_template = """
 Call function producing a like-indexed %(klass)s on each group and
@@ -629,14 +630,14 @@ b  2""")
 
     def get_group(self, name, obj=None):
         """
-        Construct NDFrame from group with provided name.
+        Construct DataFrame from group with provided name.
 
         Parameters
         ----------
         name : object
             the name of the group to get as a DataFrame
-        obj : NDFrame, default None
-            the NDFrame to take the DataFrame out of.  If
+        obj : DataFrame, default None
+            the DataFrame to take the DataFrame out of.  If
             it is None, the object groupby was called on will
             be used
 
@@ -785,6 +786,8 @@ b  2""")
             elif is_extension_array_dtype(dtype):
                 # The function can return something of any type, so check
                 # if the type is compatible with the calling EA.
+
+                # return the same type (Series) as our caller
                 try:
                     result = obj._values._from_sequence(result, dtype=dtype)
                 except Exception:
@@ -1156,7 +1159,8 @@ class GroupBy(_GroupBy):
         """
         nv.validate_groupby_func('mean', args, kwargs, ['numeric_only'])
         try:
-            return self._cython_agg_general('mean', **kwargs)
+            return self._cython_agg_general(
+                'mean', alt=lambda x, axis: Series(x).mean(**kwargs), **kwargs)
         except GroupByError:
             raise
         except Exception:  # pragma: no cover
@@ -1178,7 +1182,11 @@ class GroupBy(_GroupBy):
             Median of values within each group.
         """
         try:
-            return self._cython_agg_general('median', **kwargs)
+            return self._cython_agg_general(
+                'median',
+                alt=lambda x,
+                axis: Series(x).median(axis=axis, **kwargs),
+                **kwargs)
         except GroupByError:
             raise
         except Exception:  # pragma: no cover
@@ -1234,7 +1242,10 @@ class GroupBy(_GroupBy):
         nv.validate_groupby_func('var', args, kwargs)
         if ddof == 1:
             try:
-                return self._cython_agg_general('var', **kwargs)
+                return self._cython_agg_general(
+                    'var',
+                    alt=lambda x, axis: Series(x).var(ddof=ddof, **kwargs),
+                    **kwargs)
             except Exception:
                 f = lambda x: x.var(ddof=ddof, **kwargs)
                 with _group_selection_context(self):
@@ -1262,7 +1273,6 @@ class GroupBy(_GroupBy):
         Series or DataFrame
             Standard error of the mean of values within each group.
         """
-
         return self.std(ddof=ddof) / np.sqrt(self.count())
 
     @Substitution(name='groupby')
@@ -1289,7 +1299,7 @@ class GroupBy(_GroupBy):
         """
 
         def groupby_function(name, alias, npfunc,
-                             numeric_only=True, _convert=False,
+                             numeric_only=True,
                              min_count=-1):
 
             _local_template = """
@@ -1311,17 +1321,30 @@ class GroupBy(_GroupBy):
                     kwargs['min_count'] = min_count
 
                 self._set_group_selection()
+
+                # try a cython aggregation if we can
                 try:
                     return self._cython_agg_general(
                         alias, alt=npfunc, **kwargs)
                 except AssertionError as e:
                     raise SpecificationError(str(e))
                 except Exception:
-                    result = self.aggregate(
-                        lambda x: npfunc(x, axis=self.axis))
-                    if _convert:
-                        result = result._convert(datetime=True)
-                    return result
+                    pass
+
+                # apply a non-cython aggregation
+                result = self.aggregate(
+                    lambda x: npfunc(x, axis=self.axis))
+
+                # coerce the resulting columns if we can
+                if isinstance(result, DataFrame):
+                    for col in result.columns:
+                        result[col] = self._try_cast(
+                            result[col], self.obj[col])
+                else:
+                    result = self._try_cast(
+                        result, self.obj)
+
+                return result
 
             set_function_name(f, name, cls)
 

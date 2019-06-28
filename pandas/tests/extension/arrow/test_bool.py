@@ -17,8 +17,9 @@ def dtype():
 
 @pytest.fixture
 def data():
-    return ArrowBoolArray.from_scalars(np.random.randint(0, 2, size=100,
-                                                         dtype=bool))
+    values = np.random.randint(0, 2, size=100, dtype=bool)
+    values[1] = ~values[0]
+    return ArrowBoolArray.from_scalars(values)
 
 
 @pytest.fixture
@@ -36,8 +37,9 @@ class TestDtype(BaseArrowTests, base.BaseDtypeTests):
 
 
 class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
-    def test_repr(self, data):
-        raise pytest.skip("TODO")
+    def test_copy(self, data):
+        # __setitem__ does not work, so we only have a smoke-test
+        data.copy()
 
 
 class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):

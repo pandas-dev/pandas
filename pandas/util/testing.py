@@ -1666,7 +1666,7 @@ def index_subclass_makers_generator():
 
 def all_timeseries_index_generator(k=10):
     """Generator which can be iterated over to get instances of all the classes
-    which represent time-seires.
+    which represent time-series.
 
     Parameters
     ----------
@@ -1793,7 +1793,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         # pass None to index constructor for no name
         names = None
 
-    # make singelton case uniform
+    # make singleton case uniform
     if isinstance(names, str) and nlevels == 1:
         names = [names]
 
@@ -1872,7 +1872,7 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
         N < idx_nlevels, for just the first N levels. If ndupe doesn't divide
         nrows/ncol, the last label might have lower multiplicity.
    dtype - passed to the DataFrame constructor as is, in case you wish to
-        have more control in conjuncion with a custom `data_gen_f`
+        have more control in conjunction with a custom `data_gen_f`
    r_idx_type, c_idx_type -  "i"/"f"/"s"/"u"/"dt"/"td".
        If idx_type is not None, `idx_nlevels` must be 1.
        "i"/"f" creates an integer/float index,

@@ -3,7 +3,7 @@ from functools import partial
 import itertools
 import operator
 import re
-from typing import List, Optional, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -23,7 +23,6 @@ from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays.sparse import _maybe_to_sparse
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.indexing import maybe_convert_indices
@@ -95,21 +94,19 @@ class BlockManager(PandasObject):
     __slots__ = ['axes', 'blocks', '_ndim', '_shape', '_known_consolidated',
                  '_is_consolidated', '_blknos', '_blklocs']
 
-    def __init__(self, blocks, axes, do_integrity_check=True):
+    def __init__(self,
+                 blocks: Sequence[Block],
+                 axes: Sequence[Index],
+                 do_integrity_check: bool = True):
         self.axes = [ensure_index(ax) for ax in axes]
-        self.blocks = tuple(blocks)
+        self.blocks = tuple(blocks)  # type: Tuple[Block, ...]
 
         for block in blocks:
-            if block.is_sparse:
-                if len(block.mgr_locs) != 1:
-                    raise AssertionError("Sparse block refers to multiple "
-                                         "items")
-            else:
-                if self.ndim != block.ndim:
-                    raise AssertionError(
-                        'Number of Block dimensions ({block}) must equal '
-                        'number of axes ({self})'.format(block=block.ndim,
-                                                         self=self.ndim))
+            if self.ndim != block.ndim:
+                raise AssertionError(
+                    'Number of Block dimensions ({block}) must equal '
+                    'number of axes ({self})'.format(block=block.ndim,
+                                                     self=self.ndim))
 
         if do_integrity_check:
             self._verify_integrity()
@@ -819,48 +816,6 @@ class BlockManager(PandasObject):
         return {dtype: self.combine(blocks, copy=copy)
                 for dtype, blocks in bd.items()}
 
-    def xs(self, key, axis=1, copy=True, takeable=False):
-        if axis < 1:
-            raise AssertionError(
-                'Can only take xs across axis >= 1, got {ax}'.format(ax=axis))
-
-        # take by position
-        if takeable:
-            loc = key
-        else:
-            loc = self.axes[axis].get_loc(key)
-
-        slicer = [slice(None, None) for _ in range(self.ndim)]
-        slicer[axis] = loc
-        slicer = tuple(slicer)
-
-        new_axes = list(self.axes)
-
-        # could be an array indexer!
-        if isinstance(loc, (slice, np.ndarray)):
-            new_axes[axis] = new_axes[axis][loc]
-        else:
-            new_axes.pop(axis)
-
-        new_blocks = []
-        if len(self.blocks) > 1:
-            # we must copy here as we are mixed type
-            for blk in self.blocks:
-                newb = make_block(values=blk.values[slicer],
-                                  klass=blk.__class__,
-                                  placement=blk.mgr_locs)
-                new_blocks.append(newb)
-        elif len(self.blocks) == 1:
-            block = self.blocks[0]
-            vals = block.values[slicer]
-            if copy:
-                vals = vals.copy()
-            new_blocks = [make_block(values=vals,
-                                     placement=block.mgr_locs,
-                                     klass=block.__class__)]
-
-        return self.__class__(new_blocks, new_axes)
-
     def fast_xs(self, loc):
         """
         get a cross sectional for a given location in the
@@ -964,7 +919,7 @@ class BlockManager(PandasObject):
         """
         block = self.blocks[self._blknos[i]]
         values = block.iget(self._blklocs[i])
-        if not fastpath or not block._box_to_block_values or values.ndim != 1:
+        if not fastpath or values.ndim != 1:
             return values
 
         # fastpath shortcut for select a single-dim from a 2-dim BM
@@ -1025,7 +980,7 @@ class BlockManager(PandasObject):
         value_is_extension_type = (is_extension_type(value) or
                                    is_extension_array_dtype(value))
 
-        # categorical/spares/datetimetz
+        # categorical/sparse/datetimetz
         if value_is_extension_type:
 
             def value_getitem(placement):
@@ -1415,8 +1370,11 @@ class SingleBlockManager(BlockManager):
     _known_consolidated = True
     __slots__ = ()
 
-    def __init__(self, block, axis, do_integrity_check=False, fastpath=False):
-
+    def __init__(self,
+                 block: Block,
+                 axis: Union[Index, List[Index]],
+                 do_integrity_check: bool = False,
+                 fastpath: bool = False):
         if isinstance(axis, list):
             if len(axis) != 1:
                 raise ValueError("cannot create SingleBlockManager with more "
@@ -1455,7 +1413,7 @@ class SingleBlockManager(BlockManager):
         if not isinstance(block, Block):
             block = make_block(block, placement=slice(0, len(axis)), ndim=1)
 
-        self.blocks = [block]
+        self.blocks = tuple([block])
 
     def _post_setstate(self):
         pass
@@ -1721,10 +1679,6 @@ def form_blocks(arrays, names, axes):
         object_blocks = _simple_blockify(items_dict['ObjectBlock'], np.object_)
         blocks.extend(object_blocks)
 
-    if len(items_dict['SparseBlock']) > 0:
-        sparse_blocks = _sparse_blockify(items_dict['SparseBlock'])
-        blocks.extend(sparse_blocks)
-
     if len(items_dict['CategoricalBlock']) > 0:
         cat_blocks = [make_block(array, klass=CategoricalBlock, placement=[i])
                       for i, _, array in items_dict['CategoricalBlock']]
@@ -1791,20 +1745,6 @@ def _multi_blockify(tuples, dtype=None):
     return new_blocks
 
 
-def _sparse_blockify(tuples, dtype=None):
-    """ return an array of blocks that potentially have different dtypes (and
-    are sparse)
-    """
-
-    new_blocks = []
-    for i, names, array in tuples:
-        array = _maybe_to_sparse(array)
-        block = make_block(array, placement=[i])
-        new_blocks.append(block)
-
-    return new_blocks
-
-
 def _stack_arrays(tuples, dtype):
 
     # fml
@@ -1833,8 +1773,7 @@ def _stack_arrays(tuples, dtype):
 
 
 def _interleaved_dtype(
-        blocks: List[Block]
-) -> Optional[Union[np.dtype, ExtensionDtype]]:
+        blocks: List[Block]) -> Optional[Union[np.dtype, ExtensionDtype]]:
     """Find the common dtype for `blocks`.
 
     Parameters

@@ -4,7 +4,6 @@ HTML IO.
 """
 
 from collections import abc
-from distutils.version import LooseVersion
 import numbers
 import os
 import re
@@ -40,7 +39,7 @@ def _importers():
                                      on_version="ignore")
     _HAS_BS4 = bs4 is not None
 
-    lxml = import_optional_dependency("lxml", raise_on_missing=False,
+    lxml = import_optional_dependency("lxml.etree", raise_on_missing=False,
                                       on_version="ignore")
     _HAS_LXML = lxml is not None
 
@@ -830,10 +829,8 @@ def _parser_dispatch(flavor):
         if not _HAS_BS4:
             raise ImportError(
                 "BeautifulSoup4 (bs4) not found, please install it")
-        import bs4
-        if LooseVersion(bs4.__version__) <= LooseVersion('4.2.0'):
-            raise ValueError("A minimum version of BeautifulSoup 4.2.1 "
-                             "is required")
+        # Although we call this above, we want to raise here right before use.
+        bs4 = import_optional_dependency('bs4')  # noqa:F841
 
     else:
         if not _HAS_LXML:

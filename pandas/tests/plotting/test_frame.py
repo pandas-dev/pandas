@@ -2952,7 +2952,7 @@ class TestDataFramePlots(TestPlotBase):
         fig.add_axes([0.2, 0.2, 0.2, 0.2])
         Series(rand(10)).plot(ax=ax)
 
-        # suppliad ax itself is a plain Axes, but because the cmap keyword
+        # supplied ax itself is a plain Axes, but because the cmap keyword
         # a new ax is created for the colorbar -> also multiples axes (GH11520)
         df = DataFrame({'a': randn(8), 'b': randn(8)})
         fig = self.plt.figure()
