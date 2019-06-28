@@ -24,7 +24,7 @@ MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
                     'int32', 'int64']
 
 
-class TestDataFrameConstructors():
+class TestDataFrameConstructors:
 
     @pytest.mark.parametrize('constructor', [
         lambda: DataFrame(),
@@ -2330,7 +2330,7 @@ class TestDataFrameConstructors():
         tm.assert_frame_equal(result, expected)
 
 
-class TestDataFrameConstructorWithDatetimeTZ():
+class TestDataFrameConstructorWithDatetimeTZ:
 
     def test_from_dict(self):
 
