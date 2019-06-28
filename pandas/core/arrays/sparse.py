@@ -1468,13 +1468,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         return np.asarray(self, dtype=self.sp_values.dtype)
 
-    # TODO: Look into deprecating this in favor of `to_dense`.
-    # get_values = to_dense
-
     def get_values(self):
         """
         Convert SparseArray to a NumPy array.
-        
+
         .. deprecated:: 0.25.0
             Use `to_dense` instead.
 
@@ -1482,7 +1479,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         warnings.warn(
             "The 'get_values' method is deprecated and will be removed in a "
             "future version. Use the 'to_dense' method instead.", stacklevel=2)
-        return self._interal_get_values()
+        return self._internal_get_values()
 
     _internal_get_values = to_dense
 
