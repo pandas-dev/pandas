@@ -592,9 +592,9 @@ class BusinessHourMixin(BusinessMixin):
         if not len(end):
             raise ValueError('Must include at least 1 end time')
 
-        vliboffsets = np.vectorize(liboffsets._validate_business_time)
-        start = vliboffsets(np.asarray(start))
-        end = vliboffsets(np.asarray(end))
+        start = np.array([liboffsets._validate_business_time(x)
+                          for x in start])
+        end = np.array([liboffsets._validate_business_time(x) for x in end])
 
         # Validation of input
         if len(start) != len(end):
