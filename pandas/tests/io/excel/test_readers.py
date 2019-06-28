@@ -19,16 +19,27 @@ from pandas.io.excel import ExcelFile
 
 
 @contextlib.contextmanager
-def ignore_xlrd_time_clock_warning():
+def ignore_expected_engine_warnings():
     """
-    Context manager to ignore warnings raised by the xlrd library,
-    regarding the deprecation of `time.clock` in Python 3.7.
+    Context manager to ignore warnings raised by the excel engine that would
+    interfere with asserting warnings are reaised.
     """
     with warnings.catch_warnings():
+        # raised by the xlrd library, regarding the deprecation of `time.clock`
+        # in Python 3.7.
         warnings.filterwarnings(
             action='ignore',
             message='time.clock has been deprecated',
             category=DeprecationWarning)
+
+        # raised by the openpyxl library, if unsupported extensions to the
+        # xlsx specification are used in .xslx file. E.g. conditional
+        # formatting, conditional formatting etc. See also
+        # https://stackoverflow.com/questions/34322231/python-2-7-openpyxl-userwarning
+        warnings.filterwarnings(
+            action='ignore',
+            message='Unknown extension is not supported and will be removed',
+            category=UserWarning)
         yield
 
 
@@ -59,14 +70,14 @@ class TestReaders:
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            with ignore_xlrd_time_clock_warning():
+            with ignore_expected_engine_warnings():
                 df1 = pd.read_excel("test1" + read_ext, "Sheet1",
                                     index_col=0, usecols=3)
 
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            with ignore_xlrd_time_clock_warning():
+            with ignore_expected_engine_warnings():
                 df2 = pd.read_excel("test1" + read_ext, "Sheet2", skiprows=[1],
                                     index_col=0, usecols=3)
 
@@ -414,7 +425,7 @@ class TestReaders:
 
         df1 = pd.read_excel(filename + read_ext,
                             sheet_name=sheet_name, index_col=0)  # doc
-        with ignore_xlrd_time_clock_warning():
+        with ignore_expected_engine_warnings():
             df2 = pd.read_excel(filename + read_ext, index_col=0,
                                 sheet_name=sheet_name)
 
