@@ -453,9 +453,15 @@ def _maybe_promote_with_array(dtype, fill_value=np.nan):
     For datetimes, timedeltas and datetimes with a timezone, the missing value
     marker is pandas._libs.tslibs.iNaT (== np.iinfo('int64').min):
 
+    >>> maybe_promote(np.dtype('datetime64[ns]'), fill_value=np.array([None]))
+    (dtype('<M8[ns]'), -9223372036854775808)
+
+    String values do not get cast to datetime/timedelta automatically, but
+    force an upcast to object (with corresponding missing value marker nan).
+
     >>> maybe_promote(np.dtype('datetime64[ns]'),
     ...               fill_value=np.array(['2018-01-01']))
-    (dtype('<M8[ns]'), -9223372036854775808)
+    (dtype('O'), nan)
 
     The method will infer as conservatively as possible for integer types:
 
