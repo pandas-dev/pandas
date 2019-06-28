@@ -24,4 +24,4 @@ Dtype = Union[str, np.dtype, ExtensionDtype]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
 FrameOrSeries = TypeVar('FrameOrSeries', ABCSeries, ABCDataFrame)
-Scalar = Union[str, int, float, np.nan]
+Scalar = Union[str, int, float]
