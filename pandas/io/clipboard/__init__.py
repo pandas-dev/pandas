@@ -25,12 +25,13 @@ This module does not work with PyGObject yet.
 """
 __version__ = '1.5.27'
 
-import platform
 import os
+import platform
 import subprocess
+
 from .clipboards import (
-    init_osx_clipboard, init_qt_clipboard, init_xclip_clipboard,
-    init_xsel_clipboard, init_klipper_clipboard, init_no_clipboard)
+    init_klipper_clipboard, init_no_clipboard, init_osx_clipboard,
+    init_qt_clipboard, init_xclip_clipboard, init_xsel_clipboard)
 from .windows import init_windows_clipboard
 
 # `import qtpy` sys.exit()s if DISPLAY is not in the environment.
