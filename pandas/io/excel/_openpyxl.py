@@ -479,7 +479,7 @@ class _OpenpyxlReader(_BaseExcelReader):
 
     def load_workbook(self, filepath_or_buffer):
         from openpyxl import load_workbook
-        return load_workbook(filepath_or_buffer, data_only=True)
+        return load_workbook(filepath_or_buffer, read_only=True, data_only=True)
 
     @property
     def sheet_names(self):
@@ -492,8 +492,9 @@ class _OpenpyxlReader(_BaseExcelReader):
         return self.book.worksheets[index]
 
     def _convert_cell(self,
-                      cell: 'openpyxl.cell.cell.Cell',
+                      cell: 'openpyxl.cell.read_only.ReadOnlyCell',
                       convert_float: bool):
+
         # TODO: replace with openpyxl constants
         if cell.data_type == 'e':
             return np.nan
