@@ -3772,6 +3772,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return `Index` data as an `numpy.ndarray`.
 
+        .. deprecated:: 0.25.0
+
         Returns
         -------
         numpy.ndarray

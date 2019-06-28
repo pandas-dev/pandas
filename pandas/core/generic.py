@@ -5328,6 +5328,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return an ndarray after converting sparse values to dense.
 
+        .. deprecated:: 0.25.0
+
         This is the same as ``.values`` for non-sparse data. For sparse
         data contained in a `SparseArray`, the data are first
         converted to a dense representation.

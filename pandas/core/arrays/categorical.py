@@ -1497,6 +1497,8 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Return the values.
 
+        .. deprecated:: 0.25.0
+
         For internal compatibility with pandas formatting.
 
         Returns

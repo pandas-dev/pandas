@@ -356,7 +356,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._shallow_copy(result, name=name)
 
     def get_values(self):
-        """ return the underlying data as an ndarray """
+        """
+        Return the underlying data as an ndarray
+
+        .. deprecated:: 0.25.0
+
+        """
         warnings.warn(
             "The 'get_values' method is deprecated and will be removed in a "
             "future version", stacklevel=2)

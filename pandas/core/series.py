@@ -513,8 +513,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         numpy.ndarray
             Data of the Series.
         """
-        raise Exception("USING GET_VALUES")
-        #warnings.warn("deprecated", FutureWarning, stacklevel=2)
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version", stacklevel=2)
+        return self._interal_get_values()
 
     def _internal_get_values(self):
         return self._data.get_values()
