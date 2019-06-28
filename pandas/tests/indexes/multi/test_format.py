@@ -8,9 +8,10 @@ import pandas.util.testing as tm
 
 
 def test_dtype_str(indices):
-    dtype = indices.dtype_str
-    assert isinstance(dtype, str)
-    assert dtype == str(indices.dtype)
+    with tm.assert_produces_warning(FutureWarning):
+        dtype = indices.dtype_str
+        assert isinstance(dtype, str)
+        assert dtype == str(indices.dtype)
 
 
 def test_format(idx):
