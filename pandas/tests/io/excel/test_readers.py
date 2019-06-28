@@ -15,7 +15,6 @@ from pandas import DataFrame, Index, MultiIndex, Series
 import pandas.util.testing as tm
 
 from pandas.io.common import URLError
-from pandas.io.excel import ExcelFile
 
 
 @contextlib.contextmanager
@@ -736,17 +735,20 @@ class TestExcelFileRead:
         pytest.param(None, marks=pytest.mark.skipif(
             not td.safe_import("xlrd"), reason="no xlrd")),
     ])
-    def cd_and_set_engine(self, request, datapath, monkeypatch):
+    def cd_and_set_engine(self, request, datapath, monkeypatch, read_ext):
         """
         Change directory and set engine for ExcelFile objects.
         """
+        if request.param == 'openpyxl' and read_ext == '.xls':
+            pytest.skip()
+
         func = partial(pd.ExcelFile, engine=request.param)
         monkeypatch.chdir(datapath("io", "data"))
         monkeypatch.setattr(pd, 'ExcelFile', func)
 
     def test_excel_passes_na(self, read_ext):
 
-        excel = ExcelFile('test4' + read_ext)
+        excel = pd.ExcelFile('test4' + read_ext)
 
         parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=False,
                                na_values=['apple'])
@@ -754,6 +756,7 @@ class TestExcelFileRead:
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
+        excel = pd.ExcelFile('test4' + read_ext)
         parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=True,
                                na_values=['apple'])
         expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
@@ -761,7 +764,7 @@ class TestExcelFileRead:
         tm.assert_frame_equal(parsed, expected)
 
         # 13967
-        excel = ExcelFile('test5' + read_ext)
+        excel = pd.ExcelFile('test5' + read_ext)
 
         parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=False,
                                na_values=['apple'])
@@ -769,6 +772,7 @@ class TestExcelFileRead:
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
+        excel = pd.ExcelFile('test5' + read_ext)
         parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=True,
                                na_values=['apple'])
         expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
@@ -778,7 +782,7 @@ class TestExcelFileRead:
     @pytest.mark.parametrize('arg', ['sheet', 'sheetname', 'parse_cols'])
     def test_unexpected_kwargs_raises(self, read_ext, arg):
         # gh-17964
-        excel = ExcelFile('test1' + read_ext)
+        excel = pd.ExcelFile('test1' + read_ext)
 
         kwarg = {arg: 'Sheet1'}
         msg = "unexpected keyword argument `{}`".format(arg)
@@ -787,38 +791,39 @@ class TestExcelFileRead:
 
     def test_excel_table_sheet_by_index(self, read_ext, df_ref):
 
-        excel = ExcelFile('test1' + read_ext)
+        excel = pd.ExcelFile('test1' + read_ext)
 
         df1 = pd.read_excel(excel, 0, index_col=0)
         df2 = pd.read_excel(excel, 1, skiprows=[1], index_col=0)
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
+        excel = pd.ExcelFile('test1' + read_ext)
         df1 = excel.parse(0, index_col=0)
         df2 = excel.parse(1, skiprows=[1], index_col=0)
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
+        excel = pd.ExcelFile('test1' + read_ext)
         df3 = pd.read_excel(excel, 0, index_col=0, skipfooter=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
+        excel = pd.ExcelFile('test1' + read_ext)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             df4 = pd.read_excel(excel, 0, index_col=0, skip_footer=1)
             tm.assert_frame_equal(df3, df4)
 
+        excel = pd.ExcelFile('test1' + read_ext)
         df3 = excel.parse(0, index_col=0, skipfooter=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-
-        import xlrd  # will move to engine-specific tests as new ones are added
-        with pytest.raises(xlrd.XLRDError):
-            pd.read_excel(excel, 'asdf')
 
     def test_sheet_name(self, read_ext, df_ref):
         filename = "test1"
         sheet_name = "Sheet1"
 
-        excel = ExcelFile(filename + read_ext)
+        excel = pd.ExcelFile(filename + read_ext)
         df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
+        excel = pd.ExcelFile(filename + read_ext)
         df2_parse = excel.parse(index_col=0,
                                 sheet_name=sheet_name)
 
@@ -826,31 +831,27 @@ class TestExcelFileRead:
         tm.assert_frame_equal(df2_parse, df_ref, check_names=False)
 
     def test_excel_read_buffer(self, read_ext):
-
         pth = 'test1' + read_ext
-        expected = pd.read_excel(pth, 'Sheet1', index_col=0)
+        engine = pd.ExcelFile.keywords['engine']  # TODO: fixturize
+        expected = pd.read_excel(pth, 'Sheet1', index_col=0, engine=engine)
 
         with open(pth, 'rb') as f:
-            xls = ExcelFile(f)
+            xls = pd.ExcelFile(f)
             actual = pd.read_excel(xls, 'Sheet1', index_col=0)
             tm.assert_frame_equal(expected, actual)
 
-    def test_reader_closes_file(self, read_ext):
 
-        f = open('test1' + read_ext, 'rb')
-        with ExcelFile(f) as xlsx:
-            # parses okay
-            pd.read_excel(xlsx, 'Sheet1', index_col=0)
-
-        assert f.closed
-
-    @pytest.mark.parametrize('excel_engine', [
-        'xlrd',
-        None
-    ])
-    def test_read_excel_engine_value(self, read_ext, excel_engine):
-        # GH 26566
-        xl = ExcelFile("test1" + read_ext, engine=excel_engine)
-        msg = "Engine should not be specified when passing an ExcelFile"
-        with pytest.raises(ValueError, match=msg):
-            pd.read_excel(xl, engine='openpyxl')
+@td.skip_if_no("openpyxl")
+@pytest.mark.parametrize('excel_engine', [
+    pytest.param('xlrd', marks=pytest.mark.skipif(
+        not td.safe_import("xlrd"), reason="no xlrd")),
+    pytest.param(None, marks=pytest.mark.skipif(
+        not td.safe_import("xlrd"), reason="no xlrd")),
+])
+def test_conflicting_excel_engines(read_ext, excel_engine, datapath):
+    # GH 26566
+    path = datapath("io", "data", 'test1{}'.format(read_ext))
+    xl = pd.ExcelFile(path, engine=excel_engine)
+    msg = "Engine should not be specified when passing an ExcelFile"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_excel(xl, engine='openpyxl')
