@@ -65,8 +65,7 @@ from pandas.core.api import (
 
     # misc
     np, Grouper, factorize, unique, value_counts, NamedAgg,
-    array, Categorical, set_eng_float_format, Series, DataFrame,
-    Panel)
+    array, Categorical, set_eng_float_format, Series, DataFrame)
 
 from pandas.core.sparse.api import (
     SparseArray, SparseDataFrame, SparseSeries, SparseDtype)
