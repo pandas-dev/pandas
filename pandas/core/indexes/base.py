@@ -3239,8 +3239,9 @@ class Index(IndexOpsMixin, PandasObject):
             if self.equals(target):
                 indexer = None
             else:
-
-                if self.is_unique:
+                # check is_overlapping for IntervalIndex compat
+                if (self.is_unique and
+                        not getattr(self, 'is_overlapping', False)):
                     indexer = self.get_indexer(target, method=method,
                                                limit=limit,
                                                tolerance=tolerance)
@@ -4902,13 +4903,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError('index must be monotonic increasing or decreasing')
 
-    def _get_loc_only_exact_matches(self, key):
-        """
-        This is overridden on subclasses (namely, IntervalIndex) to control
-        get_slice_bound.
-        """
-        return self.get_loc(key)
-
     def get_slice_bound(self, label, side, kind):
         """
         Calculate slice bound that corresponds to given label.
@@ -4942,7 +4936,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # we need to look up the label
         try:
-            slc = self._get_loc_only_exact_matches(label)
+            slc = self.get_loc(label)
         except KeyError as err:
             try:
                 return self._searchsorted_monotonic(label, side)
