@@ -435,7 +435,7 @@ class Categorical(ExtensionArray, PandasObject):
         return self.dtype.ordered
 
     @property
-    def dtype(self) -> 'CategoricalDtype':
+    def dtype(self) -> CategoricalDtype:
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance
         """

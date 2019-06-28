@@ -1,6 +1,5 @@
 """ define extension dtypes """
 import re
-import typing
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
@@ -19,8 +18,8 @@ from .inference import is_list_like
 str_type = str
 
 
-def register_extension_dtype(cls: Type['ExtensionDtype'],
-                             ) -> Type['ExtensionDtype']:
+def register_extension_dtype(cls: Type[ExtensionDtype],
+                             ) -> Type[ExtensionDtype]:
     """
     Register an ExtensionType with pandas as class decorator.
 
@@ -64,7 +63,7 @@ class Registry:
     def __init__(self):
         self.dtypes = []  # type: List[Type[ExtensionDtype]]
 
-    def register(self, dtype: Type['ExtensionDtype']) -> None:
+    def register(self, dtype: Type[ExtensionDtype]) -> None:
         """
         Parameters
         ----------
@@ -76,7 +75,7 @@ class Registry:
         self.dtypes.append(dtype)
 
     def find(self,
-             dtype: Union[Type['ExtensionDtype'], str],
+             dtype: Union[Type[ExtensionDtype], str],
              ) -> Optional[Type[ExtensionDtype]]:
         """
         Parameters
@@ -345,7 +344,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         self._categories = categories
         self._ordered = ordered
 
-    def __setstate__(self, state: 'Dict[str_type, Any]') -> None:
+    def __setstate__(self, state: Dict[str_type, Any]) -> None:
         # for pickle compat. __get_state__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)
@@ -410,7 +409,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return tpl.format(data, self.ordered)
 
     @staticmethod
-    def _hash_categories(categories, ordered: Union[bool, None] = True) -> int:
+    def _hash_categories(categories, ordered: Optional[bool] = True) -> int:
         from pandas.core.util.hashing import (
             hash_array, _combine_hash_arrays, hash_tuples
         )
@@ -513,7 +512,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         if isinstance(categories, ABCCategoricalIndex):
             categories = categories.categories
 
-        return typing.cast(Index, categories)
+        return categories
 
     def update_dtype(self, dtype: 'CategoricalDtype') -> 'CategoricalDtype':
         """
@@ -554,8 +553,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         An ``Index`` containing the unique categories allowed.
         """
-        from pandas import Index
-        return typing.cast(Index, self._categories)
+        return self._categories
 
     @property
     def ordered(self) -> Optional[bool]:
