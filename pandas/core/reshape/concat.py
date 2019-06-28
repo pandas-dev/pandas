@@ -46,6 +46,8 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     join : {'inner', 'outer'}, default 'outer'
         How to handle indexes on other axis (or axes).
     join_axes : list of Index objects
+        .. deprecated:: 0.25.0
+
         Specific indexes to use for the other n - 1 axes instead of performing
         inner/outer set logic.
     ignore_index : bool, default False

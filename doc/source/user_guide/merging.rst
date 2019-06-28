@@ -70,9 +70,8 @@ some configurable handling of "what to do with the other axes":
 
 ::
 
-    pd.concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
-              keys=None, levels=None, names=None, verify_integrity=False,
-              copy=True)
+    pd.concat(objs, axis=0, join='outer', ignore_index=False, keys=None,
+              levels=None, names=None, verify_integrity=False, copy=True)
 
 * ``objs`` : a sequence or mapping of Series or DataFrame objects. If a
   dict is passed, the sorted keys will be used as the `keys` argument, unless
@@ -87,10 +86,6 @@ some configurable handling of "what to do with the other axes":
   n - 1. This is useful if you are concatenating objects where the
   concatenation axis does not have meaningful indexing information. Note
   the index values on the other axes are still respected in the join.
-* ``join_axes`` : list of Index objects. Specific indexes to use for the other
-  n - 1 axes instead of performing inner/outer set logic. This keyword is
-  deprecated, please use ``.reindex`` or ``.reindex_like`` on the result (or
-  the individual DataFrames before concatenating).
 * ``keys`` : sequence, default None. Construct hierarchical index using the
   passed keys as the outermost level. If multiple levels passed, should
   contain tuples.
@@ -204,6 +199,12 @@ DataFrame:
 .. ipython:: python
 
    result = pd.concat([df1, df4], axis=1).reindex(df1.index)
+
+Similarly, we could index before the concatenation:
+
+.. ipython:: python
+
+    pd.concat([df1, df4.reindex(df1.index)], axis=1)
 
 .. ipython:: python
    :suppress:

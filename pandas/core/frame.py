@@ -6881,8 +6881,7 @@ class DataFrame(NDFrame):
                 if how == 'left':
                     res = concat(frames, axis=1, join='outer',
                                  verify_integrity=True)
-                    res = res.reindex(self.index, copy=False)
-                    return res
+                    return res.reindex(self.index, copy=False)
                 else:
                     return concat(frames, axis=1, join=how,
                                   verify_integrity=True)
