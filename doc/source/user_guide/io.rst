@@ -3393,9 +3393,8 @@ both on the writing (serialization), and reading (deserialization).
 
 .. warning::
 
-   This is a very new feature of pandas. We intend to provide certain
-   optimizations in the io of the ``msgpack`` data. Since this is marked
-   as an EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
+   The msgpack format is deprecated as of 0.25 and will be removed in a future version.
+   It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
 
 .. warning::
 
