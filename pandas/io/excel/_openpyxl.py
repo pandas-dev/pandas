@@ -498,7 +498,9 @@ class _OpenpyxlReader(_BaseExcelReader):
             convert_float: bool):
 
         # TODO: replace with openpyxl constants
-        if cell.data_type == 'e':
+        if cell.is_date:
+            return cell.value
+        elif cell.data_type == 'e':
             return np.nan
         elif cell.data_type == 'b':
             return bool(cell.value)
