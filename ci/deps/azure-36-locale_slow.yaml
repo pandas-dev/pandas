@@ -29,6 +29,7 @@ dependencies:
   - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
+  - pytest-azurepipelines
   - moto
   - pip
   - pip:
