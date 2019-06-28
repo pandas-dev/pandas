@@ -253,6 +253,7 @@ def timezone_frame():
     return df
 
 
+@pytest.fixture
 def uint64_frame():
     """
     Fixture for DataFrame with uint64 values

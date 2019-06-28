@@ -244,7 +244,9 @@ class TestDataFrameConstructors():
 
     def test_constructor_dict(self):
         datetime_series = tm.makeTimeSeries(nper=30)
-        datetime_series_short = tm.makeTimeSeries(nper=25)
+        # test expects index shifted by 5
+        datetime_series_short = tm.makeTimeSeries(nper=30)[5:]
+
         frame = DataFrame({'col1': datetime_series,
                            'col2': datetime_series_short})
 
