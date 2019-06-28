@@ -89,7 +89,6 @@ def missing_metadata():
 def max_level_test_input_data():
     """
     input data to test json_normalize with max_level param
-    :return:
     """
     return [{
         'CreatedBy': {'Name': 'User001'},
