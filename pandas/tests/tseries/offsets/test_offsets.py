@@ -1,5 +1,4 @@
 from datetime import date, datetime, time as dt_time, timedelta
-from distutils.version import LooseVersion
 
 import numpy as np
 import pytest
@@ -3310,25 +3309,6 @@ class TestDST:
         else:
             offset_string = '-{hrs:02d}00'.format(hrs=-1 * hrs_offset)
         return Timestamp(string + offset_string).tz_convert(tz)
-
-    def test_fallback_plural(self):
-        # test moving from daylight savings to standard time
-        import dateutil
-        for tz, utc_offsets in self.timezone_utc_offsets.items():
-            hrs_pre = utc_offsets['utc_offset_daylight']
-            hrs_post = utc_offsets['utc_offset_standard']
-
-            if LooseVersion(dateutil.__version__) < LooseVersion('2.6.0'):
-                # buggy ambiguous behavior in 2.6.0
-                # GH 14621
-                # https://github.com/dateutil/dateutil/issues/321
-                self._test_all_offsets(
-                    n=3, tstart=self._make_timestamp(self.ts_pre_fallback,
-                                                     hrs_pre, tz),
-                    expected_utc_offset=hrs_post)
-            elif LooseVersion(dateutil.__version__) > LooseVersion('2.6.0'):
-                # fixed, but skip the test
-                continue
 
     def test_springforward_plural(self):
         # test moving from standard to daylight savings

@@ -1262,12 +1262,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             v, side, sorter
         )
 
-    def copy(self, deep=False):
-        if deep:
-            values = self.sp_values.copy()
-        else:
-            values = self.sp_values
-
+    def copy(self):
+        values = self.sp_values.copy()
         return self._simple_new(values, self.sp_index, self.dtype)
 
     @classmethod
@@ -1866,15 +1862,6 @@ def _maybe_to_dense(obj):
     if hasattr(obj, 'to_dense'):
         return obj.to_dense()
     return obj
-
-
-def _maybe_to_sparse(array):
-    """
-    array must be SparseSeries or SparseArray
-    """
-    if isinstance(array, ABCSparseSeries):
-        array = array.array.copy()
-    return array
 
 
 def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
