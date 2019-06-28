@@ -425,7 +425,7 @@ test duplicates in time series
 """
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture
 def dups():
     dates = [datetime(2000, 1, 2), datetime(2000, 1, 2),
              datetime(2000, 1, 2), datetime(2000, 1, 3),

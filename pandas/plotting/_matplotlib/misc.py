@@ -2,7 +2,6 @@ import random
 
 import matplotlib.lines as mlines
 import matplotlib.patches as patches
-import matplotlib.pyplot as plt
 import numpy as np
 
 from pandas.core.dtypes.missing import notna
@@ -105,6 +104,7 @@ def _get_marker_compat(marker):
 
 
 def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
+    import matplotlib.pyplot as plt
 
     def normalize(series):
         a = min(series)
@@ -169,6 +169,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
 def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
                    colormap=None, **kwds):
+    import matplotlib.pyplot as plt
 
     def function(amplitudes):
         def f(t):
@@ -224,6 +225,7 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
 
 def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
+    import matplotlib.pyplot as plt
     # random.sample(ndarray, int) fails on python 3.3, sigh
     data = list(series.values)
     samplings = [random.sample(data, size) for _ in range(samples)]
@@ -270,6 +272,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
                          use_columns=False, xticks=None, colormap=None,
                          axvlines=True, axvlines_kwds=None, sort_labels=False,
                          **kwds):
+    import matplotlib.pyplot as plt
     if axvlines_kwds is None:
         axvlines_kwds = {'linewidth': 1, 'color': 'black'}
 
@@ -336,6 +339,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 
 def lag_plot(series, lag=1, ax=None, **kwds):
     # workaround because `c='b'` is hardcoded in matplotlibs scatter method
+    import matplotlib.pyplot as plt
     kwds.setdefault('c', plt.rcParams['patch.facecolor'])
 
     data = series.values
@@ -350,6 +354,8 @@ def lag_plot(series, lag=1, ax=None, **kwds):
 
 
 def autocorrelation_plot(series, ax=None, **kwds):
+    import matplotlib.pyplot as plt
+
     n = len(series)
     data = np.asarray(series)
     if ax is None:

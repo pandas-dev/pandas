@@ -180,7 +180,7 @@ class JSONTableWriter(FrameWriter):
 
         self.schema = build_table_schema(obj, index=self.index)
 
-        # NotImplementd on a column MultiIndex
+        # NotImplemented on a column MultiIndex
         if obj.ndim == 2 and isinstance(obj.columns, MultiIndex):
             raise NotImplementedError(
                 "orient='table' is not supported for MultiIndex")
