@@ -691,6 +691,7 @@ Timezones
 - Bug in :func:`to_datetime` where an uninformative ``RuntimeError`` was raised when passing a naive :class:`Timestamp` with datetime strings with mixed UTC offsets (:issue:`25978`)
 - Bug in :func:`to_datetime` with ``unit='ns'`` would drop timezone information from the parsed argument (:issue:`26168`)
 - Bug in :func:`DataFrame.join` where joining a timezone aware index with a timezone aware column would result in a column of ``NaN`` (:issue:`26335`)
+- Bug in :func:`date_range` where ambiguous or nonexistent start or end times were not handled by the ``ambiguous`` or ``nonexistent`` keywords respectively (:issue:`27088`)
 
 Numeric
 ^^^^^^^
