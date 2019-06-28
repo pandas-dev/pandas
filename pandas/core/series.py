@@ -793,7 +793,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def real(self):
         """
         Return the real value of vector.
+
+        .. deprecated 0.25.0
         """
+        warnings.warn("`real` has be deprecated and will be removed in a "
+                      "future verison", DeprecationWarning, stacklevel=2)
         return self.values.real
 
     @real.setter
@@ -804,7 +808,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def imag(self):
         """
         Return imag value of vector.
+
+        .. deprecated 0.25.0
         """
+        warnings.warn("`imag` has be deprecated and will be removed in a "
+                      "future verison", DeprecationWarning, stacklevel=2)
         return self.values.imag
 
     @imag.setter
