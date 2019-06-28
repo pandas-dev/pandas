@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time as dt_time, timedelta
 
 import numpy as np
 import pytest
@@ -759,15 +759,66 @@ class TestBusinessHour(Base):
         self.offset6 = BusinessHour(start='20:00', end='05:00')
         self.offset7 = BusinessHour(n=-2, start=dt_time(21, 30),
                                     end=dt_time(6, 30))
+        self.offset8 = BusinessHour(start=['09:00', '13:00'],
+                                    end=['12:00', '17:00'])
+        self.offset9 = BusinessHour(n=3, start=['09:00', '22:00'],
+                                    end=['13:00', '03:00'])
+        self.offset10 = BusinessHour(n=-1, start=['23:00', '13:00'],
+                                     end=['02:00', '17:00'])
 
-    def test_constructor_errors(self):
-        from datetime import time as dt_time
-        with pytest.raises(ValueError):
-            BusinessHour(start=dt_time(11, 0, 5))
-        with pytest.raises(ValueError):
-            BusinessHour(start='AAA')
-        with pytest.raises(ValueError):
-            BusinessHour(start='14:00:05')
+    @pytest.mark.parametrize("start,end,match", [
+        (
+            dt_time(11, 0, 5),
+            '17:00',
+            "time data must be specified only with hour and minute"
+        ),
+        (
+            'AAA',
+            '17:00',
+            "time data must match '%H:%M' format"
+        ),
+        (
+            '14:00:05',
+            '17:00',
+            "time data must match '%H:%M' format"
+        ),
+        (
+            [],
+            '17:00',
+            "Must include at least 1 start time"
+        ),
+        (
+            '09:00',
+            [],
+            "Must include at least 1 end time"
+        ),
+        (
+            ['09:00', '11:00'],
+            '17:00',
+            "number of starting time and ending time must be the same"
+        ),
+        (
+            ['09:00', '11:00'],
+            ['10:00'],
+            "number of starting time and ending time must be the same"
+        ),
+        (
+            ['09:00', '11:00'],
+            ['12:00', '20:00'],
+            r"invalid starting and ending time\(s\): opening hours should not "
+            "touch or overlap with one another"
+        ),
+        (
+            ['12:00', '20:00'],
+            ['09:00', '11:00'],
+            r"invalid starting and ending time\(s\): opening hours should not "
+            "touch or overlap with one another"
+        ),
+    ])
+    def test_constructor_errors(self, start, end, match):
+        with pytest.raises(ValueError,
+                           match=match):
+            BusinessHour(start=start, end=end)
 
     def test_different_normalize_equals(self):
         # GH#21404 changed __eq__ to return False when `normalize` doesnt match
@@ -784,6 +835,12 @@ class TestBusinessHour(Base):
         assert repr(self.offset5) == '<BusinessHour: BH=11:00-14:30>'
         assert repr(self.offset6) == '<BusinessHour: BH=20:00-05:00>'
         assert repr(self.offset7) == '<-2 * BusinessHours: BH=21:30-06:30>'
+        assert (repr(self.offset8) ==
+                '<BusinessHour: BH=09:00-12:00,13:00-17:00>')
+        assert (repr(self.offset9) ==
+                '<3 * BusinessHours: BH=09:00-13:00,22:00-03:00>')
+        assert (repr(self.offset10) ==
+                '<-1 * BusinessHour: BH=13:00-17:00,23:00-02:00>')
 
     def test_with_offset(self):
         expected = Timestamp('2014-07-01 13:00')
@@ -791,25 +848,59 @@ class TestBusinessHour(Base):
         assert self.d + BusinessHour() * 3 == expected
         assert self.d + BusinessHour(n=3) == expected
 
-    def test_eq(self):
-        for offset in [self.offset1, self.offset2, self.offset3, self.offset4]:
-            assert offset == offset
+    @pytest.mark.parametrize("offset_name", [
+        "offset1",
+        "offset2",
+        "offset3",
+        "offset4",
+        "offset8",
+        "offset9",
+        "offset10"
+    ])
+    def test_eq_attribute(self, offset_name):
+        offset = getattr(self, offset_name)
+        assert offset == offset
 
-        assert BusinessHour() != BusinessHour(-1)
-        assert BusinessHour(start='09:00') == BusinessHour()
-        assert BusinessHour(start='09:00') != BusinessHour(start='09:01')
-        assert (BusinessHour(start='09:00', end='17:00') !=
-                BusinessHour(start='17:00', end='09:01'))
+    @pytest.mark.parametrize("offset1,offset2", [
+        (BusinessHour(start='09:00'), BusinessHour()),
+        (BusinessHour(start=['23:00', '13:00'], end=['12:00', '17:00']),
+         BusinessHour(start=['13:00', '23:00'], end=['17:00', '12:00'])),
+    ])
+    def test_eq(self, offset1, offset2):
+        assert offset1 == offset2
 
-    def test_hash(self):
-        for offset in [self.offset1, self.offset2, self.offset3, self.offset4]:
-            assert hash(offset) == hash(offset)
+    @pytest.mark.parametrize("offset1,offset2", [
+        (BusinessHour(), BusinessHour(-1)),
+        (BusinessHour(start='09:00'), BusinessHour(start='09:01')),
+        (BusinessHour(start='09:00', end='17:00'),
+         BusinessHour(start='17:00', end='09:01')),
+        (BusinessHour(start=['13:00', '23:00'], end=['18:00', '07:00']),
+         BusinessHour(start=['13:00', '23:00'], end=['17:00', '12:00'])),
+    ])
+    def test_neq(self, offset1, offset2):
+        assert offset1 != offset2
+
+    @pytest.mark.parametrize("offset_name", [
+        "offset1",
+        "offset2",
+        "offset3",
+        "offset4",
+        "offset8",
+        "offset9",
+        "offset10"
+    ])
+    def test_hash(self, offset_name):
+        offset = getattr(self, offset_name)
+        assert offset == offset
 
     def test_call(self):
         assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
         assert self.offset2(self.d) == datetime(2014, 7, 1, 13)
         assert self.offset3(self.d) == datetime(2014, 6, 30, 17)
         assert self.offset4(self.d) == datetime(2014, 6, 30, 14)
+        assert self.offset8(self.d) == datetime(2014, 7, 1, 11)
+        assert self.offset9(self.d) == datetime(2014, 7, 1, 22)
+        assert self.offset10(self.d) == datetime(2014, 7, 1, 1)
 
     def test_sub(self):
         # we have to override test_sub here because self.offset2 is not
@@ -830,6 +921,9 @@ class TestBusinessHour(Base):
         assert self.offset5.rollback(self.d) == datetime(2014, 6, 30, 14, 30)
         assert self.offset6.rollback(self.d) == datetime(2014, 7, 1, 5, 0)
         assert self.offset7.rollback(self.d) == datetime(2014, 7, 1, 6, 30)
+        assert self.offset8.rollback(self.d) == self.d
+        assert self.offset9.rollback(self.d) == self.d
+        assert self.offset10.rollback(self.d) == datetime(2014, 7, 1, 2)
 
         d = datetime(2014, 7, 1, 0)
         assert self.offset1.rollback(d) == datetime(2014, 6, 30, 17)
@@ -839,6 +933,9 @@ class TestBusinessHour(Base):
         assert self.offset5.rollback(d) == datetime(2014, 6, 30, 14, 30)
         assert self.offset6.rollback(d) == d
         assert self.offset7.rollback(d) == d
+        assert self.offset8.rollback(d) == datetime(2014, 6, 30, 17)
+        assert self.offset9.rollback(d) == d
+        assert self.offset10.rollback(d) == d
 
         assert self._offset(5).rollback(self.d) == self.d
 
@@ -857,6 +954,9 @@ class TestBusinessHour(Base):
                 datetime(2014, 7, 1, 20, 0))
         assert (self.offset7.rollforward(self.d) ==
                 datetime(2014, 7, 1, 21, 30))
+        assert self.offset8.rollforward(self.d) == self.d
+        assert self.offset9.rollforward(self.d) == self.d
+        assert self.offset10.rollforward(self.d) == datetime(2014, 7, 1, 13)
 
         d = datetime(2014, 7, 1, 0)
         assert self.offset1.rollforward(d) == datetime(2014, 7, 1, 9)
@@ -866,6 +966,9 @@ class TestBusinessHour(Base):
         assert self.offset5.rollforward(d) == datetime(2014, 7, 1, 11)
         assert self.offset6.rollforward(d) == d
         assert self.offset7.rollforward(d) == d
+        assert self.offset8.rollforward(d) == datetime(2014, 7, 1, 9)
+        assert self.offset9.rollforward(d) == d
+        assert self.offset10.rollforward(d) == d
 
         assert self._offset(5).rollforward(self.d) == self.d
 
@@ -959,6 +1062,35 @@ class TestBusinessHour(Base):
         datetime(2014, 7, 5, 5, 0): True,
         datetime(2014, 7, 6, 23, 0): False,
         datetime(2014, 7, 7, 3, 0): False}))
+
+    on_offset_cases.append((BusinessHour(start=['09:00', '13:00'],
+                                         end=['12:00', '17:00']), {
+        datetime(2014, 7, 1, 9): True,
+        datetime(2014, 7, 1, 8, 59): False,
+        datetime(2014, 7, 1, 8): False,
+        datetime(2014, 7, 1, 17): True,
+        datetime(2014, 7, 1, 17, 1): False,
+        datetime(2014, 7, 1, 18): False,
+        datetime(2014, 7, 5, 9): False,
+        datetime(2014, 7, 6, 12): False,
+        datetime(2014, 7, 1, 12, 30): False}))
+
+    on_offset_cases.append((BusinessHour(start=['19:00', '23:00'],
+                                         end=['21:00', '05:00']), {
+        datetime(2014, 7, 1, 9, 0): False,
+        datetime(2014, 7, 1, 10, 0): False,
+        datetime(2014, 7, 1, 15): False,
+        datetime(2014, 7, 1, 15, 1): False,
+        datetime(2014, 7, 5, 12, 0): False,
+        datetime(2014, 7, 6, 12, 0): False,
+        datetime(2014, 7, 1, 19, 0): True,
+        datetime(2014, 7, 2, 0, 0): True,
+        datetime(2014, 7, 4, 23): True,
+        datetime(2014, 7, 5, 1): True,
+        datetime(2014, 7, 5, 5, 0): True,
+        datetime(2014, 7, 6, 23, 0): False,
+        datetime(2014, 7, 7, 3, 0): False,
+        datetime(2014, 7, 4, 22): False}))
 
     @pytest.mark.parametrize('case', on_offset_cases)
     def test_onOffset(self, case):
@@ -1124,6 +1256,76 @@ class TestBusinessHour(Base):
                                   datetime(2014, 7, 7, 17)),
         datetime(2014, 7, 7, 18): (datetime(2014, 7, 7, 17),
                                    datetime(2014, 7, 8, 17))}))
+
+    opening_time_cases.append(([BusinessHour(start=['11:15', '15:00'],
+                                             end=['13:00', '20:00']),
+                                BusinessHour(n=3, start=['11:15', '15:00'],
+                                             end=['12:00', '20:00']),
+                                BusinessHour(start=['11:15', '15:00'],
+                                             end=['13:00', '17:00']),
+                                BusinessHour(n=2, start=['11:15', '15:00'],
+                                             end=['12:00', '03:00']),
+                                BusinessHour(n=3, start=['11:15', '15:00'],
+                                             end=['13:00', '16:00'])], {
+        datetime(2014, 7, 1, 11): (datetime(2014, 7, 1, 11, 15),
+                                   datetime(2014, 6, 30, 15)),
+        datetime(2014, 7, 1, 18): (datetime(2014, 7, 2, 11, 15),
+                                   datetime(2014, 7, 1, 15)),
+        datetime(2014, 7, 1, 23): (datetime(2014, 7, 2, 11, 15),
+                                   datetime(2014, 7, 1, 15)),
+        datetime(2014, 7, 2, 8): (datetime(2014, 7, 2, 11, 15),
+                                  datetime(2014, 7, 1, 15)),
+        datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 11, 15),
+                                  datetime(2014, 7, 1, 15)),
+        datetime(2014, 7, 2, 10): (datetime(2014, 7, 2, 11, 15),
+                                   datetime(2014, 7, 1, 15)),
+        datetime(2014, 7, 2, 11, 15): (datetime(2014, 7, 2, 11, 15),
+                                       datetime(2014, 7, 2, 11, 15)),
+        datetime(2014, 7, 2, 11, 15, 1): (datetime(2014, 7, 2, 15),
+                                          datetime(2014, 7, 2, 11, 15)),
+        datetime(2014, 7, 5, 10): (datetime(2014, 7, 7, 11, 15),
+                                   datetime(2014, 7, 4, 15)),
+        datetime(2014, 7, 4, 10): (datetime(2014, 7, 4, 11, 15),
+                                   datetime(2014, 7, 3, 15)),
+        datetime(2014, 7, 4, 23): (datetime(2014, 7, 7, 11, 15),
+                                   datetime(2014, 7, 4, 15)),
+        datetime(2014, 7, 6, 10): (datetime(2014, 7, 7, 11, 15),
+                                   datetime(2014, 7, 4, 15)),
+        datetime(2014, 7, 7, 5): (datetime(2014, 7, 7, 11, 15),
+                                  datetime(2014, 7, 4, 15)),
+        datetime(2014, 7, 7, 9, 1): (datetime(2014, 7, 7, 11, 15),
+                                     datetime(2014, 7, 4, 15)),
+        datetime(2014, 7, 7, 12): (datetime(2014, 7, 7, 15),
+                                   datetime(2014, 7, 7, 11, 15))}))
+
+    opening_time_cases.append(([BusinessHour(n=-1, start=['17:00', '08:00'],
+                                             end=['05:00', '10:00']),
+                                BusinessHour(n=-2, start=['08:00', '17:00'],
+                                             end=['10:00', '03:00'])], {
+        datetime(2014, 7, 1, 11): (datetime(2014, 7, 1, 8),
+                                   datetime(2014, 7, 1, 17)),
+        datetime(2014, 7, 1, 18): (datetime(2014, 7, 1, 17),
+                                   datetime(2014, 7, 2, 8)),
+        datetime(2014, 7, 1, 23): (datetime(2014, 7, 1, 17),
+                                   datetime(2014, 7, 2, 8)),
+        datetime(2014, 7, 2, 8): (datetime(2014, 7, 2, 8),
+                                  datetime(2014, 7, 2, 8)),
+        datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 8),
+                                  datetime(2014, 7, 2, 17)),
+        datetime(2014, 7, 2, 16, 59): (datetime(2014, 7, 2, 8),
+                                       datetime(2014, 7, 2, 17)),
+        datetime(2014, 7, 5, 10): (datetime(2014, 7, 4, 17),
+                                   datetime(2014, 7, 7, 8)),
+        datetime(2014, 7, 4, 10): (datetime(2014, 7, 4, 8),
+                                   datetime(2014, 7, 4, 17)),
+        datetime(2014, 7, 4, 23): (datetime(2014, 7, 4, 17),
+                                   datetime(2014, 7, 7, 8)),
+        datetime(2014, 7, 6, 10): (datetime(2014, 7, 4, 17),
+                                   datetime(2014, 7, 7, 8)),
+        datetime(2014, 7, 7, 5): (datetime(2014, 7, 4, 17),
+                                  datetime(2014, 7, 7, 8)),
+        datetime(2014, 7, 7, 18): (datetime(2014, 7, 7, 17),
+                                   datetime(2014, 7, 8, 8))}))
 
     @pytest.mark.parametrize('case', opening_time_cases)
     def test_opening_time(self, case):
@@ -1303,6 +1505,81 @@ class TestBusinessHour(Base):
         datetime(2014, 7, 7, 3, 30, 30): datetime(2014, 7, 4, 22, 30, 30),
         datetime(2014, 7, 7, 3, 30, 20): datetime(2014, 7, 4, 22, 30, 20)}))
 
+    # multiple business hours
+    apply_cases.append((BusinessHour(start=['09:00', '14:00'],
+                                     end=['12:00', '18:00']), {
+        datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 14),
+        datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 16),
+        datetime(2014, 7, 1, 19): datetime(2014, 7, 2, 10),
+        datetime(2014, 7, 1, 16): datetime(2014, 7, 1, 17),
+        datetime(2014, 7, 1, 16, 30, 15): datetime(2014, 7, 1, 17, 30, 15),
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 2, 9),
+        datetime(2014, 7, 2, 11): datetime(2014, 7, 2, 14),
+        # out of business hours
+        datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 15),
+        datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 10),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 10),
+        datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 10),
+        datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 10),
+        # saturday
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 10),
+        datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 9),
+        datetime(2014, 7, 4, 17, 30): datetime(2014, 7, 7, 9, 30),
+        datetime(2014, 7, 4, 17, 30, 30): datetime(2014, 7, 7, 9, 30, 30)}))
+
+    apply_cases.append((BusinessHour(n=4, start=['09:00', '14:00'],
+                                     end=['12:00', '18:00']), {
+        datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 17),
+        datetime(2014, 7, 1, 13): datetime(2014, 7, 2, 9),
+        datetime(2014, 7, 1, 15): datetime(2014, 7, 2, 10),
+        datetime(2014, 7, 1, 16): datetime(2014, 7, 2, 11),
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 2, 14),
+        datetime(2014, 7, 2, 11): datetime(2014, 7, 2, 17),
+        datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 15),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 15),
+        datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 15),
+        datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 15),
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 15),
+        datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 14),
+        datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 11, 30),
+        datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 11, 30, 30)}))
+
+    apply_cases.append((BusinessHour(n=-4, start=['09:00', '14:00'],
+                                     end=['12:00', '18:00']), {
+        datetime(2014, 7, 1, 11): datetime(2014, 6, 30, 16),
+        datetime(2014, 7, 1, 13): datetime(2014, 6, 30, 17),
+        datetime(2014, 7, 1, 15): datetime(2014, 6, 30, 18),
+        datetime(2014, 7, 1, 16): datetime(2014, 7, 1, 10),
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 11),
+        datetime(2014, 7, 2, 11): datetime(2014, 7, 1, 16),
+        datetime(2014, 7, 2, 8): datetime(2014, 7, 1, 12),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 12),
+        datetime(2014, 7, 2, 23): datetime(2014, 7, 2, 12),
+        datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 12),
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 4, 12),
+        datetime(2014, 7, 4, 18): datetime(2014, 7, 4, 12),
+        datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 4, 14, 30),
+        datetime(2014, 7, 7, 9, 30, 30): datetime(2014, 7, 4, 14, 30, 30)}))
+
+    apply_cases.append((BusinessHour(n=-1, start=['19:00', '03:00'],
+                                     end=['01:00', '05:00']), {
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 4),
+        datetime(2014, 7, 2, 14): datetime(2014, 7, 2, 4),
+        datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 4),
+        datetime(2014, 7, 2, 13): datetime(2014, 7, 2, 4),
+        datetime(2014, 7, 2, 20): datetime(2014, 7, 2, 5),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 4),
+        datetime(2014, 7, 2, 4): datetime(2014, 7, 2, 1),
+        datetime(2014, 7, 2, 19, 30): datetime(2014, 7, 2, 4, 30),
+        datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 23),
+        datetime(2014, 7, 3, 6): datetime(2014, 7, 3, 4),
+        datetime(2014, 7, 4, 23): datetime(2014, 7, 4, 22),
+        datetime(2014, 7, 5, 0): datetime(2014, 7, 4, 23),
+        datetime(2014, 7, 5, 4): datetime(2014, 7, 5, 0),
+        datetime(2014, 7, 7, 3, 30): datetime(2014, 7, 5, 0, 30),
+        datetime(2014, 7, 7, 19, 30): datetime(2014, 7, 7, 4, 30),
+        datetime(2014, 7, 7, 19, 30, 30): datetime(2014, 7, 7, 4, 30, 30)}))
+
     @pytest.mark.parametrize('case', apply_cases)
     def test_apply(self, case):
         offset, cases = case
@@ -1357,6 +1634,42 @@ class TestBusinessHour(Base):
         datetime(2014, 7, 5, 15): datetime(2014, 7, 15, 0),
         datetime(2014, 7, 6, 18): datetime(2014, 7, 15, 0),
         datetime(2014, 7, 7, 1): datetime(2014, 7, 15, 0),
+        datetime(2014, 7, 7, 23, 30): datetime(2014, 7, 15, 21, 30)}))
+
+    # large n for multiple opening hours (3 days and 1 hour before)
+    apply_large_n_cases.append((BusinessHour(n=-25, start=['09:00', '14:00'],
+                                             end=['12:00', '19:00']), {
+        datetime(2014, 7, 1, 11): datetime(2014, 6, 26, 10),
+        datetime(2014, 7, 1, 13): datetime(2014, 6, 26, 11),
+        datetime(2014, 7, 1, 9): datetime(2014, 6, 25, 18),
+        datetime(2014, 7, 1, 10): datetime(2014, 6, 25, 19),
+        datetime(2014, 7, 3, 11): datetime(2014, 6, 30, 10),
+        datetime(2014, 7, 3, 8): datetime(2014, 6, 27, 18),
+        datetime(2014, 7, 3, 19): datetime(2014, 6, 30, 18),
+        datetime(2014, 7, 3, 23): datetime(2014, 6, 30, 18),
+        datetime(2014, 7, 4, 9): datetime(2014, 6, 30, 18),
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 1, 18),
+        datetime(2014, 7, 6, 18): datetime(2014, 7, 1, 18),
+        datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 1, 18, 30),
+        datetime(2014, 7, 7, 10, 30, 30): datetime(2014, 7, 2, 9, 30, 30)}))
+
+    # 5 days and 3 hours later
+    apply_large_n_cases.append((BusinessHour(28, start=['21:00', '03:00'],
+                                             end=['01:00', '04:00']), {
+        datetime(2014, 7, 1, 11): datetime(2014, 7, 9, 0),
+        datetime(2014, 7, 1, 22): datetime(2014, 7, 9, 3),
+        datetime(2014, 7, 1, 23): datetime(2014, 7, 9, 21),
+        datetime(2014, 7, 2, 2): datetime(2014, 7, 9, 23),
+        datetime(2014, 7, 3, 21): datetime(2014, 7, 11, 0),
+        datetime(2014, 7, 4, 1): datetime(2014, 7, 11, 23),
+        datetime(2014, 7, 4, 2): datetime(2014, 7, 11, 23),
+        datetime(2014, 7, 4, 3): datetime(2014, 7, 11, 23),
+        datetime(2014, 7, 4, 21): datetime(2014, 7, 12, 0),
+        datetime(2014, 7, 5, 0): datetime(2014, 7, 14, 22),
+        datetime(2014, 7, 5, 1): datetime(2014, 7, 14, 23),
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 14, 23),
+        datetime(2014, 7, 6, 18): datetime(2014, 7, 14, 23),
+        datetime(2014, 7, 7, 1): datetime(2014, 7, 14, 23),
         datetime(2014, 7, 7, 23, 30): datetime(2014, 7, 15, 21, 30)}))
 
     @pytest.mark.parametrize('case', apply_large_n_cases)

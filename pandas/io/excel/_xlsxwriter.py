@@ -210,7 +210,7 @@ class _XlsxWriter(ExcelWriter):
                                 startcol + cell.col,
                                 startrow + cell.mergestart,
                                 startcol + cell.mergeend,
-                                cell.val, style)
+                                val, style)
             else:
                 wks.write(startrow + cell.row,
                           startcol + cell.col,
