@@ -231,7 +231,7 @@ class RangeIndex(Int64Index):
             Use ``start`` instead.
         """
         warnings.warn(self._deprecation_message.format("_start", "start"),
-                      FutureWarning, stacklevel=2)
+                      DeprecationWarning, stacklevel=2)
         return self.start
 
     @cache_readonly
@@ -251,7 +251,7 @@ class RangeIndex(Int64Index):
         """
         # GH 25710
         warnings.warn(self._deprecation_message.format("_stop", "stop"),
-                      FutureWarning, stacklevel=2)
+                      DeprecationWarning, stacklevel=2)
         return self.stop
 
     @cache_readonly
@@ -272,7 +272,7 @@ class RangeIndex(Int64Index):
         """
         # GH 25710
         warnings.warn(self._deprecation_message.format("_step", "step"),
-                      FutureWarning, stacklevel=2)
+                      DeprecationWarning, stacklevel=2)
         return self.step
 
     @cache_readonly
