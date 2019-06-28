@@ -54,7 +54,7 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
 def test_bs4_version_fails(monkeypatch, datapath):
     import bs4
     monkeypatch.setattr(bs4, '__version__', '4.2')
-    with pytest.raises(ValueError, match="minimum version"):
+    with pytest.raises(ImportError, match="Pandas requires version"):
         read_html(datapath("io", "data", "spam.html"), flavor='bs4')
 
 
@@ -77,10 +77,8 @@ def test_same_ordering(datapath):
 
 
 @pytest.mark.parametrize("flavor", [
-    pytest.param('bs4', marks=pytest.mark.skipif(
-        not td.safe_import('lxml'), reason='No bs4')),
-    pytest.param('lxml', marks=pytest.mark.skipif(
-        not td.safe_import('lxml'), reason='No lxml'))], scope="class")
+    pytest.param('bs4', marks=td.skip_if_no('lxml')),
+    pytest.param('lxml', marks=td.skip_if_no('lxml'))], scope="class")
 class TestReadHtml:
 
     @pytest.fixture(autouse=True)

@@ -340,9 +340,9 @@ class Panel(NDFrame):
     # ----------------------------------------------------------------------
     # Magic methods
 
-    def __unicode__(self):
+    def __repr__(self):
         """
-        Return a unicode string representation for a particular Panel.
+        Return a string representation for a particular Panel.
         """
 
         class_name = str(self.__class__)
@@ -856,13 +856,7 @@ class Panel(NDFrame):
         if axis == 0:
             return self[key]
 
-        self._consolidate_inplace()
-        axis_number = self._get_axis_number(axis)
-        new_data = self._data.xs(key, axis=axis_number, copy=False)
-        result = self._construct_return_type(new_data)
-        copy = new_data.is_mixed_type
-        result._set_is_copy(self, copy=copy)
-        return result
+        raise NotImplementedError("Panel is removed in pandas 0.25.0")
 
     _xs = xs
 
@@ -1392,7 +1386,7 @@ class Panel(NDFrame):
         Parameters
         ----------
         other : Panel, or object coercible to Panel
-            The object from which the caller will be udpated.
+            The object from which the caller will be updated.
         join : {'left', 'right', 'outer', 'inner'}, default 'left'
             How individual DataFrames are joined.
         overwrite : bool, default True

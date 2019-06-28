@@ -1,5 +1,4 @@
 import datetime
-from distutils.version import LooseVersion
 import glob
 from io import BytesIO
 import os
@@ -84,7 +83,6 @@ def check_arbitrary(a, b):
         assert(a == b)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestPackers:
 
     def setup_method(self, method):
@@ -99,7 +97,6 @@ class TestPackers:
             return read_msgpack(p, **kwargs)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestAPI(TestPackers):
 
     def test_string_io(self):
@@ -153,8 +150,7 @@ class TestAPI(TestPackers):
             def __init__(self):
                 self.read = 0
 
-        msg = (r"Invalid file path or buffer object type: <(class|type)"
-               r" '{}'>")
+        msg = "Invalid file path or buffer object type: <class '{}'>"
         with pytest.raises(ValueError, match=msg.format('NoneType')):
             read_msgpack(path_or_buf=None)
         with pytest.raises(ValueError, match=msg.format('dict')):
@@ -464,7 +460,6 @@ class TestCategorical(TestPackers):
                 assert_categorical_equal(i, i_rec)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestNDFrame(TestPackers):
 
     def setup_method(self, method):
@@ -551,6 +546,9 @@ class TestNDFrame(TestPackers):
         assert_frame_equal(result_3, expected_3)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
 class TestSparse(TestPackers):
 
     def _check_roundtrip(self, obj, comparator, **kwargs):
@@ -840,13 +838,12 @@ def legacy_packer(request, datapath):
     return datapath(request.param)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestMsgpack:
     """
     How to add msgpack tests:
 
     1. Install pandas version intended to output the msgpack.
-TestPackers
     2. Execute "generate_legacy_storage_files.py" to create the msgpack.
     $ python generate_legacy_storage_files.py <output_dir> msgpack
 
@@ -856,15 +853,11 @@ TestPackers
     minimum_structure = {'series': ['float', 'int', 'mixed',
                                     'ts', 'mi', 'dup'],
                          'frame': ['float', 'int', 'mixed', 'mi'],
-                         'panel': ['float'],
                          'index': ['int', 'date', 'period'],
                          'mi': ['reg2']}
 
     def check_min_structure(self, data, version):
         for typ, v in self.minimum_structure.items():
-            if typ == "panel":
-                # FIXME: kludge; get this key out of the legacy file
-                continue
 
             assert typ in data, '"{0}" not found in unpacked data'.format(typ)
             for kind in v:
@@ -872,15 +865,7 @@ TestPackers
                 assert kind in data[typ], msg
 
     def compare(self, current_data, all_data, vf, version):
-        # GH12277 encoding default used to be latin-1, now utf-8
-        if LooseVersion(version) < LooseVersion('0.18.0'):
-            data = read_msgpack(vf, encoding='latin-1')
-        else:
-            data = read_msgpack(vf)
-
-        if "panel" in data:
-            # FIXME: kludge; get the key out of the stored file
-            del data["panel"]
+        data = read_msgpack(vf)
 
         self.check_min_structure(data, version)
         for typ, dv in data.items():
@@ -907,33 +892,16 @@ TestPackers
         return data
 
     def compare_series_dt_tz(self, result, expected, typ, version):
-        # 8260
-        # dtype is object < 0.17.0
-        if LooseVersion(version) < LooseVersion('0.17.0'):
-            expected = expected.astype(object)
-            tm.assert_series_equal(result, expected)
-        else:
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def compare_frame_dt_mixed_tzs(self, result, expected, typ, version):
-        # 8260
-        # dtype is object < 0.17.0
-        if LooseVersion(version) < LooseVersion('0.17.0'):
-            expected = expected.astype(object)
-            tm.assert_frame_equal(result, expected)
-        else:
-            tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_msgpacks_legacy(self, current_packers_data, all_packers_data,
                              legacy_packer, datapath):
 
         version = os.path.basename(os.path.dirname(legacy_packer))
 
-        # GH12142 0.17 files packed in P2 can't be read in P3
-        if (version.startswith('0.17.') and
-                legacy_packer.split('.')[-4][-1] == '2'):
-            msg = "Files packed in Py2 can't be read in Py3 ({})"
-            pytest.skip(msg.format(version))
         try:
             with catch_warnings(record=True):
                 self.compare(current_packers_data, all_packers_data,

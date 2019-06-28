@@ -14,94 +14,62 @@ import functools
 from io import StringIO
 import itertools
 import sys
-import warnings
 from textwrap import dedent
 from typing import FrozenSet, List, Optional, Set, Type, Union
+import warnings
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._config import get_option
 
-from pandas._libs import lib, algos as libalgos
-
-from pandas.util._decorators import (Appender, Substitution,
-                                     rewrite_axis_style_signature,
-                                     deprecate_kwarg)
-from pandas.util._validators import (validate_bool_kwarg,
-                                     validate_axis_style_args)
-
+from pandas._libs import algos as libalgos, lib
 from pandas.compat import PY36, raise_with_traceback
 from pandas.compat.numpy import function as nv
-from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.util._decorators import (
+    Appender, Substitution, deprecate_kwarg, rewrite_axis_style_signature)
+from pandas.util._validators import (
+    validate_axis_style_args, validate_bool_kwarg)
+
 from pandas.core.dtypes.cast import (
-    maybe_upcast,
-    cast_scalar_to_array,
-    infer_dtype_from_scalar,
-    maybe_cast_to_datetime,
-    maybe_infer_to_datetimelike,
-    maybe_convert_platform,
-    maybe_downcast_to_dtype,
-    invalidate_string_dtypes,
-    coerce_to_dtypes,
-    maybe_upcast_putmask,
-    find_common_type)
+    cast_scalar_to_array, coerce_to_dtypes, find_common_type,
+    infer_dtype_from_scalar, invalidate_string_dtypes, maybe_cast_to_datetime,
+    maybe_convert_platform, maybe_downcast_to_dtype,
+    maybe_infer_to_datetimelike, maybe_upcast, maybe_upcast_putmask)
 from pandas.core.dtypes.common import (
-    is_dict_like,
-    is_datetime64tz_dtype,
-    is_object_dtype,
-    is_extension_type,
-    is_extension_array_dtype,
-    is_datetime64_any_dtype,
-    is_bool_dtype,
-    is_integer_dtype,
-    is_float_dtype,
-    is_integer,
-    is_scalar,
-    is_dtype_equal,
-    needs_i8_conversion,
-    infer_dtype_from_object,
-    ensure_float64,
-    ensure_int64,
-    ensure_platform_int,
-    is_list_like,
-    is_nested_list_like,
-    is_iterator,
-    is_sequence,
-    is_named_tuple)
+    ensure_float64, ensure_int64, ensure_platform_int, infer_dtype_from_object,
+    is_bool_dtype, is_datetime64_any_dtype, is_datetime64tz_dtype,
+    is_dict_like, is_dtype_equal, is_extension_array_dtype, is_extension_type,
+    is_float_dtype, is_integer, is_integer_dtype, is_iterator, is_list_like,
+    is_named_tuple, is_nested_list_like, is_object_dtype, is_scalar,
+    is_sequence, needs_i8_conversion)
 from pandas.core.dtypes.generic import (
-    ABCSeries, ABCDataFrame, ABCIndexClass, ABCMultiIndex)
+    ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core import algorithms
-from pandas.core import common as com
-from pandas.core import nanops
-from pandas.core import ops
+from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import (
-    DatetimeLikeArrayMixin as DatetimeLikeArray
-)
+    DatetimeLikeArrayMixin as DatetimeLikeArray)
+from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.index import (Index, MultiIndex, ensure_index,
-                               ensure_index_from_sequences)
+from pandas.core.index import (
+    Index, MultiIndex, ensure_index, ensure_index_from_sequences)
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
-                                  check_bool_indexer)
+from pandas.core.indexing import (
+    check_bool_indexer, convert_to_index_sliceable, maybe_droplevels)
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
-    masked_rec_array_to_mgr, get_names_from_index, to_arrays,
-    reorder_arrays, init_ndarray, init_dict,
-    arrays_to_mgr, sanitize_index)
+    arrays_to_mgr, get_names_from_index, init_dict, init_ndarray,
+    masked_rec_array_to_mgr, reorder_arrays, sanitize_index, to_arrays)
 from pandas.core.series import Series
 
-from pandas.io.formats import console
-from pandas.io.formats import format as fmt
+from pandas.io.formats import console, format as fmt
 from pandas.io.formats.printing import pprint_thing
-
-import pandas.plotting._core as gfx
+import pandas.plotting
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -610,9 +578,9 @@ class DataFrame(NDFrame):
         return info_repr_option and not (self._repr_fits_horizontal_() and
                                          self._repr_fits_vertical_())
 
-    def __unicode__(self):
+    def __repr__(self):
         """
-        Return a unicode string representation for a particular DataFrame.
+        Return a string representation for a particular DataFrame.
         """
         buf = StringIO("")
         if self._info_repr():
@@ -918,7 +886,7 @@ class DataFrame(NDFrame):
 
     def dot(self, other):
         """
-        Compute the matrix mutiplication between the DataFrame and other.
+        Compute the matrix multiplication between the DataFrame and other.
 
         This method computes the matrix product between the DataFrame and the
         values of an other Series, DataFrame or a numpy array.
@@ -944,7 +912,9 @@ class DataFrame(NDFrame):
         Notes
         -----
         The dimensions of DataFrame and other must be compatible in order to
-        compute the matrix multiplication.
+        compute the matrix multiplication. In addition, the column names of
+        DataFrame and the index of other must contain the same values, as they
+        will be aligned prior to the multiplication.
 
         The dot method for Series computes the inner product, instead of the
         matrix product here.
@@ -982,6 +952,14 @@ class DataFrame(NDFrame):
             0   1
         0   1   4
         1   2   2
+
+        Note how shuffling of the objects does not change the result.
+
+        >>> s2 = s.reindex([1, 0, 2, 3])
+        >>> df.dot(s2)
+        0    -4
+        1     5
+        dtype: int64
         """
         if isinstance(other, (Series, DataFrame)):
             common = self.columns.union(other.index)
@@ -1879,6 +1857,8 @@ class DataFrame(NDFrame):
         """
         Convert to SparseDataFrame.
 
+        .. deprecated:: 0.25.0
+
         Implement the sparse version of the DataFrame meaning that any data
         matching a specific value it's omitted in the representation.
         The sparse DataFrame allows for a more efficient storage.
@@ -1920,19 +1900,24 @@ class DataFrame(NDFrame):
         >>> type(df)
         <class 'pandas.core.frame.DataFrame'>
 
-        >>> sdf = df.to_sparse()
-        >>> sdf
+        >>> sdf = df.to_sparse()  # doctest: +SKIP
+        >>> sdf  # doctest: +SKIP
              0    1
         0  NaN  NaN
         1  1.0  NaN
         2  NaN  1.0
-        >>> type(sdf)
+        >>> type(sdf)  # doctest: +SKIP
         <class 'pandas.core.sparse.frame.SparseDataFrame'>
         """
+        warnings.warn("DataFrame.to_sparse is deprecated and will be removed "
+                      "in a future version", FutureWarning, stacklevel=2)
+
         from pandas.core.sparse.api import SparseDataFrame
-        return SparseDataFrame(self._series, index=self.index,
-                               columns=self.columns, default_kind=kind,
-                               default_fill_value=fill_value)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="SparseDataFrame")
+            return SparseDataFrame(self._series, index=self.index,
+                                   columns=self.columns, default_kind=kind,
+                                   default_fill_value=fill_value)
 
     @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def to_stata(self, fname, convert_dates=None, write_index=True,
@@ -2128,7 +2113,7 @@ class DataFrame(NDFrame):
                   col_space='The minimum width of each column in CSS length '
                             'units.  An int is assumed to be px units.\n\n'
                             '            .. versionadded:: 0.25.0\n'
-                            '                Abillity to use str')
+                            '                Ability to use str')
     @Substitution(shared_params=fmt.common_docstring,
                   returns=fmt.return_docstring)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
@@ -2150,7 +2135,7 @@ class DataFrame(NDFrame):
             Whether the generated HTML is for IPython Notebook.
         border : int
             A ``border=border`` attribute is included in the opening
-            `<table>` tag. Default ``pd.options.html.border``.
+            `<table>` tag. Default ``pd.options.display.html.border``.
 
             .. versionadded:: 0.19.0
 
@@ -2272,7 +2257,7 @@ class DataFrame(NDFrame):
         text_col     5 non-null object
         float_col    5 non-null float64
         dtypes: float64(1), int64(1), object(1)
-        memory usage: 200.0+ bytes
+        memory usage: 248.0+ bytes
 
         Prints a summary of columns count and its dtypes but not per column
         information:
@@ -2282,7 +2267,7 @@ class DataFrame(NDFrame):
         RangeIndex: 5 entries, 0 to 4
         Columns: 3 entries, int_col to float_col
         dtypes: float64(1), int64(1), object(1)
-        memory usage: 200.0+ bytes
+        memory usage: 248.0+ bytes
 
         Pipe output of DataFrame.info to buffer instead of sys.stdout, get
         buffer content and writes to a text file:
@@ -2484,7 +2469,7 @@ class DataFrame(NDFrame):
         4      1      1.0    1.0+0.0j       1  True
 
         >>> df.memory_usage()
-        Index            80
+        Index           128
         int64         40000
         float64       40000
         complex128    80000
@@ -2503,7 +2488,7 @@ class DataFrame(NDFrame):
         The memory footprint of `object` dtype columns is ignored by default:
 
         >>> df.memory_usage(deep=True)
-        Index             80
+        Index            128
         int64          40000
         float64        40000
         complex128     80000
@@ -2515,7 +2500,7 @@ class DataFrame(NDFrame):
         many repeated values.
 
         >>> df['object'].astype('category').memory_usage(deep=True)
-        5168
+        5216
         """
         result = Series([c.memory_usage(index=False, deep=deep)
                          for col, c in self.iteritems()], index=self.columns)
@@ -2694,13 +2679,19 @@ class DataFrame(NDFrame):
 
         try:
             return engine.get_value(series._values, index)
+        except KeyError:
+            # GH 20629
+            if self.index.nlevels > 1:
+                # partial indexing forbidden
+                raise
         except (TypeError, ValueError):
+            pass
 
-            # we cannot handle direct indexing
-            # use positional
-            col = self.columns.get_loc(col)
-            index = self.index.get_loc(index)
-            return self._get_value(index, col, takeable=True)
+        # we cannot handle direct indexing
+        # use positional
+        col = self.columns.get_loc(col)
+        index = self.index.get_loc(index)
+        return self._get_value(index, col, takeable=True)
     _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, index, col, value, takeable=False):
@@ -3984,6 +3975,7 @@ class DataFrame(NDFrame):
         intent.
 
         Rename columns using a mapping:
+
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> df.rename(columns={"A": "a", "B": "c"})
            a  c
@@ -3992,6 +3984,7 @@ class DataFrame(NDFrame):
         2  3  6
 
         Rename index using a mapping:
+
         >>> df.rename(index={0: "x", 1: "y", 2: "z"})
            A  B
         x  1  4
@@ -3999,6 +3992,7 @@ class DataFrame(NDFrame):
         z  3  6
 
         Cast index labels to a different type:
+
         >>> df.index
         RangeIndex(start=0, stop=3, step=1)
         >>> df.rename(index=str).index
@@ -5286,7 +5280,7 @@ class DataFrame(NDFrame):
             this_mask = isna(series)
             other_mask = isna(otherSeries)
 
-            # don't overwrite columns unecessarily
+            # don't overwrite columns unnecessarily
             # DO propagate if this column is not in the intersection
             if not overwrite and other_mask.all():
                 result[col] = this[col].copy()
@@ -5546,7 +5540,7 @@ class DataFrame(NDFrame):
                 else:
                     mask = notna(this)
 
-            # don't overwrite columns unecessarily
+            # don't overwrite columns unnecessarily
             if mask.all():
                 continue
 
@@ -6265,8 +6259,8 @@ class DataFrame(NDFrame):
     index (default) or the column axis. This behavior is different from
     `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
     `var`), where the default is to compute the aggregation of the flattened
-    array, e.g., ``numpy.mean(arr_2d)`` as opposed to ``numpy.mean(arr_2d,
-    axis=0)``.
+    array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+    ``numpy.mean(arr_2d, axis=0)``.
 
     `agg` is an alias for `aggregate`. Use the alias.
 
@@ -6482,7 +6476,7 @@ class DataFrame(NDFrame):
         2    13
         dtype: int64
 
-        Retuning a list-like will result in a Series
+        Returning a list-like will result in a Series
 
         >>> df.apply(lambda x: [1, 2], axis=1)
         0    [1, 2]
@@ -6967,7 +6961,7 @@ class DataFrame(NDFrame):
         3   0.2   0.2
 
         With a dict, the number of places for specific columns can be
-        specfified with the column names as key and the number of decimal
+        specified with the column names as key and the number of decimal
         places as value
 
         >>> df.round({'dogs': 1, 'cats': 0})
@@ -6978,7 +6972,7 @@ class DataFrame(NDFrame):
         3   0.2   0.0
 
         Using a Series, the number of places for specific columns can be
-        specfified with the column names as index and the number of
+        specified with the column names as index and the number of
         decimal places as value
 
         >>> decimals = pd.Series([0, 1], index=['cats', 'dogs'])
@@ -8025,9 +8019,9 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = CachedAccessor("plot", gfx.FramePlotMethods)
-    hist = gfx.hist_frame
-    boxplot = gfx.boxplot_frame
+    plot = CachedAccessor("plot", pandas.plotting.FramePlotMethods)
+    hist = pandas.plotting.hist_frame
+    boxplot = pandas.plotting.boxplot_frame
     sparse = CachedAccessor("sparse", SparseFrameAccessor)
 
 

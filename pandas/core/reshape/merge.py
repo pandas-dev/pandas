@@ -8,7 +8,8 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import hashtable as libhashtable, join as libjoin, lib
+from pandas._libs import hashtable as libhashtable, lib
+import pandas._libs.join as libjoin
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -132,7 +133,8 @@ def merge_ordered(left, right, on=None,
                   left_by=None, right_by=None,
                   fill_method=None, suffixes=('_x', '_y'),
                   how='outer'):
-    """Perform merge with optional filling/interpolation designed for ordered
+    """
+    Perform merge with optional filling/interpolation designed for ordered
     data like time series data. Optionally perform group-wise merge (see
     examples)
 
@@ -239,7 +241,8 @@ def merge_asof(left, right, on=None,
                tolerance=None,
                allow_exact_matches=True,
                direction='backward'):
-    """Perform an asof merge. This is similar to a left-join except that we
+    """
+    Perform an asof merge. This is similar to a left-join except that we
     match on nearest key rather than equal keys.
 
     Both DataFrames must be sorted by the key.

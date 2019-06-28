@@ -2,7 +2,6 @@
 Tests for DatetimeIndex timezone-related methods
 """
 from datetime import date, datetime, time, timedelta, tzinfo
-from distutils.version import LooseVersion
 
 import dateutil
 from dateutil.tz import gettz, tzlocal
@@ -11,7 +10,6 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import conversion, timezones
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -543,29 +541,42 @@ class TestDatetimeIndexTimezones:
         # construction with an ambiguous end-point
         # GH#11626
 
-        # FIXME: This next block fails to raise; it was taken from an older
-        # version of this test that had an indention mistake that caused it
-        # to not get executed.
-        # with pytest.raises(pytz.AmbiguousTimeError):
-        #    date_range("2013-10-26 23:00", "2013-10-27 01:00",
-        #               tz="Europe/London", freq="H")
+        with pytest.raises(pytz.AmbiguousTimeError):
+            date_range("2013-10-26 23:00", "2013-10-27 01:00",
+                       tz="Europe/London", freq="H")
 
         times = date_range("2013-10-26 23:00", "2013-10-27 01:00", freq="H",
                            tz=tz, ambiguous='infer')
         assert times[0] == Timestamp('2013-10-26 23:00', tz=tz, freq="H")
 
         if str(tz).startswith('dateutil'):
-            if LooseVersion(dateutil.__version__) < LooseVersion('2.6.0'):
-                # see GH#14621
-                assert times[-1] == Timestamp('2013-10-27 01:00:00+0000',
-                                              tz=tz, freq="H")
-            elif LooseVersion(dateutil.__version__) > LooseVersion('2.6.0'):
-                # fixed ambiguous behavior
-                assert times[-1] == Timestamp('2013-10-27 01:00:00+0100',
-                                              tz=tz, freq="H")
+            # fixed ambiguous behavior
+            # see GH#14621
+            assert times[-1] == Timestamp('2013-10-27 01:00:00+0100',
+                                          tz=tz, freq="H")
         else:
             assert times[-1] == Timestamp('2013-10-27 01:00:00+0000',
                                           tz=tz, freq="H")
+
+    @pytest.mark.parametrize('tz, option, expected', [
+        ['US/Pacific', 'shift_forward', "2019-03-10 03:00"],
+        ['dateutil/US/Pacific', 'shift_forward', "2019-03-10 03:00"],
+        ['US/Pacific', 'shift_backward', "2019-03-10 01:00"],
+        pytest.param('dateutil/US/Pacific', 'shift_backward',
+                     "2019-03-10 01:00",
+                     marks=pytest.mark.xfail(reason="GH 24329")),
+        ['US/Pacific', timedelta(hours=1), "2019-03-10 03:00"]
+    ])
+    def test_dti_construction_nonexistent_endpoint(self, tz, option, expected):
+        # construction with an nonexistent end-point
+
+        with pytest.raises(pytz.NonExistentTimeError):
+            date_range("2019-03-10 00:00", "2019-03-10 02:00",
+                       tz="US/Pacific", freq="H")
+
+        times = date_range("2019-03-10 00:00", "2019-03-10 02:00", freq="H",
+                           tz=tz, nonexistent=option)
+        assert times[-1] == Timestamp(expected, tz=tz, freq="H")
 
     def test_dti_tz_localize_bdate_range(self):
         dr = pd.bdate_range('1/1/2009', '1/1/2010')
@@ -958,7 +969,7 @@ class TestDatetimeIndexTimezones:
     def test_dti_take_dont_lose_meta(self, tzstr):
         rng = date_range('1/1/2000', periods=20, tz=tzstr)
 
-        result = rng.take(lrange(5))
+        result = rng.take(range(5))
         assert result.tz == rng.tz
         assert result.freq == rng.freq
 
@@ -1078,7 +1089,10 @@ class TestDatetimeIndexTimezones:
                           tz="US/Eastern")
 
         result = rng.union(rng2)
-        assert result.tz.zone == 'UTC'
+        expected = rng.astype('O').union(rng2.astype('O'))
+        tm.assert_index_equal(result, expected)
+        assert result[0].tz.zone == 'US/Central'
+        assert result[-1].tz.zone == 'US/Eastern'
 
     @pytest.mark.parametrize('tz', [None, 'UTC', "US/Central",
                                     dateutil.tz.tzoffset(None, -28800)])

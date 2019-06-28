@@ -5,11 +5,11 @@ to disk
 
 import copy
 from datetime import date, datetime
-from distutils.version import LooseVersion
 import itertools
 import os
 import re
 import time
+from typing import List, Optional, Type, Union
 import warnings
 
 import numpy as np
@@ -18,6 +18,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -31,7 +32,6 @@ from pandas import (
     to_datetime)
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
-from pandas.core.base import StringMixin
 import pandas.core.common as com
 from pandas.core.computation.pytables import Expr, maybe_expression
 from pandas.core.index import ensure_index
@@ -98,7 +98,7 @@ def _ensure_term(where, scope_level):
         where = wlist
     elif maybe_expression(where):
         where = Term(where, scope_level=level)
-    return where
+    return where if where is None or len(where) else None
 
 
 class PossibleDataLossError(Exception):
@@ -225,10 +225,6 @@ def _tables():
     if _table_mod is None:
         import tables
         _table_mod = tables
-
-        # version requirements
-        if LooseVersion(tables.__version__) < LooseVersion('3.0.0'):
-            raise ImportError("PyTables version >= 3.0.0 is required")
 
         # set the file open policy
         # return the file open policy; this changes as of pytables 3.1
@@ -397,7 +393,7 @@ def _is_metadata_of(group, parent_group):
     return False
 
 
-class HDFStore(StringMixin):
+class HDFStore:
 
     """
     Dict-like IO interface for storing pandas objects in PyTables
@@ -448,11 +444,7 @@ class HDFStore(StringMixin):
         if 'format' in kwargs:
             raise ValueError('format is not a defined argument for HDFStore')
 
-        try:
-            import tables  # noqa
-        except ImportError as ex:  # pragma: no cover
-            raise ImportError('HDFStore requires PyTables, "{ex!s}" problem '
-                              'importing'.format(ex=ex))
+        tables = import_optional_dependency("tables")
 
         if complib is not None and complib not in tables.filters.all_complibs:
             raise ValueError(
@@ -519,7 +511,7 @@ class HDFStore(StringMixin):
     def __len__(self):
         return len(self.groups())
 
-    def __unicode__(self):
+    def __repr__(self):
         return '{type}\nFile path: {path}\n'.format(
             type=type(self), path=pprint_thing(self._path))
 
@@ -827,7 +819,7 @@ class HDFStore(StringMixin):
                 raise ValueError(
                     "all tables must have exactly the same nrows!")
 
-        # axis is the concentation axes
+        # axis is the concentration axes
         axis = list({t.non_index_axes[0][0] for t in tbls})[0]
 
         def func(_start, _stop, _where):
@@ -867,8 +859,8 @@ class HDFStore(StringMixin):
             This will force Table format, append the input data to the
             existing.
         data_columns : list of columns to create as data columns, or True to
-            use all columns. See
-            `here <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__ # noqa
+            use all columns. See `here
+            <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         encoding : default None, provide an encoding for strings
         dropna   : boolean, default False, do not write an ALL nan row to
             the store settable by the option 'io.hdf.dropna_table'
@@ -949,9 +941,9 @@ class HDFStore(StringMixin):
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See `here
-            <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__.
+            <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         min_itemsize : dict of columns that specify minimum string sizes
-        nan_rep      : string to use as string nan represenation
+        nan_rep      : string to use as string nan representation
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
         encoding     : default None, provide an encoding for strings
@@ -1346,7 +1338,7 @@ class HDFStore(StringMixin):
 
             else:
 
-                # distiguish between a frame/table
+                # distinguish between a frame/table
                 tt = 'legacy_panel'
                 try:
                     fields = group.table._v_attrs.fields
@@ -1518,7 +1510,7 @@ class TableIterator:
         return results
 
 
-class IndexCol(StringMixin):
+class IndexCol:
 
     """ an index column description class
 
@@ -1586,7 +1578,7 @@ class IndexCol(StringMixin):
         self.table = table
         return self
 
-    def __unicode__(self):
+    def __repr__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -1627,7 +1619,8 @@ class IndexCol(StringMixin):
         new_self.read_metadata(handler)
         return new_self
 
-    def convert(self, values, nan_rep, encoding, errors):
+    def convert(self, values, nan_rep, encoding, errors, start=None,
+                stop=None):
         """ set the values from this selection: take = take ownership """
 
         # values is a recarray
@@ -1816,10 +1809,29 @@ class GenericIndexCol(IndexCol):
     def is_indexed(self):
         return False
 
-    def convert(self, values, nan_rep, encoding, errors):
-        """ set the values from this selection: take = take ownership """
+    def convert(self, values, nan_rep, encoding, errors, start=None,
+                stop=None):
+        """ set the values from this selection: take = take ownership
 
-        self.values = Int64Index(np.arange(self.table.nrows))
+        Parameters
+        ----------
+
+        values : np.ndarray
+        nan_rep : str
+        encoding : str
+        errors : str
+        start : int, optional
+            Table row number: the start of the sub-selection.
+        stop : int, optional
+            Table row number: the end of the sub-selection. Values larger than
+            the underlying table's row count are normalized to that.
+        """
+
+        start = start if start is not None else 0
+        stop = (min(stop, self.table.nrows)
+                if stop is not None else self.table.nrows)
+        self.values = Int64Index(np.arange(stop - start))
+
         return self
 
     def get_attr(self):
@@ -1880,7 +1892,7 @@ class DataCol(IndexCol):
         self.set_data(data)
         self.set_metadata(metadata)
 
-    def __unicode__(self):
+    def __repr__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -2162,7 +2174,8 @@ class DataCol(IndexCol):
                 raise ValueError("appended items dtype do not match existing "
                                  "items dtype in table!")
 
-    def convert(self, values, nan_rep, encoding, errors):
+    def convert(self, values, nan_rep, encoding, errors, start=None,
+                stop=None):
         """set the data from this selection (and convert to the correct dtype
         if we can)
         """
@@ -2285,7 +2298,7 @@ class GenericDataIndexableCol(DataIndexableCol):
         pass
 
 
-class Fixed(StringMixin):
+class Fixed:
 
     """ represent an object in my store
         facilitate read/write of various types of objects
@@ -2297,9 +2310,9 @@ class Fixed(StringMixin):
         parent : my parent HDFStore
         group  : the group node where the table resides
         """
-    pandas_kind = None
-    obj_type = None
-    ndim = None
+    pandas_kind = None  # type: str
+    obj_type = None  # type: Type[Union[DataFrame, Series]]
+    ndim = None  # type: int
     is_table = False
 
     def __init__(self, parent, group, encoding=None, errors='strict',
@@ -2335,7 +2348,7 @@ class Fixed(StringMixin):
     def format_type(self):
         return 'fixed'
 
-    def __unicode__(self):
+    def __repr__(self):
         """ return a pretty representation of myself """
         self.infer_axes()
         s = self.shape
@@ -2459,7 +2472,7 @@ class GenericFixed(Fixed):
     """ a generified fixed version """
     _index_type_map = {DatetimeIndex: 'datetime', PeriodIndex: 'period'}
     _reverse_index_map = {v: k for k, v in _index_type_map.items()}
-    attributes = []
+    attributes = []  # type: List[str]
 
     # indexer helpders
     def _class_to_alias(self, cls):
@@ -3052,7 +3065,7 @@ class Table(Fixed):
 
         """
     pandas_kind = 'wide_table'
-    table_type = None
+    table_type = None  # type: str
     levels = 1
     is_table = True
     is_shape_reversed = False
@@ -3076,8 +3089,8 @@ class Table(Fixed):
     def format_type(self):
         return 'table'
 
-    def __unicode__(self):
-        """ return a pretty representatgion of myself """
+    def __repr__(self):
+        """ return a pretty representation of myself """
         self.infer_axes()
         dc = ",dc->[{columns}]".format(columns=(','.join(
             self.data_columns) if len(self.data_columns) else ''))
@@ -3298,7 +3311,7 @@ class Table(Fixed):
                 warnings.warn(ws, IncompatibilityWarning)
 
     def validate_min_itemsize(self, min_itemsize):
-        """validate the min_itemisze doesn't contain items that are not in the
+        """validate the min_itemsize doesn't contain items that are not in the
         axes this needs data_columns to be defined
         """
         if min_itemsize is None:
@@ -3434,8 +3447,11 @@ class Table(Fixed):
         # convert the data
         for a in self.axes:
             a.set_info(self.info)
+            # `kwargs` may contain `start` and `stop` arguments if passed to
+            # `store.select()`. If set they determine the index size.
             a.convert(values, nan_rep=self.nan_rep, encoding=self.encoding,
-                      errors=self.errors)
+                      errors=self.errors, start=kwargs.get('start'),
+                      stop=kwargs.get('stop'))
 
         return True
 
@@ -3479,7 +3495,7 @@ class Table(Fixed):
     def create_axes(self, axes, obj, validate=True, nan_rep=None,
                     data_columns=None, min_itemsize=None, **kwargs):
         """ create and return the axes
-        leagcy tables create an indexable column, indexable index,
+        legacy tables create an indexable column, indexable index,
         non-indexable fields
 
             Parameters
@@ -3873,7 +3889,7 @@ class LegacyTable(Table):
         IndexCol(name='index', axis=1, pos=0),
         IndexCol(name='column', axis=2, pos=1, index_kind='columns_kind'),
         DataCol(name='fields', cname='values', kind_attr='fields', pos=2)
-    ]
+    ]  # type: Optional[List[IndexCol]]
     table_type = 'legacy'
     ndim = 3
 
@@ -4126,7 +4142,7 @@ class AppendableFrameTable(AppendableTable):
     pandas_kind = 'frame_table'
     table_type = 'appendable_frame'
     ndim = 2
-    obj_type = DataFrame
+    obj_type = DataFrame  # type: Type[Union[DataFrame, Series]]
 
     @property
     def is_transposed(self):

@@ -95,7 +95,7 @@ qcut : Bin values into equal-sized Intervals based on rank or sample quantiles.
 Notes
 -----
 See the `user guide
-<http://pandas.pydata.org/pandas-docs/stable/advanced.html#intervalindex>`_
+<http://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`_
 for more.
 
 %(examples)s\
@@ -680,21 +680,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._simple_new(
             left, right, closed=closed, verify_integrity=False)
 
-    def copy(self, deep=False):
+    def copy(self):
         """
         Return a copy of the array.
-
-        Parameters
-        ----------
-        deep : bool, default False
-            Also copy the underlying data backing this array.
 
         Returns
         -------
         IntervalArray
         """
-        left = self.left.copy(deep=True) if deep else self.left
-        right = self.right.copy(deep=True) if deep else self.right
+        left = self.left.copy(deep=True)
+        right = self.right.copy(deep=True)
         closed = self.closed
         # TODO: Could skip verify_integrity here.
         return type(self).from_arrays(left, right, closed=closed)
@@ -987,7 +982,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 result[i] = Interval(left[i], right[i], closed)
         return result
 
-    _interval_shared_docs['to_tuples'] = """\
+    _interval_shared_docs['to_tuples'] = """
         Return an %(return_type)s of tuples of the form (left, right)
 
         Parameters
@@ -1002,7 +997,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         tuples: %(return_type)s
         %(examples)s\
-    """
+        """
 
     @Appender(_interval_shared_docs['to_tuples'] % dict(
         return_type='ndarray',

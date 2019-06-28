@@ -8,7 +8,7 @@ from pandas import (
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal, assert_series_equal
 
-ignore_ix = pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+ignore_ix = pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
 
 
 class TestFloatIndexers:
@@ -35,7 +35,7 @@ class TestFloatIndexers:
         # float_indexers should raise exceptions
         # on appropriate Index types & accessors
         # this duplicates the code below
-        # but is spefically testing for the error
+        # but is specifically testing for the error
         # message
 
         for index in [tm.makeStringIndex, tm.makeUnicodeIndex,

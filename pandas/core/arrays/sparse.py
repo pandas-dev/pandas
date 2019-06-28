@@ -15,17 +15,17 @@ import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
 import pandas.compat as compat
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     astype_nansafe, construct_1d_arraylike_from_scalar, find_common_type,
-    infer_dtype_from_scalar, maybe_convert_platform)
+    infer_dtype_from_scalar)
 from pandas.core.dtypes.common import (
     is_array_like, is_bool_dtype, is_datetime64_any_dtype, is_dtype_equal,
-    is_integer, is_list_like, is_object_dtype, is_scalar, is_string_dtype,
-    pandas_dtype)
+    is_integer, is_object_dtype, is_scalar, is_string_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
@@ -562,7 +562,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         * 'block': Stores a `block` and `block_length` for each
           contiguous *span* of sparse values. This is best when
           sparse data tends to be clumped together, with large
-          regsions of ``fill-value`` values between sparse values.
+          regions of ``fill-value`` values between sparse values.
         * 'integer': uses an integer to store the location of
           each sparse value.
 
@@ -572,9 +572,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         this determines ``self.sp_values`` and ``self.fill_value``.
     copy : bool, default False
         Whether to explicitly copy the incoming `data` array.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
 
-    __array_priority__ = 15
     _pandas_ftype = 'sparse'
     _subtyp = 'sparse_array'  # register ABCSparseArray
 
@@ -890,7 +897,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def values(self):
         """
         Dense values
+
+        .. deprecated:: 0.25.0
+
+            Use ``np.asarray(...)`` or the ``.to_dense()`` method instead.
         """
+        msg = (
+            "The SparseArray.values attribute is deprecated and will be "
+            "removed in a future version. You can use `np.asarray(...)` or "
+            "the `.to_dense()` method instead.")
+        warnings.warn(msg, FutureWarning, stacklevel=2)
         return self.to_dense()
 
     def isna(self):
@@ -1076,7 +1092,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if is_integer(key):
             return self._get_val_at(key)
         elif isinstance(key, tuple):
-            data_slice = self.values[key]
+            data_slice = self.to_dense()[key]
         elif isinstance(key, slice):
             # special case to preserve dtypes
             if key == slice(None):
@@ -1246,12 +1262,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             v, side, sorter
         )
 
-    def copy(self, deep=False):
-        if deep:
-            values = self.sp_values.copy()
-        else:
-            values = self.sp_values
-
+    def copy(self):
+        values = self.sp_values.copy()
         return self._simple_new(values, self.sp_index, self.dtype)
 
     @classmethod
@@ -1300,7 +1312,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             sp_index = IntIndex(length, indices)
 
         else:
-            # when concatentating block indices, we don't claim that you'll
+            # when concatenating block indices, we don't claim that you'll
             # get an identical index as concating the values and then
             # creating a new index. We don't want to spend the time trying
             # to merge blocks across arrays in `to_concat`, so the resulting
@@ -1631,14 +1643,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # Ufuncs
     # ------------------------------------------------------------------------
 
-    def __array_wrap__(self, array, context=None):
-        from pandas.core.dtypes.generic import ABCSparseSeries
-
-        ufunc, inputs, _ = context
-        inputs = tuple(x.values if isinstance(x, ABCSparseSeries) else x
-                       for x in inputs)
-        return self.__array_ufunc__(ufunc, '__call__', *inputs)
-
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
@@ -1689,6 +1693,17 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # No alignment necessary.
             sp_values = getattr(ufunc, method)(self.sp_values, **kwargs)
             fill_value = getattr(ufunc, method)(self.fill_value, **kwargs)
+
+            if isinstance(sp_values, tuple):
+                # multiple outputs. e.g. modf
+                arrays = tuple(
+                    self._simple_new(sp_value,
+                                     self.sp_index,
+                                     SparseDtype(sp_value.dtype, fv))
+                    for sp_value, fv in zip(sp_values, fill_value)
+                )
+                return arrays
+
             return self._simple_new(sp_values,
                                     self.sp_index,
                                     SparseDtype(sp_values.dtype, fill_value))
@@ -1823,7 +1838,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ----------
     # Formatting
     # -----------
-    def __unicode__(self):
+    def __repr__(self):
         return '{self}\nFill: {fill}\n{index}'.format(
             self=printing.pprint_thing(self),
             fill=printing.pprint_thing(self.fill_value),
@@ -1849,42 +1864,6 @@ def _maybe_to_dense(obj):
     return obj
 
 
-def _maybe_to_sparse(array):
-    """
-    array must be SparseSeries or SparseArray
-    """
-    if isinstance(array, ABCSparseSeries):
-        array = array.values.copy()
-    return array
-
-
-def _sanitize_values(arr):
-    """
-    return an ndarray for our input,
-    in a platform independent manner
-    """
-
-    if hasattr(arr, 'values'):
-        arr = arr.values
-    else:
-
-        # scalar
-        if is_scalar(arr):
-            arr = [arr]
-
-        # ndarray
-        if isinstance(arr, np.ndarray):
-            pass
-
-        elif is_list_like(arr) and len(arr) > 0:
-            arr = maybe_convert_platform(arr)
-
-        else:
-            arr = np.asarray(arr)
-
-    return arr
-
-
 def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
     """
     Convert ndarray to sparse format
@@ -1902,7 +1881,7 @@ def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
     (sparse_values, index, fill_value) : (ndarray, SparseIndex, Scalar)
     """
 
-    arr = _sanitize_values(arr)
+    arr = com.values_from_object(arr)
 
     if arr.ndim > 1:
         raise TypeError("expected dimension <= 1 data")
@@ -2033,9 +2012,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         from pandas.core.sparse.scipy_sparse import _coo_to_sparse_series
         from pandas import Series
 
-        result = _coo_to_sparse_series(A, dense_index=dense_index)
-        # SparseSeries -> Series[sparse]
-        result = Series(result.values, index=result.index, copy=False)
+        result = _coo_to_sparse_series(A, dense_index=dense_index,
+                                       sparse_series=False)
+        result = Series(result.array, index=result.index, copy=False)
 
         return result
 
@@ -2233,10 +2212,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         float32. By numpy.find_common_type convention, mixing int64 and
         and uint64 will result in a float64 dtype.
         """
-        try:
-            from scipy.sparse import coo_matrix
-        except ImportError:
-            raise ImportError('Scipy is not installed')
+        import_optional_dependency("scipy")
+        from scipy.sparse import coo_matrix
 
         dtype = find_common_type(self._parent.dtypes)
         if isinstance(dtype, SparseDtype):

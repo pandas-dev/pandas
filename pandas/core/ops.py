@@ -6,6 +6,7 @@ This is not a public API.
 import datetime
 import operator
 import textwrap
+from typing import Dict, Optional
 import warnings
 
 import numpy as np
@@ -625,15 +626,13 @@ _op_descriptions = {
            'desc': 'Greater than or equal to',
            'reverse': None,
            'series_examples': None}
-}
+}  # type: Dict[str, Dict[str, Optional[str]]]
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
-    _op_descriptions[key]['reversed'] = False
     reverse_op = _op_descriptions[key]['reverse']
     if reverse_op is not None:
         _op_descriptions[reverse_op] = _op_descriptions[key].copy()
-        _op_descriptions[reverse_op]['reversed'] = True
         _op_descriptions[reverse_op]['reverse'] = key
 
 _flex_doc_SERIES = """
@@ -1010,7 +1009,7 @@ def _make_flex_doc(op_name, typ):
     op_name = op_name.replace('__', '')
     op_desc = _op_descriptions[op_name]
 
-    if op_desc['reversed']:
+    if op_name.startswith('r'):
         equiv = 'other ' + op_desc['op'] + ' ' + typ
     else:
         equiv = typ + ' ' + op_desc['op'] + ' other'
@@ -1078,7 +1077,7 @@ def fill_binop(left, right, fill_value):
     return left, right
 
 
-def mask_cmp_op(x, y, op, allowed_types):
+def mask_cmp_op(x, y, op):
     """
     Apply the function `op` to only non-null points in x and y.
 
@@ -1087,16 +1086,14 @@ def mask_cmp_op(x, y, op, allowed_types):
     x : array-like
     y : array-like
     op : binary operation
-    allowed_types : class or tuple of classes
 
     Returns
     -------
     result : ndarray[bool]
     """
-    # TODO: Can we make the allowed_types arg unnecessary?
     xrav = x.ravel()
     result = np.empty(x.size, dtype=bool)
-    if isinstance(y, allowed_types):
+    if isinstance(y, (np.ndarray, ABCSeries)):
         yrav = y.ravel()
         mask = notna(xrav) & notna(yrav)
         result[mask] = op(np.array(list(xrav[mask])),
@@ -1634,38 +1631,37 @@ def _arith_method_SERIES(cls, op, special):
                         if op in [divmod, rdivmod] else _construct_result)
 
     def na_op(x, y):
+        """
+        Return the result of evaluating op on the passed in values.
+
+        If native types are not compatible, try coersion to object dtype.
+
+        Parameters
+        ----------
+        x : array-like
+        y : array-like or scalar
+
+        Returns
+        -------
+        array-like
+
+        Raises
+        ------
+        TypeError : invalid operation
+        """
         import pandas.core.computation.expressions as expressions
         try:
             result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
             result = masked_arith_op(x, y, op)
+        except Exception:  # TODO: more specific?
+            if is_object_dtype(x):
+                return libalgos.arrmap_object(x,
+                                              lambda val: op(val, y))
+            raise
 
         result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
         return result
-
-    def safe_na_op(lvalues, rvalues):
-        """
-        return the result of evaluating na_op on the passed in values
-
-        try coercion to object type if the native types are not compatible
-
-        Parameters
-        ----------
-        lvalues : array-like
-        rvalues : array-like
-
-        Raises
-        ------
-        TypeError: invalid operation
-        """
-        try:
-            with np.errstate(all='ignore'):
-                return na_op(lvalues, rvalues)
-        except Exception:
-            if is_object_dtype(lvalues):
-                return libalgos.arrmap_object(lvalues,
-                                              lambda x: op(x, rvalues))
-            raise
 
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
@@ -1714,7 +1710,8 @@ def _arith_method_SERIES(cls, op, special):
         if isinstance(rvalues, ABCSeries):
             rvalues = rvalues.values
 
-        result = safe_na_op(lvalues, rvalues)
+        with np.errstate(all='ignore'):
+            result = na_op(lvalues, rvalues)
         return construct_result(left, result,
                                 index=left.index, name=res_name, dtype=None)
 
@@ -2137,7 +2134,6 @@ def _arith_method_FRAME(cls, op, special):
             result = masked_arith_op(x, y, op)
 
         result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-
         return result
 
     if op_name in _op_descriptions:
@@ -2184,7 +2180,7 @@ def _flex_comp_method_FRAME(cls, op, special):
             with np.errstate(invalid='ignore'):
                 result = op(x, y)
         except TypeError:
-            result = mask_cmp_op(x, y, op, (np.ndarray, ABCSeries))
+            result = mask_cmp_op(x, y, op)
         return result
 
     doc = _flex_comp_doc_FRAME.format(op_name=op_name,
@@ -2273,10 +2269,10 @@ def _cast_sparse_series_op(left, right, opname):
     # TODO: This should be moved to the array?
     if is_integer_dtype(left) and is_integer_dtype(right):
         # series coerces to float64 if result should have NaN/inf
-        if opname in ('floordiv', 'mod') and (right.values == 0).any():
+        if opname in ('floordiv', 'mod') and (right.to_dense() == 0).any():
             left = left.astype(SparseDtype(np.float64, left.fill_value))
             right = right.astype(SparseDtype(np.float64, right.fill_value))
-        elif opname in ('rfloordiv', 'rmod') and (left.values == 0).any():
+        elif opname in ('rfloordiv', 'rmod') and (left.to_dense() == 0).any():
             left = left.astype(SparseDtype(np.float64, left.fill_value))
             right = right.astype(SparseDtype(np.float64, right.fill_value))
 

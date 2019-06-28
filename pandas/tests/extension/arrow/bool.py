@@ -108,12 +108,10 @@ class ArrowBoolArray(ExtensionArray):
                       allow_fill=allow_fill)
         return self._from_sequence(result, dtype=self.dtype)
 
-    def copy(self, deep=False):
-        if deep:
-            return type(self)(copy.deepcopy(self._data))
-        else:
-            return type(self)(copy.copy(self._data))
+    def copy(self):
+        return type(self)(copy.copy(self._data))
 
+    @classmethod
     def _concat_same_type(cls, to_concat):
         chunks = list(itertools.chain.from_iterable(x._data.chunks
                                                     for x in to_concat))

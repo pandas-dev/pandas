@@ -116,6 +116,10 @@ def read_pickle(path, compression='infer'):
     read_sql : Read SQL query or database table into a DataFrame.
     read_parquet : Load a parquet object, returning a DataFrame.
 
+    Notes
+    -----
+    read_pickle is only guaranteed to be backwards compatible to pandas 0.20.3.
+
     Examples
     --------
     >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})

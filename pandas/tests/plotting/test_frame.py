@@ -10,7 +10,6 @@ import numpy as np
 from numpy.random import rand, randn
 import pytest
 
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -50,6 +49,8 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_plot(self):
+        from pandas.plotting._matplotlib.compat import _mpl_ge_3_1_0
+
         df = self.tdf
         _check_plot_works(df.plot, grid=False)
         # _check_plot_works adds an ax so catch warning. see GH #13188
@@ -69,7 +70,11 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         df = DataFrame({'x': [1, 2], 'y': [3, 4]})
-        with pytest.raises(AttributeError, match='Unknown property blarg'):
+        if _mpl_ge_3_1_0():
+            msg = "'Line2D' object has no property 'blarg'"
+        else:
+            msg = "Unknown property blarg"
+        with pytest.raises(AttributeError, match=msg):
             df.plot.line(blarg=True)
 
         df = DataFrame(np.random.rand(10, 3),
@@ -230,7 +235,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_data(df.plot(y='B'), df.B.plot())
 
         # columns.inferred_type == 'integer'
-        df.columns = lrange(1, len(df.columns) + 1)
+        df.columns = np.arange(1, len(df.columns) + 1)
         self._check_data(df.plot(x=1, y=2), df.set_index(1)[2].plot())
         self._check_data(df.plot(x=1), df.set_index(1).plot())
         self._check_data(df.plot(y=1), df[1].plot())
@@ -379,8 +384,10 @@ class TestDataFramePlots(TestPlotBase):
             for ax in axes[:-2]:
                 self._check_visible(ax.xaxis)  # xaxis must be visible for grid
                 self._check_visible(ax.get_xticklabels(), visible=False)
-                self._check_visible(
-                    ax.get_xticklabels(minor=True), visible=False)
+                if not (kind == 'bar' and self.mpl_ge_3_1_0):
+                    # change https://github.com/pandas-dev/pandas/issues/26714
+                    self._check_visible(
+                        ax.get_xticklabels(minor=True), visible=False)
                 self._check_visible(ax.xaxis.get_label(), visible=False)
                 self._check_visible(ax.get_yticklabels())
 
@@ -796,7 +803,10 @@ class TestDataFramePlots(TestPlotBase):
                 with pytest.raises(ValueError):
                     mixed_df.plot(stacked=True)
 
-                _check_plot_works(df.plot, kind=kind, logx=True, stacked=True)
+                # Use an index with strictly positive values, preventing
+                #  matplotlib from warning about ignoring xlim
+                df2 = df.set_index(df.index + 1)
+                _check_plot_works(df2.plot, kind=kind, logx=True, stacked=True)
 
     def test_line_area_nan_df(self):
         values1 = [1, 2, np.nan, 3]
@@ -1279,7 +1289,7 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame(randn(10, 15),
                        index=list(string.ascii_letters[:10]),
-                       columns=lrange(15))
+                       columns=range(15))
         _check_plot_works(df.plot.bar)
 
         df = DataFrame({'a': [0, 1], 'b': [1, 0]})
@@ -1357,7 +1367,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_bar_stacked_center(self):
         # GH2157
-        df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
+        df = DataFrame({'A': [3] * 5, 'B': list(range(5))}, index=range(5))
         self._check_bar_alignment(df, kind='bar', stacked=True)
         self._check_bar_alignment(df, kind='bar', stacked=True, width=0.9)
         self._check_bar_alignment(df, kind='barh', stacked=True)
@@ -1365,7 +1375,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_bar_center(self):
-        df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
+        df = DataFrame({'A': [3] * 5, 'B': list(range(5))}, index=range(5))
         self._check_bar_alignment(df, kind='bar', stacked=False)
         self._check_bar_alignment(df, kind='bar', stacked=False, width=0.9)
         self._check_bar_alignment(df, kind='barh', stacked=False)
@@ -1373,7 +1383,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_bar_subplots_center(self):
-        df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
+        df = DataFrame({'A': [3] * 5, 'B': list(range(5))}, index=range(5))
         self._check_bar_alignment(df, kind='bar', subplots=True)
         self._check_bar_alignment(df, kind='bar', subplots=True, width=0.9)
         self._check_bar_alignment(df, kind='barh', subplots=True)
@@ -1391,7 +1401,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_bar_edge(self):
-        df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
+        df = DataFrame({'A': [3] * 5, 'B': list(range(5))}, index=range(5))
 
         self._check_bar_alignment(df, kind='bar', stacked=True, align='edge')
         self._check_bar_alignment(df, kind='bar', stacked=True, width=0.9,
@@ -1421,7 +1431,7 @@ class TestDataFramePlots(TestPlotBase):
         expected = np.array([.1, 1., 10., 100])
 
         # no subplots
-        df = DataFrame({'A': [3] * 5, 'B': lrange(1, 6)}, index=lrange(5))
+        df = DataFrame({'A': [3] * 5, 'B': list(range(1, 6))}, index=range(5))
         ax = df.plot.bar(grid=True, log=True)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
 
@@ -2728,7 +2738,7 @@ class TestDataFramePlots(TestPlotBase):
         import gc
 
         results = {}
-        for kind in plotting._core._plot_klass.keys():
+        for kind in plotting._core._plot_classes().keys():
 
             args = {}
             if kind in ['hexbin', 'scatter', 'pie']:
@@ -2942,7 +2952,7 @@ class TestDataFramePlots(TestPlotBase):
         fig.add_axes([0.2, 0.2, 0.2, 0.2])
         Series(rand(10)).plot(ax=ax)
 
-        # suppliad ax itself is a plain Axes, but because the cmap keyword
+        # supplied ax itself is a plain Axes, but because the cmap keyword
         # a new ax is created for the colorbar -> also multiples axes (GH11520)
         df = DataFrame({'a': randn(8), 'b': randn(8)})
         fig = self.plt.figure()

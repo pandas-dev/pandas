@@ -272,7 +272,7 @@ class TestFromTuples(Base):
             IntervalIndex.from_tuples(tuples)
 
     def test_na_tuples(self):
-        # tuple (NA, NA) evaluates the same as NA as an elemenent
+        # tuple (NA, NA) evaluates the same as NA as an element
         na_tuple = [(0, 1), (np.nan, np.nan), (2, 3)]
         idx_na_tuple = IntervalIndex.from_tuples(na_tuple)
         idx_na_element = IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)])
@@ -331,8 +331,7 @@ class TestClassConstructors(Base):
             constructor(5)
 
         # not an interval
-        msg = ("type <(class|type) 'numpy.int64'> with value 0 "
-               "is not an interval")
+        msg = "type <class 'numpy.int64'> with value 0 is not an interval"
         with pytest.raises(TypeError, match=msg):
             constructor([0, 1])
 
