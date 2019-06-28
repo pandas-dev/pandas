@@ -479,7 +479,8 @@ class _OpenpyxlReader(_BaseExcelReader):
 
     def load_workbook(self, filepath_or_buffer):
         from openpyxl import load_workbook
-        return load_workbook(filepath_or_buffer, read_only=True, data_only=True)
+        return load_workbook(filepath_or_buffer,
+                             read_only=True, data_only=True)
 
     @property
     def sheet_names(self):
@@ -491,9 +492,10 @@ class _OpenpyxlReader(_BaseExcelReader):
     def get_sheet_by_index(self, index):
         return self.book.worksheets[index]
 
-    def _convert_cell(self,
-                      cell: 'openpyxl.cell.read_only.ReadOnlyCell',
-                      convert_float: bool):
+    def _convert_cell(
+            self,
+            cell: 'openpyxl.cell.read_only.ReadOnlyCell',  # noqa: F821
+            convert_float: bool):
 
         # TODO: replace with openpyxl constants
         if cell.data_type == 'e':
@@ -513,9 +515,10 @@ class _OpenpyxlReader(_BaseExcelReader):
 
         return cell.value
 
-    def get_sheet_data(self,
-                       sheet: 'openpyxl.worksheet.worksheet.Worksheet',
-                       convert_float: bool) -> List[List]:
+    def get_sheet_data(
+            self,
+            sheet: 'openpyxl.worksheet.worksheet.Worksheet',  # noqa: F821
+            convert_float: bool) -> List[List]:
         data = []  # type: List[List]
         for row in sheet.rows:
             data.append(
