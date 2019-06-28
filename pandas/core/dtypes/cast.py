@@ -35,10 +35,15 @@ _float32_max = np.finfo(np.float32).max
 
 
 def _is_iNaT(x):
+    """
+    Helper function to circumvent numpy bug for timedeltas
+
+    Specifically, comparing a scalar timedelta against another scalar value may
+    raise a spurious DeprecationWarning, see numpy/numpy#10095
+    """
     if not is_scalar(x):
         return False
     with warnings.catch_warnings():
-        # bug in numpy warnings for timedelta, see numpy/numpy#10095
         warnings.filterwarnings('ignore', category=DeprecationWarning)
         result = x == iNaT
     return result
@@ -307,20 +312,20 @@ def maybe_promote(dtype, fill_value=np.nan):
 
     See Also
     --------
-    maybe_promote_with_scalar : underlying method for scalar case
-    maybe_promote_with_array : underlying method for array case
+    _maybe_promote_with_scalar : underlying method for scalar case
+    _maybe_promote_with_array : underlying method for array case
     """
     if is_scalar(fill_value) or isinstance(fill_value, tuple):
-        return maybe_promote_with_scalar(dtype, fill_value)
+        return _maybe_promote_with_scalar(dtype, fill_value)
     elif isinstance(fill_value, (np.ndarray, ABCSeries, ABCIndexClass)):
-        return maybe_promote_with_array(dtype, fill_value)
+        return _maybe_promote_with_array(dtype, fill_value)
     else:
         fill_type = type(fill_value).__name__
         raise ValueError('fill_value must either be scalar, or a Series / '
                          'Index / np.ndarray; received {}'.format(fill_type))
 
 
-def maybe_promote_with_scalar(dtype, fill_value=np.nan):
+def _maybe_promote_with_scalar(dtype, fill_value=np.nan):
     """
     Determine minimal dtype to hold fill_value, when starting from dtype
 
@@ -344,7 +349,7 @@ def maybe_promote_with_scalar(dtype, fill_value=np.nan):
 
     See Also
     --------
-    maybe_promote_with_array : similar method for array case
+    _maybe_promote_with_array : similar method for array case
         This method contains the actual promotion logic for both cases.
 
     Examples
@@ -375,7 +380,7 @@ def maybe_promote_with_scalar(dtype, fill_value=np.nan):
                          '{}'.format(type(fill_value)))
 
     # unify handling of scalar and array values to simplify actual
-    # promotion logic in maybe_promote_with_array;
+    # promotion logic in _maybe_promote_with_array;
     if is_object_dtype(dtype) and fill_value is not None:
         # inserting into object does not cast (except for None -> np.nan)
         return np.dtype(object), fill_value
@@ -384,12 +389,12 @@ def maybe_promote_with_scalar(dtype, fill_value=np.nan):
     # dtypes (e.g. DatetimeTZDtype); furthermore, we want to treat tuples as
     # scalar, but numpy casts those to a new dimension
     fill_array = Series([fill_value], dtype=object)
-    dtype, na_value = maybe_promote_with_array(dtype, fill_array)
+    dtype, na_value = _maybe_promote_with_array(dtype, fill_array)
 
-    # maybe_promote_with_array returns the na-marker for the new dtype;
-    # maybe_promote_with_scalar always casts fill_value to the new dtype
+    # _maybe_promote_with_array returns the na-marker for the new dtype;
+    # _maybe_promote_with_scalar always casts fill_value to the new dtype
     if is_integer_dtype(dtype) and _is_iNaT(fill_value):
-        # maybe_promote_with_array considers iNaT a missing value, and since
+        # _maybe_promote_with_array considers iNaT a missing value, and since
         # int dtypes cannot hold missing values, that method returns None as
         # the na_value. For scalars, we need to keep it however, to ensure
         # correct operations for datetime/timedelta code.
@@ -412,7 +417,7 @@ def maybe_promote_with_scalar(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def maybe_promote_with_array(dtype, fill_value=np.nan):
+def _maybe_promote_with_array(dtype, fill_value=np.nan):
     """
     Determine minimal dtype to hold fill_value, when starting from dtype
 
@@ -436,7 +441,7 @@ def maybe_promote_with_array(dtype, fill_value=np.nan):
 
     See Also
     --------
-    maybe_promote_with_scalar : similar method for scalar case
+    _maybe_promote_with_scalar : similar method for scalar case
 
     Examples
     --------

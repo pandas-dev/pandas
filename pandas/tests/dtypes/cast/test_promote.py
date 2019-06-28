@@ -11,7 +11,7 @@ from pandas._libs.tslibs import NaT, iNaT
 from pandas.compat import is_platform_windows
 
 from pandas.core.dtypes.cast import (
-    maybe_promote, maybe_promote_with_array, maybe_promote_with_scalar)
+    maybe_promote, _maybe_promote_with_array, _maybe_promote_with_scalar)
 from pandas.core.dtypes.common import (
     is_complex_dtype, is_datetime64_dtype, is_datetime_or_timedelta_dtype,
     is_float_dtype, is_integer_dtype, is_object_dtype, is_scalar,
@@ -757,7 +757,7 @@ def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype_reduced,
 
     # array case has same expected_dtype; but returns corresponding na-marker
     if is_integer_dtype(expected_dtype):
-        # integers cannot hold NaNs; maybe_promote_with_array returns None
+        # integers cannot hold NaNs; _maybe_promote_with_array returns None
         exp_val_for_array = None
     elif is_datetime_or_timedelta_dtype(expected_dtype):
         exp_val_for_array = iNaT
@@ -791,8 +791,8 @@ def test_maybe_promote_dimensions(any_numpy_dtype_reduced, dim):
             or (result_missing_value is np.nan
                 and expected_missing_value is np.nan))
 
-    # same again for maybe_promote_with_array (for coverage)
-    result_dtype, result_missing_value = maybe_promote_with_array(
+    # same again for _maybe_promote_with_array (for coverage)
+    result_dtype, result_missing_value = _maybe_promote_with_array(
         dtype, fill_array)
 
     assert result_dtype == expected_dtype
@@ -811,9 +811,9 @@ def test_maybe_promote_raises(any_numpy_dtype):
     msg = 'fill_value must either be a Series / Index / np.ndarray, received.*'
     with pytest.raises(ValueError, match=msg):
         # something that's not a Series / Index / np.ndarray
-        maybe_promote_with_array(any_numpy_dtype, 1)
+        _maybe_promote_with_array(any_numpy_dtype, 1)
 
     msg = 'fill_value must be a scalar, received .*'
     with pytest.raises(ValueError, match=msg):
         # something that's not scalar
-        maybe_promote_with_scalar(any_numpy_dtype, pd.Series([1, 2, 3]))
+        _maybe_promote_with_scalar(any_numpy_dtype, pd.Series([1, 2, 3]))
