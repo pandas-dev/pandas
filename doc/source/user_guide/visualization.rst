@@ -1608,6 +1608,13 @@ available in matplotlib. Although this formatting does not provide the same
 level of refinement you would get when plotting via pandas, it can be faster
 when plotting a large number of points.
 
+.. note::
+
+   Pandas registers custom tick formatters for time series data. These may
+   conflict with custom locators or formatters you apply after plotting. For
+   complete control over the plot, use matplotlib directly, rather than
+   :class:`DataFrame.plot`.
+
 .. ipython:: python
    :suppress:
 
