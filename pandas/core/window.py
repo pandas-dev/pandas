@@ -112,9 +112,9 @@ class _Window(PandasObject, SelectionMixin):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]),
                                   copy=False)
-        blocks = obj._to_dict_of_blocks(copy=False).values()
+        blocks_dict = obj._to_dict_of_blocks(copy=False)
 
-        return blocks, obj, index
+        return blocks_dict, obj, index
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -286,7 +286,7 @@ class _Window(PandasObject, SelectionMixin):
                     indexer = columns.get_indexer(selection.tolist() + [name])
                     columns = columns.take(sorted(indexer))
 
-        # exlude nuisance columns from final result
+        # exclude nuisance columns so that they are not reindexed
         if exclude is not None and exclude:
             columns = [c for c in columns if c not in exclude]
 
@@ -679,15 +679,21 @@ class Window(_Window):
         window = self._prep_window(**kwargs)
         center = self.center
 
-        blocks, obj, index = self._create_blocks()
+        blocks_dict, obj, index = self._create_blocks()
+        dtypes = blocks_dict.keys()
+        blocks = blocks_dict.values()
+
         results = []
         exclude = []
-        for b in blocks:
+        for dtype in list(dtypes):
+            b = blocks_dict[dtype]
             try:
                 values = self._prep_values(b.values)
+
             except (TypeError, NotImplementedError):
-                if hasattr(b, 'columns'):
+                if isinstance(obj, ABCDataFrame):
                     exclude.extend(b.columns)
+                    del blocks_dict[dtype]
                     continue
                 else:
                     raise DataError('No numeric types to aggregate')
@@ -854,16 +860,22 @@ class _Rolling(_Window):
         if check_minp is None:
             check_minp = _use_window
 
-        blocks, obj, index = self._create_blocks()
+        blocks_dict, obj, index = self._create_blocks()
+        dtypes = blocks_dict.keys()
+        blocks = blocks_dict.values()
         index, indexi = self._get_index(index=index)
+
         results = []
         exclude = []
-        for b in blocks:
+        for dtype in list(dtypes):
+            b = blocks_dict[dtype]
             try:
                 values = self._prep_values(b.values)
+
             except (TypeError, NotImplementedError):
-                if hasattr(b, 'columns'):
+                if isinstance(obj, ABCDataFrame):
                     exclude.extend(b.columns)
+                    del blocks_dict[dtype]
                     continue
                 else:
                     raise DataError('No numeric types to aggregate')
@@ -957,7 +969,8 @@ class _Rolling_and_Expanding(_Rolling):
 
     def count(self):
 
-        blocks, obj, index = self._create_blocks()
+        blocks_dict, obj, index = self._create_blocks()
+        blocks = blocks_dict.values()
         # Validate the index
         self._get_index(index=index)
 
@@ -2310,15 +2323,20 @@ class EWM(_Rolling):
         -------
         y : same type as input argument
         """
-        blocks, obj, index = self._create_blocks()
+        blocks_dict, obj, index = self._create_blocks()
+        dtypes = blocks_dict.keys()
+        blocks = blocks_dict.values()
+
         results = []
         exclude = []
-        for b in blocks:
+        for dtype in list(dtypes):
+            b = blocks_dict[dtype]
             try:
                 values = self._prep_values(b.values)
             except (TypeError, NotImplementedError):
-                if hasattr(b, 'columns'):
+                if isinstance(obj, ABCDataFrame):
                     exclude.extend(b.columns)
+                    del blocks_dict[dtype]
                     continue
                 else:
                     raise DataError('No numeric types to aggregate')
