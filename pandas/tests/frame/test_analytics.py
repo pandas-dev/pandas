@@ -1585,10 +1585,9 @@ class TestDataFrameAnalytics:
         (np.all, {'A': pd.Series([1, 2], dtype='category')}, True),
         (np.any, {'A': pd.Series([1, 2], dtype='category')}, True),
 
-        # # Mix
-        # GH 21484
-        # (np.all, {'A': pd.Series([10, 20], dtype='M8[ns]'),
-        #           'B': pd.Series([10, 20], dtype='m8[ns]')}, True),
+        # Mix GH#21484
+        (np.all, {'A': pd.Series([10, 20], dtype='M8[ns]'),
+                  'B': pd.Series([10, 20], dtype='m8[ns]')}, True),
     ])
     def test_any_all_np_func(self, func, data, expected):
         # GH 19976

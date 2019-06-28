@@ -366,7 +366,7 @@ class TestEvalNumexprPandas:
                                                        parser=self.parser))
 
     def check_compound_invert_op(self, lhs, cmp1, rhs):
-        skip_these = 'in', 'not in'
+        skip_these = ['in', 'not in']
         ex = '~(lhs {0} rhs)'.format(cmp1)
 
         msg = (r"only list-like( or dict-like)? objects are allowed to be"
@@ -1713,7 +1713,7 @@ class TestMathPythonPython:
 
     def test_result_types2(self):
         # xref https://github.com/pandas-dev/pandas/issues/12293
-        pytest.skip("unreliable tests on complex128")
+        # at one point this was unreliable on compled128
 
         # Did not test complex64 because DataFrame is converting it to
         # complex128. Due to https://github.com/pandas-dev/pandas/issues/10952
@@ -1793,14 +1793,14 @@ class TestScope:
 
 @td.skip_if_no_ne
 def test_invalid_engine():
-    msg = 'Invalid engine \'asdf\' passed'
+    msg = "Invalid engine 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
         pd.eval('x + y', local_dict={'x': 1, 'y': 2}, engine='asdf')
 
 
 @td.skip_if_no_ne
 def test_invalid_parser():
-    msg = 'Invalid parser \'asdf\' passed'
+    msg = "Invalid parser 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
         pd.eval('x + y', local_dict={'x': 1, 'y': 2}, parser='asdf')
 
