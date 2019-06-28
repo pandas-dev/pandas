@@ -299,7 +299,28 @@ default 'raise'
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times
         values = _ensure_datetimelike_to_i8(self)
-        result = round_nsint64(values, mode, freq)
+        try:
+            result = round_nsint64(values, mode, freq)
+        except ValueError as e:
+            # non-fixed offset, cannot do ns calculation.
+            # user freq.rollforward/back machinery instead
+            offset = frequencies.to_offset(freq)
+            if "non-fixed" in str(e):
+                if mode == RoundTo.PLUS_INFTY:
+                    result = (self + offset).asi8
+                elif mode == RoundTo.MINUS_INFTY:
+                    result = (self - offset).asi8
+                elif mode == RoundTo.NEAREST_HALF_EVEN:
+                    msg = ("round only supported fixed offsets "
+                           "(i.e. 'Day' is ok, 'MonthEnd' is not). "
+                           "You may use snap or floor/ceil if applicable.")
+                    raise ValueError(msg)
+                    # upper = (self + offset).asi8
+                    # lower = (self - offset).asi8
+                    # mask = (upper-values) <= (values-lower)
+                    # result = np.where(mask, lower, upper).asi8
+                else:
+                    raise e
         result = self._maybe_mask_results(result, fill_value=NaT)
 
         dtype = self.dtype
