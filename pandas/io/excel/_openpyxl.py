@@ -4,6 +4,8 @@ import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
 
+from pandas._typing import FilePathOrBuffer, Scalar
+
 from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
 from pandas.io.excel._util import _validate_freeze_panes
 
@@ -461,7 +463,7 @@ class _OpenpyxlWriter(ExcelWriter):
 
 class _OpenpyxlReader(_BaseExcelReader):
 
-    def __init__(self, filepath_or_buffer):
+    def __init__(self, filepath_or_buffer: FilePathOrBuffer) -> None:
         """Reader using openpyxl engine.
 
         Parameters
@@ -477,13 +479,13 @@ class _OpenpyxlReader(_BaseExcelReader):
         from openpyxl import Workbook
         return Workbook
 
-    def load_workbook(self, filepath_or_buffer):
+    def load_workbook(self, filepath_or_buffer: FilePathOrBuffer):
         from openpyxl import load_workbook
         return load_workbook(filepath_or_buffer,
                              read_only=True, data_only=True)
 
     @property
-    def sheet_names(self):
+    def sheet_names(self) -> List[str]:
         return self.book.sheetnames
 
     def get_sheet_by_name(self, name):
@@ -492,10 +494,7 @@ class _OpenpyxlReader(_BaseExcelReader):
     def get_sheet_by_index(self, index):
         return self.book.worksheets[index]
 
-    def _convert_cell(
-            self,
-            cell: 'openpyxl.cell.read_only.ReadOnlyCell',  # noqa: F821
-            convert_float: bool):
+    def _convert_cell(self, cell, convert_float: bool) -> Scalar:
 
         # TODO: replace with openpyxl constants
         if cell.is_date:
@@ -517,11 +516,8 @@ class _OpenpyxlReader(_BaseExcelReader):
 
         return cell.value
 
-    def get_sheet_data(
-            self,
-            sheet: 'openpyxl.worksheet.worksheet.Worksheet',  # noqa: F821
-            convert_float: bool) -> List[List]:
-        data = []  # type: List[List]
+    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
+        data = []  # type: List[List[Scalar]]
         for row in sheet.rows:
             data.append(
                 [self._convert_cell(cell, convert_float) for cell in row])
