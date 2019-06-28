@@ -2186,6 +2186,17 @@ into a flat table.
 
    json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
 
+.. ipython:: python
+
+    data = [{
+        'CreatedBy': {'Name': 'User001'},
+        'Lookup': {'TextField': 'Some text',
+                   'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+        'Image': {'a': 'b'}
+    }]
+
+    json_normalize(data, max_level=1)
+
 .. _io.jsonl:
 
 Line delimited json
