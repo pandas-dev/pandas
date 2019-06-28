@@ -80,6 +80,10 @@ def to_msgpack(path_or_buf, *args, **kwargs):
 
     .. deprecated:: 0.25.0
 
+    to_msgpack is deprecated and will be removed in a future version.
+    It is recommended to use pyarrow for on-the-wire transmission of
+    pandas objects.
+
     Parameters
     ----------
     path_or_buf : string File path, buffer-like, or None
@@ -91,11 +95,11 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     compress : type of compressor (zlib or blosc), default to None (no
                compression)
     """
-    warnings.warn("The read_msgpack is deprecated and will be removed in a "
+    warnings.warn("to_msgpack is deprecated and will be removed in a "
                   "future version.\n"
                   "It is recommended to use pyarrow for on-the-wire "
                   "transmission of pandas objects.",
-                  FutureWarning, stacklevel=2)
+                  FutureWarning, stacklevel=3)
 
     global compressor
     compressor = kwargs.pop('compress', None)
@@ -128,6 +132,10 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
 
     .. deprecated:: 0.25.0
 
+    read_msgpack is deprecated and will be removed in a future version.
+    It is recommended to use pyarrow for on-the-wire transmission of
+    pandas objects.
+
     Parameters
     ----------
     path_or_buf : string File path, BytesIO like or string
@@ -148,7 +156,7 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
                   "future version.\n"
                   "It is recommended to use pyarrow for on-the-wire "
                   "transmission of pandas objects.",
-                  FutureWarning, stacklevel=2)
+                  FutureWarning, stacklevel=3)
 
     path_or_buf, _, _, should_close = get_filepath_or_buffer(path_or_buf)
     if iterator:

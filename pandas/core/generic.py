@@ -2420,6 +2420,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         .. deprecated:: 0.25.0
 
+        to_msgpack is deprecated and will be removed in a future version.
+        It is recommended to use pyarrow for on-the-wire transmission of
+        pandas objects.
+
         Parameters
         ----------
         path : string File path, buffer-like, or None

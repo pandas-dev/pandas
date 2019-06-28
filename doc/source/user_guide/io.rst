@@ -3466,7 +3466,7 @@ Furthermore you can concatenate the strings to produce a list of the original ob
 .. ipython:: python
    :okwarning:
 
-  pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
+   pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
 
 .. _io.hdf5:
 
