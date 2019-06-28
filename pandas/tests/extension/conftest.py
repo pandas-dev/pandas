@@ -16,7 +16,7 @@ def data():
     """Length-100 array for this type.
 
     * data[0] and data[1] should both be non missing
-    * data[0] and data[1] should not gbe equal
+    * data[0] and data[1] should not be equal
     """
     raise NotImplementedError
 
