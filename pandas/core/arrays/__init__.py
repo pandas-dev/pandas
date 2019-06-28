@@ -1,5 +1,4 @@
 from .array_ import array  # noqa: F401
-from .base import ExtensionArray  # noqa: F401
 from .base import ExtensionOpsMixin, ExtensionScalarOpsMixin  # noqa: F401
 from .categorical import Categorical  # noqa: F401
 from .datetimes import DatetimeArray  # noqa: F401
@@ -9,3 +8,5 @@ from .numpy_ import PandasArray, PandasDtype  # noqa: F401
 from .period import PeriodArray, period_array  # noqa: F401
 from .sparse import SparseArray  # noqa: F401
 from .timedeltas import TimedeltaArray  # noqa: F401
+
+from .base import ExtensionArray  # noqa: F401; noqa: F401

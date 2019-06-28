@@ -14,93 +14,61 @@ import functools
 from io import StringIO
 import itertools
 import sys
-import warnings
 from textwrap import dedent
 from typing import FrozenSet, List, Optional, Set, Type, Union
+import warnings
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._config import get_option
 
-from pandas._libs import lib, algos as libalgos
-
-from pandas.util._decorators import (Appender, Substitution,
-                                     rewrite_axis_style_signature,
-                                     deprecate_kwarg)
-from pandas.util._validators import (validate_bool_kwarg,
-                                     validate_axis_style_args)
-
+from pandas._libs import algos as libalgos, lib
 from pandas.compat import PY36, raise_with_traceback
 from pandas.compat.numpy import function as nv
-from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.util._decorators import (
+    Appender, Substitution, deprecate_kwarg, rewrite_axis_style_signature)
+from pandas.util._validators import (
+    validate_axis_style_args, validate_bool_kwarg)
+
 from pandas.core.dtypes.cast import (
-    maybe_upcast,
-    cast_scalar_to_array,
-    infer_dtype_from_scalar,
-    maybe_cast_to_datetime,
-    maybe_infer_to_datetimelike,
-    maybe_convert_platform,
-    maybe_downcast_to_dtype,
-    invalidate_string_dtypes,
-    coerce_to_dtypes,
-    maybe_upcast_putmask,
-    find_common_type)
+    cast_scalar_to_array, coerce_to_dtypes, find_common_type,
+    infer_dtype_from_scalar, invalidate_string_dtypes, maybe_cast_to_datetime,
+    maybe_convert_platform, maybe_downcast_to_dtype,
+    maybe_infer_to_datetimelike, maybe_upcast, maybe_upcast_putmask)
 from pandas.core.dtypes.common import (
-    is_dict_like,
-    is_datetime64tz_dtype,
-    is_object_dtype,
-    is_extension_type,
-    is_extension_array_dtype,
-    is_datetime64_any_dtype,
-    is_bool_dtype,
-    is_integer_dtype,
-    is_float_dtype,
-    is_integer,
-    is_scalar,
-    is_dtype_equal,
-    needs_i8_conversion,
-    infer_dtype_from_object,
-    ensure_float64,
-    ensure_int64,
-    ensure_platform_int,
-    is_list_like,
-    is_nested_list_like,
-    is_iterator,
-    is_sequence,
-    is_named_tuple)
+    ensure_float64, ensure_int64, ensure_platform_int, infer_dtype_from_object,
+    is_bool_dtype, is_datetime64_any_dtype, is_datetime64tz_dtype,
+    is_dict_like, is_dtype_equal, is_extension_array_dtype, is_extension_type,
+    is_float_dtype, is_integer, is_integer_dtype, is_iterator, is_list_like,
+    is_named_tuple, is_nested_list_like, is_object_dtype, is_scalar,
+    is_sequence, needs_i8_conversion)
 from pandas.core.dtypes.generic import (
-    ABCSeries, ABCDataFrame, ABCIndexClass, ABCMultiIndex)
+    ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core import algorithms
-from pandas.core import common as com
-from pandas.core import nanops
-from pandas.core import ops
+from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import (
-    DatetimeLikeArrayMixin as DatetimeLikeArray
-)
+    DatetimeLikeArrayMixin as DatetimeLikeArray)
+from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.index import (Index, MultiIndex, ensure_index,
-                               ensure_index_from_sequences)
+from pandas.core.index import (
+    Index, MultiIndex, ensure_index, ensure_index_from_sequences)
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
-                                  check_bool_indexer)
+from pandas.core.indexing import (
+    check_bool_indexer, convert_to_index_sliceable, maybe_droplevels)
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
-    masked_rec_array_to_mgr, get_names_from_index, to_arrays,
-    reorder_arrays, init_ndarray, init_dict,
-    arrays_to_mgr, sanitize_index)
+    arrays_to_mgr, get_names_from_index, init_dict, init_ndarray,
+    masked_rec_array_to_mgr, reorder_arrays, sanitize_index, to_arrays)
 from pandas.core.series import Series
 
-from pandas.io.formats import console
-from pandas.io.formats import format as fmt
+from pandas.io.formats import console, format as fmt
 from pandas.io.formats.printing import pprint_thing
-
 import pandas.plotting
 
 # ---------------------------------------------------------------------
