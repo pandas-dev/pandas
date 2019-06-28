@@ -488,10 +488,10 @@ class _OpenpyxlReader(_BaseExcelReader):
     def sheet_names(self) -> List[str]:
         return self.book.sheetnames
 
-    def get_sheet_by_name(self, name):
+    def get_sheet_by_name(self, name: str):
         return self.book[name]
 
-    def get_sheet_by_index(self, index):
+    def get_sheet_by_index(self, index: int):
         return self.book.worksheets[index]
 
     def _convert_cell(self, cell, convert_float: bool) -> Scalar:

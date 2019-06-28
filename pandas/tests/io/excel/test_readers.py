@@ -292,7 +292,6 @@ class TestReaders:
         # dtypes)
         actual = pd.read_excel(
             basename + read_ext, 'Sheet1', converters=converters)
-
         tm.assert_frame_equal(actual, expected)
 
     def test_reader_dtype(self, read_ext):
@@ -440,7 +439,6 @@ class TestReaders:
                'pandas/tests/io/data/test1' + read_ext)
         url_table = pd.read_excel(url)
         local_table = pd.read_excel('test1' + read_ext)
-
         tm.assert_frame_equal(url_table, local_table)
 
     @td.skip_if_not_us_locale
@@ -453,7 +451,6 @@ class TestReaders:
         url = ('s3://pandas-test/test1' + read_ext)
         url_table = pd.read_excel(url)
         local_table = pd.read_excel('test1' + read_ext)
-
         tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.slow
