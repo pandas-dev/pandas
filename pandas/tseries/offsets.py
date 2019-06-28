@@ -22,6 +22,7 @@ from pandas.core.tools.datetimes import to_datetime
 
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'CBMonthEnd', 'CBMonthBegin',
+           'DayBegin', 'DayEnd',
            'MonthBegin', 'BMonthBegin', 'MonthEnd', 'BMonthEnd',
            'SemiMonthEnd', 'SemiMonthBegin',
            'BusinessHour', 'CustomBusinessHour',
@@ -905,6 +906,68 @@ class CustomBusinessHour(_CustomMixin, BusinessHourMixin,
 
         _CustomMixin.__init__(self, weekmask, holidays, calendar)
         BusinessHourMixin.__init__(self, start=start, end=end, offset=offset)
+
+
+# ---------------------------------------------------------------------
+# Day-Based Offset Classes
+
+
+class DayEnd(SingleConstructorOffset):
+    _adjust_dst = True
+    _attributes = frozenset(['n', 'normalize'])
+
+    __init__ = BaseOffset.__init__
+
+    @property
+    def name(self):
+        if self.isAnchored:
+            return self.rule_code
+        else:
+            month = ccalendar.MONTH_ALIASES[self.n]
+            return "{code}-{month}".format(code=self.rule_code,
+                                           month=month)
+
+    def onOffset(self, dt):
+        if self.normalize and not _is_normalized(dt):
+            return False
+        return self.apply(dt) == dt
+
+    @apply_wraps
+    def apply(self, other):
+        tz = other.tzinfo
+        naive = other.replace(tzinfo=None)
+        shifted = Timestamp(year=naive.year, month=naive.month, day=naive.day)
+        if self._day_opt == 'end':
+            n = self.n+1 if self.n < 0 else self.n
+            shifted += Timedelta(days=n, nanoseconds=-1)
+        elif self._day_opt == 'start':
+            n = self.n if self.n < 0 else self.n
+            shifted += Timedelta(days=n)
+        elif self._day_opt != 'start':
+            raise ValurError("Unknown _day_opt value")
+        return conversion.localize_pydatetime(shifted, tz)
+
+    @apply_index_wraps
+    def apply_index(self, i):
+        # TODO: going through __new__ raises on call to _validate_frequency;
+        #  are we passing incorrect freq?
+        return type(i)._simple_new(np.array([self.apply(_).value for _ in i]), freq=i.freq, dtype=i.dtype)
+
+
+class DayEnd(DayEnd):
+    """
+    DateOffset of one day end.
+    """
+    _prefix = 'DE'
+    _day_opt = 'end'
+
+
+class DayBegin(DayEnd):
+    """
+    DateOffset of one day at beginning.
+    """
+    _prefix = 'DS'
+    _day_opt = 'start'
 
 
 # ---------------------------------------------------------------------
@@ -2512,6 +2575,8 @@ prefix_mapping = {offset._prefix: offset for offset in [
     CustomBusinessMonthEnd,    # 'CBM'
     CustomBusinessMonthBegin,  # 'CBMS'
     CustomBusinessHour,        # 'CBH'
+    DayEnd,                    # 'DE'
+    DayBegin,                  # 'DS'
     MonthEnd,                  # 'M'
     MonthBegin,                # 'MS'
     Nano,                      # 'N'
