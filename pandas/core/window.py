@@ -112,9 +112,9 @@ class _Window(PandasObject, SelectionMixin):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]),
                                   copy=False)
-        blocks_dict = obj._to_dict_of_blocks(copy=False)
+        blocks = obj._to_dict_of_blocks(copy=False).values()
 
-        return blocks_dict, obj, index
+        return blocks, obj, index
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -679,21 +679,19 @@ class Window(_Window):
         window = self._prep_window(**kwargs)
         center = self.center
 
-        blocks_dict, obj, index = self._create_blocks()
-        dtypes = blocks_dict.keys()
-        blocks = blocks_dict.values()
+        blocks, obj, index = self._create_blocks()
+        block_list = list(blocks)
 
         results = []
         exclude = []
-        for dtype in list(dtypes):
-            b = blocks_dict[dtype]
+        for i, b in enumerate(blocks):
             try:
                 values = self._prep_values(b.values)
 
             except (TypeError, NotImplementedError):
                 if isinstance(obj, ABCDataFrame):
                     exclude.extend(b.columns)
-                    del blocks_dict[dtype]
+                    del block_list[i]
                     continue
                 else:
                     raise DataError('No numeric types to aggregate')
@@ -718,7 +716,7 @@ class Window(_Window):
                 result = self._center_window(result, window)
             results.append(result)
 
-        return self._wrap_results(results, blocks, obj, exclude)
+        return self._wrap_results(results, block_list, obj, exclude)
 
     _agg_see_also_doc = dedent("""
     See Also
@@ -860,22 +858,20 @@ class _Rolling(_Window):
         if check_minp is None:
             check_minp = _use_window
 
-        blocks_dict, obj, index = self._create_blocks()
-        dtypes = blocks_dict.keys()
-        blocks = blocks_dict.values()
+        blocks, obj, index = self._create_blocks()
+        block_list = list(blocks)
         index, indexi = self._get_index(index=index)
 
         results = []
         exclude = []
-        for dtype in list(dtypes):
-            b = blocks_dict[dtype]
+        for i, b in enumerate(blocks):
             try:
                 values = self._prep_values(b.values)
 
             except (TypeError, NotImplementedError):
                 if isinstance(obj, ABCDataFrame):
                     exclude.extend(b.columns)
-                    del blocks_dict[dtype]
+                    del block_list[i]
                     continue
                 else:
                     raise DataError('No numeric types to aggregate')
@@ -924,7 +920,7 @@ class _Rolling(_Window):
 
             results.append(result)
 
-        return self._wrap_results(results, blocks, obj, exclude)
+        return self._wrap_results(results, block_list, obj, exclude)
 
 
 class _Rolling_and_Expanding(_Rolling):
@@ -969,8 +965,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     def count(self):
 
-        blocks_dict, obj, index = self._create_blocks()
-        blocks = blocks_dict.values()
+        blocks, obj, index = self._create_blocks()
         # Validate the index
         self._get_index(index=index)
 
@@ -2323,20 +2318,19 @@ class EWM(_Rolling):
         -------
         y : same type as input argument
         """
-        blocks_dict, obj, index = self._create_blocks()
-        dtypes = blocks_dict.keys()
-        blocks = blocks_dict.values()
+        blocks, obj, index = self._create_blocks()
+        block_list = list(blocks)
 
         results = []
         exclude = []
-        for dtype in list(dtypes):
-            b = blocks_dict[dtype]
+        for i, b in enumerate(blocks):
             try:
                 values = self._prep_values(b.values)
+
             except (TypeError, NotImplementedError):
                 if isinstance(obj, ABCDataFrame):
                     exclude.extend(b.columns)
-                    del blocks_dict[dtype]
+                    del block_list[i]
                     continue
                 else:
                     raise DataError('No numeric types to aggregate')
@@ -2358,7 +2352,7 @@ class EWM(_Rolling):
 
             results.append(np.apply_along_axis(func, self.axis, values))
 
-        return self._wrap_results(results, blocks, obj, exclude)
+        return self._wrap_results(results, block_list, obj, exclude)
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
