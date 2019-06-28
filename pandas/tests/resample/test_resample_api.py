@@ -4,6 +4,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.compat import PY36
+
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.core.indexes.datetimes import date_range
@@ -233,6 +235,7 @@ def test_apply_without_aggregation():
         assert_series_equal(result, test_series)
 
 
+@pytest.mark.skipif(not PY36, reason='Insertion order for Python>=3.6')
 def test_agg_consistency():
 
     # make sure that we are consistent across

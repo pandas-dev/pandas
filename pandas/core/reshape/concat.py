@@ -2,6 +2,8 @@
 concat routines
 """
 
+import warnings
+
 import numpy as np
 
 import pandas.core.dtypes.concat as _concat
@@ -221,12 +223,25 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         ...
     ValueError: Indexes have overlapping values: ['a']
     """
-    op = _Concatenator(objs, axis=axis, join_axes=join_axes,
-                       ignore_index=ignore_index, join=join,
+    op = _Concatenator(objs, axis=axis, ignore_index=ignore_index, join=join,
                        keys=keys, levels=levels, names=names,
-                       verify_integrity=verify_integrity,
-                       copy=copy, sort=sort)
-    return op.get_result()
+                       verify_integrity=verify_integrity, copy=copy, sort=sort)
+
+    res = op.get_result()
+
+    if join_axes is not None:
+        # GH 21951
+        warnings.warn('The join_axes-keyword is deprecated. Use .reindex or '
+                      '.reindex_like on the result to achieve the same '
+                      'functionality.', FutureWarning, stacklevel=2)
+        ndim = res.ndim
+        if len(join_axes) != ndim - 1:
+            raise AssertionError("join_axes must be a list of indexes of "
+                                 "length {length}".format(length=ndim - 1))
+        if ndim == 2:
+            other_axis = 1 if axis == 0 else 0  # switches between 0 & 1
+            res = res.reindex(join_axes[0], axis=other_axis, copy=False)
+    return res
 
 
 class _Concatenator:
@@ -234,10 +249,9 @@ class _Concatenator:
     Orchestrates a concatenation operation for BlockManagers
     """
 
-    def __init__(self, objs, axis=0, join='outer', join_axes=None,
-                 keys=None, levels=None, names=None,
-                 ignore_index=False, verify_integrity=False, copy=True,
-                 sort=False):
+    def __init__(self, objs, axis=0, join='outer', keys=None, levels=None,
+                 names=None, ignore_index=False, verify_integrity=False,
+                 copy=True, sort=False):
         if isinstance(objs, (NDFrame, str)):
             raise TypeError('first argument must be an iterable of pandas '
                             'objects, you passed an object of type '
@@ -310,9 +324,7 @@ class _Concatenator:
                            if sum(obj.shape) > 0 or isinstance(obj, Series)]
 
             if (len(non_empties) and (keys is None and names is None and
-                                      levels is None and
-                                      join_axes is None and
-                                      not self.intersect)):
+                                      levels is None and not self.intersect)):
                 objs = non_empties
                 sample = objs[0]
 
@@ -368,7 +380,6 @@ class _Concatenator:
 
         # note: this is the BlockManager axis (since DataFrame is transposed)
         self.axis = axis
-        self.join_axes = join_axes
         self.keys = keys
         self.names = names or getattr(keys, 'names', None)
         self.levels = levels
@@ -441,22 +452,10 @@ class _Concatenator:
         ndim = self._get_result_dim()
         new_axes = [None] * ndim
 
-        if self.join_axes is None:
-            for i in range(ndim):
-                if i == self.axis:
-                    continue
-                new_axes[i] = self._get_comb_axis(i)
-        else:
-            if len(self.join_axes) != ndim - 1:
-                raise AssertionError("length of join_axes must be equal "
-                                     "to {length}".format(length=ndim - 1))
-
-            # ufff...
-            indices = list(range(ndim))
-            indices.remove(self.axis)
-
-            for i, ax in zip(indices, self.join_axes):
-                new_axes[i] = ax
+        for i in range(ndim):
+            if i == self.axis:
+                continue
+            new_axes[i] = self._get_comb_axis(i)
 
         new_axes[self.axis] = self._get_concat_axis()
         return new_axes

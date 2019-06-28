@@ -6879,12 +6879,13 @@ class DataFrame(NDFrame):
             # join indexes only using concat
             if can_concat:
                 if how == 'left':
-                    how = 'outer'
-                    join_axes = [self.index]
+                    res = concat(frames, axis=1, join='outer',
+                                 verify_integrity=True)
+                    res = res.reindex(self.index, copy=False)
+                    return res
                 else:
-                    join_axes = None
-                return concat(frames, axis=1, join=how, join_axes=join_axes,
-                              verify_integrity=True)
+                    return concat(frames, axis=1, join=how,
+                                  verify_integrity=True)
 
             joined = frames[0]
 

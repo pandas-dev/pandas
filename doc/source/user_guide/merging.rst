@@ -88,7 +88,9 @@ some configurable handling of "what to do with the other axes":
   concatenation axis does not have meaningful indexing information. Note
   the index values on the other axes are still respected in the join.
 * ``join_axes`` : list of Index objects. Specific indexes to use for the other
-  n - 1 axes instead of performing inner/outer set logic.
+  n - 1 axes instead of performing inner/outer set logic. This keyword is
+  deprecated, please use ``.reindex`` or ``.reindex_like`` on the result (or
+  the individual DataFrames before concatenating).
 * ``keys`` : sequence, default None. Construct hierarchical index using the
   passed keys as the outermost level. If multiple levels passed, should
   contain tuples.
@@ -147,12 +149,11 @@ Set logic on the other axes
 
 When gluing together multiple DataFrames, you have a choice of how to handle
 the other axes (other than the one being concatenated). This can be done in
-the following three ways:
+the following two ways:
 
 * Take the union of them all, ``join='outer'``. This is the default
   option as it results in zero information loss.
 * Take the intersection, ``join='inner'``.
-* Use a specific index, as passed to the ``join_axes`` argument.
 
 Here is an example of each of these methods. First, the default ``join='outer'``
 behavior:
@@ -202,7 +203,7 @@ DataFrame:
 
 .. ipython:: python
 
-   result = pd.concat([df1, df4], axis=1, join_axes=[df1.index])
+   result = pd.concat([df1, df4], axis=1).reindex(df1.index)
 
 .. ipython:: python
    :suppress:
