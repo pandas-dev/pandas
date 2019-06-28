@@ -326,7 +326,7 @@ class TestIndexOps(Ops):
                 pass
 
             with pytest.raises(ValueError):
-                with pytest.raises(FutureWarning):
+                with tm.assert_produces_warning(FutureWarning):
                     o.item()  # len > 1
 
             assert o.ndim == 1
