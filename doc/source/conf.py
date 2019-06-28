@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # pandas documentation build configuration file, created by
 #
@@ -16,11 +15,10 @@ import os
 import inspect
 import importlib
 import logging
-import warnings
 import jinja2
 from sphinx.ext.autosummary import _import_by_name
 from numpydoc.docscrape import NumpyDocString
-from numpydoc.docscrape_sphinx import SphinxDocString
+
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +110,9 @@ with open(os.path.join(source_path, 'index.rst'), 'w') as f:
                                  else None)))
 autosummary_generate = True if pattern is None else ['index']
 
+# numpydoc
+numpydoc_attributes_as_param_list = False
+
 # matplotlib plot directive
 plot_include_source = True
 plot_formats = [("png", 90)]
@@ -135,8 +136,8 @@ source_encoding = 'utf-8'
 master_doc = 'index'
 
 # General information about the project.
-project = u'pandas'
-copyright = u'2008-2014, the pandas development team'
+project = 'pandas'
+copyright = '2008-2014, the pandas development team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -321,7 +322,7 @@ header = """\
    pd.options.display.max_rows = 15
 
    import os
-   os.chdir('{}')
+   os.chdir(r'{}')
 """.format(os.path.dirname(os.path.dirname(__file__)))
 
 
@@ -412,12 +413,6 @@ extlinks = {'issue': ('https://github.com/pandas-dev/pandas/issues/%s',
                      'wiki ')}
 
 
-# ignore all deprecation warnings from Panel during doc build
-# (to avoid the need to add :okwarning: in many places)
-warnings.filterwarnings("ignore", message="\nPanel is deprecated",
-                        category=FutureWarning)
-
-
 ipython_warning_is_error = False
 ipython_exec_lines = [
     'import numpy as np',
@@ -429,62 +424,6 @@ ipython_exec_lines = [
     'pd.options.display.encoding="utf8"'
 ]
 
-
-def sphinxdocstring_str(self, indent=0, func_role="obj"):
-    # Pandas displays Attributes section in style like Methods section
-
-    # Function is copy of `SphinxDocString.__str__`
-    ns = {
-        'signature': self._str_signature(),
-        'index': self._str_index(),
-        'summary': self._str_summary(),
-        'extended_summary': self._str_extended_summary(),
-        'parameters': self._str_param_list('Parameters'),
-        'returns': self._str_returns('Returns'),
-        'yields': self._str_returns('Yields'),
-        'other_parameters': self._str_param_list('Other Parameters'),
-        'raises': self._str_param_list('Raises'),
-        'warns': self._str_param_list('Warns'),
-        'warnings': self._str_warnings(),
-        'see_also': self._str_see_also(func_role),
-        'notes': self._str_section('Notes'),
-        'references': self._str_references(),
-        'examples': self._str_examples(),
-        # Replaced `self._str_param_list('Attributes', fake_autosummary=True)`
-        # with `self._str_member_list('Attributes')`
-        'attributes': self._str_member_list('Attributes'),
-        'methods': self._str_member_list('Methods'),
-    }
-    ns = {k: '\n'.join(v) for k, v in ns.items()}
-
-    rendered = self.template.render(**ns)
-    return '\n'.join(self._str_indent(rendered.split('\n'), indent))
-
-
-SphinxDocString.__str__ = sphinxdocstring_str
-
-
-# Fix "WARNING: Inline strong start-string without end-string."
-# PR #155 "Escape the * in *args and **kwargs" from numpydoc
-# Can be removed after PR merges in v0.9.0
-def decorate_process_param(func):
-    def _escape_args_and_kwargs(name):
-        if name[:2] == '**':
-            return r'\*\*' + name[2:]
-        elif name[:1] == '*':
-            return r'\*' + name[1:]
-        else:
-            return name
-
-    def func_wrapper(self, param, desc, fake_autosummary):
-        param = _escape_args_and_kwargs(param.strip())
-        return func(self, param, desc, fake_autosummary)
-
-    return func_wrapper
-
-
-func = SphinxDocString._process_param
-SphinxDocString._process_param = decorate_process_param(func)
 
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)

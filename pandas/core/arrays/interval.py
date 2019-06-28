@@ -3,12 +3,12 @@ import textwrap
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs.interval import (
     Interval, IntervalMixin, intervals_to_interval_bounds)
-from pandas.compat import add_metaclass
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
-from pandas.util._doctools import _WritableDoc
 
 from pandas.core.dtypes.cast import maybe_convert_platform
 from pandas.core.dtypes.common import (
@@ -24,7 +24,6 @@ from pandas.core.arrays.base import (
     ExtensionArray, _extension_array_shared_docs)
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, ensure_index
 
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
@@ -94,9 +93,9 @@ cut : Bin values into discrete Intervals.
 qcut : Bin values into equal-sized Intervals based on rank or sample quantiles.
 
 Notes
-------
+-----
 See the `user guide
-<http://pandas.pydata.org/pandas-docs/stable/advanced.html#intervalindex>`_
+<http://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`_
 for more.
 
 %(examples)s\
@@ -126,7 +125,6 @@ for more.
     :meth:`IntervalArray.from_breaks`, and :meth:`IntervalArray.from_tuples`.
     """),
 ))
-@add_metaclass(_WritableDoc)
 class IntervalArray(IntervalMixin, ExtensionArray):
     dtype = IntervalDtype()
     ndim = 1
@@ -240,6 +238,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         If None, dtype will be inferred
 
         .. versionadded:: 0.23.0
+
+    Returns
+    -------
+    %(klass)s
 
     See Also
     --------
@@ -384,6 +386,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         If None, dtype will be inferred
 
         ..versionadded:: 0.23.0
+
+    Returns
+    -------
+    %(klass)s
 
     See Also
     --------
@@ -674,21 +680,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._simple_new(
             left, right, closed=closed, verify_integrity=False)
 
-    def copy(self, deep=False):
+    def copy(self):
         """
         Return a copy of the array.
-
-        Parameters
-        ----------
-        deep : bool, default False
-            Also copy the underlying data backing this array.
 
         Returns
         -------
         IntervalArray
         """
-        left = self.left.copy(deep=True) if deep else self.left
-        right = self.right.copy(deep=True) if deep else self.right
+        left = self.left.copy(deep=True)
+        right = self.right.copy(deep=True)
         closed = self.closed
         # TODO: Could skip verify_integrity here.
         return type(self).from_arrays(left, right, closed=closed)
@@ -941,8 +942,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         points) and is either monotonic increasing or monotonic decreasing,
         else False
         """
-
-    @property
+    # https://github.com/python/mypy/issues/1362
+    # Mypy does not support decorated properties
+    @property  # type: ignore
     @Appender(_interval_shared_docs['is_non_overlapping_monotonic']
               % _shared_docs_kwargs)
     def is_non_overlapping_monotonic(self):
@@ -980,7 +982,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 result[i] = Interval(left[i], right[i], closed)
         return result
 
-    _interval_shared_docs['to_tuples'] = """\
+    _interval_shared_docs['to_tuples'] = """
         Return an %(return_type)s of tuples of the form (left, right)
 
         Parameters
@@ -995,7 +997,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         tuples: %(return_type)s
         %(examples)s\
-    """
+        """
 
     @Appender(_interval_shared_docs['to_tuples'] % dict(
         return_type='ndarray',

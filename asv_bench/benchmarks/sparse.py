@@ -1,9 +1,8 @@
-import itertools
-
 import numpy as np
 import scipy.sparse
-from pandas import (SparseSeries, SparseDataFrame, SparseArray, Series,
-                    date_range, MultiIndex)
+
+import pandas as pd
+from pandas import MultiIndex, Series, SparseArray, date_range
 
 
 def make_array(size, dense_proportion, fill_value, dtype):
@@ -14,7 +13,7 @@ def make_array(size, dense_proportion, fill_value, dtype):
     return arr
 
 
-class SparseSeriesToFrame(object):
+class SparseSeriesToFrame:
 
     def setup(self):
         K = 50
@@ -25,13 +24,13 @@ class SparseSeriesToFrame(object):
             data = np.random.randn(N)[:-i]
             idx = rng[:-i]
             data[100:] = np.nan
-            self.series[i] = SparseSeries(data, index=idx)
+            self.series[i] = pd.Series(pd.SparseArray(data), index=idx)
 
     def time_series_to_frame(self):
-        SparseDataFrame(self.series)
+        pd.DataFrame(self.series)
 
 
-class SparseArrayConstructor(object):
+class SparseArrayConstructor:
 
     params = ([0.1, 0.01], [0, np.nan],
               [np.int64, np.float64, np.object])
@@ -45,25 +44,18 @@ class SparseArrayConstructor(object):
         SparseArray(self.array, fill_value=fill_value, dtype=dtype)
 
 
-class SparseDataFrameConstructor(object):
+class SparseDataFrameConstructor:
 
     def setup(self):
         N = 1000
         self.arr = np.arange(N)
         self.sparse = scipy.sparse.rand(N, N, 0.005)
-        self.dict = dict(zip(range(N), itertools.repeat([0])))
-
-    def time_constructor(self):
-        SparseDataFrame(columns=self.arr, index=self.arr)
 
     def time_from_scipy(self):
-        SparseDataFrame(self.sparse)
-
-    def time_from_dict(self):
-        SparseDataFrame(self.dict)
+        pd.DataFrame.sparse.from_spmatrix(self.sparse)
 
 
-class FromCoo(object):
+class FromCoo:
 
     def setup(self):
         self.matrix = scipy.sparse.coo_matrix(([3.0, 1.0, 2.0],
@@ -71,10 +63,10 @@ class FromCoo(object):
                                               shape=(100, 100))
 
     def time_sparse_series_from_coo(self):
-        SparseSeries.from_coo(self.matrix)
+        pd.Series.sparse.from_coo(self.matrix)
 
 
-class ToCoo(object):
+class ToCoo:
 
     def setup(self):
         s = Series([np.nan] * 10000)
@@ -82,15 +74,15 @@ class ToCoo(object):
         s[100] = -1.0
         s[999] = 12.1
         s.index = MultiIndex.from_product([range(10)] * 4)
-        self.ss = s.to_sparse()
+        self.ss = s.astype("Sparse")
 
     def time_sparse_series_to_coo(self):
-        self.ss.to_coo(row_levels=[0, 1],
-                       column_levels=[2, 3],
-                       sort_labels=True)
+        self.ss.sparse.to_coo(row_levels=[0, 1],
+                              column_levels=[2, 3],
+                              sort_labels=True)
 
 
-class Arithmetic(object):
+class Arithmetic:
 
     params = ([0.1, 0.01], [0, np.nan])
     param_names = ['dense_proportion', 'fill_value']
@@ -115,7 +107,7 @@ class Arithmetic(object):
         self.array1 / self.array2
 
 
-class ArithmeticBlock(object):
+class ArithmeticBlock:
 
     params = [np.nan, 0]
     param_names = ['fill_value']

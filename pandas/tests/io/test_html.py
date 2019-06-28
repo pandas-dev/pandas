@@ -1,6 +1,6 @@
-from __future__ import print_function
-
 from functools import partial
+from importlib import reload
+from io import BytesIO, StringIO
 import os
 import re
 import threading
@@ -9,8 +9,7 @@ import numpy as np
 from numpy.random import rand
 import pytest
 
-from pandas.compat import (
-    PY3, BytesIO, StringIO, is_platform_windows, map, reload, zip)
+from pandas.compat import is_platform_windows
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -55,7 +54,7 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
 def test_bs4_version_fails(monkeypatch, datapath):
     import bs4
     monkeypatch.setattr(bs4, '__version__', '4.2')
-    with pytest.raises(ValueError, match="minimum version"):
+    with pytest.raises(ImportError, match="Pandas requires version"):
         read_html(datapath("io", "data", "spam.html"), flavor='bs4')
 
 
@@ -78,18 +77,15 @@ def test_same_ordering(datapath):
 
 
 @pytest.mark.parametrize("flavor", [
-    pytest.param('bs4', marks=pytest.mark.skipif(
-        not td.safe_import('lxml'), reason='No bs4')),
-    pytest.param('lxml', marks=pytest.mark.skipif(
-        not td.safe_import('lxml'), reason='No lxml'))], scope="class")
-class TestReadHtml(object):
+    pytest.param('bs4', marks=td.skip_if_no('lxml')),
+    pytest.param('lxml', marks=td.skip_if_no('lxml'))], scope="class")
+class TestReadHtml:
 
     @pytest.fixture(autouse=True)
     def set_files(self, datapath):
         self.spam_data = datapath('io', 'data', 'spam.html')
         self.spam_data_kwargs = {}
-        if PY3:
-            self.spam_data_kwargs['encoding'] = 'UTF-8'
+        self.spam_data_kwargs['encoding'] = 'UTF-8'
         self.banklist_data = datapath("io", "data", "banklist.html")
 
     @pytest.fixture(autouse=True, scope="function")
@@ -1111,7 +1107,7 @@ class TestReadHtml(object):
     def test_parse_failure_rewinds(self):
         # Issue #17975
 
-        class MockFile(object):
+        class MockFile:
             def __init__(self, data):
                 self.data = data
                 self.at_end = False
@@ -1140,7 +1136,7 @@ class TestReadHtml(object):
         class ErrorThread(threading.Thread):
             def run(self):
                 try:
-                    super(ErrorThread, self).run()
+                    super().run()
                 except Exception as e:
                     self.err = e
                 else:

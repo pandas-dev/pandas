@@ -1,17 +1,11 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 from decimal import Decimal
 import operator
 
 import numpy as np
 import pytest
 
-from pandas.compat import range
-
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, compat
+from pandas import DataFrame, MultiIndex, Series
 import pandas.core.common as com
 from pandas.tests.frame.common import _check_mixed_float
 import pandas.util.testing as tm
@@ -19,7 +13,7 @@ from pandas.util.testing import (
     assert_frame_equal, assert_numpy_array_equal, assert_series_equal)
 
 
-class TestDataFrameUnaryOperators(object):
+class TestDataFrameUnaryOperators:
     # __pos__, __neg__, __inv__
 
     @pytest.mark.parametrize('df,expected', [
@@ -54,9 +48,8 @@ class TestDataFrameUnaryOperators(object):
         with pytest.raises(TypeError):
             (- df['a'])
 
-    def test_invert(self):
-        _seriesd = tm.getSeriesData()
-        df = pd.DataFrame(_seriesd)
+    def test_invert(self, float_frame):
+        df = float_frame
 
         assert_frame_equal(-(df < 0), ~(df < 0))
 
@@ -92,7 +85,7 @@ class TestDataFrameUnaryOperators(object):
             (+ df['a'])
 
 
-class TestDataFrameLogicalOperators(object):
+class TestDataFrameLogicalOperators:
     # &, |, ^
 
     def test_logical_ops_empty_frame(self):
@@ -207,7 +200,7 @@ class TestDataFrameLogicalOperators(object):
         assert_series_equal(result, expected)
 
 
-class TestDataFrameOperators(object):
+class TestDataFrameOperators:
 
     @pytest.mark.parametrize('op', [operator.add, operator.sub,
                                     operator.mul, operator.truediv])
@@ -387,7 +380,7 @@ class TestDataFrameOperators(object):
 
         added = float_frame + series
 
-        for key, s in compat.iteritems(added):
+        for key, s in added.items():
             assert_series_equal(s, float_frame[key] + series[key])
 
         larger_series = series.to_dict()
@@ -395,7 +388,7 @@ class TestDataFrameOperators(object):
         larger_series = Series(larger_series)
         larger_added = float_frame + larger_series
 
-        for key, s in compat.iteritems(float_frame):
+        for key, s in float_frame.items():
             assert_series_equal(larger_added[key], s + series[key])
         assert 'E' in larger_added
         assert np.isnan(larger_added['E']).all()
@@ -428,7 +421,7 @@ class TestDataFrameOperators(object):
         # and require explicit broadcasting
         added = datetime_frame.add(ts, axis='index')
 
-        for key, col in compat.iteritems(datetime_frame):
+        for key, col in datetime_frame.items():
             result = col + ts
             assert_series_equal(added[key], result, check_names=False)
             assert added[key].name == key
@@ -469,7 +462,7 @@ class TestDataFrameOperators(object):
 
         # vs mix
         result = mixed_float_frame * 2
-        for c, s in compat.iteritems(result):
+        for c, s in result.items():
             tm.assert_numpy_array_equal(
                 s.values, mixed_float_frame[c].values * 2)
         _check_mixed_float(result, dtype=dict(C=None))
@@ -726,7 +719,7 @@ class TestDataFrameOperators(object):
                                     'xor'])
     def test_inplace_ops_identity2(self, op):
 
-        if compat.PY3 and op == 'div':
+        if op == 'div':
             return
 
         df = DataFrame({'a': [1., 2., 3.],
@@ -800,3 +793,44 @@ class TestDataFrameOperators(object):
         b = df['B']
         with tm.assert_produces_warning(None):
             getattr(df, all_arithmetic_operators)(b, 0)
+
+
+class TestTranspose:
+    def test_transpose_tzaware_1col_single_tz(self):
+        # GH#26825
+        dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
+
+        df = pd.DataFrame(dti)
+        assert (df.dtypes == dti.dtype).all()
+        res = df.T
+        assert (res.dtypes == dti.dtype).all()
+
+    def test_transpose_tzaware_2col_single_tz(self):
+        # GH#26825
+        dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
+
+        df3 = pd.DataFrame({'A': dti, 'B': dti})
+        assert (df3.dtypes == dti.dtype).all()
+        res3 = df3.T
+        assert (res3.dtypes == dti.dtype).all()
+
+    def test_transpose_tzaware_2col_mixed_tz(self):
+        # GH#26825
+        dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
+        dti2 = dti.tz_convert('US/Pacific')
+
+        df4 = pd.DataFrame({'A': dti, 'B': dti2})
+        assert (df4.dtypes == [dti.dtype, dti2.dtype]).all()
+        assert (df4.T.dtypes == object).all()
+        tm.assert_frame_equal(df4.T.T, df4)
+
+    def test_transpose_object_to_tzaware_mixed_tz(self):
+        # GH#26825
+        dti = pd.date_range('2016-04-05 04:30', periods=3, tz='UTC')
+        dti2 = dti.tz_convert('US/Pacific')
+
+        # mixed all-tzaware dtypes
+        df2 = pd.DataFrame([dti, dti2])
+        assert (df2.dtypes == object).all()
+        res2 = df2.T
+        assert (res2.dtypes == [dti.dtype, dti2.dtype]).all()

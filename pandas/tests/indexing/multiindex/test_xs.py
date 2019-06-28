@@ -1,7 +1,7 @@
+from itertools import product
+
 import numpy as np
 import pytest
-
-from pandas.compat import lrange, product as cart_product
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
 import pandas.core.common as com
@@ -52,7 +52,7 @@ def test_xs_loc_equality(multiindex_dataframe_random_data):
 
 def test_xs_missing_values_in_index():
     # see gh-6574
-    # missing values in returned index should be preserrved
+    # missing values in returned index should be preserved
     acc = [
         ('a', 'abcde', 1),
         ('b', 'bbcde', 2),
@@ -148,10 +148,10 @@ def test_xs_setting_with_copy_error_multiple(four_level_index_dataframe):
 
 def test_xs_integer_key():
     # see gh-2107
-    dates = lrange(20111201, 20111205)
+    dates = range(20111201, 20111205)
     ids = 'abcde'
     index = MultiIndex.from_tuples(
-        [x for x in cart_product(dates, ids)],
+        [x for x in product(dates, ids)],
         names=['date', 'secid'])
     df = DataFrame(
         np.random.randn(len(index), 3), index, ['X', 'Y', 'Z'])

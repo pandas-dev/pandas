@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, time, timedelta
 import textwrap
 from typing import Union
@@ -10,7 +9,7 @@ from pytz import utc
 from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT, Timestamp, ccalendar, conversion, fields, iNaT, normalize_date,
-    resolution as libresolution, timezones)
+    resolution as libresolution, timezones, tzconversion)
 import pandas.compat as compat
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender
@@ -137,7 +136,7 @@ def _dt_array_cmp(cls, op):
 
         other = lib.item_from_zerodim(other)
 
-        if isinstance(other, (datetime, np.datetime64, compat.string_types)):
+        if isinstance(other, (datetime, np.datetime64, str)):
             if isinstance(other, (datetime, np.datetime64)):
                 # GH#18435 strings get a pass from tzawareness compat
                 self._assert_tzawareness_compat(other)
@@ -197,9 +196,6 @@ def _dt_array_cmp(cls, op):
 
             result = com.values_from_object(result)
 
-            # Make sure to pass an array to result[...]; indexing with
-            # Series breaks with older version of numpy
-            o_mask = np.array(o_mask)
             if o_mask.any():
                 result[o_mask] = nat_result
 
@@ -240,6 +236,14 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     freq : str or Offset, optional
     copy : bool, default False
         Whether to copy the underlying array of values.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _typ = "datetimearray"
     _scalar_type = Timestamp
@@ -261,12 +265,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                              'normalize', 'strftime', 'round', 'floor',
                              'ceil', 'month_name', 'day_name']
 
-    # dummy attribute so that datetime.__eq__(DatetimeArray) defers
-    # by returning NotImplemented
-    timetuple = None
-
-    # Needed so that Timestamp.__richcmp__(DateTimeArray) operates pointwise
-    ndim = 1
+    # ndim is inherited from ExtensionArray, must exist to ensure
+    #  Timestamp.__richcmp__(DateTimeArray) operates pointwise
 
     # ensure that operations with numpy arrays defer to our implementation
     __array_priority__ = 1000
@@ -309,6 +309,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                 "ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg.format(type(values).__name__))
+        if values.ndim != 1:
+            raise ValueError("Only 1-dimensional input arrays are supported.")
 
         if values.dtype == 'i8':
             # for compat with datetime/timedelta/period shared methods,
@@ -431,10 +433,12 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         if tz is not None:
             # Localize the start and end arguments
             start = _maybe_localize_point(
-                start, getattr(start, 'tz', None), start, freq, tz
+                start, getattr(start, 'tz', None), start, freq, tz,
+                ambiguous, nonexistent
             )
             end = _maybe_localize_point(
-                end, getattr(end, 'tz', None), end, freq, tz
+                end, getattr(end, 'tz', None), end, freq, tz,
+                ambiguous, nonexistent
             )
         if freq is not None:
             # We break Day arithmetic (fixed 24 hour) here and opt for
@@ -514,8 +518,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         return lambda x: Timestamp(x, freq=self.freq, tz=self.tz)
 
     @property
-    def dtype(self):
-        # type: () -> Union[np.dtype, DatetimeTZDtype]
+    def dtype(self) -> Union[np.dtype, DatetimeTZDtype]:
         """
         The dtype for the DatetimeArray.
 
@@ -588,14 +591,14 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
             # The default for tz-aware is object, to preserve tz info
             dtype = object
 
-        return super(DatetimeArray, self).__array__(dtype=dtype)
+        return super().__array__(dtype=dtype)
 
     def __iter__(self):
         """
         Return an iterator over the boxed values
 
         Yields
-        -------
+        ------
         tstamp : Timestamp
         """
 
@@ -677,7 +680,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     def _has_same_tz(self, other):
         zzone = self._timezone
 
-        # vzone sholdn't be None if value is non-datetime like
+        # vzone shouldn't be None if value is non-datetime like
         if isinstance(other, np.datetime64):
             # convert to Timestamp as np.datetime64 doesn't have tz attr
             other = Timestamp(other)
@@ -779,7 +782,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         -------
         result : DatetimeArray
         """
-        new_values = super(DatetimeArray, self)._add_delta(delta)
+        new_values = super()._add_delta(delta)
         return type(self)._from_sequence(new_values, tz=self.tz, freq='infer')
 
     # -----------------------------------------------------------------
@@ -792,7 +795,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         This is used to calculate time-of-day information as if the timestamps
         were timezone-naive.
         """
-        return conversion.tz_convert(self.asi8, utc, self.tz)
+        return tzconversion.tz_convert(self.asi8, utc, self.tz)
 
     def tz_convert(self, tz):
         """
@@ -903,8 +906,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
@@ -1040,8 +1043,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         if self.tz is not None:
             if tz is None:
-                new_dates = conversion.tz_convert(self.asi8, timezones.UTC,
-                                                  self.tz)
+                new_dates = tzconversion.tz_convert(self.asi8, timezones.UTC,
+                                                    self.tz)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
@@ -2034,7 +2037,7 @@ def validate_tz_from_dtype(dtype, tz):
     ValueError : on tzinfo mismatch
     """
     if dtype is not None:
-        if isinstance(dtype, compat.string_types):
+        if isinstance(dtype, str):
             try:
                 dtype = DatetimeTZDtype.construct_from_string(dtype)
             except TypeError:
@@ -2120,7 +2123,8 @@ def _maybe_normalize_endpoints(start, end, normalize):
     return start, end, _normalized
 
 
-def _maybe_localize_point(ts, is_none, is_not_none, freq, tz):
+def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous,
+                          nonexistent):
     """
     Localize a start or end Timestamp to the timezone of the corresponding
     start or end Timestamp
@@ -2132,6 +2136,8 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz):
     is_not_none : argument that should not be None
     freq : Tick, DateOffset, or None
     tz : str, timezone object or None
+    ambiguous: str, localization behavior for ambiguous times
+    nonexistent: str, localization behavior for nonexistent times
 
     Returns
     -------
@@ -2140,10 +2146,13 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz):
     # Make sure start and end are timezone localized if:
     # 1) freq = a Timedelta-like frequency (Tick)
     # 2) freq = None i.e. generating a linspaced range
-    if isinstance(freq, Tick) or freq is None:
-        localize_args = {'tz': tz, 'ambiguous': False}
-    else:
-        localize_args = {'tz': None}
     if is_none is None and is_not_none is not None:
+        # Note: We can't ambiguous='infer' a singular ambiguous time; however,
+        # we have historically defaulted ambiguous=False
+        ambiguous = ambiguous if ambiguous != 'infer' else False
+        localize_args = {'ambiguous': ambiguous, 'nonexistent': nonexistent,
+                         'tz': None}
+        if isinstance(freq, Tick) or freq is None:
+            localize_args['tz'] = tz
         ts = ts.tz_localize(**localize_args)
     return ts

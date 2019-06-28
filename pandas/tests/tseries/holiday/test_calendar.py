@@ -43,7 +43,7 @@ def test_calendar_caching():
 
     class TestCalendar(AbstractHolidayCalendar):
         def __init__(self, name=None, rules=None):
-            super(TestCalendar, self).__init__(name=name, rules=rules)
+            super().__init__(name=name, rules=rules)
 
     jan1 = TestCalendar(rules=[Holiday("jan1", year=2015, month=1, day=1)])
     jan2 = TestCalendar(rules=[Holiday("jan2", year=2015, month=1, day=2)])

@@ -1,15 +1,9 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 import datetime
-from distutils.version import LooseVersion
 
 import dateutil
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -17,13 +11,6 @@ from pandas import Categorical, DataFrame, Series, Timestamp, date_range
 from pandas.tests.frame.common import _check_mixed_float
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-
-try:
-    import scipy
-    _is_scipy_ge_0190 = (LooseVersion(scipy.__version__) >=
-                         LooseVersion('0.19.0'))
-except ImportError:
-    _is_scipy_ge_0190 = False
 
 
 def _skip_if_no_pchip():
@@ -34,7 +21,7 @@ def _skip_if_no_pchip():
         pytest.skip('scipy.interpolate.pchip missing')
 
 
-class TestDataFrameMissingData():
+class TestDataFrameMissingData:
 
     def test_dropEmptyRows(self, float_frame):
         N = len(float_frame.index)
@@ -83,7 +70,6 @@ class TestDataFrameMissingData():
         tm.assert_index_equal(samesize_frame.index, float_frame.index)
         tm.assert_index_equal(inp_frame2.index, float_frame.index)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_dropna(self):
         df = DataFrame(np.random.randn(6, 4))
         df[2][:2] = np.nan
@@ -96,7 +82,7 @@ class TestDataFrameMissingData():
         assert_frame_equal(inp, expected)
 
         dropped = df.dropna(axis=0)
-        expected = df.loc[lrange(2, 6)]
+        expected = df.loc[list(range(2, 6))]
         inp = df.copy()
         inp.dropna(axis=0, inplace=True)
         assert_frame_equal(dropped, expected)
@@ -111,7 +97,7 @@ class TestDataFrameMissingData():
         assert_frame_equal(inp, expected)
 
         dropped = df.dropna(axis=0, thresh=4)
-        expected = df.loc[lrange(2, 6)]
+        expected = df.loc[range(2, 6)]
         inp = df.copy()
         inp.dropna(axis=0, thresh=4, inplace=True)
         assert_frame_equal(dropped, expected)
@@ -255,14 +241,15 @@ class TestDataFrameMissingData():
         result = mf.fillna(method='pad')
         _check_mixed_float(result, dtype=dict(C=None))
 
-    def test_fillna_other(self):
+    def test_fillna_empty(self):
         # empty frame (GH #2778)
         df = DataFrame(columns=['x'])
         for m in ['pad', 'backfill']:
             df.x.fillna(method=m, inplace=True)
             df.x.fillna(method=m)
 
-        # with different dtype (GH3386)
+    def test_fillna_different_dtype(self):
+        # with different dtype (GH#3386)
         df = DataFrame([['a', 'a', np.nan, 'a'], [
                        'b', 'b', np.nan, 'b'], ['c', 'c', np.nan, 'c']])
 
@@ -275,6 +262,7 @@ class TestDataFrameMissingData():
         df.fillna({2: 'foo'}, inplace=True)
         assert_frame_equal(df, expected)
 
+    def test_fillna_limit_and_value(self):
         # limit and value
         df = DataFrame(np.random.randn(10, 3))
         df.iloc[2:7, 0] = np.nan
@@ -286,8 +274,9 @@ class TestDataFrameMissingData():
         result = df.fillna(999, limit=1)
         assert_frame_equal(result, expected)
 
+    def test_fillna_datelike(self):
         # with datelike
-        # GH 6344
+        # GH#6344
         df = DataFrame({
             'Date': [pd.NaT, Timestamp("2014-1-1")],
             'Date2': [Timestamp("2013-1-1"), pd.NaT]
@@ -299,8 +288,9 @@ class TestDataFrameMissingData():
         result = df.fillna(value={'Date': df['Date2']})
         assert_frame_equal(result, expected)
 
+    def test_fillna_tzaware(self):
         # with timezone
-        # GH 15855
+        # GH#15855
         df = pd.DataFrame({'A': [pd.Timestamp('2012-11-11 00:00:00+01:00'),
                                  pd.NaT]})
         exp = pd.DataFrame({'A': [pd.Timestamp('2012-11-11 00:00:00+01:00'),
@@ -313,8 +303,9 @@ class TestDataFrameMissingData():
                                   pd.Timestamp('2012-11-11 00:00:00+01:00')]})
         assert_frame_equal(df.fillna(method='bfill'), exp)
 
+    def test_fillna_tzaware_different_column(self):
         # with timezone in another column
-        # GH 15522
+        # GH#15522
         df = pd.DataFrame({'A': pd.date_range('20130101', periods=4,
                                               tz='US/Eastern'),
                            'B': [1, 2, np.nan, np.nan]})
@@ -427,9 +418,9 @@ class TestDataFrameMissingData():
         assert_series_equal(result, expected)
 
         # empty block
-        df = DataFrame(index=lrange(3), columns=['A', 'B'], dtype='float64')
+        df = DataFrame(index=range(3), columns=['A', 'B'], dtype='float64')
         result = df.fillna('nan')
-        expected = DataFrame('nan', index=lrange(3), columns=['A', 'B'])
+        expected = DataFrame('nan', index=range(3), columns=['A', 'B'])
         assert_frame_equal(result, expected)
 
         # equiv of replace
@@ -524,6 +515,22 @@ class TestDataFrameMissingData():
 
         # it works!
         df.fillna(np.nan)
+
+    @pytest.mark.parametrize("type", [int, float])
+    def test_fillna_positive_limit(self, type):
+        df = DataFrame(np.random.randn(10, 4)).astype(type)
+
+        msg = "Limit must be greater than 0"
+        with pytest.raises(ValueError, match=msg):
+            df.fillna(0, limit=-5)
+
+    @pytest.mark.parametrize("type", [int, float])
+    def test_fillna_integer_limit(self, type):
+        df = DataFrame(np.random.randn(10, 4)).astype(type)
+
+        msg = "Limit must be an integer"
+        with pytest.raises(ValueError, match=msg):
+            df.fillna(0, limit=0.5)
 
     def test_fillna_inplace(self):
         df = DataFrame(np.random.randn(10, 4))
@@ -629,7 +636,7 @@ class TestDataFrameMissingData():
     def test_fillna_col_reordering(self):
         cols = ["COL." + str(i) for i in range(5, 0, -1)]
         data = np.random.rand(20, 5)
-        df = DataFrame(index=lrange(20), columns=cols, data=data)
+        df = DataFrame(index=range(20), columns=cols, data=data)
         filled = df.fillna(method='ffill')
         assert df.columns.tolist() == filled.columns.tolist()
 
@@ -657,7 +664,7 @@ class TestDataFrameMissingData():
         assert_frame_equal(res, exp)
 
 
-class TestDataFrameInterpolate():
+class TestDataFrameInterpolate:
 
     def test_interp_basic(self):
         df = DataFrame({'A': [1, 2, np.nan, 4],
@@ -719,14 +726,8 @@ class TestDataFrameInterpolate():
 
         result = df.interpolate(method='cubic')
         # GH #15662.
-        # new cubic and quadratic interpolation algorithms from scipy 0.19.0.
-        # previously `splmake` was used. See scipy/scipy#6710
-        if _is_scipy_ge_0190:
-            expected.A.loc[3] = 2.81547781
-            expected.A.loc[13] = 5.52964175
-        else:
-            expected.A.loc[3] = 2.81621174
-            expected.A.loc[13] = 5.64146581
+        expected.A.loc[3] = 2.81547781
+        expected.A.loc[13] = 5.52964175
         assert_frame_equal(result, expected)
 
         result = df.interpolate(method='nearest')
@@ -735,12 +736,8 @@ class TestDataFrameInterpolate():
         assert_frame_equal(result, expected, check_dtype=False)
 
         result = df.interpolate(method='quadratic')
-        if _is_scipy_ge_0190:
-            expected.A.loc[3] = 2.82150771
-            expected.A.loc[13] = 6.12648668
-        else:
-            expected.A.loc[3] = 2.82533638
-            expected.A.loc[13] = 6.02817974
+        expected.A.loc[3] = 2.82150771
+        expected.A.loc[13] = 6.12648668
         assert_frame_equal(result, expected)
 
         result = df.interpolate(method='slinear')
@@ -772,14 +769,10 @@ class TestDataFrameInterpolate():
         assert_frame_equal(result, expectedk)
 
         _skip_if_no_pchip()
-        import scipy
+
         result = df.interpolate(method='pchip')
         expected.loc[2, 'A'] = 3
-
-        if LooseVersion(scipy.__version__) >= LooseVersion('0.17.0'):
-            expected.loc[5, 'A'] = 6.0
-        else:
-            expected.loc[5, 'A'] = 6.125
+        expected.loc[5, 'A'] = 6.0
 
         assert_frame_equal(result, expected)
 

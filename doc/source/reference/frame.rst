@@ -48,7 +48,6 @@ Conversion
    :toctree: api/
 
    DataFrame.astype
-   DataFrame.convert_objects
    DataFrame.infer_objects
    DataFrame.copy
    DataFrame.isna
@@ -116,7 +115,7 @@ Binary operator functions
    DataFrame.combine
    DataFrame.combine_first
 
-Function application, GroupBy & Window
+Function application, GroupBy & window
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
@@ -134,7 +133,7 @@ Function application, GroupBy & Window
 
 .. _api.dataframe.stats:
 
-Computations / Descriptive Stats
+Computations / descriptive stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
@@ -178,7 +177,7 @@ Computations / Descriptive Stats
    DataFrame.var
    DataFrame.nunique
 
-Reindexing / Selection / Label manipulation
+Reindexing / selection / label manipulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
@@ -205,7 +204,6 @@ Reindexing / Selection / Label manipulation
    DataFrame.rename_axis
    DataFrame.reset_index
    DataFrame.sample
-   DataFrame.select
    DataFrame.set_axis
    DataFrame.set_index
    DataFrame.tail
@@ -243,7 +241,6 @@ Reshaping, sorting, transposing
    DataFrame.swapaxes
    DataFrame.melt
    DataFrame.squeeze
-   DataFrame.to_panel
    DataFrame.to_xarray
    DataFrame.T
    DataFrame.transpose
@@ -312,7 +309,30 @@ specific plotting methods of the form ``DataFrame.plot.<kind>``.
    DataFrame.boxplot
    DataFrame.hist
 
-Serialization / IO / Conversion
+
+.. _api.frame.sparse:
+
+Sparse accessor
+~~~~~~~~~~~~~~~
+
+Sparse-dtype specific methods and attributes are provided under the
+``DataFrame.sparse`` accessor.
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_attribute.rst
+
+   DataFrame.sparse.density
+
+.. autosummary::
+   :toctree: api/
+
+   DataFrame.sparse.from_spmatrix
+   DataFrame.sparse.to_coo
+   DataFrame.sparse.to_dense
+
+
+Serialization / IO / conversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/

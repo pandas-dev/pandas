@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
 import re
 
@@ -6,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import long
 
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
@@ -66,7 +64,7 @@ def dtype_fill_out_dtype(request):
     return request.param
 
 
-class TestTake(object):
+class TestTake:
     # Standard incompatible fill error.
     fill_error = re.compile("Incompatible type for fill_value")
 
@@ -353,8 +351,7 @@ class TestTake(object):
 
     def test_2d_datetime64(self):
         # 2005/01/01 - 2006/01/01
-        arr = np.random.randint(
-            long(11045376), long(11360736), (5, 3)) * 100000000000
+        arr = np.random.randint(11045376, 11360736, (5, 3)) * 100000000000
         arr = arr.view(dtype='datetime64[ns]')
         indexer = [0, 2, -1, 1, -1]
 
@@ -423,8 +420,13 @@ class TestTake(object):
         expected = np.array([[0, 0], [3, 0], [6, 0], [9, 0]])
         tm.assert_numpy_array_equal(result, expected)
 
+        # GH#26976 make sure we validate along the correct axis
+        with pytest.raises(IndexError, match="indices are out-of-bounds"):
+            algos.take(arr, [0, 3], axis=1, allow_fill=True,
+                       fill_value=0)
 
-class TestExtensionTake(object):
+
+class TestExtensionTake:
     # The take method found in pd.api.extensions
 
     def test_bounds_check_large(self):

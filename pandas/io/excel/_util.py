@@ -1,7 +1,6 @@
 import warnings
 
-import pandas.compat as compat
-from pandas.compat import lrange, range
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_integer, is_list_like
 
@@ -39,11 +38,11 @@ def _get_default_writer(ext):
         The default engine for the extension.
     """
     _default_writers = {'xlsx': 'openpyxl', 'xlsm': 'openpyxl', 'xls': 'xlwt'}
-    try:
-        import xlsxwriter  # noqa
+    xlsxwriter = import_optional_dependency("xlsxwriter",
+                                            raise_on_missing=False,
+                                            on_version="warn")
+    if xlsxwriter:
         _default_writers['xlsx'] = 'xlsxwriter'
-    except ImportError:
-        pass
     return _default_writers[ext]
 
 
@@ -113,7 +112,7 @@ def _range2cols(areas):
     for rng in areas.split(","):
         if ":" in rng:
             rng = rng.split(":")
-            cols.extend(lrange(_excel2num(rng[0]), _excel2num(rng[1]) + 1))
+            cols.extend(range(_excel2num(rng[0]), _excel2num(rng[1]) + 1))
         else:
             cols.append(_excel2num(rng))
 
@@ -142,9 +141,9 @@ def _maybe_convert_usecols(usecols):
                        "deprecated. Please pass in a list of int from "
                        "0 to `usecols` inclusive instead."),
                       FutureWarning, stacklevel=2)
-        return lrange(usecols + 1)
+        return list(range(usecols + 1))
 
-    if isinstance(usecols, compat.string_types):
+    if isinstance(usecols, str):
         return _range2cols(usecols)
 
     return usecols
@@ -174,39 +173,6 @@ def _trim_excel_header(row):
     return row
 
 
-def _maybe_convert_to_string(row):
-    """
-    Convert elements in a row to string from Unicode.
-
-    This is purely a Python 2.x patch and is performed ONLY when all
-    elements of the row are string-like.
-
-    Parameters
-    ----------
-    row : array-like
-        The row of data to convert.
-
-    Returns
-    -------
-    converted : array-like
-    """
-    if compat.PY2:
-        converted = []
-
-        for i in range(len(row)):
-            if isinstance(row[i], compat.string_types):
-                try:
-                    converted.append(str(row[i]))
-                except UnicodeEncodeError:
-                    break
-            else:
-                break
-        else:
-            row = converted
-
-    return row
-
-
 def _fill_mi_header(row, control_row):
     """Forward fill blank entries in row but only inside the same parent index.
 
@@ -221,7 +187,7 @@ def _fill_mi_header(row, control_row):
         different indexes.
 
     Returns
-    ----------
+    -------
     Returns changed row and control_row
     """
     last = row[0]
@@ -235,7 +201,7 @@ def _fill_mi_header(row, control_row):
             control_row[i] = False
             last = row[i]
 
-    return _maybe_convert_to_string(row), control_row
+    return row, control_row
 
 
 def _pop_header_name(row, index_col):

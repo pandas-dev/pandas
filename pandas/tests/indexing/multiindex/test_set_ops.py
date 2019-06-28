@@ -4,7 +4,7 @@ from pandas import DataFrame, MultiIndex, Series
 from pandas.util import testing as tm
 
 
-class TestMultiIndexSetOps(object):
+class TestMultiIndexSetOps:
 
     def test_multiindex_symmetric_difference(self):
         # GH 13490
