@@ -620,17 +620,16 @@ def _maybe_promote_with_array(dtype, fill_value=np.nan):
         return dtype, np.nan
     elif is_float_dtype(dtype) and is_float_dtype(fill_dtype):
         # float with float; upcasts depending on absolute max of fill_value
-        fill_max = np.abs(fill_value).max()
-        if dtype == 'float32' and fill_max <= _float32_max:
+        if dtype == 'float32' and np.abs(fill_value).max() <= _float32_max:
             return dtype, np.nan
         # all other cases return float64
         return np.dtype('float64'), np.nan
     elif ((is_float_dtype(dtype) or is_complex_dtype(dtype))
           and (is_float_dtype(fill_dtype) or is_complex_dtype(fill_dtype))):
         # at least one is complex; otherwise we'd have hit float/float above
-        fill_max = max(np.abs(fill_value.real).max(),  # also works for float
-                       np.abs(fill_value.imag).max())
-        if dtype in ['float32', 'complex64'] and fill_max <= _float32_max:
+        if (dtype in ['float32', 'complex64']
+            and max(np.abs(fill_value.real).max(),  # also works for float
+                    np.abs(fill_value.imag).max()) <= _float32_max):
             return np.complex64, np.nan
         # all other cases return complex128
         return np.dtype('complex128'), np.nan
