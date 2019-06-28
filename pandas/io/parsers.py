@@ -540,14 +540,8 @@ _deprecated_args = {
 
 def _make_parser_function(name, default_sep=','):
 
-    # prepare read_table deprecation
-    if name == "read_table":
-        sep = False
-    else:
-        sep = default_sep
-
     def parser_f(filepath_or_buffer: FilePathOrBuffer,
-                 sep=sep,
+                 sep=default_sep,
                  delimiter=None,
 
                  # Column and Index Locations and Names
@@ -612,19 +606,6 @@ def _make_parser_function(name, default_sep=','):
                  low_memory=_c_parser_defaults['low_memory'],
                  memory_map=False,
                  float_precision=None):
-
-        # deprecate read_table GH21948
-        if name == "read_table":
-            if sep is False and delimiter is None:
-                warnings.warn("read_table is deprecated, use read_csv "
-                              "instead, passing sep='\\t'.",
-                              FutureWarning, stacklevel=2)
-            else:
-                warnings.warn("read_table is deprecated, use read_csv "
-                              "instead.",
-                              FutureWarning, stacklevel=2)
-            if sep is False:
-                sep = default_sep
 
         # gh-23761
         #
@@ -732,10 +713,7 @@ read_csv = Appender(_doc_read_csv_and_table.format(
 read_table = _make_parser_function('read_table', default_sep='\t')
 read_table = Appender(_doc_read_csv_and_table.format(
                       func_name='read_table',
-                      summary="""Read general delimited file into DataFrame.
-
-.. deprecated:: 0.24.0
-  Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
+                      summary='Read general delimited file into DataFrame.',
                       _default_sep=r"'\\t' (tab-stop)")
                       )(read_table)
 
