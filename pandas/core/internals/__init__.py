@@ -1,3 +1,4 @@
+
 from .blocks import (  # noqa: F401
     Block, BoolBlock, CategoricalBlock, ComplexBlock, DatetimeBlock,
     DatetimeTZBlock, ExtensionBlock, FloatBlock, IntBlock, ObjectBlock,
@@ -9,7 +10,7 @@ from .managers import (  # noqa: F401
 from .blocks import _safe_reshape  # noqa: F401; io.packers
 from .blocks import make_block  # noqa: F401; io.pytables, io.packers
 from .managers import (  # noqa: F401; reshape.concat, reshape.merge
+    _transform_index,
     concatenate_block_managers)
-from .managers import items_overlap_with_suffix  # noqa: F401; reshape.merge
 
 from .blocks import _block_shape  # noqa:F401; io.pytables

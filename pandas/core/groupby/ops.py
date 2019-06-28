@@ -475,7 +475,8 @@ class BaseGrouper:
         else:
             if axis > 0:
                 swapped = True
-                values = values.swapaxes(0, axis)
+                assert axis == 1, axis
+                values = values.T
             if arity > 1:
                 raise NotImplementedError("arity of more than 1 is not "
                                           "supported for the 'how' argument")

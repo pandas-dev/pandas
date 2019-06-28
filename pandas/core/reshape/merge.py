@@ -3,6 +3,7 @@ SQL-style merge routines
 """
 
 import copy
+from functools import partial
 import string
 import warnings
 
@@ -27,8 +28,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
 from pandas.core.frame import _merge_doc
-from pandas.core.internals import (
-    concatenate_block_managers, items_overlap_with_suffix)
+from pandas.core.internals import _transform_index, concatenate_block_managers
 import pandas.core.sorting as sorting
 from pandas.core.sorting import is_int64_overflow_possible
 
@@ -555,8 +555,8 @@ class _MergeOperation:
         ldata, rdata = self.left._data, self.right._data
         lsuf, rsuf = self.suffixes
 
-        llabels, rlabels = items_overlap_with_suffix(ldata.items, lsuf,
-                                                     rdata.items, rsuf)
+        llabels, rlabels = _items_overlap_with_suffix(ldata.items, lsuf,
+                                                      rdata.items, rsuf)
 
         lindexers = {1: left_indexer} if left_indexer is not None else {}
         rindexers = {1: right_indexer} if right_indexer is not None else {}
@@ -1303,8 +1303,8 @@ class _OrderedMerge(_MergeOperation):
         ldata, rdata = self.left._data, self.right._data
         lsuf, rsuf = self.suffixes
 
-        llabels, rlabels = items_overlap_with_suffix(ldata.items, lsuf,
-                                                     rdata.items, rsuf)
+        llabels, rlabels = _items_overlap_with_suffix(ldata.items, lsuf,
+                                                      rdata.items, rsuf)
 
         if self.fill_method == 'ffill':
             left_join_indexer = libjoin.ffill_indexer(left_indexer)
@@ -1809,3 +1809,45 @@ def validate_operand(obj):
     else:
         raise TypeError('Can only merge Series or DataFrame objects, '
                         'a {obj} was passed'.format(obj=type(obj)))
+
+
+def _items_overlap_with_suffix(left, lsuffix, right, rsuffix):
+    """
+    If two indices overlap, add suffixes to overlapping entries.
+
+    If corresponding suffix is empty, the entry is simply converted to string.
+
+    """
+    to_rename = left.intersection(right)
+    if len(to_rename) == 0:
+        return left, right
+
+    if not lsuffix and not rsuffix:
+        raise ValueError('columns overlap but no suffix specified: '
+                         '{rename}'.format(rename=to_rename))
+
+    def renamer(x, suffix):
+        """
+        Rename the left and right indices.
+
+        If there is overlap, and suffix is not None, add
+        suffix, otherwise, leave it as-is.
+
+        Parameters
+        ----------
+        x : original column name
+        suffix : str or None
+
+        Returns
+        -------
+        x : renamed column name
+        """
+        if x in to_rename and suffix is not None:
+            return '{x}{suffix}'.format(x=x, suffix=suffix)
+        return x
+
+    lrenamer = partial(renamer, suffix=lsuffix)
+    rrenamer = partial(renamer, suffix=rsuffix)
+
+    return (_transform_index(left, lrenamer),
+            _transform_index(right, rrenamer))

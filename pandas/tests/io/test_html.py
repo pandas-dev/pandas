@@ -262,6 +262,7 @@ class TestReadHtml:
             self.read_html('git://github.com', match='.*Water.*')
 
     @network
+    @pytest.mark.slow
     def test_invalid_url(self):
         try:
             with pytest.raises(URLError):
