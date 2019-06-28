@@ -228,7 +228,8 @@ def _maybe_get_mask(values: np.ndarray, skipna: bool,
 
 
 def _get_values(values: np.ndarray, skipna: bool, fill_value: Any = None,
-                fill_value_typ: str = None, mask: Optional[np.ndarray] = None
+                fill_value_typ: Optional[str] = None,
+                mask: Optional[np.ndarray] = None
                 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.dtype,
                            np.dtype, Any]:
     """ Utility to get the values view, mask, dtype, dtype_max, and fill_value.
