@@ -3,7 +3,7 @@
 {{ header }}
 
 ****************
-Extending Pandas
+Extending pandas
 ****************
 
 While pandas provides a rich set of methods, containers, and data types, your
@@ -12,7 +12,7 @@ pandas.
 
 .. _extending.register-accessors:
 
-Registering Custom Accessors
+Registering custom accessors
 ----------------------------
 
 Libraries can use the decorators
@@ -26,7 +26,7 @@ decorate a class, providing the name of attribute to add. The class's
 .. code-block:: python
 
    @pd.api.extensions.register_dataframe_accessor("geo")
-   class GeoAccessor(object):
+   class GeoAccessor:
        def __init__(self, pandas_obj):
            self._validate(pandas_obj)
            self._obj = pandas_obj
@@ -70,7 +70,7 @@ applies only to certain dtypes.
 
 .. _extending.extension-types:
 
-Extension Types
+Extension types
 ---------------
 
 .. versionadded:: 0.23.0
@@ -210,7 +210,7 @@ will
 
 .. _extending.extension.testing:
 
-Testing Extension Arrays
+Testing extension arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 We provide a test suite for ensuring that your extension arrays satisfy the expected
@@ -238,7 +238,7 @@ for a list of all the tests available.
 
 .. _extending.subclassing-pandas:
 
-Subclassing pandas Data Structures
+Subclassing pandas data structures
 ----------------------------------
 
 .. warning:: There are some easier alternatives before considering subclassing ``pandas`` data structures.
@@ -260,7 +260,7 @@ This section describes how to subclass ``pandas`` data structures to meet more s
 
    You can find a nice example in `geopandas <https://github.com/geopandas/geopandas>`_ project.
 
-Override Constructor Properties
+Override constructor properties
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Each data structure has several *constructor properties* for returning a new
@@ -271,7 +271,7 @@ There are 3 constructor properties to be defined:
 
 * ``_constructor``: Used when a manipulation result has the same dimensions as the original.
 * ``_constructor_sliced``: Used when a manipulation result has one lower dimension(s) as the original, such as ``DataFrame`` single columns slicing.
-* ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()`` and ``DataFrame.to_panel()``.
+* ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()``.
 
 Following table shows how ``pandas`` data structures define constructor properties by default.
 
@@ -280,7 +280,7 @@ Property Attributes          ``Series``              ``DataFrame``
 ===========================  ======================= =============
 ``_constructor``             ``Series``              ``DataFrame``
 ``_constructor_sliced``      ``NotImplementedError`` ``Series``
-``_constructor_expanddim``   ``DataFrame``           ``Panel``
+``_constructor_expanddim``   ``DataFrame``           ``NotImplementedError``
 ===========================  ======================= =============
 
 Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
@@ -348,7 +348,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> type(sliced2)
    <class '__main__.SubclassedSeries'>
 
-Define Original Properties
+Define original properties
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To let original data structures have additional properties, you should let ``pandas`` know what properties are added. ``pandas`` maps unknown properties to data names overriding ``__getattribute__``. Defining original properties can be done in one of 2 ways:

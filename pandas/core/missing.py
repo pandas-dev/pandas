@@ -1,13 +1,12 @@
 """
 Routines for filling missing data.
 """
-from distutils.version import LooseVersion
 import operator
 
 import numpy as np
 
 from pandas._libs import algos, lib
-from pandas.compat import range, string_types
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
@@ -73,7 +72,7 @@ def clean_fill_method(method, allow_nearest=False):
     if method in [None, 'asfreq']:
         return None
 
-    if isinstance(method, string_types):
+    if isinstance(method, str):
         method = method.lower()
         if method == 'ffill':
             method = 'pad'
@@ -248,13 +247,9 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
     Returns an array interpolated at new_x.  Add any new methods to
     the list in _clean_interp_method.
     """
-    try:
-        from scipy import interpolate
-        # TODO: Why is DatetimeIndex being imported here?
-        from pandas import DatetimeIndex  # noqa
-    except ImportError:
-        raise ImportError('{method} interpolation requires SciPy'
-                          .format(method=method))
+    extra = '{method} interpolation requires SciPy.'.format(method=method)
+    import_optional_dependency('scipy', extra=extra)
+    from scipy import interpolate
 
     new_x = np.asarray(new_x)
 
@@ -277,12 +272,7 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
             raise ImportError("Your version of Scipy does not support "
                               "PCHIP interpolation.")
     elif method == 'akima':
-        try:
-            from scipy.interpolate import Akima1DInterpolator  # noqa
-            alt_methods['akima'] = _akima_interpolate
-        except ImportError:
-            raise ImportError("Your version of Scipy does not support "
-                              "Akima interpolation.")
+        alt_methods['akima'] = _akima_interpolate
 
     interp1d_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                         'polynomial']
@@ -347,16 +337,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     y : scalar or array_like
         The result, of length R or length M or M by R.
     """
-    import scipy
     from scipy import interpolate
-
-    if LooseVersion(scipy.__version__) < LooseVersion('0.18.0'):
-        try:
-            method = interpolate.piecewise_polynomial_interpolate
-            return method(xi, yi.reshape(-1, 1), x,
-                          orders=order, der=der)
-        except AttributeError:
-            pass
 
     # return the method for compat with scipy version & backwards compat
     method = interpolate.BPoly.from_derivatives
@@ -403,11 +384,8 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
     """
     from scipy import interpolate
-    try:
-        P = interpolate.Akima1DInterpolator(xi, yi, axis=axis)
-    except TypeError:
-        # Scipy earlier than 0.17.0 missing axis
-        P = interpolate.Akima1DInterpolator(xi, yi)
+    P = interpolate.Akima1DInterpolator(xi, yi, axis=axis)
+
     if der == 0:
         return P(x)
     elif interpolate._isscalar(der):
@@ -641,7 +619,7 @@ def mask_zero_div_zero(x, y, result, copy=False):
 
 def dispatch_missing(op, left, right, result):
     """
-    Fill nulls caused by division by zero, casting to a diffferent dtype
+    Fill nulls caused by division by zero, casting to a different dtype
     if necessary.
 
     Parameters

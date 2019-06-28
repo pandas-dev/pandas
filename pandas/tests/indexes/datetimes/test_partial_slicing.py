@@ -13,7 +13,7 @@ from pandas.core.indexing import IndexingError
 from pandas.util import testing as tm
 
 
-class TestSlicing(object):
+class TestSlicing:
     def test_dti_slicing(self):
         dti = date_range(start='1/1/2005', end='12/1/2005', freq='M')
         dti2 = dti[[1, 3, 5]]
@@ -94,7 +94,7 @@ class TestSlicing(object):
 
     def test_monotone_DTI_indexing_bug(self):
         # GH 19362
-        # Testing accessing the first element in a montononic descending
+        # Testing accessing the first element in a monotonic descending
         # partial string indexing.
 
         df = pd.DataFrame(list(range(5)))

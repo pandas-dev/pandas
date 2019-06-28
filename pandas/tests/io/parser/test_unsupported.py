@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that features that are currently unsupported in
 either the Python or C parser are actually enforced
@@ -8,10 +6,10 @@ and are clearly communicated to the user.
 Ultimately, the goal is to remove test cases from this
 test suite as new feature support is added to the parsers.
 """
+from io import StringIO
 
 import pytest
 
-from pandas.compat import StringIO
 from pandas.errors import ParserError
 
 import pandas.util.testing as tm
@@ -25,7 +23,7 @@ def python_engine(request):
     return request.param
 
 
-class TestUnsupportedFeatures(object):
+class TestUnsupportedFeatures:
 
     def test_mangle_dupe_cols_false(self):
         # see gh-12935
@@ -109,7 +107,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
     def test_python_engine_file_no_next(self, python_engine):
         # see gh-16530
-        class NoNextBuffer(object):
+        class NoNextBuffer:
             def __init__(self, csv_data):
                 self.data = csv_data
 
@@ -126,7 +124,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             read_csv(NoNextBuffer(data), engine=python_engine)
 
 
-class TestDeprecatedFeatures(object):
+class TestDeprecatedFeatures:
 
     @pytest.mark.parametrize("engine", ["c", "python"])
     @pytest.mark.parametrize("kwargs", [{"tupleize_cols": True},

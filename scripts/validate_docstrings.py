@@ -50,7 +50,6 @@ BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.insert(0, os.path.join(BASE_PATH))
 import pandas
-from pandas.compat import signature
 
 sys.path.insert(1, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
 from numpydoc.docscrape import NumpyDocString
@@ -151,7 +150,7 @@ def error(code, **kwargs):
     code : str
         Error code.
     message : str
-        Error message with varaibles replaced.
+        Error message with variables replaced.
     """
     return (code, ERROR_MSGS[code].format(**kwargs))
 
@@ -224,7 +223,7 @@ def get_api_items(api_doc_fd):
         previous_line = line
 
 
-class Docstring(object):
+class Docstring:
     def __init__(self, name):
         self.name = name
         obj = self._load_obj(name)
@@ -420,7 +419,7 @@ class Docstring(object):
                 # accessor classes have a signature but don't want to show this
                 return tuple()
         try:
-            sig = signature(self.obj)
+            sig = inspect.getfullargspec(self.obj)
         except (TypeError, ValueError):
             # Some objects, mainly in C extensions do not support introspection
             # of the signature
@@ -428,8 +427,8 @@ class Docstring(object):
         params = sig.args
         if sig.varargs:
             params.append("*" + sig.varargs)
-        if sig.keywords:
-            params.append("**" + sig.keywords)
+        if sig.varkw:
+            params.append("**" + sig.varkw)
         params = tuple(params)
         if params and params[0] in ('self', 'cls'):
             return params[1:]
@@ -473,9 +472,12 @@ class Docstring(object):
 
     @property
     def see_also(self):
-        return collections.OrderedDict((name, ''.join(desc))
-                                       for name, desc, _
-                                       in self.doc['See Also'])
+        result = collections.OrderedDict()
+        for funcs, desc in self.doc['See Also']:
+            for func, _ in funcs:
+                result[func] = ''.join(desc)
+
+        return result
 
     @property
     def examples(self):
@@ -538,13 +540,8 @@ class Docstring(object):
             return self.doc.split('\n')[0][-1] == '.'
 
     @property
-    def deprecated_with_directive(self):
-        return '.. deprecated:: ' in (self.summary + self.extended_summary)
-
-    @property
     def deprecated(self):
-        return (self.name.startswith('pandas.Panel')
-                or self.deprecated_with_directive)
+        return '.. deprecated:: ' in (self.summary + self.extended_summary)
 
     @property
     def mentioned_private_classes(self):
@@ -581,7 +578,7 @@ class Docstring(object):
         application = flake8.main.application.Application()
         application.initialize(["--quiet"])
 
-        with tempfile.NamedTemporaryFile(mode='w') as file:
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8') as file:
             file.write(content)
             file.flush()
             application.run_checks([file.name])
@@ -672,7 +669,7 @@ def get_validation_data(doc):
         errs.append(error('GL07',
                           correct_sections=', '.join(correct_order)))
 
-    if (doc.deprecated_with_directive
+    if (doc.deprecated
             and not doc.extended_summary.startswith('.. deprecated:: ')):
         errs.append(error('GL09'))
 
@@ -732,7 +729,7 @@ def get_validation_data(doc):
             if doc.method_returns_something:
                 errs.append(error('RT01'))
         else:
-            if len(doc.returns) == 1 and doc.returns[0][1]:
+            if len(doc.returns) == 1 and doc.returns[0].name:
                 errs.append(error('RT02'))
             for name_or_type, type_, desc in doc.returns:
                 if not desc:
@@ -857,9 +854,9 @@ def validate_all(prefix, ignore_deprecated=False):
 
         seen[shared_code_key] = func_name
 
-    # functions from introspecting Series, DataFrame and Panel
+    # functions from introspecting Series and DataFrame
     api_item_names = set(list(zip(*api_items))[0])
-    for class_ in (pandas.Series, pandas.DataFrame, pandas.Panel):
+    for class_ in (pandas.Series, pandas.DataFrame):
         for member in inspect.getmembers(class_):
             func_name = 'pandas.{}.{}'.format(class_.__name__, member[0])
             if (not member[0].startswith('_')

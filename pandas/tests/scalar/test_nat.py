@@ -142,8 +142,8 @@ def test_nat_iso_format(get_nat):
 
 @pytest.mark.parametrize("klass,expected", [
     (Timestamp, ["freqstr", "normalize", "to_julian_date", "to_period", "tz"]),
-    (Timedelta, ["components", "delta", "is_populated", "to_pytimedelta",
-                 "to_timedelta64", "view"])
+    (Timedelta, ["components", "delta", "is_populated", "resolution_string",
+                 "to_pytimedelta", "to_timedelta64", "view"])
 ])
 def test_missing_public_nat_methods(klass, expected):
     # see gh-17327
@@ -348,3 +348,12 @@ def test_to_numpy_alias():
     result = NaT.to_numpy()
 
     assert isna(expected) and isna(result)
+
+
+@pytest.mark.parametrize("other", [
+    Timedelta(0), Timestamp(0)
+])
+def test_nat_comparisons(compare_operators_no_eq_ne, other):
+    # GH 26039
+    assert getattr(NaT, compare_operators_no_eq_ne)(other) is False
+    assert getattr(other, compare_operators_no_eq_ne)(NaT) is False

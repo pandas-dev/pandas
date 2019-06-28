@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import period as libperiod
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -12,7 +11,7 @@ from pandas import (
 from pandas.util import testing as tm
 
 
-class TestGetItem(object):
+class TestGetItem:
     def test_ellipsis(self):
         # GH#21282
         idx = period_range('2011-01-01', '2011-01-31', freq='D',
@@ -116,7 +115,7 @@ class TestGetItem(object):
 
     def test_getitem_datetime(self):
         rng = period_range(start='2012-01-01', periods=10, freq='W-MON')
-        ts = Series(lrange(len(rng)), index=rng)
+        ts = Series(range(len(rng)), index=rng)
 
         dt1 = datetime(2011, 10, 2)
         dt4 = datetime(2012, 4, 20)
@@ -140,7 +139,7 @@ class TestGetItem(object):
     def test_getitem_list_periods(self):
         # GH 7710
         rng = period_range(start='2012-01-01', periods=10, freq='D')
-        ts = Series(lrange(len(rng)), index=rng)
+        ts = Series(range(len(rng)), index=rng)
         exp = ts.iloc[[1]]
         tm.assert_series_equal(ts[[Period('2012-01-02', freq='D')]], exp)
 
@@ -199,7 +198,7 @@ class TestGetItem(object):
                     s[v]
 
 
-class TestWhere(object):
+class TestWhere:
     @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
     def test_where(self, klass):
         i = period_range('20130101', periods=5, freq='D')
@@ -233,7 +232,7 @@ class TestWhere(object):
         tm.assert_index_equal(result, i2)
 
 
-class TestTake(object):
+class TestTake:
     def test_take(self):
         # GH#10295
         idx1 = pd.period_range('2011-01-01', '2011-01-31', freq='D',
@@ -332,7 +331,7 @@ class TestTake(object):
             idx.take(np.array([1, -5]))
 
 
-class TestIndexing(object):
+class TestIndexing:
 
     def test_get_loc_msg(self):
         idx = period_range('2000-1-1', freq='A', periods=10)

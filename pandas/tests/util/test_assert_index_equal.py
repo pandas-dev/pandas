@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
@@ -12,8 +10,11 @@ def test_index_equal_levels_mismatch():
 
 Index levels are different
 \\[left\\]:  1, Int64Index\\(\\[1, 2, 3\\], dtype='int64'\\)
-\\[right\\]: 2, MultiIndex\\(levels=\\[\\[u?'A', u?'B'\\], \\[1, 2, 3, 4\\]\\],
-           codes=\\[\\[0, 0, 1, 1\\], \\[0, 1, 2, 3\\]\\]\\)"""
+\\[right\\]: 2, MultiIndex\\(\\[\\('A', 1\\),
+            \\('A', 2\\),
+            \\('B', 3\\),
+            \\('B', 4\\)\\],
+           \\)"""
 
     idx1 = Index([1, 2, 3])
     idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2),
@@ -153,8 +154,8 @@ Attribute "names" are different
     if name1 == name2 or name1 is name2:
         assert_index_equal(idx1, idx2)
     else:
-        name1 = "u?'x'" if name1 == "x" else name1
-        name2 = "u?'x'" if name2 == "x" else name2
+        name1 = "'x'" if name1 == "x" else name1
+        name2 = "'x'" if name2 == "x" else name2
         msg = msg.format(name1=name1, name2=name2)
 
         with pytest.raises(AssertionError, match=msg):
@@ -165,8 +166,8 @@ def test_index_equal_category_mismatch(check_categorical):
     msg = """Index are different
 
 Attribute "dtype" are different
-\\[left\\]:  CategoricalDtype\\(categories=\\[u?'a', u?'b'\\], ordered=False\\)
-\\[right\\]: CategoricalDtype\\(categories=\\[u?'a', u?'b', u?'c'\\], \
+\\[left\\]:  CategoricalDtype\\(categories=\\['a', 'b'\\], ordered=False\\)
+\\[right\\]: CategoricalDtype\\(categories=\\['a', 'b', 'c'\\], \
 ordered=False\\)"""
 
     idx1 = Index(Categorical(["a", "b"]))

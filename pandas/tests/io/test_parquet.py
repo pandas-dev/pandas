@@ -1,13 +1,11 @@
 """ test parquet compat """
 import datetime
-from distutils.version import LooseVersion
 import os
 from warnings import catch_warnings
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY3
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -84,7 +82,7 @@ def df_full():
          'string_with_nan': ['a', np.nan, 'c'],
          'string_with_none': ['a', None, 'c'],
          'bytes': [b'foo', b'bar', b'baz'],
-         'unicode': [u'foo', u'bar', u'baz'],
+         'unicode': ['foo', 'bar', 'baz'],
          'int': list(range(1, 4)),
          'uint': np.arange(3, 6).astype('u1'),
          'float': np.arange(4.0, 7.0, dtype='float64'),
@@ -221,7 +219,7 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
             tm.assert_frame_equal(result, df[['a', 'd']])
 
 
-class Base(object):
+class Base:
 
     def check_error_on_write(self, df, engine, exc):
         # check that we are raising the exception on writing
@@ -242,7 +240,7 @@ class TestBasic(Base):
                            'int': list(range(1, 4))})
 
         # unicode
-        df.columns = [u'foo', u'bar']
+        df.columns = ['foo', 'bar']
         check_round_trip(df, engine)
 
     def test_columns_dtypes_invalid(self, engine):
@@ -253,10 +251,9 @@ class TestBasic(Base):
         df.columns = [0, 1]
         self.check_error_on_write(df, engine, ValueError)
 
-        if PY3:
-            # bytes on PY3, on PY2 these are str
-            df.columns = [b'foo', b'bar']
-            self.check_error_on_write(df, engine, ValueError)
+        # bytes
+        df.columns = [b'foo', b'bar']
+        self.check_error_on_write(df, engine, ValueError)
 
         # python object
         df.columns = [datetime.datetime(2011, 1, 1, 0, 0),
@@ -307,7 +304,7 @@ class TestBasic(Base):
         check_round_trip(df, engine)
 
     def test_write_multiindex(self, pa):
-        # Not suppoprted in fastparquet as of 0.1.3 or older pyarrow version
+        # Not supported in fastparquet as of 0.1.3 or older pyarrow version
         engine = pa
 
         df = pd.DataFrame({'A': [1, 2, 3]})
@@ -456,10 +453,8 @@ class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
         df = df_full
 
-        # additional supported types for fastparquet
-        if LooseVersion(fastparquet.__version__) >= LooseVersion('0.1.4'):
-            df['datetime_tz'] = pd.date_range('20130101', periods=3,
-                                              tz='US/Eastern')
+        df['datetime_tz'] = pd.date_range('20130101', periods=3,
+                                          tz='US/Eastern')
         df['timedelta'] = pd.timedelta_range('1 day', periods=3)
         check_round_trip(df, fp)
 
@@ -487,8 +482,6 @@ class TestParquetFastParquet(Base):
         self.check_error_on_write(df, fp, ValueError)
 
     def test_categorical(self, fp):
-        if LooseVersion(fastparquet.__version__) < LooseVersion("0.1.3"):
-            pytest.skip("CategoricalDtype not supported for older fp")
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         check_round_trip(df, fp)
 
@@ -514,7 +507,7 @@ class TestParquetFastParquet(Base):
             df.to_parquet(path, engine="fastparquet",
                           partition_cols=partition_cols, compression=None)
             assert os.path.exists(path)
-            import fastparquet
+            import fastparquet  # noqa: F811
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
 
@@ -526,7 +519,7 @@ class TestParquetFastParquet(Base):
             df.to_parquet(path, engine="fastparquet", compression=None,
                           partition_on=partition_cols)
             assert os.path.exists(path)
-            import fastparquet
+            import fastparquet  # noqa: F811
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
 

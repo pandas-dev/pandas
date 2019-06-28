@@ -5,7 +5,7 @@ import pandas as pd
 from pandas.util import testing as tm
 
 
-class TestTimedeltaIndexing(object):
+class TestTimedeltaIndexing:
     def test_boolean_indexing(self):
         # GH 14946
         df = pd.DataFrame({'x': range(10)})
@@ -95,3 +95,19 @@ class TestTimedeltaIndexing(object):
 
         assert expected == result
         tm.assert_frame_equal(df, df_copy)
+
+    def test_loc_str_slicing(self):
+        ix = pd.timedelta_range(start='1 day', end='2 days', freq='1H')
+        ser = ix.to_series()
+        result = ser.loc[:"1 days"]
+        expected = ser.iloc[:-1]
+
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_slicing(self):
+        ix = pd.timedelta_range(start='1 day', end='2 days', freq='1H')
+        ser = ix.to_series()
+        result = ser.loc[:ix[-2]]
+        expected = ser.iloc[:-1]
+
+        tm.assert_series_equal(result, expected)

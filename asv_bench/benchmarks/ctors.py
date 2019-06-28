@@ -39,7 +39,7 @@ def list_of_lists_with_none(arr):
     return [[i, -i] for i in arr][:-1] + [None]
 
 
-class SeriesConstructors(object):
+class SeriesConstructors:
 
     param_names = ["data_fmt", "with_index", "dtype"]
     params = [[no_change,
@@ -55,7 +55,14 @@ class SeriesConstructors(object):
               [False, True],
               ['float', 'int']]
 
+    # Generators get exhausted on use, so run setup before every call
+    number = 1
+    repeat = (3, 250, 10)
+
     def setup(self, data_fmt, with_index, dtype):
+        if data_fmt in (gen_of_str, gen_of_tuples) and with_index:
+            raise NotImplementedError('Series constructors do not support '
+                                      'using generators with indexes')
         N = 10**4
         if dtype == 'float':
             arr = np.random.randn(N)
@@ -68,7 +75,7 @@ class SeriesConstructors(object):
         Series(self.data, index=self.index)
 
 
-class SeriesDtypesConstructors(object):
+class SeriesDtypesConstructors:
 
     def setup(self):
         N = 10**4
@@ -90,7 +97,7 @@ class SeriesDtypesConstructors(object):
         Index(self.s)
 
 
-class MultiIndexConstructor(object):
+class MultiIndexConstructor:
 
     def setup(self):
         N = 10**4

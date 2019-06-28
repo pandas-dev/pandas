@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 import sys
 
@@ -11,7 +9,7 @@ from pandas import DataFrame, compat
 from pandas.util import testing as tm
 
 
-class TestToCSV(object):
+class TestToCSV:
 
     @pytest.mark.xfail((3, 6, 5) > sys.version_info >= (3, 5),
                        reason=("Python csv library bug "
@@ -46,18 +44,12 @@ class TestToCSV(object):
 
     def test_to_csv_defualt_encoding(self):
         # GH17097
-        df = DataFrame({'col': [u"AAAAA", u"ÄÄÄÄÄ", u"ßßßßß", u"聞聞聞聞聞"]})
+        df = DataFrame({'col': ["AAAAA", "ÄÄÄÄÄ", "ßßßßß", "聞聞聞聞聞"]})
 
         with tm.ensure_clean('test.csv') as path:
-            # the default to_csv encoding in Python 2 is ascii, and that in
-            # Python 3 is uft-8.
-            if pd.compat.PY2:
-                # the encoding argument parameter should be utf-8
-                with pytest.raises(UnicodeEncodeError, match='ascii'):
-                    df.to_csv(path)
-            else:
-                df.to_csv(path)
-                tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
+            # the default to_csv encoding is uft-8.
+            df.to_csv(path)
+            tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
 
     def test_to_csv_quotechar(self):
         df = DataFrame({'col': [1, 2]})
@@ -357,15 +349,15 @@ $1$,$2$
             with open(path, 'r') as f:
                 assert f.read() == expected_ascii
 
-    @pytest.mark.xfail
+    @pytest.mark.xfail(strict=False)
     def test_to_csv_string_array_utf8(self):
         # GH 10813
         str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]
         df = pd.DataFrame(str_array)
         expected_utf8 = '''\
 ,names
-0,"[u'foo', u'bar']"
-1,"[u'baz', u'qux']"
+0,"['foo', 'bar']"
+1,"['baz', 'qux']"
 '''
         with tm.ensure_clean('unicode_test.csv') as path:
             df.to_csv(path, encoding='utf-8')
@@ -494,7 +486,6 @@ z
             with open(path, 'r') as f:
                 assert f.read() == expected
 
-    @pytest.mark.skipif(compat.PY2, reason="Test case for python3")
     def test_to_csv_write_to_open_file_with_newline_py3(self):
         # see gh-21696
         # see gh-20353
@@ -511,24 +502,6 @@ z
 
             with open(path, 'rb') as f:
                 assert f.read() == bytes(expected, 'utf-8')
-
-    @pytest.mark.skipif(compat.PY3, reason="Test case for python2")
-    def test_to_csv_write_to_open_file_with_newline_py2(self):
-        # see gh-21696
-        # see gh-20353
-        df = pd.DataFrame({'a': ['x', 'y', 'z']})
-        expected_rows = ["x",
-                         "y",
-                         "z"]
-        expected = ("manual header\n" +
-                    tm.convert_rows_list_to_csv_str(expected_rows))
-        with tm.ensure_clean('test.txt') as path:
-            with open(path, 'wb') as f:
-                f.write('manual header\n')
-                df.to_csv(f, header=None, index=None)
-
-            with open(path, 'rb') as f:
-                assert f.read() == expected
 
     @pytest.mark.parametrize("to_infer", [True, False])
     @pytest.mark.parametrize("read_infer", [True, False])

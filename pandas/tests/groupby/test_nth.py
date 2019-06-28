@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
 from pandas.util.testing import (
@@ -84,9 +82,9 @@ def test_first_last_nth_dtypes(df_mixed_floats):
     assert_frame_equal(nth, expected)
 
     # GH 2763, first/last shifting dtypes
-    idx = lrange(10)
+    idx = list(range(10))
     idx.append(9)
-    s = Series(data=lrange(11), index=idx, name='IntCol')
+    s = Series(data=range(11), index=idx, name='IntCol')
     assert s.dtype == 'int64'
     f = s.groupby(level=0).first()
     assert f.dtype == 'int64'
@@ -284,18 +282,21 @@ def test_first_last_tz(data, expected_first, expected_last):
 ])
 def test_first_last_tz_multi_column(method, ts, alpha):
     # GH 21603
+    category_string = pd.Series(list('abc')).astype(
+        'category')
     df = pd.DataFrame({'group': [1, 1, 2],
-                       'category_string': pd.Series(list('abc')).astype(
-                           'category'),
+                       'category_string': category_string,
                        'datetimetz': pd.date_range('20130101', periods=3,
                                                    tz='US/Eastern')})
     result = getattr(df.groupby('group'), method)()
-    expepcted = pd.DataFrame({'category_string': [alpha, 'c'],
-                              'datetimetz': [ts,
-                                             Timestamp('2013-01-03',
-                                                       tz='US/Eastern')]},
-                             index=pd.Index([1, 2], name='group'))
-    assert_frame_equal(result, expepcted)
+    expected = pd.DataFrame(
+        {'category_string': pd.Categorical(
+            [alpha, 'c'], dtype=category_string.dtype),
+         'datetimetz': [ts,
+                        Timestamp('2013-01-03',
+                                  tz='US/Eastern')]},
+        index=pd.Index([1, 2], name='group'))
+    assert_frame_equal(result, expected)
 
 
 def test_nth_multi_index_as_expected():
@@ -433,4 +434,21 @@ def test_nth_column_order():
                           ['d', 150.0]],
                          columns=['C', 'B'],
                          index=Index([1, 2], name='A'))
+    assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [None, 'any', 'all'])
+def test_nth_nan_in_grouper(dropna):
+    # GH 26011
+    df = DataFrame([
+        [np.nan, 0, 1],
+        ['abc', 2, 3],
+        [np.nan, 4, 5],
+        ['def', 6, 7],
+        [np.nan, 8, 9],
+    ], columns=list('abc'))
+    result = df.groupby('a').nth(0, dropna=dropna)
+    expected = pd.DataFrame([[2, 3], [6, 7]], columns=list('bc'),
+                            index=Index(['abc', 'def'], name='a'))
+
     assert_frame_equal(result, expected)

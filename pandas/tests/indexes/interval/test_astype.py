@@ -1,5 +1,3 @@
-from __future__ import division
-
 import numpy as np
 import pytest
 
@@ -11,7 +9,7 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-class Base(object):
+class Base:
     """Tests common to IntervalIndex with any subtype"""
 
     def test_astype_idempotent(self, index):

@@ -3,7 +3,7 @@
 .. _api:
 
 =============
-API Reference
+API reference
 =============
 
 This page gives an overview of all public pandas objects, functions and
@@ -57,15 +57,6 @@ public functions related to data types in pandas.
         api/pandas.Index.is_type_compatible
         api/pandas.Index.nlevels
         api/pandas.Index.sort
-        api/pandas.Panel.agg
-        api/pandas.Panel.aggregate
-        api/pandas.Panel.blocks
-        api/pandas.Panel.empty
-        api/pandas.Panel.is_copy
-        api/pandas.Panel.items
-        api/pandas.Panel.ix
-        api/pandas.Panel.major_axis
-        api/pandas.Panel.minor_axis
         api/pandas.Series.asobject
         api/pandas.Series.blocks
         api/pandas.Series.from_array

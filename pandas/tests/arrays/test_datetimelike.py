@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
-
-import pandas.compat as compat
 
 import pandas as pd
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
@@ -56,7 +53,7 @@ def timedelta_index(request):
     return pd.TimedeltaIndex(['1 Day', '3 Hours', 'NaT'])
 
 
-class SharedTests(object):
+class SharedTests:
     index_cls = None
 
     def test_compare_len1_raises(self):
@@ -133,10 +130,10 @@ class SharedTests(object):
         data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq='D')
         result = arr._unbox_scalar(arr[0])
-        assert isinstance(result, (int, compat.long))
+        assert isinstance(result, int)
 
         result = arr._unbox_scalar(pd.NaT)
-        assert isinstance(result, (int, compat.long))
+        assert isinstance(result, int)
 
         with pytest.raises(ValueError):
             arr._unbox_scalar('foo')
@@ -453,7 +450,7 @@ class TestDatetimeArray(SharedTests):
             arr._concat_same_type([arr, other])
 
     def test_concat_same_type_different_freq(self):
-        # we *can* concatentate DTI with different freqs.
+        # we *can* concatenate DTI with different freqs.
         a = DatetimeArray(pd.date_range('2000', periods=2, freq='D',
                                         tz='US/Central'))
         b = DatetimeArray(pd.date_range('2000', periods=2, freq='H',
