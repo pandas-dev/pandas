@@ -690,7 +690,12 @@ class Index(IndexOpsMixin, PandasObject):
     def dtype_str(self):
         """
         Return the dtype str of the underlying data.
+
+        .. deprecated:: 0.25.0
         """
+        warnings.warn('`dtype_str` has been deprecated. Call `str` on the '
+                      'dtype attribute instead.', FutureWarning,
+                      stacklevel=2)
         return str(self.dtype)
 
     def ravel(self, order='C'):
@@ -4170,7 +4175,8 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         bool
-            If two Index objects have equal elements True, otherwise False.
+            True if "other" is an Index and it has the same elements as calling
+            index; False otherwise.
         """
         if self.is_(other):
             return True

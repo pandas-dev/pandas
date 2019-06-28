@@ -617,10 +617,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Apply the `put` method to its `values` attribute if it has one.
 
+        .. deprecated:: 0.25.0
+
         See Also
         --------
         numpy.ndarray.put
         """
+        warnings.warn('`put` has been deprecated and will be removed in a'
+                      'future version.', FutureWarning, stacklevel=2)
         self._values.put(*args, **kwargs)
 
     def __len__(self):
@@ -793,7 +797,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def real(self):
         """
         Return the real value of vector.
+
+        .. deprecated 0.25.0
         """
+        warnings.warn("`real` has be deprecated and will be removed in a "
+                      "future verison", FutureWarning, stacklevel=2)
         return self.values.real
 
     @real.setter
@@ -804,7 +812,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def imag(self):
         """
         Return imag value of vector.
+
+        .. deprecated 0.25.0
         """
+        warnings.warn("`imag` has be deprecated and will be removed in a "
+                      "future verison", FutureWarning, stacklevel=2)
         return self.values.imag
 
     @imag.setter
