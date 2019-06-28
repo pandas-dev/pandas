@@ -132,11 +132,11 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_dtype_str(self):
         pi = pd.PeriodIndex([], freq='M')
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             assert pi.dtype_str == 'period[M]'
             assert pi.dtype_str == str(pi.dtype)
 
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             pi = pd.PeriodIndex([], freq='3M')
             assert pi.dtype_str == 'period[3M]'
             assert pi.dtype_str == str(pi.dtype)

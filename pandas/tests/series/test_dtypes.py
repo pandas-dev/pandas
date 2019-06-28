@@ -428,7 +428,7 @@ class TestSeriesDtypes:
             as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
 
-    @pytest.mark.filterwarnings('ignore::DeprecationWarning')
+    @pytest.mark.filterwarnings('ignore::FutureWarning')
     def test_complex(self):
         # see gh-4819: complex access for ndarray compat
         a = np.arange(5, dtype=np.float64)
@@ -444,7 +444,7 @@ class TestSeriesDtypes:
     def test_real_imag_deprecated(self):
         # GH 18262
         s = pd.Series([1])
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             s.imag
             s.real
 

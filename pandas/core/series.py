@@ -624,7 +624,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         numpy.ndarray.put
         """
         warnings.warn('`put` has been deprecated and will be removed in a'
-                      'future version.', DeprecationWarning, stacklevel=2)
+                      'future version.', FutureWarning, stacklevel=2)
         self._values.put(*args, **kwargs)
 
     def __len__(self):
@@ -801,7 +801,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         .. deprecated 0.25.0
         """
         warnings.warn("`real` has be deprecated and will be removed in a "
-                      "future verison", DeprecationWarning, stacklevel=2)
+                      "future verison", FutureWarning, stacklevel=2)
         return self.values.real
 
     @real.setter
@@ -816,7 +816,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         .. deprecated 0.25.0
         """
         warnings.warn("`imag` has be deprecated and will be removed in a "
-                      "future verison", DeprecationWarning, stacklevel=2)
+                      "future verison", FutureWarning, stacklevel=2)
         return self.values.imag
 
     @imag.setter

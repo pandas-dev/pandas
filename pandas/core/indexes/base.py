@@ -694,7 +694,7 @@ class Index(IndexOpsMixin, PandasObject):
         .. deprecated:: 0.25.0
         """
         warnings.warn('`dtype_str` has been deprecated. Call `str` on the '
-                      'dtype attribute instead.', DeprecationWarning,
+                      'dtype attribute instead.', FutureWarning,
                       stacklevel=2)
         return str(self.dtype)
 
