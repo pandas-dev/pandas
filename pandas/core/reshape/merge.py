@@ -1821,32 +1821,33 @@ def _items_overlap_with_suffix(left, lsuffix, right, rsuffix):
     to_rename = left.intersection(right)
     if len(to_rename) == 0:
         return left, right
-    else:
-        if not lsuffix and not rsuffix:
-            raise ValueError('columns overlap but no suffix specified: '
-                             '{rename}'.format(rename=to_rename))
 
-        def renamer(x, suffix):
-            """Rename the left and right indices.
+    if not lsuffix and not rsuffix:
+        raise ValueError('columns overlap but no suffix specified: '
+                         '{rename}'.format(rename=to_rename))
 
-            If there is overlap, and suffix is not None, add
-            suffix, otherwise, leave it as-is.
+    def renamer(x, suffix):
+        """
+        Rename the left and right indices.
 
-            Parameters
-            ----------
-            x : original column name
-            suffix : str or None
+        If there is overlap, and suffix is not None, add
+        suffix, otherwise, leave it as-is.
 
-            Returns
-            -------
-            x : renamed column name
-            """
-            if x in to_rename and suffix is not None:
-                return '{x}{suffix}'.format(x=x, suffix=suffix)
-            return x
+        Parameters
+        ----------
+        x : original column name
+        suffix : str or None
 
-        lrenamer = partial(renamer, suffix=lsuffix)
-        rrenamer = partial(renamer, suffix=rsuffix)
+        Returns
+        -------
+        x : renamed column name
+        """
+        if x in to_rename and suffix is not None:
+            return '{x}{suffix}'.format(x=x, suffix=suffix)
+        return x
 
-        return (_transform_index(left, lrenamer),
-                _transform_index(right, rrenamer))
+    lrenamer = partial(renamer, suffix=lsuffix)
+    rrenamer = partial(renamer, suffix=rsuffix)
+
+    return (_transform_index(left, lrenamer),
+            _transform_index(right, rrenamer))
