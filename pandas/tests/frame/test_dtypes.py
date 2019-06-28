@@ -23,7 +23,7 @@ def _check_cast(df, v):
     assert all(s.dtype.name == v for _, s in df.items())
 
 
-class TestDataFrameDataTypes():
+class TestDataFrameDataTypes:
 
     def test_concat_empty_dataframe_dtypes(self):
         df = DataFrame(columns=list("abc"))
@@ -935,7 +935,7 @@ class TestDataFrameDataTypes():
         tm.assert_numpy_array_equal(result, expected)
 
 
-class TestDataFrameDatetimeWithTZ():
+class TestDataFrameDatetimeWithTZ:
 
     def test_interleave(self, timezone_frame):
 
