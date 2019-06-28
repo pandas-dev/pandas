@@ -604,6 +604,7 @@ Other deprecations
 - The :meth:`Series.ftype`, :meth:`Series.ftypes` and :meth:`DataFrame.ftypes` methods are deprecated and will be removed in a future version.
   Instead, use :meth:`Series.dtype` and :meth:`DataFrame.dtypes` (:issue:`26705`).
 - :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
+- func:`read_table` has been undeprecated. (:issue:`25220`)
 
 .. _whatsnew_0250.prior_deprecations:
 
@@ -872,7 +873,6 @@ Other
 - Allow :class:`Index` and :class:`RangeIndex` to be passed to numpy ``min`` and ``max`` functions (:issue:`26125`)
 - Use actual class name in repr of empty objects of a ``Series`` subclass (:issue:`27001`).
 - Bug in :class:`DataFrame` where passing an object array of timezone-aware `datetime` objects would incorrectly raise ``ValueError`` (:issue:`13287`)
-- func:`read_table` has been undeprecated (:issue:`25220`)
 
 .. _whatsnew_0.250.contributors:
 
