@@ -758,8 +758,6 @@ Because *pandas* still supports Python 3.5, :pep:`526` does not apply and variab
 
 .. code-block:: python
 
-   from typing import List
-
    primes = []  # type: List[int]
 
 Whereas this is **NOT** allowed:
