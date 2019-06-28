@@ -155,9 +155,10 @@ class TestCommon:
         assert indices.names == [name]
 
     def test_dtype_str(self, indices):
-        dtype = indices.dtype_str
-        assert isinstance(dtype, str)
-        assert dtype == str(indices.dtype)
+        with tm.assert_produces_warning(FutureWarning):
+            dtype = indices.dtype_str
+            assert isinstance(dtype, str)
+            assert dtype == str(indices.dtype)
 
     def test_hash_error(self, indices):
         index = indices

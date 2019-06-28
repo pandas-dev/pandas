@@ -221,3 +221,10 @@ def test_hasnans_unchached_for_series():
     ser.iloc[-1] = np.nan
     assert ser.hasnans is True
     assert Series.hasnans.__doc__ == pd.Index.hasnans.__doc__
+
+
+def test_put_deprecated():
+    # GH 18262
+    s = pd.Series([1])
+    with tm.assert_produces_warning(FutureWarning):
+        s.put(0, 0)

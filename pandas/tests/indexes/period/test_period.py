@@ -132,12 +132,14 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_dtype_str(self):
         pi = pd.PeriodIndex([], freq='M')
-        assert pi.dtype_str == 'period[M]'
-        assert pi.dtype_str == str(pi.dtype)
+        with tm.assert_produces_warning(FutureWarning):
+            assert pi.dtype_str == 'period[M]'
+            assert pi.dtype_str == str(pi.dtype)
 
-        pi = pd.PeriodIndex([], freq='3M')
-        assert pi.dtype_str == 'period[3M]'
-        assert pi.dtype_str == str(pi.dtype)
+        with tm.assert_produces_warning(FutureWarning):
+            pi = pd.PeriodIndex([], freq='3M')
+            assert pi.dtype_str == 'period[3M]'
+            assert pi.dtype_str == str(pi.dtype)
 
     def test_view_asi8(self):
         idx = pd.PeriodIndex([], freq='M')

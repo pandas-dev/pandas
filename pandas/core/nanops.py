@@ -1275,7 +1275,7 @@ def _ensure_numeric(x):
             except (TypeError, ValueError):
                 x = x.astype(np.float64)
             else:
-                if not np.any(x.imag):
+                if not np.any(np.imag(x)):
                     x = x.real
     elif not (is_float(x) or is_integer(x) or is_complex(x)):
         try:
