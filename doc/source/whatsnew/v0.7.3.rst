@@ -50,7 +50,7 @@ New features
 - Add ``kurt`` methods to Series and DataFrame for computing kurtosis
 
 
-NA Boolean Comparison API Change
+NA Boolean comparison API change
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Reverted some changes to how NA values (represented typically as ``NaN`` or
@@ -79,7 +79,7 @@ in numerical arrays, would cause a large amount of problems for users. Thus, a
 "practicality beats purity" approach was taken. This issue may be revisited at
 some point in the future.
 
-Other API Changes
+Other API changes
 ~~~~~~~~~~~~~~~~~
 
 When calling ``apply`` on a grouped Series, the return value will also be a

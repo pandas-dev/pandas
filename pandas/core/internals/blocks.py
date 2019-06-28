@@ -596,7 +596,8 @@ class Block(PandasObject):
                         values = self.get_values(dtype=dtype)
 
                     # _astype_nansafe works fine with 1-d only
-                    values = astype_nansafe(values.ravel(), dtype, copy=True)
+                    values = astype_nansafe(
+                        values.ravel(), dtype, copy=True, **kwargs)
 
                 # TODO(extension)
                 # should we make this attribute?
@@ -1758,6 +1759,27 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         return self.values[slicer]
 
+    def _try_cast_result(self, result, dtype=None):
+        """
+        if we have an operation that operates on for example floats
+        we want to try to cast back to our EA here if possible
+
+        result could be a 2-D numpy array, e.g. the result of
+        a numeric operation; but it must be shape (1, X) because
+        we by-definition operate on the ExtensionBlocks one-by-one
+
+        result could also be an EA Array itself, in which case it
+        is already a 1-D array
+        """
+        try:
+
+            result = self._holder._from_sequence(
+                result.ravel(), dtype=dtype)
+        except Exception:
+            pass
+
+        return result
+
     def formatting_values(self):
         # Deprecating the ability to override _formatting_values.
         # Do the warning here, it's only user in pandas, since we
@@ -2227,7 +2249,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """ copy constructor """
         values = self.values
         if deep:
-            values = values.copy(deep=True)
+            values = values.copy()
         return self.make_block_same_class(values)
 
     def get_values(self, dtype=None):

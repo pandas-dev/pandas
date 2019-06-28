@@ -3,7 +3,7 @@
 {{ header }}
 
 ***************************
-Indexing and Selecting Data
+Indexing and selecting data
 ***************************
 
 The axis labeling information in pandas objects serves many purposes:
@@ -46,7 +46,7 @@ See the :ref:`cookbook<cookbook.selection>` for some advanced strategies.
 
 .. _indexing.choice:
 
-Different Choices for Indexing
+Different choices for indexing
 ------------------------------
 
 Object selection has had a number of user-requested additions in order to
@@ -181,7 +181,7 @@ columns.
       df[['A', 'B']]
 
 
-Attribute Access
+Attribute access
 ----------------
 
 .. _indexing.columns.multiple:
@@ -287,7 +287,7 @@ largely as a convenience since it is such a common operation.
 
 .. _indexing.label:
 
-Selection By Label
+Selection by label
 ------------------
 
 .. warning::
@@ -420,7 +420,7 @@ above example, ``s.loc[1:6]`` would raise ``KeyError``.
 
 .. _indexing.integer:
 
-Selection By Position
+Selection by position
 ---------------------
 
 .. warning::
@@ -533,7 +533,7 @@ A list of indexers where any element is out of bounds will raise an
 
 .. _indexing.callable:
 
-Selection By Callable
+Selection by callable
 ---------------------
 
 .. versionadded:: 0.18.1
@@ -573,7 +573,7 @@ without using a temporary variable.
 
 .. _indexing.deprecate_ix:
 
-IX Indexer is Deprecated
+IX indexer is deprecated
 ------------------------
 
 .. warning::
@@ -631,7 +631,7 @@ For getting *multiple* indexers, using ``.get_indexer``:
 .. _deprecate_loc_reindex_listlike:
 .. _indexing.deprecate_loc_reindex_listlike:
 
-Indexing with list with missing labels is Deprecated
+Indexing with list with missing labels is deprecated
 ----------------------------------------------------
 
 .. warning::
@@ -655,7 +655,7 @@ Selection with all keys found is unchanged.
 
    s.loc[[1, 2]]
 
-Previous Behavior
+Previous behavior
 
 .. code-block:: ipython
 
@@ -667,7 +667,7 @@ Previous Behavior
    dtype: float64
 
 
-Current Behavior
+Current behavior
 
 .. code-block:: ipython
 
@@ -732,7 +732,7 @@ However, this would *still* raise if your resulting index is duplicated.
 
 .. _indexing.basics.partial_setting:
 
-Selecting Random Samples
+Selecting random samples
 ------------------------
 
 A random selection of rows or columns from a Series or DataFrame with the :meth:`~DataFrame.sample` method. The method will sample rows by default, and accepts a specific number of rows/columns to return, or a fraction of rows.
@@ -807,7 +807,7 @@ Finally, one can also set a seed for ``sample``'s random number generator using 
 
 
 
-Setting With Enlargement
+Setting with enlargement
 ------------------------
 
 The ``.loc/[]`` operations can perform enlargement when setting a non-existent key for that axis.
@@ -1076,7 +1076,7 @@ without creating a copy:
 
       df.where(df < 0, -df) == np.where(df < 0, df, -df)
 
-**alignment**
+**Alignment**
 
 Furthermore, ``where`` aligns the input boolean condition (ndarray or DataFrame),
 such that partial selection with setting is possible. This is analogous to
@@ -1351,7 +1351,7 @@ to ``in``/``not in``.
    df[df.c.isin([1, 2])]
 
 
-Boolean Operators
+Boolean operators
 ~~~~~~~~~~~~~~~~~
 
 You can negate boolean expressions with the word ``not`` or the ``~`` operator.
@@ -1407,7 +1407,7 @@ floating point values generated using ``numpy.random.randn()``.
    df2 = df.copy()
 
 
-Duplicate Data
+Duplicate data
 --------------
 
 .. _indexing.duplicate:
@@ -1474,7 +1474,7 @@ default value.
    s.get('a')  # equivalent to s['a']
    s.get('x', default=-1)
 
-The :meth:`~pandas.DataFrame.lookup` Method
+The :meth:`~pandas.DataFrame.lookup` method
 -------------------------------------------
 
 Sometimes you want to extract a set of values given a sequence of row labels
@@ -1628,7 +1628,7 @@ Missing values
    idx2
    idx2.fillna(pd.Timestamp('2011-01-02'))
 
-Set / Reset Index
+Set / reset index
 -----------------
 
 Occasionally you will load or create a data set into a DataFrame and want to
