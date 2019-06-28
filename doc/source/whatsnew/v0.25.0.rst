@@ -159,6 +159,7 @@ Other enhancements
 - Added support for reading SPSS .sav files using :func:`read_spss` (:issue:`26537`)
 - Added new option ``plotting.backend`` to be able to select a plotting backend different than the existing ``matplotlib`` one. Use ``pandas.set_option('plotting.backend', '<backend-module>')`` where ``<backend-module`` is a library implementing the pandas plotting API (:issue:`14130`)
 - :class:`pandas.offsets.BusinessHour` supports multiple opening hours intervals (:issue:`15481`)
+- :func:`read_excel` can now use ``openpyxl`` to read Excel files via the ``engine='openpyxl'`` argument. This will become the default in a future release (:issue:`11499`)
 
 .. _whatsnew_0250.api_breaking:
 
