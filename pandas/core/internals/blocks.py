@@ -220,7 +220,7 @@ class Block(PandasObject):
         if dtype is not None:
             # issue 19431 fastparquet is passing this
             warnings.warn("dtype argument is deprecated, will be removed "
-                          "in a future release.", DeprecationWarning)
+                          "in a future release.", FutureWarning)
         if placement is None:
             placement = self.mgr_locs
         return make_block(values, placement=placement, ndim=ndim,
@@ -1794,7 +1794,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                 "'ExtensionArray._formatting_values' is deprecated. "
                 "Specify 'ExtensionArray._formatter' instead."
             )
-            warnings.warn(msg, DeprecationWarning, stacklevel=10)
+            warnings.warn(msg, FutureWarning, stacklevel=10)
             return self.values._formatting_values()
 
         return self.values
@@ -3056,7 +3056,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
     if fastpath is not None:
         # GH#19265 pyarrow is passing this
         warnings.warn("fastpath argument is deprecated, will be removed "
-                      "in a future release.", DeprecationWarning)
+                      "in a future release.", FutureWarning)
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)

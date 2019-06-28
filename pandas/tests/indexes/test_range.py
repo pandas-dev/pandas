@@ -175,7 +175,7 @@ class TestRangeIndex(Numeric):
         # GH 26581
         idx = self.create_index()
         for attr_name in ['_start', '_stop', '_step']:
-            with tm.assert_produces_warning(DeprecationWarning):
+            with tm.assert_produces_warning(FutureWarning):
                 getattr(idx, attr_name)
 
     def test_copy(self):
