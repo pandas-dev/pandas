@@ -85,7 +85,12 @@ def missing_metadata():
     ]
 
 
+@pytest.fixture
 def max_level_test_input_data():
+    """
+    input data to test json_normalize with max_level param
+    :return:
+    """
     return [{
         'CreatedBy': {'Name': 'User001'},
         'Lookup': {'TextField': 'Some text',
@@ -497,28 +502,39 @@ class TestNestedToRecord:
             'location.country.state.town.info.z': 27.572303771972656}
         assert result == expected
 
-    @pytest.mark.parametrize("max_level, input_data, expected", [
-        (None, max_level_test_input_data(),
+    @pytest.mark.parametrize("max_level, expected", [
+        (None,
          [{'CreatedBy.Name': 'User001',
            'Lookup.TextField': 'Some text',
            'Lookup.UserField.Id': 'ID001',
            'Lookup.UserField.Name': 'Name001',
            'Image.a': 'b'
            }]),
-        (0, max_level_test_input_data(),
+        (0,
          [{'CreatedBy': {'Name': 'User001'},
            'Lookup': {'TextField': 'Some text',
                       'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
            'Image': {'a': 'b'}
            }]),
-        (1, max_level_test_input_data(),
+        (1,
          [{'CreatedBy.Name': 'User001',
            'Lookup.TextField': 'Some text',
            'Lookup.UserField': {'Id': 'ID001',
                                 'Name': 'Name001'},
            'Image.a': 'b'
-           }]),
-        (100, [{'CreatedBy': {
+           }])
+    ])
+    def test_with_max_level(self, max_level,
+                            expected, max_level_test_input_data):
+        # GH23843: Enhanced JSON normalize
+        output = nested_to_record(max_level_test_input_data,
+                                  max_level=max_level)
+        assert output == expected
+
+    def test_with_large_max_level(self):
+        # GH23843: Enhanced JSON normalize
+        max_level = 100
+        input_data = [{'CreatedBy': {
             "user": {
                 "name": {"firstname": "Leo",
                          "LastName": "Thomson"},
@@ -537,18 +553,16 @@ class TestNestedToRecord:
                     }
                 }
             }
-        }}],
-            [{'CreatedBy.user.name.firstname': 'Leo',
-              'CreatedBy.user.name.LastName': 'Thomson',
-              'CreatedBy.user.family_tree.father.name': 'Father001',
-              'CreatedBy.user.family_tree.father.father.Name': 'Father002',
-              'CreatedBy.user.family_tree.father.father.father.name':
-                  'Father003',
-              'CreatedBy.user.family_tree.father.father.father.father.Name':
-                  'Father004'}
-             ])
-    ])
-    def test_with_max_level(self, max_level, input_data, expected):
-        # GH23843: Enhanced JSON normalize
+        }}]
+        expected = [
+            {'CreatedBy.user.name.firstname': 'Leo',
+             'CreatedBy.user.name.LastName': 'Thomson',
+             'CreatedBy.user.family_tree.father.name': 'Father001',
+             'CreatedBy.user.family_tree.father.father.Name': 'Father002',
+             'CreatedBy.user.family_tree.father.father.father.name':
+                 'Father003',
+             'CreatedBy.user.family_tree.father.father.father.father.Name':
+                 'Father004'}
+        ]
         output = nested_to_record(input_data, max_level=max_level)
         assert output == expected
