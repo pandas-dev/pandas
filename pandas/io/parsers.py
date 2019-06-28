@@ -713,7 +713,7 @@ read_csv = Appender(_doc_read_csv_and_table.format(
 read_table = _make_parser_function('read_table', default_sep='\t')
 read_table = Appender(_doc_read_csv_and_table.format(
                       func_name='read_table',
-                      summary="""Read general delimited file into DataFrame.""",
+                      summary='Read general delimited file into DataFrame.',
                       _default_sep=r"'\\t' (tab-stop)")
                       )(read_table)
 
