@@ -604,7 +604,10 @@ Other deprecations
 - The :meth:`Series.ftype`, :meth:`Series.ftypes` and :meth:`DataFrame.ftypes` methods are deprecated and will be removed in a future version.
   Instead, use :meth:`Series.dtype` and :meth:`DataFrame.dtypes` (:issue:`26705`).
 - :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
-- func:`read_table` has been undeprecated. (:issue:`25220`)
+- :func:`read_table` has been undeprecated. (:issue:`25220`)
+- :attr:`Index.dtype_str` is deprecated. (:issue:`18262`)
+- :attr:`Series.imag` and :attr:`Series.real` are deprecated. (:issue:`18262`)
+- :meth:`Series.put` is deprecated. (:issue:`18262`)
 
 .. _whatsnew_0250.prior_deprecations:
 
