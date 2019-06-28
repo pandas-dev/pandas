@@ -428,6 +428,7 @@ class TestSeriesDtypes:
             as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
 
+    @pytest.mark.filterwarnings('ignore::DeprecationWarning')
     def test_complex(self):
         # see gh-4819: complex access for ndarray compat
         a = np.arange(5, dtype=np.float64)
