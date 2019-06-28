@@ -495,7 +495,7 @@ with an integer, is unchanged (:issue:`16316`).
    ii
 
 The ``in`` operator (``__contains__``) now only returns ``True`` for exact matches to ``Intervals`` in the ``IntervalIndex``, whereas
-this would previously return ``True`` for any ``Interval`` overlapping an ``Interval`` in the ``IntervalIndex``: 
+this would previously return ``True`` for any ``Interval`` overlapping an ``Interval`` in the ``IntervalIndex``.
 
 *Previous behavior*:
 
@@ -533,7 +533,7 @@ returning locations for overlapping matches.  A ``KeyError`` will be raised if a
 
    In [6]: ii.get_loc(pd.Interval(1, 5))
    Out[6]: 1
-   
+
    In [7]: ii.get_loc(pd.Interval(2, 6))
    ---------------------------------------------------------------------------
    KeyError: Interval(2, 6, closed='right')
@@ -555,13 +555,13 @@ Selecting from a ``Series`` or ``DataFrame`` using ``[]`` (``__getitem__``) or `
 .. code-block:: python
 
    In [8]: s[pd.Interval(1, 5)]
-   Out[8]: 
+   Out[8]:
    (0, 4]    a
    (1, 5]    b
    dtype: object
 
    In [9]: s.loc[pd.Interval(1, 5)]
-   Out[9]: 
+   Out[9]:
    (0, 4]    a
    (1, 5]    b
    dtype: object
@@ -579,15 +579,15 @@ Similarly, non-exact matches will now raise a ``KeyError``.
 
 .. code-block:: python
 
-   In [9]: s[pd.Interval(2, 6)]                                                                                           
-   Out[9]: 
+   In [9]: s[pd.Interval(2, 6)]
+   Out[9]:
    (0, 4]    a
    (1, 5]    b
    (5, 8]    c
    dtype: object
 
-   In [10]: s.loc[pd.Interval(2, 6)]                                                                                       
-   Out[10]: 
+   In [10]: s.loc[pd.Interval(2, 6)]
+   Out[10]:
    (0, 4]    a
    (1, 5]    b
    (5, 8]    c
@@ -600,7 +600,7 @@ Similarly, non-exact matches will now raise a ``KeyError``.
    In [6]: s[pd.Interval(2, 6)]
    ---------------------------------------------------------------------------
    KeyError: Interval(2, 6, closed='right')
-   
+
    In [7]: s.loc[pd.Interval(2, 6)]
    ---------------------------------------------------------------------------
    KeyError: Interval(2, 6, closed='right')
