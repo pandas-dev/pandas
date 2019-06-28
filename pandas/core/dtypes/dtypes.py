@@ -214,13 +214,13 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     _metadata = ('categories', 'ordered')
     _cache = {}  # type: Dict[str_type, PandasExtensionDtype]
 
-    def __init__(self, categories=None, ordered: bool = None):
+    def __init__(self, categories=None, ordered: Optional[bool] = None):
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
     def _from_fastpath(cls,
                        categories=None,
-                       ordered: bool = None
+                       ordered: Optional[bool] = None
                        ) -> 'CategoricalDtype':
         self = cls.__new__(cls)
         self._finalize(categories, ordered, fastpath=True)
@@ -230,7 +230,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def _from_categorical_dtype(cls,
                                 dtype: 'CategoricalDtype',
                                 categories=None,
-                                ordered: bool = None,
+                                ordered: Optional[bool] = None,
                                 ) -> 'CategoricalDtype':
         if categories is ordered is None:
             return dtype
@@ -244,8 +244,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def _from_values_or_dtype(cls,
                               values=None,
                               categories=None,
-                              ordered: bool = None,
-                              dtype: 'CategoricalDtype' = None,
+                              ordered: Optional[bool] = None,
+                              dtype: Optional['CategoricalDtype'] = None,
                               ) -> 'CategoricalDtype':
         """
         Construct dtype from the input parameters used in :class:`Categorical`.
