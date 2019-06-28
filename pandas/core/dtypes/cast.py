@@ -544,8 +544,7 @@ def _maybe_promote_with_array(dtype, fill_value=np.nan):
                 'date': 'datetime64[ns]', 'timedelta64': 'timedelta64[ns]',
                 'timedelta': 'timedelta64[ns]',
                 'time': object,  # time cannot be cast to datetime/timedelta
-                'string': object, 'unicode': object,
-                'mixed-integer': object, 'mixed': object,
+                'string': object, 'mixed-integer': object, 'mixed': object
             }
             fill_dtype = np.dtype(map_inferred_to_numpy[inferred_dtype])
 
