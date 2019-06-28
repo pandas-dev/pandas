@@ -3,7 +3,7 @@
 {{ header }}
 
 ****************
-Extending Pandas
+Extending pandas
 ****************
 
 While pandas provides a rich set of methods, containers, and data types, your
@@ -12,7 +12,7 @@ pandas.
 
 .. _extending.register-accessors:
 
-Registering Custom Accessors
+Registering custom accessors
 ----------------------------
 
 Libraries can use the decorators
@@ -70,7 +70,7 @@ applies only to certain dtypes.
 
 .. _extending.extension-types:
 
-Extension Types
+Extension types
 ---------------
 
 .. versionadded:: 0.23.0
@@ -210,7 +210,7 @@ will
 
 .. _extending.extension.testing:
 
-Testing Extension Arrays
+Testing extension arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 We provide a test suite for ensuring that your extension arrays satisfy the expected
@@ -238,7 +238,7 @@ for a list of all the tests available.
 
 .. _extending.subclassing-pandas:
 
-Subclassing pandas Data Structures
+Subclassing pandas data structures
 ----------------------------------
 
 .. warning:: There are some easier alternatives before considering subclassing ``pandas`` data structures.
@@ -260,7 +260,7 @@ This section describes how to subclass ``pandas`` data structures to meet more s
 
    You can find a nice example in `geopandas <https://github.com/geopandas/geopandas>`_ project.
 
-Override Constructor Properties
+Override constructor properties
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Each data structure has several *constructor properties* for returning a new
@@ -348,7 +348,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> type(sliced2)
    <class '__main__.SubclassedSeries'>
 
-Define Original Properties
+Define original properties
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To let original data structures have additional properties, you should let ``pandas`` know what properties are added. ``pandas`` maps unknown properties to data names overriding ``__getattribute__``. Defining original properties can be done in one of 2 ways:

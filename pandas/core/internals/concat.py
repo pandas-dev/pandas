@@ -187,8 +187,6 @@ class JoinUnit:
                     pass
                 elif getattr(self.block, 'is_categorical', False):
                     pass
-                elif getattr(self.block, 'is_sparse', False):
-                    pass
                 elif getattr(self.block, 'is_extension', False):
                     pass
                 else:

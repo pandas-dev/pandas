@@ -101,10 +101,8 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
                       allow_fill=allow_fill)
         return self._from_sequence(result)
 
-    def copy(self, deep=False):
-        if deep:
-            return type(self)(self._data.copy())
-        return type(self)(self)
+    def copy(self):
+        return type(self)(self._data.copy())
 
     def astype(self, dtype, copy=True):
         if isinstance(dtype, type(self.dtype)):

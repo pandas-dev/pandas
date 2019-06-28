@@ -3,7 +3,7 @@
 .. _api.dateoffsets:
 
 ============
-Date Offsets
+Date offsets
 ============
 .. currentmodule:: pandas.tseries.offsets
 

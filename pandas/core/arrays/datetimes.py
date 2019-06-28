@@ -309,6 +309,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                 "ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg.format(type(values).__name__))
+        if values.ndim != 1:
+            raise ValueError("Only 1-dimensional input arrays are supported.")
 
         if values.dtype == 'i8':
             # for compat with datetime/timedelta/period shared methods,
@@ -431,10 +433,12 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         if tz is not None:
             # Localize the start and end arguments
             start = _maybe_localize_point(
-                start, getattr(start, 'tz', None), start, freq, tz
+                start, getattr(start, 'tz', None), start, freq, tz,
+                ambiguous, nonexistent
             )
             end = _maybe_localize_point(
-                end, getattr(end, 'tz', None), end, freq, tz
+                end, getattr(end, 'tz', None), end, freq, tz,
+                ambiguous, nonexistent
             )
         if freq is not None:
             # We break Day arithmetic (fixed 24 hour) here and opt for
@@ -676,7 +680,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     def _has_same_tz(self, other):
         zzone = self._timezone
 
-        # vzone sholdn't be None if value is non-datetime like
+        # vzone shouldn't be None if value is non-datetime like
         if isinstance(other, np.datetime64):
             # convert to Timestamp as np.datetime64 doesn't have tz attr
             other = Timestamp(other)
@@ -2119,7 +2123,8 @@ def _maybe_normalize_endpoints(start, end, normalize):
     return start, end, _normalized
 
 
-def _maybe_localize_point(ts, is_none, is_not_none, freq, tz):
+def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous,
+                          nonexistent):
     """
     Localize a start or end Timestamp to the timezone of the corresponding
     start or end Timestamp
@@ -2131,6 +2136,8 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz):
     is_not_none : argument that should not be None
     freq : Tick, DateOffset, or None
     tz : str, timezone object or None
+    ambiguous: str, localization behavior for ambiguous times
+    nonexistent: str, localization behavior for nonexistent times
 
     Returns
     -------
@@ -2139,10 +2146,13 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz):
     # Make sure start and end are timezone localized if:
     # 1) freq = a Timedelta-like frequency (Tick)
     # 2) freq = None i.e. generating a linspaced range
-    if isinstance(freq, Tick) or freq is None:
-        localize_args = {'tz': tz, 'ambiguous': False}
-    else:
-        localize_args = {'tz': None}
     if is_none is None and is_not_none is not None:
+        # Note: We can't ambiguous='infer' a singular ambiguous time; however,
+        # we have historically defaulted ambiguous=False
+        ambiguous = ambiguous if ambiguous != 'infer' else False
+        localize_args = {'ambiguous': ambiguous, 'nonexistent': nonexistent,
+                         'tz': None}
+        if isinstance(freq, Tick) or freq is None:
+            localize_args['tz'] = tz
         ts = ts.tz_localize(**localize_args)
     return ts

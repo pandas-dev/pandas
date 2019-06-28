@@ -5,7 +5,7 @@
 .. _integer_na:
 
 **************************
-Nullable Integer Data Type
+Nullable integer data type
 **************************
 
 .. versionadded:: 0.24.0

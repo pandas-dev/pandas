@@ -390,7 +390,7 @@ class IntervalIndex(IntervalMixin, Index):
                'a future version')
         warnings.warn(msg, FutureWarning, stacklevel=2)
 
-        # supress the warning from the underlying left/right itemsize
+        # suppress the warning from the underlying left/right itemsize
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             return self.left.itemsize + self.right.itemsize
@@ -429,7 +429,9 @@ class IntervalIndex(IntervalMixin, Index):
 
     @Appender(_index_shared_docs['copy'])
     def copy(self, deep=False, name=None):
-        array = self._data.copy(deep=deep)
+        array = self._data
+        if deep:
+            array = array.copy()
         attributes = self._get_attributes_dict()
         if name is not None:
             attributes.update(name=name)

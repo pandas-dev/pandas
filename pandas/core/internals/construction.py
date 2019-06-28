@@ -21,8 +21,8 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype, is_extension_type, is_float_dtype,
     is_integer_dtype, is_iterator, is_list_like, is_object_dtype, pandas_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCDatetimeIndex, ABCIndexClass, ABCPandasArray,
-    ABCPeriodIndex, ABCSeries, ABCTimedeltaIndex)
+    ABCDataFrame, ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex, ABCSeries,
+    ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
@@ -159,9 +159,28 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
     if dtype is None and is_object_dtype(values):
-        values = maybe_infer_to_datetimelike(values)
 
-    return create_block_manager_from_blocks([values], [columns, index])
+        if values.ndim == 2 and values.shape[0] != 1:
+            # transpose and separate blocks
+
+            dvals_list = [maybe_infer_to_datetimelike(row) for row in values]
+            for n in range(len(dvals_list)):
+                if isinstance(dvals_list[n], np.ndarray):
+                    dvals_list[n] = dvals_list[n].reshape(1, -1)
+
+            from pandas.core.internals.blocks import make_block
+
+            # TODO: What about re-joining object columns?
+            block_values = [make_block(dvals_list[n], placement=[n])
+                            for n in range(len(dvals_list))]
+
+        else:
+            datelike_vals = maybe_infer_to_datetimelike(values)
+            block_values = [datelike_vals]
+    else:
+        block_values = [values]
+
+    return create_block_manager_from_blocks(block_values, [columns, index])
 
 
 def init_dict(data, index, columns, dtype=None):
@@ -199,8 +218,10 @@ def init_dict(data, index, columns, dtype=None):
         arrays = (com.maybe_iterable_to_list(data[k]) for k in keys)
         # GH#24096 need copy to be deep for datetime64tz case
         # TODO: See if we can avoid these copies
+        arrays = [arr if not isinstance(arr, ABCIndexClass) else arr._data
+                  for arr in arrays]
         arrays = [arr if not is_datetime64tz_dtype(arr) else
-                  arr.copy(deep=True) for arr in arrays]
+                  arr.copy() for arr in arrays]
     return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)
 
 
@@ -549,59 +570,40 @@ def sanitize_array(data, index, dtype=None, copy=False,
         else:
             data = data.copy()
 
+    # extract ndarray or ExtensionArray, ensure we have no PandasArray
     data = extract_array(data, extract_numpy=True)
 
     # GH#846
     if isinstance(data, np.ndarray):
 
-        if dtype is not None:
-            subarr = np.array(data, copy=False)
-
+        if (dtype is not None
+                and is_float_dtype(data.dtype) and is_integer_dtype(dtype)):
             # possibility of nan -> garbage
-            if is_float_dtype(data.dtype) and is_integer_dtype(dtype):
-                try:
-                    subarr = _try_cast(data, True, dtype, copy,
-                                       True)
-                except ValueError:
-                    if copy:
-                        subarr = data.copy()
-            else:
-                subarr = _try_cast(data, True, dtype, copy, raise_cast_failure)
-        elif isinstance(data, Index):
-            # don't coerce Index types
-            # e.g. indexes can have different conversions (so don't fast path
-            # them)
-            # GH#6140
-            subarr = sanitize_index(data, index, copy=copy)
+            try:
+                subarr = _try_cast(data, dtype, copy, True)
+            except ValueError:
+                if copy:
+                    subarr = data.copy()
+                else:
+                    subarr = np.array(data, copy=False)
         else:
-
             # we will try to copy be-definition here
-            subarr = _try_cast(data, True, dtype, copy, raise_cast_failure)
+            subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
     elif isinstance(data, ExtensionArray):
-        if isinstance(data, ABCPandasArray):
-            # We don't want to let people put our PandasArray wrapper
-            # (the output of Series/Index.array), into a Series. So
-            # we explicitly unwrap it here.
-            subarr = data.to_numpy()
-        else:
-            subarr = data
-
-        # everything else in this block must also handle ndarray's,
-        # becuase we've unwrapped PandasArray into an ndarray.
+        # it is already ensured above this is not a PandasArray
+        subarr = data
 
         if dtype is not None:
-            subarr = data.astype(dtype)
-
-        if copy:
-            subarr = data.copy()
+            subarr = subarr.astype(dtype, copy=copy)
+        elif copy:
+            subarr = subarr.copy()
         return subarr
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:
         if dtype is not None:
             try:
-                subarr = _try_cast(data, False, dtype, copy,
-                                   raise_cast_failure)
+                subarr = _try_cast(data, dtype, copy, raise_cast_failure)
             except Exception:
                 if raise_cast_failure:  # pragma: no cover
                     raise
@@ -616,9 +618,9 @@ def sanitize_array(data, index, dtype=None, copy=False,
     elif isinstance(data, range):
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype='int64')
-        subarr = _try_cast(arr, False, dtype, copy, raise_cast_failure)
+        subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
     else:
-        subarr = _try_cast(data, False, dtype, copy, raise_cast_failure)
+        subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
     # scalar like, GH
     if getattr(subarr, 'ndim', 0) == 0:
@@ -666,7 +668,10 @@ def sanitize_array(data, index, dtype=None, copy=False,
                 data = np.array(data, dtype=dtype, copy=False)
             subarr = np.array(data, dtype=object, copy=copy)
 
-    if is_object_dtype(subarr.dtype) and dtype != 'object':
+    if (not (is_extension_array_dtype(subarr.dtype) or
+             is_extension_array_dtype(dtype)) and
+            is_object_dtype(subarr.dtype) and
+            not is_object_dtype(dtype)):
         inferred = lib.infer_dtype(subarr, skipna=False)
         if inferred == 'period':
             try:
@@ -677,10 +682,22 @@ def sanitize_array(data, index, dtype=None, copy=False,
     return subarr
 
 
-def _try_cast(arr, take_fast_path, dtype, copy, raise_cast_failure):
+def _try_cast(arr, dtype, copy, raise_cast_failure):
+    """
+    Convert input to numpy ndarray and optionally cast to a given dtype.
 
+    Parameters
+    ----------
+    arr : array-like
+    dtype : np.dtype, ExtensionDtype or None
+    copy : bool
+        If False, don't copy the data if not needed.
+    raise_cast_failure : bool
+        If True, and if a dtype is specified, raise errors during casting.
+        Otherwise an object array is returned.
+    """
     # perf shortcut as this is the most common case
-    if take_fast_path:
+    if isinstance(arr, np.ndarray):
         if maybe_castable(arr) and not copy and dtype is None:
             return arr
 
