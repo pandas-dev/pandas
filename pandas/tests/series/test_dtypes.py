@@ -442,6 +442,7 @@ class TestSeriesDtypes:
         tm.assert_numpy_array_equal(4 * a, np.imag(b))
 
     def test_real_imag_deprecated(self):
+        # GH 18262
         s = pd.Series([1])
         with tm.assert_produces_warning(DeprecationWarning):
             s.imag

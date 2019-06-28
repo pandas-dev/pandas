@@ -224,6 +224,7 @@ def test_hasnans_unchached_for_series():
 
 
 def test_put_deprecated():
+    # GH 18262
     s = pd.Series([1])
     with tm.assert_produces_warning(DeprecationWarning):
         s.put(0, 0)
