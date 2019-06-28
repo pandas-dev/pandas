@@ -357,8 +357,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     def get_values(self):
         """ return the underlying data as an ndarray """
-        raise Exception("USING GET_VALUES")
-        return self._data.get_values()
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version", stacklevel=2)
+        return self._interal_get_values()
 
     def _internal_get_values(self):
         return self._data._internal_get_values()

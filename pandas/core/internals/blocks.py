@@ -3216,8 +3216,7 @@ def _putmask_smart(v, m, n):
     dtype, _ = maybe_promote(n.dtype)
 
     if is_extension_type(v.dtype) and is_object_dtype(dtype):
-        # ?
-        v = v.get_values(dtype)
+        v = v._internal_get_values(dtype)
     else:
         v = v.astype(dtype)
 

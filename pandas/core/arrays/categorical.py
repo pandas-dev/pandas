@@ -1505,7 +1505,9 @@ class Categorical(ExtensionArray, PandasObject):
             A numpy array of the same dtype as categorical.categories.dtype or
             Index if datetime / periods.
         """
-        raise Exception("USING GET_VALUES")
+        warn("The 'get_values' method is deprecated and will be removed in a "
+             "future version", stacklevel=2)
+        return self._internal_get_values()
 
     def _internal_get_values(self):
         # if we are a datetime and period index, return Index to keep metadata

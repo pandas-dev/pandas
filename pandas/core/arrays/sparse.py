@@ -1472,7 +1472,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # get_values = to_dense
 
     def get_values(self):
-        raise Exception("USING GET_VALUES")
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version", stacklevel=2)
+        return self._interal_get_values()
 
     _internal_get_values = to_dense
 

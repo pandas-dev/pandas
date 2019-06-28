@@ -3810,7 +3810,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> midx.get_values().ndim
         1
         """
-        raise Exception("USING GET_VALUES")
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version", stacklevel=2)
+        return self._interal_get_values()
 
     def _internal_get_values(self):
         return self.values
