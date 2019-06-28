@@ -253,7 +253,7 @@ def test_maybe_promote_int_with_int(dtype, fill_value, expected_dtype, box):
     expected_dtype = np.dtype(expected_dtype)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    # output is not a generic int, but corresponds to expected_dtype
+    # output is not a python int, but a numpy int of expected_dtype
     exp_val_for_scalar = np.array([fill_value], dtype=expected_dtype)[0]
     # no missing value marker for integers
     exp_val_for_array = None if expected_dtype != 'object' else np.nan
