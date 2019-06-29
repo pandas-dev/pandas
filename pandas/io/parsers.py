@@ -9,6 +9,7 @@ from io import StringIO
 import re
 import sys
 from textwrap import fill
+from typing import Any, Dict, Set
 import warnings
 
 import numpy as np
@@ -521,8 +522,8 @@ _python_unsupported = {
     'float_precision',
 }
 
-_deprecated_defaults = {}
-_deprecated_args = set()
+_deprecated_defaults = {}  # type: Dict[str, Any]
+_deprecated_args = set()  # type: Set[str]
 
 
 def _make_parser_function(name, default_sep=','):
