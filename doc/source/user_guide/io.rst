@@ -3393,15 +3393,15 @@ both on the writing (serialization), and reading (deserialization).
 
 .. warning::
 
-   This is a very new feature of pandas. We intend to provide certain
-   optimizations in the io of the ``msgpack`` data. Since this is marked
-   as an EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
+   The msgpack format is deprecated as of 0.25 and will be removed in a future version.
+   It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
 
 .. warning::
 
    :func:`read_msgpack` is only guaranteed backwards compatible back to pandas version 0.20.3
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame(np.random.rand(5, 2), columns=list('AB'))
    df.to_msgpack('foo.msg')
@@ -3411,6 +3411,7 @@ both on the writing (serialization), and reading (deserialization).
 You can pass a list of objects and you will receive them back on deserialization.
 
 .. ipython:: python
+   :okwarning:
 
    pd.to_msgpack('foo.msg', df, 'foo', np.array([1, 2, 3]), s)
    pd.read_msgpack('foo.msg')
@@ -3418,6 +3419,7 @@ You can pass a list of objects and you will receive them back on deserialization
 You can pass ``iterator=True`` to iterate over the unpacked results:
 
 .. ipython:: python
+   :okwarning:
 
    for o in pd.read_msgpack('foo.msg', iterator=True):
        print(o)
@@ -3425,6 +3427,7 @@ You can pass ``iterator=True`` to iterate over the unpacked results:
 You can pass ``append=True`` to the writer to append to an existing pack:
 
 .. ipython:: python
+   :okwarning:
 
    df.to_msgpack('foo.msg', append=True)
    pd.read_msgpack('foo.msg')
@@ -3435,6 +3438,7 @@ can pack arbitrary collections of Python lists, dicts, scalars, while intermixin
 pandas objects.
 
 .. ipython:: python
+   :okwarning:
 
    pd.to_msgpack('foo2.msg', {'dict': [{'df': df}, {'string': 'foo'},
                                        {'scalar': 1.}, {'s': s}]})
@@ -3453,14 +3457,16 @@ Read/write API
 Msgpacks can also be read from and written to strings.
 
 .. ipython:: python
+   :okwarning:
 
    df.to_msgpack()
 
 Furthermore you can concatenate the strings to produce a list of the original objects.
 
 .. ipython:: python
+   :okwarning:
 
-  pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
+   pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
 
 .. _io.hdf5:
 
