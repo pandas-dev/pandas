@@ -1186,12 +1186,12 @@ class TestExcelWriter(_WriterBase):
         data = pd.Timestamp('2019', tz=tz)
         df = DataFrame([data], dtype=dtype)
         with pytest.raises(ValueError, match="Excel does not support"):
-            df.to_excel(self.path, engine=engine)
+            df.to_excel(self.path)
 
         data = data.to_pydatetime()
         df = DataFrame([data], dtype=dtype)
         with pytest.raises(ValueError, match="Excel does not support"):
-            df.to_excel(self.path, engine=engine)
+            df.to_excel(self.path)
 
 
 class TestExcelWriterEngineTests:
