@@ -2724,16 +2724,10 @@ class Index(IndexOpsMixin, PandasObject):
             * backfill / bfill: use NEXT index value if no exact match
             * nearest: use the NEAREST index value if no exact match. Tied
               distances are broken by preferring the larger index value.
-        tolerance : optional
+        tolerance : int or float, optional
             Maximum distance from index value for inexact matches. The value of
             the index at the matching location most satisfy the equation
             ``abs(index[loc] - key) <= tolerance``.
-
-            Tolerance may be a scalar
-            value, which applies the same tolerance to all values, or
-            list-like, which applies variable tolerance per element. List-like
-            includes list, tuple, array, Series, and must be the same size as
-            the index and its dtype must exactly match the index's type.
 
             .. versionadded:: 0.21.0 (list-like tolerance)
 
