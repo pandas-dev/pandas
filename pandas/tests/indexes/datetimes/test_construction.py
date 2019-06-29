@@ -608,6 +608,8 @@ class TestDatetimeIndex:
         expected = klass([ts])
         assert result == expected
 
+    # This is the desired future behavior
+    @pytest.mark.xfail(reason="Future behavior", strict=False)
     @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     def test_construction_int_rountrip(self, tz_naive_fixture):
         # GH 12619
