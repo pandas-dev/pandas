@@ -1539,7 +1539,7 @@ class NonConsolidatableMixIn:
             col, loc = col
             if not com.is_null_slice(col) and col != 0:
                 raise IndexError("{0} only contains one item".format(self))
-            if isinstance(col, slice):
+            elif isinstance(col, slice):
                 if col != slice(None):
                     raise NotImplementedError(col)
                 return self.values[[loc]]
