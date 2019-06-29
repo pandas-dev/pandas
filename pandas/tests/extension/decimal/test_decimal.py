@@ -397,6 +397,6 @@ def test_formatting_values_deprecated():
 
     ser = pd.Series(DecimalArray2([decimal.Decimal('1.0')]))
 
-    with tm.assert_produces_warning(DeprecationWarning,
+    with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
         repr(ser)

@@ -171,12 +171,12 @@ class TestRangeIndex(Numeric):
         assert index.stop == stop
         assert index.step == step
 
-    def test_deprecated_start_stop_step_attrs(self):
+    @pytest.mark.parametrize('attr_name', ['_start', '_stop', '_step'])
+    def test_deprecated_start_stop_step_attrs(self, attr_name):
         # GH 26581
         idx = self.create_index()
-        for attr_name in ['_start', '_stop', '_step']:
-            with tm.assert_produces_warning(DeprecationWarning):
-                getattr(idx, attr_name)
+        with tm.assert_produces_warning(DeprecationWarning):
+            getattr(idx, attr_name)
 
     def test_copy(self):
         i = RangeIndex(5, name='Foo')
