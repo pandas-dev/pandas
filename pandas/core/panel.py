@@ -18,7 +18,7 @@ from pandas.core.dtypes.missing import notna
 
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.generic import NDFrame
 from pandas.core.index import (
     Index, MultiIndex, _get_objs_combined_axis, ensure_index)
 import pandas.core.indexes.base as ibase
