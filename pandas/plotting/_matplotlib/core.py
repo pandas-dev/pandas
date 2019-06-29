@@ -334,9 +334,9 @@ class MPLPlot:
         data = data._convert(datetime=True, timedelta=True)
         # Numeric categorical data gets caught by including np.number
         # in select_dtypes
-        numeric_dtypes = [dtype for dtype in set(data.dtypes) 
-                          if hasattr(dtype, "_is_numeric") and 
-                          dtype._is_numeric and 
+        numeric_dtypes = [dtype for dtype in set(data.dtypes)
+                          if hasattr(dtype, "_is_numeric") and
+                          dtype._is_numeric and
                           dtype.name is not "category"]
         numeric_data = data.select_dtypes(include=[np.number] + numeric_dtypes)
         try:
