@@ -748,33 +748,31 @@ class TestExcelFileRead:
 
     def test_excel_passes_na(self, read_ext):
 
-        excel = pd.ExcelFile('test4' + read_ext)
-
-        parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=False,
-                               na_values=['apple'])
+        with pd.ExcelFile('test4' + read_ext) as excel:
+            parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=False,
+                                   na_values=['apple'])
         expected = DataFrame([['NA'], [1], ['NA'], [np.nan], ['rabbit']],
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
-        excel = pd.ExcelFile('test4' + read_ext)
-        parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=True,
-                               na_values=['apple'])
+        with pd.ExcelFile('test4' + read_ext) as excel:
+            parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=True,
+                                   na_values=['apple'])
         expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
         # 13967
-        excel = pd.ExcelFile('test5' + read_ext)
-
-        parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=False,
-                               na_values=['apple'])
+        with pd.ExcelFile('test5' + read_ext) as excel:
+            parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=False,
+                                   na_values=['apple'])
         expected = DataFrame([['1.#QNAN'], [1], ['nan'], [np.nan], ['rabbit']],
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
-        excel = pd.ExcelFile('test5' + read_ext)
-        parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=True,
-                               na_values=['apple'])
+        with pd.ExcelFile('test5' + read_ext) as excel:
+            parsed = pd.read_excel(excel, 'Sheet1', keep_default_na=True,
+                                   na_values=['apple'])
         expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
@@ -782,50 +780,52 @@ class TestExcelFileRead:
     @pytest.mark.parametrize('arg', ['sheet', 'sheetname', 'parse_cols'])
     def test_unexpected_kwargs_raises(self, read_ext, arg):
         # gh-17964
-        excel = pd.ExcelFile('test1' + read_ext)
-
         kwarg = {arg: 'Sheet1'}
         msg = "unexpected keyword argument `{}`".format(arg)
-        with pytest.raises(TypeError, match=msg):
-            pd.read_excel(excel, **kwarg)
+        
+        with pd.ExcelFile('test1' + read_ext) as excel:
+            with pytest.raises(TypeError, match=msg):
+                pd.read_excel(excel, **kwarg)
 
     def test_excel_table_sheet_by_index(self, read_ext, df_ref):
 
-        excel = pd.ExcelFile('test1' + read_ext)
-
-        df1 = pd.read_excel(excel, 0, index_col=0)
-        df2 = pd.read_excel(excel, 1, skiprows=[1], index_col=0)
+        with pd.ExcelFile('test1' + read_ext) as excel:
+            df1 = pd.read_excel(excel, 0, index_col=0)
+            df2 = pd.read_excel(excel, 1, skiprows=[1], index_col=0)
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
-        excel = pd.ExcelFile('test1' + read_ext)
-        df1 = excel.parse(0, index_col=0)
-        df2 = excel.parse(1, skiprows=[1], index_col=0)
+        with pd.ExcelFile('test1' + read_ext) as excel:
+            df1 = excel.parse(0, index_col=0)
+            df2 = excel.parse(1, skiprows=[1], index_col=0)
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
-        excel = pd.ExcelFile('test1' + read_ext)
-        df3 = pd.read_excel(excel, 0, index_col=0, skipfooter=1)
+        with pd.ExcelFile('test1' + read_ext) as excel:
+            df3 = pd.read_excel(excel, 0, index_col=0, skipfooter=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
-        excel = pd.ExcelFile('test1' + read_ext)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df4 = pd.read_excel(excel, 0, index_col=0, skip_footer=1)
+            with pd.ExcelFile('test1' + read_ext) as excel:            
+                df4 = pd.read_excel(excel, 0, index_col=0, skip_footer=1)
+
             tm.assert_frame_equal(df3, df4)
 
-        excel = pd.ExcelFile('test1' + read_ext)
-        df3 = excel.parse(0, index_col=0, skipfooter=1)
+        with pd.ExcelFile('test1' + read_ext) as excel:
+            df3 = excel.parse(0, index_col=0, skipfooter=1)
+
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
     def test_sheet_name(self, read_ext, df_ref):
         filename = "test1"
         sheet_name = "Sheet1"
 
-        excel = pd.ExcelFile(filename + read_ext)
-        df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
-        excel = pd.ExcelFile(filename + read_ext)
-        df2_parse = excel.parse(index_col=0,
-                                sheet_name=sheet_name)
+        with pd.ExcelFile(filename + read_ext) as excel:
+            df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
+
+        with pd.ExcelFile(filename + read_ext) as excel:
+            df2_parse = excel.parse(index_col=0,
+                                    sheet_name=sheet_name)
 
         tm.assert_frame_equal(df1_parse, df_ref, check_names=False)
         tm.assert_frame_equal(df2_parse, df_ref, check_names=False)
@@ -836,8 +836,9 @@ class TestExcelFileRead:
         expected = pd.read_excel(pth, 'Sheet1', index_col=0, engine=engine)
 
         with open(pth, 'rb') as f:
-            xls = pd.ExcelFile(f)
-            actual = pd.read_excel(xls, 'Sheet1', index_col=0)
+            with pd.ExcelFile(f) as xls:
+                actual = pd.read_excel(xls, 'Sheet1', index_col=0)
+
             tm.assert_frame_equal(expected, actual)
 
 
@@ -851,7 +852,8 @@ class TestExcelFileRead:
 def test_conflicting_excel_engines(read_ext, excel_engine, datapath):
     # GH 26566
     path = datapath("io", "data", 'test1{}'.format(read_ext))
-    xl = pd.ExcelFile(path, engine=excel_engine)
     msg = "Engine should not be specified when passing an ExcelFile"
-    with pytest.raises(ValueError, match=msg):
-        pd.read_excel(xl, engine='openpyxl')
+
+    with pd.ExcelFile(path, engine=excel_engine) as xl:
+        with pytest.raises(ValueError, match=msg):
+            pd.read_excel(xl, engine='openpyxl')
