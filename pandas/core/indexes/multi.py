@@ -2755,7 +2755,9 @@ class MultiIndex(Index):
                 # a partial date slicer on a DatetimeIndex generates a slice
                 # note that the stop ALREADY includes the stopped point (if
                 # it was a string sliced)
-                return convert_indexer(start.start, stop.stop, step)
+                start = getattr(start, 'start', start)
+                stop = getattr(stop, 'stop', stop)
+                return convert_indexer(start, stop, step)
 
             elif level > 0 or self.lexsort_depth == 0 or step is not None:
                 # need to have like semantics here to right
