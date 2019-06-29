@@ -198,7 +198,6 @@ Reindexing / selection / label manipulation
    DataFrame.idxmin
    DataFrame.last
    DataFrame.reindex
-   DataFrame.reindex_axis
    DataFrame.reindex_like
    DataFrame.rename
    DataFrame.rename_axis

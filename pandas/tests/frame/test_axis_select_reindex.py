@@ -416,17 +416,6 @@ class TestDataFrameSelectReindex:
         expected[4] = 'foo'
         assert_frame_equal(result, expected)
 
-        # reindex_axis
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.reindex_axis(range(15), fill_value=0., axis=0)
-        expected = df.reindex(range(15)).fillna(0)
-        assert_frame_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.reindex_axis(range(5), fill_value=0., axis=1)
-        expected = df.reindex(columns=range(5)).fillna(0)
-        assert_frame_equal(result, expected)
-
         # other dtypes
         df['foo'] = 'foo'
         result = df.reindex(range(15), fill_value=0)
@@ -1025,33 +1014,6 @@ class TestDataFrameSelectReindex:
         # ints are weird
         smaller = int_frame.reindex(columns=['A', 'B', 'E'])
         assert smaller['E'].dtype == np.float64
-
-    def test_reindex_axis(self, float_frame, int_frame):
-        cols = ['A', 'B', 'E']
-        with tm.assert_produces_warning(FutureWarning) as m:
-            reindexed1 = int_frame.reindex_axis(cols, axis=1)
-            assert 'reindex' in str(m[0].message)
-        reindexed2 = int_frame.reindex(columns=cols)
-        assert_frame_equal(reindexed1, reindexed2)
-
-        rows = int_frame.index[0:5]
-        with tm.assert_produces_warning(FutureWarning) as m:
-            reindexed1 = int_frame.reindex_axis(rows, axis=0)
-            assert 'reindex' in str(m[0].message)
-        reindexed2 = int_frame.reindex(index=rows)
-        assert_frame_equal(reindexed1, reindexed2)
-
-        msg = ("No axis named 2 for object type"
-               " <class 'pandas.core.frame.DataFrame'>")
-        with pytest.raises(ValueError, match=msg):
-            int_frame.reindex_axis(rows, axis=2)
-
-        # no-op case
-        cols = float_frame.columns.copy()
-        with tm.assert_produces_warning(FutureWarning) as m:
-            newFrame = float_frame.reindex_axis(cols, axis=1)
-            assert 'reindex' in str(m[0].message)
-        assert_frame_equal(newFrame, float_frame)
 
     def test_reindex_with_nans(self):
         df = DataFrame([[1, 2], [3, 4], [np.nan, np.nan], [7, 8], [9, 10]],
