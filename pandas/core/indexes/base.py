@@ -57,13 +57,6 @@ _index_doc_kwargs = dict(klass='Index', inplace='',
 _index_shared_docs = dict()
 
 
-def _try_get_item(x):
-    try:
-        return x.item()
-    except AttributeError:
-        return x
-
-
 def _make_comparison_op(op, cls):
     def cmp_method(self, other):
         if isinstance(other, (np.ndarray, Index, ABCSeries)):
