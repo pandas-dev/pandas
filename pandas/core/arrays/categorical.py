@@ -1509,7 +1509,7 @@ class Categorical(ExtensionArray, PandasObject):
     def _values_for_argsort(self):
         return self._codes.copy()
 
-    def argsort(self, *args, **kwargs):
+    def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
         # TODO(PY2): use correct signature
         # We have to do *args, **kwargs to avoid a a py2-only signature
         # issue since np.argsort differs from argsort.
@@ -1553,8 +1553,12 @@ class Categorical(ExtensionArray, PandasObject):
         >>> cat.argsort()
         array([3, 0, 1, 2])
         """
-        # Keep the implementation here just for the docstring.
-        return super().argsort(*args, **kwargs)
+        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
+        values = self._values_for_argsort()
+        result = np.argsort(values, kind=kind, **kwargs)
+        if not ascending:
+            result = result[::-1]
+        return result
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
         """

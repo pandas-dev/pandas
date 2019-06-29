@@ -562,6 +562,7 @@ Other API changes
 - Removed support of gtk package for clipboards (:issue:`26563`)
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
 - :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` will now raise a ``ValueError`` when saving timezone aware data. (:issue:`27008`, :issue:`7056`)
+- :meth:`ExtensionArray.argsort` places NA values at the end of the sorted array, except :class:`Categorical` (:issue:`21801`)
 
 .. _whatsnew_0250.deprecations:
 
