@@ -33,15 +33,6 @@ class TestDataFrameToCSV(TestData):
 
         return pd.read_csv(path, **params)
 
-    def test_from_csv_deprecation(self):
-        # see gh-17812
-        with ensure_clean('__tmp_from_csv_deprecation__') as path:
-            self.tsframe.to_csv(path)
-
-            with tm.assert_produces_warning(FutureWarning):
-                depr_recons = DataFrame.from_csv(path)
-                assert_frame_equal(self.tsframe, depr_recons)
-
     def test_to_csv_from_csv1(self):
 
         with ensure_clean('__tmp_to_csv_from_csv1__') as path:

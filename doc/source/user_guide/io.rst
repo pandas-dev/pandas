@@ -1711,8 +1711,6 @@ function takes a number of arguments. Only the first is required.
 * ``escapechar``: Character used to escape ``sep`` and ``quotechar`` when
   appropriate (default None)
 * ``chunksize``: Number of rows to write at a time
-* ``tupleize_cols``: If False (default), write as a list of tuples, otherwise
-  write in an expanded line format suitable for ``read_csv``
 * ``date_format``: Format string for datetime objects
 
 Writing a formatted string
