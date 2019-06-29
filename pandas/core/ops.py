@@ -2364,7 +2364,7 @@ def maybe_dispatch_ufunc_to_dunder_op(
     ufunc: Callable,
     method: str,
     *inputs: ArrayLike,
-    **kwargs: Any,
+    **kwargs: Any
 ):
     """
     Dispatch a ufunc to the equivalent dunder method.
