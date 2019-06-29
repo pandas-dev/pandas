@@ -34,13 +34,3 @@ def test_excel_table_sheet_by_index(datapath, read_ext):
     excel = pd.ExcelFile(datapath("io", "data", 'test1{}'.format(read_ext)))
     with pytest.raises(xlrd.XLRDError):
         pd.read_excel(excel, 'asdf')
-
-
-# TODO: test for openpyxl as well
-def test_reader_closes_file(datapath, read_ext):
-    f = open(datapath("io", "data", 'test1{}'.format(read_ext)), 'rb')
-    with pd.ExcelFile(f, engine='xlrd') as xlsx:
-        # parses okay
-        pd.read_excel(xlsx, 'Sheet1', index_col=0, engine='xlrd')
-
-    assert f.closed

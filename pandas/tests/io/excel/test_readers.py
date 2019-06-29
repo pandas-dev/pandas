@@ -841,6 +841,15 @@ class TestExcelFileRead:
 
             tm.assert_frame_equal(expected, actual)
 
+    def test_reader_closes_file(self, read_ext):
+        f = open('test1' + read_ext, 'rb')
+        engine = pd.ExcelFile.keywords['engine']  # TODO: fixturize
+        with pd.ExcelFile(f) as xlsx:
+            # parses okay
+            pd.read_excel(xlsx, 'Sheet1', index_col=0, engine=engine)
+
+        assert f.closed
+
 
 @td.skip_if_no("openpyxl")
 @pytest.mark.parametrize('excel_engine', [
