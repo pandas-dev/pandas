@@ -383,7 +383,7 @@ class TestCategoricalAPI:
         tm.assert_index_equal(out.categories, Index(['B', 'D', 'F']))
         exp_codes = np.array([2, -1, 1, 0, 1, 2, -1], dtype=np.int8)
         tm.assert_numpy_array_equal(out.codes, exp_codes)
-        assert out.to_dense().tolist() == val
+        assert out.tolist() == val
 
         alpha = list('abcdefghijklmnopqrstuvwxyz')
         val = np.random.choice(alpha[::2], 10000).astype('object')
@@ -391,7 +391,7 @@ class TestCategoricalAPI:
 
         cat = Categorical(values=val, categories=alpha)
         out = cat.remove_unused_categories()
-        assert out.to_dense().tolist() == val.tolist()
+        assert out.tolist() == val.tolist()
 
 
 class TestCategoricalAPIWithFactor(TestCategorical):
@@ -504,3 +504,9 @@ class TestPrivateCategoricalAPI:
         new = Index(expected)
         result = _recode_for_categories(codes, old, new)
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_deprecated_get_values(self):
+        cat = Categorical(["a", "b", "c", "a"])
+        with tm.assert_produces_warning(FutureWarning):
+            res = cat.get_values()
+        tm.assert_numpy_array_equal(res, np.array(cat))

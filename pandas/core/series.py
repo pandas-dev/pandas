@@ -515,7 +515,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         warnings.warn(
             "The 'get_values' method is deprecated and will be removed in a "
-            "future version", stacklevel=2)
+            "future version", FutureWarning, stacklevel=2)
         return self._internal_get_values()
 
     def _internal_get_values(self):
