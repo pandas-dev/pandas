@@ -739,8 +739,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             index = alignable[0].index
             for s in alignable[1:]:
                 index |= s.index
-            inputs = [x.reindex(index) if issubclass(t, Series) else x
-                      for x, t in zip(inputs, types)]
+            inputs = tuple(x.reindex(index) if issubclass(t, Series) else x
+                           for x, t in zip(inputs, types))
         else:
             index = self.index
 
@@ -762,7 +762,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result = getattr(ufunc, method)(*inputs, **kwargs)
         if len(set(names)) == 1:
             # we require names to be hashable, right?
-            name = names[0]
+            name = names[0]  # type: Any
         else:
             name = None
 
