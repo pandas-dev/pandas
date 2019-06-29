@@ -6,6 +6,7 @@ from io import StringIO
 import numbers
 from shutil import get_terminal_size
 from textwrap import dedent
+from typing import Any, Callable
 import warnings
 
 import numpy as np
@@ -704,7 +705,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray, numbers.Number,
                       list)  # what other builtins? array? deque? ...
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    def __array_ufunc__(
+            self,
+            ufunc: Callable,
+            method: str,
+            *inputs: Any,
+            **kwargs: Any
+    ):
         # TODO: handle DataFrame
         from pandas.core.internals.construction import extract_array
 
@@ -735,7 +742,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # dtype check: can we do this, given the inputs?
         # It's expected that the following classes defer to us when
-        # any Series is present in inputes.
+        # any Series is present in inputs.
         #   1. Index.
         #   2. ExtensionArray.
 

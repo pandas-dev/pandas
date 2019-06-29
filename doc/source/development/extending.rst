@@ -208,6 +208,28 @@ will
 2. call ``result = op(values, ExtensionArray)``
 3. re-box the result in a ``Series``
 
+.. _extending.extension.ufunc:
+
+NumPy Universal Functions
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Series` implements ``__array_ufunc__``. As part of the implementation,
+pandas unboxes the ``ExtensionArray`` from the :class:`Series`, applies the ufunc,
+and re-boxes it if necessary.
+
+If applicable, we highly recommend that your implement ``__array_ufunc__`` in your
+extension array to avoid coercion to an ndarray. See
+`the numpy documentation <https://docs.scipy.org/doc/numpy/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
+for an example.
+
+As part of your implementation, we require that you
+
+1. Define a ``_HANDLED_TYPES`` attribute, a tuple, containing the types your
+   array can handle
+2. Defer to the :class:`Series` implementatio by returning ``NotImplemented``
+   if there are any :class:`Series` in the ``types``. This ensures consistent
+   metadata handling, and associativity for binary operations.
+
 .. _extending.extension.testing:
 
 Testing extension arrays

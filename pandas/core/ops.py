@@ -6,7 +6,7 @@ This is not a public API.
 import datetime
 import operator
 import textwrap
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 import warnings
 
 import numpy as np
@@ -2363,8 +2363,8 @@ def maybe_dispatch_ufunc_to_dunder_op(
     self: ArrayLike,
     ufunc: Callable,
     method: str,
-    *inputs,
-    **kwargs
+    *inputs: ArrayLike,
+    **kwargs: Any,
 ):
     """
     Dispatch a ufunc to the equivalent dunder method.
@@ -2376,8 +2376,10 @@ def maybe_dispatch_ufunc_to_dunder_op(
     ufunc : Callable
         A NumPy ufunc
     method : {'reduce', 'accumulate', 'reduceat', 'outer', 'at', '__call__'}
-    inputs : Tuple
-    kwargs : Dict
+    inputs : ArrayLike
+        The input arrays.
+    kwargs : Any
+        The additional keyword arguments, e.g. ``out``.
 
     Returns
     -------

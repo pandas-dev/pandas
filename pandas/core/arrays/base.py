@@ -107,6 +107,17 @@ class ExtensionArray:
     attributes called ``.values`` or ``._values`` to ensure full compatibility
     with pandas internals. But other names as ``.data``, ``._data``,
     ``._items``, ... can be freely used.
+
+    If implementing NumPy's ``__array_ufunc__`` interface, pandas expects
+    that
+
+    1. You defer by raising ``NotImplemented`` when any Series are present
+       in `inputs`. Pandas will extract the arrays and call the ufunc again.
+    2. You define a ``_HANDLED_TYPES`` tuple as an attribute on the class.
+       Pandas inspect this to determine whether the ufunc is valid for the
+       types present.
+
+    See :ref:`extending.extension.ufunc` for more.
     """
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
