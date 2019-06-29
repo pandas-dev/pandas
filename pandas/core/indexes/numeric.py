@@ -16,7 +16,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 import pandas.core.common as com
-import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
 from pandas.core.ops import get_op_result_name
@@ -442,7 +441,9 @@ class Float64Index(NumericIndex):
             return np.isnan(other) and self.hasnans
         except ValueError:
             try:
-                return len(other) <= 1 and ibase._try_get_item(other) in self
+                return len(other) <= 1 and other.item() in self
+            except AttributeError:
+                return len(other) <= 1 and other in self
             except TypeError:
                 pass
         except TypeError:
@@ -457,9 +458,7 @@ class Float64Index(NumericIndex):
                 nan_idxs = self._nan_idxs
                 try:
                     return nan_idxs.item()
-                except (ValueError, IndexError):
-                    # should only need to catch ValueError here but on numpy
-                    # 1.7 .item() can raise IndexError when NaNs are present
+                except ValueError:
                     if not len(nan_idxs):
                         raise KeyError(key)
                     return nan_idxs

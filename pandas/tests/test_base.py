@@ -326,13 +326,15 @@ class TestIndexOps(Ops):
                 pass
 
             with pytest.raises(ValueError):
-                o.item()  # len > 1
+                with tm.assert_produces_warning(FutureWarning):
+                    o.item()  # len > 1
 
             assert o.ndim == 1
             assert o.size == len(o)
 
-        assert Index([1]).item() == 1
-        assert Series([1]).item() == 1
+        with tm.assert_produces_warning(FutureWarning):
+            assert Index([1]).item() == 1
+            assert Series([1]).item() == 1
 
     def test_value_counts_unique_nunique(self):
         for orig in self.objs:

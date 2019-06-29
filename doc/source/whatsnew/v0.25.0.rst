@@ -608,6 +608,7 @@ Other deprecations
 - :attr:`Index.dtype_str` is deprecated. (:issue:`18262`)
 - :attr:`Series.imag` and :attr:`Series.real` are deprecated. (:issue:`18262`)
 - :meth:`Series.put` is deprecated. (:issue:`18262`)
+- :meth:`Index.item` and :meth:`Series.item` is deprecated. (:issue:`18262`)
 
 .. _whatsnew_0250.prior_deprecations:
 
