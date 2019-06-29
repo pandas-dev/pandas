@@ -768,14 +768,14 @@ class ExcelFile:
         Acceptable values are None or ``xlrd``.
     """
 
-    from pandas.io.excel._xlrd import _XlrdReader
+    from pandas.io.excel._odfreader import ODFReader
     from pandas.io.excel._openpyxl import _OpenpyxlReader
-    from pandas.io.excel._odfreader import ODFReader        
+    from pandas.io.excel._xlrd import _XlrdReader
 
     _engines = {
         'xlrd': _XlrdReader,
         'openpyxl': _OpenpyxlReader,
-        'odf': ODFReader,        
+        'odf': _ODFReader,
     }
 
     def __init__(self, io, engine=None):
