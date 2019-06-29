@@ -350,6 +350,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         # For IntegerArray inputs, we apply the ufunc to ._data
         # and mask the result.
+        if method == 'reduce':
+            # Not clear how to handle missing values in reductions. Raise.
+            raise NotImplementedError("The 'reduce' method is not supported.")
         out = kwargs.get('out', ())
 
         for x in inputs + out:

@@ -781,8 +781,13 @@ def test_ufunc_fallback():
     assert pd.isna(np.add.reduce(a))
 
 
-def test_modf():
-    pass
+@pytest.mark.parametrize('values', [
+    [0, 1], [0, None]
+])
+def test_ufunc_reduce_raises(values):
+    a = integer_array(values)
+    with pytest.raises(NotImplementedError):
+        np.add.reduce(a)
 
 
 # TODO(jreback) - these need testing / are broken
