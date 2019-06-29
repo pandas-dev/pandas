@@ -736,6 +736,23 @@ class TestIntervalIndex(Base):
         with pytest.raises(ValueError, match=msg):
             index._maybe_convert_i8(key)
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
+    def test_contains(self):
+        # Only endpoints are valid.
+        i = IntervalIndex.from_arrays([0, 1], [1, 2])
+
+        # Invalid
+        assert 0 not in i
+        assert 1 not in i
+        assert 2 not in i
+
+        # Valid
+        assert Interval(0, 1) in i
+        assert Interval(0, 2) in i
+        assert Interval(0, 0.5) in i
+        assert Interval(3, 5) not in i
+        assert Interval(-1, 0, closed='left') not in i
+
     def test_contains_method(self):
         # can select values that are IN the range of a value
         i = IntervalIndex.from_arrays([0, 1], [1, 2])
@@ -756,24 +773,6 @@ class TestIntervalIndex(Base):
         # that for the contains method
         with pytest.raises(TypeError):
             i.contains(Interval(0, 1))
-
-    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
-    def test_contains_method(self):
-        # can select values that are IN the range of a value
-        i = IntervalIndex.from_arrays([0, 1], [1, 2])
-
-        assert i.contains(0.1)
-        assert i.contains(0.5)
-        assert i.contains(1)
-        assert i.contains(Interval(0, 1))
-        assert i.contains(Interval(0, 2))
-
-        # these overlaps completely
-        assert i.contains(Interval(0, 3))
-        assert i.contains(Interval(1, 3))
-
-        assert not i.contains(20)
-        assert not i.contains(-20)
 
     def test_dropna(self, closed):
 
