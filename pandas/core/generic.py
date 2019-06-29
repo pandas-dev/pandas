@@ -2903,7 +2903,7 @@ class NDFrame(PandasObject, SelectionMixin):
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None, compression='infer', quoting=None,
                quotechar='"', line_terminator=None, chunksize=None,
-               tupleize_cols=None, date_format=None, doublequote=True,
+               date_format=None, doublequote=True,
                escapechar=None, decimal='.'):
         r"""
         Write object to a comma-separated values (csv) file.
@@ -2976,14 +2976,6 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionchanged:: 0.24.0
         chunksize : int or None
             Rows to write at a time.
-        tupleize_cols : bool, default False
-            Write MultiIndex columns as a list of tuples (if True) or in
-            the new, expanded format, where each MultiIndex column is a row
-            in the CSV (if False).
-
-            .. deprecated:: 0.21.0
-               This argument will be removed and will always write each row
-               of the multi-index as a separate row in the CSV file.
         date_format : str, default None
             Format string for datetime objects.
         doublequote : bool, default True
@@ -3017,13 +3009,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
-        if tupleize_cols is not None:
-            warnings.warn("The 'tupleize_cols' parameter is deprecated and "
-                          "will be removed in a future version",
-                          FutureWarning, stacklevel=2)
-        else:
-            tupleize_cols = False
-
         from pandas.io.formats.csvs import CSVFormatter
         formatter = CSVFormatter(df, path_or_buf,
                                  line_terminator=line_terminator, sep=sep,
@@ -3033,7 +3018,6 @@ class NDFrame(PandasObject, SelectionMixin):
                                  cols=columns, header=header, index=index,
                                  index_label=index_label, mode=mode,
                                  chunksize=chunksize, quotechar=quotechar,
-                                 tupleize_cols=tupleize_cols,
                                  date_format=date_format,
                                  doublequote=doublequote,
                                  escapechar=escapechar, decimal=decimal)

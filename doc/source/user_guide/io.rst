@@ -340,13 +340,6 @@ dialect : str or :class:`python:csv.Dialect` instance, default ``None``
   `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
   override values, a ParserWarning will be issued. See :class:`python:csv.Dialect`
   documentation for more details.
-tupleize_cols : boolean, default ``False``
-    .. deprecated:: 0.21.0
-
-    This argument will be removed and will always convert to MultiIndex
-
-  Leave a list of tuples on columns as is (default is to convert to a MultiIndex
-  on the columns).
 
 Error handling
 ++++++++++++++
@@ -1718,8 +1711,6 @@ function takes a number of arguments. Only the first is required.
 * ``escapechar``: Character used to escape ``sep`` and ``quotechar`` when
   appropriate (default None)
 * ``chunksize``: Number of rows to write at a time
-* ``tupleize_cols``: If False (default), write as a list of tuples, otherwise
-  write in an expanded line format suitable for ``read_csv``
 * ``date_format``: Format string for datetime objects
 
 Writing a formatted string

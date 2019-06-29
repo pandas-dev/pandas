@@ -24,9 +24,9 @@ class CSVFormatter:
 
     def __init__(self, obj, path_or_buf=None, sep=",", na_rep='',
                  float_format=None, cols=None, header=True, index=True,
-                 index_label=None, mode='w', nanRep=None, encoding=None,
+                 index_label=None, mode='w', encoding=None,
                  compression='infer', quoting=None, line_terminator='\n',
-                 chunksize=None, tupleize_cols=False, quotechar='"',
+                 chunksize=None, quotechar='"',
                  date_format=None, doublequote=True, escapechar=None,
                  decimal='.'):
 
@@ -68,9 +68,7 @@ class CSVFormatter:
 
         self.date_format = date_format
 
-        self.tupleize_cols = tupleize_cols
-        self.has_mi_columns = (isinstance(obj.columns, ABCMultiIndex) and
-                               not self.tupleize_cols)
+        self.has_mi_columns = isinstance(obj.columns, ABCMultiIndex)
 
         # validate mi options
         if self.has_mi_columns:

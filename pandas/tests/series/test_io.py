@@ -29,17 +29,6 @@ class TestSeriesToCSV:
 
         return out
 
-    def test_from_csv_deprecation(self, datetime_series):
-        # see gh-17812
-        with ensure_clean() as path:
-            datetime_series.to_csv(path, header=False)
-
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                ts = self.read_csv(path)
-                depr_ts = Series.from_csv(path)
-                assert_series_equal(depr_ts, ts)
-
     @pytest.mark.parametrize("arg", ["path", "header", "both"])
     def test_to_csv_deprecation(self, arg, datetime_series):
         # see gh-19715
@@ -67,11 +56,6 @@ class TestSeriesToCSV:
 
             assert ts.name is None
             assert ts.index.name is None
-
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                depr_ts = Series.from_csv(path)
-                assert_series_equal(depr_ts, ts)
 
             # see gh-10483
             datetime_series.to_csv(path, header=True)

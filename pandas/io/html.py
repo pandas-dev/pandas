@@ -912,7 +912,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
 
 def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, attrs=None, parse_dates=False,
-              tupleize_cols=None, thousands=',', encoding=None,
+              thousands=',', encoding=None,
               decimal='.', converters=None, na_values=None,
               keep_default_na=True, displayed_only=True):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -975,14 +975,6 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
     parse_dates : bool, optional
         See :func:`~read_csv` for more details.
-
-    tupleize_cols : bool, optional
-        If ``False`` try to parse multiple header rows into a
-        :class:`~pandas.MultiIndex`, otherwise return raw tuples. Defaults to
-        ``False``.
-
-        .. deprecated:: 0.21.0
-           This argument will be removed and will always convert to MultiIndex
 
     thousands : str, optional
         Separator to use to parse thousands. Defaults to ``','``.
@@ -1073,7 +1065,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     _validate_header_arg(header)
     return _parse(flavor=flavor, io=io, match=match, header=header,
                   index_col=index_col, skiprows=skiprows,
-                  parse_dates=parse_dates, tupleize_cols=tupleize_cols,
+                  parse_dates=parse_dates,
                   thousands=thousands, attrs=attrs, encoding=encoding,
                   decimal=decimal, converters=converters, na_values=na_values,
                   keep_default_na=keep_default_na,

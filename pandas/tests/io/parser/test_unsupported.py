@@ -122,17 +122,3 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         with pytest.raises(ValueError, match=msg):
             read_csv(NoNextBuffer(data), engine=python_engine)
-
-
-class TestDeprecatedFeatures:
-
-    @pytest.mark.parametrize("engine", ["c", "python"])
-    @pytest.mark.parametrize("kwargs", [{"tupleize_cols": True},
-                                        {"tupleize_cols": False}])
-    def test_deprecated_args(self, engine, kwargs):
-        data = "1,2,3"
-        arg, _ = list(kwargs.items())[0]
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            read_csv(StringIO(data), engine=engine, **kwargs)
