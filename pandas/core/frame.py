@@ -41,8 +41,8 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, is_datetime64_any_dtype, is_datetime64tz_dtype,
     is_dict_like, is_dtype_equal, is_extension_array_dtype, is_extension_type,
     is_float_dtype, is_integer, is_integer_dtype, is_iterator, is_list_like,
-    is_named_tuple, is_nested_list_like, is_object_dtype, is_scalar,
-    is_sequence, needs_i8_conversion)
+    is_named_tuple, is_nested_list_like, is_numeric_dtype, is_object_dtype,
+    is_scalar, is_sequence, needs_i8_conversion)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna
@@ -3264,7 +3264,20 @@ class DataFrame(NDFrame):
             lambda x: frozenset(map(infer_dtype_from_object, x)), selection)
         for dtypes in (include, exclude):
             invalidate_string_dtypes(dtypes)
-
+        
+        def add_extension_types(dtypes, search_dtype, func):
+            """Adds bool or numeric extension types to include/exclude"""
+            extension_dtypes = [dtype.type for dtype in self.dtypes
+                              if func(dtype)]
+            if search_dtype in dtypes:
+                return frozenset(dtypes.union(extension_dtypes))
+            else:
+                return dtypes
+        
+        include = add_extension_types(include, np.number, is_numeric_dtype)
+        exclude = add_extension_types(exclude, np.number, is_numeric_dtype)
+        include = add_extension_types(include, np.bool_, is_bool_dtype)
+        exclude = add_extension_types(exclude, np.bool_, is_bool_dtype)
         # can't both include AND exclude!
         if not include.isdisjoint(exclude):
             raise ValueError('include and exclude overlap on {inc_ex}'.format(

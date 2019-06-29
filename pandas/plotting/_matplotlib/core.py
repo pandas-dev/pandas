@@ -332,14 +332,11 @@ class MPLPlot:
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)
-        # GH26173, don't filter out numeric extension types
-        # Numeric categorical data gets caught by including np.number
-        # in select_dtypes
-        numeric_dtypes = [dtype for dtype in set(data.dtypes)
-                          if hasattr(dtype, "_is_numeric") and
-                          dtype._is_numeric and
-                          dtype.name is not "category"]
-        numeric_data = data.select_dtypes(include=[np.number] + numeric_dtypes)
+        numeric_data = data.select_dtypes(include=[np.number,
+                                                   "datetime",
+                                                   "datetimetz",
+                                                   "timedelta"])
+
         try:
             is_empty = numeric_data.empty
         except AttributeError:
