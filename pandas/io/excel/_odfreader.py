@@ -1,5 +1,7 @@
 import pandas as pd
 
+from pandas.compat._optional import import_optional_dependency
+
 from pandas.io.parsers import TextParser
 
 
@@ -12,15 +14,10 @@ class _ODFReader:
         an open readable stream.
     """
     def __init__(self, filepath_or_buffer):
-        try:
-            from odf.opendocument import load as document_load
-            from odf.table import Table
-        except ImportError:
-            raise ImportError("Install odfpy >= 1.3 for OpenDocument support")
-
-        self.filepath_or_buffer = filepath_or_buffer
+        import_optional_dependency("odf")
         self.document = document_load(filepath_or_buffer)
         self.tables = self.document.getElementsByType(Table)
+        super().__init__(filepath_or_buffer)
 
     @property
     def sheet_names(self):
