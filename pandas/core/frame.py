@@ -3264,16 +3264,14 @@ class DataFrame(NDFrame):
             lambda x: frozenset(map(infer_dtype_from_object, x)), selection)
         for dtypes in (include, exclude):
             invalidate_string_dtypes(dtypes)
-        
         def add_extension_types(dtypes, search_dtype, func):
             """Adds bool or numeric extension types to include/exclude"""
             extension_dtypes = [dtype.type for dtype in self.dtypes
-                              if func(dtype)]
+                                if func(dtype)]
             if search_dtype in dtypes:
                 return frozenset(dtypes.union(extension_dtypes))
             else:
                 return dtypes
-        
         include = add_extension_types(include, np.number, is_numeric_dtype)
         exclude = add_extension_types(exclude, np.number, is_numeric_dtype)
         include = add_extension_types(include, np.bool_, is_bool_dtype)

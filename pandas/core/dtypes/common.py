@@ -1579,7 +1579,6 @@ def is_numeric_dtype(arr_or_dtype):
     if is_extension_array_dtype(arr_or_dtype):
         dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
         return dtype._is_numeric
-    
     return _is_dtype_type(
         arr_or_dtype, classes_and_not_datetimelike(np.number, np.bool_))
 
