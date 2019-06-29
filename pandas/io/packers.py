@@ -523,16 +523,16 @@ def encode(obj):
             return {'typ': 'np_scalar',
                     'sub_typ': 'np_complex',
                     'dtype': obj.dtype.name,
-                    'real': obj.real.__repr__(),
-                    'imag': obj.imag.__repr__()}
+                    'real': np.real(obj).__repr__(),
+                    'imag': np.imag(obj).__repr__()}
         else:
             return {'typ': 'np_scalar',
                     'dtype': obj.dtype.name,
                     'data': obj.__repr__()}
     elif isinstance(obj, complex):
         return {'typ': 'np_complex',
-                'real': obj.real.__repr__(),
-                'imag': obj.imag.__repr__()}
+                'real': np.real(obj).__repr__(),
+                'imag': np.imag(obj).__repr__()}
 
     return obj
 
