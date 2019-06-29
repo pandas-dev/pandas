@@ -1,12 +1,17 @@
 """
 Testing that we work in the downstream packages
 """
-import pytest
-import numpy as np  # noqa
-from pandas import DataFrame
-from pandas.compat import PY36
-from pandas.util import testing as tm
 import importlib
+import subprocess
+import sys
+
+import numpy as np  # noqa
+import pytest
+
+from pandas.compat import PY36
+
+from pandas import DataFrame
+from pandas.util import testing as tm
 
 
 def import_module(name):
@@ -52,7 +57,14 @@ def test_xarray(df):
     assert df.to_xarray() is not None
 
 
+def test_oo_optimizable():
+    # GH 21071
+    subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])
+
+
 @tm.network
+# Cython import warning
+@pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 def test_statsmodels():
 
     statsmodels = import_module('statsmodels')  # noqa
@@ -62,6 +74,8 @@ def test_statsmodels():
     smf.ols('Lottery ~ Literacy + np.log(Pop1831)', data=df).fit()
 
 
+# Cython import warning
+@pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 def test_scikit_learn(df):
 
     sklearn = import_module('sklearn')  # noqa
@@ -73,6 +87,9 @@ def test_scikit_learn(df):
     clf.predict(digits.data[-1:])
 
 
+# Cython import warning and traitlets
+@tm.network
+@pytest.mark.filterwarnings("ignore")
 def test_seaborn():
 
     seaborn = import_module('seaborn')
@@ -85,13 +102,20 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module('pandas_gbq')  # noqa
 
 
+@pytest.mark.xfail(reason="0.7.0 pending")
 @tm.network
 def test_pandas_datareader():
 
     pandas_datareader = import_module('pandas_datareader')  # noqa
-    pandas_datareader.get_data_google('AAPL')
+    pandas_datareader.DataReader(
+        'F', 'quandl', '2017-01-01', '2017-02-01')
 
 
+# importing from pandas, Cython import warning
+@pytest.mark.filterwarnings("ignore:The 'warn':DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:pandas.util:DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
+@pytest.mark.skip(reason="gh-25778: geopandas stack issue")
 def test_geopandas():
 
     geopandas = import_module('geopandas')  # noqa
@@ -99,9 +123,30 @@ def test_geopandas():
     assert geopandas.read_file(fp) is not None
 
 
+# Cython import warning
+@pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
 def test_pyarrow(df):
 
     pyarrow = import_module('pyarrow')  # noqa
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.xfail(reason="pandas-wheels-50", strict=False)
+def test_missing_required_dependency():
+    # GH 23868
+    # To ensure proper isolation, we pass these flags
+    # -S : disable site-packages
+    # -s : disable user site-packages
+    # -E : disable PYTHON* env vars, especially PYTHONPATH
+    # And, that's apparently not enough, so we give up.
+    # https://github.com/MacPython/pandas-wheels/pull/50
+    call = ['python', '-sSE', '-c', 'import pandas']
+
+    with pytest.raises(subprocess.CalledProcessError) as exc:
+        subprocess.check_output(call, stderr=subprocess.STDOUT)
+
+    output = exc.value.stdout.decode()
+    for name in ['numpy', 'pytz', 'dateutil']:
+        assert name in output

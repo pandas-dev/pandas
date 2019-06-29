@@ -1,0 +1,178 @@
+.. _whatsnew_0162:
+
+v0.16.2 (June 12, 2015)
+-----------------------
+
+{{ header }}
+
+
+This is a minor bug-fix release from 0.16.1 and includes a a large number of
+bug fixes along some new features (:meth:`~DataFrame.pipe` method), enhancements, and performance improvements.
+
+We recommend that all users upgrade to this version.
+
+Highlights include:
+
+- A new ``pipe`` method, see :ref:`here <whatsnew_0162.enhancements.pipe>`
+- Documentation on how to use numba_ with *pandas*, see :ref:`here <enhancingperf.numba>`
+
+
+.. contents:: What's new in v0.16.2
+    :local:
+    :backlinks: none
+
+.. _numba: http://numba.pydata.org
+
+.. _whatsnew_0162.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+.. _whatsnew_0162.enhancements.pipe:
+
+Pipe
+^^^^
+
+We've introduced a new method :meth:`DataFrame.pipe`. As suggested by the name, ``pipe``
+should be used to pipe data through a chain of function calls.
+The goal is to avoid confusing nested function calls like
+
+.. code-block:: python
+
+   # df is a DataFrame
+   # f, g, and h are functions that take and return DataFrames
+   f(g(h(df), arg1=1), arg2=2, arg3=3)  # noqa F821
+
+The logic flows from inside out, and function names are separated from their keyword arguments.
+This can be rewritten as
+
+.. code-block:: python
+
+   (df.pipe(h)                   # noqa F821
+      .pipe(g, arg1=1)           # noqa F821
+      .pipe(f, arg2=2, arg3=3)   # noqa F821
+   )
+
+Now both the code and the logic flow from top to bottom. Keyword arguments are next to
+their functions. Overall the code is much more readable.
+
+In the example above, the functions ``f``, ``g``, and ``h`` each expected the DataFrame as the first positional argument.
+When the function you wish to apply takes its data anywhere other than the first argument, pass a tuple
+of ``(function, keyword)`` indicating where the DataFrame should flow. For example:
+
+.. ipython:: python
+
+   import statsmodels.formula.api as sm
+
+   bb = pd.read_csv('data/baseball.csv', index_col='id')
+
+   # sm.ols takes (formula, data)
+   (bb.query('h > 0')
+      .assign(ln_h=lambda df: np.log(df.h))
+      .pipe((sm.ols, 'data'), 'hr ~ ln_h + year + g + C(lg)')
+      .fit()
+      .summary()
+    )
+
+The pipe method is inspired by unix pipes, which stream text through
+processes. More recently dplyr_ and magrittr_ have introduced the
+popular ``(%>%)`` pipe operator for R_.
+
+See the :ref:`documentation <basics.pipe>` for more. (:issue:`10129`)
+
+.. _dplyr: https://github.com/hadley/dplyr
+.. _magrittr: https://github.com/smbache/magrittr
+.. _R: http://www.r-project.org
+
+.. _whatsnew_0162.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- Added `rsplit` to Index/Series StringMethods (:issue:`10303`)
+
+- Removed the hard-coded size limits on the ``DataFrame`` HTML representation
+  in the IPython notebook, and leave this to IPython itself (only for IPython
+  v3.0 or greater). This eliminates the duplicate scroll bars that appeared in
+  the notebook with large frames (:issue:`10231`).
+
+  Note that the notebook has a ``toggle output scrolling`` feature to limit the
+  display of very large frames (by clicking left of the output).
+  You can also configure the way DataFrames are displayed using the pandas
+  options, see here :ref:`here <options.frequently_used>`.
+
+- ``axis`` parameter of ``DataFrame.quantile`` now accepts also ``index`` and ``column``. (:issue:`9543`)
+
+.. _whatsnew_0162.api:
+
+API changes
+~~~~~~~~~~~
+
+- ``Holiday`` now raises ``NotImplementedError`` if both ``offset`` and ``observance`` are used in the constructor instead of returning an incorrect result (:issue:`10217`).
+
+
+.. _whatsnew_0162.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improved ``Series.resample`` performance with ``dtype=datetime64[ns]`` (:issue:`7754`)
+- Increase performance of ``str.split`` when ``expand=True`` (:issue:`10081`)
+
+.. _whatsnew_0162.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+- Bug in ``Series.hist`` raises an error when a one row ``Series`` was given (:issue:`10214`)
+- Bug where ``HDFStore.select`` modifies the passed columns list (:issue:`7212`)
+- Bug in ``Categorical`` repr with ``display.width`` of ``None`` in Python 3 (:issue:`10087`)
+- Bug in ``to_json`` with certain orients and a ``CategoricalIndex`` would segfault (:issue:`10317`)
+- Bug where some of the nan functions do not have consistent return dtypes (:issue:`10251`)
+- Bug in ``DataFrame.quantile`` on checking that a valid axis was passed (:issue:`9543`)
+- Bug in ``groupby.apply`` aggregation for ``Categorical`` not preserving categories (:issue:`10138`)
+- Bug in ``to_csv`` where ``date_format`` is ignored if the ``datetime`` is fractional (:issue:`10209`)
+- Bug in ``DataFrame.to_json`` with mixed data types (:issue:`10289`)
+- Bug in cache updating when consolidating (:issue:`10264`)
+- Bug in ``mean()`` where integer dtypes can overflow (:issue:`10172`)
+- Bug where ``Panel.from_dict`` does not set dtype when specified (:issue:`10058`)
+- Bug in ``Index.union`` raises ``AttributeError`` when passing array-likes. (:issue:`10149`)
+- Bug in ``Timestamp``'s' ``microsecond``, ``quarter``, ``dayofyear``, ``week`` and ``daysinmonth`` properties return ``np.int`` type, not built-in ``int``. (:issue:`10050`)
+- Bug in ``NaT`` raises ``AttributeError`` when accessing to ``daysinmonth``, ``dayofweek`` properties. (:issue:`10096`)
+- Bug in Index repr when using the ``max_seq_items=None`` setting (:issue:`10182`).
+- Bug in getting timezone data with ``dateutil`` on various platforms ( :issue:`9059`, :issue:`8639`, :issue:`9663`, :issue:`10121`)
+- Bug in displaying datetimes with mixed frequencies; display 'ms' datetimes to the proper precision. (:issue:`10170`)
+- Bug in ``setitem`` where type promotion is applied to the entire block (:issue:`10280`)
+- Bug in ``Series`` arithmetic methods may incorrectly hold names (:issue:`10068`)
+- Bug in ``GroupBy.get_group`` when grouping on multiple keys, one of which is categorical. (:issue:`10132`)
+- Bug in ``DatetimeIndex`` and ``TimedeltaIndex`` names are lost after timedelta arithmetics ( :issue:`9926`)
+- Bug in ``DataFrame`` construction from nested ``dict`` with ``datetime64`` (:issue:`10160`)
+- Bug in ``Series`` construction from ``dict`` with ``datetime64`` keys (:issue:`9456`)
+- Bug in ``Series.plot(label="LABEL")`` not correctly setting the label (:issue:`10119`)
+- Bug in ``plot`` not defaulting to matplotlib ``axes.grid`` setting (:issue:`9792`)
+- Bug causing strings containing an exponent, but no decimal to be parsed as ``int`` instead of ``float`` in ``engine='python'`` for the ``read_csv`` parser (:issue:`9565`)
+- Bug in ``Series.align`` resets ``name`` when ``fill_value`` is specified (:issue:`10067`)
+- Bug in ``read_csv`` causing index name not to be set on an empty DataFrame (:issue:`10184`)
+- Bug in ``SparseSeries.abs`` resets ``name`` (:issue:`10241`)
+- Bug in ``TimedeltaIndex`` slicing may reset freq (:issue:`10292`)
+- Bug in ``GroupBy.get_group`` raises ``ValueError`` when group key contains ``NaT`` (:issue:`6992`)
+- Bug in ``SparseSeries`` constructor ignores input data name (:issue:`10258`)
+- Bug in ``Categorical.remove_categories`` causing a ``ValueError`` when removing the ``NaN`` category if underlying dtype is floating-point (:issue:`10156`)
+- Bug where infer_freq infers time rule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)
+- Bug in ``DataFrame.to_hdf()`` where table format would raise a seemingly unrelated error for invalid (non-string) column names. This is now explicitly forbidden. (:issue:`9057`)
+- Bug to handle masking empty ``DataFrame`` (:issue:`10126`).
+- Bug where MySQL interface could not handle numeric table/column names (:issue:`10255`)
+- Bug in ``read_csv`` with a ``date_parser`` that returned a ``datetime64`` array of other time resolution than ``[ns]`` (:issue:`10245`)
+- Bug in ``Panel.apply`` when the result has ndim=0 (:issue:`10332`)
+- Bug in ``read_hdf`` where ``auto_close`` could not be passed (:issue:`9327`).
+- Bug in ``read_hdf`` where open stores could not be used (:issue:`10330`).
+- Bug in adding empty ``DataFrames``, now results in a ``DataFrame`` that ``.equals`` an empty ``DataFrame`` (:issue:`10181`).
+- Bug in ``to_hdf`` and ``HDFStore`` which did not check that complib choices were valid (:issue:`4582`, :issue:`8874`).
+
+
+.. _whatsnew_0.16.2.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.16.1..v0.16.2

@@ -1,56 +1,53 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function
-
+from datetime import datetime, timedelta
+from io import StringIO
 import re
 import sys
-from datetime import datetime, timedelta
-import pytest
+
 import numpy as np
+import pytest
+
+from pandas._libs.tslib import iNaT
+from pandas.compat import PYPY
+from pandas.compat.numpy import np_array_datetime64_compat
+
+from pandas.core.dtypes.common import (
+    is_datetime64_dtype, is_datetime64tz_dtype, is_object_dtype,
+    is_timedelta64_dtype, needs_i8_conversion)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-import pandas.compat as compat
-from pandas.core.dtypes.common import (
-    is_object_dtype, is_datetimetz,
-    needs_i8_conversion)
-import pandas.util.testing as tm
-from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
-                    PeriodIndex, Timedelta, IntervalIndex, Interval,
-                    CategoricalIndex, Timestamp)
-from pandas.compat import StringIO, PYPY, long
-from pandas.compat.numpy import np_array_datetime64_compat
+from pandas import (
+    CategoricalIndex, DataFrame, DatetimeIndex, Index, Interval, IntervalIndex,
+    PeriodIndex, Series, Timedelta, TimedeltaIndex, Timestamp)
 from pandas.core.accessor import PandasDelegate
-from pandas.core.base import PandasObject, NoNewAttributesMixin
+from pandas.core.arrays import DatetimeArray, PandasArray, TimedeltaArray
+from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from pandas._libs.tslib import iNaT
+import pandas.util.testing as tm
 
 
-class CheckStringMixin(object):
+class CheckStringMixin:
 
     def test_string_methods_dont_fail(self):
         repr(self.container)
         str(self.container)
         bytes(self.container)
-        if not compat.PY3:
-            unicode(self.container)  # noqa
 
     def test_tricky_container(self):
         if not hasattr(self, 'unicode_container'):
             pytest.skip('Need unicode_container to test with this')
         repr(self.unicode_container)
         str(self.unicode_container)
-        bytes(self.unicode_container)
-        if not compat.PY3:
-            unicode(self.unicode_container)  # noqa
 
 
-class CheckImmutable(object):
+class CheckImmutable:
     mutable_regex = re.compile('does not support mutable operations')
 
     def check_mutable_error(self, *args, **kwargs):
-        # Pass whatever function you normally would to assert_raises_regex
+        # Pass whatever function you normally would to pytest.raises
         # (after the Exception kind).
-        tm.assert_raises_regex(
-            TypeError, self.mutable_regex, *args, **kwargs)
+        with pytest.raises(TypeError):
+            self.mutable_regex(*args, **kwargs)
 
     def test_no_mutable_funcs(self):
         def setitem():
@@ -88,9 +85,9 @@ class CheckImmutable(object):
         assert result == expected
 
 
-class TestPandasDelegate(object):
+class TestPandasDelegate:
 
-    class Delegator(object):
+    class Delegator:
         _properties = ['foo']
         _methods = ['bar']
 
@@ -114,9 +111,10 @@ class TestPandasDelegate(object):
     def setup_method(self, method):
         pass
 
-    def test_invalida_delgation(self):
+    def test_invalid_delegation(self):
         # these show that in order for the delegation to work
-        # the _delegate_* methods need to be overriden to not raise a TypeError
+        # the _delegate_* methods need to be overridden to not raise
+        # a TypeError
 
         self.Delegate._add_delegate_accessors(
             delegate=self.Delegator,
@@ -131,20 +129,14 @@ class TestPandasDelegate(object):
 
         delegate = self.Delegate(self.Delegator())
 
-        def f():
+        with pytest.raises(TypeError):
             delegate.foo
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(TypeError):
             delegate.foo = 5
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(TypeError):
             delegate.foo()
-
-        pytest.raises(TypeError, f)
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self):
@@ -155,7 +147,7 @@ class TestPandasDelegate(object):
         sys.getsizeof(delegate)
 
 
-class Ops(object):
+class Ops:
 
     def _allow_na_ops(self, obj):
         """Whether to skip test cases including NaN"""
@@ -177,19 +169,20 @@ class Ops(object):
         self.unicode_index = tm.makeUnicodeIndex(10, name='a')
 
         arr = np.random.randn(10)
+        self.bool_series = Series(arr, index=self.bool_index, name='a')
         self.int_series = Series(arr, index=self.int_index, name='a')
         self.float_series = Series(arr, index=self.float_index, name='a')
         self.dt_series = Series(arr, index=self.dt_index, name='a')
         self.dt_tz_series = self.dt_tz_index.to_series(keep_tz=True)
         self.period_series = Series(arr, index=self.period_index, name='a')
         self.string_series = Series(arr, index=self.string_index, name='a')
+        self.unicode_series = Series(arr, index=self.unicode_index, name='a')
 
         types = ['bool', 'int', 'float', 'dt', 'dt_tz', 'period', 'string',
                  'unicode']
-        fmts = ["{0}_{1}".format(t, f)
-                for t in types for f in ['index', 'series']]
-        self.objs = [getattr(self, f)
-                     for f in fmts if getattr(self, f, None) is not None]
+        self.indexes = [getattr(self, '{}_index'.format(t)) for t in types]
+        self.series = [getattr(self, '{}_series'.format(t)) for t in types]
+        self.objs = self.indexes + self.series
 
     def check_ops_properties(self, props, filter=None, ignore_failures=False):
         for op in props:
@@ -213,7 +206,7 @@ class Ops(object):
 
                 result = getattr(o, op)
 
-                # these couuld be series, arrays or scalars
+                # these could be series, arrays or scalars
                 if isinstance(result, Series) and isinstance(expected, Series):
                     tm.assert_series_equal(result, expected)
                 elif isinstance(result, Index) and isinstance(expected, Index):
@@ -231,14 +224,15 @@ class Ops(object):
 
                     # an object that is datetimelike will raise a TypeError,
                     # otherwise an AttributeError
+                    err = AttributeError
                     if issubclass(type(o), DatetimeIndexOpsMixin):
-                        pytest.raises(TypeError, lambda: getattr(o, op))
-                    else:
-                        pytest.raises(AttributeError,
-                                      lambda: getattr(o, op))
+                        err = TypeError
 
-    def test_binary_ops_docs(self):
-        from pandas import DataFrame, Panel
+                    with pytest.raises(err):
+                        getattr(o, op)
+
+    @pytest.mark.parametrize('klass', [Series, DataFrame])
+    def test_binary_ops_docs(self, klass):
         op_map = {'add': '+',
                   'sub': '-',
                   'mul': '*',
@@ -246,26 +240,24 @@ class Ops(object):
                   'pow': '**',
                   'truediv': '/',
                   'floordiv': '//'}
-        for op_name in ['add', 'sub', 'mul', 'mod', 'pow', 'truediv',
-                        'floordiv']:
-            for klass in [Series, DataFrame, Panel]:
-                operand1 = klass.__name__.lower()
-                operand2 = 'other'
-                op = op_map[op_name]
-                expected_str = ' '.join([operand1, op, operand2])
-                assert expected_str in getattr(klass, op_name).__doc__
+        for op_name in op_map:
+            operand1 = klass.__name__.lower()
+            operand2 = 'other'
+            op = op_map[op_name]
+            expected_str = ' '.join([operand1, op, operand2])
+            assert expected_str in getattr(klass, op_name).__doc__
 
-                # reverse version of the binary ops
-                expected_str = ' '.join([operand2, op, operand1])
-                assert expected_str in getattr(klass, 'r' + op_name).__doc__
+            # reverse version of the binary ops
+            expected_str = ' '.join([operand2, op, operand1])
+            assert expected_str in getattr(klass, 'r' + op_name).__doc__
 
 
 class TestIndexOps(Ops):
 
     def setup_method(self, method):
-        super(TestIndexOps, self).setup_method(method)
-        self.is_valid_objs = [o for o in self.objs if o._allow_index_ops]
-        self.not_valid_objs = [o for o in self.objs if not o._allow_index_ops]
+        super().setup_method(method)
+        self.is_valid_objs = self.objs
+        self.not_valid_objs = []
 
     def test_none_comparison(self):
 
@@ -290,106 +282,59 @@ class TestIndexOps(Ops):
                 assert not result.iat[0]
                 assert not result.iat[1]
 
-                # this fails for numpy < 1.9
-                # and oddly for *some* platforms
-                # result = None != o  # noqa
-                # assert result.iat[0]
-                # assert result.iat[1]
+                result = None != o  # noqa
+                assert result.iat[0]
+                assert result.iat[1]
 
-                result = None > o
-                assert not result.iat[0]
-                assert not result.iat[1]
+                if (is_datetime64_dtype(o) or is_datetime64tz_dtype(o)):
+                    # Following DatetimeIndex (and Timestamp) convention,
+                    # inequality comparisons with Series[datetime64] raise
+                    with pytest.raises(TypeError):
+                        None > o
+                    with pytest.raises(TypeError):
+                        o > None
+                else:
+                    result = None > o
+                    assert not result.iat[0]
+                    assert not result.iat[1]
 
-                result = o < None
-                assert not result.iat[0]
-                assert not result.iat[1]
+                    result = o < None
+                    assert not result.iat[0]
+                    assert not result.iat[1]
 
     def test_ndarray_compat_properties(self):
 
         for o in self.objs:
             # Check that we work.
-            for p in ['shape', 'dtype', 'flags', 'T',
-                      'strides', 'itemsize', 'nbytes']:
+            for p in ['shape', 'dtype', 'T', 'nbytes']:
                 assert getattr(o, p, None) is not None
 
-            assert hasattr(o, 'base')
+            # deprecated properties
+            for p in ['flags', 'strides', 'itemsize']:
+                with tm.assert_produces_warning(FutureWarning):
+                    assert getattr(o, p, None) is not None
+
+            with tm.assert_produces_warning(FutureWarning):
+                assert hasattr(o, 'base')
 
             # If we have a datetime-like dtype then needs a view to work
             # but the user is responsible for that
             try:
-                assert o.data is not None
+                with tm.assert_produces_warning(FutureWarning):
+                    assert o.data is not None
             except ValueError:
                 pass
 
             with pytest.raises(ValueError):
-                o.item()  # len > 1
+                with tm.assert_produces_warning(FutureWarning):
+                    o.item()  # len > 1
 
             assert o.ndim == 1
             assert o.size == len(o)
 
-        assert Index([1]).item() == 1
-        assert Series([1]).item() == 1
-
-    def test_ops(self):
-        for op in ['max', 'min']:
-            for o in self.objs:
-                result = getattr(o, op)()
-                if not isinstance(o, PeriodIndex):
-                    expected = getattr(o.values, op)()
-                else:
-                    expected = pd.Period(ordinal=getattr(o._values, op)(),
-                                         freq=o.freq)
-                try:
-                    assert result == expected
-                except TypeError:
-                    # comparing tz-aware series with np.array results in
-                    # TypeError
-                    expected = expected.astype('M8[ns]').astype('int64')
-                    assert result.value == expected
-
-    def test_nanops(self):
-        # GH 7261
-        for op in ['max', 'min']:
-            for klass in [Index, Series]:
-
-                obj = klass([np.nan, 2.0])
-                assert getattr(obj, op)() == 2.0
-
-                obj = klass([np.nan])
-                assert pd.isna(getattr(obj, op)())
-
-                obj = klass([])
-                assert pd.isna(getattr(obj, op)())
-
-                obj = klass([pd.NaT, datetime(2011, 11, 1)])
-                # check DatetimeIndex monotonic path
-                assert getattr(obj, op)() == datetime(2011, 11, 1)
-
-                obj = klass([pd.NaT, datetime(2011, 11, 1), pd.NaT])
-                # check DatetimeIndex non-monotonic path
-                assert getattr(obj, op)(), datetime(2011, 11, 1)
-
-        # argmin/max
-        obj = Index(np.arange(5, dtype='int64'))
-        assert obj.argmin() == 0
-        assert obj.argmax() == 4
-
-        obj = Index([np.nan, 1, np.nan, 2])
-        assert obj.argmin() == 1
-        assert obj.argmax() == 3
-
-        obj = Index([np.nan])
-        assert obj.argmin() == -1
-        assert obj.argmax() == -1
-
-        obj = Index([pd.NaT, datetime(2011, 11, 1), datetime(2011, 11, 2),
-                     pd.NaT])
-        assert obj.argmin() == 1
-        assert obj.argmax() == 2
-
-        obj = Index([pd.NaT])
-        assert obj.argmin() == -1
-        assert obj.argmax() == -1
+        with tm.assert_produces_warning(FutureWarning):
+            assert Index([1]).item() == 1
+            assert Series([1]).item() == 1
 
     def test_value_counts_unique_nunique(self):
         for orig in self.objs:
@@ -406,14 +351,16 @@ class TestIndexOps(Ops):
             if isinstance(o, Index) and o.is_boolean():
                 continue
             elif isinstance(o, Index):
-                expected_index = pd.Index(o[::-1])
+                expected_index = Index(o[::-1])
                 expected_index.name = None
                 o = o.repeat(range(1, len(o) + 1))
                 o.name = 'a'
             else:
-                expected_index = pd.Index(values[::-1])
+                expected_index = Index(values[::-1])
                 idx = o.index.repeat(range(1, len(o) + 1))
-                rep = np.repeat(values, range(1, len(o) + 1))
+                # take-based repeat
+                indices = np.repeat(np.arange(len(o)), range(1, len(o) + 1))
+                rep = values.take(indices)
                 o = klass(rep, index=idx, name='a')
 
             # check values has the same dtype as the original
@@ -431,290 +378,289 @@ class TestIndexOps(Ops):
             if isinstance(o, Index):
                 assert isinstance(result, o.__class__)
                 tm.assert_index_equal(result, orig)
-            elif is_datetimetz(o):
+            elif is_datetime64tz_dtype(o):
                 # datetimetz Series returns array of Timestamp
                 assert result[0] == orig[0]
                 for r in result:
                     assert isinstance(r, Timestamp)
-                tm.assert_numpy_array_equal(result,
-                                            orig._values.asobject.values)
+
+                tm.assert_numpy_array_equal(
+                    result.astype(object),
+                    orig._values.astype(object))
             else:
                 tm.assert_numpy_array_equal(result, orig.values)
 
             assert o.nunique() == len(np.unique(o.values))
 
-    def test_value_counts_unique_nunique_null(self):
+    @pytest.mark.parametrize('null_obj', [np.nan, None])
+    def test_value_counts_unique_nunique_null(self, null_obj):
 
-        for null_obj in [np.nan, None]:
-            for orig in self.objs:
-                o = orig.copy()
-                klass = type(o)
-                values = o._values
+        for orig in self.objs:
+            o = orig.copy()
+            klass = type(o)
+            values = o._ndarray_values
 
-                if not self._allow_na_ops(o):
-                    continue
+            if not self._allow_na_ops(o):
+                continue
 
-                # special assign to the numpy array
-                if is_datetimetz(o):
-                    if isinstance(o, DatetimeIndex):
-                        v = o.asi8
-                        v[0:2] = iNaT
-                        values = o._shallow_copy(v)
-                    else:
-                        o = o.copy()
-                        o[0:2] = iNaT
-                        values = o._values
-
-                elif needs_i8_conversion(o):
-                    values[0:2] = iNaT
-                    values = o._shallow_copy(values)
+            # special assign to the numpy array
+            if is_datetime64tz_dtype(o):
+                if isinstance(o, DatetimeIndex):
+                    v = o.asi8
+                    v[0:2] = iNaT
+                    values = o._shallow_copy(v)
                 else:
-                    values[0:2] = null_obj
-                # check values has the same dtype as the original
+                    o = o.copy()
+                    o[0:2] = iNaT
+                    values = o._values
 
-                assert values.dtype == o.dtype
+            elif needs_i8_conversion(o):
+                values[0:2] = iNaT
+                values = o._shallow_copy(values)
+            else:
+                values[0:2] = null_obj
+            # check values has the same dtype as the original
 
-                # create repeated values, 'n'th element is repeated by n+1
-                # times
-                if isinstance(o, (DatetimeIndex, PeriodIndex)):
-                    expected_index = o.copy()
-                    expected_index.name = None
+            assert values.dtype == o.dtype
 
-                    # attach name to klass
-                    o = klass(values.repeat(range(1, len(o) + 1)))
-                    o.name = 'a'
+            # create repeated values, 'n'th element is repeated by n+1
+            # times
+            if isinstance(o, (DatetimeIndex, PeriodIndex)):
+                expected_index = o.copy()
+                expected_index.name = None
+
+                # attach name to klass
+                o = klass(values.repeat(range(1, len(o) + 1)))
+                o.name = 'a'
+            else:
+                if isinstance(o, DatetimeIndex):
+                    expected_index = orig._values._shallow_copy(values)
                 else:
-                    if is_datetimetz(o):
-                        expected_index = orig._values._shallow_copy(values)
-                    else:
-                        expected_index = pd.Index(values)
-                    expected_index.name = None
-                    o = o.repeat(range(1, len(o) + 1))
-                    o.name = 'a'
+                    expected_index = Index(values)
+                expected_index.name = None
+                o = o.repeat(range(1, len(o) + 1))
+                o.name = 'a'
 
-                # check values has the same dtype as the original
-                assert o.dtype == orig.dtype
-                # check values correctly have NaN
-                nanloc = np.zeros(len(o), dtype=np.bool)
-                nanloc[:3] = True
-                if isinstance(o, Index):
-                    tm.assert_numpy_array_equal(pd.isna(o), nanloc)
-                else:
-                    exp = pd.Series(nanloc, o.index, name='a')
-                    tm.assert_series_equal(pd.isna(o), exp)
-
-                expected_s_na = Series(list(range(10, 2, -1)) + [3],
-                                       index=expected_index[9:0:-1],
-                                       dtype='int64', name='a')
-                expected_s = Series(list(range(10, 2, -1)),
-                                    index=expected_index[9:1:-1],
-                                    dtype='int64', name='a')
-
-                result_s_na = o.value_counts(dropna=False)
-                tm.assert_series_equal(result_s_na, expected_s_na)
-                assert result_s_na.index.name is None
-                assert result_s_na.name == 'a'
-                result_s = o.value_counts()
-                tm.assert_series_equal(o.value_counts(), expected_s)
-                assert result_s.index.name is None
-                assert result_s.name == 'a'
-
-                result = o.unique()
-                if isinstance(o, Index):
-                    tm.assert_index_equal(result,
-                                          Index(values[1:], name='a'))
-                elif is_datetimetz(o):
-                    # unable to compare NaT / nan
-                    tm.assert_numpy_array_equal(result[1:],
-                                                values[2:].asobject.values)
-                    assert result[0] is pd.NaT
-                else:
-                    tm.assert_numpy_array_equal(result[1:], values[2:])
-
-                    assert pd.isna(result[0])
-                    assert result.dtype == orig.dtype
-
-                assert o.nunique() == 8
-                assert o.nunique(dropna=False) == 9
-
-    def test_value_counts_inferred(self):
-        klasses = [Index, Series]
-        for klass in klasses:
-            s_values = ['a', 'b', 'b', 'b', 'b', 'c', 'd', 'd', 'a', 'a']
-            s = klass(s_values)
-            expected = Series([4, 3, 2, 1], index=['b', 'a', 'd', 'c'])
-            tm.assert_series_equal(s.value_counts(), expected)
-
-            if isinstance(s, Index):
-                exp = Index(np.unique(np.array(s_values, dtype=np.object_)))
-                tm.assert_index_equal(s.unique(), exp)
+            # check values has the same dtype as the original
+            assert o.dtype == orig.dtype
+            # check values correctly have NaN
+            nanloc = np.zeros(len(o), dtype=np.bool)
+            nanloc[:3] = True
+            if isinstance(o, Index):
+                tm.assert_numpy_array_equal(pd.isna(o), nanloc)
             else:
-                exp = np.unique(np.array(s_values, dtype=np.object_))
-                tm.assert_numpy_array_equal(s.unique(), exp)
+                exp = Series(nanloc, o.index, name='a')
+                tm.assert_series_equal(pd.isna(o), exp)
 
-            assert s.nunique() == 4
-            # don't sort, have to sort after the fact as not sorting is
-            # platform-dep
-            hist = s.value_counts(sort=False).sort_values()
-            expected = Series([3, 1, 4, 2], index=list('acbd')).sort_values()
-            tm.assert_series_equal(hist, expected)
+            expected_s_na = Series(list(range(10, 2, -1)) + [3],
+                                   index=expected_index[9:0:-1],
+                                   dtype='int64', name='a')
+            expected_s = Series(list(range(10, 2, -1)),
+                                index=expected_index[9:1:-1],
+                                dtype='int64', name='a')
 
-            # sort ascending
-            hist = s.value_counts(ascending=True)
-            expected = Series([1, 2, 3, 4], index=list('cdab'))
-            tm.assert_series_equal(hist, expected)
+            result_s_na = o.value_counts(dropna=False)
+            tm.assert_series_equal(result_s_na, expected_s_na)
+            assert result_s_na.index.name is None
+            assert result_s_na.name == 'a'
+            result_s = o.value_counts()
+            tm.assert_series_equal(o.value_counts(), expected_s)
+            assert result_s.index.name is None
+            assert result_s.name == 'a'
 
-            # relative histogram.
-            hist = s.value_counts(normalize=True)
-            expected = Series([.4, .3, .2, .1], index=['b', 'a', 'd', 'c'])
-            tm.assert_series_equal(hist, expected)
-
-    def test_value_counts_bins(self):
-        klasses = [Index, Series]
-        for klass in klasses:
-            s_values = ['a', 'b', 'b', 'b', 'b', 'c', 'd', 'd', 'a', 'a']
-            s = klass(s_values)
-
-            # bins
-            pytest.raises(TypeError, lambda bins: s.value_counts(bins=bins), 1)
-
-            s1 = Series([1, 1, 2, 3])
-            res1 = s1.value_counts(bins=1)
-            exp1 = Series({Interval(0.997, 3.0): 4})
-            tm.assert_series_equal(res1, exp1)
-            res1n = s1.value_counts(bins=1, normalize=True)
-            exp1n = Series({Interval(0.997, 3.0): 1.0})
-            tm.assert_series_equal(res1n, exp1n)
-
-            if isinstance(s1, Index):
-                tm.assert_index_equal(s1.unique(), Index([1, 2, 3]))
+            result = o.unique()
+            if isinstance(o, Index):
+                tm.assert_index_equal(result,
+                                      Index(values[1:], name='a'))
+            elif is_datetime64tz_dtype(o):
+                # unable to compare NaT / nan
+                tm.assert_extension_array_equal(result[1:], values[2:])
+                assert result[0] is pd.NaT
             else:
-                exp = np.array([1, 2, 3], dtype=np.int64)
-                tm.assert_numpy_array_equal(s1.unique(), exp)
+                tm.assert_numpy_array_equal(result[1:], values[2:])
 
-            assert s1.nunique() == 3
+                assert pd.isna(result[0])
+                assert result.dtype == orig.dtype
 
-            # these return the same
-            res4 = s1.value_counts(bins=4, dropna=True)
-            intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
-            exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 3, 1, 2]))
-            tm.assert_series_equal(res4, exp4)
+            assert o.nunique() == 8
+            assert o.nunique(dropna=False) == 9
 
-            res4 = s1.value_counts(bins=4, dropna=False)
-            intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
-            exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 3, 1, 2]))
-            tm.assert_series_equal(res4, exp4)
+    @pytest.mark.parametrize('klass', [Index, Series])
+    def test_value_counts_inferred(self, klass):
+        s_values = ['a', 'b', 'b', 'b', 'b', 'c', 'd', 'd', 'a', 'a']
+        s = klass(s_values)
+        expected = Series([4, 3, 2, 1], index=['b', 'a', 'd', 'c'])
+        tm.assert_series_equal(s.value_counts(), expected)
 
-            res4n = s1.value_counts(bins=4, normalize=True)
-            exp4n = Series([0.5, 0.25, 0.25, 0],
-                           index=intervals.take([0, 3, 1, 2]))
-            tm.assert_series_equal(res4n, exp4n)
+        if isinstance(s, Index):
+            exp = Index(np.unique(np.array(s_values, dtype=np.object_)))
+            tm.assert_index_equal(s.unique(), exp)
+        else:
+            exp = np.unique(np.array(s_values, dtype=np.object_))
+            tm.assert_numpy_array_equal(s.unique(), exp)
 
-            # handle NA's properly
-            s_values = ['a', 'b', 'b', 'b', np.nan, np.nan,
-                        'd', 'd', 'a', 'a', 'b']
-            s = klass(s_values)
-            expected = Series([4, 3, 2], index=['b', 'a', 'd'])
-            tm.assert_series_equal(s.value_counts(), expected)
+        assert s.nunique() == 4
+        # don't sort, have to sort after the fact as not sorting is
+        # platform-dep
+        hist = s.value_counts(sort=False).sort_values()
+        expected = Series([3, 1, 4, 2], index=list('acbd')).sort_values()
+        tm.assert_series_equal(hist, expected)
 
-            if isinstance(s, Index):
-                exp = Index(['a', 'b', np.nan, 'd'])
-                tm.assert_index_equal(s.unique(), exp)
-            else:
-                exp = np.array(['a', 'b', np.nan, 'd'], dtype=object)
-                tm.assert_numpy_array_equal(s.unique(), exp)
-            assert s.nunique() == 3
+        # sort ascending
+        hist = s.value_counts(ascending=True)
+        expected = Series([1, 2, 3, 4], index=list('cdab'))
+        tm.assert_series_equal(hist, expected)
 
-            s = klass({})
-            expected = Series([], dtype=np.int64)
-            tm.assert_series_equal(s.value_counts(), expected,
-                                   check_index_type=False)
-            # returned dtype differs depending on original
-            if isinstance(s, Index):
-                tm.assert_index_equal(s.unique(), Index([]), exact=False)
-            else:
-                tm.assert_numpy_array_equal(s.unique(), np.array([]),
-                                            check_dtype=False)
+        # relative histogram.
+        hist = s.value_counts(normalize=True)
+        expected = Series([.4, .3, .2, .1], index=['b', 'a', 'd', 'c'])
+        tm.assert_series_equal(hist, expected)
 
-            assert s.nunique() == 0
+    @pytest.mark.parametrize('klass', [Index, Series])
+    def test_value_counts_bins(self, klass):
+        s_values = ['a', 'b', 'b', 'b', 'b', 'c', 'd', 'd', 'a', 'a']
+        s = klass(s_values)
 
-    def test_value_counts_datetime64(self):
-        klasses = [Index, Series]
-        for klass in klasses:
-            # GH 3002, datetime64[ns]
-            # don't test names though
-            txt = "\n".join(['xxyyzz20100101PIE', 'xxyyzz20100101GUM',
-                             'xxyyzz20100101EGG', 'xxyyww20090101EGG',
-                             'foofoo20080909PIE', 'foofoo20080909GUM'])
-            f = StringIO(txt)
-            df = pd.read_fwf(f, widths=[6, 8, 3],
-                             names=["person_id", "dt", "food"],
-                             parse_dates=["dt"])
+        # bins
+        with pytest.raises(TypeError):
+            s.value_counts(bins=1)
 
-            s = klass(df['dt'].copy())
-            s.name = None
+        s1 = Series([1, 1, 2, 3])
+        res1 = s1.value_counts(bins=1)
+        exp1 = Series({Interval(0.997, 3.0): 4})
+        tm.assert_series_equal(res1, exp1)
+        res1n = s1.value_counts(bins=1, normalize=True)
+        exp1n = Series({Interval(0.997, 3.0): 1.0})
+        tm.assert_series_equal(res1n, exp1n)
 
-            idx = pd.to_datetime(['2010-01-01 00:00:00Z',
-                                  '2008-09-09 00:00:00Z',
-                                  '2009-01-01 00:00:00X'])
-            expected_s = Series([3, 2, 1], index=idx)
-            tm.assert_series_equal(s.value_counts(), expected_s)
+        if isinstance(s1, Index):
+            tm.assert_index_equal(s1.unique(), Index([1, 2, 3]))
+        else:
+            exp = np.array([1, 2, 3], dtype=np.int64)
+            tm.assert_numpy_array_equal(s1.unique(), exp)
 
-            expected = np_array_datetime64_compat(['2010-01-01 00:00:00Z',
-                                                   '2009-01-01 00:00:00Z',
-                                                   '2008-09-09 00:00:00Z'],
-                                                  dtype='datetime64[ns]')
-            if isinstance(s, Index):
-                tm.assert_index_equal(s.unique(), DatetimeIndex(expected))
-            else:
-                tm.assert_numpy_array_equal(s.unique(), expected)
+        assert s1.nunique() == 3
 
-            assert s.nunique() == 3
+        # these return the same
+        res4 = s1.value_counts(bins=4, dropna=True)
+        intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
+        exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 3, 1, 2]))
+        tm.assert_series_equal(res4, exp4)
 
-            # with NaT
-            s = df['dt'].copy()
-            s = klass([v for v in s.values] + [pd.NaT])
+        res4 = s1.value_counts(bins=4, dropna=False)
+        intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
+        exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 3, 1, 2]))
+        tm.assert_series_equal(res4, exp4)
 
-            result = s.value_counts()
-            assert result.index.dtype == 'datetime64[ns]'
-            tm.assert_series_equal(result, expected_s)
+        res4n = s1.value_counts(bins=4, normalize=True)
+        exp4n = Series([0.5, 0.25, 0.25, 0],
+                       index=intervals.take([0, 3, 1, 2]))
+        tm.assert_series_equal(res4n, exp4n)
 
-            result = s.value_counts(dropna=False)
-            expected_s[pd.NaT] = 1
-            tm.assert_series_equal(result, expected_s)
+        # handle NA's properly
+        s_values = ['a', 'b', 'b', 'b', np.nan, np.nan,
+                    'd', 'd', 'a', 'a', 'b']
+        s = klass(s_values)
+        expected = Series([4, 3, 2], index=['b', 'a', 'd'])
+        tm.assert_series_equal(s.value_counts(), expected)
 
-            unique = s.unique()
-            assert unique.dtype == 'datetime64[ns]'
+        if isinstance(s, Index):
+            exp = Index(['a', 'b', np.nan, 'd'])
+            tm.assert_index_equal(s.unique(), exp)
+        else:
+            exp = np.array(['a', 'b', np.nan, 'd'], dtype=object)
+            tm.assert_numpy_array_equal(s.unique(), exp)
+        assert s.nunique() == 3
 
-            # numpy_array_equal cannot compare pd.NaT
-            if isinstance(s, Index):
-                exp_idx = DatetimeIndex(expected.tolist() + [pd.NaT])
-                tm.assert_index_equal(unique, exp_idx)
-            else:
-                tm.assert_numpy_array_equal(unique[:3], expected)
-                assert pd.isna(unique[3])
+        s = klass({})
+        expected = Series([], dtype=np.int64)
+        tm.assert_series_equal(s.value_counts(), expected,
+                               check_index_type=False)
+        # returned dtype differs depending on original
+        if isinstance(s, Index):
+            tm.assert_index_equal(s.unique(), Index([]), exact=False)
+        else:
+            tm.assert_numpy_array_equal(s.unique(), np.array([]),
+                                        check_dtype=False)
 
-            assert s.nunique() == 3
-            assert s.nunique(dropna=False) == 4
+        assert s.nunique() == 0
 
-            # timedelta64[ns]
-            td = df.dt - df.dt + timedelta(1)
-            td = klass(td, name='dt')
+    @pytest.mark.parametrize('klass', [Index, Series])
+    def test_value_counts_datetime64(self, klass):
 
-            result = td.value_counts()
-            expected_s = Series([6], index=[Timedelta('1day')], name='dt')
-            tm.assert_series_equal(result, expected_s)
+        # GH 3002, datetime64[ns]
+        # don't test names though
+        txt = "\n".join(['xxyyzz20100101PIE', 'xxyyzz20100101GUM',
+                         'xxyyzz20100101EGG', 'xxyyww20090101EGG',
+                         'foofoo20080909PIE', 'foofoo20080909GUM'])
+        f = StringIO(txt)
+        df = pd.read_fwf(f, widths=[6, 8, 3],
+                         names=["person_id", "dt", "food"],
+                         parse_dates=["dt"])
 
-            expected = TimedeltaIndex(['1 days'], name='dt')
-            if isinstance(td, Index):
-                tm.assert_index_equal(td.unique(), expected)
-            else:
-                tm.assert_numpy_array_equal(td.unique(), expected.values)
+        s = klass(df['dt'].copy())
+        s.name = None
+        idx = pd.to_datetime(['2010-01-01 00:00:00',
+                              '2008-09-09 00:00:00',
+                              '2009-01-01 00:00:00'])
+        expected_s = Series([3, 2, 1], index=idx)
+        tm.assert_series_equal(s.value_counts(), expected_s)
 
-            td2 = timedelta(1) + (df.dt - df.dt)
-            td2 = klass(td2, name='dt')
-            result2 = td2.value_counts()
-            tm.assert_series_equal(result2, expected_s)
+        expected = np_array_datetime64_compat(['2010-01-01 00:00:00',
+                                               '2009-01-01 00:00:00',
+                                               '2008-09-09 00:00:00'],
+                                              dtype='datetime64[ns]')
+        if isinstance(s, Index):
+            tm.assert_index_equal(s.unique(), DatetimeIndex(expected))
+        else:
+            tm.assert_numpy_array_equal(s.unique(), expected)
+
+        assert s.nunique() == 3
+
+        # with NaT
+        s = df['dt'].copy()
+        s = klass([v for v in s.values] + [pd.NaT])
+
+        result = s.value_counts()
+        assert result.index.dtype == 'datetime64[ns]'
+        tm.assert_series_equal(result, expected_s)
+
+        result = s.value_counts(dropna=False)
+        expected_s[pd.NaT] = 1
+        tm.assert_series_equal(result, expected_s)
+
+        unique = s.unique()
+        assert unique.dtype == 'datetime64[ns]'
+
+        # numpy_array_equal cannot compare pd.NaT
+        if isinstance(s, Index):
+            exp_idx = DatetimeIndex(expected.tolist() + [pd.NaT])
+            tm.assert_index_equal(unique, exp_idx)
+        else:
+            tm.assert_numpy_array_equal(unique[:3], expected)
+            assert pd.isna(unique[3])
+
+        assert s.nunique() == 3
+        assert s.nunique(dropna=False) == 4
+
+        # timedelta64[ns]
+        td = df.dt - df.dt + timedelta(1)
+        td = klass(td, name='dt')
+
+        result = td.value_counts()
+        expected_s = Series([6], index=[Timedelta('1day')], name='dt')
+        tm.assert_series_equal(result, expected_s)
+
+        expected = TimedeltaIndex(['1 days'], name='dt')
+        if isinstance(td, Index):
+            tm.assert_index_equal(td.unique(), expected)
+        else:
+            tm.assert_numpy_array_equal(td.unique(), expected.values)
+
+        td2 = timedelta(1) + (df.dt - df.dt)
+        td2 = klass(td2, name='dt')
+        result2 = td2.value_counts()
+        tm.assert_series_equal(result2, expected_s)
 
     def test_factorize(self):
         for orig in self.objs:
@@ -833,9 +779,9 @@ class TestIndexOps(Ops):
                 result = idx.drop_duplicates(keep=False)
                 tm.assert_index_equal(result, idx[~expected])
 
-                with tm.assert_raises_regex(
-                        TypeError, r"drop_duplicates\(\) got an unexpected "
-                        "keyword argument"):
+                with pytest.raises(TypeError,
+                                   match=(r"drop_duplicates\(\) got an "
+                                          r"unexpected keyword argument")):
                     idx.drop_duplicates(inplace=True)
 
             else:
@@ -983,36 +929,57 @@ class TestIndexOps(Ops):
             with pytest.raises(ValueError):
                 self.int_series.drop_duplicates(inplace=value)
 
+    def test_getitem(self):
+        for i in self.indexes:
+            s = pd.Series(i)
+
+            assert i[0] == s.iloc[0]
+            assert i[5] == s.iloc[5]
+            assert i[-1] == s.iloc[-1]
+
+            assert i[-1] == i[9]
+
+            with pytest.raises(IndexError):
+                i[20]
+            with pytest.raises(IndexError):
+                s.iloc[20]
+
+    @pytest.mark.parametrize('indexer_klass', [list, pd.Index])
+    @pytest.mark.parametrize('indexer', [[True] * 10, [False] * 10,
+                                         [True, False, True, True, False,
+                                          False, True, True, False, True]])
+    def test_bool_indexing(self, indexer_klass, indexer):
+        # GH 22533
+        for idx in self.indexes:
+            exp_idx = [i for i in range(len(indexer)) if indexer[i]]
+            tm.assert_index_equal(idx[indexer_klass(indexer)], idx[exp_idx])
+            s = pd.Series(idx)
+            tm.assert_series_equal(s[indexer_klass(indexer)], s.iloc[exp_idx])
+
 
 class TestTranspose(Ops):
     errmsg = "the 'axes' parameter is not supported"
 
     def test_transpose(self):
         for obj in self.objs:
-            if isinstance(obj, Index):
-                tm.assert_index_equal(obj.transpose(), obj)
-            else:
-                tm.assert_series_equal(obj.transpose(), obj)
+            tm.assert_equal(obj.transpose(), obj)
 
     def test_transpose_non_default_axes(self):
         for obj in self.objs:
-            tm.assert_raises_regex(ValueError, self.errmsg,
-                                   obj.transpose, 1)
-            tm.assert_raises_regex(ValueError, self.errmsg,
-                                   obj.transpose, axes=1)
+            with pytest.raises(ValueError, match=self.errmsg):
+                obj.transpose(1)
+            with pytest.raises(ValueError, match=self.errmsg):
+                obj.transpose(axes=1)
 
     def test_numpy_transpose(self):
         for obj in self.objs:
-            if isinstance(obj, Index):
-                tm.assert_index_equal(np.transpose(obj), obj)
-            else:
-                tm.assert_series_equal(np.transpose(obj), obj)
+            tm.assert_equal(np.transpose(obj), obj)
 
-            tm.assert_raises_regex(ValueError, self.errmsg,
-                                   np.transpose, obj, axes=1)
+            with pytest.raises(ValueError, match=self.errmsg):
+                np.transpose(obj, axes=1)
 
 
-class TestNoNewAttributesMixin(object):
+class TestNoNewAttributesMixin:
 
     def test_mixin(self):
         class T(NoNewAttributesMixin):
@@ -1028,25 +995,24 @@ class TestNoNewAttributesMixin(object):
         assert "__frozen" in dir(t)
         assert getattr(t, "__frozen")
 
-        def f():
+        with pytest.raises(AttributeError):
             t.b = "test"
 
-        pytest.raises(AttributeError, f)
         assert not hasattr(t, "b")
 
 
-class TestToIterable(object):
+class TestToIterable:
     # test that we convert an iterable to python types
 
     dtypes = [
-        ('int8', (int, long)),
-        ('int16', (int, long)),
-        ('int32', (int, long)),
-        ('int64', (int, long)),
-        ('uint8', (int, long)),
-        ('uint16', (int, long)),
-        ('uint32', (int, long)),
-        ('uint64', (int, long)),
+        ('int8', int),
+        ('int16', int),
+        ('int32', int),
+        ('int64', int),
+        ('uint8', int),
+        ('uint16', int),
+        ('uint32', int),
+        ('uint64', int),
         ('float16', float),
         ('float32', float),
         ('float64', float),
@@ -1060,10 +1026,13 @@ class TestToIterable(object):
         'method',
         [
             lambda x: x.tolist(),
+            lambda x: x.to_list(),
             lambda x: list(x),
             lambda x: list(x.__iter__()),
-        ], ids=['tolist', 'list', 'iter'])
+        ], ids=['tolist', 'to_list', 'list', 'iter'])
     @pytest.mark.parametrize('typ', [Series, Index])
+    @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
+    # TODO(GH-24559): Remove the filterwarnings
     def test_iterable(self, typ, method, dtype, rdtype):
         # gh-10904
         # gh-13258
@@ -1076,16 +1045,17 @@ class TestToIterable(object):
         'dtype, rdtype, obj',
         [
             ('object', object, 'a'),
-            ('object', (int, long), 1),
+            ('object', int, 1),
             ('category', object, 'a'),
-            ('category', (int, long), 1)])
+            ('category', int, 1)])
     @pytest.mark.parametrize(
         'method',
         [
             lambda x: x.tolist(),
+            lambda x: x.to_list(),
             lambda x: list(x),
             lambda x: list(x.__iter__()),
-        ], ids=['tolist', 'list', 'iter'])
+        ], ids=['tolist', 'to_list', 'list', 'iter'])
     @pytest.mark.parametrize('typ', [Series, Index])
     def test_iterable_object_and_category(self, typ, method,
                                           dtype, rdtype, obj):
@@ -1112,9 +1082,11 @@ class TestToIterable(object):
     @pytest.mark.parametrize(
         'dtype, rdtype',
         dtypes + [
-            ('object', (int, long)),
-            ('category', (int, long))])
+            ('object', int),
+            ('category', int)])
     @pytest.mark.parametrize('typ', [Series, Index])
+    @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
+    # TODO(GH-24559): Remove the filterwarnings
     def test_iterable_map(self, typ, dtype, rdtype):
         # gh-13236
         # coerce iteration to underlying python / pandas types
@@ -1128,9 +1100,10 @@ class TestToIterable(object):
         'method',
         [
             lambda x: x.tolist(),
+            lambda x: x.to_list(),
             lambda x: list(x),
             lambda x: list(x.__iter__()),
-        ], ids=['tolist', 'list', 'iter'])
+        ], ids=['tolist', 'to_list', 'list', 'iter'])
     def test_categorial_datetimelike(self, method):
         i = CategoricalIndex([Timestamp('1999-12-31'),
                               Timestamp('2000-12-31')])
@@ -1139,38 +1112,272 @@ class TestToIterable(object):
         assert isinstance(result, Timestamp)
 
     def test_iter_box(self):
-        vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
-        s = pd.Series(vals)
+        vals = [Timestamp('2011-01-01'), Timestamp('2011-01-02')]
+        s = Series(vals)
         assert s.dtype == 'datetime64[ns]'
         for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timestamp)
+            assert isinstance(res, Timestamp)
             assert res.tz is None
             assert res == exp
 
-        vals = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
-                pd.Timestamp('2011-01-02', tz='US/Eastern')]
-        s = pd.Series(vals)
+        vals = [Timestamp('2011-01-01', tz='US/Eastern'),
+                Timestamp('2011-01-02', tz='US/Eastern')]
+        s = Series(vals)
 
         assert s.dtype == 'datetime64[ns, US/Eastern]'
         for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timestamp)
+            assert isinstance(res, Timestamp)
             assert res.tz == exp.tz
             assert res == exp
 
         # timedelta
-        vals = [pd.Timedelta('1 days'), pd.Timedelta('2 days')]
-        s = pd.Series(vals)
+        vals = [Timedelta('1 days'), Timedelta('2 days')]
+        s = Series(vals)
         assert s.dtype == 'timedelta64[ns]'
         for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timedelta)
+            assert isinstance(res, Timedelta)
             assert res == exp
 
-        # period (object dtype, not boxed)
+        # period
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
-        s = pd.Series(vals)
-        assert s.dtype == 'object'
+        s = Series(vals)
+        assert s.dtype == 'Period[M]'
         for res, exp in zip(s, vals):
             assert isinstance(res, pd.Period)
             assert res.freq == 'M'
             assert res == exp
+
+
+@pytest.mark.parametrize('array, expected_type, dtype', [
+    (np.array([0, 1], dtype=np.int64), np.ndarray, 'int64'),
+    (np.array(['a', 'b']), np.ndarray, 'object'),
+    (pd.Categorical(['a', 'b']), pd.Categorical, 'category'),
+    (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), DatetimeArray,
+     'datetime64[ns, US/Central]'),
+
+    (pd.PeriodIndex([2018, 2019], freq='A'), pd.core.arrays.PeriodArray,
+     pd.core.dtypes.dtypes.PeriodDtype("A-DEC")),
+    (pd.IntervalIndex.from_breaks([0, 1, 2]), pd.core.arrays.IntervalArray,
+     'interval'),
+
+    # This test is currently failing for datetime64[ns] and timedelta64[ns].
+    # The NumPy type system is sufficient for representing these types, so
+    # we just use NumPy for Series / DataFrame columns of these types (so
+    # we get consolidation and so on).
+    # However, DatetimeIndex and TimedeltaIndex use the DateLikeArray
+    # abstraction to for code reuse.
+    # At the moment, we've judged that allowing this test to fail is more
+    # practical that overriding Series._values to special case
+    # Series[M8[ns]] and Series[m8[ns]] to return a DateLikeArray.
+    pytest.param(
+        pd.DatetimeIndex(['2017', '2018']), np.ndarray, 'datetime64[ns]',
+        marks=[pytest.mark.xfail(reason="datetime _values", strict=True)]
+    ),
+    pytest.param(
+        pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]',
+        marks=[pytest.mark.xfail(reason="timedelta _values", strict=True)]
+    ),
+
+])
+def test_values_consistent(array, expected_type, dtype):
+    l_values = pd.Series(array)._values
+    r_values = pd.Index(array)._values
+    assert type(l_values) is expected_type
+    assert type(l_values) is type(r_values)
+
+    tm.assert_equal(l_values, r_values)
+
+
+@pytest.mark.parametrize('array, expected', [
+    (np.array([0, 1], dtype=np.int64), np.array([0, 1], dtype=np.int64)),
+    (np.array(['0', '1']), np.array(['0', '1'], dtype=object)),
+    (pd.Categorical(['a', 'a']), np.array([0, 0], dtype='int8')),
+    (pd.DatetimeIndex(['2017-01-01T00:00:00']),
+     np.array(['2017-01-01T00:00:00'], dtype='M8[ns]')),
+    (pd.DatetimeIndex(['2017-01-01T00:00:00'], tz="US/Eastern"),
+     np.array(['2017-01-01T05:00:00'], dtype='M8[ns]')),
+    (pd.TimedeltaIndex([10**10]), np.array([10**10], dtype='m8[ns]')),
+    (pd.PeriodIndex(['2017', '2018'], freq='D'),
+     np.array([17167, 17532], dtype=np.int64)),
+])
+def test_ndarray_values(array, expected):
+    l_values = pd.Series(array)._ndarray_values
+    r_values = pd.Index(array)._ndarray_values
+    tm.assert_numpy_array_equal(l_values, r_values)
+    tm.assert_numpy_array_equal(l_values, expected)
+
+
+@pytest.mark.parametrize("arr", [
+    np.array([1, 2, 3]),
+])
+def test_numpy_array(arr):
+    ser = pd.Series(arr)
+    result = ser.array
+    expected = PandasArray(arr)
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_numpy_array_all_dtypes(any_numpy_dtype):
+    ser = pd.Series(dtype=any_numpy_dtype)
+    result = ser.array
+    if is_datetime64_dtype(any_numpy_dtype):
+        assert isinstance(result, DatetimeArray)
+    elif is_timedelta64_dtype(any_numpy_dtype):
+        assert isinstance(result, TimedeltaArray)
+    else:
+        assert isinstance(result, PandasArray)
+
+
+@pytest.mark.parametrize("array, attr", [
+    (pd.Categorical(['a', 'b']), '_codes'),
+    (pd.core.arrays.period_array(['2000', '2001'], freq='D'), '_data'),
+    (pd.core.arrays.integer_array([0, np.nan]), '_data'),
+    (pd.core.arrays.IntervalArray.from_breaks([0, 1]), '_left'),
+    (pd.SparseArray([0, 1]), '_sparse_values'),
+    (DatetimeArray(np.array([1, 2], dtype="datetime64[ns]")), "_data"),
+    # tz-aware Datetime
+    (DatetimeArray(np.array(['2000-01-01T12:00:00',
+                             '2000-01-02T12:00:00'],
+                            dtype='M8[ns]'),
+                   dtype=DatetimeTZDtype(tz="US/Central")),
+     '_data'),
+])
+@pytest.mark.parametrize('box', [pd.Series, pd.Index])
+def test_array(array, attr, box):
+    if array.dtype.name in ('Int64', 'Sparse[int64, 0]') and box is pd.Index:
+        pytest.skip("No index type for {}".format(array.dtype))
+    result = box(array, copy=False).array
+
+    if attr:
+        array = getattr(array, attr)
+        result = getattr(result, attr)
+
+    assert result is array
+
+
+def test_array_multiindex_raises():
+    idx = pd.MultiIndex.from_product([['A'], ['a', 'b']])
+    with pytest.raises(ValueError, match='MultiIndex'):
+        idx.array
+
+
+@pytest.mark.parametrize('array, expected', [
+    (np.array([1, 2], dtype=np.int64), np.array([1, 2], dtype=np.int64)),
+    (pd.Categorical(['a', 'b']), np.array(['a', 'b'], dtype=object)),
+    (pd.core.arrays.period_array(['2000', '2001'], freq='D'),
+     np.array([pd.Period('2000', freq="D"), pd.Period('2001', freq='D')])),
+    (pd.core.arrays.integer_array([0, np.nan]),
+     np.array([0, np.nan], dtype=object)),
+    (pd.core.arrays.IntervalArray.from_breaks([0, 1, 2]),
+     np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object)),
+    (pd.SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
+
+    # tz-naive datetime
+    (DatetimeArray(np.array(['2000', '2001'], dtype='M8[ns]')),
+     np.array(['2000', '2001'], dtype='M8[ns]')),
+
+    # tz-aware stays tz`-aware
+    (DatetimeArray(np.array(['2000-01-01T06:00:00',
+                             '2000-01-02T06:00:00'],
+                            dtype='M8[ns]'),
+                   dtype=DatetimeTZDtype(tz='US/Central')),
+     np.array([pd.Timestamp('2000-01-01', tz='US/Central'),
+               pd.Timestamp('2000-01-02', tz='US/Central')])),
+
+    # Timedelta
+    (TimedeltaArray(np.array([0, 3600000000000], dtype='i8'), freq='H'),
+     np.array([0, 3600000000000], dtype='m8[ns]')),
+])
+@pytest.mark.parametrize('box', [pd.Series, pd.Index])
+def test_to_numpy(array, expected, box):
+    thing = box(array)
+
+    if array.dtype.name in ('Int64', 'Sparse[int64, 0]') and box is pd.Index:
+        pytest.skip("No index type for {}".format(array.dtype))
+
+    result = thing.to_numpy()
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("as_series", [True, False])
+@pytest.mark.parametrize("arr", [
+    np.array([1, 2, 3], dtype="int64"),
+    np.array(['a', 'b', 'c'], dtype=object),
+])
+def test_to_numpy_copy(arr, as_series):
+    obj = pd.Index(arr, copy=False)
+    if as_series:
+        obj = pd.Series(obj.values, copy=False)
+
+    # no copy by default
+    result = obj.to_numpy()
+    assert np.shares_memory(arr, result) is True
+
+    result = obj.to_numpy(copy=False)
+    assert np.shares_memory(arr, result) is True
+
+    # copy=True
+    result = obj.to_numpy(copy=True)
+    assert np.shares_memory(arr, result) is False
+
+
+@pytest.mark.parametrize("as_series", [True, False])
+def test_to_numpy_dtype(as_series):
+    tz = "US/Eastern"
+    obj = pd.DatetimeIndex(['2000', '2001'], tz=tz)
+    if as_series:
+        obj = pd.Series(obj)
+
+    # preserve tz by default
+    result = obj.to_numpy()
+    expected = np.array([pd.Timestamp('2000', tz=tz),
+                         pd.Timestamp('2001', tz=tz)],
+                        dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = obj.to_numpy(dtype="object")
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = obj.to_numpy(dtype="M8[ns]")
+    expected = np.array(['2000-01-01T05', '2001-01-01T05'],
+                        dtype='M8[ns]')
+    tm.assert_numpy_array_equal(result, expected)
+
+
+class TestConstruction:
+    # test certain constructor behaviours on dtype inference across Series,
+    # Index and DataFrame
+
+    @pytest.mark.parametrize("klass", [
+        Series,
+        lambda x, **kwargs: DataFrame({'a': x}, **kwargs)['a'],
+        pytest.param(lambda x, **kwargs: DataFrame(x, **kwargs)[0],
+                     marks=pytest.mark.xfail),
+        Index,
+    ])
+    @pytest.mark.parametrize("a", [
+        np.array(['2263-01-01'], dtype='datetime64[D]'),
+        np.array([datetime(2263, 1, 1)], dtype=object),
+        np.array([np.datetime64('2263-01-01', 'D')], dtype=object),
+        np.array(["2263-01-01"], dtype=object)
+    ], ids=['datetime64[D]', 'object-datetime.datetime',
+            'object-numpy-scalar', 'object-string'])
+    def test_constructor_datetime_outofbound(self, a, klass):
+        # GH-26853 (+ bug GH-26206 out of bound non-ns unit)
+
+        # No dtype specified (dtype inference)
+        # datetime64[non-ns] raise error, other cases result in object dtype
+        # and preserve original data
+        if a.dtype.kind == 'M':
+            with pytest.raises(pd.errors.OutOfBoundsDatetime):
+                klass(a)
+        else:
+            result = klass(a)
+            assert result.dtype == 'object'
+            tm.assert_numpy_array_equal(result.to_numpy(), a)
+
+        # Explicit dtype specified
+        # Forced conversion fails for all -> all cases raise error
+        with pytest.raises(pd.errors.OutOfBoundsDatetime):
+            klass(a, dtype='datetime64[ns]')

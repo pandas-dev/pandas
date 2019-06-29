@@ -1,12 +1,14 @@
 import numpy as np
+import pytest
 
 import pandas as pd
+from pandas import Int64Index, TimedeltaIndex, timedelta_range
 import pandas.util.testing as tm
-from pandas import TimedeltaIndex, timedelta_range, Int64Index
+
+from pandas.tseries.offsets import Hour
 
 
-class TestTimedeltaIndex(object):
-    _multiprocess_can_split_ = True
+class TestTimedeltaIndex:
 
     def test_union(self):
 
@@ -17,7 +19,7 @@ class TestTimedeltaIndex(object):
         tm.assert_index_equal(result, expected)
 
         i1 = Int64Index(np.arange(0, 20, 2))
-        i2 = TimedeltaIndex(start='1 day', periods=10, freq='D')
+        i2 = timedelta_range(start='1 day', periods=10, freq='D')
         i1.union(i2)  # Works
         i2.union(i1)  # Fails with "AttributeError: can't set attribute"
 
@@ -74,3 +76,94 @@ class TestTimedeltaIndex(object):
         result = index_1 & index_2
         expected = timedelta_range('1 day 01:00:00', periods=3, freq='h')
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_intersection_equal(self, sort):
+        # GH 24471 Test intersection outcome given the sort keyword
+        # for equal indicies intersection should return the original index
+        first = timedelta_range('1 day', periods=4, freq='h')
+        second = timedelta_range('1 day', periods=4, freq='h')
+        intersect = first.intersection(second, sort=sort)
+        if sort is None:
+            tm.assert_index_equal(intersect, second.sort_values())
+        assert tm.equalContents(intersect, second)
+
+        # Corner cases
+        inter = first.intersection(first, sort=sort)
+        assert inter is first
+
+    @pytest.mark.parametrize("period_1, period_2", [(0, 4), (4, 0)])
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_intersection_zero_length(self, period_1, period_2, sort):
+        # GH 24471 test for non overlap the intersection should be zero length
+        index_1 = timedelta_range('1 day', periods=period_1, freq='h')
+        index_2 = timedelta_range('1 day', periods=period_2, freq='h')
+        expected = timedelta_range('1 day', periods=0, freq='h')
+        result = index_1.intersection(index_2, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('sort', [None, False])
+    def test_zero_length_input_index(self, sort):
+        # GH 24966 test for 0-len intersections are copied
+        index_1 = timedelta_range('1 day', periods=0, freq='h')
+        index_2 = timedelta_range('1 day', periods=3, freq='h')
+        result = index_1.intersection(index_2, sort=sort)
+        assert index_1 is not result
+        assert index_2 is not result
+        tm.assert_copy(result, index_1)
+
+    @pytest.mark.parametrize(
+        "rng, expected",
+        # if target has the same name, it is preserved
+        [
+            (timedelta_range('1 day', periods=5, freq='h', name='idx'),
+             timedelta_range('1 day', periods=4, freq='h', name='idx')),
+            # if target name is different, it will be reset
+            (timedelta_range('1 day', periods=5, freq='h', name='other'),
+             timedelta_range('1 day', periods=4, freq='h', name=None)),
+            # if no overlap exists return empty index
+            (timedelta_range('1 day', periods=10, freq='h', name='idx')[5:],
+             TimedeltaIndex([], name='idx'))])
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_intersection(self, rng, expected, sort):
+        # GH 4690 (with tz)
+        base = timedelta_range('1 day', periods=4, freq='h', name='idx')
+        result = base.intersection(rng, sort=sort)
+        if sort is None:
+            expected = expected.sort_values()
+        tm.assert_index_equal(result, expected)
+        assert result.name == expected.name
+        assert result.freq == expected.freq
+
+    @pytest.mark.parametrize(
+        "rng, expected",
+        # part intersection works
+        [
+            (TimedeltaIndex(['5 hour', '2 hour', '4 hour', '9 hour'],
+                            name='idx'),
+             TimedeltaIndex(['2 hour', '4 hour'], name='idx')),
+            # reordered part intersection
+            (TimedeltaIndex(['2 hour', '5 hour', '5 hour', '1 hour'],
+                            name='other'),
+             TimedeltaIndex(['1 hour', '2 hour'], name=None)),
+            # reveresed index
+            (TimedeltaIndex(['1 hour', '2 hour', '4 hour', '3 hour'],
+                            name='idx')[::-1],
+             TimedeltaIndex(['1 hour', '2 hour', '4 hour', '3 hour'],
+                            name='idx'))])
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_intersection_non_monotonic(self, rng, expected, sort):
+        # 24471 non-monotonic
+        base = TimedeltaIndex(['1 hour', '2 hour', '4 hour', '3 hour'],
+                              name='idx')
+        result = base.intersection(rng, sort=sort)
+        if sort is None:
+            expected = expected.sort_values()
+        tm.assert_index_equal(result, expected)
+        assert result.name == expected.name
+
+        # if reveresed order, frequency is still the same
+        if all(base == rng[::-1]) and sort is None:
+            assert isinstance(result.freq, Hour)
+        else:
+            assert result.freq is None

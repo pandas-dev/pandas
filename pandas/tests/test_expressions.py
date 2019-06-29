@@ -1,25 +1,17 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function
-# pylint: disable-msg=W0612,E1101
-
-from warnings import catch_warnings
-import re
 import operator
-import pytest
-
-from numpy.random import randn
+import re
 
 import numpy as np
+from numpy.random import randn
+import pytest
 
-from pandas.core.api import DataFrame, Panel
+from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
-from pandas import compat, _np_version_under1p11, _np_version_under1p13
-from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal, assert_panel_equal,
-                                 assert_panel4d_equal)
-from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
 
+from pandas.io.formats.printing import pprint_thing
 
 _frame = DataFrame(randn(10000, 4), columns=list('ABCD'), dtype='float64')
 _frame2 = DataFrame(randn(100, 4), columns=list('ABCD'), dtype='float64')
@@ -38,25 +30,9 @@ _integer = DataFrame(
 _integer2 = DataFrame(np.random.randint(1, 100, size=(101, 4)),
                       columns=list('ABCD'), dtype='int64')
 
-with catch_warnings(record=True):
-    _frame_panel = Panel(dict(ItemA=_frame.copy(),
-                              ItemB=(_frame.copy() + 3),
-                              ItemC=_frame.copy(),
-                              ItemD=_frame.copy()))
-    _frame2_panel = Panel(dict(ItemA=_frame2.copy(),
-                               ItemB=(_frame2.copy() + 3),
-                               ItemC=_frame2.copy(),
-                               ItemD=_frame2.copy()))
-    _integer_panel = Panel(dict(ItemA=_integer,
-                                ItemB=(_integer + 34).astype('int64')))
-    _integer2_panel = Panel(dict(ItemA=_integer2,
-                                 ItemB=(_integer2 + 34).astype('int64')))
-    _mixed_panel = Panel(dict(ItemA=_mixed, ItemB=(_mixed + 3)))
-    _mixed2_panel = Panel(dict(ItemA=_mixed2, ItemB=(_mixed2 + 3)))
-
 
 @pytest.mark.skipif(not expr._USE_NUMEXPR, reason='not using numexpr')
-class TestExpressions(object):
+class TestExpressions:
 
     def setup_method(self, method):
 
@@ -73,16 +49,8 @@ class TestExpressions(object):
     def run_arithmetic(self, df, other, assert_func, check_dtype=False,
                        test_flex=True):
         expr._MIN_ELEMENTS = 0
-        operations = ['add', 'sub', 'mul', 'mod', 'truediv', 'floordiv', 'pow']
-        if not compat.PY3:
-            operations.append('div')
+        operations = ['add', 'sub', 'mul', 'mod', 'truediv', 'floordiv']
         for arith in operations:
-
-            # numpy >= 1.11 doesn't handle integers
-            # raised to integer powers
-            # https://github.com/pandas-dev/pandas/issues/15363
-            if arith == 'pow' and not _np_version_under1p11:
-                continue
 
             operator_name = arith
             if arith == 'div':
@@ -115,7 +83,7 @@ class TestExpressions(object):
                             check_dtype=True)
 
     def run_binary(self, df, other, assert_func, test_flex=False,
-                   numexpr_ops=set(['gt', 'lt', 'ge', 'le', 'eq', 'ne'])):
+                   numexpr_ops={'gt', 'lt', 'ge', 'le', 'eq', 'ne'}):
         """
         tests solely that the result is the same whether or not numexpr is
         enabled.  Need to test whether the function does the correct thing
@@ -124,6 +92,7 @@ class TestExpressions(object):
         expr._MIN_ELEMENTS = 0
         expr.set_test_mode(True)
         operations = ['gt', 'lt', 'ge', 'le', 'eq', 'ne']
+
         for arith in operations:
             if test_flex:
                 op = lambda x, y: getattr(df, arith)(y)
@@ -176,45 +145,17 @@ class TestExpressions(object):
         # self.run_binary(ser, binary_comp, assert_frame_equal,
         # test_flex=True, **kwargs)
 
-    def run_panel(self, panel, other, binary_comp=None, run_binary=True,
-                  assert_func=assert_panel_equal, **kwargs):
-        self.run_arithmetic(panel, other, assert_func, test_flex=False,
-                            **kwargs)
-        self.run_arithmetic(panel, other, assert_func, test_flex=True,
-                            **kwargs)
-        if run_binary:
-            if binary_comp is None:
-                binary_comp = other + 1
-            self.run_binary(panel, binary_comp, assert_func,
-                            test_flex=False, **kwargs)
-            self.run_binary(panel, binary_comp, assert_func,
-                            test_flex=True, **kwargs)
-
     def test_integer_arithmetic_frame(self):
         self.run_frame(self.integer, self.integer)
 
     def test_integer_arithmetic_series(self):
         self.run_series(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
 
-    @pytest.mark.slow
-    def test_integer_panel(self):
-        self.run_panel(_integer2_panel, np.random.randint(1, 100))
-
     def test_float_arithemtic_frame(self):
         self.run_frame(self.frame2, self.frame2)
 
     def test_float_arithmetic_series(self):
         self.run_series(self.frame2.iloc[:, 0], self.frame2.iloc[:, 0])
-
-    @pytest.mark.slow
-    def test_float_panel(self):
-        self.run_panel(_frame2_panel, np.random.randn() + 0.1, binary_comp=0.8)
-
-    @pytest.mark.slow
-    def test_panel4d(self):
-        with catch_warnings(record=True):
-            self.run_panel(tm.makePanel4D(), np.random.randn() + 0.5,
-                           assert_func=assert_panel4d_equal, binary_comp=3)
 
     def test_mixed_arithmetic_frame(self):
         # TODO: FIGURE OUT HOW TO GET IT TO WORK...
@@ -225,11 +166,6 @@ class TestExpressions(object):
     def test_mixed_arithmetic_series(self):
         for col in self.mixed2.columns:
             self.run_series(self.mixed2[col], self.mixed2[col], binary_comp=4)
-
-    @pytest.mark.slow
-    def test_mixed_panel(self):
-        self.run_panel(_mixed2_panel, np.random.randint(1, 100),
-                       binary_comp=-2)
 
     def test_float_arithemtic(self):
         self.run_arithmetic(self.frame, self.frame, assert_frame_equal)
@@ -280,10 +216,7 @@ class TestExpressions(object):
                 for op, op_str in [('add', '+'), ('sub', '-'), ('mul', '*'),
                                    ('div', '/'), ('pow', '**')]:
 
-                    # numpy >= 1.11 doesn't handle integers
-                    # raised to integer powers
-                    # https://github.com/pandas-dev/pandas/issues/15363
-                    if op == 'pow' and not _np_version_under1p11:
+                    if op == 'pow':
                         continue
 
                     if op == 'div':
@@ -382,31 +315,30 @@ class TestExpressions(object):
     def test_bool_ops_raise_on_arithmetic(self):
         df = DataFrame({'a': np.random.rand(10) > 0.5,
                         'b': np.random.rand(10) > 0.5})
-        names = 'div', 'truediv', 'floordiv', 'pow'
-        ops = '/', '/', '//', '**'
+        names = 'truediv', 'floordiv', 'pow'
+        ops = '/', '//', '**'
         msg = 'operator %r not implemented for bool dtypes'
         for op, name in zip(ops, names):
-            if not compat.PY3 or name != 'div':
-                f = getattr(operator, name)
-                err_msg = re.escape(msg % op)
+            f = getattr(operator, name)
+            err_msg = re.escape(msg % op)
 
-                with tm.assert_raises_regex(NotImplementedError, err_msg):
-                    f(df, df)
+            with pytest.raises(NotImplementedError, match=err_msg):
+                f(df, df)
 
-                with tm.assert_raises_regex(NotImplementedError, err_msg):
-                    f(df.a, df.b)
+            with pytest.raises(NotImplementedError, match=err_msg):
+                f(df.a, df.b)
 
-                with tm.assert_raises_regex(NotImplementedError, err_msg):
-                    f(df.a, True)
+            with pytest.raises(NotImplementedError, match=err_msg):
+                f(df.a, True)
 
-                with tm.assert_raises_regex(NotImplementedError, err_msg):
-                    f(False, df.a)
+            with pytest.raises(NotImplementedError, match=err_msg):
+                f(False, df.a)
 
-                with tm.assert_raises_regex(TypeError, err_msg):
-                    f(False, df)
+            with pytest.raises(NotImplementedError, match=err_msg):
+                f(False, df)
 
-                with tm.assert_raises_regex(TypeError, err_msg):
-                    f(df, True)
+            with pytest.raises(NotImplementedError, match=err_msg):
+                f(df, True)
 
     def test_bool_ops_warn_on_arithmetic(self):
         n = 10
@@ -420,8 +352,8 @@ class TestExpressions(object):
             f = getattr(operator, name)
             fe = getattr(operator, sub_funcs[subs[op]])
 
-            # >= 1.13.0 these are now TypeErrors
-            if op == '-' and not _np_version_under1p13:
+            if op == '-':
+                # raises TypeError
                 continue
 
             with tm.use_numexpr(True, min_elements=5):
@@ -454,3 +386,19 @@ class TestExpressions(object):
                     r = f(df, True)
                     e = fe(df, True)
                     tm.assert_frame_equal(r, e)
+
+    @pytest.mark.parametrize("test_input,expected", [
+        (DataFrame([[0, 1, 2, 'aa'], [0, 1, 2, 'aa']],
+                   columns=['a', 'b', 'c', 'dtype']),
+         DataFrame([[False, False], [False, False]],
+                   columns=['a', 'dtype'])),
+        (DataFrame([[0, 3, 2, 'aa'], [0, 4, 2, 'aa'], [0, 1, 1, 'bb']],
+                   columns=['a', 'b', 'c', 'dtype']),
+         DataFrame([[False, False], [False, False],
+                   [False, False]], columns=['a', 'dtype'])),
+    ])
+    def test_bool_ops_column_name_dtype(self, test_input, expected):
+        # GH 22383 - .ne fails if columns containing column name 'dtype'
+        result = test_input.loc[:, ['a', 'dtype']].ne(
+            test_input.loc[:, ['a', 'dtype']])
+        assert_frame_equal(result, expected)

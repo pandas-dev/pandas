@@ -1,24 +1,21 @@
-# cython: profile=False
 # Translated from the reference implementation
 # at https://github.com/veorq/SipHash
 
 import cython
-cimport numpy as cnp
-import numpy as np
-from numpy cimport ndarray, uint8_t, uint32_t, uint64_t
-
-from util cimport _checknull
-from cpython cimport (PyString_Check,
-                      PyBytes_Check,
-                      PyUnicode_Check)
 from libc.stdlib cimport malloc, free
+
+import numpy as np
+from numpy cimport uint8_t, uint32_t, uint64_t, import_array
+import_array()
+
+from pandas._libs.util cimport is_nan
 
 DEF cROUNDS = 2
 DEF dROUNDS = 4
 
 
 @cython.boundscheck(False)
-def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
+def hash_object_array(object[:] arr, object key, object encoding='utf8'):
     """
     Parameters
     ----------
@@ -38,48 +35,47 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
     """
     cdef:
         Py_ssize_t i, l, n
-        ndarray[uint64_t] result
+        uint64_t[:] result
         bytes data, k
         uint8_t *kb
         uint64_t *lens
-        char **vecs, *cdata
+        char **vecs
+        char *cdata
         object val
+        list datas = []
 
     k = <bytes>key.encode(encoding)
     kb = <uint8_t *>k
     if len(k) != 16:
-        raise ValueError(
-            'key should be a 16-byte string encoded, got {!r} (len {})'.format(
-                k, len(k)))
+        raise ValueError("key should be a 16-byte string encoded, "
+                         "got {key} (len {klen})".format(key=k, klen=len(k)))
 
     n = len(arr)
 
     # create an array of bytes
-    vecs = <char **> malloc(n * sizeof(char *))
-    lens = <uint64_t*> malloc(n * sizeof(uint64_t))
+    vecs = <char **>malloc(n * sizeof(char *))
+    lens = <uint64_t*>malloc(n * sizeof(uint64_t))
 
-    cdef list datas = []
     for i in range(n):
         val = arr[i]
-        if PyString_Check(val):
-            data = <bytes>val.encode(encoding)
-        elif PyBytes_Check(val):
+        if isinstance(val, bytes):
             data = <bytes>val
-        elif PyUnicode_Check(val):
+        elif isinstance(val, unicode):
             data = <bytes>val.encode(encoding)
-        elif _checknull(val):
+        elif val is None or is_nan(val):
             # null, stringify and encode
             data = <bytes>str(val).encode(encoding)
 
         else:
-            raise TypeError("{} of type {} is not a valid type for hashing, "
-                            "must be string or null".format(val, type(val)))
+            raise TypeError("{val} of type {typ} is not a valid type "
+                            "for hashing, must be string or null"
+                            .format(val=val, typ=type(val)))
 
         l = len(data)
         lens[i] = l
         cdata = data
 
-        # keep the refernce alive thru the end of the
+        # keep the references alive thru the end of the
         # function
         datas.append(data)
         vecs[i] = cdata
@@ -91,10 +87,12 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
 
     free(vecs)
     free(lens)
-    return result
+    return result.base  # .base to retrieve underlying np.ndarray
+
 
 cdef inline uint64_t _rotl(uint64_t x, uint64_t b) nogil:
     return (x << b) | (x >> (64 - b))
+
 
 cdef inline void u32to8_le(uint8_t* p, uint32_t v) nogil:
     p[0] = <uint8_t>(v)
@@ -102,19 +100,17 @@ cdef inline void u32to8_le(uint8_t* p, uint32_t v) nogil:
     p[2] = <uint8_t>(v >> 16)
     p[3] = <uint8_t>(v >> 24)
 
-cdef inline void u64to8_le(uint8_t* p, uint64_t v) nogil:
-    u32to8_le(p, <uint32_t>v)
-    u32to8_le(p + 4, <uint32_t>(v >> 32))
 
 cdef inline uint64_t u8to64_le(uint8_t* p) nogil:
     return (<uint64_t>p[0] |
-            <uint64_t>p[1] <<  8 |
+            <uint64_t>p[1] << 8 |
             <uint64_t>p[2] << 16 |
             <uint64_t>p[3] << 24 |
             <uint64_t>p[4] << 32 |
             <uint64_t>p[5] << 40 |
             <uint64_t>p[6] << 48 |
             <uint64_t>p[7] << 56)
+
 
 cdef inline void _sipround(uint64_t* v0, uint64_t* v1,
                            uint64_t* v2, uint64_t* v3) nogil:
@@ -132,13 +128,6 @@ cdef inline void _sipround(uint64_t* v0, uint64_t* v1,
     v1[0] = _rotl(v1[0], 17)
     v1[0] ^= v2[0]
     v2[0] = _rotl(v2[0], 32)
-
-cpdef uint64_t siphash(bytes data, bytes key) except? 0:
-    if len(key) != 16:
-        raise ValueError(
-            'key should be a 16-byte bytestring, got {!r} (len {})'.format(
-                key, len(key)))
-    return low_level_siphash(data, len(data), key)
 
 
 @cython.cdivision(True)

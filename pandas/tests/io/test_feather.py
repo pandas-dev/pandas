@@ -1,23 +1,23 @@
 """ test feather-format compat """
-
-import pytest
-feather = pytest.importorskip('feather')
-
-import numpy as np
-import pandas as pd
-from pandas.io.feather_format import to_feather, read_feather
-
-from feather import FeatherError
-from pandas.util.testing import assert_frame_equal, ensure_clean
-import pandas.util.testing as tm
 from distutils.version import LooseVersion
 
+import numpy as np
+import pytest
 
-fv = LooseVersion(feather.__version__)
+import pandas as pd
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, ensure_clean
+
+from pandas.io.feather_format import read_feather, to_feather  # noqa:E402
+
+pyarrow = pytest.importorskip('pyarrow')
+
+
+pyarrow_version = LooseVersion(pyarrow.__version__)
 
 
 @pytest.mark.single
-class TestFeather(object):
+class TestFeather:
 
     def check_error_on_write(self, df, exc):
         # check that we are raising the exception
@@ -27,12 +27,16 @@ class TestFeather(object):
             with ensure_clean() as path:
                 to_feather(df, path)
 
-    def check_round_trip(self, df, **kwargs):
+    def check_round_trip(self, df, expected=None, **kwargs):
+
+        if expected is None:
+            expected = df
 
         with ensure_clean() as path:
             to_feather(df, path)
+
             result = read_feather(path, **kwargs)
-            assert_frame_equal(result, df)
+            assert_frame_equal(result, expected)
 
     def test_error(self):
 
@@ -61,13 +65,6 @@ class TestFeather(object):
         assert df.dttz.dtype.tz.zone == 'US/Eastern'
         self.check_round_trip(df)
 
-    @pytest.mark.skipif(fv >= '0.4.0', reason='fixed in 0.4.0')
-    def test_strided_data_issues(self):
-
-        # strided data issuehttps://github.com/wesm/feather/issues/97
-        df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list('abc'))
-        self.check_error_on_write(df, FeatherError)
-
     def test_duplicate_columns(self):
 
         # https://github.com/wesm/feather/issues/53
@@ -81,28 +78,47 @@ class TestFeather(object):
         df = pd.DataFrame(np.arange(12).reshape(4, 3)).copy()
         self.check_error_on_write(df, ValueError)
 
-    @pytest.mark.skipif(fv >= '0.4.0', reason='fixed in 0.4.0')
-    def test_unsupported(self):
-
-        # timedelta
-        df = pd.DataFrame({'a': pd.timedelta_range('1 day', periods=3)})
-        self.check_error_on_write(df, FeatherError)
-
-        # non-strings
-        df = pd.DataFrame({'a': ['a', 1, 2.0]})
-        self.check_error_on_write(df, ValueError)
+    def test_read_columns(self):
+        # GH 24025
+        df = pd.DataFrame({'col1': list('abc'),
+                           'col2': list(range(1, 4)),
+                           'col3': list('xyz'),
+                           'col4': list(range(4, 7))})
+        columns = ['col1', 'col3']
+        self.check_round_trip(df, expected=df[columns],
+                              columns=columns)
 
     def test_unsupported_other(self):
 
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
-        self.check_error_on_write(df, ValueError)
+        # Some versions raise ValueError, others raise ArrowInvalid.
+        self.check_error_on_write(df, Exception)
 
-    @pytest.mark.skipif(fv < '0.4.0', reason='new in 0.4.0')
     def test_rw_nthreads(self):
-
         df = pd.DataFrame({'A': np.arange(100000)})
-        self.check_round_trip(df, nthreads=2)
+        expected_warning = (
+            "the 'nthreads' keyword is deprecated, "
+            "use 'use_threads' instead"
+        )
+        # TODO: make the warning work with check_stacklevel=True
+        with tm.assert_produces_warning(
+                FutureWarning, check_stacklevel=False) as w:
+            self.check_round_trip(df, nthreads=2)
+        # we have an extra FutureWarning because of #GH23752
+        assert any(expected_warning in str(x) for x in w)
+
+        # TODO: make the warning work with check_stacklevel=True
+        with tm.assert_produces_warning(
+                FutureWarning, check_stacklevel=False) as w:
+            self.check_round_trip(df, nthreads=1)
+        # we have an extra FutureWarnings because of #GH23752
+        assert any(expected_warning in str(x) for x in w)
+
+    def test_rw_use_threads(self):
+        df = pd.DataFrame({'A': np.arange(100000)})
+        self.check_round_trip(df, use_threads=True)
+        self.check_round_trip(df, use_threads=False)
 
     def test_write_with_index(self):
 

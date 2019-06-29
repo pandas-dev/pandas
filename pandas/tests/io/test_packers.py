@@ -1,30 +1,25 @@
+import datetime
+import glob
+from io import BytesIO
+import os
+from warnings import catch_warnings, filterwarnings
+
+import numpy as np
 import pytest
 
-from warnings import catch_warnings
-import os
-import datetime
-import numpy as np
-import sys
-from distutils.version import LooseVersion
-
-from pandas import compat
-from pandas.compat import u, PY3
-from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
-                    date_range, period_range, Index, Categorical)
+from pandas._libs.tslib import iNaT
 from pandas.errors import PerformanceWarning
-from pandas.io.packers import to_msgpack, read_msgpack
-import pandas.util.testing as tm
-from pandas.util.testing import (ensure_clean,
-                                 assert_categorical_equal,
-                                 assert_frame_equal,
-                                 assert_index_equal,
-                                 assert_series_equal,
-                                 patch)
-from pandas.tests.test_panel import assert_panel_equal
 
 import pandas
-from pandas import Timestamp, NaT
-from pandas._libs.tslib import iNaT
+from pandas import (
+    Categorical, DataFrame, Index, Interval, MultiIndex, NaT, Period, Series,
+    Timestamp, bdate_range, date_range, period_range)
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_categorical_equal, assert_frame_equal, assert_index_equal,
+    assert_series_equal, ensure_clean)
+
+from pandas.io.packers import read_msgpack, to_msgpack
 
 nan = np.nan
 
@@ -65,8 +60,6 @@ def check_arbitrary(a, b):
         assert(len(a) == len(b))
         for a_, b_ in zip(a, b):
             check_arbitrary(a_, b_)
-    elif isinstance(a, Panel):
-        assert_panel_equal(a, b)
     elif isinstance(a, DataFrame):
         assert_frame_equal(a, b)
     elif isinstance(a, Series):
@@ -77,7 +70,7 @@ def check_arbitrary(a, b):
         # Temp,
         # Categorical.categories is changed from str to bytes in PY3
         # maybe the same as GH 13591
-        if PY3 and b.categories.inferred_type == 'string':
+        if b.categories.inferred_type == 'string':
             pass
         else:
             tm.assert_categorical_equal(a, b)
@@ -90,7 +83,8 @@ def check_arbitrary(a, b):
         assert(a == b)
 
 
-class TestPackers(object):
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
+class TestPackers:
 
     def setup_method(self, method):
         self.path = '__%s__.msg' % tm.rands(10)
@@ -104,6 +98,7 @@ class TestPackers(object):
             return read_msgpack(p, **kwargs)
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestAPI(TestPackers):
 
     def test_string_io(self):
@@ -118,7 +113,7 @@ class TestAPI(TestPackers):
         tm.assert_frame_equal(result, df)
 
         s = df.to_msgpack()
-        result = read_msgpack(compat.BytesIO(s))
+        result = read_msgpack(BytesIO(s))
         tm.assert_frame_equal(result, df)
 
         s = to_msgpack(None, df)
@@ -128,9 +123,8 @@ class TestAPI(TestPackers):
         with ensure_clean(self.path) as p:
 
             s = df.to_msgpack()
-            fh = open(p, 'wb')
-            fh.write(s)
-            fh.close()
+            with open(p, 'wb') as fh:
+                fh.write(s)
             result = read_msgpack(p)
             tm.assert_frame_equal(result, df)
 
@@ -153,16 +147,21 @@ class TestAPI(TestPackers):
 
     def test_invalid_arg(self):
         # GH10369
-        class A(object):
+        class A:
 
             def __init__(self):
                 self.read = 0
 
-        pytest.raises(ValueError, read_msgpack, path_or_buf=None)
-        pytest.raises(ValueError, read_msgpack, path_or_buf={})
-        pytest.raises(ValueError, read_msgpack, path_or_buf=A())
+        msg = "Invalid file path or buffer object type: <class '{}'>"
+        with pytest.raises(ValueError, match=msg.format('NoneType')):
+            read_msgpack(path_or_buf=None)
+        with pytest.raises(ValueError, match=msg.format('dict')):
+            read_msgpack(path_or_buf={})
+        with pytest.raises(ValueError, match=msg.format(r'.*\.A')):
+            read_msgpack(path_or_buf=A())
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestNumpy(TestPackers):
 
     def test_numpy_scalar_float(self):
@@ -177,6 +176,15 @@ class TestNumpy(TestPackers):
 
     def test_scalar_float(self):
         x = np.random.rand()
+        x_rec = self.encode_decode(x)
+        tm.assert_almost_equal(x, x_rec)
+
+    def test_scalar_bool(self):
+        x = np.bool_(1)
+        x_rec = self.encode_decode(x)
+        tm.assert_almost_equal(x, x_rec)
+
+        x = np.bool_(0)
         x_rec = self.encode_decode(x)
         tm.assert_almost_equal(x, x_rec)
 
@@ -196,7 +204,7 @@ class TestNumpy(TestPackers):
 
     def test_list_numpy_float_complex(self):
         if not hasattr(np, 'complex128'):
-            pytest.skip('numpy cant handle complex128')
+            pytest.skip('numpy can not handle complex128')
 
         x = [np.float32(np.random.rand()) for i in range(5)] + \
             [np.complex128(np.random.rand() + 1j * np.random.rand())
@@ -263,7 +271,7 @@ class TestNumpy(TestPackers):
                 x.dtype == x_rec.dtype)
 
     def test_list_mixed(self):
-        x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo')]
+        x = [1.0, np.float32(3.5), np.complex128(4.25), 'foo', np.bool_(1)]
         x_rec = self.encode_decode(x)
         # current msgpack cannot distinguish list/tuple
         tm.assert_almost_equal(tuple(x), x_rec)
@@ -272,6 +280,7 @@ class TestNumpy(TestPackers):
         tm.assert_almost_equal(tuple(x), x_rec)
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestBasic(TestPackers):
 
     def test_timestamp(self):
@@ -288,11 +297,6 @@ class TestBasic(TestPackers):
 
     def test_datetimes(self):
 
-        # fails under 2.6/win32 (np.datetime64 seems broken)
-
-        if LooseVersion(sys.version) < '2.7':
-            pytest.skip('2.6 with np.datetime64 is broken')
-
         for i in [datetime.datetime(2013, 1, 1),
                   datetime.datetime(2013, 1, 1, 5, 1),
                   datetime.date(2013, 1, 1),
@@ -308,11 +312,25 @@ class TestBasic(TestPackers):
             i_rec = self.encode_decode(i)
             assert i == i_rec
 
+    def test_periods(self):
+        # 13463
+        for i in [Period('2010-09', 'M'), Period('2014-Q1', 'Q')]:
+            i_rec = self.encode_decode(i)
+            assert i == i_rec
 
+    def test_intervals(self):
+        # 19967
+        for i in [Interval(0, 1), Interval(0, 1, 'left'),
+                  Interval(10, 25., 'right')]:
+            i_rec = self.encode_decode(i)
+            assert i == i_rec
+
+
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestIndex(TestPackers):
 
     def setup_method(self, method):
-        super(TestIndex, self).setup_method(method)
+        super().setup_method(method)
 
         self.d = {
             'string': tm.makeStringIndex(100),
@@ -325,7 +343,9 @@ class TestIndex(TestPackers):
             'period': Index(period_range('2012-1-1', freq='M', periods=3)),
             'date2': Index(date_range('2013-01-1', periods=10)),
             'bdate': Index(bdate_range('2013-01-02', periods=10)),
-            'cat': tm.makeCategoricalIndex(100)
+            'cat': tm.makeCategoricalIndex(100),
+            'interval': tm.makeIntervalIndex(100),
+            'timedelta': tm.makeTimedeltaIndex(100, 'H')
         }
 
         self.mi = {
@@ -372,10 +392,11 @@ class TestIndex(TestPackers):
         tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestSeries(TestPackers):
 
     def setup_method(self, method):
-        super(TestSeries, self).setup_method(method)
+        super().setup_method(method)
 
         self.d = {}
 
@@ -401,6 +422,7 @@ class TestSeries(TestPackers):
             'G': [Timestamp('20130102', tz='US/Eastern')] * 5,
             'H': Categorical([1, 2, 3, 4, 5]),
             'I': Categorical([1, 2, 3, 4, 5], ordered=True),
+            'J': (np.bool_(1), 2, 3, 4, 5),
         }
 
         self.d['float'] = Series(data['A'])
@@ -410,6 +432,7 @@ class TestSeries(TestPackers):
         self.d['dt_tz'] = Series(data['G'])
         self.d['cat_ordered'] = Series(data['H'])
         self.d['cat_unordered'] = Series(data['I'])
+        self.d['numpy_bool_mixed'] = Series(data['J'])
 
     def test_basic(self):
 
@@ -420,10 +443,11 @@ class TestSeries(TestPackers):
                 assert_series_equal(i, i_rec)
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestCategorical(TestPackers):
 
     def setup_method(self, method):
-        super(TestCategorical, self).setup_method(method)
+        super().setup_method(method)
 
         self.d = {}
 
@@ -443,10 +467,11 @@ class TestCategorical(TestPackers):
                 assert_categorical_equal(i, i_rec)
 
 
+@pytest.mark.filterwarnings("ignore:msgpack:FutureWarning")
 class TestNDFrame(TestPackers):
 
     def setup_method(self, method):
-        super(TestNDFrame, self).setup_method(method)
+        super().setup_method(method)
 
         data = {
             'A': [0., 1., 2., 3., np.nan],
@@ -465,23 +490,11 @@ class TestNDFrame(TestPackers):
             'int': DataFrame(dict(A=data['B'], B=Series(data['B']) + 1)),
             'mixed': DataFrame(data)}
 
-        with catch_warnings(record=True):
-            self.panel = {
-                'float': Panel(dict(ItemA=self.frame['float'],
-                                    ItemB=self.frame['float'] + 1))}
-
     def test_basic_frame(self):
 
         for s, i in self.frame.items():
             i_rec = self.encode_decode(i)
             assert_frame_equal(i, i_rec)
-
-    def test_basic_panel(self):
-
-        with catch_warnings(record=True):
-            for s, i in self.panel.items():
-                i_rec = self.encode_decode(i)
-                assert_panel_equal(i, i_rec)
 
     def test_multi(self):
 
@@ -489,27 +502,27 @@ class TestNDFrame(TestPackers):
         for k in self.frame.keys():
             assert_frame_equal(self.frame[k], i_rec[k])
 
-        l = tuple([self.frame['float'], self.frame['float'].A,
-                   self.frame['float'].B, None])
-        l_rec = self.encode_decode(l)
-        check_arbitrary(l, l_rec)
+        packed_items = tuple([self.frame['float'], self.frame['float'].A,
+                              self.frame['float'].B, None])
+        l_rec = self.encode_decode(packed_items)
+        check_arbitrary(packed_items, l_rec)
 
         # this is an oddity in that packed lists will be returned as tuples
-        l = [self.frame['float'], self.frame['float']
-             .A, self.frame['float'].B, None]
-        l_rec = self.encode_decode(l)
+        packed_items = [self.frame['float'], self.frame['float'].A,
+                        self.frame['float'].B, None]
+        l_rec = self.encode_decode(packed_items)
         assert isinstance(l_rec, tuple)
-        check_arbitrary(l, l_rec)
+        check_arbitrary(packed_items, l_rec)
 
     def test_iterator(self):
 
-        l = [self.frame['float'], self.frame['float']
-             .A, self.frame['float'].B, None]
+        packed_items = [self.frame['float'], self.frame['float'].A,
+                        self.frame['float'].B, None]
 
         with ensure_clean(self.path) as path:
-            to_msgpack(path, *l)
+            to_msgpack(path, *packed_items)
             for i, packed in enumerate(read_msgpack(path, iterator=True)):
-                check_arbitrary(packed, l[i])
+                check_arbitrary(packed, packed_items[i])
 
     def tests_datetimeindex_freq_issue(self):
 
@@ -541,6 +554,10 @@ class TestNDFrame(TestPackers):
         assert_frame_equal(result_3, expected_3)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestSparse(TestPackers):
 
     def _check_roundtrip(self, obj, comparator, **kwargs):
@@ -548,7 +565,9 @@ class TestSparse(TestPackers):
         # currently these are not implemetned
         # i_rec = self.encode_decode(obj)
         # comparator(obj, i_rec, **kwargs)
-        pytest.raises(NotImplementedError, self.encode_decode, obj)
+        msg = r"msgpack sparse (series|frame) is not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
+            self.encode_decode(obj)
 
     def test_sparse_series(self):
 
@@ -585,6 +604,7 @@ class TestSparse(TestPackers):
                               check_frame_type=True)
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestCompression(TestPackers):
     """See https://github.com/pandas-dev/pandas/pull/9783
     """
@@ -598,7 +618,7 @@ class TestCompression(TestPackers):
         else:
             self._SQLALCHEMY_INSTALLED = True
 
-        super(TestCompression, self).setup_method(method)
+        super().setup_method(method)
         data = {
             'A': np.arange(1000, dtype=np.float64),
             'B': np.arange(1000, dtype=np.int32),
@@ -607,8 +627,8 @@ class TestCompression(TestPackers):
             'E': [datetime.timedelta(days=x) for x in range(1000)],
         }
         self.frame = {
-            'float': DataFrame(dict((k, data[k]) for k in ['A', 'A'])),
-            'int': DataFrame(dict((k, data[k]) for k in ['B', 'B'])),
+            'float': DataFrame({k: data[k] for k in ['A', 'A']}),
+            'int': DataFrame({k: data[k] for k in ['B', 'B']}),
             'mixed': DataFrame(data),
         }
 
@@ -637,7 +657,8 @@ class TestCompression(TestPackers):
             pytest.skip('no blosc')
         self._test_compression('blosc')
 
-    def _test_compression_warns_when_decompress_caches(self, compress):
+    def _test_compression_warns_when_decompress_caches(
+            self, monkeypatch, compress):
         not_garbage = []
         control = []  # copied data
 
@@ -662,21 +683,24 @@ class TestCompression(TestPackers):
             np.dtype('timedelta64[ns]'): np.timedelta64(1, 'ns'),
         }
 
-        with patch(compress_module, 'decompress', decompress), \
+        with monkeypatch.context() as m, \
                 tm.assert_produces_warning(PerformanceWarning) as ws:
+            m.setattr(compress_module, 'decompress', decompress)
 
-            i_rec = self.encode_decode(self.frame, compress=compress)
-            for k in self.frame.keys():
+            with catch_warnings():
+                filterwarnings('ignore', category=FutureWarning)
+                i_rec = self.encode_decode(self.frame, compress=compress)
+                for k in self.frame.keys():
 
-                value = i_rec[k]
-                expected = self.frame[k]
-                assert_frame_equal(value, expected)
-                # make sure that we can write to the new frames even though
-                # we needed to copy the data
-                for block in value._data.blocks:
-                    assert block.values.flags.writeable
-                    # mutate the data in some way
-                    block.values[0] += rhs[block.dtype]
+                    value = i_rec[k]
+                    expected = self.frame[k]
+                    assert_frame_equal(value, expected)
+                    # make sure that we can write to the new frames even though
+                    # we needed to copy the data
+                    for block in value._data.blocks:
+                        assert block.values.flags.writeable
+                        # mutate the data in some way
+                        block.values[0] += rhs[block.dtype]
 
         for w in ws:
             # check the messages from our warnings
@@ -689,27 +713,33 @@ class TestCompression(TestPackers):
             # original buffers
             assert buf == control_buf
 
-    def test_compression_warns_when_decompress_caches_zlib(self):
+    def test_compression_warns_when_decompress_caches_zlib(self, monkeypatch):
         if not _ZLIB_INSTALLED:
             pytest.skip('no zlib')
-        self._test_compression_warns_when_decompress_caches('zlib')
+        self._test_compression_warns_when_decompress_caches(
+            monkeypatch, 'zlib')
 
-    def test_compression_warns_when_decompress_caches_blosc(self):
+    def test_compression_warns_when_decompress_caches_blosc(self, monkeypatch):
         if not _BLOSC_INSTALLED:
             pytest.skip('no blosc')
-        self._test_compression_warns_when_decompress_caches('blosc')
+        self._test_compression_warns_when_decompress_caches(
+            monkeypatch, 'blosc')
 
     def _test_small_strings_no_warn(self, compress):
         empty = np.array([], dtype='uint8')
         with tm.assert_produces_warning(None):
-            empty_unpacked = self.encode_decode(empty, compress=compress)
+            with catch_warnings():
+                filterwarnings('ignore', category=FutureWarning)
+                empty_unpacked = self.encode_decode(empty, compress=compress)
 
         tm.assert_numpy_array_equal(empty_unpacked, empty)
         assert empty_unpacked.flags.writeable
 
         char = np.array([ord(b'a')], dtype='uint8')
         with tm.assert_produces_warning(None):
-            char_unpacked = self.encode_decode(char, compress=compress)
+            with catch_warnings():
+                filterwarnings('ignore', category=FutureWarning)
+                char_unpacked = self.encode_decode(char, compress=compress)
 
         tm.assert_numpy_array_equal(char_unpacked, char)
         assert char_unpacked.flags.writeable
@@ -717,10 +747,10 @@ class TestCompression(TestPackers):
         # bad state where b'a' points to 98 == ord(b'b').
         char_unpacked[0] = ord(b'b')
 
-        # we compare the ord of bytes b'a' with unicode u'a' because the should
+        # we compare the ord of bytes b'a' with unicode 'a' because the should
         # always be the same (unless we were able to mutate the shared
         # character singleton in which case ord(b'a') == ord(b'b').
-        assert ord(b'a') == ord(u'a')
+        assert ord(b'a') == ord('a')
         tm.assert_numpy_array_equal(
             char_unpacked,
             np.array([ord(b'b')], dtype='uint8'),
@@ -781,12 +811,13 @@ class TestCompression(TestPackers):
         assert_frame_equal(expected, result)
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestEncoding(TestPackers):
 
     def setup_method(self, method):
-        super(TestEncoding, self).setup_method(method)
+        super().setup_method(method)
         data = {
-            'A': [compat.u('\u2019')] * 1000,
+            'A': ['\u2019'] * 1000,
             'B': np.arange(1000, dtype=np.int32),
             'C': list(100 * 'abcdefghij'),
             'D': date_range(datetime.datetime(2015, 4, 1), periods=1000),
@@ -794,8 +825,8 @@ class TestEncoding(TestPackers):
             'G': [400] * 1000
         }
         self.frame = {
-            'float': DataFrame(dict((k, data[k]) for k in ['A', 'A'])),
-            'int': DataFrame(dict((k, data[k]) for k in ['B', 'B'])),
+            'float': DataFrame({k: data[k] for k in ['A', 'A']}),
+            'int': DataFrame({k: data[k] for k in ['B', 'B']}),
             'mixed': DataFrame(data),
         }
         self.utf_encodings = ['utf8', 'utf16', 'utf32']
@@ -803,12 +834,12 @@ class TestEncoding(TestPackers):
     def test_utf(self):
         # GH10581
         for encoding in self.utf_encodings:
-            for frame in compat.itervalues(self.frame):
+            for frame in self.frame.values():
                 result = self.encode_decode(frame, encoding=encoding)
                 assert_frame_equal(result, frame)
 
     def test_default_encoding(self):
-        for frame in compat.itervalues(self.frame):
+        for frame in self.frame.values():
             result = frame.to_msgpack()
             expected = frame.to_msgpack(encoding='utf8')
             assert result == expected
@@ -816,21 +847,22 @@ class TestEncoding(TestPackers):
             assert_frame_equal(result, frame)
 
 
-def legacy_packers_versions():
-    # yield the packers versions
-    path = tm.get_data_path('legacy_msgpack')
-    for v in os.listdir(path):
-        p = os.path.join(path, v)
-        if os.path.isdir(p):
-            yield v
+files = glob.glob(os.path.join(os.path.dirname(__file__), "data",
+                               "legacy_msgpack", "*", "*.msgpack"))
 
 
-class TestMsgpack(object):
+@pytest.fixture(params=files)
+def legacy_packer(request, datapath):
+    return datapath(request.param)
+
+
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
+class TestMsgpack:
     """
     How to add msgpack tests:
 
     1. Install pandas version intended to output the msgpack.
-TestPackers
     2. Execute "generate_legacy_storage_files.py" to create the msgpack.
     $ python generate_legacy_storage_files.py <output_dir> msgpack
 
@@ -840,23 +872,20 @@ TestPackers
     minimum_structure = {'series': ['float', 'int', 'mixed',
                                     'ts', 'mi', 'dup'],
                          'frame': ['float', 'int', 'mixed', 'mi'],
-                         'panel': ['float'],
                          'index': ['int', 'date', 'period'],
                          'mi': ['reg2']}
 
     def check_min_structure(self, data, version):
         for typ, v in self.minimum_structure.items():
+
             assert typ in data, '"{0}" not found in unpacked data'.format(typ)
             for kind in v:
                 msg = '"{0}" not found in data["{1}"]'.format(kind, typ)
                 assert kind in data[typ], msg
 
     def compare(self, current_data, all_data, vf, version):
-        # GH12277 encoding default used to be latin-1, now utf-8
-        if LooseVersion(version) < '0.18.0':
-            data = read_msgpack(vf, encoding='latin-1')
-        else:
-            data = read_msgpack(vf)
+        data = read_msgpack(vf)
+
         self.check_min_structure(data, version)
         for typ, dv in data.items():
             assert typ in all_data, ('unpacked data contains '
@@ -882,41 +911,26 @@ TestPackers
         return data
 
     def compare_series_dt_tz(self, result, expected, typ, version):
-        # 8260
-        # dtype is object < 0.17.0
-        if LooseVersion(version) < '0.17.0':
-            expected = expected.astype(object)
-            tm.assert_series_equal(result, expected)
-        else:
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def compare_frame_dt_mixed_tzs(self, result, expected, typ, version):
-        # 8260
-        # dtype is object < 0.17.0
-        if LooseVersion(version) < '0.17.0':
-            expected = expected.astype(object)
-            tm.assert_frame_equal(result, expected)
-        else:
-            tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('version', legacy_packers_versions())
     def test_msgpacks_legacy(self, current_packers_data, all_packers_data,
-                             version):
+                             legacy_packer, datapath):
 
-        pth = tm.get_data_path('legacy_msgpack/{0}'.format(version))
-        n = 0
-        for f in os.listdir(pth):
-            # GH12142 0.17 files packed in P2 can't be read in P3
-            if (compat.PY3 and version.startswith('0.17.') and
-                    f.split('.')[-4][-1] == '2'):
-                continue
-            vf = os.path.join(pth, f)
-            try:
-                with catch_warnings(record=True):
-                    self.compare(current_packers_data, all_packers_data,
-                                 vf, version)
-            except ImportError:
-                # blosc not installed
-                continue
-            n += 1
-        assert n > 0, 'Msgpack files are not tested'
+        version = os.path.basename(os.path.dirname(legacy_packer))
+
+        try:
+            with catch_warnings(record=True):
+                self.compare(current_packers_data, all_packers_data,
+                             legacy_packer, version)
+        except ImportError:
+            # blosc not installed
+            pass
+
+    def test_msgpack_period_freq(self):
+        # https://github.com/pandas-dev/pandas/issues/24135
+        s = Series(np.random.rand(5), index=date_range('20130101', periods=5))
+        r = read_msgpack(s.to_msgpack())
+        repr(r)

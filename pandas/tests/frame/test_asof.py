@@ -1,26 +1,29 @@
-# coding=utf-8
-
 import numpy as np
-from pandas import (DataFrame, date_range, Timestamp, Series,
-                    to_datetime)
+import pytest
 
+from pandas import DataFrame, Series, Timestamp, date_range, to_datetime
 import pandas.util.testing as tm
 
-from .common import TestData
+
+@pytest.fixture
+def date_range_frame():
+    """
+    Fixture for DataFrame of ints with date_range index
+
+    Columns are ['A', 'B'].
+    """
+    N = 50
+    rng = date_range('1/1/1990', periods=N, freq='53s')
+    return DataFrame({'A': np.arange(N), 'B': np.arange(N)}, index=rng)
 
 
-class TestFrameAsof(TestData):
-    def setup_method(self, method):
-        self.N = N = 50
-        self.rng = date_range('1/1/1990', periods=N, freq='53s')
-        self.df = DataFrame({'A': np.arange(N), 'B': np.arange(N)},
-                            index=self.rng)
+class TestFrameAsof:
 
-    def test_basic(self):
-        df = self.df.copy()
+    def test_basic(self, date_range_frame):
+        df = date_range_frame
+        N = 50
         df.loc[15:30, 'A'] = np.nan
-        dates = date_range('1/1/1990', periods=self.N * 3,
-                           freq='25s')
+        dates = date_range('1/1/1990', periods=N * 3, freq='25s')
 
         result = df.asof(dates)
         assert result.notna().all(1).all()
@@ -35,11 +38,9 @@ class TestFrameAsof(TestData):
         rs = result[mask]
         assert (rs == 14).all(1).all()
 
-    def test_subset(self):
+    def test_subset(self, date_range_frame):
         N = 10
-        rng = date_range('1/1/1990', periods=N, freq='53s')
-        df = DataFrame({'A': np.arange(N), 'B': np.arange(N)},
-                       index=rng)
+        df = date_range_frame.iloc[:N].copy()
         df.loc[4:8, 'A'] = np.nan
         dates = date_range('1/1/1990', periods=N * 3,
                            freq='25s')
@@ -54,20 +55,18 @@ class TestFrameAsof(TestData):
         expected = df.asof(dates)
         tm.assert_frame_equal(result, expected)
 
-        # B gives self.df.asof
+        # B gives df.asof
         result = df.asof(dates, subset='B')
         expected = df.resample('25s', closed='right').ffill().reindex(dates)
         expected.iloc[20:] = 9
 
         tm.assert_frame_equal(result, expected)
 
-    def test_missing(self):
+    def test_missing(self, date_range_frame):
         # GH 15118
         # no match found - `where` value before earliest date in index
         N = 10
-        rng = date_range('1/1/1990', periods=N, freq='53s')
-        df = DataFrame({'A': np.arange(N), 'B': np.arange(N)},
-                       index=rng)
+        df = date_range_frame.iloc[:N].copy()
         result = df.asof('1989-12-31')
 
         expected = Series(index=['A', 'B'], name=Timestamp('1989-12-31'))
@@ -78,7 +77,7 @@ class TestFrameAsof(TestData):
                              columns=['A', 'B'], dtype='float64')
         tm.assert_frame_equal(result, expected)
 
-    def test_all_nans(self):
+    def test_all_nans(self, date_range_frame):
         # GH 15713
         # DataFrame is all nans
         result = DataFrame([np.nan]).asof([0])
@@ -86,14 +85,16 @@ class TestFrameAsof(TestData):
         tm.assert_frame_equal(result, expected)
 
         # testing non-default indexes, multiple inputs
-        dates = date_range('1/1/1990', periods=self.N * 3, freq='25s')
-        result = DataFrame(np.nan, index=self.rng, columns=['A']).asof(dates)
+        N = 150
+        rng = date_range_frame.index
+        dates = date_range('1/1/1990', periods=N, freq='25s')
+        result = DataFrame(np.nan, index=rng, columns=['A']).asof(dates)
         expected = DataFrame(np.nan, index=dates, columns=['A'])
         tm.assert_frame_equal(result, expected)
 
         # testing multiple columns
-        dates = date_range('1/1/1990', periods=self.N * 3, freq='25s')
-        result = DataFrame(np.nan, index=self.rng,
+        dates = date_range('1/1/1990', periods=N, freq='25s')
+        result = DataFrame(np.nan, index=rng,
                            columns=['A', 'B', 'C']).asof(dates)
         expected = DataFrame(np.nan, index=dates, columns=['A', 'B', 'C'])
         tm.assert_frame_equal(result, expected)
@@ -105,4 +106,22 @@ class TestFrameAsof(TestData):
 
         result = DataFrame(np.nan, index=[1, 2], columns=['A', 'B']).asof(3)
         expected = Series(np.nan, index=['A', 'B'], name=3)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "stamp,expected",
+        [(Timestamp('2018-01-01 23:22:43.325+00:00'),
+          Series(2.0, name=Timestamp('2018-01-01 23:22:43.325+00:00'))),
+         (Timestamp('2018-01-01 22:33:20.682+01:00'),
+          Series(1.0, name=Timestamp('2018-01-01 22:33:20.682+01:00'))),
+         ]
+    )
+    def test_time_zone_aware_index(self, stamp, expected):
+        # GH21194
+        # Testing awareness of DataFrame index considering different
+        # UTC and timezone
+        df = DataFrame(data=[1, 2],
+                       index=[Timestamp('2018-01-01 21:00:05.001+00:00'),
+                              Timestamp('2018-01-01 22:35:10.550+00:00')])
+        result = df.asof(stamp)
         tm.assert_series_equal(result, expected)

@@ -1,17 +1,16 @@
 import numpy as np
 
-from pandas import compat
 from pandas.util._decorators import cache_readonly
-import pandas.util.testing as tm
+
 import pandas as pd
+import pandas.util.testing as tm
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 
 _frame = pd.DataFrame(_seriesd)
 _frame2 = pd.DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])
-_intframe = pd.DataFrame(dict((k, v.astype(int))
-                              for k, v in compat.iteritems(_seriesd)))
+_intframe = pd.DataFrame({k: v.astype(int) for k, v in _seriesd.items()})
 
 _tsframe = pd.DataFrame(_tsd)
 
@@ -19,7 +18,7 @@ _mixed_frame = _frame.copy()
 _mixed_frame['foo'] = 'bar'
 
 
-class TestData(object):
+class TestData:
 
     @cache_readonly
     def frame(self):
@@ -32,8 +31,7 @@ class TestData(object):
     @cache_readonly
     def intframe(self):
         # force these all to int64 to avoid platform testing issues
-        return pd.DataFrame(dict([(c, s) for c, s in
-                                  compat.iteritems(_intframe)]),
+        return pd.DataFrame({c: s for c, s in _intframe.items()},
                             dtype=np.int64)
 
     @cache_readonly
@@ -85,7 +83,7 @@ class TestData(object):
 
     @cache_readonly
     def empty(self):
-        return pd.DataFrame({})
+        return pd.DataFrame()
 
     @cache_readonly
     def ts1(self):
@@ -111,8 +109,8 @@ class TestData(object):
 def _check_mixed_float(df, dtype=None):
     # float16 are most likely to be upcasted to float32
     dtypes = dict(A='float32', B='float32', C='float16', D='float64')
-    if isinstance(dtype, compat.string_types):
-        dtypes = dict([(k, dtype) for k, v in dtypes.items()])
+    if isinstance(dtype, str):
+        dtypes = {k: dtype for k, v in dtypes.items()}
     elif isinstance(dtype, dict):
         dtypes.update(dtype)
     if dtypes.get('A'):
@@ -127,8 +125,8 @@ def _check_mixed_float(df, dtype=None):
 
 def _check_mixed_int(df, dtype=None):
     dtypes = dict(A='int32', B='uint64', C='uint8', D='int64')
-    if isinstance(dtype, compat.string_types):
-        dtypes = dict([(k, dtype) for k, v in dtypes.items()])
+    if isinstance(dtype, str):
+        dtypes = {k: dtype for k, v in dtypes.items()}
     elif isinstance(dtype, dict):
         dtypes.update(dtype)
     if dtypes.get('A'):

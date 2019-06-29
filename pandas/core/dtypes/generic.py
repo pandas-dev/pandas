@@ -43,7 +43,9 @@ ABCIndexClass = create_pandas_abc_type("ABCIndexClass", "_typ",
 
 ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series", ))
 ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe", ))
-ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel", "panel4d"))
+ABCSparseDataFrame = create_pandas_abc_type("ABCSparseDataFrame", "_subtyp",
+                                            ("sparse_frame", ))
+ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel",))
 ABCSparseSeries = create_pandas_abc_type("ABCSparseSeries", "_subtyp",
                                          ('sparse_series',
                                           'sparse_time_series'))
@@ -51,9 +53,26 @@ ABCSparseArray = create_pandas_abc_type("ABCSparseArray", "_subtyp",
                                         ('sparse_array', 'sparse_series'))
 ABCCategorical = create_pandas_abc_type("ABCCategorical", "_typ",
                                         ("categorical"))
+ABCDatetimeArray = create_pandas_abc_type("ABCDatetimeArray", "_typ",
+                                          ("datetimearray"))
+ABCTimedeltaArray = create_pandas_abc_type("ABCTimedeltaArray", "_typ",
+                                           ("timedeltaarray"))
+ABCPeriodArray = create_pandas_abc_type("ABCPeriodArray", "_typ",
+                                        ("periodarray", ))
 ABCPeriod = create_pandas_abc_type("ABCPeriod", "_typ", ("period", ))
 ABCDateOffset = create_pandas_abc_type("ABCDateOffset", "_typ",
                                        ("dateoffset",))
+ABCInterval = create_pandas_abc_type("ABCInterval", "_typ", ("interval", ))
+ABCExtensionArray = create_pandas_abc_type("ABCExtensionArray", "_typ",
+                                           ("extension",
+                                            "categorical",
+                                            "periodarray",
+                                            "datetimearray",
+                                            "timedeltaarray",
+                                            ))
+ABCPandasArray = create_pandas_abc_type("ABCPandasArray",
+                                        "_typ",
+                                        ("npy_extension",))
 
 
 class _ABCGeneric(type):

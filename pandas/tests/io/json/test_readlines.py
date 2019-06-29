@@ -1,12 +1,14 @@
-# -*- coding: utf-8 -*-
+from io import StringIO
+
 import pytest
+
 import pandas as pd
 from pandas import DataFrame, read_json
-from pandas.compat import StringIO
-from pandas.io.json.json import JsonReader
 import pandas.util.testing as tm
-from pandas.util.testing import (assert_frame_equal, assert_series_equal,
-                                 ensure_clean)
+from pandas.util.testing import (
+    assert_frame_equal, assert_series_equal, ensure_clean)
+
+from pandas.io.json.json import JsonReader
 
 
 @pytest.fixture
@@ -30,14 +32,14 @@ def test_read_jsonl_unicode_chars():
     json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
     json = StringIO(json)
     result = read_json(json, lines=True)
-    expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+    expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]],
                          columns=['a', 'b'])
     assert_frame_equal(result, expected)
 
     # simulate string
     json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
     result = read_json(json, lines=True)
-    expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+    expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]],
                          columns=['a', 'b'])
     assert_frame_equal(result, expected)
 
@@ -81,7 +83,7 @@ def test_readjson_chunks(lines_json_df, chunksize):
 
 def test_readjson_chunksize_requires_lines(lines_json_df):
     msg = "chunksize can only be passed if lines=True"
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         pd.read_json(StringIO(lines_json_df), lines=False, chunksize=2)
 
 
@@ -128,17 +130,17 @@ def test_readjson_chunks_closes(chunksize):
             path, orient=None, typ="frame", dtype=True, convert_axes=True,
             convert_dates=True, keep_default_dates=True, numpy=False,
             precise_float=False, date_unit=None, encoding=None,
-            lines=True, chunksize=chunksize)
+            lines=True, chunksize=chunksize, compression=None)
         reader.read()
         assert reader.open_stream.closed, "didn't close stream with \
-            chunksize = %s" % chunksize
+            chunksize = {chunksize}".format(chunksize=chunksize)
 
 
 @pytest.mark.parametrize("chunksize", [0, -1, 2.2, "foo"])
 def test_readjson_invalid_chunksize(lines_json_df, chunksize):
     msg = r"'chunksize' must be an integer >=1"
 
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         pd.read_json(StringIO(lines_json_df), lines=True,
                      chunksize=chunksize)
 
@@ -165,4 +167,5 @@ def test_readjson_chunks_multiple_empty_lines(chunksize):
     test = pd.read_json(j, lines=True, chunksize=chunksize)
     if chunksize is not None:
         test = pd.concat(test)
-    tm.assert_frame_equal(orig, test, obj="chunksize: %s" % chunksize)
+    tm.assert_frame_equal(
+        orig, test, obj="chunksize: {chunksize}".format(chunksize=chunksize))

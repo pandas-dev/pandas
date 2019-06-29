@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <!-- Unicode character encoding -->
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<!-- Turns off IE Compatiblity Mode -->
+<!-- Turns off IE Compatibility Mode -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <!-- Makes it so phones don't auto zoom out. -->
 <meta name="author" content="DRR">
@@ -37,7 +37,7 @@ function findValue(li) {
 	else var sValue = li.selectValue;
 
 	$('#googlesearch').submit();
-	
+
 }
 function findValue2(li) {
 	if( li == null ) return alert("No match!");
@@ -47,7 +47,7 @@ function findValue2(li) {
 
 	// otherwise, let's just display the value in the text box
 	else var sValue = li.selectValue;
-	
+
 	$('#googlesearch2').submit();
 }
 function selectItem(li) {
@@ -62,7 +62,7 @@ $().ready(function() {
 	function log(event, data, formatted) {
 		$("<li>").html( !data ? "No match!" : "Selected: " + formatted).appendTo("#result");
 	}
-	
+
 	function formatItem(row) {
 		return row[0] + " (<strong>id: " + row[1] + "</strong>)";
 	}
@@ -81,7 +81,7 @@ $().ready(function() {
 		selectFirst: false
 
 	});
-	
+
 	$("#search2").autocomplete("/searchjs.asp", {
 		width: 160,
 		autoFill: false,
@@ -93,7 +93,7 @@ $().ready(function() {
 		selectFirst: false
 
 	});
-	
+
 });
 
 </script>
@@ -232,16 +232,16 @@ prepare_responsive_header_nav();
 	<h1 class="page_title">Failed Bank List</h1>
 
 	<p>The FDIC is often appointed as receiver for failed banks. This page contains useful information for the customers and vendors of these banks. This includes information on the acquiring bank (if applicable), how your accounts and loans are affected, and how vendors can file claims against the receivership. <a href="http://www2.fdic.gov/drrip/cs/index.asp">Failed Financial Institution Contact Search</a> displays point of contact information related to failed banks.</p>
-	
+
 	<p>This list includes banks which have failed since October 1, 2000. To search for banks that failed prior to those on this page, visit this link: <a href="http://www2.fdic.gov/hsob/SelectRpt.asp?EntryTyp=30">Failures and Assistance Transactions</a></p>
-	
+
 	<p><a href="banklist.csv">Failed Bank List</a> - CSV file (Updated on Mondays. Also opens in Excel - <a href="/excel.html">Excel Help</a>)</p>
-	
+
 	<p class="small_screen_warning">Due to the small screen size some information is no longer visible.<br>Full information available when viewed on a larger screen.</p>
 
 	<script type="text/javascript">
 	<!--
-	document.writeln("<p><em>Click arrows next to headers to sort in Ascending or Descending order.</em></p>"); 
+	document.writeln("<p><em>Click arrows next to headers to sort in Ascending or Descending order.</em></p>");
 	//-->
 	</script>
 
@@ -253,7 +253,7 @@ prepare_responsive_header_nav();
 				<th id="city" class="nosort" scope="col">City</th>
 				<th id="state" scope="col">ST</th>
 				<th id="cert" class="nosort" scope="col">CERT</th>
-				<th id="ai" scope="col">Acquiring Institution</th>    
+				<th id="ai" scope="col">Acquiring Institution</th>
 				<th id="closing" scope="col">Closing Date</th>
 				<th id="updated" scope="col">Updated Date</th>
 			</tr>
@@ -294,7 +294,7 @@ prepare_responsive_header_nav();
 			  <td class="ai">Capital Bank, N.A.</td>
 			  <td class="closing">May 10, 2013</td>
 			  <td class="updated">May 14, 2013</td>
-			</tr>			
+			</tr>
 			<tr>
 				<td class="institution"><a href="douglascb.html">Douglas County Bank</a></td>
 				<td class="city">Douglasville</td>
@@ -340,6 +340,7 @@ prepare_responsive_header_nav();
 				<td class="closing">April 19, 2013</td>
 				<td class="updated">April 23, 2013</td>
 			</tr>
+			<tr>
 				<td class="institution"><a href="goldcanyon.html">Gold Canyon Bank</a></td>
 				<td class="city">Gold Canyon</td>
 				<td class="state">AZ</td>
@@ -383,7 +384,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Sunwest Bank</td>
 				<td class="closing">January 11, 2013</td>
 				<td class="updated">January 24, 2013</td>
-			</tr> 
+			</tr>
 			<tr>
 				<td class="institution"><a href="cmbkozarks.html">Community Bank of the Ozarks</a></td>
 				<td class="city">Sunrise Beach</td>
@@ -392,7 +393,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Bank of Sullivan</td>
 				<td class="closing">December 14, 2012</td>
 				<td class="updated">January 24, 2013</td>
-			</tr>    
+			</tr>
 			<tr>
 				<td class="institution"><a href="hometown.html">Hometown Community Bank</a></td>
 				<td class="city">Braselton</td>
@@ -401,7 +402,7 @@ prepare_responsive_header_nav();
 				<td class="ai">CertusBank, National Association</td>
 				<td class="closing">November 16, 2012</td>
 				<td class="updated">January 24, 2013</td>
-			</tr>   
+			</tr>
 			<tr>
 				<td class="institution"><a href="cfnb.html">Citizens First National Bank</a></td>
 				<td class="city">Princeton</td>
@@ -518,7 +519,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Metcalf Bank</td>
 				<td class="closing">July 20, 2012</td>
 				<td class="updated">December 17, 2012</td>
-			</tr>  
+			</tr>
 			<tr>
 				<td class="institution"><a href="cherokee.html">First Cherokee State Bank</a></td>
 				<td class="city">Woodstock</td>
@@ -635,7 +636,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Southern States Bank</td>
 				<td class="closing">May 18, 2012</td>
 				<td class="updated">May 20, 2013</td>
-			</tr> 
+			</tr>
 			<tr>
 				<td class="institution"><a href="securitybank.html">Security Bank, National Association</a></td>
 				<td class="city">North Lauderdale</td>
@@ -644,7 +645,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Banesco USA</td>
 				<td class="closing">May 4, 2012</td>
 				<td class="updated">October 31, 2012</td>
-			</tr>    
+			</tr>
 			<tr>
 				<td class="institution"><a href="palmdesert.html">Palm Desert National Bank</a></td>
 				<td class="city">Palm Desert</td>
@@ -734,7 +735,7 @@ prepare_responsive_header_nav();
 				<td class="ai">No Acquirer</td>
 				<td class="closing">March 9, 2012</td>
 				<td class="updated">October 29, 2012</td>
-			</tr> 
+			</tr>
 			<tr>
 				<td class="institution"><a href="global.html">Global Commerce Bank</a></td>
 				<td class="city">Doraville</td>
@@ -752,7 +753,7 @@ prepare_responsive_header_nav();
 				<td class="ai">No Acquirer</td>
 				<td class="closing">February 24, 2012</td>
 				<td class="updated">December 17, 2012</td>
-			</tr> 
+			</tr>
 			<tr>
 				<td class="institution"><a href="cbg.html">Central Bank of Georgia</a></td>
 				<td class="city">Ellaville</td>
@@ -761,7 +762,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Ameris Bank</td>
 				<td class="closing">February 24, 2012</td>
 				<td class="updated">August 9, 2012</td>
-			</tr>   
+			</tr>
 			<tr>
 				<td class="institution"><a href="scbbank.html">SCB Bank</a></td>
 				<td class="city">Shelbyville</td>
@@ -770,7 +771,7 @@ prepare_responsive_header_nav();
 				<td class="ai">First Merchants Bank, National Association</td>
 				<td class="closing">February 10, 2012</td>
 				<td class="updated">March 25, 2013</td>
-			</tr>  
+			</tr>
 			<tr>
 				<td class="institution"><a href="cnbt.html">Charter National Bank and Trust</a></td>
 				<td class="city">Hoffman Estates</td>
@@ -779,7 +780,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Barrington Bank &amp; Trust Company, National Association</td>
 				<td class="closing">February 10, 2012</td>
 				<td class="updated">March 25, 2013</td>
-			</tr>  
+			</tr>
 			<tr>
 				<td class="institution"><a href="bankeast.html">BankEast</a></td>
 				<td class="city">Knoxville</td>
@@ -788,7 +789,7 @@ prepare_responsive_header_nav();
 				<td class="ai">U.S.Bank National Association</td>
 				<td class="closing">January 27, 2012</td>
 				<td class="updated">March 8, 2013</td>
-			</tr>   
+			</tr>
 			<tr>
 				<td class="institution"><a href="patriot-mn.html">Patriot Bank Minnesota</a></td>
 				<td class="city">Forest Lake</td>
@@ -797,7 +798,7 @@ prepare_responsive_header_nav();
 				<td class="ai">First Resource Bank</td>
 				<td class="closing">January 27, 2012</td>
 				<td class="updated">September 12, 2012</td>
-			</tr>    
+			</tr>
 			<tr>
 				<td class="institution"><a href="tcb.html">Tennessee Commerce Bank</a></td>
 				<td class="city">Franklin</td>
@@ -806,7 +807,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Republic Bank &amp; Trust Company</td>
 				<td class="closing">January 27, 2012</td>
 				<td class="updated">November 20, 2012</td>
-			</tr>     
+			</tr>
 			<tr>
 				<td class="institution"><a href="fgbtcj.html">First Guaranty Bank and Trust Company of Jacksonville</a></td>
 				<td class="city">Jacksonville</td>
@@ -815,7 +816,7 @@ prepare_responsive_header_nav();
 				<td class="ai">CenterState Bank of Florida, N.A.</td>
 				<td class="closing">January 27, 2012</td>
 				<td class="updated">September 12, 2012</td>
-			</tr>    
+			</tr>
 			<tr>
 				<td class="institution"><a href="americaneagle.html">American Eagle Savings Bank</a></td>
 				<td class="city">Boothwyn</td>
@@ -824,7 +825,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Capital Bank, N.A.</td>
 				<td class="closing">January 20, 2012</td>
 				<td class="updated">January 25, 2013</td>
-			</tr>      
+			</tr>
 			<tr>
 				<td class="institution"><a href="firststatebank-ga.html">The First State Bank</a></td>
 				<td class="city">Stockbridge</td>
@@ -833,7 +834,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Hamilton State Bank</td>
 				<td class="closing">January 20, 2012</td>
 				<td class="updated">January 25, 2013</td>
-			</tr>      
+			</tr>
 			<tr>
 				<td class="institution"><a href="cfsb.html">Central Florida State Bank</a></td>
 				<td class="city">Belleview</td>
@@ -842,7 +843,7 @@ prepare_responsive_header_nav();
 				<td class="ai">CenterState Bank of Florida, N.A.</td>
 				<td class="closing">January 20, 2012</td>
 				<td class="updated">January 25, 2013</td>
-			</tr>    
+			</tr>
 			<tr>
 				<td class="institution"><a href="westernnatl.html">Western National Bank</a></td>
 				<td class="city">Phoenix</td>
@@ -869,7 +870,7 @@ prepare_responsive_header_nav();
 				<td class="ai">First NBC Bank</td>
 				<td class="closing">November 18, 2011</td>
 				<td class="updated">August 13, 2012</td>
-			</tr>     
+			</tr>
 			<tr>
 				<td class="institution"><a href="polkcounty.html">Polk County Bank</a></td>
 				<td class="city">Johnston</td>
@@ -887,7 +888,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Century Bank of Georgia</td>
 				<td class="closing">November 10, 2011</td>
 				<td class="updated">August 13, 2012</td>
-			</tr>  
+			</tr>
 			<tr>
 				<td class="institution"><a href="sunfirst.html">SunFirst Bank</a></td>
 				<td class="city">Saint George</td>
@@ -896,7 +897,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Cache Valley Bank</td>
 				<td class="closing">November 4, 2011</td>
 				<td class="updated">November 16, 2012</td>
-			</tr>    
+			</tr>
 			<tr>
 				<td class="institution"><a href="midcity.html">Mid City Bank, Inc.</a></td>
 				<td class="city">Omaha</td>
@@ -905,7 +906,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Premier Bank</td>
 				<td class="closing">November 4, 2011</td>
 				<td class="updated">August 15, 2012</td>
-			</tr> 
+			</tr>
 			<tr>
 				<td class="institution"><a href="allamerican.html ">All American Bank</a></td>
 				<td class="city">Des Plaines</td>
@@ -914,7 +915,7 @@ prepare_responsive_header_nav();
 				<td class="ai">International Bank of Chicago</td>
 				<td class="closing">October 28, 2011</td>
 				<td class="updated">August 15, 2012</td>
-			</tr>    
+			</tr>
 			<tr>
 				<td class="institution"><a href="commbanksco.html">Community Banks of Colorado</a></td>
 				<td class="city">Greenwood Village</td>
@@ -959,7 +960,7 @@ prepare_responsive_header_nav();
  				<td class="ai">Blackhawk Bank &amp; Trust</td>
  				<td class="closing">October 14, 2011</td>
  				<td class="updated">August 15, 2012</td>
-			</tr>   
+			</tr>
 			<tr>
 				<td class="institution"><a href="firststatebank-nj.html">First State Bank</a></td>
  				<td class="city">Cranford</td>
@@ -968,7 +969,7 @@ prepare_responsive_header_nav();
  				<td class="ai">Northfield Bank</td>
  				<td class="closing">October 14, 2011</td>
  				<td class="updated">November 8, 2012</td>
-			</tr>  
+			</tr>
 			<tr>
 				<td class="institution"><a href="blueridge.html">Blue Ridge Savings Bank, Inc.</a></td>
  				<td class="city">Asheville</td>
@@ -977,7 +978,7 @@ prepare_responsive_header_nav();
  				<td class="ai">Bank of North Carolina</td>
  				<td class="closing">October 14, 2011</td>
  				<td class="updated">November 8, 2012</td>
-			</tr> 
+			</tr>
 			<tr>
 				<td class="institution"><a href="piedmont-ga.html">Piedmont Community Bank</a></td>
  				<td class="city">Gray</td>
@@ -986,7 +987,7 @@ prepare_responsive_header_nav();
  				<td class="ai">State Bank and Trust Company</td>
  				<td class="closing">October 14, 2011</td>
  				<td class="updated">January 22, 2013</td>
-			</tr>   
+			</tr>
 			<tr>
 				<td class="institution"><a href="sunsecurity.html">Sun Security Bank</a></td>
  				<td class="city">Ellington</td>
@@ -1202,7 +1203,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Ameris Bank</td>
 				<td class="closing">July 15, 2011</td>
 				<td class="updated">November 2, 2012</td>
-			</tr> 
+			</tr>
 			<tr>
 				<td class="institution"><a href="onegeorgia.html">One Georgia Bank</a></td>
 				<td class="city">Atlanta</td>
@@ -1247,7 +1248,7 @@ prepare_responsive_header_nav();
 				<td class="ai">First American Bank and Trust Company</td>
 				<td class="closing">June 24, 2011</td>
 				<td class="updated">November 2, 2012</td>
-			</tr>   
+			</tr>
 			<tr>
 				<td class="institution"><a href="fcbtb.html">First Commercial Bank of Tampa Bay</a></td>
 				<td class="city">Tampa</td>
@@ -1256,7 +1257,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Stonegate Bank</td>
 				<td class="closing">June 17, 2011</td>
 				<td class="updated">November 2, 2012</td>
-			</tr>    
+			</tr>
 			<tr>
 				<td class="institution"><a href="mcintoshstate.html">McIntosh State Bank</a></td>
 				<td class="city">Jackson</td>
@@ -1265,7 +1266,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Hamilton State Bank</td>
 				<td class="closing">June 17, 2011</td>
 				<td class="updated">November 2, 2012</td>
-			</tr>   
+			</tr>
 			<tr>
 				<td class="institution"><a href="atlanticbanktrust.html">Atlantic Bank and Trust</a></td>
 				<td class="city">Charleston</td>
@@ -1274,7 +1275,7 @@ prepare_responsive_header_nav();
 				<td class="ai">First Citizens Bank and Trust Company, Inc.</td>
 				<td class="closing">June 3, 2011</td>
 				<td class="updated">October 31, 2012</td>
-			</tr> 
+			</tr>
 			<tr>
 				<td class="institution"><a href="firstheritage.html">First Heritage Bank</a></td>
 				<td class="city">Snohomish</td>
@@ -1283,7 +1284,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Columbia State Bank</td>
 				<td class="closing">May 27, 2011</td>
 				<td class="updated">January 28, 2013</td>
-			</tr>  
+			</tr>
 			<tr>
 				<td class="institution"><a href="summit.html">Summit Bank</a></td>
 				<td class="city">Burlington</td>
@@ -1292,7 +1293,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Columbia State Bank</td>
 				<td class="closing">May 20, 2011</td>
 				<td class="updated">January 22, 2013</td>
-			</tr>  
+			</tr>
 			<tr>
 				<td class="institution"><a href="fgbc.html">First Georgia Banking Company</a></td>
 				<td class="city">Franklin</td>
@@ -2030,7 +2031,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Westamerica Bank</td>
 				<td class="closing">August 20, 2010</td>
 				<td class="updated">September 12, 2012</td>
-			</tr>	 
+			</tr>
 			<tr>
 				<td class="institution"><a href="lospadres.html">Los Padres Bank</a></td>
 				<td class="city">Solvang</td>
@@ -2624,7 +2625,7 @@ prepare_responsive_header_nav();
 				<td class="ai">MB Financial Bank, N.A.</td>
 				<td class="closing">April 23, 2010</td>
 				<td class="updated">August 23, 2012</td>
-			</tr> 	 	 	 
+			</tr>
 			<tr>
 				<td class="institution"><a href="amcore.html">Amcore Bank, National Association</a></td>
 				<td class="city">Rockford</td>
@@ -2768,7 +2769,7 @@ prepare_responsive_header_nav();
 				<td class="ai">First Citizens Bank</td>
 				<td class="closing">March 19, 2010</td>
 				<td class="updated">August 23, 2012</td>
-			</tr> 
+			</tr>
 			<tr>
 				<td class="institution"><a href="bankofhiawassee.html">Bank of Hiawassee</a></td>
 				<td class="city">Hiawassee</td>
@@ -3480,7 +3481,7 @@ prepare_responsive_header_nav();
 				<td class="closing">October 2, 2009</td>
 				<td class="updated">August 21, 2012</td>
 			</tr>
-			<tr> 
+			<tr>
 				<td class="institution"><a href="warren-mi.html">Warren Bank</a></td>
 				<td class="city">Warren</td>
 				<td class="state">MI</td>
@@ -3767,7 +3768,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Herring Bank</td>
 				<td class="closing">July 31, 2009</td>
 				<td class="updated">August 20, 2012</td>
-			</tr> 
+			</tr>
 			<tr>
 				<td class="institution"><a href="sb-jones.html">Security Bank of Jones County</a></td>
 				<td class="city">Gray</td>
@@ -3848,7 +3849,7 @@ prepare_responsive_header_nav();
 				<td class="ai">California Bank &amp; Trust</td>
 				<td class="closing">July 17, 2009</td>
 				<td class="updated">August 20, 2012</td>
-			</tr>  
+			</tr>
 			<tr>
 				<td class="institution"><a href="bankfirst.html">BankFirst</a></td>
 				<td class="city">Sioux Falls</td>
@@ -4811,7 +4812,7 @@ prepare_responsive_header_nav();
 				<td class="ai">Bank of the Orient</td>
 				<td class="closing">October 13, 2000</td>
 				<td class="updated">March 17, 2005</td>
-			</tr> 	 
+			</tr>
 		</tbody>
 	</table>
 	</div>
@@ -4849,12 +4850,12 @@ prepare_responsive_header_nav();
 		<ul>
 			<li><a href="/about/freedom/" title="Freedom of Information Act (FOIA) Service Center">Freedom of Information Act (FOIA) Service Center</a></li>
 			<li><a href="/open/" title="FDIC Open Government Webpage">FDIC Open Government Webpage</a></li>
-			<li><a href="/about/diversity/nofear/" title="No FEAR Act Data">No  FEAR Act Data</a></li>
+			<li><a href="/about/diversity/nofear/" title="No FEAR Act Data">No FEAR Act Data</a></li>
 		</ul>
 	</div>
 	<div id="responsive_footer-small">
 		<ul>
-			<li><a href="/" title="Home">Home</a></li> 
+			<li><a href="/" title="Home">Home</a></li>
 			<li><a href="/about/contact/ask/" title="Contact Us">Contact Us</a></li>
 			<li><a href="/about/policies/" title="Website Policies">Website Policies</a></li>
 			<li><a href="/search/" title="Search">Search</a></li>

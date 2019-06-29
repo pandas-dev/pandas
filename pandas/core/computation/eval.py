@@ -1,18 +1,23 @@
 #!/usr/bin/env python
 
-"""Top level ``eval`` module.
+"""
+Top level ``eval`` module.
 """
 
 import tokenize
-from pandas.io.formats.printing import pprint_thing
-from pandas.core.computation.scope import _ensure_scope
-from pandas.compat import string_types
-from pandas.core.computation.engines import _engines
+import warnings
+
 from pandas.util._validators import validate_bool_kwarg
+
+from pandas.core.computation.engines import _engines
+from pandas.core.computation.scope import _ensure_scope
+
+from pandas.io.formats.printing import pprint_thing
 
 
 def _check_engine(engine):
-    """Make sure a valid engine is passed.
+    """
+    Make sure a valid engine is passed.
 
     Parameters
     ----------
@@ -28,7 +33,6 @@ def _check_engine(engine):
     Returns
     -------
     string engine
-
     """
     from pandas.core.computation.check import _NUMEXPR_INSTALLED
 
@@ -57,7 +61,8 @@ def _check_engine(engine):
 
 
 def _check_parser(parser):
-    """Make sure a valid parser is passed.
+    """
+    Make sure a valid parser is passed.
 
     Parameters
     ----------
@@ -85,7 +90,8 @@ def _check_resolvers(resolvers):
 
 
 def _check_expression(expr):
-    """Make sure an expression is not an empty string
+    """
+    Make sure an expression is not an empty string
 
     Parameters
     ----------
@@ -102,7 +108,8 @@ def _check_expression(expr):
 
 
 def _convert_expression(expr):
-    """Convert an object to an expression.
+    """
+    Convert an object to an expression.
 
     Thus function converts an object to an expression (a unicode string) and
     checks to make sure it isn't empty after conversion. This is used to
@@ -152,7 +159,8 @@ def _check_for_locals(expr, stack_level, parser):
 def eval(expr, parser='pandas', engine=None, truediv=True,
          local_dict=None, global_dict=None, resolvers=(), level=0,
          target=None, inplace=False):
-    """Evaluate a Python expression as a string using various backends.
+    """
+    Evaluate a Python expression as a string using various backends.
 
     The following arithmetic operations are supported: ``+``, ``-``, ``*``,
     ``/``, ``**``, ``%``, ``//`` (python engine only) along with the following
@@ -168,9 +176,9 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
     expr : str or unicode
         The expression to evaluate. This string cannot contain any Python
         `statements
-        <http://docs.python.org/2/reference/simple_stmts.html#simple-statements>`__,
+        <https://docs.python.org/3/reference/simple_stmts.html#simple-statements>`__,
         only Python `expressions
-        <http://docs.python.org/2/reference/simple_stmts.html#expression-statements>`__.
+        <https://docs.python.org/3/reference/simple_stmts.html#expression-statements>`__.
     parser : string, default 'pandas', {'pandas', 'python'}
         The parser to use to construct the syntax tree from the expression. The
         default of ``'pandas'`` parses code slightly different than standard
@@ -201,8 +209,8 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         A list of objects implementing the ``__getitem__`` special method that
         you can use to inject an additional collection of namespaces to use for
         variable lookup. For example, this is used in the
-        :meth:`~pandas.DataFrame.query` method to inject the
-        :attr:`~pandas.DataFrame.index` and :attr:`~pandas.DataFrame.columns`
+        :meth:`~DataFrame.query` method to inject the
+        ``DataFrame.index`` and ``DataFrame.columns``
         variables that refer to their respective :class:`~pandas.DataFrame`
         instance attributes.
     level : int, optional
@@ -242,6 +250,11 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         - Item assignment is provided and `inplace=False`, but the `target`
           does not support the `.copy()` method
 
+    See Also
+    --------
+    DataFrame.query
+    DataFrame.eval
+
     Notes
     -----
     The ``dtype`` of any objects involved in an arithmetic ``%`` operation are
@@ -249,17 +262,12 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
     See the :ref:`enhancing performance <enhancingperf.eval>` documentation for
     more details.
-
-    See Also
-    --------
-    pandas.DataFrame.query
-    pandas.DataFrame.eval
     """
     from pandas.core.computation.expr import Expr
 
     inplace = validate_bool_kwarg(inplace, "inplace")
 
-    if isinstance(expr, string_types):
+    if isinstance(expr, str):
         _check_expression(expr)
         exprs = [e.strip() for e in expr.splitlines() if e.strip() != '']
     else:
@@ -303,7 +311,8 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
                                  "if there is no assignment")
 
         # assign if needed
-        if env.target is not None and parsed_expr.assigner is not None:
+        assigner = parsed_expr.assigner
+        if env.target is not None and assigner is not None:
             target_modified = True
 
             # if returning a copy, copy only on the first assignment
@@ -317,22 +326,26 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
             # TypeError is most commonly raised (e.g. int, list), but you
             # get IndexError if you try to do this assignment on np.ndarray.
+            # we will ignore numpy warnings here; e.g. if trying
+            # to use a non-numeric indexer
             try:
-                target[parsed_expr.assigner] = ret
+                with warnings.catch_warnings(record=True):
+                    # TODO: Filter the warnings we actually care about here.
+                    target[assigner] = ret
             except (TypeError, IndexError):
                 raise ValueError("Cannot assign expression output to target")
 
             if not resolvers:
-                resolvers = ({parsed_expr.assigner: ret},)
+                resolvers = ({assigner: ret},)
             else:
                 # existing resolver needs updated to handle
                 # case of mutating existing column in copy
                 for resolver in resolvers:
-                    if parsed_expr.assigner in resolver:
-                        resolver[parsed_expr.assigner] = ret
+                    if assigner in resolver:
+                        resolver[assigner] = ret
                         break
                 else:
-                    resolvers += ({parsed_expr.assigner: ret},)
+                    resolvers += ({assigner: ret},)
 
             ret = None
             first_expr = False

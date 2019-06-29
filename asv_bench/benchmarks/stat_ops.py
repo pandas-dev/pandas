@@ -1,205 +1,144 @@
-from .pandas_vb_common import *
+import numpy as np
+import pandas as pd
 
 
-def _set_use_bottleneck_False():
-    try:
-        pd.options.compute.use_bottleneck = False
-    except:
-        from pandas.core import nanops
-        nanops._USE_BOTTLENECK = False
+ops = ['mean', 'sum', 'median', 'std', 'skew', 'kurt', 'mad', 'prod', 'sem',
+       'var']
 
 
-class FrameOps(object):
-    goal_time = 0.2
+class FrameOps:
 
-    param_names = ['op', 'use_bottleneck', 'dtype', 'axis']
-    params = [['mean', 'sum', 'median'],
-              [True, False],
-              ['float', 'int'],
-              [0, 1]]
+    params = [ops, ['float', 'int'], [0, 1], [True, False]]
+    param_names = ['op', 'dtype', 'axis', 'use_bottleneck']
 
-    def setup(self, op, use_bottleneck, dtype, axis):
-        if dtype == 'float':
-            self.df = DataFrame(np.random.randn(100000, 4))
-        elif dtype == 'int':
-            self.df = DataFrame(np.random.randint(1000, size=(100000, 4)))
+    def setup(self, op, dtype, axis, use_bottleneck):
+        df = pd.DataFrame(np.random.randn(100000, 4)).astype(dtype)
+        try:
+            pd.options.compute.use_bottleneck = use_bottleneck
+        except TypeError:
+            from pandas.core import nanops
+            nanops._USE_BOTTLENECK = use_bottleneck
+        self.df_func = getattr(df, op)
 
-        if not use_bottleneck:
-            _set_use_bottleneck_False()
+    def time_op(self, op, dtype, axis, use_bottleneck):
+        self.df_func(axis=axis)
 
-        self.func = getattr(self.df, op)
 
-    def time_op(self, op, use_bottleneck, dtype, axis):
-        self.func(axis=axis)
+class FrameMultiIndexOps:
 
+    params = ([0, 1, [0, 1]], ops)
+    param_names = ['level', 'op']
 
-class stat_ops_level_frame_sum(object):
-    goal_time = 0.2
+    def setup(self, level, op):
+        levels = [np.arange(10), np.arange(100), np.arange(100)]
+        codes = [np.arange(10).repeat(10000),
+                 np.tile(np.arange(100).repeat(100), 10),
+                 np.tile(np.tile(np.arange(100), 100), 10)]
+        index = pd.MultiIndex(levels=levels, codes=codes)
+        df = pd.DataFrame(np.random.randn(len(index), 4), index=index)
+        self.df_func = getattr(df, op)
 
-    def setup(self):
-        self.index = MultiIndex(levels=[np.arange(10), np.arange(100), np.arange(100)], labels=[np.arange(10).repeat(10000), np.tile(np.arange(100).repeat(100), 10), np.tile(np.tile(np.arange(100), 100), 10)])
-        random.shuffle(self.index.values)
-        self.df = DataFrame(np.random.randn(len(self.index), 4), index=self.index)
-        self.df_level = DataFrame(np.random.randn(100, 4), index=self.index.levels[1])
+    def time_op(self, level, op):
+        self.df_func(level=level)
 
-    def time_stat_ops_level_frame_sum(self):
-        self.df.sum(level=1)
 
+class SeriesOps:
 
-class stat_ops_level_frame_sum_multiple(object):
-    goal_time = 0.2
+    params = [ops, ['float', 'int'], [True, False]]
+    param_names = ['op', 'dtype', 'use_bottleneck']
 
-    def setup(self):
-        self.index = MultiIndex(levels=[np.arange(10), np.arange(100), np.arange(100)], labels=[np.arange(10).repeat(10000), np.tile(np.arange(100).repeat(100), 10), np.tile(np.tile(np.arange(100), 100), 10)])
-        random.shuffle(self.index.values)
-        self.df = DataFrame(np.random.randn(len(self.index), 4), index=self.index)
-        self.df_level = DataFrame(np.random.randn(100, 4), index=self.index.levels[1])
+    def setup(self, op, dtype, use_bottleneck):
+        s = pd.Series(np.random.randn(100000)).astype(dtype)
+        try:
+            pd.options.compute.use_bottleneck = use_bottleneck
+        except TypeError:
+            from pandas.core import nanops
+            nanops._USE_BOTTLENECK = use_bottleneck
+        self.s_func = getattr(s, op)
 
-    def time_stat_ops_level_frame_sum_multiple(self):
-        self.df.sum(level=[0, 1])
+    def time_op(self, op, dtype, use_bottleneck):
+        self.s_func()
 
 
-class stat_ops_level_series_sum(object):
-    goal_time = 0.2
+class SeriesMultiIndexOps:
 
-    def setup(self):
-        self.index = MultiIndex(levels=[np.arange(10), np.arange(100), np.arange(100)], labels=[np.arange(10).repeat(10000), np.tile(np.arange(100).repeat(100), 10), np.tile(np.tile(np.arange(100), 100), 10)])
-        random.shuffle(self.index.values)
-        self.df = DataFrame(np.random.randn(len(self.index), 4), index=self.index)
-        self.df_level = DataFrame(np.random.randn(100, 4), index=self.index.levels[1])
+    params = ([0, 1, [0, 1]], ops)
+    param_names = ['level', 'op']
 
-    def time_stat_ops_level_series_sum(self):
-        self.df[1].sum(level=1)
+    def setup(self, level, op):
+        levels = [np.arange(10), np.arange(100), np.arange(100)]
+        codes = [np.arange(10).repeat(10000),
+                 np.tile(np.arange(100).repeat(100), 10),
+                 np.tile(np.tile(np.arange(100), 100), 10)]
+        index = pd.MultiIndex(levels=levels, codes=codes)
+        s = pd.Series(np.random.randn(len(index)), index=index)
+        self.s_func = getattr(s, op)
 
+    def time_op(self, level, op):
+        self.s_func(level=level)
 
-class stat_ops_level_series_sum_multiple(object):
-    goal_time = 0.2
 
-    def setup(self):
-        self.index = MultiIndex(levels=[np.arange(10), np.arange(100), np.arange(100)], labels=[np.arange(10).repeat(10000), np.tile(np.arange(100).repeat(100), 10), np.tile(np.tile(np.arange(100), 100), 10)])
-        random.shuffle(self.index.values)
-        self.df = DataFrame(np.random.randn(len(self.index), 4), index=self.index)
-        self.df_level = DataFrame(np.random.randn(100, 4), index=self.index.levels[1])
+class Rank:
 
-    def time_stat_ops_level_series_sum_multiple(self):
-        self.df[1].sum(level=[0, 1])
+    params = [['DataFrame', 'Series'], [True, False]]
+    param_names = ['constructor', 'pct']
 
+    def setup(self, constructor, pct):
+        values = np.random.randn(10**5)
+        self.data = getattr(pd, constructor)(values)
 
-class stat_ops_series_std(object):
-    goal_time = 0.2
+    def time_rank(self, constructor, pct):
+        self.data.rank(pct=pct)
 
-    def setup(self):
-        self.s = Series(np.random.randn(100000), index=np.arange(100000))
-        self.s[::2] = np.nan
+    def time_average_old(self, constructor, pct):
+        self.data.rank(pct=pct) / len(self.data)
 
-    def time_stat_ops_series_std(self):
-        self.s.std()
 
+class Correlation:
 
-class stats_corr_spearman(object):
-    goal_time = 0.2
+    params = [['spearman', 'kendall', 'pearson'], [True, False]]
+    param_names = ['method', 'use_bottleneck']
 
-    def setup(self):
-        self.df = DataFrame(np.random.randn(1000, 30))
+    def setup(self, method, use_bottleneck):
+        try:
+            pd.options.compute.use_bottleneck = use_bottleneck
+        except TypeError:
+            from pandas.core import nanops
+            nanops._USE_BOTTLENECK = use_bottleneck
+        self.df = pd.DataFrame(np.random.randn(1000, 30))
+        self.df2 = pd.DataFrame(np.random.randn(1000, 30))
+        self.s = pd.Series(np.random.randn(1000))
+        self.s2 = pd.Series(np.random.randn(1000))
 
-    def time_stats_corr_spearman(self):
-        self.df.corr(method='spearman')
+    def time_corr(self, method, use_bottleneck):
+        self.df.corr(method=method)
 
+    def time_corr_series(self, method, use_bottleneck):
+        self.s.corr(self.s2, method=method)
 
-class stats_rank2d_axis0_average(object):
-    goal_time = 0.2
+    def time_corrwith_cols(self, method, use_bottleneck):
+        self.df.corrwith(self.df2, method=method)
 
-    def setup(self):
-        self.df = DataFrame(np.random.randn(5000, 50))
+    def time_corrwith_rows(self, method, use_bottleneck):
+        self.df.corrwith(self.df2, axis=1, method=method)
 
-    def time_stats_rank2d_axis0_average(self):
-        self.df.rank()
 
+class Covariance:
 
-class stats_rank2d_axis1_average(object):
-    goal_time = 0.2
+    params = [[True, False]]
+    param_names = ['use_bottleneck']
 
-    def setup(self):
-        self.df = DataFrame(np.random.randn(5000, 50))
+    def setup(self, use_bottleneck):
+        try:
+            pd.options.compute.use_bottleneck = use_bottleneck
+        except TypeError:
+            from pandas.core import nanops
+            nanops._USE_BOTTLENECK = use_bottleneck
+        self.s = pd.Series(np.random.randn(100000))
+        self.s2 = pd.Series(np.random.randn(100000))
 
-    def time_stats_rank2d_axis1_average(self):
-        self.df.rank(1)
+    def time_cov_series(self, use_bottleneck):
+        self.s.cov(self.s2)
 
 
-class stats_rank_average(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.values = np.concatenate([np.arange(100000), np.random.randn(100000), np.arange(100000)])
-        self.s = Series(self.values)
-
-    def time_stats_rank_average(self):
-        self.s.rank()
-
-
-class stats_rank_average_int(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.values = np.random.randint(0, 100000, size=200000)
-        self.s = Series(self.values)
-
-    def time_stats_rank_average_int(self):
-        self.s.rank()
-
-
-class stats_rank_pct_average(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.values = np.concatenate([np.arange(100000), np.random.randn(100000), np.arange(100000)])
-        self.s = Series(self.values)
-
-    def time_stats_rank_pct_average(self):
-        self.s.rank(pct=True)
-
-
-class stats_rank_pct_average_old(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.values = np.concatenate([np.arange(100000), np.random.randn(100000), np.arange(100000)])
-        self.s = Series(self.values)
-
-    def time_stats_rank_pct_average_old(self):
-        (self.s.rank() / len(self.s))
-
-
-class stats_rolling_mean(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.arr = np.random.randn(100000)
-        self.win = 100
-
-    def time_rolling_mean(self):
-        rolling_mean(self.arr, self.win)
-
-    def time_rolling_median(self):
-        rolling_median(self.arr, self.win)
-
-    def time_rolling_min(self):
-        rolling_min(self.arr, self.win)
-
-    def time_rolling_max(self):
-        rolling_max(self.arr, self.win)
-
-    def time_rolling_sum(self):
-        rolling_sum(self.arr, self.win)
-
-    def time_rolling_std(self):
-        rolling_std(self.arr, self.win)
-
-    def time_rolling_var(self):
-        rolling_var(self.arr, self.win)
-
-    def time_rolling_skew(self):
-        rolling_skew(self.arr, self.win)
-
-    def time_rolling_kurt(self):
-        rolling_kurt(self.arr, self.win)
+from .pandas_vb_common import setup  # noqa: F401

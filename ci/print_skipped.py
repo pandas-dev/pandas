@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import math
 import xml.etree.ElementTree as et
@@ -10,7 +11,7 @@ def parse_results(filename):
     root = tree.getroot()
     skipped = []
 
-    current_class = old_class = ''
+    current_class = ''
     i = 1
     assert i - 1 == len(skipped)
     for el in root.findall('testcase'):
@@ -24,7 +25,9 @@ def parse_results(filename):
             out = ''
             if old_class != current_class:
                 ndigits = int(math.log(i, 10) + 1)
-                out += ('-' * (len(name + msg) + 4 + ndigits) + '\n') # 4 for : + space + # + space
+
+                # 4 for : + space + # + space
+                out += ('-' * (len(name + msg) + 4 + ndigits) + '\n')
             out += '#{i} {name}: {msg}'.format(i=i, name=name, msg=msg)
             skipped.append(out)
             i += 1
@@ -34,19 +37,19 @@ def parse_results(filename):
     return '\n'.join(skipped)
 
 
-def main(args):
+def main():
+    test_files = [
+        'test-data-single.xml',
+        'test-data-multiple.xml',
+        'test-data.xml',
+    ]
+
     print('SKIPPED TESTS:')
-    for fn in args.filename:
-        print(parse_results(fn))
+    for fn in test_files:
+        if os.path.isfile(fn):
+            print(parse_results(fn))
     return 0
 
 
-def parse_args():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('filename', nargs='+', help='XUnit file to parse')
-    return parser.parse_args()
-
-
 if __name__ == '__main__':
-    sys.exit(main(parse_args()))
+    sys.exit(main())

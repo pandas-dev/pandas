@@ -12,6 +12,9 @@ clean_pyc:
 build: clean_pyc
 	python setup.py build_ext --inplace
 
+lint-diff:
+	git diff upstream/master --name-only -- "*.py" | xargs flake8
+
 develop: build
 	-python setup.py develop
 

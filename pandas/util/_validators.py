@@ -2,6 +2,7 @@
 Module that contains many useful utilities
 for validating data or function arguments
 """
+import warnings
 
 from pandas.core.dtypes.common import is_bool
 
@@ -39,7 +40,7 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
     """
     for key in arg_val_dict:
         # try checking equality directly with '=' operator,
-        # as comparison may have been overriden for the left
+        # as comparison may have been overridden for the left
         # hand object
         try:
             v1 = arg_val_dict[key]
@@ -58,7 +59,7 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
 
         # could not compare them directly, so try comparison
         # using the 'is' operator
-        except:
+        except ValueError:
             match = (arg_val_dict[key] is compat_args[key])
 
         if not match:
@@ -195,8 +196,8 @@ def validate_args_and_kwargs(fname, args, kwargs,
 
     See Also
     --------
-    validate_args : purely args validation
-    validate_kwargs : purely kwargs validation
+    validate_args : Purely args validation.
+    validate_kwargs : Purely kwargs validation.
 
     """
     # Check that the total number of arguments passed in (i.e.
@@ -224,3 +225,134 @@ def validate_bool_kwarg(value, arg_name):
                          'type {typ}.'.format(arg=arg_name,
                                               typ=type(value).__name__))
     return value
+
+
+def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
+    """Argument handler for mixed index, columns / axis functions
+
+    In an attempt to handle both `.method(index, columns)`, and
+    `.method(arg, axis=.)`, we have to do some bad things to argument
+    parsing. This translates all arguments to `{index=., columns=.}` style.
+
+    Parameters
+    ----------
+    data : DataFrame
+    args : tuple
+        All positional arguments from the user
+    kwargs : dict
+        All keyword arguments from the user
+    arg_name, method_name : str
+        Used for better error messages
+
+    Returns
+    -------
+    kwargs : dict
+        A dictionary of keyword arguments. Doesn't modify ``kwargs``
+        inplace, so update them with the return value here.
+
+    Examples
+    --------
+    >>> df._validate_axis_style_args((str.upper,), {'columns': id},
+    ...                              'mapper', 'rename')
+    {'columns': <function id>, 'index': <method 'upper' of 'str' objects>}
+
+    This emits a warning
+    >>> df._validate_axis_style_args((str.upper, id), {},
+    ...                              'mapper', 'rename')
+    {'columns': <function id>, 'index': <method 'upper' of 'str' objects>}
+    """
+    # TODO: Change to keyword-only args and remove all this
+
+    out = {}
+    # Goal: fill 'out' with index/columns-style arguments
+    # like out = {'index': foo, 'columns': bar}
+
+    # Start by validating for consistency
+    if 'axis' in kwargs and any(x in kwargs for x in data._AXIS_NUMBERS):
+        msg = "Cannot specify both 'axis' and any of 'index' or 'columns'."
+        raise TypeError(msg)
+
+    # First fill with explicit values provided by the user...
+    if arg_name in kwargs:
+        if args:
+            msg = ("{} got multiple values for argument "
+                   "'{}'".format(method_name, arg_name))
+            raise TypeError(msg)
+
+        axis = data._get_axis_name(kwargs.get('axis', 0))
+        out[axis] = kwargs[arg_name]
+
+    # More user-provided arguments, now from kwargs
+    for k, v in kwargs.items():
+        try:
+            ax = data._get_axis_name(k)
+        except ValueError:
+            pass
+        else:
+            out[ax] = v
+
+    # All user-provided kwargs have been handled now.
+    # Now we supplement with positional arguments, emitting warnings
+    # when there's ambiguity and raising when there's conflicts
+
+    if len(args) == 0:
+        pass  # It's up to the function to decide if this is valid
+    elif len(args) == 1:
+        axis = data._get_axis_name(kwargs.get('axis', 0))
+        out[axis] = args[0]
+    elif len(args) == 2:
+        if 'axis' in kwargs:
+            # Unambiguously wrong
+            msg = ("Cannot specify both 'axis' and any of 'index' "
+                   "or 'columns'")
+            raise TypeError(msg)
+
+        msg = ("Interpreting call\n\t'.{method_name}(a, b)' as "
+               "\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
+               "arguments to remove any ambiguity. In the future, using "
+               "positional arguments for 'index' or 'columns' will raise "
+               " a 'TypeError'.")
+        warnings.warn(msg.format(method_name=method_name,), FutureWarning,
+                      stacklevel=4)
+        out[data._AXIS_NAMES[0]] = args[0]
+        out[data._AXIS_NAMES[1]] = args[1]
+    else:
+        msg = "Cannot specify all of '{}', 'index', 'columns'."
+        raise TypeError(msg.format(arg_name))
+    return out
+
+
+def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
+    """Validate the keyword arguments to 'fillna'.
+
+    This checks that exactly one of 'value' and 'method' is specified.
+    If 'method' is specified, this validates that it's a valid method.
+
+    Parameters
+    ----------
+    value, method : object
+        The 'value' and 'method' keyword arguments for 'fillna'.
+    validate_scalar_dict_value : bool, default True
+        Whether to validate that 'value' is a scalar or dict. Specifically,
+        validate that it is not a list or tuple.
+
+    Returns
+    -------
+    value, method : object
+    """
+    from pandas.core.missing import clean_fill_method
+
+    if value is None and method is None:
+        raise ValueError("Must specify a fill 'value' or 'method'.")
+    elif value is None and method is not None:
+        method = clean_fill_method(method)
+
+    elif value is not None and method is None:
+        if validate_scalar_dict_value and isinstance(value, (list, tuple)):
+            raise TypeError('"value" parameter must be a scalar or dict, but '
+                            'you passed a "{0}"'.format(type(value).__name__))
+
+    elif value is not None and method is not None:
+        raise ValueError("Cannot specify both 'value' and 'method'.")
+
+    return value, method

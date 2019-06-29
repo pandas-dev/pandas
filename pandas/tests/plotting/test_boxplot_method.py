@@ -1,42 +1,29 @@
 # coding: utf-8
 
-import pytest
 import itertools
 import string
-from distutils.version import LooseVersion
-
-from pandas import Series, DataFrame, MultiIndex
-from pandas.compat import range, lzip
-import pandas.util.testing as tm
 
 import numpy as np
 from numpy import random
-from numpy.random import randn
+import pytest
+
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame, MultiIndex, Series
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+import pandas.util.testing as tm
 
 import pandas.plotting as plotting
 
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
-
-
 """ Test cases for .boxplot method """
 
-tm._skip_if_no_mpl()
 
-
-def _skip_if_mpl_14_or_dev_boxplot():
-    # GH 8382
-    # Boxplot failures on 1.4 and 1.4.1
-    # Don't need try / except since that's done at class level
-    import matplotlib
-    if str(matplotlib.__version__) >= LooseVersion('1.4'):
-        pytest.skip("Matplotlib Regression in 1.4 and current dev.")
-
-
+@td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
-    def test_boxplot_legacy(self):
-        df = DataFrame(randn(6, 4),
+    def test_boxplot_legacy1(self):
+        df = DataFrame(np.random.randn(6, 4),
                        index=list(string.ascii_letters[:6]),
                        columns=['one', 'two', 'three', 'four'])
         df['indic'] = ['foo', 'bar'] * 3
@@ -60,6 +47,8 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.boxplot, by='indic', notch=1)
 
+    @pytest.mark.slow
+    def test_boxplot_legacy2(self):
         df = DataFrame(np.random.rand(10, 2), columns=['Col1', 'Col2'])
         df['X'] = Series(['A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'B'])
         df['Y'] = Series(['A'] * 10)
@@ -70,12 +59,12 @@ class TestDataFramePlots(TestPlotBase):
         # passed ax should be used:
         fig, ax = self.plt.subplots()
         axes = df.boxplot('Col1', by='X', ax=ax)
-        ax_axes = ax.axes if self.mpl_ge_1_5_0 else ax.get_axes()
+        ax_axes = ax.axes
         assert ax_axes is axes
 
         fig, ax = self.plt.subplots()
         axes = df.groupby('Y').boxplot(ax=ax, return_type='axes')
-        ax_axes = ax.axes if self.mpl_ge_1_5_0 else ax.get_axes()
+        ax_axes = ax.axes
         assert ax_axes is axes['A']
 
         # Multiple columns with an ax argument should use same figure
@@ -103,7 +92,7 @@ class TestDataFramePlots(TestPlotBase):
         # API change in https://github.com/pandas-dev/pandas/pull/7096
         import matplotlib as mpl  # noqa
 
-        df = DataFrame(randn(6, 4),
+        df = DataFrame(np.random.randn(6, 4),
                        index=list(string.ascii_letters[:6]),
                        columns=['one', 'two', 'three', 'four'])
         with pytest.raises(ValueError):
@@ -154,7 +143,6 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_boxplot_empty_column(self):
-        _skip_if_mpl_14_or_dev_boxplot()
         df = DataFrame(np.random.randn(20, 4))
         df.loc[:, 0] = np.nan
         _check_plot_works(df.boxplot, return_type='axes')
@@ -173,10 +161,11 @@ class TestDataFramePlots(TestPlotBase):
                                 xlabelsize=16, ylabelsize=16)
 
 
+@td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @pytest.mark.slow
-    def test_boxplot_legacy(self):
+    def test_boxplot_legacy1(self):
         grouped = self.hist_df.groupby(by='gender')
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(grouped.boxplot, return_type='axes')
@@ -184,10 +173,12 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         axes = _check_plot_works(grouped.boxplot, subplots=False,
                                  return_type='axes')
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
-        tuples = lzip(string.ascii_letters[:10], range(10))
+
+    @pytest.mark.slow
+    def test_boxplot_legacy2(self):
+        tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
-
         grouped = df.groupby(level=1)
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(grouped.boxplot, return_type='axes')
@@ -197,6 +188,11 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                  return_type='axes')
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
+    @pytest.mark.slow
+    def test_boxplot_legacy3(self):
+        tuples = zip(string.ascii_letters[:10], range(10))
+        df = DataFrame(np.random.rand(10, 3),
+                       index=MultiIndex.from_tuples(tuples))
         grouped = df.unstack(level=1).groupby(level=0, axis=1)
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(grouped.boxplot, return_type='axes')
@@ -270,13 +266,20 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     def test_grouped_box_layout(self):
         df = self.hist_df
 
-        pytest.raises(ValueError, df.boxplot, column=['weight', 'height'],
-                      by=df.gender, layout=(1, 1))
-        pytest.raises(ValueError, df.boxplot,
-                      column=['height', 'weight', 'category'],
-                      layout=(2, 1), return_type='dict')
-        pytest.raises(ValueError, df.boxplot, column=['weight', 'height'],
-                      by=df.gender, layout=(-1, -1))
+        msg = "Layout of 1x1 must be larger than required size 2"
+        with pytest.raises(ValueError, match=msg):
+            df.boxplot(column=['weight', 'height'], by=df.gender,
+                       layout=(1, 1))
+
+        msg = "The 'layout' keyword is not supported when 'by' is None"
+        with pytest.raises(ValueError, match=msg):
+            df.boxplot(column=['height', 'weight', 'category'],
+                       layout=(2, 1), return_type='dict')
+
+        msg = "At least one dimension of layout must be positive"
+        with pytest.raises(ValueError, match=msg):
+            df.boxplot(column=['weight', 'height'], by=df.gender,
+                       layout=(-1, -1))
 
         # _check_plot_works adds an ax so catch warning. see GH #13188
         with tm.assert_produces_warning(UserWarning):

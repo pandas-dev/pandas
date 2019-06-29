@@ -1,13 +1,14 @@
-from .pandas_vb_common import *
-from pandas import melt, wide_to_long
+import string
+from itertools import product
+
+import numpy as np
+from pandas import DataFrame, MultiIndex, date_range, melt, wide_to_long
+import pandas as pd
 
 
-class melt_dataframe(object):
-    goal_time = 0.2
+class Melt:
 
     def setup(self):
-        self.index = MultiIndex.from_arrays([np.arange(100).repeat(100), np.roll(np.tile(np.arange(100), 100), 25)])
-        self.df = DataFrame(np.random.randn(10000, 4), index=self.index)
         self.df = DataFrame(np.random.randn(10000, 3), columns=['A', 'B', 'C'])
         self.df['id1'] = np.random.randint(0, 10, 10000)
         self.df['id2'] = np.random.randint(100, 1000, 10000)
@@ -16,104 +17,215 @@ class melt_dataframe(object):
         melt(self.df, id_vars=['id1', 'id2'])
 
 
-class reshape_pivot_time_series(object):
-    goal_time = 0.2
+class Pivot:
 
     def setup(self):
-        self.index = MultiIndex.from_arrays([np.arange(100).repeat(100), np.roll(np.tile(np.arange(100), 100), 25)])
-        self.df = DataFrame(np.random.randn(10000, 4), index=self.index)
-        self.index = date_range('1/1/2000', periods=10000, freq='h')
-        self.df = DataFrame(randn(10000, 50), index=self.index, columns=range(50))
-        self.pdf = self.unpivot(self.df)
-        self.f = (lambda : self.pdf.pivot('date', 'variable', 'value'))
+        N = 10000
+        index = date_range('1/1/2000', periods=N, freq='h')
+        data = {'value': np.random.randn(N * 50),
+                'variable': np.arange(50).repeat(N),
+                'date': np.tile(index.values, 50)}
+        self.df = DataFrame(data)
 
     def time_reshape_pivot_time_series(self):
-        self.f()
-
-    def unpivot(self, frame):
-        (N, K) = frame.shape
-        self.data = {'value': frame.values.ravel('F'), 'variable': np.asarray(frame.columns).repeat(N), 'date': np.tile(np.asarray(frame.index), K), }
-        return DataFrame(self.data, columns=['date', 'variable', 'value'])
+        self.df.pivot('date', 'variable', 'value')
 
 
-class reshape_stack_simple(object):
-    goal_time = 0.2
+class SimpleReshape:
 
     def setup(self):
-        self.index = MultiIndex.from_arrays([np.arange(100).repeat(100), np.roll(np.tile(np.arange(100), 100), 25)])
-        self.df = DataFrame(np.random.randn(10000, 4), index=self.index)
+        arrays = [np.arange(100).repeat(100),
+                  np.roll(np.tile(np.arange(100), 100), 25)]
+        index = MultiIndex.from_arrays(arrays)
+        self.df = DataFrame(np.random.randn(10000, 4), index=index)
         self.udf = self.df.unstack(1)
 
-    def time_reshape_stack_simple(self):
+    def time_stack(self):
         self.udf.stack()
 
-
-class reshape_unstack_simple(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.index = MultiIndex.from_arrays([np.arange(100).repeat(100), np.roll(np.tile(np.arange(100), 100), 25)])
-        self.df = DataFrame(np.random.randn(10000, 4), index=self.index)
-
-    def time_reshape_unstack_simple(self):
+    def time_unstack(self):
         self.df.unstack(1)
 
 
-class reshape_unstack_large_single_dtype(object):
-    goal_time = 0.2
+class Unstack:
 
-    def setup(self):
+    params = ['int', 'category']
+
+    def setup(self, dtype):
         m = 100
         n = 1000
 
         levels = np.arange(m)
-        index = pd.MultiIndex.from_product([levels]*2)
+        index = MultiIndex.from_product([levels] * 2)
         columns = np.arange(n)
-        values = np.arange(m*m*n).reshape(m*m, n)
-        self.df = pd.DataFrame(values, index, columns)
+        if dtype == 'int':
+            values = np.arange(m * m * n).reshape(m * m, n)
+        else:
+            # the category branch is ~20x slower than int. So we
+            # cut down the size a bit. Now it's only ~3x slower.
+            n = 50
+            columns = columns[:n]
+            indices = np.random.randint(0, 52, size=(m * m, n))
+            values = np.take(list(string.ascii_letters), indices)
+            values = [pd.Categorical(v) for v in values.T]
+
+        self.df = DataFrame(values, index, columns)
         self.df2 = self.df.iloc[:-1]
 
-    def time_unstack_full_product(self):
+    def time_full_product(self, dtype):
         self.df.unstack()
 
-    def time_unstack_with_mask(self):
+    def time_without_last_row(self, dtype):
         self.df2.unstack()
 
 
-class unstack_sparse_keyspace(object):
-    goal_time = 0.2
+class SparseIndex:
 
     def setup(self):
-        self.index = MultiIndex.from_arrays([np.arange(100).repeat(100), np.roll(np.tile(np.arange(100), 100), 25)])
-        self.df = DataFrame(np.random.randn(10000, 4), index=self.index)
-        self.NUM_ROWS = 1000
-        for iter in range(10):
-            self.df = DataFrame({'A': np.random.randint(50, size=self.NUM_ROWS), 'B': np.random.randint(50, size=self.NUM_ROWS), 'C': np.random.randint((-10), 10, size=self.NUM_ROWS), 'D': np.random.randint((-10), 10, size=self.NUM_ROWS), 'E': np.random.randint(10, size=self.NUM_ROWS), 'F': np.random.randn(self.NUM_ROWS), })
-            self.idf = self.df.set_index(['A', 'B', 'C', 'D', 'E'])
-            if (len(self.idf.index.unique()) == self.NUM_ROWS):
-                break
+        NUM_ROWS = 1000
+        self.df = DataFrame({'A': np.random.randint(50, size=NUM_ROWS),
+                             'B': np.random.randint(50, size=NUM_ROWS),
+                             'C': np.random.randint(-10, 10, size=NUM_ROWS),
+                             'D': np.random.randint(-10, 10, size=NUM_ROWS),
+                             'E': np.random.randint(10, size=NUM_ROWS),
+                             'F': np.random.randn(NUM_ROWS)})
+        self.df = self.df.set_index(['A', 'B', 'C', 'D', 'E'])
 
-    def time_unstack_sparse_keyspace(self):
-        self.idf.unstack()
+    def time_unstack(self):
+        self.df.unstack()
 
 
-class wide_to_long_big(object):
-    goal_time = 0.2
+class WideToLong:
 
     def setup(self):
-        vars = 'ABCD'
         nyrs = 20
         nidvars = 20
         N = 5000
-        yrvars = []
-        for var in vars:
-            for yr in range(1, nyrs + 1):
-                yrvars.append(var + str(yr))
-
-        self.df = pd.DataFrame(np.random.randn(N, nidvars + len(yrvars)),
-                               columns=list(range(nidvars)) + yrvars)
-        self.vars = vars
+        self.letters = list('ABCD')
+        yrvars = [l + str(num)
+                  for l, num in product(self.letters, range(1, nyrs + 1))]
+        columns = [str(i) for i in range(nidvars)] + yrvars
+        self.df = DataFrame(np.random.randn(N, nidvars + len(yrvars)),
+                            columns=columns)
+        self.df['id'] = self.df.index
 
     def time_wide_to_long_big(self):
-        self.df['id'] = self.df.index
-        wide_to_long(self.df, list(self.vars), i='id', j='year')
+        wide_to_long(self.df, self.letters, i='id', j='year')
+
+
+class PivotTable:
+
+    def setup(self):
+        N = 100000
+        fac1 = np.array(['A', 'B', 'C'], dtype='O')
+        fac2 = np.array(['one', 'two'], dtype='O')
+        ind1 = np.random.randint(0, 3, size=N)
+        ind2 = np.random.randint(0, 2, size=N)
+        self.df = DataFrame({'key1': fac1.take(ind1),
+                             'key2': fac2.take(ind2),
+                             'key3': fac2.take(ind2),
+                             'value1': np.random.randn(N),
+                             'value2': np.random.randn(N),
+                             'value3': np.random.randn(N)})
+        self.df2 = DataFrame({'col1': list('abcde'), 'col2': list('fghij'),
+                              'col3': [1, 2, 3, 4, 5]})
+        self.df2.col1 = self.df2.col1.astype('category')
+        self.df2.col2 = self.df2.col2.astype('category')
+
+    def time_pivot_table(self):
+        self.df.pivot_table(index='key1', columns=['key2', 'key3'])
+
+    def time_pivot_table_agg(self):
+        self.df.pivot_table(index='key1', columns=['key2', 'key3'],
+                            aggfunc=['sum', 'mean'])
+
+    def time_pivot_table_margins(self):
+        self.df.pivot_table(index='key1', columns=['key2', 'key3'],
+                            margins=True)
+
+    def time_pivot_table_categorical(self):
+        self.df2.pivot_table(index='col1', values='col3', columns='col2',
+                             aggfunc=np.sum, fill_value=0)
+
+    def time_pivot_table_categorical_observed(self):
+        self.df2.pivot_table(index='col1', values='col3', columns='col2',
+                             aggfunc=np.sum, fill_value=0, observed=True)
+
+
+class Crosstab:
+
+    def setup(self):
+        N = 100000
+        fac1 = np.array(['A', 'B', 'C'], dtype='O')
+        fac2 = np.array(['one', 'two'], dtype='O')
+        self.ind1 = np.random.randint(0, 3, size=N)
+        self.ind2 = np.random.randint(0, 2, size=N)
+        self.vec1 = fac1.take(self.ind1)
+        self.vec2 = fac2.take(self.ind2)
+
+    def time_crosstab(self):
+        pd.crosstab(self.vec1, self.vec2)
+
+    def time_crosstab_values(self):
+        pd.crosstab(self.vec1, self.vec2, values=self.ind1, aggfunc='sum')
+
+    def time_crosstab_normalize(self):
+        pd.crosstab(self.vec1, self.vec2, normalize=True)
+
+    def time_crosstab_normalize_margins(self):
+        pd.crosstab(self.vec1, self.vec2, normalize=True, margins=True)
+
+
+class GetDummies:
+    def setup(self):
+        categories = list(string.ascii_letters[:12])
+        s = pd.Series(np.random.choice(categories, size=1000000),
+                      dtype=pd.api.types.CategoricalDtype(categories))
+        self.s = s
+
+    def time_get_dummies_1d(self):
+        pd.get_dummies(self.s, sparse=False)
+
+    def time_get_dummies_1d_sparse(self):
+        pd.get_dummies(self.s, sparse=True)
+
+
+class Cut:
+    params = [[4, 10, 1000]]
+    param_names = ['bins']
+
+    def setup(self, bins):
+        N = 10**5
+        self.int_series = pd.Series(np.arange(N).repeat(5))
+        self.float_series = pd.Series(np.random.randn(N).repeat(5))
+        self.timedelta_series = pd.Series(np.random.randint(N, size=N),
+                                          dtype='timedelta64[ns]')
+        self.datetime_series = pd.Series(np.random.randint(N, size=N),
+                                         dtype='datetime64[ns]')
+
+    def time_cut_int(self, bins):
+        pd.cut(self.int_series, bins)
+
+    def time_cut_float(self, bins):
+        pd.cut(self.float_series, bins)
+
+    def time_cut_timedelta(self, bins):
+        pd.cut(self.timedelta_series, bins)
+
+    def time_cut_datetime(self, bins):
+        pd.cut(self.datetime_series, bins)
+
+    def time_qcut_int(self, bins):
+        pd.qcut(self.int_series, bins)
+
+    def time_qcut_float(self, bins):
+        pd.qcut(self.float_series, bins)
+
+    def time_qcut_timedelta(self, bins):
+        pd.qcut(self.timedelta_series, bins)
+
+    def time_qcut_datetime(self, bins):
+        pd.qcut(self.datetime_series, bins)
+
+
+from .pandas_vb_common import setup  # noqa: F401

@@ -714,11 +714,6 @@ int Buffer_EscapeStringValidated(JSOBJ obj, JSONObjectEncoder *enc,
     }
 }
 
-#define Buffer_Reserve(__enc, __len)                                  \
-    if ((size_t)((__enc)->end - (__enc)->offset) < (size_t)(__len)) { \
-        Buffer_Realloc((__enc), (__len));                             \
-    }
-
 #define Buffer_AppendCharUnchecked(__enc, __chr) *((__enc)->offset++) = __chr;
 
 FASTCALL_ATTR INLINE_PREFIX void FASTCALL_MSVC strreverse(char *begin,
@@ -976,6 +971,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
             }
 
             enc->iterEnd(obj, &tc);
+            Buffer_Reserve(enc, 2);
             Buffer_AppendCharUnchecked(enc, ']');
             break;
         }
@@ -1003,6 +999,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
             }
 
             enc->iterEnd(obj, &tc);
+            Buffer_Reserve(enc, 2);
             Buffer_AppendCharUnchecked(enc, '}');
             break;
         }

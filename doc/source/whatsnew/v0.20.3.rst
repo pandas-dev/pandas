@@ -1,0 +1,76 @@
+.. _whatsnew_0203:
+
+v0.20.3 (July 7, 2017)
+-----------------------
+
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
+
+This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes
+and bug fixes. We recommend that all users upgrade to this version.
+
+.. contents:: What's new in v0.20.3
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0203.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a bug in failing to compute rolling computations of a column-MultiIndexed ``DataFrame`` (:issue:`16789`, :issue:`16825`)
+- Fixed a pytest marker failing downstream packages' tests suites (:issue:`16680`)
+
+Conversion
+^^^^^^^^^^
+
+- Bug in pickle compat prior to the v0.20.x series, when ``UTC`` is a timezone in a Series/DataFrame/Index (:issue:`16608`)
+- Bug in ``Series`` construction when passing a ``Series`` with ``dtype='category'`` (:issue:`16524`).
+- Bug in :meth:`DataFrame.astype` when passing a ``Series`` as the ``dtype`` kwarg. (:issue:`16717`).
+
+Indexing
+^^^^^^^^
+
+- Bug in ``Float64Index`` causing an empty array instead of ``None`` to be returned from ``.get(np.nan)`` on a Series whose index did not contain any ``NaN`` s (:issue:`8569`)
+- Bug in ``MultiIndex.isin`` causing an error when passing an empty iterable (:issue:`16777`)
+- Fixed a bug in a slicing DataFrame/Series that have a  ``TimedeltaIndex`` (:issue:`16637`)
+
+I/O
+^^^
+
+- Bug in :func:`read_csv` in which files weren't opened as binary files by the C engine on Windows, causing EOF characters mid-field, which would fail (:issue:`16039`, :issue:`16559`, :issue:`16675`)
+- Bug in :func:`read_hdf` in which reading a ``Series`` saved to an HDF file in 'fixed' format fails when an explicit ``mode='r'`` argument is supplied (:issue:`16583`)
+- Bug in :meth:`DataFrame.to_latex` where ``bold_rows`` was wrongly specified to be ``True`` by default, whereas in reality row labels remained non-bold whatever parameter provided. (:issue:`16707`)
+- Fixed an issue with :meth:`DataFrame.style` where generated element ids were not unique (:issue:`16780`)
+- Fixed loading a ``DataFrame`` with a ``PeriodIndex``, from a ``format='fixed'`` HDFStore, in Python 3, that was written in Python 2 (:issue:`16781`)
+
+Plotting
+^^^^^^^^
+
+- Fixed regression that prevented RGB and RGBA tuples from being used as color arguments (:issue:`16233`)
+- Fixed an issue with :meth:`DataFrame.plot.scatter` that incorrectly raised a ``KeyError`` when categorical data is used for plotting (:issue:`16199`)
+
+Reshaping
+^^^^^^^^^
+
+- ``PeriodIndex`` / ``TimedeltaIndex.join`` was missing the ``sort=`` kwarg (:issue:`16541`)
+- Bug in joining on a ``MultiIndex`` with a ``category`` dtype for a level (:issue:`16627`).
+- Bug in :func:`merge` when merging/joining with multiple categorical columns (:issue:`16767`)
+
+Categorical
+^^^^^^^^^^^
+
+- Bug in ``DataFrame.sort_values`` not respecting the ``kind`` parameter with categorical data (:issue:`16793`)
+
+
+.. _whatsnew_0.20.3.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.20.2..v0.20.3

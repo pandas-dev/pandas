@@ -1,32 +1,57 @@
 .. _install:
 
-.. currentmodule:: pandas
+{{ header }}
 
 ============
 Installation
 ============
 
-The easiest way for the majority of users to install pandas is to install it
+The easiest way to install pandas is to install it
 as part of the `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution, a
 cross platform distribution for data analysis and scientific computing.
 This is the recommended installation method for most users.
 
 Instructions for installing from source,
-`PyPI <http://pypi.python.org/pypi/pandas>`__, various Linux distributions, or a
+`PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <http://github.com/pandas-dev/pandas>`__ are also provided.
+
+.. _install.dropping-27:
+
+Plan for dropping Python 2.7
+----------------------------
+
+The Python core team plans to stop supporting Python 2.7 on January 1st, 2020.
+In line with `NumPy's plans`_, all pandas releases through December 31, 2018
+will support Python 2.
+
+The 0.24.x feature release will be the last release to
+support Python 2. The released package will continue to be available on
+PyPI and through conda.
+
+ Starting **January 1, 2019**, all new feature releases (> 0.24) will be Python 3 only.
+
+If there are people interested in continued support for Python 2.7 past December
+31, 2018 (either backporting bug fixes or funding) please reach out to the
+maintainers on the issue tracker.
+
+For more information, see the `Python 3 statement`_ and the `Porting to Python 3 guide`_.
+
+.. _NumPy's plans: https://github.com/numpy/numpy/blob/master/doc/neps/nep-0014-dropping-python2.7-proposal.rst#plan-for-dropping-python-27-support
+.. _Python 3 statement: http://python3statement.org/
+.. _Porting to Python 3 guide: https://docs.python.org/3/howto/pyporting.html
 
 Python version support
 ----------------------
 
-Officially Python 2.7, 3.5, and 3.6.
+Officially Python 2.7, 3.5, 3.6, and 3.7.
 
 Installing pandas
 -----------------
 
 .. _install.anaconda:
 
-Installing pandas with Anaconda
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Installing with Anaconda
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Installing pandas and the rest of the `NumPy <http://www.numpy.org/>`__ and
 `SciPy <http://www.scipy.org/>`__ stack can be a little
@@ -40,7 +65,7 @@ packages that make up the `SciPy <http://www.scipy.org/>`__ stack
 (Linux, Mac OS X, Windows) Python distribution for data analytics and
 scientific computing.
 
-After running a simple installer, the user will have access to pandas and the
+After running the installer, the user will have access to pandas and the
 rest of the `SciPy <http://www.scipy.org/>`__ stack without needing to install
 anything else, and without needing to wait for any software to be compiled.
 
@@ -51,15 +76,15 @@ A full list of the packages available as part of the
 `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution
 `can be found here <http://docs.continuum.io/anaconda/pkg-docs.html>`__.
 
-An additional advantage of installing with Anaconda is that you don't require
-admin rights to install it, it will install in the user's home directory, and
-this also makes it trivial to delete Anaconda at a later date (just delete
+Another advantage to installing Anaconda is that you don't need
+admin rights to install it. Anaconda can install in the user's home directory,
+which makes it trivial to delete Anaconda if you decide (just delete
 that folder).
 
 .. _install.miniconda:
 
-Installing pandas with Miniconda
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Installing with Miniconda
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The previous section outlined how to get pandas installed as part of the
 `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution.
@@ -85,9 +110,9 @@ downloading and running the `Miniconda
 will do this for you. The installer
 `can be found here <http://conda.pydata.org/miniconda.html>`__
 
-The next step is to create a new conda environment (these are analogous to a
-virtualenv but they also allow you to specify precisely which Python version
-to install also). Run the following commands from a terminal window::
+The next step is to create a new conda environment. A conda environment is like a
+virtualenv that allows you to specify a specific version of Python and set of libraries.
+Run the following commands from a terminal window::
 
     conda create -n name_of_my_env python
 
@@ -118,8 +143,8 @@ distribution::
 
     conda install anaconda
 
-If you require any packages that are available to pip but not conda, simply
-install pip, and use pip to install these packages::
+If you need packages that are available to pip but not conda, then
+install pip, and then use pip to install those packages::
 
     conda install pip
     pip install django
@@ -128,64 +153,64 @@ Installing from PyPI
 ~~~~~~~~~~~~~~~~~~~~
 
 pandas can be installed via pip from
-`PyPI <http://pypi.python.org/pypi/pandas>`__.
+`PyPI <https://pypi.org/project/pandas>`__.
 
 ::
 
     pip install pandas
 
-This will likely require the installation of a number of dependencies,
-including NumPy, will require a compiler to compile required bits of code,
-and can take a few minutes to complete.
+Installing with ActivePython
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Installation instructions for
+`ActivePython <https://www.activestate.com/activepython>`__ can be found
+`here <https://www.activestate.com/activepython/downloads>`__. Versions
+2.7 and 3.5 include pandas.
 
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The commands in this table will install pandas for Python 2 from your distribution.
-To install pandas for Python 3 you may need to use the package ``python3-pandas``.
+The commands in this table will install pandas for Python 3 from your distribution.
+To install pandas for Python 2, you may need to use the ``python-pandas`` package.
 
 .. csv-table::
     :header: "Distribution", "Status", "Download / Repository Link", "Install method"
     :widths: 10, 10, 20, 50
 
 
-    Debian, stable, `official Debian repository <http://packages.debian.org/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python-pandas``
-    Debian & Ubuntu, unstable (latest packages), `NeuroDebian <http://neuro.debian.net/index.html#how-to-use-this-repository>`__ , ``sudo apt-get install python-pandas``
-    Ubuntu, stable, `official Ubuntu repository <http://packages.ubuntu.com/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python-pandas``
-    Ubuntu, unstable (daily builds), `PythonXY PPA  <https://code.launchpad.net/~pythonxy/+archive/pythonxy-devel>`__; activate by: ``sudo add-apt-repository ppa:pythonxy/pythonxy-devel && sudo apt-get update``, ``sudo apt-get install python-pandas``
-    OpenSuse, stable, `OpenSuse Repository  <http://software.opensuse.org/package/python-pandas?search_term=pandas>`__ , ``zypper in  python-pandas``
-    Fedora, stable, `official Fedora repository  <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``dnf install python-pandas``
-    Centos/RHEL, stable, `EPEL repository <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``yum install python-pandas``
+    Debian, stable, `official Debian repository <http://packages.debian.org/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
+    Debian & Ubuntu, unstable (latest packages), `NeuroDebian <http://neuro.debian.net/index.html#how-to-use-this-repository>`__ , ``sudo apt-get install python3-pandas``
+    Ubuntu, stable, `official Ubuntu repository <http://packages.ubuntu.com/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
+    OpenSuse, stable, `OpenSuse Repository  <http://software.opensuse.org/package/python-pandas?search_term=pandas>`__ , ``zypper in python3-pandas``
+    Fedora, stable, `official Fedora repository  <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``dnf install python3-pandas``
+    Centos/RHEL, stable, `EPEL repository <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``yum install python3-pandas``
 
-
-
-
-
-
-
+**However**, the packages in the linux package managers are often a few versions behind, so
+to get the newest version of pandas, it's recommended to install using the ``pip`` or ``conda``
+methods described above.
 
 
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-See the :ref:`contributing documentation <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
+See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
 
 Running the test suite
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
-pandas is equipped with an exhaustive set of unit tests covering about 97% of
-the codebase as of this writing. To run it on your machine to verify that
-everything is working (and you have all of the dependencies, soft and hard,
+pandas is equipped with an exhaustive set of unit tests, covering about 97% of
+the code base as of this writing. To run it on your machine to verify that
+everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<http://doc.pytest.org/en/latest/>`__ and run:
+<http://docs.pytest.org/en/latest/>`__ >= 4.0.2 and `Hypothesis
+<https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
 
 ::
 
-    >>> import pandas as pd
     >>> pd.test()
     running: pytest --skip-slow --skip-network C:\Users\TP\Anaconda3\envs\py36\lib\site-packages\pandas
     ============================= test session starts =============================
-    platform win32 -- Python 3.6.2, pytest-3.2.1, py-1.4.34, pluggy-0.4.0
+    platform win32 -- Python 3.6.2, pytest-3.6.0, py-1.4.34, pluggy-0.4.0
     rootdir: C:\Users\TP\Documents\Python\pandasdev\pandas, inifile: setup.cfg
     collected 12145 items / 3 skipped
 
@@ -195,114 +220,109 @@ installed), make sure you have `pytest
 
     ==================== 12130 passed, 12 skipped in 368.339 seconds =====================
 
+.. _install.dependencies:
+
 Dependencies
 ------------
 
-* `setuptools <https://setuptools.readthedocs.io/en/latest/>`__
-* `NumPy <http://www.numpy.org>`__: 1.9.0 or higher
-* `python-dateutil <http://labix.org/python-dateutil>`__: 1.5 or higher
-* `pytz <http://pytz.sourceforge.net/>`__: Needed for time zone support
+================================================================ ==========================
+Package                                                          Minimum supported version
+================================================================ ==========================
+`setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
+`NumPy <http://www.numpy.org>`__                                 1.13.3
+`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.6.1
+`pytz <http://pytz.sourceforge.net/>`__                          2017.2
+================================================================ ==========================
 
 .. _install.recommended_dependencies:
 
-Recommended Dependencies
+Recommended dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.4.6 or higher.
+  If installed, must be Version 2.6.2 or higher.
 
-* `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
+* `bottleneck <https://github.com/kwgoodman/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
-  must be Version 1.0.0 or higher.
+  must be Version 1.2.1 or higher.
 
 .. note::
 
-   You are highly encouraged to install these libraries, as they provide large speedups, especially
-   if working with large data sets.
+   You are highly encouraged to install these libraries, as they provide speed improvements, especially
+   when working with large data sets.
 
 
 .. _install.optional_dependencies:
 
-Optional Dependencies
+Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
-* `Cython <http://www.cython.org>`__: Only necessary to build development
-  version. Version 0.23 or higher.
-* `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.14.0 or higher
-* `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
-* `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.
-* `Feather Format <https://github.com/wesm/feather>`__: necessary for feather-based storage, version 0.3.1 or higher.
-* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1) or `fastparquet <https://fastparquet.readthedocs.io/en/latest/necessary>`__ (>= 0.0.6) for parquet-based storage. The `snappy <https://pypi.python.org/pypi/python-snappy>`__ and `brotli <https://pypi.python.org/pypi/brotlipy>`__ are available for compression support.
-* `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended. Besides SQLAlchemy, you also need a database specific driver. You can find an overview of supported drivers for each SQL dialect in the `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__. Some common drivers are:
+Pandas has many optional dependencies that are only used for specific methods.
+For example, :func:`pandas.read_hdf` requires the ``pytables`` package. If the
+optional dependency is not installed, pandas will raise an ``ImportError`` when
+the method requiring that dependency is called.
 
-  * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
-  * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
-  * `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+BeautifulSoup4            4.6.0              HTML parser for read_html (see :ref:`note <optional_html>`)
+Jinja2                                       Conditional formatting with DataFrame.style
+PyQt4                                        Clipboard I/O
+PyQt5                                        Clipboard I/O
+PyTables                  3.4.2              HDF5-based reading / writing
+SQLAlchemy                1.1.4              SQL support for databases other than sqlite
+SciPy                     0.19.0             Miscellaneous statistical functions
+XLsxWriter                0.9.8              Excel writing
+blosc                                        Compression for msgpack
+fastparquet               0.2.1              Parquet reading / writing
+gcsfs                     0.2.2              Google Cloud Storage access
+html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
+lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
+matplotlib                2.2.2              Visualization
+openpyxl                  2.4.8              Reading / writing for xlsx files
+pandas-gbq                0.8.0              Google Big Query access
+psycopg2                                     PostgreSQL engine for sqlalchemy
+pyarrow                   0.9.0              Parquet and feather reading / writing
+pymysql                   0.7.11             MySQL engine for sqlalchemy
+pyreadstat                                   SPSS files (.sav) reading
+pytables                  3.4.2              HDF5 reading / writing
+qtpy                                         Clipboard I/O
+s3fs                      0.0.8              Amazon S3 access
+xarray                    0.8.2              pandas-like API for N-dimensional data
+xclip                                        Clipboard I/O on linux
+xlrd                      1.1.0              Excel reading
+xlwt                      1.2.0              Excel writing
+xsel                                         Clipboard I/O on linux
+zlib                                         Compression for msgpack
+========================= ================== =============================================================
 
-* `matplotlib <http://matplotlib.org/>`__: for plotting, Version 1.4.3 or higher.
-* For Excel I/O:
+.. _optional_html:
 
-  * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
-  * `openpyxl <http://packages.python.org/openpyxl/>`__: openpyxl version 1.6.1
-    or higher (but lower than 2.0.0), or version 2.2 or higher, for writing .xlsx files (xlrd >= 0.9.0)
-  * `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__: Alternative Excel writer
+Optional dependencies for parsing HTML
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
-* `s3fs <http://s3fs.readthedocs.io/>`__: necessary for Amazon S3 access (s3fs >= 0.0.7).
-* `blosc <https://pypi.python.org/pypi/blosc>`__: for msgpack compression using ``blosc``
-* One of `PyQt4
-  <http://www.riverbankcomputing.com/software/pyqt/download>`__, `PySide
-  <http://qt-project.org/wiki/Category:LanguageBindings::PySide>`__, `pygtk
-  <http://www.pygtk.org/>`__, `xsel
-  <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
-  <https://github.com/astrand/xclip/>`__: necessary to use
-  :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
-* For Google BigQuery I/O - see `here <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__
+One of the following combinations of libraries is needed to use the
+top-level :func:`~pandas.read_html` function:
 
-* `Backports.lzma <https://pypi.python.org/pypi/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV; Python 3 support is built into the standard library.
-* One of the following combinations of libraries is needed to use the
-  top-level :func:`~pandas.read_html` function:
+.. versionchanged:: 0.23.0
 
-  * `BeautifulSoup4`_ and `html5lib`_ (Any recent version of `html5lib`_ is
-    okay.)
-  * `BeautifulSoup4`_ and `lxml`_
-  * `BeautifulSoup4`_ and `html5lib`_ and `lxml`_
-  * Only `lxml`_, although see :ref:`HTML Table Parsing <io.html.gotchas>`
-    for reasons as to why you should probably **not** take this approach.
+* `BeautifulSoup4`_ and `html5lib`_
+* `BeautifulSoup4`_ and `lxml`_
+* `BeautifulSoup4`_ and `html5lib`_ and `lxml`_
+* Only `lxml`_, although see :ref:`HTML Table Parsing <io.html.gotchas>`
+  for reasons as to why you should probably **not** take this approach.
 
-  .. warning::
+.. warning::
 
-     * if you install `BeautifulSoup4`_ you must install either
-       `lxml`_ or `html5lib`_ or both.
-       :func:`~pandas.read_html` will **not** work with *only*
-       `BeautifulSoup4`_ installed.
-     * You are highly encouraged to read :ref:`HTML Table Parsing gotchas <io.html.gotchas>`.
-       It explains issues surrounding the installation and
-       usage of the above three libraries.
-     * You may need to install an older version of `BeautifulSoup4`_:
-       Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and 32-bit
-       Ubuntu/Debian
-
-  .. note::
-
-     * if you're on a system with ``apt-get`` you can do
-
-       .. code-block:: sh
-
-          sudo apt-get build-dep python-lxml
-
-       to get the necessary dependencies for installation of `lxml`_. This
-       will prevent further headaches down the line.
-
+    * if you install `BeautifulSoup4`_ you must install either
+      `lxml`_ or `html5lib`_ or both.
+      :func:`~pandas.read_html` will **not** work with *only*
+      `BeautifulSoup4`_ installed.
+    * You are highly encouraged to read :ref:`HTML Table Parsing gotchas <io.html.gotchas>`.
+      It explains issues surrounding the installation and
+      usage of the above three libraries.
 
 .. _html5lib: https://github.com/html5lib/html5lib-python
 .. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
 .. _lxml: http://lxml.de
-
-.. note::
-
-   Without the optional dependencies, many useful features will not
-   work. Hence, it is highly recommended that you install these. A packaged
-   distribution like `Anaconda <http://docs.continuum.io/anaconda/>`__, or `Enthought Canopy
-   <http://enthought.com/products/canopy>`__ may be worth considering.

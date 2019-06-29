@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
-from pandas import Index, DataFrame, Categorical, merge
 
 from pandas._libs import join as _join
+
+from pandas import Categorical, DataFrame, Index, merge
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal, assert_frame_equal
 
 
-class TestIndexer(object):
+class TestIndexer:
 
     def test_outer_join_indexer(self):
         typemap = [('int32', _join.outer_join_indexer_int32),
@@ -53,7 +52,7 @@ def test_left_join_indexer_unique():
 
     result = _join.left_join_indexer_unique_int64(b, a)
     expected = np.array([1, 1, 2, 3, 3], dtype=np.int64)
-    assert (np.array_equal(result, expected))
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_left_outer_join_bug():
@@ -69,13 +68,14 @@ def test_left_outer_join_bug():
 
     lidx, ridx = _join.left_outer_join(left, right, max_groups, sort=False)
 
-    exp_lidx = np.arange(len(left))
-    exp_ridx = -np.ones(len(left))
+    exp_lidx = np.arange(len(left), dtype=np.int64)
+    exp_ridx = -np.ones(len(left), dtype=np.int64)
+
     exp_ridx[left == 1] = 1
     exp_ridx[left == 3] = 0
 
-    assert (np.array_equal(lidx, exp_lidx))
-    assert (np.array_equal(ridx, exp_ridx))
+    tm.assert_numpy_array_equal(lidx, exp_lidx)
+    tm.assert_numpy_array_equal(ridx, exp_ridx)
 
 
 def test_inner_join_indexer():

@@ -1,13 +1,14 @@
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
-from pandas import Categorical, Series, CategoricalIndex
 from pandas.core.dtypes.concat import union_categoricals
+
+import pandas as pd
+from pandas import Categorical, CategoricalIndex, Series
 from pandas.util import testing as tm
 
 
-class TestUnionCategoricals(object):
+class TestUnionCategoricals:
 
     def test_union_categorical(self):
         # GH 13361
@@ -58,11 +59,11 @@ class TestUnionCategoricals(object):
         s = Categorical([0, 1.2, 2])
         s2 = Categorical([2, 3, 4])
         msg = 'dtype of categories must be the same'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             union_categoricals([s, s2])
 
         msg = 'No Categoricals to union'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             union_categoricals([])
 
     def test_union_categoricals_nan(self):
@@ -90,7 +91,8 @@ class TestUnionCategoricals(object):
         tm.assert_categorical_equal(res, exp)
 
         # all NaN
-        res = union_categoricals([pd.Categorical([np.nan, np.nan]),
+        res = union_categoricals([pd.Categorical(np.array([np.nan, np.nan],
+                                                          dtype=object)),
                                   pd.Categorical(['X'])])
         exp = Categorical([np.nan, np.nan, 'X'])
         tm.assert_categorical_equal(res, exp)
@@ -128,12 +130,21 @@ class TestUnionCategoricals(object):
                           categories=['x', 'y', 'z'])
         tm.assert_categorical_equal(res, exp)
 
+    def test_union_categorical_same_categories_different_order(self):
+        # https://github.com/pandas-dev/pandas/issues/19096
+        c1 = Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c'])
+        c2 = Categorical(['a', 'b', 'c'], categories=['b', 'a', 'c'])
+        result = union_categoricals([c1, c2])
+        expected = Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
+                               categories=['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
     def test_union_categoricals_ordered(self):
         c1 = Categorical([1, 2, 3], ordered=True)
         c2 = Categorical([1, 2, 3], ordered=False)
 
         msg = 'Categorical.ordered must be the same'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             union_categoricals([c1, c2])
 
         res = union_categoricals([c1, c1])
@@ -151,7 +162,7 @@ class TestUnionCategoricals(object):
         c2 = Categorical([1, 2, 3], categories=[3, 2, 1], ordered=True)
 
         msg = "to union ordered Categoricals, all categories must be the same"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             union_categoricals([c1, c2])
 
     def test_union_categoricals_ignore_order(self):
@@ -164,7 +175,7 @@ class TestUnionCategoricals(object):
         tm.assert_categorical_equal(res, exp)
 
         msg = 'Categorical.ordered must be the same'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             union_categoricals([c1, c2], ignore_order=False)
 
         res = union_categoricals([c1, c1], ignore_order=True)
@@ -202,10 +213,10 @@ class TestUnionCategoricals(object):
         tm.assert_categorical_equal(result, expected)
 
         msg = "to union ordered Categoricals, all categories must be the same"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             union_categoricals([c1, c2], ignore_order=False)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             union_categoricals([c1, c2])
 
     def test_union_categoricals_sort(self):
@@ -250,7 +261,7 @@ class TestUnionCategoricals(object):
         c1 = Categorical([np.nan])
         c2 = Categorical([np.nan])
         result = union_categoricals([c1, c2], sort_categories=True)
-        expected = Categorical([np.nan, np.nan], categories=[])
+        expected = Categorical([np.nan, np.nan])
         tm.assert_categorical_equal(result, expected)
 
         c1 = Categorical([])
@@ -299,7 +310,7 @@ class TestUnionCategoricals(object):
         c1 = Categorical([np.nan])
         c2 = Categorical([np.nan])
         result = union_categoricals([c1, c2], sort_categories=False)
-        expected = Categorical([np.nan, np.nan], categories=[])
+        expected = Categorical([np.nan, np.nan])
         tm.assert_categorical_equal(result, expected)
 
         c1 = Categorical([])

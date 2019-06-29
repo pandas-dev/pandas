@@ -1,14 +1,12 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
 import pandas as pd
+from pandas import DataFrame, Period, Series, period_range
 from pandas.util import testing as tm
-from pandas import (Series, period_range, DatetimeIndex, PeriodIndex,
-                    DataFrame, _np_version_under1p12, Period)
 
 
-class TestPeriodIndex(object):
+class TestPeriodIndex:
 
     def setup_method(self, method):
         pass
@@ -42,19 +40,19 @@ class TestPeriodIndex(object):
     def test_slice_with_zero_step_raises(self):
         ts = Series(np.arange(20),
                     period_range('2014-01', periods=20, freq='M'))
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: ts[::0])
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: ts.loc[::0])
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: ts.loc[::0])
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            ts[::0]
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            ts.loc[::0]
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            ts.loc[::0]
 
     def test_slice_keep_name(self):
         idx = period_range('20010101', periods=10, freq='D', name='bob')
         assert idx.name == idx[1:].name
 
     def test_pindex_slice_index(self):
-        pi = PeriodIndex(start='1/1/10', end='12/31/12', freq='M')
+        pi = period_range(start='1/1/10', end='12/31/12', freq='M')
         s = Series(np.random.rand(len(pi)), index=pi)
         res = s['2010']
         exp = s[0:12]
@@ -64,20 +62,16 @@ class TestPeriodIndex(object):
         tm.assert_series_equal(res, exp)
 
     def test_range_slice_day(self):
-        # GH 6716
-        didx = DatetimeIndex(start='2013/01/01', freq='D', periods=400)
-        pidx = PeriodIndex(start='2013/01/01', freq='D', periods=400)
-
-        # changed to TypeError in 1.12
-        # https://github.com/numpy/numpy/pull/6271
-        exc = IndexError if _np_version_under1p12 else TypeError
+        # GH#6716
+        didx = pd.date_range(start='2013/01/01', freq='D', periods=400)
+        pidx = period_range(start='2013/01/01', freq='D', periods=400)
 
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
             values = ['2014', '2013/02', '2013/01/02', '2013/02/01 9H',
                       '2013/02/01 09:00']
             for v in values:
-                with pytest.raises(exc):
+                with pytest.raises(TypeError):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)
@@ -89,25 +83,22 @@ class TestPeriodIndex(object):
 
             invalid = ['2013/02/01 9H', '2013/02/01 09:00']
             for v in invalid:
-                with pytest.raises(exc):
+                with pytest.raises(TypeError):
                     idx[v:]
 
     def test_range_slice_seconds(self):
-        # GH 6716
-        didx = DatetimeIndex(start='2013/01/01 09:00:00', freq='S',
+        # GH#6716
+        didx = pd.date_range(start='2013/01/01 09:00:00', freq='S',
                              periods=4000)
-        pidx = PeriodIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
-
-        # changed to TypeError in 1.12
-        # https://github.com/numpy/numpy/pull/6271
-        exc = IndexError if _np_version_under1p12 else TypeError
+        pidx = period_range(start='2013/01/01 09:00:00', freq='S',
+                            periods=4000)
 
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
             values = ['2014', '2013/02', '2013/01/02', '2013/02/01 9H',
                       '2013/02/01 09:00']
             for v in values:
-                with pytest.raises(exc):
+                with pytest.raises(TypeError):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)
@@ -122,9 +113,9 @@ class TestPeriodIndex(object):
                 tm.assert_series_equal(s[d:], s)
 
     def test_range_slice_outofbounds(self):
-        # GH 5407
-        didx = DatetimeIndex(start='2013/10/01', freq='D', periods=10)
-        pidx = PeriodIndex(start='2013/10/01', freq='D', periods=10)
+        # GH#5407
+        didx = pd.date_range(start='2013/10/01', freq='D', periods=10)
+        pidx = period_range(start='2013/10/01', freq='D', periods=10)
 
         for idx in [didx, pidx]:
             df = DataFrame(dict(units=[100 + i for i in range(10)]), index=idx)

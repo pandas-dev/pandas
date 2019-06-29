@@ -9,11 +9,12 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
-import pandas.core.config as cf
-from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
-                                is_one_of_factory, get_default_val,
-                                is_callable)
-from pandas.io.formats.console import detect_console_encoding
+import importlib
+
+import pandas._config.config as cf
+from pandas._config.config import (
+    is_bool, is_callable, is_instance_factory, is_int, is_one_of_factory,
+    is_text)
 
 # compute
 
@@ -108,16 +109,6 @@ pc_nb_repr_h_doc = """
     pandas objects (if it is available).
 """
 
-pc_date_dayfirst_doc = """
-: boolean
-    When True, prints and parses dates with the day first, eg 20/01/2005
-"""
-
-pc_date_yearfirst_doc = """
-: boolean
-    When True, prints and parses dates with the year first, eg 2005/01/20
-"""
-
 pc_pprint_nest_depth = """
 : int
     Controls the number of nested levels to process when pretty-printing
@@ -127,13 +118,6 @@ pc_multi_sparse_doc = """
 : boolean
     "sparsify" MultiIndex display (don't display repeated
     elements in outer levels within groups)
-"""
-
-pc_encoding_doc = """
-: str/unicode
-    Defaults to the detected encoding of the console.
-    Specifies the encoding to be used for strings returned by to_string,
-    these are generally strings meant to be displayed on the console.
 """
 
 float_format_doc = """
@@ -170,11 +154,6 @@ pc_show_dimensions_doc = """
     frame is truncated (e.g. not display all rows and/or columns)
 """
 
-pc_line_width_doc = """
-: int
-    Deprecated.
-"""
-
 pc_east_asian_width_doc = """
 : boolean
     Whether to use the Unicode East Asian Width to calculate the display text
@@ -208,11 +187,12 @@ pc_html_border_doc = """
     for the DataFrame HTML repr.
 """
 
-pc_html_border_deprecation_warning = """\
-html.border has been deprecated, use display.html.border instead
-(currently both are identical)
+pc_html_use_mathjax_doc = """\
+: boolean
+    When True, Jupyter notebook will process table contents using MathJax,
+    rendering mathematical expressions enclosed by the dollar symbol.
+    (default: True)
 """
-
 
 pc_width_doc = """
 : int
@@ -221,11 +201,6 @@ pc_width_doc = """
     the width.
     Note that the IPython notebook, IPython qtconsole, or IDLE do not run in a
     terminal and hence it is not possible to correctly detect the width.
-"""
-
-pc_height_doc = """
-: int
-    Deprecated.
 """
 
 pc_chop_threshold_doc = """
@@ -299,12 +274,27 @@ pc_latex_multirow = """
     Valid values: False,True
 """
 
-style_backup = dict()
-
 
 def table_schema_cb(key):
     from pandas.io.formats.printing import _enable_data_resource_formatter
     _enable_data_resource_formatter(cf.get_option(key))
+
+
+def is_terminal():
+    """
+    Detect if Python is running in a terminal.
+
+    Returns True if Python is running in a terminal or False if not.
+    """
+    try:
+        ip = get_ipython()
+    except NameError:  # assume standard Python interpreter in a terminal
+        return True
+    else:
+        if hasattr(ip, 'kernel'):  # IPython as a Jupyter kernel
+            return False
+        else:  # IPython in a terminal
+            return True
 
 
 with cf.config_prefix('display'):
@@ -319,7 +309,11 @@ with cf.config_prefix('display'):
     cf.register_option('max_categories', 8, pc_max_categories_doc,
                        validator=is_int)
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
-    cf.register_option('max_columns', 20, pc_max_cols_doc,
+    if is_terminal():
+        max_cols = 0  # automatically determine optimal number of columns
+    else:
+        max_cols = 20  # cannot determine optimal number of columns
+    cf.register_option('max_columns', max_cols, pc_max_cols_doc,
                        validator=is_instance_factory([type(None), int]))
     cf.register_option('large_repr', 'truncate', pc_large_repr_doc,
                        validator=is_one_of_factory(['truncate', 'info']))
@@ -329,28 +323,17 @@ with cf.config_prefix('display'):
                        validator=is_text)
     cf.register_option('notebook_repr_html', True, pc_nb_repr_h_doc,
                        validator=is_bool)
-    cf.register_option('date_dayfirst', False, pc_date_dayfirst_doc,
-                       validator=is_bool)
-    cf.register_option('date_yearfirst', False, pc_date_yearfirst_doc,
-                       validator=is_bool)
     cf.register_option('pprint_nest_depth', 3, pc_pprint_nest_depth,
                        validator=is_int)
     cf.register_option('multi_sparse', True, pc_multi_sparse_doc,
                        validator=is_bool)
-    cf.register_option('encoding', detect_console_encoding(), pc_encoding_doc,
-                       validator=is_text)
     cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
     cf.register_option('show_dimensions', 'truncate', pc_show_dimensions_doc,
                        validator=is_one_of_factory([True, False, 'truncate']))
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
     cf.register_option('max_seq_items', 100, pc_max_seq_items)
-    cf.register_option('height', 60, pc_height_doc,
-                       validator=is_instance_factory([type(None), int]))
     cf.register_option('width', 80, pc_width_doc,
                        validator=is_instance_factory([type(None), int]))
-    # redirected to width, make defval identical
-    cf.register_option('line_width', get_default_val('display.width'),
-                       pc_line_width_doc)
     cf.register_option('memory_usage', True, pc_memory_usage_doc,
                        validator=is_one_of_factory([None, True,
                                                     False, 'deep']))
@@ -374,14 +357,8 @@ with cf.config_prefix('display'):
                        validator=is_bool, cb=table_schema_cb)
     cf.register_option('html.border', 1, pc_html_border_doc,
                        validator=is_int)
-
-with cf.config_prefix('html'):
-    cf.register_option('border', 1, pc_html_border_doc,
-                       validator=is_int)
-
-cf.deprecate_option('html.border', msg=pc_html_border_deprecation_warning,
-                    rkey='display.html.border')
-
+    cf.register_option('html.use_mathjax', True, pc_html_use_mathjax_doc,
+                       validator=is_bool)
 
 tc_sim_interactive_doc = """
 : boolean
@@ -392,8 +369,9 @@ with cf.config_prefix('mode'):
     cf.register_option('sim_interactive', False, tc_sim_interactive_doc)
 
 use_inf_as_null_doc = """
-use_inf_as_null had been deprecated and will be removed in a future version.
-Use `use_inf_as_na` instead.
+: boolean
+    use_inf_as_null had been deprecated and will be removed in a future
+    version. Use `use_inf_as_na` instead.
 """
 
 use_inf_as_na_doc = """
@@ -433,7 +411,43 @@ with cf.config_prefix('mode'):
     cf.register_option('chained_assignment', 'warn', chained_assignment,
                        validator=is_one_of_factory([None, 'warn', 'raise']))
 
-# Set up the io.excel specific configuration.
+
+# Set up the io.excel specific reader configuration.
+reader_engine_doc = """
+: string
+    The default Excel reader engine for '{ext}' files. Available options:
+    auto, {others}.
+"""
+
+_xls_options = ['xlrd']
+_xlsm_options = ['xlrd', 'openpyxl']
+_xlsx_options = ['xlrd', 'openpyxl']
+
+
+with cf.config_prefix("io.excel.xls"):
+    cf.register_option("reader", "auto",
+                       reader_engine_doc.format(
+                           ext='xls',
+                           others=', '.join(_xls_options)),
+                       validator=str)
+
+with cf.config_prefix("io.excel.xlsm"):
+    cf.register_option("reader", "auto",
+                       reader_engine_doc.format(
+                           ext='xlsm',
+                           others=', '.join(_xlsm_options)),
+                       validator=str)
+
+
+with cf.config_prefix("io.excel.xlsx"):
+    cf.register_option("reader", "auto",
+                       reader_engine_doc.format(
+                           ext='xlsx',
+                           others=', '.join(_xlsx_options)),
+                       validator=str)
+
+
+# Set up the io.excel specific writer configuration.
 writer_engine_doc = """
 : string
     The default Excel writer engine for '{ext}' files. Available options:
@@ -479,3 +493,63 @@ with cf.config_prefix('io.parquet'):
     cf.register_option(
         'engine', 'auto', parquet_engine_doc,
         validator=is_one_of_factory(['auto', 'pyarrow', 'fastparquet']))
+
+# --------
+# Plotting
+# ---------
+
+plotting_backend_doc = """
+: str
+    The plotting backend to use. The default value is "matplotlib", the
+    backend provided with pandas. Other backends can be specified by
+    prodiving the name of the module that implements the backend.
+"""
+
+
+def register_plotting_backend_cb(key):
+    backend_str = cf.get_option(key)
+    if backend_str == 'matplotlib':
+        try:
+            import pandas.plotting._matplotlib  # noqa
+        except ImportError:
+            raise ImportError('matplotlib is required for plotting when the '
+                              'default backend "matplotlib" is selected.')
+        else:
+            return
+
+    try:
+        importlib.import_module(backend_str)
+    except ImportError:
+        raise ValueError('"{}" does not seem to be an installed module. '
+                         'A pandas plotting backend must be a module that '
+                         'can be imported'.format(backend_str))
+
+
+with cf.config_prefix('plotting'):
+    cf.register_option('backend', defval='matplotlib',
+                       doc=plotting_backend_doc,
+                       validator=str,
+                       cb=register_plotting_backend_cb)
+
+
+register_converter_doc = """
+: bool
+    Whether to register converters with matplotlib's units registry for
+    dates, times, datetimes, and Periods. Toggling to False will remove
+    the converters, restoring any converters that pandas overwrote.
+"""
+
+
+def register_converter_cb(key):
+    from pandas.plotting import register_matplotlib_converters
+    from pandas.plotting import deregister_matplotlib_converters
+
+    if cf.get_option(key):
+        register_matplotlib_converters()
+    else:
+        deregister_matplotlib_converters()
+
+
+with cf.config_prefix("plotting.matplotlib"):
+    cf.register_option("register_converters", True, register_converter_doc,
+                       validator=bool, cb=register_converter_cb)

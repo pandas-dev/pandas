@@ -3,27 +3,24 @@
 """ Test cases for Series.plot """
 
 
-import itertools
-import pytest
-
 from datetime import datetime
-
-import pandas as pd
-from pandas import Series, DataFrame, date_range
-from pandas.compat import range, lrange
-import pandas.util.testing as tm
+from itertools import chain
 
 import numpy as np
 from numpy.random import randn
+import pytest
+
+import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import DataFrame, Series, date_range
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+import pandas.util.testing as tm
 
 import pandas.plotting as plotting
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
-                                          _skip_if_no_scipy_gaussian_kde,
-                                          _ok_for_gaussian_kde)
-
-tm._skip_if_no_mpl()
 
 
+@td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -61,8 +58,6 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.iseries.plot)
 
         for kind in ['line', 'bar', 'barh', 'kde', 'hist', 'box']:
-            if not _ok_for_gaussian_kde(kind):
-                continue
             _check_plot_works(self.series[:5].plot, kind=kind)
 
         _check_plot_works(self.series[:10].plot.barh)
@@ -88,10 +83,7 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_dont_modify_rcParams(self):
         # GH 8242
-        if self.mpl_ge_1_5_0:
-            key = 'axes.prop_cycle'
-        else:
-            key = 'axes.color_cycle'
+        key = 'axes.prop_cycle'
         colors = self.plt.rcParams[key]
         _, ax = self.plt.subplots()
         Series([1, 2, 3]).plot(ax=ax)
@@ -211,10 +203,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_bar_log(self):
-        expected = np.array([1., 10., 100., 1000.])
-
-        if not self.mpl_le_1_2_1:
-            expected = np.hstack((.1, expected, 1e4))
+        expected = np.array([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
 
         _, ax = self.plt.subplots()
         ax = Series([200, 500]).plot.bar(log=True, ax=ax)
@@ -227,17 +216,12 @@ class TestSeriesPlots(TestPlotBase):
         tm.close()
 
         # GH 9905
-        expected = np.array([1.0e-03, 1.0e-02, 1.0e-01, 1.0e+00])
-
-        if not self.mpl_le_1_2_1:
-            expected = np.hstack((1.0e-04, expected, 1.0e+01))
-        if self.mpl_ge_2_0_0:
-            expected = np.hstack((1.0e-05, expected))
+        expected = np.array([1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1])
 
         _, ax = self.plt.subplots()
         ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='bar', ax=ax)
-        ymin = 0.0007943282347242822 if self.mpl_ge_2_0_0 else 0.001
-        ymax = 0.12589254117941673 if self.mpl_ge_2_0_0 else .10000000000000001
+        ymin = 0.0007943282347242822
+        ymax = 0.12589254117941673
         res = ax.get_ylim()
         tm.assert_almost_equal(res[0], ymin)
         tm.assert_almost_equal(res[1], ymax)
@@ -333,8 +317,7 @@ class TestSeriesPlots(TestPlotBase):
                                autopct='%.2f', fontsize=7)
         pcts = ['{0:.2f}'.format(s * 100)
                 for s in series.values / float(series.sum())]
-        iters = [iter(series.index), iter(pcts)]
-        expected_texts = list(next(it) for it in itertools.cycle(iters))
+        expected_texts = list(chain.from_iterable(zip(series.index, pcts)))
         self._check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
             assert t.get_fontsize() == 7
@@ -475,7 +458,7 @@ class TestSeriesPlots(TestPlotBase):
         subplot(122)
         y.hist()
         fig = gcf()
-        axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
+        axes = fig.axes
         assert len(axes) == 2
 
     @pytest.mark.slow
@@ -546,7 +529,7 @@ class TestSeriesPlots(TestPlotBase):
         assert ax.right_ax.get_yaxis().get_visible()
         tm.close()
 
-        # seconcary -> secondary (without passing ax)
+        # secondary -> secondary (without passing ax)
         _, ax = self.plt.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
         s.plot(legend=True, secondary_y=True, ax=ax)
@@ -583,6 +566,23 @@ class TestSeriesPlots(TestPlotBase):
         tm.close()
 
     @pytest.mark.slow
+    @pytest.mark.parametrize("input_logy, expected_scale", [
+        (True, 'log'),
+        ('sym', 'symlog')
+    ])
+    def test_secondary_logy(self, input_logy, expected_scale):
+        # GH 25545
+        s1 = Series(np.random.randn(30))
+        s2 = Series(np.random.randn(30))
+
+        # GH 24980
+        ax1 = s1.plot(logy=input_logy)
+        ax2 = s2.plot(secondary_y=True, logy=input_logy)
+
+        assert ax1.get_yscale() == expected_scale
+        assert ax2.get_yscale() == expected_scale
+
+    @pytest.mark.slow
     def test_plot_fails_with_dupe_color_and_style(self):
         x = Series(randn(2))
         with pytest.raises(ValueError):
@@ -590,9 +590,8 @@ class TestSeriesPlots(TestPlotBase):
             x.plot(style='k--', color='k', ax=ax)
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_hist_kde(self):
-        if not self.mpl_ge_1_5_0:
-            pytest.skip("mpl is not supported")
 
         _, ax = self.plt.subplots()
         ax = self.ts.plot.hist(logy=True, ax=ax)
@@ -603,8 +602,6 @@ class TestSeriesPlots(TestPlotBase):
         ylabels = ax.get_yticklabels()
         self._check_text_labels(ylabels, [''] * len(ylabels))
 
-        tm._skip_if_no_scipy()
-        _skip_if_no_scipy_gaussian_kde()
         _check_plot_works(self.ts.plot.kde)
         _check_plot_works(self.ts.plot.density)
         _, ax = self.plt.subplots()
@@ -616,30 +613,24 @@ class TestSeriesPlots(TestPlotBase):
         self._check_text_labels(ylabels, [''] * len(ylabels))
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_kwargs(self):
-        tm._skip_if_no_scipy()
-        _skip_if_no_scipy_gaussian_kde()
-        if not self.mpl_ge_1_5_0:
-            pytest.skip("mpl is not supported")
-
-        from numpy import linspace
-        _check_plot_works(self.ts.plot.kde, bw_method=.5,
-                          ind=linspace(-100, 100, 20))
+        sample_points = np.linspace(-100, 100, 20)
+        _check_plot_works(self.ts.plot.kde, bw_method='scott', ind=20)
+        _check_plot_works(self.ts.plot.kde, bw_method=None, ind=20)
+        _check_plot_works(self.ts.plot.kde, bw_method=None, ind=np.int(20))
+        _check_plot_works(self.ts.plot.kde, bw_method=.5, ind=sample_points)
         _check_plot_works(self.ts.plot.density, bw_method=.5,
-                          ind=linspace(-100, 100, 20))
+                          ind=sample_points)
         _, ax = self.plt.subplots()
-        ax = self.ts.plot.kde(logy=True, bw_method=.5,
-                              ind=linspace(-100, 100, 20), ax=ax)
+        ax = self.ts.plot.kde(logy=True, bw_method=.5, ind=sample_points,
+                              ax=ax)
         self._check_ax_scales(ax, yaxis='log')
         self._check_text_labels(ax.yaxis.get_label(), 'Density')
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
-        tm._skip_if_no_scipy()
-        _skip_if_no_scipy_gaussian_kde()
-        if not self.mpl_ge_1_5_0:
-            pytest.skip("mpl is not supported")
-
         s = Series(np.random.uniform(size=50))
         s[0] = np.nan
         axes = _check_plot_works(s.plot.kde)
@@ -655,29 +646,24 @@ class TestSeriesPlots(TestPlotBase):
         self._check_text_labels(ax.yaxis.get_label(), 'Frequency')
         tm.close()
 
-        if self.mpl_ge_1_3_1:
-            _, ax = self.plt.subplots()
-            ax = self.ts.plot.hist(orientation='horizontal', ax=ax)
-            self._check_text_labels(ax.xaxis.get_label(), 'Frequency')
-            tm.close()
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.hist(orientation='horizontal', ax=ax)
+        self._check_text_labels(ax.xaxis.get_label(), 'Frequency')
+        tm.close()
 
-            _, ax = self.plt.subplots()
-            ax = self.ts.plot.hist(align='left', stacked=True, ax=ax)
-            tm.close()
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.hist(align='left', stacked=True, ax=ax)
+        tm.close()
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_hist_kde_color(self):
-        if not self.mpl_ge_1_5_0:
-            pytest.skip("mpl is not supported")
-
         _, ax = self.plt.subplots()
         ax = self.ts.plot.hist(logy=True, bins=10, color='b', ax=ax)
         self._check_ax_scales(ax, yaxis='log')
         assert len(ax.patches) == 10
         self._check_colors(ax.patches, facecolors=['b'] * 10)
 
-        tm._skip_if_no_scipy()
-        _skip_if_no_scipy_gaussian_kde()
         _, ax = self.plt.subplots()
         ax = self.ts.plot.kde(logy=True, color='r', ax=ax)
         self._check_ax_scales(ax, yaxis='log')
@@ -702,8 +688,7 @@ class TestSeriesPlots(TestPlotBase):
                  plotting._core._series_kinds)
         _, ax = self.plt.subplots()
         for kind in kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
+
             s.plot(kind=kind, ax=ax)
             getattr(s.plot, kind)()
 
@@ -712,26 +697,24 @@ class TestSeriesPlots(TestPlotBase):
         s = Series(list('abcd'))
         _, ax = self.plt.subplots()
         for kind in plotting._core._common_kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
-            with pytest.raises(TypeError):
+
+            msg = "no numeric data to plot"
+            with pytest.raises(TypeError, match=msg):
                 s.plot(kind=kind, ax=ax)
 
     @pytest.mark.slow
     def test_valid_object_plot(self):
-        s = Series(lrange(10), dtype=object)
+        s = Series(range(10), dtype=object)
         for kind in plotting._core._common_kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
             _check_plot_works(s.plot, kind=kind)
 
     def test_partially_invalid_plot_data(self):
         s = Series(['a', 'b', 1.0, 2])
         _, ax = self.plt.subplots()
         for kind in plotting._core._common_kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
-            with pytest.raises(TypeError):
+
+            msg = "no numeric data to plot"
+            with pytest.raises(TypeError, match=msg):
                 s.plot(kind=kind, ax=ax)
 
     def test_invalid_kind(self):
@@ -787,8 +770,7 @@ class TestSeriesPlots(TestPlotBase):
             s.plot(yerr=np.arange(11))
 
         s_err = ['zzz'] * 10
-        # in mpl 1.5+ this is a TypeError
-        with pytest.raises((ValueError, TypeError)):
+        with pytest.raises(TypeError):
             s.plot(yerr=s_err)
 
     def test_table(self):
@@ -804,7 +786,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_standard_colors(self):
-        from pandas.plotting._style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import _get_standard_colors
 
         for c in ['r', 'red', 'green', '#FF0000']:
             result = _get_standard_colors(1, color=c)
@@ -822,7 +804,7 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     def test_standard_colors_all(self):
         import matplotlib.colors as colors
-        from pandas.plotting._style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import _get_standard_colors
 
         # multiple colors like mediumaquamarine
         for c in colors.cnames:
@@ -868,10 +850,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_time_series_plot_color_with_empty_kwargs(self):
         import matplotlib as mpl
 
-        if self.mpl_ge_1_5_0:
-            def_colors = self._maybe_unpack_cycler(mpl.rcParams)
-        else:
-            def_colors = mpl.rcParams['axes.color_cycle']
+        def_colors = self._unpack_cycler(mpl.rcParams)
         index = date_range('1/1/2000', periods=12)
         s = Series(np.arange(1, 13), index=index)
 
@@ -898,3 +877,15 @@ class TestSeriesPlots(TestPlotBase):
             freq=CustomBusinessDay(holidays=['2014-05-26'])))
 
         _check_plot_works(s.plot)
+
+    @pytest.mark.xfail
+    def test_plot_accessor_updates_on_inplace(self):
+        s = Series([1, 2, 3, 4])
+        _, ax = self.plt.subplots()
+        ax = s.plot(ax=ax)
+        before = ax.xaxis.get_ticklocs()
+
+        s.drop([0, 1], inplace=True)
+        _, ax = self.plt.subplots()
+        after = ax.xaxis.get_ticklocs()
+        tm.assert_numpy_array_equal(before, after)

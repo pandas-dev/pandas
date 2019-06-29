@@ -1,24 +1,16 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-import pytest
-from pandas.compat import range, lrange
 import numpy as np
+import pytest
+
 from pandas.compat import PY36
 
-from pandas import DataFrame, Series, Index, MultiIndex
-
-from pandas.util.testing import assert_frame_equal
-
+from pandas import DataFrame, Index, MultiIndex, Series
 import pandas.util.testing as tm
-
-from pandas.tests.frame.common import TestData
-
+from pandas.util.testing import assert_frame_equal
 
 # Column add, remove, delete.
 
 
-class TestDataFrameMutateColumns(TestData):
+class TestDataFrameMutateColumns:
 
     def test_assign(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
@@ -83,15 +75,40 @@ class TestDataFrameMutateColumns(TestData):
 
     def test_assign_bad(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+
         # non-keyword argument
         with pytest.raises(TypeError):
             df.assign(lambda x: x.A)
         with pytest.raises(AttributeError):
             df.assign(C=df.A, D=df.A + df.C)
+
+    @pytest.mark.skipif(PY36, reason="""Issue #14207: valid for python
+                        3.6 and above""")
+    def test_assign_dependent_old_python(self):
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+
+        # Key C does not exist at definition time of df
         with pytest.raises(KeyError):
-            df.assign(C=lambda df: df.A, D=lambda df: df['A'] + df['C'])
+            df.assign(C=lambda df: df.A,
+                      D=lambda df: df['A'] + df['C'])
         with pytest.raises(KeyError):
             df.assign(C=df.A, D=lambda x: x['A'] + x['C'])
+
+    @pytest.mark.skipif(not PY36, reason="""Issue #14207: not valid for
+                        python 3.5 and below""")
+    def test_assign_dependent(self):
+        df = DataFrame({'A': [1, 2], 'B': [3, 4]})
+
+        result = df.assign(C=df.A, D=lambda x: x['A'] + x['C'])
+        expected = DataFrame([[1, 3, 1, 2], [2, 4, 2, 4]],
+                             columns=list('ABCD'))
+        assert_frame_equal(result, expected)
+
+        result = df.assign(C=lambda df: df.A,
+                           D=lambda df: df['A'] + df['C'])
+        expected = DataFrame([[1, 3, 1, 2], [2, 4, 2, 4]],
+                             columns=list('ABCD'))
+        assert_frame_equal(result, expected)
 
     def test_insert_error_msmgs(self):
 
@@ -101,7 +118,7 @@ class TestDataFrameMutateColumns(TestData):
         s = DataFrame({'foo': ['a', 'b', 'c', 'a'], 'fiz': [
                       'g', 'h', 'i', 'j']}).set_index('foo')
         msg = 'cannot reindex from a duplicate axis'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df['newcol'] = s
 
         # GH 4107, more descriptive error message
@@ -109,19 +126,19 @@ class TestDataFrameMutateColumns(TestData):
                        columns=['a', 'b', 'c', 'd'])
 
         msg = 'incompatible index of inserted column with frame index'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             df['gr'] = df.groupby(['b', 'c']).count()
 
     def test_insert_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
         K = 5
-        df = DataFrame(index=lrange(N))
+        df = DataFrame(index=range(N))
         new_col = np.random.randn(N)
         for i in range(K):
             df[i] = new_col
         expected = DataFrame(np.repeat(new_col, K).reshape(N, K),
-                             index=lrange(N))
+                             index=range(N))
         assert_frame_equal(df, expected)
 
     def test_insert(self):
@@ -141,21 +158,23 @@ class TestDataFrameMutateColumns(TestData):
 
         # new item
         df['x'] = df['a'].astype('float32')
-        result = Series(dict(float64=5, float32=1))
-        assert (df.get_dtype_counts() == result).all()
+        result = Series(dict(float32=1, float64=5))
+        assert (df.get_dtype_counts().sort_index() == result).all()
 
         # replacing current (in different block)
         df['a'] = df['a'].astype('float32')
-        result = Series(dict(float64=4, float32=2))
-        assert (df.get_dtype_counts() == result).all()
+        result = Series(dict(float32=2, float64=4))
+        assert (df.get_dtype_counts().sort_index() == result).all()
 
         df['y'] = df['a'].astype('int32')
-        result = Series(dict(float64=4, float32=2, int32=1))
-        assert (df.get_dtype_counts() == result).all()
+        result = Series(dict(float32=2, float64=4, int32=1))
+        assert (df.get_dtype_counts().sort_index() == result).all()
 
-        with tm.assert_raises_regex(ValueError, 'already exists'):
+        with pytest.raises(ValueError, match='already exists'):
             df.insert(1, 'a', df['b'])
-        pytest.raises(ValueError, df.insert, 1, 'c', df['b'])
+        msg = "cannot insert c, already exists"
+        with pytest.raises(ValueError, match=msg):
+            df.insert(1, 'c', df['b'])
 
         df.columns.name = 'some_name'
         # preserve columns name field
@@ -169,9 +188,9 @@ class TestDataFrameMutateColumns(TestData):
         exp = DataFrame(data={'X': ['x', 'y', 'z']}, index=['A', 'B', 'C'])
         assert_frame_equal(df, exp)
 
-    def test_delitem(self):
-        del self.frame['A']
-        assert 'A' not in self.frame
+    def test_delitem(self, float_frame):
+        del float_frame['A']
+        assert 'A' not in float_frame
 
     def test_delitem_multiindex(self):
         midx = MultiIndex.from_product([['A', 'B'], [1, 2]])
@@ -192,22 +211,23 @@ class TestDataFrameMutateColumns(TestData):
         with pytest.raises(KeyError):
             del df[('A',)]
 
-        # xref: https://github.com/pandas-dev/pandas/issues/2770
-        # the 'A' is STILL in the columns!
-        assert 'A' in df.columns
+        # behavior of dropped/deleted MultiIndex levels changed from
+        # GH 2770 to GH 19027: MultiIndex no longer '.__contains__'
+        # levels which are dropped/deleted
+        assert 'A' not in df.columns
         with pytest.raises(KeyError):
             del df['A']
 
-    def test_pop(self):
-        self.frame.columns.name = 'baz'
+    def test_pop(self, float_frame):
+        float_frame.columns.name = 'baz'
 
-        self.frame.pop('A')
-        assert 'A' not in self.frame
+        float_frame.pop('A')
+        assert 'A' not in float_frame
 
-        self.frame['foo'] = 'bar'
-        self.frame.pop('foo')
-        assert 'foo' not in self.frame
-        # TODO assert self.frame.columns.name == 'baz'
+        float_frame['foo'] = 'bar'
+        float_frame.pop('foo')
+        assert 'foo' not in float_frame
+        assert float_frame.columns.name == 'baz'
 
         # gh-10912: inplace ops cause caching issue
         a = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[

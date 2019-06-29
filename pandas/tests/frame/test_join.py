@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
-
-import pytest
 import numpy as np
+import pytest
 
-from pandas import DataFrame, Index, PeriodIndex
-from pandas.tests.frame.common import TestData
+from pandas import DataFrame, Index, period_range
 import pandas.util.testing as tm
 
 
@@ -13,12 +10,7 @@ def frame_with_period_index():
     return DataFrame(
         data=np.arange(20).reshape(4, 5),
         columns=list('abcde'),
-        index=PeriodIndex(start='2000', freq='A', periods=4))
-
-
-@pytest.fixture
-def frame():
-    return TestData().frame
+        index=period_range(start='2000', freq='A', periods=4))
 
 
 @pytest.fixture
@@ -63,11 +55,11 @@ def test_join(left, right, how, sort, expected):
     tm.assert_frame_equal(result, expected)
 
 
-def test_join_index(frame):
+def test_join_index(float_frame):
     # left / right
 
-    f = frame.loc[frame.index[:10], ['A', 'B']]
-    f2 = frame.loc[frame.index[5:], ['C', 'D']].iloc[::-1]
+    f = float_frame.loc[float_frame.index[:10], ['A', 'B']]
+    f2 = float_frame.loc[float_frame.index[5:], ['C', 'D']].iloc[::-1]
 
     joined = f.join(f2)
     tm.assert_index_equal(f.index, joined.index)
@@ -91,26 +83,26 @@ def test_join_index(frame):
     # outer
 
     joined = f.join(f2, how='outer')
-    tm.assert_index_equal(joined.index, frame.index.sort_values())
+    tm.assert_index_equal(joined.index, float_frame.index.sort_values())
     tm.assert_index_equal(joined.columns, expected_columns)
 
-    tm.assert_raises_regex(
-        ValueError, 'join method', f.join, f2, how='foo')
+    with pytest.raises(ValueError, match='join method'):
+        f.join(f2, how='foo')
 
     # corner case - overlapping columns
+    msg = 'columns overlap but no suffix'
     for how in ('outer', 'left', 'inner'):
-        with tm.assert_raises_regex(ValueError, 'columns overlap but '
-                                    'no suffix'):
-            frame.join(frame, how=how)
+        with pytest.raises(ValueError, match=msg):
+            float_frame.join(float_frame, how=how)
 
 
-def test_join_index_more(frame):
-    af = frame.loc[:, ['A', 'B']]
-    bf = frame.loc[::2, ['C', 'D']]
+def test_join_index_more(float_frame):
+    af = float_frame.loc[:, ['A', 'B']]
+    bf = float_frame.loc[::2, ['C', 'D']]
 
     expected = af.copy()
-    expected['C'] = frame['C'][::2]
-    expected['D'] = frame['D'][::2]
+    expected['C'] = float_frame['C'][::2]
+    expected['D'] = float_frame['D'][::2]
 
     result = af.join(bf)
     tm.assert_frame_equal(result, expected)
@@ -122,27 +114,28 @@ def test_join_index_more(frame):
     tm.assert_frame_equal(result, expected.loc[:, result.columns])
 
 
-def test_join_index_series(frame):
-    df = frame.copy()
-    s = df.pop(frame.columns[-1])
+def test_join_index_series(float_frame):
+    df = float_frame.copy()
+    s = df.pop(float_frame.columns[-1])
     joined = df.join(s)
 
     # TODO should this check_names ?
-    tm.assert_frame_equal(joined, frame, check_names=False)
+    tm.assert_frame_equal(joined, float_frame, check_names=False)
 
     s.name = None
-    tm.assert_raises_regex(ValueError, 'must have a name', df.join, s)
+    with pytest.raises(ValueError, match='must have a name'):
+        df.join(s)
 
 
-def test_join_overlap(frame):
-    df1 = frame.loc[:, ['A', 'B', 'C']]
-    df2 = frame.loc[:, ['B', 'C', 'D']]
+def test_join_overlap(float_frame):
+    df1 = float_frame.loc[:, ['A', 'B', 'C']]
+    df2 = float_frame.loc[:, ['B', 'C', 'D']]
 
     joined = df1.join(df2, lsuffix='_df1', rsuffix='_df2')
     df1_suf = df1.loc[:, ['B', 'C']].add_suffix('_df1')
     df2_suf = df2.loc[:, ['B', 'C']].add_suffix('_df2')
 
-    no_overlap = frame.loc[:, ['A', 'D']]
+    no_overlap = float_frame.loc[:, ['A', 'D']]
     expected = df1_suf.join(df2_suf).join(no_overlap)
 
     # column order not necessarily sorted
@@ -163,5 +156,22 @@ def test_join_period_index(frame_with_period_index):
         data=joined_values,
         columns=joined_cols,
         index=frame_with_period_index.index)
+
+    tm.assert_frame_equal(joined, expected)
+
+
+def test_join_left_sequence_non_unique_index():
+    # https://github.com/pandas-dev/pandas/issues/19607
+    df1 = DataFrame({'a': [0, 10, 20]}, index=[1, 2, 3])
+    df2 = DataFrame({'b': [100, 200, 300]}, index=[4, 3, 2])
+    df3 = DataFrame({'c': [400, 500, 600]}, index=[2, 2, 4])
+
+    joined = df1.join([df2, df3], how='left')
+
+    expected = DataFrame({
+        'a': [0, 10, 10, 20],
+        'b': [np.nan, 300, 300, 200],
+        'c': [np.nan, 400, 500, np.nan]
+    }, index=[1, 2, 2, 3])
 
     tm.assert_frame_equal(joined, expected)

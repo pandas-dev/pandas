@@ -4,18 +4,19 @@ test setting *parts* of objects both positionally and label based
 TOD: these should be split among the indexer tests
 """
 
+from warnings import catch_warnings
+
+import numpy as np
 import pytest
 
-from warnings import catch_warnings
-import numpy as np
-
 import pandas as pd
-from pandas import Series, DataFrame, Panel, Index, date_range
+from pandas import DataFrame, Index, Series, date_range
 from pandas.util import testing as tm
 
 
-class TestPartialSetting(object):
+class TestPartialSetting:
 
+    @pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
     def test_partial_setting(self):
 
         # GH2578, allow ix and friends to partially set
@@ -46,15 +47,11 @@ class TestPartialSetting(object):
         # iloc/iat raise
         s = s_orig.copy()
 
-        def f():
+        with pytest.raises(IndexError):
             s.iloc[3] = 5.
 
-        pytest.raises(IndexError, f)
-
-        def f():
+        with pytest.raises(IndexError):
             s.iat[3] = 5.
-
-        pytest.raises(IndexError, f)
 
         # ## frame ##
 
@@ -64,15 +61,11 @@ class TestPartialSetting(object):
         # iloc/iat raise
         df = df_orig.copy()
 
-        def f():
+        with pytest.raises(IndexError):
             df.iloc[4, 2] = 5.
 
-        pytest.raises(IndexError, f)
-
-        def f():
+        with pytest.raises(IndexError):
             df.iat[4, 2] = 5.
-
-        pytest.raises(IndexError, f)
 
         # row setting where it exists
         expected = DataFrame(dict({'A': [0, 4, 4], 'B': [1, 5, 5]}))
@@ -122,57 +115,30 @@ class TestPartialSetting(object):
             df.ix[:, 'C'] = df.ix[:, 'A']
         tm.assert_frame_equal(df, expected)
 
-        with catch_warnings(record=True):
-            # ## panel ##
-            p_orig = Panel(np.arange(16).reshape(2, 4, 2),
-                           items=['Item1', 'Item2'],
-                           major_axis=pd.date_range('2001/1/12', periods=4),
-                           minor_axis=['A', 'B'], dtype='float64')
-
-            # panel setting via item
-            p_orig = Panel(np.arange(16).reshape(2, 4, 2),
-                           items=['Item1', 'Item2'],
-                           major_axis=pd.date_range('2001/1/12', periods=4),
-                           minor_axis=['A', 'B'], dtype='float64')
-            expected = p_orig.copy()
-            expected['Item3'] = expected['Item1']
-            p = p_orig.copy()
-            p.loc['Item3'] = p['Item1']
-            tm.assert_panel_equal(p, expected)
-
-            # panel with aligned series
-            expected = p_orig.copy()
-            expected = expected.transpose(2, 1, 0)
-            expected['C'] = DataFrame({'Item1': [30, 30, 30, 30],
-                                       'Item2': [32, 32, 32, 32]},
-                                      index=p_orig.major_axis)
-            expected = expected.transpose(2, 1, 0)
-            p = p_orig.copy()
-            p.loc[:, :, 'C'] = Series([30, 32], index=p_orig.items)
-            tm.assert_panel_equal(p, expected)
-
         # GH 8473
         dates = date_range('1/1/2000', periods=8)
         df_orig = DataFrame(np.random.randn(8, 4), index=dates,
                             columns=['A', 'B', 'C', 'D'])
 
-        expected = pd.concat([df_orig, DataFrame(
-            {'A': 7}, index=[dates[-1] + 1])])
+        expected = pd.concat([df_orig,
+                              DataFrame({'A': 7},
+                                        index=[dates[-1] + dates.freq])],
+                             sort=True)
         df = df_orig.copy()
-        df.loc[dates[-1] + 1, 'A'] = 7
+        df.loc[dates[-1] + dates.freq, 'A'] = 7
         tm.assert_frame_equal(df, expected)
         df = df_orig.copy()
-        df.at[dates[-1] + 1, 'A'] = 7
+        df.at[dates[-1] + dates.freq, 'A'] = 7
         tm.assert_frame_equal(df, expected)
 
-        exp_other = DataFrame({0: 7}, index=[dates[-1] + 1])
+        exp_other = DataFrame({0: 7}, index=[dates[-1] + dates.freq])
         expected = pd.concat([df_orig, exp_other], axis=1)
 
         df = df_orig.copy()
-        df.loc[dates[-1] + 1, 0] = 7
+        df.loc[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
         df = df_orig.copy()
-        df.at[dates[-1] + 1, 0] = 7
+        df.at[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
 
     def test_partial_setting_mixed_dtype(self):
@@ -204,10 +170,8 @@ class TestPartialSetting(object):
         # list-like must conform
         df = DataFrame(columns=['A', 'B'])
 
-        def f():
+        with pytest.raises(ValueError):
             df.loc[0] = [1, 2, 3]
-
-        pytest.raises(ValueError, f)
 
         # TODO: #15657, these are left as object and not coerced
         df = DataFrame(columns=['A', 'B'])
@@ -222,13 +186,21 @@ class TestPartialSetting(object):
         # Regression from GH4825
         ser = Series([0.1, 0.2], index=[1, 2])
 
-        # loc
+        # loc equiv to .reindex
         expected = Series([np.nan, 0.2, np.nan], index=[3, 2, 3])
-        result = ser.loc[[3, 2, 3]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ser.loc[[3, 2, 3]]
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+        result = ser.reindex([3, 2, 3])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         expected = Series([np.nan, 0.2, np.nan, np.nan], index=[3, 2, 3, 'x'])
-        result = ser.loc[[3, 2, 3, 'x']]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ser.loc[[3, 2, 3, 'x']]
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+        result = ser.reindex([3, 2, 3, 'x'])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         expected = Series([0.2, 0.2, 0.1], index=[2, 2, 1])
@@ -236,38 +208,74 @@ class TestPartialSetting(object):
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         expected = Series([0.2, 0.2, np.nan, 0.1], index=[2, 2, 'x', 1])
-        result = ser.loc[[2, 2, 'x', 1]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ser.loc[[2, 2, 'x', 1]]
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+        result = ser.reindex([2, 2, 'x', 1])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         # raises as nothing in in the index
-        pytest.raises(KeyError, lambda: ser.loc[[3, 3, 3]])
+        msg = (r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64'\)\] are"
+               r" in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
+            ser.loc[[3, 3, 3]]
 
         expected = Series([0.2, 0.2, np.nan], index=[2, 2, 3])
-        result = ser.loc[[2, 2, 3]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ser.loc[[2, 2, 3]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
+        result = ser.reindex([2, 2, 3])
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+        s = Series([0.1, 0.2, 0.3], index=[1, 2, 3])
         expected = Series([0.3, np.nan, np.nan], index=[3, 4, 4])
-        result = Series([0.1, 0.2, 0.3], index=[1, 2, 3]).loc[[3, 4, 4]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = s.loc[[3, 4, 4]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
+        result = s.reindex([3, 4, 4])
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+        s = Series([0.1, 0.2, 0.3, 0.4],
+                   index=[1, 2, 3, 4])
         expected = Series([np.nan, 0.3, 0.3], index=[5, 3, 3])
-        result = Series([0.1, 0.2, 0.3, 0.4],
-                        index=[1, 2, 3, 4]).loc[[5, 3, 3]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = s.loc[[5, 3, 3]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
+        result = s.reindex([5, 3, 3])
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+        s = Series([0.1, 0.2, 0.3, 0.4],
+                   index=[1, 2, 3, 4])
         expected = Series([np.nan, 0.4, 0.4], index=[5, 4, 4])
-        result = Series([0.1, 0.2, 0.3, 0.4],
-                        index=[1, 2, 3, 4]).loc[[5, 4, 4]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = s.loc[[5, 4, 4]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
+        result = s.reindex([5, 4, 4])
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+        s = Series([0.1, 0.2, 0.3, 0.4],
+                   index=[4, 5, 6, 7])
         expected = Series([0.4, np.nan, np.nan], index=[7, 2, 2])
-        result = Series([0.1, 0.2, 0.3, 0.4],
-                        index=[4, 5, 6, 7]).loc[[7, 2, 2]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = s.loc[[7, 2, 2]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
+        result = s.reindex([7, 2, 2])
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+        s = Series([0.1, 0.2, 0.3, 0.4],
+                   index=[1, 2, 3, 4])
         expected = Series([0.4, np.nan, np.nan], index=[4, 5, 5])
-        result = Series([0.1, 0.2, 0.3, 0.4],
-                        index=[1, 2, 3, 4]).loc[[4, 5, 5]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = s.loc[[4, 5, 5]]
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+        result = s.reindex([4, 5, 5])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         # iloc
@@ -284,13 +292,15 @@ class TestPartialSetting(object):
         # loc
         exp_idx = Index([3, 2, 3], dtype='int64', name='idx')
         expected = Series([np.nan, 0.2, np.nan], index=exp_idx, name='s')
-        result = ser.loc[[3, 2, 3]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ser.loc[[3, 2, 3]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         exp_idx = Index([3, 2, 3, 'x'], dtype='object', name='idx')
         expected = Series([np.nan, 0.2, np.nan, np.nan], index=exp_idx,
                           name='s')
-        result = ser.loc[[3, 2, 3, 'x']]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ser.loc[[3, 2, 3, 'x']]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         exp_idx = Index([2, 2, 1], dtype='int64', name='idx')
@@ -300,49 +310,61 @@ class TestPartialSetting(object):
 
         exp_idx = Index([2, 2, 'x', 1], dtype='object', name='idx')
         expected = Series([0.2, 0.2, np.nan, 0.1], index=exp_idx, name='s')
-        result = ser.loc[[2, 2, 'x', 1]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ser.loc[[2, 2, 'x', 1]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         # raises as nothing in in the index
-        pytest.raises(KeyError, lambda: ser.loc[[3, 3, 3]])
+        msg = (r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64',"
+               r" name='idx'\)\] are in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
+            ser.loc[[3, 3, 3]]
 
         exp_idx = Index([2, 2, 3], dtype='int64', name='idx')
         expected = Series([0.2, 0.2, np.nan], index=exp_idx, name='s')
-        result = ser.loc[[2, 2, 3]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ser.loc[[2, 2, 3]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         exp_idx = Index([3, 4, 4], dtype='int64', name='idx')
         expected = Series([0.3, np.nan, np.nan], index=exp_idx, name='s')
         idx = Index([1, 2, 3], dtype='int64', name='idx')
-        result = Series([0.1, 0.2, 0.3], index=idx, name='s').loc[[3, 4, 4]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = Series([0.1, 0.2, 0.3],
+                            index=idx,
+                            name='s').loc[[3, 4, 4]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         exp_idx = Index([5, 3, 3], dtype='int64', name='idx')
         expected = Series([np.nan, 0.3, 0.3], index=exp_idx, name='s')
         idx = Index([1, 2, 3, 4], dtype='int64', name='idx')
-        result = Series([0.1, 0.2, 0.3, 0.4], index=idx,
-                        name='s').loc[[5, 3, 3]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = Series([0.1, 0.2, 0.3, 0.4], index=idx,
+                            name='s').loc[[5, 3, 3]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         exp_idx = Index([5, 4, 4], dtype='int64', name='idx')
         expected = Series([np.nan, 0.4, 0.4], index=exp_idx, name='s')
         idx = Index([1, 2, 3, 4], dtype='int64', name='idx')
-        result = Series([0.1, 0.2, 0.3, 0.4], index=idx,
-                        name='s').loc[[5, 4, 4]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = Series([0.1, 0.2, 0.3, 0.4], index=idx,
+                            name='s').loc[[5, 4, 4]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         exp_idx = Index([7, 2, 2], dtype='int64', name='idx')
         expected = Series([0.4, np.nan, np.nan], index=exp_idx, name='s')
         idx = Index([4, 5, 6, 7], dtype='int64', name='idx')
-        result = Series([0.1, 0.2, 0.3, 0.4], index=idx,
-                        name='s').loc[[7, 2, 2]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = Series([0.1, 0.2, 0.3, 0.4], index=idx,
+                            name='s').loc[[7, 2, 2]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         exp_idx = Index([4, 5, 5], dtype='int64', name='idx')
         expected = Series([0.4, np.nan, np.nan], index=exp_idx, name='s')
         idx = Index([1, 2, 3, 4], dtype='int64', name='idx')
-        result = Series([0.1, 0.2, 0.3, 0.4], index=idx,
-                        name='s').loc[[4, 5, 5]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = Series([0.1, 0.2, 0.3, 0.4], index=idx,
+                            name='s').loc[[4, 5, 5]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         # iloc
@@ -351,6 +373,7 @@ class TestPartialSetting(object):
         result = ser.iloc[[1, 1, 0, 0]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
+    @pytest.mark.filterwarnings("ignore:\\n.ix")
     def test_partial_set_invalid(self):
 
         # GH 4940
@@ -360,38 +383,29 @@ class TestPartialSetting(object):
         df = orig.copy()
 
         # don't allow not string inserts
-        def f():
+        with pytest.raises(TypeError):
             with catch_warnings(record=True):
                 df.loc[100.0, :] = df.ix[0]
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(TypeError):
             with catch_warnings(record=True):
                 df.loc[100, :] = df.ix[0]
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(TypeError):
             with catch_warnings(record=True):
                 df.ix[100.0, :] = df.ix[0]
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             with catch_warnings(record=True):
                 df.ix[100, :] = df.ix[0]
-
-        pytest.raises(ValueError, f)
 
         # allow object conversion here
         df = orig.copy()
         with catch_warnings(record=True):
             df.loc['a', :] = df.ix[0]
-            exp = orig.append(pd.Series(df.ix[0], name='a'))
+            exp = orig.append(Series(df.ix[0], name='a'))
         tm.assert_frame_equal(df, exp)
-        tm.assert_index_equal(df.index,
-                              pd.Index(orig.index.tolist() + ['a']))
+        tm.assert_index_equal(df.index, Index(orig.index.tolist() + ['a']))
         assert df.index.dtype == 'object'
 
     def test_partial_set_empty_series(self):
@@ -425,26 +439,19 @@ class TestPartialSetting(object):
         # frame
         df = DataFrame()
 
-        def f():
+        with pytest.raises(ValueError):
             df.loc[1] = 1
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             df.loc[1] = Series([1], index=['foo'])
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             df.loc[:, 1] = 1
-
-        pytest.raises(ValueError, f)
 
         # these work as they don't really change
         # anything but the index
         # GH5632
-        expected = DataFrame(columns=['foo'], index=pd.Index(
-            [], dtype='int64'))
+        expected = DataFrame(columns=['foo'], index=Index([], dtype='int64'))
 
         def f():
             df = DataFrame()
@@ -467,8 +474,7 @@ class TestPartialSetting(object):
 
         tm.assert_frame_equal(f(), expected)
 
-        expected = DataFrame(columns=['foo'],
-                             index=pd.Index([], dtype='int64'))
+        expected = DataFrame(columns=['foo'], index=Index([], dtype='int64'))
         expected['foo'] = expected['foo'].astype('float64')
 
         def f():
@@ -480,24 +486,23 @@ class TestPartialSetting(object):
 
         def f():
             df = DataFrame()
-            df['foo'] = Series(range(len(df)))
+            df['foo'] = Series(np.arange(len(df)), dtype='float64')
             return df
 
         tm.assert_frame_equal(f(), expected)
 
         def f():
             df = DataFrame()
-            tm.assert_index_equal(df.index, pd.Index([], dtype='object'))
+            tm.assert_index_equal(df.index, Index([], dtype='object'))
             df['foo'] = range(len(df))
             return df
 
-        expected = DataFrame(columns=['foo'],
-                             index=pd.Index([], dtype='int64'))
+        expected = DataFrame(columns=['foo'], index=Index([], dtype='int64'))
         expected['foo'] = expected['foo'].astype('float64')
         tm.assert_frame_equal(f(), expected)
 
         df = DataFrame()
-        tm.assert_index_equal(df.columns, pd.Index([], dtype=object))
+        tm.assert_index_equal(df.columns, Index([], dtype=object))
         df2 = DataFrame()
         df2[1] = Series([1], index=['foo'])
         df.loc[:, 1] = Series([1], index=['foo'])
@@ -524,7 +529,7 @@ class TestPartialSetting(object):
         # GH5720, GH5744
         # don't create rows when empty
         expected = DataFrame(columns=['A', 'B', 'New'],
-                             index=pd.Index([], dtype='int64'))
+                             index=Index([], dtype='int64'))
         expected['A'] = expected['A'].astype('int64')
         expected['B'] = expected['B'].astype('float64')
         expected['New'] = expected['New'].astype('float64')
@@ -547,7 +552,7 @@ class TestPartialSetting(object):
         y = df[df.A > 5]
         result = y.reindex(columns=['A', 'B', 'C'])
         expected = DataFrame(columns=['A', 'B', 'C'],
-                             index=pd.Index([], dtype='int64'))
+                             index=Index([], dtype='int64'))
         expected['A'] = expected['A'].astype('int64')
         expected['B'] = expected['B'].astype('float64')
         expected['C'] = expected['C'].astype('float64')

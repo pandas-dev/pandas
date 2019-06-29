@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function
+from itertools import product
 
 import numpy as np
+import pytest
 
-from pandas import (DataFrame, Series, MultiIndex)
-from pandas.util.testing import assert_series_equal
-from pandas.compat import (range, product as cart_product)
+from pandas import DataFrame, MultiIndex, Period, Series, Timedelta, Timestamp
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestCounting(object):
+class TestCounting:
 
     def test_cumcount(self):
         df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'])
@@ -167,7 +166,7 @@ class TestCounting(object):
 
     def test_ngroup_cumcount_pair(self):
         # brute force comparison for all small series
-        for p in cart_product(range(3), repeat=4):
+        for p in product(range(3), repeat=4):
             df = DataFrame({'a': p})
             g = df.groupby(['a'])
 
@@ -195,3 +194,28 @@ class TestCounting(object):
                                 g.ngroup())
             assert_series_equal(Series(df['group_index'].values),
                                 g.cumcount())
+
+    @pytest.mark.parametrize('datetimelike', [
+        [Timestamp('2016-05-%02d 20:09:25+00:00' % i) for i in range(1, 4)],
+        [Timestamp('2016-05-%02d 20:09:25' % i) for i in range(1, 4)],
+        [Timedelta(x, unit="h") for x in range(1, 4)],
+        [Period(freq="2W", year=2017, month=x) for x in range(1, 4)]])
+    def test_count_with_datetimelike(self, datetimelike):
+        # test for #13393, where DataframeGroupBy.count() fails
+        # when counting a datetimelike column.
+
+        df = DataFrame({'x': ['a', 'a', 'b'], 'y': datetimelike})
+        res = df.groupby('x').count()
+        expected = DataFrame({'y': [2, 1]}, index=['a', 'b'])
+        expected.index.name = "x"
+        assert_frame_equal(expected, res)
+
+    def test_count_with_only_nans_in_first_group(self):
+        # GH21956
+        df = DataFrame({'A': [np.nan, np.nan], 'B': ['a', 'b'], 'C': [1, 2]})
+        result = df.groupby(['A', 'B']).C.count()
+        mi = MultiIndex(levels=[[], ['a', 'b']],
+                        codes=[[], []],
+                        names=['A', 'B'])
+        expected = Series([], index=mi, dtype=np.int64, name='C')
+        assert_series_equal(result, expected, check_index_type=False)
