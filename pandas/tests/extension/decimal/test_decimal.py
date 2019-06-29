@@ -394,7 +394,7 @@ def test_ufunc_fallback(data):
     a = data[:5]
     s = pd.Series(a, index=range(3, 8))
     result = np.abs(s)
-    expected = pd.Series(np.abs(a.astype(object)), index=range(3, 8))
+    expected = pd.Series(np.abs(a), index=range(3, 8))
     tm.assert_series_equal(result, expected)
 
 
@@ -408,3 +408,39 @@ def test_formatting_values_deprecated():
     with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
         repr(ser)
+
+
+def test_array_ufunc():
+    a = to_decimal([1, 2, 3])
+    result = np.exp(a)
+    expected = to_decimal(np.exp(a._data))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_array_ufunc_series():
+    a = to_decimal([1, 2, 3])
+    s = pd.Series(a)
+    result = np.exp(s)
+    expected = pd.Series(to_decimal(np.exp(a._data)))
+    tm.assert_series_equal(result, expected)
+
+
+def test_array_ufunc_series_scalar_other():
+    # check _HANDLED_TYPES
+    a = to_decimal([1, 2, 3])
+    s = pd.Series(a)
+    result = np.add(s, decimal.Decimal(1))
+    expected = pd.Series(np.add(a, decimal.Decimal(1)))
+    tm.assert_series_equal(result, expected)
+
+
+def test_array_ufunc_series_defer():
+    a = to_decimal([1, 2, 3])
+    s = pd.Series(a)
+
+    expected = pd.Series(to_decimal([2, 4, 6]))
+    r1 = np.add(s, a)
+    r2 = np.add(a, s)
+
+    tm.assert_series_equal(r1, expected)
+    tm.assert_series_equal(r2, expected)

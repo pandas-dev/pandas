@@ -288,3 +288,25 @@ def test_binary_ufunc_other_types(type_):
     result = np.add(a, b)
     expected = pd.Series(np.add(a.to_numpy(), b), name='name')
     tm.assert_series_equal(result, expected)
+
+
+def test_object_dtype_ok():
+
+    class Thing:
+        def __init__(self, value):
+            self.value = value
+
+        def __add__(self, other):
+            other = getattr(other, 'value', other)
+            return type(self)(self.value + other)
+
+        def __eq__(self, other):
+            return type(other) is Thing and self.value == other.value
+
+        def __repr__(self):
+            return 'Thing({})'.format(self.value)
+
+    s = pd.Series([Thing(1), Thing(2)])
+    result = np.add(s, Thing(1))
+    expected = pd.Series([Thing(2), Thing(3)])
+    tm.assert_series_equal(result, expected)
