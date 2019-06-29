@@ -850,19 +850,10 @@ class TestExcelFileRead:
 
         assert f.closed
 
+    def test_conflicting_excel_engines(self, read_ext):
+        # GH 26566
+        msg = "Engine should not be specified when passing an ExcelFile"
 
-@td.skip_if_no("openpyxl")
-@pytest.mark.parametrize('excel_engine', [
-    pytest.param('xlrd', marks=pytest.mark.skipif(
-        not td.safe_import("xlrd"), reason="no xlrd")),
-    pytest.param(None, marks=pytest.mark.skipif(
-        not td.safe_import("xlrd"), reason="no xlrd")),
-])
-def test_conflicting_excel_engines(read_ext, excel_engine, datapath):
-    # GH 26566
-    path = datapath("io", "data", 'test1{}'.format(read_ext))
-    msg = "Engine should not be specified when passing an ExcelFile"
-
-    with pd.ExcelFile(path, engine=excel_engine) as xl:
-        with pytest.raises(ValueError, match=msg):
-            pd.read_excel(xl, engine='openpyxl')
+        with pd.ExcelFile("test1" + read_ext) as xl:
+            with pytest.raises(ValueError, match=msg):
+                pd.read_excel(xl, engine='foo')
