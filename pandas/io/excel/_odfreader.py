@@ -57,7 +57,7 @@ class _ODFReader(_BaseExcelReader):
 
         raise ValueError("sheet {name} not found".format(name))
 
-    def get_sheet_data(self, sheet, convert_float):
+    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
         """Parse an ODF Table into a list of lists
         """
         from odf.table import TableCell, TableRow
@@ -71,7 +71,7 @@ class _ODFReader(_BaseExcelReader):
             empty_cells = 0
             table_row = []
             for j, sheet_cell in enumerate(sheet_cells):
-                value = self._get_cell_value(sheet_cell)
+                value = self._get_cell_value(sheet_cell, convert_float)
                 column_repeat = self._get_cell_repeat(sheet_cell)
 
                 if len(sheet_cell.childNodes) == 0:
@@ -129,13 +129,23 @@ class _ODFReader(_BaseExcelReader):
 
         return True
 
-    def _get_cell_value(self, cell):
+    def _get_cell_value(self, cell, convert_float: bool) -> Scalar:
         from odf.namespaces import OFFICENS
         cell_type = cell.attributes.get((OFFICENS, 'value-type'))
         if cell_type == 'boolean':
             cell_value = cell.attributes.get((OFFICENS, 'boolean'))
             return bool(cell_value)
-        elif cell_type in ('float', 'percentage'):
+        if cell_type is None:
+            return ''  # compat with xlrd
+        elif cell_type == 'float':
+            # GH5394
+            cell_value = float(cell.attributes.get((OFFICENS, 'value')))
+            if convert_float:
+                val = int(cell_value)
+                if val == cell_value:
+                    return val
+            return cell_value
+        elif cell_type == 'percentage':
             cell_value = cell.attributes.get((OFFICENS, 'value'))
             return float(cell_value)
         elif cell_type == 'string':
@@ -149,8 +159,6 @@ class _ODFReader(_BaseExcelReader):
         elif cell_type == 'time':
             cell_value = cell.attributes.get((OFFICENS, 'time-value'))
             return(pandas_isoduration_compatibility(cell_value))
-        elif cell_type is None:
-            return None
         else:
             raise ValueError('Unrecognized type {}'.format(cell_type))
 
