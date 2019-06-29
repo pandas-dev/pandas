@@ -304,7 +304,11 @@ class IntervalIndex(IntervalMixin, Index):
         -------
         boolean array
         """
-        return np.array([key in interval for interval in self], dtype='bool')
+        if isinstance(key, Interval):
+            raise TypeError('contains not defined for two intervals')
+
+        return ((self.left < key if self.open_left else self.left <= key) &
+                (key < self.right if self.open_right else key <= self.right))
 
     @Appender(_interval_shared_docs['to_tuples'] % dict(
         return_type="Index",
