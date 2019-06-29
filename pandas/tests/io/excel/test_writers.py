@@ -1178,6 +1178,21 @@ class TestExcelWriter(_WriterBase):
         expected.index = expected.index.astype(np.float64)
         tm.assert_frame_equal(expected, result)
 
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_raise_when_saving_timezones(self, engine, ext, dtype,
+                                         tz_aware_fixture):
+        # GH 27008, GH 7056
+        tz = tz_aware_fixture
+        data = pd.Timestamp('2019', tz=tz)
+        df = DataFrame([data], dtype=dtype)
+        with pytest.raises(ValueError, match="Excel does not support"):
+            df.to_excel(self.path)
+
+        data = data.to_pydatetime()
+        df = DataFrame([data], dtype=dtype)
+        with pytest.raises(ValueError, match="Excel does not support"):
+            df.to_excel(self.path)
+
 
 class TestExcelWriterEngineTests:
 
