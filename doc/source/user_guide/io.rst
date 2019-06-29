@@ -2188,6 +2188,7 @@ into a flat table.
 
 The max_level parameter provides more control over which level to end normalization.
 With max_level=1 the following snippet normalizes until 1st nesting level of the provided dict.
+
 .. ipython:: python
 
     data = [{
@@ -2195,8 +2196,7 @@ With max_level=1 the following snippet normalizes until 1st nesting level of the
         'Lookup': {'TextField': 'Some text',
                    'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
         'Image': {'a': 'b'}
-    }]
-
+     }]
     json_normalize(data, max_level=1)
 
 .. _io.jsonl:

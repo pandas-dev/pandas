@@ -26,8 +26,8 @@ def _convert_to_line_delimits(s):
     return convert_json_to_lines(s)
 
 
-def nested_to_record(ds, prefix: Optional[str] = "",
-                     sep: Optional[str] = ".", level: Optional[int] = 0,
+def nested_to_record(ds, prefix: str = "",
+                     sep: str = ".", level: int = 0,
                      max_level: Optional[int] = None):
     """
     A simplified json_normalize
@@ -113,7 +113,7 @@ def json_normalize(data: List[Dict],
                    meta_prefix: Optional[str] = None,
                    record_prefix: Optional[str] = None,
                    errors: Optional[str] = 'raise',
-                   sep: Optional[str] = '.',
+                   sep: str = '.',
                    max_level: Optional[int] = None):
     """
     Normalize semi-structured JSON data into a flat table.
