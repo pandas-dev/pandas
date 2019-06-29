@@ -40,6 +40,8 @@ class TestReaders:
             not td.safe_import("xlrd"), reason="no xlrd")),
         pytest.param('openpyxl', marks=pytest.mark.skipif(
             not td.safe_import("openpyxl"), reason="no openpyxl")),
+        pytest.param("odf", marks=pytest.mark.skipif(
+            not td.safe_import("odf"), reason="no odfpy")),
         pytest.param(None, marks=pytest.mark.skipif(
             not td.safe_import("xlrd"), reason="no xlrd")),
     ])
@@ -49,6 +51,11 @@ class TestReaders:
         """
         if request.param == 'openpyxl' and read_ext == '.xls':
             pytest.skip()
+        if request.param == 'odf' and read_ext != '.ods':
+            pytest.skip()
+        if read_ext == ".ods" and request.param != "odf":
+            pytest.skip()
+
         func = partial(pd.read_excel, engine=request.param)
         monkeypatch.chdir(datapath("io", "data"))
         monkeypatch.setattr(pd, 'read_excel', func)
@@ -733,13 +740,20 @@ class TestExcelFileRead:
             not td.safe_import("xlrd"), reason="no xlrd")),
         pytest.param('openpyxl', marks=pytest.mark.skipif(
             not td.safe_import("openpyxl"), reason="no openpyxl")),
+        pytest.param("odf", marks=pytest.mark.skipif(
+            not td.safe_import("odf"), reason="no odfpy")),        
         pytest.param(None, marks=pytest.mark.skipif(
             not td.safe_import("xlrd"), reason="no xlrd")),
     ])
-    def cd_and_set_engine(self, request, datapath, monkeypatch):
+    def cd_and_set_engine(self, request, datapath, monkeypatch, read_ext):
         """
         Change directory and set engine for ExcelFile objects.
         """
+        if request.param == 'odf' and read_ext != '.ods':
+            pytest.skip()
+        if read_ext == ".ods" and request.param != "odf":
+            pytest.skip()            
+
         func = partial(pd.ExcelFile, engine=request.param)
         monkeypatch.chdir(datapath("io", "data"))
         monkeypatch.setattr(pd, 'ExcelFile', func)
