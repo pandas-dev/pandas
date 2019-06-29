@@ -144,9 +144,9 @@ class TestnanopsDataFrame:
             # but nanops doesn't, so make that an exception
             elif targ.dtype.kind == 'O':
                 raise
-            tm.assert_almost_equal(targ.real, res.real,
+            tm.assert_almost_equal(np.real(targ), np.real(res),
                                    check_dtype=check_dtype)
-            tm.assert_almost_equal(targ.imag, res.imag,
+            tm.assert_almost_equal(np.imag(targ), np.imag(res),
                                    check_dtype=check_dtype)
 
     def check_fun_data(self, testfunc, targfunc, testarval, targarval,

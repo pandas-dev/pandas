@@ -79,6 +79,26 @@ a dict to a Series groupby aggregation (:ref:`whatsnew_0200.api_breaking.depreca
 
 See :ref:`groupby.aggregate.named` for more.
 
+.. _whatsnew_0250.enhancements.multiple_lambdas:
+
+Groupby Aggregation with multiple lambdas
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can now provide multiple lambda functions to a list-like aggregation in
+:class:`pandas.core.groupby.GroupBy.agg` (:issue:`26430`).
+
+.. ipython:: python
+
+   animals.groupby('kind').height.agg([
+       lambda x: x.iloc[0], lambda x: x.iloc[-1]
+   ])
+
+   animals.groupby('kind').agg([
+       lambda x: x.iloc[0] - x.iloc[1],
+       lambda x: x.iloc[0] + x.iloc[1]
+   ])
+
+Previously, these raised a ``SpecificationError``.
 
 .. _whatsnew_0250.enhancements.multi_index_repr:
 
@@ -138,6 +158,8 @@ Other enhancements
 - :meth:`DataFrame.describe` now formats integer percentiles without decimal point (:issue:`26660`)
 - Added support for reading SPSS .sav files using :func:`read_spss` (:issue:`26537`)
 - Added new option ``plotting.backend`` to be able to select a plotting backend different than the existing ``matplotlib`` one. Use ``pandas.set_option('plotting.backend', '<backend-module>')`` where ``<backend-module`` is a library implementing the pandas plotting API (:issue:`14130`)
+- :class:`pandas.offsets.BusinessHour` supports multiple opening hours intervals (:issue:`15481`)
+- :func:`read_excel` can now use ``openpyxl`` to read Excel files via the ``engine='openpyxl'`` argument. This will become the default in a future release (:issue:`11499`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -321,6 +343,35 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
     s = pd.Series(np.array(['a', 'ba', 'cba'], 'S'), dtype=object)
     s
     s.str.startswith(b'a')
+
+.. _whatsnew_0250.api_breaking.groupby_categorical:
+
+Categorical dtypes are preserved during groupby
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Previously, columns that were categorical, but not the groupby key(s) would be converted to ``object`` dtype during groupby operations. Pandas now will preserve these dtypes. (:issue:`18502`)
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {'payload': [-1, -2, -1, -2],
+        'col': pd.Categorical(["foo", "bar", "bar", "qux"], ordered=True)})
+   df
+   df.dtypes
+
+*Previous Behavior*:
+
+.. code-block:: python
+
+   In [5]: df.groupby('payload').first().col.dtype
+   Out[5]: dtype('O')
+
+*New Behavior*:
+
+.. ipython:: python
+
+   df.groupby('payload').first().col.dtype
+
 
 .. _whatsnew_0250.api_breaking.incompatible_index_unions:
 
@@ -509,6 +560,7 @@ Other API changes
 - Most Pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
 - The ``.str``-accessor has been disabled for 1-level :class:`MultiIndex`, use :meth:`MultiIndex.to_flat_index` if necessary (:issue:`23679`)
 - Removed support of gtk package for clipboards (:issue:`26563`)
+- Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
 
 .. _whatsnew_0250.deprecations:
 
@@ -538,6 +590,12 @@ by a ``Series`` or ``DataFrame`` with sparse values.
 
 The memory usage of the two approaches is identical. See :ref:`sparse.migration` for more (:issue:`19239`).
 
+msgpack format
+^^^^^^^^^^^^^^
+
+The msgpack format is deprecated as of 0.25 and will be removed in a future version. It is recommended to use pyarrow for on-the-wire transmission of pandas objects. (:issue:`27084`)
+
+
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 
@@ -552,6 +610,11 @@ Other deprecations
 - The :meth:`Series.ftype`, :meth:`Series.ftypes` and :meth:`DataFrame.ftypes` methods are deprecated and will be removed in a future version.
   Instead, use :meth:`Series.dtype` and :meth:`DataFrame.dtypes` (:issue:`26705`).
 - :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
+- :func:`read_table` has been undeprecated. (:issue:`25220`)
+- :attr:`Index.dtype_str` is deprecated. (:issue:`18262`)
+- :attr:`Series.imag` and :attr:`Series.real` are deprecated. (:issue:`18262`)
+- :meth:`Series.put` is deprecated. (:issue:`18262`)
+- :meth:`Index.item` and :meth:`Series.item` is deprecated. (:issue:`18262`)
 
 .. _whatsnew_0250.prior_deprecations:
 
@@ -641,6 +704,7 @@ Timezones
 - Bug in :func:`to_datetime` where an uninformative ``RuntimeError`` was raised when passing a naive :class:`Timestamp` with datetime strings with mixed UTC offsets (:issue:`25978`)
 - Bug in :func:`to_datetime` with ``unit='ns'`` would drop timezone information from the parsed argument (:issue:`26168`)
 - Bug in :func:`DataFrame.join` where joining a timezone aware index with a timezone aware column would result in a column of ``NaN`` (:issue:`26335`)
+- Bug in :func:`date_range` where ambiguous or nonexistent start or end times were not handled by the ``ambiguous`` or ``nonexistent`` keywords respectively (:issue:`27088`)
 
 Numeric
 ^^^^^^^
@@ -735,6 +799,7 @@ I/O
 - Fixed bug in :func:`pandas.read_csv` where a BOM would result in incorrect parsing using engine='python' (:issue:`26545`)
 - :func:`read_excel` now raises a ``ValueError`` when input is of type :class:`pandas.io.excel.ExcelFile` and ``engine`` param is passed since :class:`pandas.io.excel.ExcelFile` has an engine defined (:issue:`26566`)
 - Bug while selecting from :class:`HDFStore` with ``where=''`` specified (:issue:`26610`).
+- Fixed bug in :func:`DataFrame.to_excel()` where custom objects (i.e. `PeriodIndex`) inside merged cells were not being converted into types safe for the Excel writer (:issue:`27006`)
 
 Plotting
 ^^^^^^^^
@@ -810,8 +875,8 @@ ExtensionArray
 
 - Bug in :func:`factorize` when passing an ``ExtensionArray`` with a custom ``na_sentinel`` (:issue:`25696`).
 - :meth:`Series.count` miscounts NA values in ExtensionArrays (:issue:`26835`)
-- Keyword argument ``deep`` has been removed from :method:`ExtensionArray.copy` (:issue:`27083`)
 - Added ``Series.__array_ufunc__`` to better handle NumPy ufuncs applied to Series backed by extension arrays (:issue:`23293`).
+- Keyword argument ``deep`` has been removed from :meth:`ExtensionArray.copy` (:issue:`27083`)
 
 Other
 ^^^^^

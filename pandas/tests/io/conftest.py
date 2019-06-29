@@ -1,4 +1,3 @@
-from distutils.version import LooseVersion
 import os
 
 import pytest
@@ -43,12 +42,6 @@ def s3_resource(tips_file, jsonl_file):
     """
     pytest.importorskip('s3fs')
     boto3 = pytest.importorskip('boto3')
-    botocore = pytest.importorskip('botocore')
-
-    if LooseVersion(botocore.__version__) < LooseVersion("1.11.0"):
-        # botocore leaks an uncatchable ResourceWarning before 1.11.0;
-        # see GH 23731 and https://github.com/boto/botocore/issues/1464
-        pytest.skip("botocore is leaking resources before 1.11.0")
 
     with tm.ensure_safe_environment_variables():
         # temporary workaround as moto fails for botocore >= 1.11 otherwise,

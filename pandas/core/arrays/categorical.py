@@ -436,7 +436,7 @@ class Categorical(ExtensionArray, PandasObject):
         return self.dtype.ordered
 
     @property
-    def dtype(self):
+    def dtype(self) -> CategoricalDtype:
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance
         """
@@ -2004,9 +2004,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
 
         category_strs = self._repr_categories()
-        dtype = getattr(self.categories, 'dtype_str',
-                        str(self.categories.dtype))
-
+        dtype = str(self.categories.dtype)
         levheader = "Categories ({length}, {dtype}): ".format(
             length=len(self.categories), dtype=dtype)
         width, height = get_terminal_size()

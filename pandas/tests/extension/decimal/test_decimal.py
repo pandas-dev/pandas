@@ -192,7 +192,11 @@ class TestCasting(BaseDecimal, base.BaseCastingTests):
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
-    pass
+
+    @pytest.mark.xfail(
+        reason="needs to correctly define __eq__ to handle nans, xref #27081.")
+    def test_groupby_apply_identity(self, data_for_grouping):
+        super().test_groupby_apply_identity(data_for_grouping)
 
 
 class TestSetitem(BaseDecimal, base.BaseSetitemTests):
@@ -401,6 +405,6 @@ def test_formatting_values_deprecated():
 
     ser = pd.Series(DecimalArray2([decimal.Decimal('1.0')]))
 
-    with tm.assert_produces_warning(DeprecationWarning,
+    with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
         repr(ser)

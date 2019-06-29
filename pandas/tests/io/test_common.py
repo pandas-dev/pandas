@@ -45,6 +45,7 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 # https://github.com/cython/cython/issues/1720
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestCommonIOCapabilities:
     data1 = """index,A,B,C,D
 foo,2,3,4,5
@@ -160,6 +161,7 @@ bar2,12,13,14,15
 
     @pytest.mark.parametrize('reader, module, error_class, fn_ext', [
         (pd.read_csv, 'os', FileNotFoundError, 'csv'),
+        (pd.read_table, 'os', FileNotFoundError, 'csv'),
         (pd.read_fwf, 'os', FileNotFoundError, 'txt'),
         (pd.read_excel, 'xlrd', FileNotFoundError, 'xlsx'),
         (pd.read_feather, 'feather', Exception, 'feather'),
@@ -191,18 +193,9 @@ bar2,12,13,14,15
                 msg1, msg2, msg3, msg4, msg5)):
             reader(path)
 
-    def test_read_non_existant_read_table(self):
-        path = os.path.join(HERE, 'data', 'does_not_exist.' + 'csv')
-        msg1 = r"File b'.+does_not_exist\.csv' does not exist"
-        msg2 = (r"\[Errno 2\] File .+does_not_exist\.csv does not exist:"
-                r" '.+does_not_exist\.csv'")
-        with pytest.raises(FileNotFoundError, match=r"({}|{})".format(
-                msg1, msg2)):
-            with tm.assert_produces_warning(FutureWarning):
-                pd.read_table(path)
-
     @pytest.mark.parametrize('reader, module, path', [
         (pd.read_csv, 'os', ('io', 'data', 'iris.csv')),
+        (pd.read_table, 'os', ('io', 'data', 'iris.csv')),
         (pd.read_fwf, 'os', ('io', 'data', 'fixed_width_format.txt')),
         (pd.read_excel, 'xlrd', ('io', 'data', 'test1.xlsx')),
         (pd.read_feather, 'feather', ('io', 'data', 'feather-0_3_1.feather')),
@@ -221,21 +214,6 @@ bar2,12,13,14,15
         mypath = CustomFSPath(path)
         result = reader(mypath)
         expected = reader(path)
-
-        if path.endswith('.pickle'):
-            # categorical
-            tm.assert_categorical_equal(result, expected)
-        else:
-            tm.assert_frame_equal(result, expected)
-
-    def test_read_fspath_all_read_table(self, datapath):
-        path = datapath('io', 'data', 'iris.csv')
-
-        mypath = CustomFSPath(path)
-        with tm.assert_produces_warning(FutureWarning):
-            result = pd.read_table(mypath)
-        with tm.assert_produces_warning(FutureWarning):
-            expected = pd.read_table(path)
 
         if path.endswith('.pickle'):
             # categorical

@@ -19,7 +19,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import (
     ensure_float64, ensure_int64, ensure_int_or_float, ensure_object,
     ensure_platform_int, is_bool_dtype, is_categorical_dtype, is_complex_dtype,
-    is_datetime64_any_dtype, is_integer_dtype, is_numeric_dtype,
+    is_datetime64_any_dtype, is_integer_dtype, is_numeric_dtype, is_sparse,
     is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import _maybe_fill, isna
 
@@ -451,9 +451,9 @@ class BaseGrouper:
 
         # categoricals are only 1d, so we
         # are not setup for dim transforming
-        if is_categorical_dtype(values):
+        if is_categorical_dtype(values) or is_sparse(values):
             raise NotImplementedError(
-                "categoricals are not support in cython ops ATM")
+                "{} are not support in cython ops".format(values.dtype))
         elif is_datetime64_any_dtype(values):
             if how in ['add', 'prod', 'cumsum', 'cumprod']:
                 raise NotImplementedError(
@@ -475,7 +475,8 @@ class BaseGrouper:
         else:
             if axis > 0:
                 swapped = True
-                values = values.swapaxes(0, axis)
+                assert axis == 1, axis
+                values = values.T
             if arity > 1:
                 raise NotImplementedError("arity of more than 1 is not "
                                           "supported for the 'how' argument")
