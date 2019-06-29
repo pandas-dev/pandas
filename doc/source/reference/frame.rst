@@ -336,7 +336,6 @@ Serialization / IO / conversion
 .. autosummary::
    :toctree: api/
 
-   DataFrame.from_csv
    DataFrame.from_dict
    DataFrame.from_items
    DataFrame.from_records
