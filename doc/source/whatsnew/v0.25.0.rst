@@ -627,6 +627,9 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``pd.options.html.border`` (:issue:`16970`)
 - Removed the previously deprecated ``convert_objects`` (:issue:`11221`)
 - Removed the previously deprecated ``select`` method of ``DataFrame`` and ``Series`` (:issue:`17633`)
+- Removed the previously deprecated behavior of :class:`Series` treated as list-like in :meth:`~Series.cat.rename_categories` (:issue:`17982`)
+- Removed the previously deprecated ``DataFrame.reindex_axis`` and ``Series.reindex_axis``` (:issue:`17842`)
+- Removed the previously deprecated behavior of altering column or index labels with :meth:`Series.rename_axis` or :meth:`DataFrame.rename_axis` (:issue:`17842`)
 
 .. _whatsnew_0250.performance:
 
