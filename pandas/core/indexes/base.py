@@ -57,13 +57,6 @@ _index_doc_kwargs = dict(klass='Index', inplace='',
 _index_shared_docs = dict()
 
 
-def _try_get_item(x):
-    try:
-        return x.item()
-    except AttributeError:
-        return x
-
-
 def _make_comparison_op(op, cls):
     def cmp_method(self, other):
         if isinstance(other, (np.ndarray, Index, ABCSeries)):
@@ -690,7 +683,12 @@ class Index(IndexOpsMixin, PandasObject):
     def dtype_str(self):
         """
         Return the dtype str of the underlying data.
+
+        .. deprecated:: 0.25.0
         """
+        warnings.warn('`dtype_str` has been deprecated. Call `str` on the '
+                      'dtype attribute instead.', FutureWarning,
+                      stacklevel=2)
         return str(self.dtype)
 
     def ravel(self, order='C'):
