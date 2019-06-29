@@ -617,8 +617,8 @@ class TestToDatetime:
         'cache',
         [pytest.param(True,
                       marks=pytest.mark.xfail(
-                        reason="GH#18111 pd.unique treats 0 and False "
-                               "as equivalent")),
+                          reason="GH#18111 pd.unique treats 0 and False "
+                                 "as equivalent")),
          False])
     def test_datetime_bool(self, cache):
         # GH13176

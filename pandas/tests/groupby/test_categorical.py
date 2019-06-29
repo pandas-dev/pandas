@@ -4,8 +4,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY37
-
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, Index, MultiIndex, Series, qcut)
