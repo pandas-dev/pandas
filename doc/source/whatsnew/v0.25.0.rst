@@ -159,7 +159,8 @@ Other enhancements
 - Added support for reading SPSS .sav files using :func:`read_spss` (:issue:`26537`)
 - Added new option ``plotting.backend`` to be able to select a plotting backend different than the existing ``matplotlib`` one. Use ``pandas.set_option('plotting.backend', '<backend-module>')`` where ``<backend-module`` is a library implementing the pandas plotting API (:issue:`14130`)
 - :class:`pandas.offsets.BusinessHour` supports multiple opening hours intervals (:issue:`15481`)
-- :func:`pandas.io.excel.read_excel` supports reading OpenDocument tables. Specify engine='odf' to enable. (:issue:`9070`)  
+- :func:`read_excel` can now use ``openpyxl`` to read Excel files via the ``engine='openpyxl'`` argument. This will become the default in a future release (:issue:`11499`)
+- :func:`pandas.io.excel.read_excel` supports reading OpenDocument tables. Specify engine='odf' to enable. (:issue:`9070`)    
 
 .. _whatsnew_0250.api_breaking:
 
@@ -590,6 +591,12 @@ by a ``Series`` or ``DataFrame`` with sparse values.
 
 The memory usage of the two approaches is identical. See :ref:`sparse.migration` for more (:issue:`19239`).
 
+msgpack format
+^^^^^^^^^^^^^^
+
+The msgpack format is deprecated as of 0.25 and will be removed in a future version. It is recommended to use pyarrow for on-the-wire transmission of pandas objects. (:issue:`27084`)
+
+
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 
@@ -604,6 +611,11 @@ Other deprecations
 - The :meth:`Series.ftype`, :meth:`Series.ftypes` and :meth:`DataFrame.ftypes` methods are deprecated and will be removed in a future version.
   Instead, use :meth:`Series.dtype` and :meth:`DataFrame.dtypes` (:issue:`26705`).
 - :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
+- :func:`read_table` has been undeprecated. (:issue:`25220`)
+- :attr:`Index.dtype_str` is deprecated. (:issue:`18262`)
+- :attr:`Series.imag` and :attr:`Series.real` are deprecated. (:issue:`18262`)
+- :meth:`Series.put` is deprecated. (:issue:`18262`)
+- :meth:`Index.item` and :meth:`Series.item` is deprecated. (:issue:`18262`)
 
 .. _whatsnew_0250.prior_deprecations:
 
