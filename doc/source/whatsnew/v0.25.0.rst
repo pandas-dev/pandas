@@ -590,6 +590,12 @@ by a ``Series`` or ``DataFrame`` with sparse values.
 
 The memory usage of the two approaches is identical. See :ref:`sparse.migration` for more (:issue:`19239`).
 
+msgpack format
+^^^^^^^^^^^^^^
+
+The msgpack format is deprecated as of 0.25 and will be removed in a future version. It is recommended to use pyarrow for on-the-wire transmission of pandas objects. (:issue:`27084`)
+
+
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 

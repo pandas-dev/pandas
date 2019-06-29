@@ -2418,8 +2418,11 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Serialize object to input file path using msgpack format.
 
-        THIS IS AN EXPERIMENTAL LIBRARY and the storage format
-        may not be stable until a future release.
+        .. deprecated:: 0.25.0
+
+        to_msgpack is deprecated and will be removed in a future version.
+        It is recommended to use pyarrow for on-the-wire transmission of
+        pandas objects.
 
         Parameters
         ----------
