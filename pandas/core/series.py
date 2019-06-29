@@ -4307,7 +4307,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         names = ["path_or_buf", "sep", "na_rep", "float_format", "columns",
                  "header", "index", "index_label", "mode", "encoding",
                  "compression", "quoting", "quotechar", "line_terminator",
-                 "chunksize", "tupleize_cols", "date_format", "doublequote",
+                 "chunksize", "date_format", "doublequote",
                  "escapechar", "decimal"]
 
         old_names = ["path_or_buf", "index", "sep", "na_rep", "float_format",

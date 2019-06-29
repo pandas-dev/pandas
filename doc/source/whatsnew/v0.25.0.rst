@@ -627,6 +627,7 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``pd.options.html.border`` (:issue:`16970`)
 - Removed the previously deprecated ``convert_objects`` (:issue:`11221`)
 - Removed the previously deprecated ``select`` method of ``DataFrame`` and ``Series`` (:issue:`17633`)
+- Removed the previously deprecated ``tupleize_cols`` keyword argument in :meth:`read_html`, :meth:`read_csv`, and :meth:`to_csv` (:issue:`17877`, :issue:`17820`)
 
 .. _whatsnew_0250.performance:
 
