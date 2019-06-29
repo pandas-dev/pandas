@@ -922,8 +922,6 @@ class MultiIndex(Index):
         except (LookupError, TypeError, ValueError):
             return False
 
-    contains = __contains__
-
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None:
