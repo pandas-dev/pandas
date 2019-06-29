@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Int64Index, Interval, IntervalIndex
+from pandas import Interval, IntervalIndex
 from pandas.core.indexes.base import InvalidIndexError
 import pandas.util.testing as tm
 
@@ -233,10 +233,10 @@ class TestIntervalIndex:
         index = IntervalIndex.from_tuples(tuples, closed='left')
 
         result_indexer, result_missing = index.get_indexer_non_unique(query)
-        expected_indexer = Int64Index(expected[0])
+        expected_indexer = np.array(expected[0], dtype='intp')
         expected_missing = np.array(expected[1], dtype='intp')
 
-        tm.assert_index_equal(result_indexer, expected_indexer)
+        tm.assert_numpy_array_equal(result_indexer, expected_indexer)
         tm.assert_numpy_array_equal(result_missing, expected_missing)
 
         # TODO we may also want to test get_indexer for the case when

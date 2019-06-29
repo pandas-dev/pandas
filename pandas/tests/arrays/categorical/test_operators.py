@@ -399,8 +399,7 @@ class TestCategoricalOps:
         (pd.Interval(0.5, 1.5), False),
         ('a', False),
         (pd.Timestamp(1), False),
-        (pd.Timedelta(1), False),
-        (object(), False)], ids=str)
+        (pd.Timedelta(1), False)], ids=str)
     def test_contains_interval(self, item, expected):
         # GH 23705
         cat = Categorical(pd.IntervalIndex.from_breaks(range(3)))

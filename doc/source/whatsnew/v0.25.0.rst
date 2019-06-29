@@ -511,10 +511,10 @@ this would previously return ``True`` for any ``Interval`` overlapping an ``Inte
 
 .. ipython:: python
 
-    pd.Interval(1, 2, closed='neither') in ii
-    pd.Interval(-10, 10, closed='both') in ii
+   pd.Interval(1, 2, closed='neither') in ii
+   pd.Interval(-10, 10, closed='both') in ii
 
-The ``get_loc`` method now only returns locations for exact matches to ``Interval`` queries, as opposed to the previous behavior of
+The :meth:`~IntervalIndex.get_loc` method now only returns locations for exact matches to ``Interval`` queries, as opposed to the previous behavior of
 returning locations for overlapping matches.  A ``KeyError`` will be raised if an exact match is not found.
 
 *Previous behavior*:
@@ -529,17 +529,14 @@ returning locations for overlapping matches.  A ``KeyError`` will be raised if a
 
 *New behavior*:
 
-.. code-block:: python
+.. ipython:: python
+   :okexcept:
 
-   In [6]: ii.get_loc(pd.Interval(1, 5))
-   Out[6]: 1
+   ii.get_loc(pd.Interval(1, 5))
+   ii.get_loc(pd.Interval(2, 6))
 
-   In [7]: ii.get_loc(pd.Interval(2, 6))
-   ---------------------------------------------------------------------------
-   KeyError: Interval(2, 6, closed='right')
-
-Likewise, ``get_indexer`` and ``get_indexer_non_unique`` will also only return locations for exact matches to ``Interval`` queries, with
-``-1`` denoting that an exact match was not found.
+Likewise, :meth:`~IntervalIndex.get_indexer` and :meth:`~IntervalIndex.get_indexer_non_unique` will also only return locations for exact matches
+to ``Interval`` queries, with ``-1`` denoting that an exact match was not found.
 
 These indexing changes extend to querying a :class:`Series` or :class:`DataFrame` with an ``IntervalIndex`` index.
 
@@ -570,8 +567,8 @@ Selecting from a ``Series`` or ``DataFrame`` using ``[]`` (``__getitem__``) or `
 
 .. ipython:: python
 
-    s[pd.Interval(1, 5)]
-    s.loc[pd.Interval(1, 5)]
+   s[pd.Interval(1, 5)]
+   s.loc[pd.Interval(1, 5)]
 
 Similarly, non-exact matches will now raise a ``KeyError``.
 
@@ -595,15 +592,11 @@ Similarly, non-exact matches will now raise a ``KeyError``.
 
 *New behavior*:
 
-.. code-block:: python
+.. ipython:: python
+   :okexcept:
 
-   In [6]: s[pd.Interval(2, 6)]
-   ---------------------------------------------------------------------------
-   KeyError: Interval(2, 6, closed='right')
-
-   In [7]: s.loc[pd.Interval(2, 6)]
-   ---------------------------------------------------------------------------
-   KeyError: Interval(2, 6, closed='right')
+   s[pd.Interval(2, 6)]
+   s.loc[pd.Interval(2, 6)]
 
 
 .. _whatsnew_0250.api_breaking.deps:
@@ -780,7 +773,6 @@ Categorical
 - Bug in :func:`DataFrame.at` and :func:`Series.at` that would raise exception if the index was a :class:`CategoricalIndex` (:issue:`20629`)
 - Fixed bug in comparison of ordered :class:`Categorical` that contained missing values with a scalar which sometimes incorrectly resulted in ``True`` (:issue:`26504`)
 - Bug in :meth:`DataFrame.dropna` when the :class:`DataFrame` has a :class:`CategoricalIndex` containing :class:`Interval` objects incorrectly raised a ``TypeError`` (:issue:`25087`)
-- Bug in :class:`Categorical` and  :class:`CategoricalIndex` with :class:`Interval` values when using the ``in`` operator (``__contains``) with objects that are not comparable to the values in the ``Interval`` (:issue:`23705`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -870,7 +862,7 @@ Indexing
 - Bug in which :meth:`DataFrame.to_csv` caused a segfault for a reindexed data frame, when the indices were single-level :class:`MultiIndex` (:issue:`26303`).
 - Fixed bug where assigning a :class:`arrays.PandasArray` to a :class:`pandas.core.frame.DataFrame` would raise error (:issue:`26390`)
 - Allow keyword arguments for callable local reference used in the :meth:`DataFrame.query` string (:issue:`26426`)
-
+- Bug in :class:`Categorical` and  :class:`CategoricalIndex` with :class:`Interval` values when using the ``in`` operator (``__contains``) with objects that are not comparable to the values in the ``Interval`` (:issue:`23705`)
 
 Missing
 ^^^^^^^

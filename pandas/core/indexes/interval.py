@@ -1,6 +1,7 @@
 """ define the IntervalIndex """
 from operator import le, lt
 import textwrap
+from typing import Any, Optional, Tuple, Union
 import warnings
 
 import numpy as np
@@ -18,8 +19,10 @@ from pandas.core.dtypes.common import (
     ensure_platform_int, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype,
     is_dtype_equal, is_float, is_float_dtype, is_integer, is_integer_dtype,
     is_interval_dtype, is_list_like, is_number, is_object_dtype, is_scalar)
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import AnyArrayLike
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
@@ -623,7 +626,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         return key
 
-    def _can_reindex(self, indexer):
+    def _can_reindex(self, indexer: np.ndarray) -> None:
         """
         Check if we are allowing reindexing with this particular indexer.
 
@@ -776,7 +779,10 @@ class IntervalIndex(IntervalMixin, Index):
             stop = self._searchsorted_monotonic(key, 'right')
         return start, stop
 
-    def get_loc(self, key, method=None):
+    def get_loc(self,
+                key: Any,
+                method: Optional[str] = None
+                ) -> Union[int, slice, np.ndarray]:
         """
         Get integer location, slice or boolean mask for requested label.
 
@@ -815,6 +821,9 @@ class IntervalIndex(IntervalMixin, Index):
         0
         """
         self._check_method(method)
+
+        # list-like are invalid labels for II but in some cases may work, e.g
+        # single element array of comparable type, so guard against them early
         if is_list_like(key):
             raise KeyError(key)
 
@@ -829,6 +838,7 @@ class IntervalIndex(IntervalMixin, Index):
             try:
                 mask = op_left(self.left, key) & op_right(key, self.right)
             except TypeError:
+                # scalar is not comparable to II subtype --> invalid label
                 raise KeyError(key)
 
         matches = mask.sum()
@@ -847,7 +857,12 @@ class IntervalIndex(IntervalMixin, Index):
             None is specified as these are not yet implemented.
         """)}))
     @Appender(_index_shared_docs['get_indexer'])
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
+    def get_indexer(self,
+                    target: AnyArrayLike,
+                    method: Optional[str] = None,
+                    limit: Optional[int] = None,
+                    tolerance: Optional[Any] = None
+                    ) -> np.ndarray:
 
         self._check_method(method)
 
@@ -862,23 +877,29 @@ class IntervalIndex(IntervalMixin, Index):
             target = Index(target, dtype=object)
 
         if isinstance(target, IntervalIndex):
+            # equal indexes -> 1:1 positional match
             if self.equals(target):
                 return np.arange(len(self), dtype='intp')
-            elif self.closed != target.closed:
+
+            # different closed or incompatible subtype -> no matches
+            common_subtype = find_common_type([
+                self.dtype.subtype, target.dtype.subtype])
+            if self.closed != target.closed or is_object_dtype(common_subtype):
                 return np.repeat(np.intp(-1), len(target))
 
+            # non-overlapping -> at most one match per interval in target
+            # want exact matches -> need both left/right to match, so defer to
+            # left/right get_indexer, compare elementwise, equality -> match
             left_indexer = self.left.get_indexer(target.left)
             right_indexer = self.right.get_indexer(target.right)
             indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
         elif not is_object_dtype(target):
-            # homogeneous scalar index
+            # homogeneous scalar index: use IntervalTree
             target = self._maybe_convert_i8(target)
-            try:
-                indexer = self._engine.get_indexer(target.values)
-            except TypeError as e:
-                raise ValueError(e)
+            indexer = self._engine.get_indexer(target.values)
         else:
-            # heterogeneous index: defer elementwise to get_loc
+            # heterogeneous scalar index: defer elementwise to get_loc
+            # (non-overlapping so get_loc guarantees scalar of KeyError)
             indexer = []
             for key in target:
                 try:
@@ -890,16 +911,25 @@ class IntervalIndex(IntervalMixin, Index):
         return ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target):
+    def get_indexer_non_unique(self,
+                               target: AnyArrayLike
+                               ) -> Tuple[np.ndarray, np.ndarray]:
+
         try:
             target = ensure_index(target)
         except ValueError:
             target = Index(target, dtype=object)
 
-        if isinstance(target, IntervalIndex) and self.closed != target.closed:
-            return np.repeat(-1, len(target)), np.arange(len(target))
+        # check that target IntervalIndex is compatible
+        if isinstance(target, IntervalIndex):
+            common_subtype = find_common_type([
+                self.dtype.subtype, target.dtype.subtype])
+            if self.closed != target.closed or is_object_dtype(common_subtype):
+                # different closed or incompatible subtype -> no matches
+                return np.repeat(-1, len(target)), np.arange(len(target))
 
         if is_object_dtype(target) or isinstance(target, IntervalIndex):
+            # target might contain intervals: defer elementwise to get_loc
             indexer, missing = [], []
             for i, key in enumerate(target):
                 try:
@@ -918,9 +948,12 @@ class IntervalIndex(IntervalMixin, Index):
             indexer, missing = self._engine.get_indexer_non_unique(
                 target.values)
 
-        return ensure_index(indexer), ensure_platform_int(missing)
+        return ensure_platform_int(indexer), ensure_platform_int(missing)
 
-    def get_indexer_for(self, target, **kwargs):
+    def get_indexer_for(self,
+                        target: AnyArrayLike,
+                        **kwargs
+                        ) -> np.ndarray:
         """
         Guaranteed return of an indexer even when overlapping.
 
@@ -936,7 +969,12 @@ class IntervalIndex(IntervalMixin, Index):
             return self.get_indexer_non_unique(target, **kwargs)[0]
         return self.get_indexer(target, **kwargs)
 
-    def get_value(self, series, key):
+    @Appender(_index_shared_docs['get_value'] % _index_doc_kwargs)
+    def get_value(self,
+                  series: ABCSeries,
+                  key: Any
+                  ) -> Any:
+
         if com.is_bool_indexer(key):
             loc = key
         elif is_list_like(key):

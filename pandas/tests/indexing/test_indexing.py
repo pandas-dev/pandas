@@ -81,16 +81,20 @@ class TestFancy(Base):
                " ambiguous|"
                "Cannot index with multidimensional key|"
                r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]|"
+               "No matching signature found|"  # TypeError
+               "unhashable type: 'numpy.ndarray'"  # TypeError
                )
 
-        if (isinstance(obj, Series) and idxr_id == 'getitem'
-                and index.inferred_type in [
+        if (isinstance(obj, Series) and idxr_id == 'getitem' and
+                index.inferred_type in [
                     'string', 'datetime64', 'period', 'timedelta64',
                     'boolean', 'categorical']):
             idxr[nd3]
         else:
-            if (isinstance(obj, DataFrame) and idxr_id == 'getitem'
-                    and index.inferred_type == 'boolean'):
+            if (isinstance(obj, DataFrame) and idxr_id == 'getitem' and
+                    index.inferred_type == 'boolean'):
+                error = TypeError
+            elif idxr_id == 'getitem' and index.inferred_type == 'interval':
                 error = TypeError
             else:
                 error = ValueError
@@ -119,9 +123,14 @@ class TestFancy(Base):
 
         msg = (r"Buffer has wrong number of dimensions \(expected 1,"
                r" got 3\)|"
+               "The truth value of an array with more than one element is"
+               " ambiguous|"
+               "Only 1-dimensional input arrays are supported|"
                "'pandas._libs.interval.IntervalTree' object has no attribute"
                " 'set_value'|"  # AttributeError
                "unhashable type: 'numpy.ndarray'|"  # TypeError
+               "No matching signature found|"  # TypeError
+               r"^\[\[\["  # pandas.core.indexing.IndexingError
                )
 
         if ((idxr_id == 'iloc')

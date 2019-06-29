@@ -4469,8 +4469,7 @@ class Index(IndexOpsMixin, PandasObject):
             result = np.array(self)
         return result.argsort(*args, **kwargs)
 
-    def get_value(self, series, key):
-        """
+    _index_shared_docs['get_value'] = """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing.
 
@@ -4479,6 +4478,9 @@ class Index(IndexOpsMixin, PandasObject):
         scalar
             A value in the Series with the index of the key value in self.
         """
+
+    @Appender(_index_shared_docs['get_value'] % _index_doc_kwargs)
+    def get_value(self, series, key):
 
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
