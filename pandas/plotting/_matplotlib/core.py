@@ -332,6 +332,7 @@ class MPLPlot:
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)
+        # GH26173, don't filter out numeric extension types
         # Numeric categorical data gets caught by including np.number
         # in select_dtypes
         numeric_dtypes = [dtype for dtype in set(data.dtypes)
