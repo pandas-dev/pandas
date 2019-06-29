@@ -2196,7 +2196,7 @@ With max_level=1 the following snippet normalizes until 1st nesting level of the
                         'UserField': {'Id': 'ID001',
                                       'Name': 'Name001'}},
              'Image': {'a': 'b'}
-            }]
+             }]
     json_normalize(data, max_level=1)
 
 .. _io.jsonl:
