@@ -1709,6 +1709,11 @@ def _arith_method_SERIES(cls, op, special):
         rvalues = right
         if isinstance(rvalues, ABCSeries):
             rvalues = rvalues.values
+        elif (isinstance(rvalues, ABCIndexClass)
+              and rvalues.dtype.kind in 'fciu'):
+            # TOOD: We should do this unpacking unconditionally, but ATM doing
+            #  so breaks on DatetimeArray because it lacks ravel()
+            rvalues = rvalues._values
 
         with np.errstate(all='ignore'):
             result = na_op(lvalues, rvalues)

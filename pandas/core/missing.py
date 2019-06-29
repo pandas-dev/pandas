@@ -520,6 +520,26 @@ def fill_zeros(result, x, y, name, fill):
 
     Mask the nan's from x.
     """
+    if name == '__divmod__' and isinstance(result, tuple):
+        # GH#26987; sometimes we don't have a tuple when called
+        #  from dispatch_missing
+        res1 = fill_zeros(result[0], x, y, '__floordiv__', fill)
+        res2 = fill_zeros(result[1], x, y, '__mod__', fill)
+        mask = np.isinf(res1) & np.isinf(res2)
+        if mask.any():
+            res2[mask] = np.nan
+        return res1, res2
+
+    elif name == '__rdivmod__':
+        # GH#26987; sometimes we don't have a tuple when called
+        #  from dispatch_missing
+        res1 = fill_zeros(result[0], x, y, '__rfloordiv__', fill)
+        res2 = fill_zeros(result[1], x, y, '__rmod__', fill)
+        mask = np.isinf(res1) & np.isinf(res2)
+        if mask.any():
+            res2[mask] = np.nan
+        return res1, res2
+
     if fill is None or is_float_dtype(result):
         return result
 
