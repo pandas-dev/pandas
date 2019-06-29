@@ -2186,6 +2186,8 @@ into a flat table.
 
    json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
 
+The max_level parameter provides more control over which level to end normalization.
+With max_level=1 the following snippet normalizes until 1st nesting level of the provided dict.
 .. ipython:: python
 
     data = [{

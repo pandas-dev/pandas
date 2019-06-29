@@ -3,7 +3,7 @@
 
 from collections import defaultdict
 import copy
-from typing import DefaultDict, Dict, List, Union
+from typing import DefaultDict, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -26,8 +26,9 @@ def _convert_to_line_delimits(s):
     return convert_json_to_lines(s)
 
 
-def nested_to_record(ds, prefix: str = "", sep: str = ".", level: int = 0,
-                     max_level: int = None):
+def nested_to_record(ds, prefix: Optional[str] = "",
+                     sep: Optional[str] = ".", level: Optional[int] = 0,
+                     max_level: Optional[int] = None):
     """
     A simplified json_normalize
 
@@ -107,13 +108,13 @@ def nested_to_record(ds, prefix: str = "", sep: str = ".", level: int = 0,
 
 
 def json_normalize(data: List[Dict],
-                   record_path: Union[str, List] = None,
-                   meta: Union[str, List] = None,
-                   meta_prefix: str = None,
-                   record_prefix: str = None,
-                   errors: str = 'raise',
-                   sep: str = '.',
-                   max_level: int = None):
+                   record_path: Optional[Union[str, List]] = None,
+                   meta: Optional[Union[str, List]] = None,
+                   meta_prefix: Optional[str] = None,
+                   record_prefix: Optional[str] = None,
+                   errors: Optional[str] = 'raise',
+                   sep: Optional[str] = '.',
+                   max_level: Optional[int] = None):
     """
     Normalize semi-structured JSON data into a flat table.
 
