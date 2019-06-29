@@ -1,11 +1,15 @@
+from typing import List
+
 import pandas as pd
+
+from pandas._typing import FilePathOrBuffer, Scalar
 
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.io.parsers import TextParser
+from pandas.io.excel._base import _BaseExcelReader
 
 
-class _ODFReader:
+class _ODFReader(_BaseExcelReader):
     """Read tables out of OpenDocument formatted files
 
     Parameters
@@ -13,42 +17,45 @@ class _ODFReader:
     filepath_or_buffer: string, path to be parsed or
         an open readable stream.
     """
-    def __init__(self, filepath_or_buffer):
+    def __init__(self, filepath_or_buffer: FilePathOrBuffer):
         import_optional_dependency("odf")
-        self.document = document_load(filepath_or_buffer)
-        self.tables = self.document.getElementsByType(Table)
         super().__init__(filepath_or_buffer)
 
     @property
-    def sheet_names(self):
+    def _workbook_class(self):
+        from odf.opendocument import OpenDocument
+        return OpenDocument
+
+    def load_workbook(self, filepath_or_buffer: FilePathOrBuffer):
+        from odf.opendocument import load
+        return load(filepath_or_buffer)
+
+    @property
+    def sheet_names(self) -> List[str]:
         """Return a list of sheet names present in the document"""
         from odf.namespaces import TABLENS
-        return [t.attributes[(TABLENS, 'name')] for t in self.tables]
+        from odf.table import Table
 
-    def get_sheet_by_index(self, index):
-        return self.tables[index]
+        tables = self.book.getElementsByType(Table)
+        return [t.attributes[(TABLENS, 'name')] for t in tables]
 
-    def get_sheet_by_name(self, name):
-        i = self.sheet_names.index(name)
-        return self.tables[i]
+    def get_sheet_by_index(self, index: int):
+        from odf.table import Table
+        tables = self.book.getElementsByType(Table)
+        return tables[index]
 
-    def _get_sheet(self, name):
-        """Given a sheet name or index, return the root ODF Table node
-        """
-        if isinstance(name, str):
-            return self.get_sheet_by_name(name)
-        elif isinstance(name, int):
-            return self.get_sheet_by_index(name)
-        else:
-            raise ValueError(
-                'Unrecognized sheet identifier type {}. Please use'
-                'a string or integer'.format(type(name)))
+    def get_sheet_by_name(self, name: str):
+        from odf.namespaces import TABLENS
+        from odf.table import Table
 
-    def parse(self, sheet_name=0, **kwds):
-        tree = self._get_sheet(sheet_name)
-        data = self.get_sheet_data(tree, convert_float=False)
-        parser = TextParser(data, **kwds)
-        return parser.read()
+        tables = self.book.getElementsByType(Table)
+
+        key = (TABLENS, "name")
+        for table in tables:
+            if table.attributes[key] == name:
+                return table
+
+        raise ValueError("sheet {name} not found".format(name))
 
     def get_sheet_data(self, sheet, convert_float):
         """Parse an ODF Table into a list of lists
@@ -97,7 +104,6 @@ class _ODFReader:
 
     def _get_row_repeat(self, row):
         """Return number of times this row was repeated
-
         Repeating an empty row appeared to be a common way
         of representing sparse rows in the table.
         """

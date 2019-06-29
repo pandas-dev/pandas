@@ -9,32 +9,6 @@ import pandas.util.testing as tm
 pytest.importorskip("odf")
 
 
-def test_get_sheet(datapath):
-    from pandas.io.excel._odfreader import ODFReader
-
-    pth = datapath("io", "data", "datatypes.ods")
-    book = ODFReader(pth)
-
-    assert len(book.sheet_names) == 1
-    assert book.sheet_names == ['Sheet1']
-
-
-def test_get_sheet_raises(datapath):
-    from pandas.io.excel._odfreader import ODFReader
-
-    pth = datapath("io", "data", 'datatypes.ods')
-    book = ODFReader(pth)
-
-    with pytest.raises(ValueError):
-        book._get_sheet(3.14)
-
-    with pytest.raises(ValueError):
-        book.get_sheet_by_name("Invalid Sheet 77")
-
-    with pytest.raises(IndexError):
-        book.get_sheet_by_index(-33)
-
-
 def test_read_types(datapath):
     path = datapath("io", "data", "datatypes.ods")
     sheet = pd.read_excel(path, header=None, engine='odf')
