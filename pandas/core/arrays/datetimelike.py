@@ -302,14 +302,14 @@ default 'raise'
         try:
             result = round_nsint64(values, mode, freq)
         except ValueError as e:
-            # non-fixed offset, cannot do ns calculation.
-            # user freq.rollforward/back machinery instead
-            offset = frequencies.to_offset(freq)
             if "non-fixed" in str(e):
+                offset = frequencies.to_offset(freq)
                 if mode == RoundTo.PLUS_INFTY:
-                    result = (self + offset).asi8
+                    result = self.to_period(offset) \
+                        .to_timestamp(how='end').asi8
                 elif mode == RoundTo.MINUS_INFTY:
-                    result = (self - offset).asi8
+                    result = self.to_period(offset) \
+                        .to_timestamp(how='start').asi8
                 elif mode == RoundTo.NEAREST_HALF_EVEN:
                     msg = ("round only supports fixed offsets "
                            "(i.e. 'Day' is ok, 'MonthEnd' is not). "
@@ -318,6 +318,7 @@ default 'raise'
                     raise ValueError(msg)
                 else:
                     raise e
+
         result = self._maybe_mask_results(result, fill_value=NaT)
 
         dtype = self.dtype
