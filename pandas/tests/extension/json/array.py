@@ -143,7 +143,7 @@ class JSONArray(ExtensionArray):
 
         return self._from_sequence(output)
 
-    def copy(self, deep=False):
+    def copy(self):
         return type(self)(self.data[:])
 
     def astype(self, dtype, copy=True):

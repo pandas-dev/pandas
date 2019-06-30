@@ -55,7 +55,7 @@ class StringMixin:
         return str(self)
 
 
-class PandasObject(StringMixin, DirNamesMixin):
+class PandasObject(DirNamesMixin):
 
     """baseclass for various pandas objects"""
 
@@ -64,7 +64,7 @@ class PandasObject(StringMixin, DirNamesMixin):
         """class constructor (for this class it's just `__class__`"""
         return self.__class__
 
-    def __str__(self):
+    def __repr__(self):
         """
         Return a string representation for a particular object.
         """
@@ -340,11 +340,15 @@ class SelectionMixin:
             def nested_renaming_depr(level=4):
                 # deprecation of nested renaming
                 # GH 15931
-                warnings.warn(
-                    ("using a dict with renaming "
-                     "is deprecated and will be removed in a future "
-                     "version"),
-                    FutureWarning, stacklevel=level)
+                msg = textwrap.dedent("""\
+                using a dict with renaming is deprecated and will be removed
+                in a future version.
+
+                For column-specific groupby renaming, use named aggregation
+
+                    >>> df.groupby(...).agg(name=('column', aggfunc))
+                """)
+                warnings.warn(msg, FutureWarning, stacklevel=level)
 
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
@@ -634,8 +638,8 @@ class SelectionMixin:
 
 
 class IndexOpsMixin:
-    """ common ops mixin to support a unified interface / docs for Series /
-    Index
+    """
+    Common ops mixin to support a unified interface / docs for Series / Index
     """
 
     # ndarray compatibility
@@ -652,8 +656,8 @@ class IndexOpsMixin:
         nv.validate_transpose(args, kwargs)
         return self
 
-    T = property(transpose, doc="Return the transpose, which is by "
-                                "definition self.")
+    T = property(transpose, doc="""\nReturn the transpose, which is by
+                                definition self.\n""")
 
     @property
     def _is_homogeneous_type(self):
@@ -689,11 +693,15 @@ class IndexOpsMixin:
         """
         Return the first element of the underlying data as a python scalar.
 
+        .. deprecated 0.25.0
+
         Returns
         -------
         scalar
             The first element of %(klass)s.
         """
+        warnings.warn('`item` has been deprecated and will be removed in a '
+                      'future version', FutureWarning, stacklevel=2)
         return self.values.item()
 
     @property
@@ -1133,7 +1141,7 @@ class IndexOpsMixin:
         -------
         iterator
         """
-        # We are explicity making element iterators.
+        # We are explicitly making element iterators.
         if is_datetimelike(self._values):
             return map(com.maybe_box_datetimelike, self._values)
         elif is_extension_array_dtype(self._values):

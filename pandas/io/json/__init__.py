@@ -1,4 +1,4 @@
-from .json import to_json, read_json, loads, dumps  # noqa
+from .json import dumps, loads, read_json, to_json  # noqa
 from .normalize import json_normalize  # noqa
 from .table_schema import build_table_schema  # noqa
 

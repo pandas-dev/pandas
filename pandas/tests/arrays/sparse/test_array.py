@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
-from pandas.compat.numpy import _np_version_under1p16
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -175,8 +174,8 @@ class TestSparseArray:
     @pytest.mark.parametrize('format', ['coo', 'csc', 'csr'])
     @pytest.mark.parametrize('size', [
         pytest.param(0,
-                     marks=pytest.mark.skipif(_np_version_under1p16,
-                                              reason='NumPy-11383')),
+                     marks=td.skip_if_np_lt("1.16",
+                                            reason='NumPy-11383')),
         10
     ])
     @td.skip_if_no_scipy
@@ -215,6 +214,7 @@ class TestSparseArray:
         assert exp.dtype == dtype
 
     @pytest.mark.parametrize("fill", [1, np.nan, 0])
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse_series_round_trip(self, kind, fill):
         # see gh-13999
         arr = SparseArray([np.nan, 1, np.nan, 2, 3],
@@ -231,6 +231,7 @@ class TestSparseArray:
         tm.assert_sp_array_equal(arr, res)
 
     @pytest.mark.parametrize("fill", [True, False, np.nan])
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse_series_round_trip2(self, kind, fill):
         # see gh-13999
         arr = SparseArray([True, False, True, True], dtype=np.bool,
@@ -590,9 +591,9 @@ class TestSparseArray:
         with pytest.raises(ValueError, match=msg):
             arr.fill_value = val
 
-    def test_copy_shallow(self):
-        arr2 = self.arr.copy(deep=False)
-        assert arr2.sp_values is self.arr.sp_values
+    def test_copy(self):
+        arr2 = self.arr.copy()
+        assert arr2.sp_values is not self.arr.sp_values
         assert arr2.sp_index is self.arr.sp_index
 
     def test_values_asarray(self):
@@ -868,7 +869,7 @@ class TestSparseArrayAnalytics:
         ([1, 2, 1], 1, 0),
         ([1.0, 2.0, 1.0], 1.0, 0.0)
     ])
-    @td.skip_if_np_lt_115  # prior didn't dispatch
+    @td.skip_if_np_lt("1.15")  # prior didn't dispatch
     def test_numpy_all(self, data, pos, neg):
         # GH 17570
         out = np.all(SparseArray(data))
@@ -914,7 +915,7 @@ class TestSparseArrayAnalytics:
         ([0, 2, 0], 2, 0),
         ([0.0, 2.0, 0.0], 2.0, 0.0)
     ])
-    @td.skip_if_np_lt_115  # prior didn't dispatch
+    @td.skip_if_np_lt("1.15")  # prior didn't dispatch
     def test_numpy_any(self, data, pos, neg):
         # GH 17570
         out = np.any(SparseArray(data))
@@ -1070,6 +1071,16 @@ class TestSparseArrayAnalytics:
         result = SparseArray([2, 0, 1, -1], fill_value=1)
         tm.assert_sp_array_equal(np.add(sparse, 1), result)
 
+    @pytest.mark.parametrize('fill_value', [0.0, np.nan])
+    def test_modf(self, fill_value):
+        # https://github.com/pandas-dev/pandas/issues/26946
+        sparse = pd.SparseArray([fill_value] * 10 + [1.1, 2.2],
+                                fill_value=fill_value)
+        r1, r2 = np.modf(sparse)
+        e1, e2 = np.modf(np.asarray(sparse))
+        tm.assert_sp_array_equal(r1, pd.SparseArray(e1, fill_value=fill_value))
+        tm.assert_sp_array_equal(r2, pd.SparseArray(e2, fill_value=fill_value))
+
     def test_nbytes_integer(self):
         arr = SparseArray([1, 0, 0, 0, 2], kind='integer')
         result = arr.nbytes
@@ -1098,6 +1109,7 @@ class TestSparseArrayAnalytics:
         assert arr.npoints == 1
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestAccessor:
 
     @pytest.mark.parametrize('attr', [

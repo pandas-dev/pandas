@@ -341,6 +341,9 @@ class ExcelFormatter:
         This is only called for body cells.
     """
 
+    max_rows = 2**20
+    max_cols = 2**14
+
     def __init__(self, df, na_rep='', float_format=None, cols=None,
                  header=True, index=True, index_label=None, merge_cells=False,
                  inf_rep='inf', style_converter=None):
@@ -399,6 +402,10 @@ class ExcelFormatter:
                 val = '-{inf}'.format(inf=self.inf_rep)
             elif self.float_format is not None:
                 val = float(self.float_format % val)
+        if getattr(val, 'tzinfo', None) is not None:
+            raise ValueError('Excel does not support datetimes with '
+                             'timezones. Please ensure that datetimes '
+                             'are timezone unaware before writing to Excel.')
         return val
 
     def _format_header_mi(self):
@@ -554,7 +561,7 @@ class ExcelFormatter:
 
             # MultiIndex columns require an extra row
             # with index names (blank if None) for
-            # unambigous round-trip, unless not merging,
+            # unambiguous round-trip, unless not merging,
             # in which case the names all go on one row Issue #11328
             if isinstance(self.columns, ABCMultiIndex) and self.merge_cells:
                 self.rowcounter += 1
@@ -647,6 +654,13 @@ class ExcelFormatter:
         """
         from pandas.io.excel import ExcelWriter
         from pandas.io.common import _stringify_path
+
+        num_rows, num_cols = self.df.shape
+        if num_rows > self.max_rows or num_cols > self.max_cols:
+            raise ValueError("This sheet is too large! Your sheet size is: " +
+                             "{}, {} ".format(num_rows, num_cols) +
+                             "Max sheet size is: {}, {}".
+                             format(self.max_rows, self.max_cols))
 
         if isinstance(writer, ExcelWriter):
             need_save = False

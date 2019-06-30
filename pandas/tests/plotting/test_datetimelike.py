@@ -26,8 +26,9 @@ class TestTSPlot(TestPlotBase):
     def setup_method(self, method):
         TestPlotBase.setup_method(self, method)
 
-        freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
-        idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
+        self.freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
+        idx = [
+            period_range('12/31/1999', freq=x, periods=100) for x in self.freq]
         self.period_ser = [Series(np.random.randn(len(x)), x) for x in idx]
         self.period_df = [DataFrame(np.random.randn(len(x), 3), index=x,
                                     columns=['A', 'B', 'C'])
@@ -160,7 +161,7 @@ class TestTSPlot(TestPlotBase):
             _check_plot_works(ser.plot, ax=ax)
 
     def test_get_datevalue(self):
-        from pandas.plotting._converter import get_datevalue
+        from pandas.plotting._matplotlib.converter import get_datevalue
         assert get_datevalue(None, 'D') is None
         assert get_datevalue(1987, 'A') == 1987
         assert (get_datevalue(Period(1987, 'A'), 'M') ==
@@ -210,6 +211,16 @@ class TestTSPlot(TestPlotBase):
             _check_plot_works(s.plot, s.index.freq)
 
     @pytest.mark.slow
+    @pytest.mark.parametrize(
+        'frqncy', ['1S', '3S', '5T', '7H', '4D', '8W', '11M', '3A'])
+    def test_line_plot_period_mlt_series(self, frqncy):
+        # test period index line plot for series with multiples (`mlt`) of the
+        # frequency (`frqncy`) rule code. tests resolution of issue #14763
+        idx = period_range('12/31/1999', freq=frqncy, periods=100)
+        s = Series(np.random.randn(len(idx)), idx)
+        _check_plot_works(s.plot, s.index.freq.rule_code)
+
+    @pytest.mark.slow
     def test_line_plot_datetime_series(self):
         for s in self.datetime_ser:
             _check_plot_works(s.plot, s.index.freq.rule_code)
@@ -218,6 +229,19 @@ class TestTSPlot(TestPlotBase):
     def test_line_plot_period_frame(self):
         for df in self.period_df:
             _check_plot_works(df.plot, df.index.freq)
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
+        'frqncy', ['1S', '3S', '5T', '7H', '4D', '8W', '11M', '3A'])
+    def test_line_plot_period_mlt_frame(self, frqncy):
+        # test period index line plot for DataFrames with multiples (`mlt`)
+        # of the frequency (`frqncy`) rule code. tests resolution of issue
+        # #14763
+        idx = period_range('12/31/1999', freq=frqncy, periods=100)
+        df = DataFrame(np.random.randn(len(idx), 3), index=idx,
+                       columns=['A', 'B', 'C'])
+        freq = df.index.asfreq(df.index.freq.rule_code).freq
+        _check_plot_works(df.plot, freq)
 
     @pytest.mark.slow
     def test_line_plot_datetime_frame(self):
@@ -261,7 +285,7 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_uhf(self):
-        import pandas.plotting._converter as conv
+        import pandas.plotting._matplotlib.converter as conv
         idx = date_range('2012-6-22 21:59:51.960928', freq='L', periods=500)
         df = DataFrame(np.random.randn(len(idx), 2), index=idx)
 
@@ -350,7 +374,6 @@ class TestTSPlot(TestPlotBase):
         def _test(ax):
             xlim = ax.get_xlim()
             ax.set_xlim(xlim[0] - 5, xlim[1] + 10)
-            ax.get_figure().canvas.draw()
             result = ax.get_xlim()
             assert result[0] == xlim[0] - 5
             assert result[1] == xlim[1] + 10
@@ -359,7 +382,6 @@ class TestTSPlot(TestPlotBase):
             expected = (Period('1/1/2000', ax.freq),
                         Period('4/1/2000', ax.freq))
             ax.set_xlim('1/1/2000', '4/1/2000')
-            ax.get_figure().canvas.draw()
             result = ax.get_xlim()
             assert int(result[0]) == expected[0].ordinal
             assert int(result[1]) == expected[1].ordinal
@@ -368,7 +390,6 @@ class TestTSPlot(TestPlotBase):
             expected = (Period('1/1/2000', ax.freq),
                         Period('4/1/2000', ax.freq))
             ax.set_xlim(datetime(2000, 1, 1), datetime(2000, 4, 1))
-            ax.get_figure().canvas.draw()
             result = ax.get_xlim()
             assert int(result[0]) == expected[0].ordinal
             assert int(result[1]) == expected[1].ordinal
@@ -392,7 +413,7 @@ class TestTSPlot(TestPlotBase):
             _test(ax)
 
     def test_get_finder(self):
-        import pandas.plotting._converter as conv
+        import pandas.plotting._matplotlib.converter as conv
 
         assert conv.get_finder('B') == conv._daily_finder
         assert conv.get_finder('D') == conv._daily_finder
@@ -405,12 +426,7 @@ class TestTSPlot(TestPlotBase):
     def test_finder_daily(self):
         day_lst = [10, 40, 252, 400, 950, 2750, 10000]
 
-        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
-            xpl1 = xpl2 = [Period('1999-1-1', freq='B').ordinal] * len(day_lst)
-        else:  # 2.2.3, 2.2.4
-            xpl1 = [7565, 7564, 7553, 7546, 7518, 7428, 7066]
-            xpl2 = [7566, 7564, 7554, 7546, 7519, 7429, 7066]
-
+        xpl1 = xpl2 = [Period('1999-1-1', freq='B').ordinal] * len(day_lst)
         rs1 = []
         rs2 = []
         for i, n in enumerate(day_lst):
@@ -433,12 +449,7 @@ class TestTSPlot(TestPlotBase):
     def test_finder_quarterly(self):
         yrs = [3.5, 11]
 
-        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
-            xpl1 = xpl2 = [Period('1988Q1').ordinal] * len(yrs)
-        else:  # 2.2.3, 2.2.4
-            xpl1 = [68, 68]
-            xpl2 = [72, 68]
-
+        xpl1 = xpl2 = [Period('1988Q1').ordinal] * len(yrs)
         rs1 = []
         rs2 = []
         for i, n in enumerate(yrs):
@@ -461,12 +472,7 @@ class TestTSPlot(TestPlotBase):
     def test_finder_monthly(self):
         yrs = [1.15, 2.5, 4, 11]
 
-        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
-            xpl1 = xpl2 = [Period('Jan 1988').ordinal] * len(yrs)
-        else:  # 2.2.3, 2.2.4
-            xpl1 = [216, 216, 204, 204]
-            xpl2 = [216, 216, 216, 204]
-
+        xpl1 = xpl2 = [Period('Jan 1988').ordinal] * len(yrs)
         rs1 = []
         rs2 = []
         for i, n in enumerate(yrs):
@@ -497,11 +503,7 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_finder_annual(self):
-        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
-            xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
-        else:  # 2.2.3, 2.2.4
-            xp = [1986, 1986, 1990, 1990, 1995, 2020, 1970, 1970]
-
+        xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
         xp = [Period(x, freq='A').ordinal for x in xp]
         rs = []
         for i, nyears in enumerate([5, 10, 19, 49, 99, 199, 599, 1001]):
@@ -1069,7 +1071,6 @@ class TestTSPlot(TestPlotBase):
         df.plot(ax=ax)
 
         # verify tick labels
-        fig.canvas.draw()
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
@@ -1096,7 +1097,6 @@ class TestTSPlot(TestPlotBase):
         df.plot(ax=ax)
 
         # verify tick labels
-        fig.canvas.draw()
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
@@ -1114,7 +1114,6 @@ class TestTSPlot(TestPlotBase):
         ax.set_xlim('1:30', '5:00')
 
         # check tick labels again
-        fig.canvas.draw()
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
@@ -1141,7 +1140,6 @@ class TestTSPlot(TestPlotBase):
         ax = df.plot(ax=ax)
 
         # verify tick labels
-        fig.canvas.draw()
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
@@ -1408,7 +1406,7 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame(np.random.randn(len(rng), 3), rng)
         fig, ax = self.plt.subplots()
         df.plot(fontsize=2, ax=ax)
-        fig.canvas.draw()
+        self.plt.draw()
         labels = ax.get_xticklabels()
 
         result_labels = [x.get_text() for x in labels]
@@ -1432,7 +1430,7 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame(np.random.randn(len(rng), 3), rng)
         fig, ax = self.plt.subplots()
         ax = df.plot(fontsize=2, ax=ax)
-        fig.canvas.draw()
+        self.plt.draw()
         labels = ax.get_xticklabels()
 
         result_labels = [x.get_text() for x in labels]
@@ -1505,7 +1503,7 @@ class TestTSPlot(TestPlotBase):
         df["time"] = date_range("2018-01-01", periods=10, freq="D")
         fig, ax = self.plt.subplots()
         ax.scatter(x="time", y="y", data=df)
-        fig.canvas.draw()
+        self.plt.draw()
         label = ax.get_xticklabels()[0]
         if self.mpl_ge_3_0_0:
             expected = "2017-12-08"

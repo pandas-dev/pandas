@@ -1,4 +1,3 @@
-import copy
 import sys
 from typing import Type
 import warnings
@@ -28,7 +27,7 @@ class _IntegerDtype(ExtensionDtype):
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
     These specific implementations are subclasses of the non-public
-    _IntegerDtype. For example we have Int8Dtype to represnt signed int 8s.
+    _IntegerDtype. For example we have Int8Dtype to represent signed int 8s.
 
     The attributes name & type are set when these subclasses are created.
     """
@@ -77,17 +76,6 @@ class _IntegerDtype(ExtensionDtype):
         type
         """
         return IntegerArray
-
-    @classmethod
-    def construct_from_string(cls, string):
-        """
-        Construction from a string, raise a TypeError if not
-        possible
-        """
-        if string == cls.name:
-            return cls()
-        raise TypeError("Cannot construct a '{}' from "
-                        "'{}'".format(cls, string))
 
 
 def integer_array(values, dtype=None, copy=False):
@@ -255,6 +243,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     copy : bool, default False
         Whether to copy the `values` and `mask`.
 
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
+
     Returns
     -------
     IntegerArray
@@ -378,14 +374,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         return type(self)(result, mask, copy=False)
 
-    def copy(self, deep=False):
+    def copy(self):
         data, mask = self._data, self._mask
-        if deep:
-            data = copy.deepcopy(data)
-            mask = copy.deepcopy(mask)
-        else:
-            data = data.copy()
-            mask = mask.copy()
+        data = data.copy()
+        mask = mask.copy()
         return type(self)(data, mask, copy=False)
 
     def __setitem__(self, key, value):

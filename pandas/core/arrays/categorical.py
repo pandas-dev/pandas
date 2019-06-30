@@ -89,18 +89,23 @@ def _cat_compare_op(op):
             else:
                 other_codes = other._codes
 
-            na_mask = (self._codes == -1) | (other_codes == -1)
+            mask = (self._codes == -1) | (other_codes == -1)
             f = getattr(self._codes, op)
             ret = f(other_codes)
-            if na_mask.any():
+            if mask.any():
                 # In other series, the leads to False, so do that here too
-                ret[na_mask] = False
+                ret[mask] = False
             return ret
 
         if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
-                return getattr(self._codes, op)(i)
+                ret = getattr(self._codes, op)(i)
+
+                # check for NaN in self
+                mask = (self._codes == -1)
+                ret[mask] = False
+                return ret
             else:
                 if op == '__eq__':
                     return np.repeat(False, len(self))
@@ -176,7 +181,7 @@ def contains(cat, key, container):
     #  can't be in container either.
     try:
         loc = cat.categories.get_loc(key)
-    except KeyError:
+    except (KeyError, TypeError):
         return False
 
     # loc is the location of key in categories, but also the *value*
@@ -191,7 +196,7 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-_codes_doc = """\
+_codes_doc = """
 The category codes of this categorical.
 
 Level codes are an array if integer which are the positions of the real
@@ -272,7 +277,8 @@ class Categorical(ExtensionArray, PandasObject):
     Notes
     -----
     See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/categorical.html>`_ for more.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html>`_
+    for more.
 
     Examples
     --------
@@ -429,7 +435,7 @@ class Categorical(ExtensionArray, PandasObject):
         return self.dtype.ordered
 
     @property
-    def dtype(self):
+    def dtype(self) -> CategoricalDtype:
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance
         """
@@ -881,11 +887,6 @@ class Categorical(ExtensionArray, PandasObject):
 
              .. versionadded:: 0.23.0
 
-           .. warning::
-
-              Currently, Series are considered list like. In a future version
-              of pandas they'll be considered dict-like.
-
         inplace : bool, default False
            Whether or not to rename the categories inplace or return a copy of
            this categorical with renamed categories.
@@ -932,15 +933,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
-
-        if isinstance(new_categories, ABCSeries):
-            msg = ("Treating Series 'new_categories' as a list-like and using "
-                   "the values. In a future version, 'rename_categories' will "
-                   "treat Series like a dictionary.\n"
-                   "For dict-like, use 'new_categories.to_dict()'\n"
-                   "For list-like, use 'new_categories.values'.")
-            warn(msg, FutureWarning, stacklevel=2)
-            new_categories = list(new_categories)
 
         if is_dict_like(new_categories):
             cat.categories = [new_categories.get(item, item)
@@ -1477,7 +1469,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         if dropna or clean:
             obs = code if clean else code[mask]
-            count = bincount(obs, minlength=ncat or None)
+            count = bincount(obs, minlength=ncat or 0)
         else:
             count = bincount(np.where(mask, code, ncat))
             ix = np.append(ix, -1)
@@ -1983,9 +1975,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
 
         category_strs = self._repr_categories()
-        dtype = getattr(self.categories, 'dtype_str',
-                        str(self.categories.dtype))
-
+        dtype = str(self.categories.dtype)
         levheader = "Categories ({length}, {dtype}): ".format(
             length=len(self.categories), dtype=dtype)
         width, height = get_terminal_size()
@@ -2022,7 +2012,7 @@ class Categorical(ExtensionArray, PandasObject):
         result = formatter.to_string()
         return str(result)
 
-    def __str__(self):
+    def __repr__(self):
         """
         String representation.
         """
@@ -2036,10 +2026,6 @@ class Categorical(ExtensionArray, PandasObject):
             result = ('[], {repr_msg}'.format(repr_msg=msg))
 
         return result
-
-    def __repr__(self):
-        # We want to bypass the ExtensionArray.__repr__
-        return str(self)
 
     def _maybe_coerce_indexer(self, indexer):
         """
@@ -2664,9 +2650,11 @@ def _factorize_from_iterable(values):
         raise TypeError("Input must be list-like")
 
     if is_categorical(values):
-        if isinstance(values, (ABCCategoricalIndex, ABCSeries)):
-            values = values._values
-        categories = CategoricalIndex(values.categories, dtype=values.dtype)
+        values = CategoricalIndex(values)
+        # The CategoricalIndex level we want to build has the same categories
+        # as values but its codes are by def [0, ..., len(n_categories) - 1]
+        cat_codes = np.arange(len(values.categories), dtype=values.codes.dtype)
+        categories = values._create_from_codes(cat_codes)
         codes = values.codes
     else:
         # The value of ordered is irrelevant since we don't use cat as such,

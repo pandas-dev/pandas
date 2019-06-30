@@ -16,16 +16,17 @@ dependencies:
   - pyarrow
   - pytables
   - python=3.5.*
+  - python-dateutil==2.6.1
   - pytz
   - xarray
   - xlrd
   - xlsxwriter
   - xlwt
-  - isort
   - pip:
-    - python-dateutil==2.5.3
+    - pyreadstat
     # universal
-    - pytest>=4.0.2
+    - pytest==4.5.0
     - pytest-xdist
     - pytest-mock
     - hypothesis>=3.58.0
+    - pytest-azurepipelines

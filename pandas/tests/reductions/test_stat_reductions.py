@@ -10,7 +10,76 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Series
+from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 import pandas.util.testing as tm
+
+
+class TestDatetimeLikeStatReductions:
+
+    @pytest.mark.parametrize('box', [Series, pd.Index, DatetimeArray])
+    def test_dt64_mean(self, tz_naive_fixture, box):
+        tz = tz_naive_fixture
+
+        dti = pd.date_range('2001-01-01', periods=11, tz=tz)
+        # shuffle so that we are not just working with monotone-increasing
+        dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
+        dtarr = dti._data
+
+        obj = box(dtarr)
+        assert obj.mean() == pd.Timestamp('2001-01-06', tz=tz)
+        assert obj.mean(skipna=False) == pd.Timestamp('2001-01-06', tz=tz)
+
+        # dtarr[-2] will be the first date 2001-01-1
+        dtarr[-2] = pd.NaT
+
+        obj = box(dtarr)
+        assert obj.mean() == pd.Timestamp('2001-01-06 07:12:00', tz=tz)
+        assert obj.mean(skipna=False) is pd.NaT
+
+    @pytest.mark.parametrize('box', [Series, pd.Index, PeriodArray])
+    def test_period_mean(self, box):
+        # GH#24757
+        dti = pd.date_range('2001-01-01', periods=11)
+        # shuffle so that we are not just working with monotone-increasing
+        dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
+
+        # use hourly frequency to avoid rounding errors in expected results
+        #  TODO: flesh this out with different frequencies
+        parr = dti._data.to_period('H')
+        obj = box(parr)
+        with pytest.raises(TypeError, match="ambiguous"):
+            obj.mean()
+        with pytest.raises(TypeError, match="ambiguous"):
+            obj.mean(skipna=True)
+
+        # parr[-2] will be the first date 2001-01-1
+        parr[-2] = pd.NaT
+
+        with pytest.raises(TypeError, match="ambiguous"):
+            obj.mean()
+        with pytest.raises(TypeError, match="ambiguous"):
+            obj.mean(skipna=True)
+
+    @pytest.mark.parametrize('box', [Series, pd.Index, TimedeltaArray])
+    def test_td64_mean(self, box):
+        tdi = pd.TimedeltaIndex([0, 3, -2, -7, 1, 2, -1, 3, 5, -2, 4],
+                                unit='D')
+
+        tdarr = tdi._data
+        obj = box(tdarr)
+
+        result = obj.mean()
+        expected = np.array(tdarr).mean()
+        assert result == expected
+
+        tdarr[0] = pd.NaT
+        assert obj.mean(skipna=False) is pd.NaT
+
+        result2 = obj.mean(skipna=True)
+        assert result2 == tdi[1:].mean()
+
+        # exact equality fails by 1 nanosecond
+        assert result2.round('us') == (result * 11. / 10).round('us')
 
 
 class TestSeriesStatReductions:

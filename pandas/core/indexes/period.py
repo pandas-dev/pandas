@@ -80,7 +80,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     Parameters
     ----------
-    data : array-like (1-dimensional), optional
+    data : array-like (1d integer np.ndarray or PeriodArray), optional
         Optional period-like data to construct index with
     copy : bool
         Make a copy of input ndarray
@@ -168,7 +168,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
-    _data = None  # type: PeriodArray
+    _data = None
 
     _engine_type = libindex.PeriodEngine
 
@@ -791,6 +791,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """
         self._assert_can_do_setop(other)
 
+        if not isinstance(other, PeriodIndex):
+            return self.astype(object).join(other, how=how, level=level,
+                                            return_indexers=return_indexers,
+                                            sort=sort)
+
         result = Int64Index.join(self, other, how=how, level=level,
                                  return_indexers=return_indexers,
                                  sort=sort)
@@ -807,10 +812,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     def _assert_can_do_setop(self, other):
         super()._assert_can_do_setop(other)
 
-        if not isinstance(other, PeriodIndex):
-            raise ValueError('can only call with other PeriodIndex-ed objects')
-
-        if self.freq != other.freq:
+        # *Can't* use PeriodIndexes of different freqs
+        # *Can* use PeriodIndex/DatetimeIndex
+        if isinstance(other, PeriodIndex) and self.freq != other.freq:
             msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
                                         own_freq=self.freqstr,
                                         other_freq=other.freqstr)
@@ -870,7 +874,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """
         return the first element of the underlying data as a python
         scalar
+
+        .. deprecated 0.25.0
+
         """
+        warnings.warn('`item` has been deprecated and will be removed in a '
+                      'future version', FutureWarning, stacklevel=2)
         # TODO(DatetimeArray): remove
         if len(self) == 1:
             return self[0]
@@ -935,7 +944,7 @@ def period_range(start=None, end=None, periods=None, freq=None, name=None):
     must be specified.
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------

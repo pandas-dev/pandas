@@ -12,6 +12,7 @@ from shutil import rmtree
 import string
 import tempfile
 import traceback
+from typing import Union, cast
 import warnings
 import zipfile
 
@@ -515,9 +516,14 @@ def equalContents(arr1, arr2):
     return frozenset(arr1) == frozenset(arr2)
 
 
-def assert_index_equal(left, right, exact='equiv', check_names=True,
-                       check_less_precise=False, check_exact=True,
-                       check_categorical=True, obj='Index'):
+def assert_index_equal(left: Index,
+                       right: Index,
+                       exact: Union[bool, str] = 'equiv',
+                       check_names: bool = True,
+                       check_less_precise: Union[bool, int] = False,
+                       check_exact: bool = True,
+                       check_categorical: bool = True,
+                       obj: str = 'Index') -> None:
     """Check that left and right Index are equal.
 
     Parameters
@@ -588,6 +594,9 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
+        left = cast(MultiIndex, left)
+        right = cast(MultiIndex, right)
+
         for level in range(left.nlevels):
             # cannot use get_level_values here because it can change dtype
             llevel = _get_ilevel_values(left, level)
@@ -1209,7 +1218,7 @@ def assert_frame_equal(left, right, check_dtype=True,
     # shape comparison
     if left.shape != right.shape:
         raise_assert_detail(obj,
-                            'DataFrame shape mismatch',
+                            '{obj} shape mismatch'.format(obj=obj),
                             '{shape!r}'.format(shape=left.shape),
                             '{shape!r}'.format(shape=right.shape))
 
@@ -1240,7 +1249,7 @@ def assert_frame_equal(left, right, check_dtype=True,
             assert dtype in lblocks
             assert dtype in rblocks
             assert_frame_equal(lblocks[dtype], rblocks[dtype],
-                               check_dtype=check_dtype, obj='DataFrame.blocks')
+                               check_dtype=check_dtype, obj=obj)
 
     # compare by columns
     else:
@@ -1255,7 +1264,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                 check_exact=check_exact, check_names=check_names,
                 check_datetimelike_compat=check_datetimelike_compat,
                 check_categorical=check_categorical,
-                obj='DataFrame.iloc[:, {idx}]'.format(idx=i))
+                obj='{obj}.iloc[:, {idx}]'.format(obj=obj, idx=i))
 
 
 def assert_equal(left, right, **kwargs):
@@ -1657,7 +1666,7 @@ def index_subclass_makers_generator():
 
 def all_timeseries_index_generator(k=10):
     """Generator which can be iterated over to get instances of all the classes
-    which represent time-seires.
+    which represent time-series.
 
     Parameters
     ----------
@@ -1784,7 +1793,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         # pass None to index constructor for no name
         names = None
 
-    # make singelton case uniform
+    # make singleton case uniform
     if isinstance(names, str) and nlevels == 1:
         names = [names]
 
@@ -1863,7 +1872,7 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
         N < idx_nlevels, for just the first N levels. If ndupe doesn't divide
         nrows/ncol, the last label might have lower multiplicity.
    dtype - passed to the DataFrame constructor as is, in case you wish to
-        have more control in conjuncion with a custom `data_gen_f`
+        have more control in conjunction with a custom `data_gen_f`
    r_idx_type, c_idx_type -  "i"/"f"/"s"/"u"/"dt"/"td".
        If idx_type is not None, `idx_nlevels` must be 1.
        "i"/"f" creates an integer/float index,

@@ -1,15 +1,14 @@
-from distutils.version import LooseVersion
 import functools
 import itertools
 import operator
 from typing import Any, Optional, Tuple, Union
-import warnings
 
 import numpy as np
 
 from pandas._config import get_option
 
 from pandas._libs import iNaT, lib, tslibs
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
@@ -22,26 +21,10 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.common as com
 
-_BOTTLENECK_INSTALLED = False
-_MIN_BOTTLENECK_VERSION = '1.2.1'
-
-try:
-    import bottleneck as bn
-    ver = bn.__version__
-    _BOTTLENECK_INSTALLED = (LooseVersion(ver) >=
-                             LooseVersion(_MIN_BOTTLENECK_VERSION))
-
-    if not _BOTTLENECK_INSTALLED:
-        warnings.warn(
-            "The installed version of bottleneck {ver} is not supported "
-            "in pandas and will be not be used\nThe minimum supported "
-            "version is {min_ver}\n".format(
-                ver=ver, min_ver=_MIN_BOTTLENECK_VERSION), UserWarning)
-
-except ImportError:  # pragma: no cover
-    pass
-
-
+bn = import_optional_dependency("bottleneck",
+                                raise_on_missing=False,
+                                on_version="warn")
+_BOTTLENECK_INSTALLED = bn is not None
 _USE_BOTTLENECK = False
 
 
@@ -89,11 +72,12 @@ class disallow:
 
 class bottleneck_switch:
 
-    def __init__(self, **kwargs):
+    def __init__(self, name=None, **kwargs):
+        self.name = name
         self.kwargs = kwargs
 
     def __call__(self, alt):
-        bn_name = alt.__name__
+        bn_name = self.name or alt.__name__
 
         try:
             bn_func = getattr(bn, bn_name)
@@ -244,7 +228,8 @@ def _maybe_get_mask(values: np.ndarray, skipna: bool,
 
 
 def _get_values(values: np.ndarray, skipna: bool, fill_value: Any = None,
-                fill_value_typ: str = None, mask: Optional[np.ndarray] = None
+                fill_value_typ: Optional[str] = None,
+                mask: Optional[np.ndarray] = None
                 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.dtype,
                            np.dtype, Any]:
     """ Utility to get the values view, mask, dtype, dtype_max, and fill_value.
@@ -821,7 +806,8 @@ def nansem(values, axis=None, skipna=True, ddof=1, mask=None):
 
 
 def _nanminmax(meth, fill_value_typ):
-    @bottleneck_switch()
+
+    @bottleneck_switch(name='nan' + meth)
     def reduction(values, axis=None, skipna=True, mask=None):
 
         values, mask, dtype, dtype_max, fill_value = _get_values(
@@ -841,7 +827,6 @@ def _nanminmax(meth, fill_value_typ):
         result = _wrap_results(result, dtype, fill_value)
         return _maybe_null_out(result, axis, mask, values.shape)
 
-    reduction.__name__ = 'nan' + meth
     return reduction
 
 
@@ -1290,7 +1275,7 @@ def _ensure_numeric(x):
             except (TypeError, ValueError):
                 x = x.astype(np.float64)
             else:
-                if not np.any(x.imag):
+                if not np.any(np.imag(x)):
                     x = x.real
     elif not (is_float(x) or is_integer(x) or is_complex(x)):
         try:

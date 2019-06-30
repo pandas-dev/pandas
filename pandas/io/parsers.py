@@ -9,6 +9,7 @@ from io import StringIO
 import re
 import sys
 from textwrap import fill
+from typing import Any, Dict, Set
 import warnings
 
 import numpy as np
@@ -17,16 +18,16 @@ import pandas._libs.lib as lib
 import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.tslibs import parsing
-import pandas.compat as compat
 from pandas.errors import (
     AbstractMethodError, EmptyDataError, ParserError, ParserWarning)
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
-    ensure_object, is_bool_dtype, is_categorical_dtype, is_dtype_equal,
-    is_extension_array_dtype, is_float, is_integer, is_integer_dtype,
-    is_list_like, is_object_dtype, is_scalar, is_string_dtype, pandas_dtype)
+    ensure_object, ensure_str, is_bool_dtype, is_categorical_dtype,
+    is_dtype_equal, is_extension_array_dtype, is_float, is_integer,
+    is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
+    is_string_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
@@ -58,7 +59,7 @@ Also supports optionally iterating or breaking of the file
 into chunks.
 
 Additional help can be found in the online docs for
-`IO Tools <http://pandas.pydata.org/pandas-docs/stable/io.html>`_.
+`IO Tools <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
 
 Parameters
 ----------
@@ -293,13 +294,6 @@ dialect : str or csv.Dialect, optional
     `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
     override values, a ParserWarning will be issued. See csv.Dialect
     documentation for more details.
-tupleize_cols : bool, default False
-    Leave a list of tuples on columns as is (default is to convert to
-    a MultiIndex on the columns).
-
-    .. deprecated:: 0.21.0
-       This argument will be removed and will always convert to MultiIndex
-
 error_bad_lines : bool, default True
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
@@ -501,7 +495,6 @@ _parser_defaults = {
     'squeeze': False,
     'compression': None,
     'mangle_dupe_cols': True,
-    'tupleize_cols': False,
     'infer_datetime_format': False,
     'skip_blank_lines': True
 }
@@ -514,7 +507,6 @@ _c_parser_defaults = {
     'memory_map': False,
     'error_bad_lines': True,
     'warn_bad_lines': True,
-    'tupleize_cols': False,
     'float_precision': None
 }
 
@@ -530,24 +522,14 @@ _python_unsupported = {
     'float_precision',
 }
 
-_deprecated_defaults = {
-    'tupleize_cols': None
-}
-_deprecated_args = {
-    'tupleize_cols',
-}
+_deprecated_defaults = {}  # type: Dict[str, Any]
+_deprecated_args = set()  # type: Set[str]
 
 
 def _make_parser_function(name, default_sep=','):
 
-    # prepare read_table deprecation
-    if name == "read_table":
-        sep = False
-    else:
-        sep = default_sep
-
     def parser_f(filepath_or_buffer: FilePathOrBuffer,
-                 sep=sep,
+                 sep=default_sep,
                  delimiter=None,
 
                  # Column and Index Locations and Names
@@ -601,7 +583,6 @@ def _make_parser_function(name, default_sep=','):
                  comment=None,
                  encoding=None,
                  dialect=None,
-                 tupleize_cols=None,
 
                  # Error Handling
                  error_bad_lines=True,
@@ -612,19 +593,6 @@ def _make_parser_function(name, default_sep=','):
                  low_memory=_c_parser_defaults['low_memory'],
                  memory_map=False,
                  float_precision=None):
-
-        # deprecate read_table GH21948
-        if name == "read_table":
-            if sep is False and delimiter is None:
-                warnings.warn("read_table is deprecated, use read_csv "
-                              "instead, passing sep='\\t'.",
-                              FutureWarning, stacklevel=2)
-            else:
-                warnings.warn("read_table is deprecated, use read_csv "
-                              "instead.",
-                              FutureWarning, stacklevel=2)
-            if sep is False:
-                sep = default_sep
 
         # gh-23761
         #
@@ -710,7 +678,6 @@ def _make_parser_function(name, default_sep=','):
                     error_bad_lines=error_bad_lines,
                     low_memory=low_memory,
                     mangle_dupe_cols=mangle_dupe_cols,
-                    tupleize_cols=tupleize_cols,
                     infer_datetime_format=infer_datetime_format,
                     skip_blank_lines=skip_blank_lines)
 
@@ -732,10 +699,7 @@ read_csv = Appender(_doc_read_csv_and_table.format(
 read_table = _make_parser_function('read_table', default_sep='\t')
 read_table = Appender(_doc_read_csv_and_table.format(
                       func_name='read_table',
-                      summary="""Read general delimited file into DataFrame.
-
-.. deprecated:: 0.24.0
-  Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
+                      summary='Read general delimited file into DataFrame.',
                       _default_sep=r"'\\t' (tab-stop)")
                       )(read_table)
 
@@ -753,7 +717,7 @@ def read_fwf(filepath_or_buffer: FilePathOrBuffer,
     into chunks.
 
     Additional help can be found in the `online docs for IO Tools
-    <http://pandas.pydata.org/pandas-docs/stable/io.html>`_.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
 
     Parameters
     ----------
@@ -1074,10 +1038,6 @@ class TextFileReader(BaseIterator):
                    "and will be removed in a future version."
                    .format(arg=arg))
 
-            if arg == 'tupleize_cols':
-                msg += (' Column tuples will then '
-                        'always be converted to MultiIndex.')
-
             if result.get(arg, depr_default) != depr_default:
                 # raise Exception(result.get(arg, depr_default), depr_default)
                 depr_warning += msg + '\n\n'
@@ -1384,7 +1344,6 @@ class ParserBase:
 
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
-        self.tupleize_cols = kwds.get('tupleize_cols', False)
         self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
         self.infer_datetime_format = kwds.pop('infer_datetime_format', False)
         self.cache_dates = kwds.pop('cache_dates', True)
@@ -1494,7 +1453,7 @@ class ParserBase:
         # If we find unnamed columns all in a single
         # level, then our header was too long.
         for n in range(len(columns[0])):
-            if all(compat.to_str(c[n]) in self.unnamed_cols for c in columns):
+            if all(ensure_str(col[n]) in self.unnamed_cols for col in columns):
                 raise ParserError(
                     "Passed header=[{header}] are too many rows for this "
                     "multi_index of columns"
@@ -2755,23 +2714,24 @@ class PythonParser(ParserBase):
         if first_elt != _BOM:
             return first_row
 
-        first_row = first_row[0]
+        first_row_bom = first_row[0]
 
-        if len(first_row) > 1 and first_row[1] == self.quotechar:
+        if len(first_row_bom) > 1 and first_row_bom[1] == self.quotechar:
             start = 2
-            quote = first_row[1]
-            end = first_row[2:].index(quote) + 2
+            quote = first_row_bom[1]
+            end = first_row_bom[2:].index(quote) + 2
 
             # Extract the data between the quotation marks
-            new_row = first_row[start:end]
+            new_row = first_row_bom[start:end]
 
             # Extract any remaining data after the second
             # quotation mark.
-            if len(first_row) > end + 1:
-                new_row += first_row[end + 1:]
-            return [new_row]
-        elif len(first_row) > 1:
-            return [first_row[1:]]
+            if len(first_row_bom) > end + 1:
+                new_row += first_row_bom[end + 1:]
+            return [new_row] + first_row[1:]
+
+        elif len(first_row_bom) > 1:
+            return [first_row_bom[1:]]
         else:
             # First row is just the BOM, so we
             # return an empty string.

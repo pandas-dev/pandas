@@ -101,10 +101,8 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
                       allow_fill=allow_fill)
         return self._from_sequence(result)
 
-    def copy(self, deep=False):
-        if deep:
-            return type(self)(self._data.copy())
-        return type(self)(self)
+    def copy(self):
+        return type(self)(self._data.copy())
 
     def astype(self, dtype, copy=True):
         if isinstance(dtype, type(self.dtype)):
@@ -136,6 +134,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     @property
     def _na_value(self):
         return decimal.Decimal('NaN')
+
+    def _formatter(self, boxed=False):
+        if boxed:
+            return "Decimal: {0}".format
+        return repr
 
     @classmethod
     def _concat_same_type(cls, to_concat):

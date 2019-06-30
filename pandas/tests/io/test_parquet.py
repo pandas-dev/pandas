@@ -1,6 +1,5 @@
 """ test parquet compat """
 import datetime
-from distutils.version import LooseVersion
 import os
 from warnings import catch_warnings
 
@@ -305,7 +304,7 @@ class TestBasic(Base):
         check_round_trip(df, engine)
 
     def test_write_multiindex(self, pa):
-        # Not suppoprted in fastparquet as of 0.1.3 or older pyarrow version
+        # Not supported in fastparquet as of 0.1.3 or older pyarrow version
         engine = pa
 
         df = pd.DataFrame({'A': [1, 2, 3]})
@@ -454,10 +453,8 @@ class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
         df = df_full
 
-        # additional supported types for fastparquet
-        if LooseVersion(fastparquet.__version__) >= LooseVersion('0.1.4'):
-            df['datetime_tz'] = pd.date_range('20130101', periods=3,
-                                              tz='US/Eastern')
+        df['datetime_tz'] = pd.date_range('20130101', periods=3,
+                                          tz='US/Eastern')
         df['timedelta'] = pd.timedelta_range('1 day', periods=3)
         check_round_trip(df, fp)
 
@@ -485,8 +482,6 @@ class TestParquetFastParquet(Base):
         self.check_error_on_write(df, fp, ValueError)
 
     def test_categorical(self, fp):
-        if LooseVersion(fastparquet.__version__) < LooseVersion("0.1.3"):
-            pytest.skip("CategoricalDtype not supported for older fp")
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         check_round_trip(df, fp)
 
@@ -512,7 +507,7 @@ class TestParquetFastParquet(Base):
             df.to_parquet(path, engine="fastparquet",
                           partition_cols=partition_cols, compression=None)
             assert os.path.exists(path)
-            import fastparquet
+            import fastparquet  # noqa: F811
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
 
@@ -524,7 +519,7 @@ class TestParquetFastParquet(Base):
             df.to_parquet(path, engine="fastparquet", compression=None,
                           partition_on=partition_cols)
             assert os.path.exists(path)
-            import fastparquet
+            import fastparquet  # noqa: F811
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
 
