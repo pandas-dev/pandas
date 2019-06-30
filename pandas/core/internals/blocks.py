@@ -727,9 +727,9 @@ class Block(PandasObject):
 
         # try to replace, if we raise an error, convert to ObjectBlock and
         # retry
+        values = self._coerce_values(self.values)
         try:
             to_replace = self._try_coerce_args(to_replace)
-            values = self._coerce_values(self.values)
         except (TypeError, ValueError):
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
@@ -2260,13 +2260,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """ return a boolean if I am possibly a view """
         # check the ndarray values of the DatetimeIndex values
         return self.values._data.base is not None
-
-    def copy(self, deep=True):
-        """ copy constructor """
-        values = self.values
-        if deep:
-            values = values.copy()
-        return self.make_block_same_class(values)
 
     def get_values(self, dtype=None):
         """
