@@ -3268,7 +3268,8 @@ class DataFrame(NDFrame):
         def add_extension_types(dtypes, search_dtype, func):
             """Adds bool or numeric extension types to include/exclude"""
             extension_dtypes = [dtype.type for dtype in self.dtypes
-                                if func(dtype)]
+                                if is_extension_array_dtype(dtype) and
+                                func(dtype)]
             if search_dtype in dtypes:
                 return frozenset(dtypes.union(extension_dtypes))
             else:
