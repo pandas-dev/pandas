@@ -17,24 +17,6 @@ def cd_and_set_engine(monkeypatch, datapath):
     monkeypatch.chdir(datapath("io", "data"))
 
 
-def test_read_types():
-    sheet = pd.read_excel("datatypes.ods", header=None)
-
-    expected = pd.DataFrame(
-        [[1.0],
-         [1.25],
-         ['a'],
-         [pd.Timestamp(2003, 1, 2)],
-         [False],
-         [0.35],
-         [pd.Timedelta(hours=3, minutes=45),
-          pd.Timedelta(hours=17, minutes=53),
-          pd.Timedelta(hours=14, minutes=8)],
-         # though what should the value of a hyperlink be?
-         ['UBERON:0002101']])
-    tm.assert_equal(sheet, expected)
-
-
 def test_read_invalid_types_raises():
     # the invalid_value_type.ods required manually editing
     # of the included content.xml file
@@ -56,45 +38,19 @@ def test_read_lower_diagonal():
     assert sheet.shape == (4, 4)
 
 
-def test_read_headers():
-    sheet = pd.read_excel("headers.ods", 'Sheet1', index_col=0)
-
-    expected = pd.DataFrame.from_dict(OrderedDict([
-        ("Header", ["Row 1", "Row 2"]),
-        ("Column 1", [1.0, 2.0]),
-        ("Column 2", [3.0, 4.0]),
-        # Empty Column
-        ("Column 4", [7.0, 8.0]),
-        # Empty Column 2
-        ("Column 6", [11.0, 12.0])]))
-    expected.set_index("Header", inplace=True)
-    columns = ["Column 1", "Column 2", "Column 4", "Column 6"]
-    tm.assert_equal(sheet[columns], expected)
-    empties = [None, 'None.1']
-    for name in empties:
-        for value in sheet[name]:
-            assert pd.isnull(value)
-
-
 def test_read_writer_table():
     # Also test reading tables from an text OpenDocument file
     # (.odt)
+    index = pd.Index(["Row 1", "Row 2", "Row 3"], name="Header")
+    expected = pd.DataFrame([
+        [1, np.nan, 7],
+        [2, np.nan, 8],
+        [3, np.nan, 9],
+    ], index=index, columns=["Column 1", "Unnamed: 2", "Column 3"])
 
-    table = pd.read_excel("writertable.odt", 'Table1', index_col=0)
+    result = pd.read_excel("writertable.odt", 'Table1', index_col=0)
 
-    assert table.shape == (3, 3)
-    expected = pd.DataFrame.from_dict(OrderedDict([
-        ("Header", ["Row 1", "Row 2", "Row 3"]),
-        ("Column 1", [1.0, 2.0, 3.0]),
-        ("Unnamed: 2", [np.nan, np.nan, np.nan]),
-        ("Column 3", [7.0, 8.0, 9.0])]))
-    expected.set_index("Header", inplace=True)
-    columns = ["Column 1", "Column 3"]
-    tm.assert_equal(table[columns], expected[columns])
-
-    # make sure pandas gives a name to the unnamed column
-    for i in range(3):
-        assert pd.isnull(table["Unnamed: 2"][i])
+    tm.assert_frame_equal(result, expected)
 
 
 def test_blank_row_repeat():
