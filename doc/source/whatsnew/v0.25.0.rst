@@ -5,8 +5,12 @@ What's new in 0.25.0 (April XX, 2019)
 
 .. warning::
 
-   Starting with the 0.25.x series of releases, pandas only supports Python 3.5 and higher.
+   Starting with the 0.25.x series of releases, pandas only supports Python 3.5.3 and higher.
    See :ref:`install.dropping-27` for more details.
+
+.. warning::
+
+   The minimum supported Python version will be bumped to 3.6 in a future release.
 
 .. warning::
 
