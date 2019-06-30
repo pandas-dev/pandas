@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import ensure_platform_int
+
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, RangeIndex, Series
 import pandas.util.testing as tm
@@ -965,3 +967,23 @@ class TestRangeIndex(Numeric):
             # Append single item rather than list
             result2 = indices[0].append(indices[1])
             tm.assert_index_equal(result2, expected, exact=True)
+
+    def test_engineless_lookup(self):
+        # GH 16685
+        # Standard lookup on RangeIndex should not require the engine to be
+        # created
+        idx = RangeIndex(2, 10, 3)
+
+        assert idx.get_loc(5) == 1
+        tm.assert_numpy_array_equal(idx.get_indexer([2, 8]),
+                                    ensure_platform_int(np.array([0, 2])))
+        with pytest.raises(KeyError):
+            idx.get_loc(3)
+
+        assert '_engine' not in idx._cache
+
+        # The engine is still required for lookup of a different dtype scalar:
+        with pytest.raises(KeyError):
+            assert idx.get_loc('a') == -1
+
+        assert '_engine' in idx._cache
