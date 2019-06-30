@@ -250,6 +250,7 @@ class _WriterBase:
         set_option(option_name, prev_engine)  # Roll back option change
 
 
+@td.skip_if_no('xlrd')
 @pytest.mark.parametrize("engine,ext", [
     pytest.param('openpyxl', '.xlsx', marks=pytest.mark.skipif(
         not td.safe_import('openpyxl'), reason='No openpyxl')),
@@ -1252,6 +1253,7 @@ class TestExcelWriterEngineTests:
                     'something.xls', engine='dummy'))
 
 
+@td.skip_if_no('xlrd')
 @td.skip_if_no('openpyxl')
 @pytest.mark.skipif(not PY36, reason='requires fspath')
 class TestFSPath:
