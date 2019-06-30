@@ -1488,9 +1488,6 @@ def test_period_immutable():
         per.freq = 2 * freq
 
 
-# TODO: This doesn't fail on all systems; track down which
-@pytest.mark.xfail(reason="Parses as Jan 1, 0007 on some systems",
-                   strict=True)
 def test_small_year_parsing():
     per1 = Period('0001-01-07', 'D')
     assert per1.year == 1
