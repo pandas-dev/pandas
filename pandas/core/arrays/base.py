@@ -921,6 +921,9 @@ class ExtensionArray:
         return self
 
     def ravel(self, order=None) -> ABCExtensionArray:
+        """
+        Return a flattened view on self.  For 1-D arrays this is a no-op.
+        """
         if self.ndim != 1:
             raise NotImplementedError
         return self

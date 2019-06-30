@@ -270,7 +270,14 @@ class BaseReshapingTests(BaseExtensionTests):
 
             self.assert_frame_equal(result, expected)
 
-    def ravel(self, data):
+    def test_ravel(self, data):
+        # Test is invalid if data.ndim > 1
         assert data.ndim == 1
         result = data.ravel()
+        assert result is data
+
+    def test_transpose(self, data):
+        # Test is invalid if data.ndim > 1
+        assert data.ndim == 1
+        result = data.T
         assert result is data
