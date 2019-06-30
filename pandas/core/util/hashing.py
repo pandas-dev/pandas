@@ -269,7 +269,7 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
     # we'll be working with everything as 64-bit values, so handle this
     # 128-bit value early
     if np.issubdtype(dtype, np.complex128):
-        return hash_array(vals.real) + 23 * hash_array(vals.imag)
+        return hash_array(np.real(vals)) + 23 * hash_array(np.imag(vals))
 
     # First, turn whatever array this is into unsigned 64-bit ints, if we can
     # manage it.
