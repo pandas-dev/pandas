@@ -402,7 +402,8 @@ def test_get_indexer_categorical_time():
 def test_timestamp_multiindex_indexer():
     # https://github.com/pandas-dev/pandas/issues/26944
     idx = pd.MultiIndex.from_product([
-        pd.date_range("2019-01-01T00:15:33", periods=100, freq="H", name="date"),
+        pd.date_range("2019-01-01T00:15:33", periods=100, freq="H",
+                      name="date"),
         ['x'],
         [3]
     ])
