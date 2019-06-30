@@ -93,7 +93,8 @@ class _ODFReader(_BaseExcelReader):
                     # add blank rows to our table
                     table.extend([['']] * empty_rows)
                     empty_rows = 0
-                table.append(table_row)
+                for _ in range(row_repeat):
+                    table.append(table_row)
 
         # Make our table square
         for row in table:
