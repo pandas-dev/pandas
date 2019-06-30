@@ -59,7 +59,7 @@ class _ODFReader(_BaseExcelReader):
         from odf.table import TableCell, TableRow
 
         sheet_rows = sheet.getElementsByType(TableRow)
-        table = []
+        table = []  # type: List[List[Scalar]]
         empty_rows = 0
         max_row_len = 0
         row_spans = {}  # type: Dict[int, int]
@@ -67,7 +67,7 @@ class _ODFReader(_BaseExcelReader):
         for i, sheet_row in enumerate(sheet_rows):
             sheet_cells = sheet_row.getElementsByType(TableCell)
             empty_cells = 0
-            table_row = []
+            table_row = []  # type: List[Scalar]
 
             for j, sheet_cell in enumerate(sheet_cells):
                 # Handle vertically merged cells; only works with first column
