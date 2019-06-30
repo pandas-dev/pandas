@@ -1516,14 +1516,6 @@ class TestSparseSeriesAnalytics:
                                                 raise_on_extra_warnings=False):
                     getattr(getattr(self, series), func)()
 
-    def test_deprecated_reindex_axis(self):
-        # https://github.com/pandas-dev/pandas/issues/17833
-        # Multiple FutureWarnings, can't check stacklevel
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False) as m:
-            self.bseries.reindex_axis([0, 1, 2])
-        assert 'reindex' in str(m[0].message)
-
 
 @pytest.mark.parametrize(
     'datetime_type', (np.datetime64,

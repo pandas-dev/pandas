@@ -562,6 +562,7 @@ Other API changes
 - The ``.str``-accessor has been disabled for 1-level :class:`MultiIndex`, use :meth:`MultiIndex.to_flat_index` if necessary (:issue:`23679`)
 - Removed support of gtk package for clipboards (:issue:`26563`)
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
+- :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` will now raise a ``ValueError`` when saving timezone aware data. (:issue:`27008`, :issue:`7056`)
 
 .. _whatsnew_0250.deprecations:
 
@@ -628,6 +629,11 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``pd.options.html.border`` (:issue:`16970`)
 - Removed the previously deprecated ``convert_objects`` (:issue:`11221`)
 - Removed the previously deprecated ``select`` method of ``DataFrame`` and ``Series`` (:issue:`17633`)
+- Removed the previously deprecated behavior of :class:`Series` treated as list-like in :meth:`~Series.cat.rename_categories` (:issue:`17982`)
+- Removed the previously deprecated ``DataFrame.reindex_axis`` and ``Series.reindex_axis``` (:issue:`17842`)
+- Removed the previously deprecated behavior of altering column or index labels with :meth:`Series.rename_axis` or :meth:`DataFrame.rename_axis` (:issue:`17842`)
+- Removed the previously deprecated ``tupleize_cols`` keyword argument in :meth:`read_html`, :meth:`read_csv`, and :meth:`DataFrame.to_csv` (:issue:`17877`, :issue:`17820`)
+- Removed the previously deprecated ``DataFrame.from.csv`` and ``Series.from_csv`` (:issue:`17812`)
 
 .. _whatsnew_0250.performance:
 

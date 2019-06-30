@@ -250,6 +250,7 @@ class _WriterBase:
         set_option(option_name, prev_engine)  # Roll back option change
 
 
+@td.skip_if_no('xlrd')
 @pytest.mark.parametrize("engine,ext", [
     pytest.param('openpyxl', '.xlsx', marks=pytest.mark.skipif(
         not td.safe_import('openpyxl'), reason='No openpyxl')),
@@ -1178,6 +1179,21 @@ class TestExcelWriter(_WriterBase):
         expected.index = expected.index.astype(np.float64)
         tm.assert_frame_equal(expected, result)
 
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_raise_when_saving_timezones(self, engine, ext, dtype,
+                                         tz_aware_fixture):
+        # GH 27008, GH 7056
+        tz = tz_aware_fixture
+        data = pd.Timestamp('2019', tz=tz)
+        df = DataFrame([data], dtype=dtype)
+        with pytest.raises(ValueError, match="Excel does not support"):
+            df.to_excel(self.path)
+
+        data = data.to_pydatetime()
+        df = DataFrame([data], dtype=dtype)
+        with pytest.raises(ValueError, match="Excel does not support"):
+            df.to_excel(self.path)
+
 
 class TestExcelWriterEngineTests:
 
@@ -1237,6 +1253,7 @@ class TestExcelWriterEngineTests:
                     'something.xls', engine='dummy'))
 
 
+@td.skip_if_no('xlrd')
 @td.skip_if_no('openpyxl')
 @pytest.mark.skipif(not PY36, reason='requires fspath')
 class TestFSPath:
