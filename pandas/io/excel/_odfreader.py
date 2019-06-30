@@ -162,19 +162,6 @@ class _ODFReader(_BaseExcelReader):
             cell_value = cell.attributes.get((OFFICENS, 'date-value'))
             return pd.Timestamp(cell_value)
         elif cell_type == 'time':
-            cell_value = cell.attributes.get((OFFICENS, 'time-value'))
-            return(pandas_isoduration_compatibility(cell_value))
+            return pd.to_datetime(str(cell)).time()
         else:
             raise ValueError('Unrecognized type {}'.format(cell_type))
-
-
-def pandas_isoduration_compatibility(duration):
-    """Libreoffice returns durations without any day attributes
-
-    For example PT3H45M0S. The current pandas Timedelta
-    parse requires the presence of a day component.
-    Workaround for https://github.com/pandas-dev/pandas/issues/25422
-    """
-    if duration.startswith('PT'):
-        duration = 'P0DT' + duration[2:]
-    return pd.Timedelta(duration)
