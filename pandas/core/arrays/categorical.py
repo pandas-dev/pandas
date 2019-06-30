@@ -1215,8 +1215,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         shape : tuple
         """
-
-        return tuple([len(self._codes)])
+        return self._codes.shape
 
     def shift(self, periods, fill_value=None):
         """
@@ -1898,10 +1897,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         codes = self._codes[slicer]
         return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
-
-    @property
-    def shape(self):
-        return self._codes.shape
 
     def __iter__(self):
         """
