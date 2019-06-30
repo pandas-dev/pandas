@@ -976,17 +976,15 @@ create are stored as an ``IntervalIndex`` in its ``.categories`` attribute.
 
 :func:`cut` also accepts an ``IntervalIndex`` for its ``bins`` argument, which enables
 a useful pandas idiom. First, We call :func:`cut` with some data and ``bins`` set to a
-fixed number, to establish the bins. Then, we can pass the value of ``.categories`` as
-the ``bins`` argument in subsequent calls to :func:`cut`, supplying new data which
-will be binned into the same bins.
+fixed number, to generate the bins. Then, we pass the values of ``.categories`` as the
+``bins`` argument in subsequent calls to :func:`cut`, supplying new data which will be
+binned into the same bins.
 
 .. ipython:: python
 
    pd.cut([0, 3, 5, 1], bins=c.categories)
 
-When :func:`cut`  is passed an ``IntervalIndex`` for the `bins` argument, The ``Interval``
-values in the ``IntervalIndex`` define the bins and any value which falls outside all
-bins will be assigned a ``NaN`` value.
+Any value which falls outside all bins will be assigned a ``NaN`` value.
 
 
 Generating ranges of intervals
