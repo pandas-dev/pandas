@@ -33,11 +33,10 @@ class _ODFReader(_BaseExcelReader):
     @property
     def sheet_names(self) -> List[str]:
         """Return a list of sheet names present in the document"""
-        from odf.namespaces import TABLENS
         from odf.table import Table
 
         tables = self.book.getElementsByType(Table)
-        return [t.attributes[(TABLENS, 'name')] for t in tables]
+        return [t.getAttribute("name") for t in tables]
 
     def get_sheet_by_index(self, index: int):
         from odf.table import Table
@@ -45,14 +44,12 @@ class _ODFReader(_BaseExcelReader):
         return tables[index]
 
     def get_sheet_by_name(self, name: str):
-        from odf.namespaces import TABLENS
         from odf.table import Table
 
         tables = self.book.getElementsByType(Table)
 
-        key = (TABLENS, "name")
         for table in tables:
-            if table.attributes[key] == name:
+            if table.getAttribute("name") == name:
                 return table
 
         raise ValueError("sheet {name} not found".format(name))
