@@ -407,7 +407,7 @@ class TestDataFrameMissingData:
     def test_fillna_dtype_conversion(self):
         # make sure that fillna on an empty frame works
         df = DataFrame(index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])
-        result = Series(df._data.get_dtype_counts().sort_values())
+        result = Series(df._data.get_dtype_counts()).sort_values()
         expected = Series({'object': 5})
         assert_series_equal(result, expected)
 

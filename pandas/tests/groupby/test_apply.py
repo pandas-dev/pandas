@@ -181,7 +181,8 @@ def test_apply_with_mixed_dtype():
                     'foo2': ['one', 'two', 'two', 'three', 'one', 'two']})
     result = df.apply(lambda x: x, axis=1)
     tm.assert_series_equal(Series(df._data.get_dtype_counts()),
-                           result.get_dtype_counts())
+                           Series(result._data.get_dtype_counts())
+                           )
 
     # GH 3610 incorrect dtype conversion with as_index=False
     df = DataFrame({"c1": [1, 2, 6, 6, 8]})
