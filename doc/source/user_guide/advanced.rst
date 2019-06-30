@@ -1108,6 +1108,8 @@ the :meth:`~Index.is_unique` attribute.
    weakly_monotonic.is_monotonic_increasing
    weakly_monotonic.is_monotonic_increasing & weakly_monotonic.is_unique
 
+.. _advanced.endpoints_are_inclusive:
+
 Endpoints are inclusive
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1137,7 +1139,7 @@ index can be somewhat complicated. For example, the following does not work:
     s.loc['c':'e' + 1]
 
 A very common use case is to limit a time series to start and end at two
-specific dates. To enable this, we made the design to make label-based
+specific dates. To enable this, we made the design choice to make label-based
 slicing include both endpoints:
 
 .. ipython:: python
