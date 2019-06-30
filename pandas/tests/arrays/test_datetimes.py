@@ -11,8 +11,9 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 import pandas as pd
 from pandas.core.arrays import DatetimeArray
 from pandas.core.arrays.datetimes import sequence_to_dt64ns
+from pandas.tseries.offsets import Nano
+from pandas import Timestamp
 import pandas.util.testing as tm
-
 
 class TestDatetimeArrayConstructor:
 
@@ -309,10 +310,49 @@ class TestReductions:
                 'floor',
                 'M',
                 ("2001-02-01",
-                 pd.Timestamp("2001-02-14 12:00") - pd.offsets.Nano(),
+                 Timestamp("2001-02-14 12:00") - Nano(),
                  "2001-02-14 12:00",
                  "2001-02-15",
-                 pd.Timestamp("2001-03-01") - pd.offsets.Nano(),
+                 Timestamp("2001-03-01") - Nano(),
+                 "2001-03-01"
+                 ),
+                [
+                    Timestamp("2001-02-01") - Nano(),
+                    Timestamp("2001-02-01") - Nano(),
+                    Timestamp("2001-02-01") - Nano(),
+                    Timestamp("2001-02-01") - Nano(),
+                    Timestamp("2001-03-01") - Nano(),
+                    Timestamp("2001-03-01") - Nano(),
+                ]
+            ),
+            (
+                'ceil',
+                'M',
+                ("2001-02-01",
+                 Timestamp(
+                     "2001-02-14 12:00") - Nano(),
+                 "2001-02-14 12:00",
+                 "2001-02-15",
+                 Timestamp("2001-03-01") - Nano(),
+                 "2001-03-01"
+                 ),
+                [
+                    Timestamp("2001-03-01") - Nano(),
+                    Timestamp("2001-03-01") - Nano(),
+                    Timestamp("2001-03-01") - Nano(),
+                    Timestamp("2001-03-01") - Nano(),
+                    Timestamp("2001-03-01") - Nano(),
+                    Timestamp("2001-04-01") - Nano(),
+                ]
+            ),
+            (
+                'floor',
+                'MS',
+                ("2001-02-01",
+                 Timestamp("2001-02-14 12:00") - Nano(),
+                 "2001-02-14 12:00",
+                 "2001-02-15",
+                 Timestamp("2001-03-01") - Nano(),
                  "2001-03-01"
                  ),
                 [
@@ -326,28 +366,21 @@ class TestReductions:
             ),
             (
                 'ceil',
-                'M',
+                'MS',
                 ("2001-02-01",
-                 pd.Timestamp(
-                     "2001-02-14 12:00") - pd.offsets.Nano(),
+                 Timestamp("2001-02-14 12:00") - Nano(),
                  "2001-02-14 12:00",
                  "2001-02-15",
-                 pd.Timestamp("2001-03-01") - pd.offsets.Nano(),
+                 Timestamp("2001-03-01") - Nano(),
                  "2001-03-01"
                  ),
                 [
-                    pd.Timestamp("2001-03-01") -
-                    pd.offsets.Nano(),
-                    pd.Timestamp("2001-03-01") -
-                    pd.offsets.Nano(),
-                    pd.Timestamp("2001-03-01") -
-                    pd.offsets.Nano(),
-                    pd.Timestamp("2001-03-01") -
-                    pd.offsets.Nano(),
-                    pd.Timestamp("2001-03-01") -
-                    pd.offsets.Nano(),
-                    pd.Timestamp("2001-04-01") -
-                    pd.offsets.Nano(),
+                    "2001-02-01",
+                    "2001-03-01",
+                    "2001-03-01",
+                    "2001-03-01",
+                    "2001-03-01",
+                    "2001-03-01",
                 ]
             )
         ]
