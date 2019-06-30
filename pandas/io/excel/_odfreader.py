@@ -98,7 +98,7 @@ class _ODFReader(_BaseExcelReader):
         # Make our table square
         for row in table:
             if len(row) < max_row_len:
-                row.extend([None] * (max_row_len - len(row)))
+                row.extend([''] * (max_row_len - len(row)))
 
         return table
 
@@ -140,6 +140,10 @@ class _ODFReader(_BaseExcelReader):
         elif cell_type == 'float':
             # GH5394
             cell_value = float(cell.attributes.get((OFFICENS, 'value')))
+
+            if cell_value == 0. and str(cell) != cell_value:  # NA handling
+                return str(cell)
+
             if convert_float:
                 val = int(cell_value)
                 if val == cell_value:
