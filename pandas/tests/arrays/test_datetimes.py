@@ -301,3 +301,66 @@ class TestReductions:
 
         result = arr.max(skipna=skipna)
         assert result is pd.NaT
+
+    @pytest.mark.parametrize(
+        'op, freq, dates, expected_dates',
+        [
+            (
+                'floor',
+                'M',
+                ("2001-02-01",
+                 pd.Timestamp("2001-02-14 12:00") - pd.offsets.Nano(),
+                 "2001-02-14 12:00",
+                 "2001-02-15",
+                 pd.Timestamp("2001-03-01") - pd.offsets.Nano(),
+                 "2001-03-01"
+                 ),
+                [
+                    "2001-02-01",
+                    "2001-02-01",
+                    "2001-02-01",
+                    "2001-02-01",
+                    "2001-02-01",
+                    "2001-03-01"
+                ]
+            ),
+            (
+                'ceil',
+                'M',
+                ("2001-02-01",
+                 pd.Timestamp(
+                     "2001-02-14 12:00") - pd.offsets.Nano(),
+                 "2001-02-14 12:00",
+                 "2001-02-15",
+                 pd.Timestamp("2001-03-01") - pd.offsets.Nano(),
+                 "2001-03-01"
+                 ),
+                [
+                    pd.Timestamp("2001-03-01") -
+                    pd.offsets.Nano(),
+                    pd.Timestamp("2001-03-01") -
+                    pd.offsets.Nano(),
+                    pd.Timestamp("2001-03-01") -
+                    pd.offsets.Nano(),
+                    pd.Timestamp("2001-03-01") -
+                    pd.offsets.Nano(),
+                    pd.Timestamp("2001-03-01") -
+                    pd.offsets.Nano(),
+                    pd.Timestamp("2001-04-01") -
+                    pd.offsets.Nano(),
+                ]
+            )
+        ]
+    )
+    def test_ceil_floor(self, op, freq, dates, expected_dates):
+        dta = DatetimeArray._from_sequence(dates)
+        dta[1] -= pd.offsets.Nano()
+        dta[-2] -= pd.offsets.Nano()
+        dti = pd.DatetimeIndex(dta)
+        result = getattr(dti, op)(freq)
+        expected = pd.DatetimeIndex(expected_dates)
+        tm.assert_index_equal(result, expected)
+
+        # Idempotent
+        result = getattr(result, op)(freq)
+        tm.assert_index_equal(result, expected)
