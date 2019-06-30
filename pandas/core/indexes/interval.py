@@ -736,7 +736,8 @@ class IntervalIndex(IntervalMixin, Index):
                            'increasing or decreasing')
 
         if isinstance(label, IntervalMixin):
-            raise NotImplementedError
+            msg = 'Interval objects are not currently supported'
+            raise NotImplementedError(msg)
 
         # GH 20921: "not is_monotonic_increasing" for the second condition
         # instead of "is_monotonic_decreasing" to account for single element
@@ -817,6 +818,7 @@ class IntervalIndex(IntervalMixin, Index):
         array([ True, False,  True])
 
         Only exact matches will be returned if an interval is provided.
+
         >>> index.get_loc(pd.Interval(0, 1))
         0
         """

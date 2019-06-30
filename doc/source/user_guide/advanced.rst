@@ -965,6 +965,28 @@ If you select a label *contained* within an interval, this will also select the 
    df.loc[2.5]
    df.loc[[2.5, 3.5]]
 
+Selecting using an ``Interval`` will only return exact matches.
+
+.. ipython:: python
+
+   df.loc[pd.Interval(1, 2)]
+
+Trying to select an ``Interval`` that is not exactly contained in the ``IntervalIndex`` will raise a ``KeyError``.
+
+.. code-block:: python
+
+   In [7]: df.loc[pd.Interval(0.5, 2.5)]
+   ---------------------------------------------------------------------------
+   KeyError: Interval(0.5, 2.5, closed='right')
+
+Selecting all ``Intervals`` that overlap a given ``Interval`` can be performed using the
+:meth:`~IntervalIndex.overlaps` method to create a boolean indexer.
+
+.. ipython:: python
+
+   idxr = df.index.overlaps(pd.Interval(0.5, 2.5))
+   df[idxr]
+
 ``Interval`` and ``IntervalIndex`` are used by ``cut`` and ``qcut``:
 
 .. ipython:: python

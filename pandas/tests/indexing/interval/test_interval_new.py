@@ -110,16 +110,17 @@ class TestIntervalIndex:
         result = s[Interval(3, 4):]
         tm.assert_series_equal(expected, result)
 
-        with pytest.raises(NotImplementedError):
+        msg = 'Interval objects are not currently supported'
+        with pytest.raises(NotImplementedError, match=msg):
             s.loc[Interval(3, 6):]
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=msg):
             s[Interval(3, 6):]
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=msg):
             s.loc[Interval(3, 4, closed='left'):]
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=msg):
             s[Interval(3, 4, closed='left'):]
 
         # TODO with non-existing intervals ?
