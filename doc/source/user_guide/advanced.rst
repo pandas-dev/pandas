@@ -986,7 +986,6 @@ binned into the same bins.
 
 Any value which falls outside all bins will be assigned a ``NaN`` value.
 
-
 Generating ranges of intervals
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
