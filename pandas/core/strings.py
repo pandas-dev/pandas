@@ -2,7 +2,7 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import Dict
+from typing import Dict, List
 import warnings
 
 import numpy as np
@@ -31,7 +31,7 @@ _cpython_optimized_decoders = _cpython_optimized_encoders + (
 _shared_docs = dict()  # type: Dict[str, str]
 
 
-def cat_core(list_of_columns, sep):
+def cat_core(list_of_columns: List, sep: str):
     """
     Auxiliary function for :meth:`str.cat`
 
@@ -51,6 +51,41 @@ def cat_core(list_of_columns, sep):
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
     return np.sum(list_with_sep, axis=0)
+
+
+def cat_safe(list_of_columns: List, sep: str):
+    """
+    Auxiliary function for :meth:`str.cat`.
+
+    Same signature as cat_core, but handles TypeErrors in concatenation, which
+    happen if the arrays in list_of columns have the wrong dtypes or content.
+
+    Parameters
+    ----------
+    list_of_columns : list of numpy arrays
+        List of arrays to be concatenated with sep;
+        these arrays may not contain NaNs!
+    sep : string
+        The separator string for concatenating the columns
+
+    Returns
+    -------
+    nd.array
+        The concatenation of list_of_columns with sep
+    """
+    try:
+        result = cat_core(list_of_columns, sep)
+    except TypeError:
+        # if there are any non-string values (wrong dtype or hidden behind
+        # object dtype), np.sum will fail; catch and return with better message
+        for column in list_of_columns:
+            dtype = lib.infer_dtype(column, skipna=True)
+            if dtype not in ['string', 'empty']:
+                raise TypeError(
+                    'Concatenation requires list-likes containing only '
+                    'strings (or missing values). Offending values found in '
+                    'column {}'.format(dtype)) from None
+    return result
 
 
 def _na_map(f, arr, na_result=np.nan, dtype=object):
@@ -2023,7 +2058,7 @@ class StringMethods(NoNewAttributesMixin):
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, Index) else self._orig.index
 
-        err_msg = ('others must be Series, Index, DataFrame, np.ndarrary or '
+        err_msg = ('others must be Series, Index, DataFrame, np.ndarray or '
                    'list-like (either containing only strings or containing '
                    'only objects of type Series/Index/list-like/np.ndarray)')
 
@@ -2120,7 +2155,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        others : Series, Index, DataFrame, np.ndarrary or list-like
+        others : Series, Index, DataFrame, np.ndarray or list-like
             Series, Index, DataFrame, np.ndarray (one- or two-dimensional) and
             other list-likes of strings must have the same length as the
             calling Series/Index, with the exception of indexed objects (i.e.
@@ -2314,16 +2349,16 @@ class StringMethods(NoNewAttributesMixin):
             np.putmask(result, union_mask, np.nan)
 
             not_masked = ~union_mask
-            result[not_masked] = cat_core([x[not_masked] for x in all_cols],
+            result[not_masked] = cat_safe([x[not_masked] for x in all_cols],
                                           sep)
         elif na_rep is not None and union_mask.any():
             # fill NaNs with na_rep in case there are actually any NaNs
             all_cols = [np.where(nm, na_rep, col)
                         for nm, col in zip(na_masks, all_cols)]
-            result = cat_core(all_cols, sep)
+            result = cat_safe(all_cols, sep)
         else:
             # no NaNs - can just concatenate
-            result = cat_core(all_cols, sep)
+            result = cat_safe(all_cols, sep)
 
         if isinstance(self._orig, Index):
             # add dtype for case that result is all-NA
@@ -2360,13 +2395,13 @@ class StringMethods(NoNewAttributesMixin):
 
     See Also
     --------
-     Series.str.split : Split strings around given separator/delimiter.
-     Series.str.rsplit : Splits string around given separator/delimiter,
-     starting from the right.
-     Series.str.join : Join lists contained as elements in the Series/Index
-     with passed delimiter.
-     str.split : Standard library version for split.
-     str.rsplit : Standard library version for rsplit.
+    Series.str.split : Split strings around given separator/delimiter.
+    Series.str.rsplit : Splits string around given separator/delimiter,
+        starting from the right.
+    Series.str.join : Join lists contained as elements in the Series/Index
+        with passed delimiter.
+    str.split : Standard library version for split.
+    str.rsplit : Standard library version for rsplit.
 
     Notes
     -----
@@ -2383,7 +2418,12 @@ class StringMethods(NoNewAttributesMixin):
     Examples
     --------
     >>> s = pd.Series(["this is a regular sentence",
-    "https://docs.python.org/3/tutorial/index.html", np.nan])
+    ...                "https://docs.python.org/3/tutorial/index.html",
+    ...                np.nan])
+    0                       this is a regular sentence
+    1    https://docs.python.org/3/tutorial/index.html
+    2                                              NaN
+    dtype: object
 
     In the default setting, the string is split by whitespace.
 
@@ -2434,7 +2474,6 @@ class StringMethods(NoNewAttributesMixin):
     0                                           this    is     a  regular
     1  https://docs.python.org/3/tutorial/index.html  None  None     None
     2                                            NaN   NaN   NaN      NaN \
-
                  4
     0     sentence
     1         None
@@ -2532,7 +2571,7 @@ class StringMethods(NoNewAttributesMixin):
     0  Linda van der Berg
     1         George Pitt  -  Rivers
 
-    To return a Series containining tuples instead of a DataFrame:
+    To return a Series containing tuples instead of a DataFrame:
 
     >>> s.str.partition('-', expand=False)
     0    (Linda van der Berg, , )
@@ -2548,8 +2587,9 @@ class StringMethods(NoNewAttributesMixin):
     Which will create a MultiIndex:
 
     >>> idx.str.partition()
-    MultiIndex(levels=[['X', 'Y'], [' '], ['123', '999']],
-               codes=[[0, 1], [0, 0], [0, 1]])
+    MultiIndex([('X', ' ', '123'),
+                ('Y', ' ', '999')],
+               dtype='object')
 
     Or an index with tuples with ``expand=False``:
 
@@ -3252,7 +3292,7 @@ class StringMethods(NoNewAttributesMixin):
 
     The ``s5.str.istitle`` method checks for whether all words are in title
     case (whether only the first letter of each word is capitalized). Words are
-    assumed to be as any sequence of non-numeric characters seperated by
+    assumed to be as any sequence of non-numeric characters separated by
     whitespace characters.
 
     >>> s5.str.istitle()

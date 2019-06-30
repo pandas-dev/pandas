@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import ensure_platform_int
+
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, RangeIndex, Series
 import pandas.util.testing as tm
@@ -94,8 +96,9 @@ class TestRangeIndex(Numeric):
 
     def test_constructor_range(self):
 
-        with pytest.raises(TypeError):
-            RangeIndex(range(1, 5, 2))
+        msg = "Value needs to be a scalar value, was type <class 'range'>"
+        with pytest.raises(TypeError, match=msg):
+            result = RangeIndex(range(1, 5, 2))
 
         result = RangeIndex.from_range(range(1, 5, 2))
         expected = RangeIndex(1, 5, 2)
@@ -120,6 +123,9 @@ class TestRangeIndex(Numeric):
 
         with pytest.raises(TypeError):
             Index(range(1, 5, 2), dtype='float64')
+        msg = r'^from_range\(\) got an unexpected keyword argument'
+        with pytest.raises(TypeError, match=msg):
+            pd.RangeIndex.from_range(range(10), copy=True)
 
     def test_constructor_name(self):
         # GH12288
@@ -167,12 +173,12 @@ class TestRangeIndex(Numeric):
         assert index.stop == stop
         assert index.step == step
 
-    def test_deprecated_start_stop_step_attrs(self):
+    @pytest.mark.parametrize('attr_name', ['_start', '_stop', '_step'])
+    def test_deprecated_start_stop_step_attrs(self, attr_name):
         # GH 26581
         idx = self.create_index()
-        for attr_name in ['_start', '_stop', '_step']:
-            with tm.assert_produces_warning(DeprecationWarning):
-                getattr(idx, attr_name)
+        with tm.assert_produces_warning(DeprecationWarning):
+            getattr(idx, attr_name)
 
     def test_copy(self):
         i = RangeIndex(5, name='Foo')
@@ -961,3 +967,23 @@ class TestRangeIndex(Numeric):
             # Append single item rather than list
             result2 = indices[0].append(indices[1])
             tm.assert_index_equal(result2, expected, exact=True)
+
+    def test_engineless_lookup(self):
+        # GH 16685
+        # Standard lookup on RangeIndex should not require the engine to be
+        # created
+        idx = RangeIndex(2, 10, 3)
+
+        assert idx.get_loc(5) == 1
+        tm.assert_numpy_array_equal(idx.get_indexer([2, 8]),
+                                    ensure_platform_int(np.array([0, 2])))
+        with pytest.raises(KeyError):
+            idx.get_loc(3)
+
+        assert '_engine' not in idx._cache
+
+        # The engine is still required for lookup of a different dtype scalar:
+        with pytest.raises(KeyError):
+            assert idx.get_loc('a') == -1
+
+        assert '_engine' in idx._cache

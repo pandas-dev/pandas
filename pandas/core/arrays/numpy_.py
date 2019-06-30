@@ -98,6 +98,14 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         The NumPy ndarray to wrap. Must be 1-dimensional.
     copy : bool, default False
         Whether to copy `values`.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     # If you're wondering why pd.Series(cls) doesn't put the array in an
     # ExtensionBlock, search for `ABCPandasArray`. We check for
@@ -277,7 +285,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
                       fill_value=fill_value)
         return type(self)(result)
 
-    def copy(self, deep=False):
+    def copy(self):
         return type(self)(self._ndarray.copy())
 
     def _values_for_argsort(self):

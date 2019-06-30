@@ -533,7 +533,7 @@ class TestDataFrameFormatting:
         assert result == '  c/\u03c3\n' + '0   1\n1   2\n2   3'
 
     def test_east_asian_unicode_false(self):
-        # not alighned properly because of east asian width
+        # not aligned properly because of east asian width
 
         # mid col
         df = DataFrame({'a': ['あ', 'いいい', 'う', 'ええええええ'],

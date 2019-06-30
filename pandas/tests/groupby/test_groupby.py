@@ -129,12 +129,14 @@ def test_groupby_return_type():
     result = df.groupby('X', squeeze=False).count()
     assert isinstance(result, DataFrame)
 
+
+def test_inconsistent_return_type():
     # GH5592
-    # inconcistent return type
+    # inconsistent return type
     df = DataFrame(dict(A=['Tiger', 'Tiger', 'Tiger', 'Lamb', 'Lamb',
-                           'Pony', 'Pony'], B=Series(
-                               np.arange(7), dtype='int64'), C=date_range(
-                                   '20130101', periods=7)))
+                           'Pony', 'Pony'],
+                        B=Series(np.arange(7), dtype='int64'),
+                        C=date_range('20130101', periods=7)))
 
     def f(grp):
         return grp.iloc[0]
@@ -1306,12 +1308,12 @@ def test_skip_group_keys():
     assert_series_equal(result, expected)
 
 
-def test_no_nonsense_name(frame):
+def test_no_nonsense_name(float_frame):
     # GH #995
-    s = frame['C'].copy()
+    s = float_frame['C'].copy()
     s.name = None
 
-    result = s.groupby(frame['A']).agg(np.sum)
+    result = s.groupby(float_frame['A']).agg(np.sum)
     assert result.name is None
 
 

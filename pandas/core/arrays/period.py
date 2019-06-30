@@ -112,6 +112,14 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     copy : bool, default False
         Whether to copy the ordinals before storing.
 
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
+
     See Also
     --------
     period_array : Create a new PeriodArray.
@@ -187,7 +195,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def _from_sequence(
             cls,
             scalars: Sequence[Optional[Period]],
-            dtype: PeriodDtype = None,
+            dtype: Optional[PeriodDtype] = None,
             copy: bool = False,
     ) -> ABCPeriodArray:
         if dtype:
@@ -846,7 +854,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
     -------
     ordinals : ndarray[int]
     freq : Tick
-        The frequencey extracted from the Series or DatetimeIndex if that's
+        The frequency extracted from the Series or DatetimeIndex if that's
         used.
 
     """

@@ -123,6 +123,7 @@ class SharedWithSparse:
         assert result.name == self.ts.name
 
     @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_to_sparse_pass_name(self):
         result = self.ts.to_sparse()
         assert result.name == self.ts.name
@@ -361,7 +362,8 @@ class TestSeriesMisc(TestData, SharedWithSparse):
                 assert np.isnan(s2[0])
                 assert np.isnan(s[0])
 
-        # GH 11794
+    def test_copy_tzaware(self):
+        # GH#11794
         # copy of tz-aware
         expected = Series([Timestamp('2012/01/01', tz='UTC')])
         expected2 = Series([Timestamp('1999/01/01', tz='UTC')])
@@ -417,10 +419,11 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         tm.assert_series_equal(result, expected)
 
         # .item()
-        s = Series([1])
-        result = s.item()
-        assert result == 1
-        assert s.item() == s.iloc[0]
+        with tm.assert_produces_warning(FutureWarning):
+            s = Series([1])
+            result = s.item()
+            assert result == 1
+            assert s.item() == s.iloc[0]
 
         # using an ndarray like function
         s = Series(np.random.randn(10))

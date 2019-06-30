@@ -9,6 +9,8 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
+import importlib
+
 import pandas._config.config as cf
 from pandas._config.config import (
     is_bool, is_callable, is_instance_factory, is_int, is_one_of_factory,
@@ -409,7 +411,43 @@ with cf.config_prefix('mode'):
     cf.register_option('chained_assignment', 'warn', chained_assignment,
                        validator=is_one_of_factory([None, 'warn', 'raise']))
 
-# Set up the io.excel specific configuration.
+
+# Set up the io.excel specific reader configuration.
+reader_engine_doc = """
+: string
+    The default Excel reader engine for '{ext}' files. Available options:
+    auto, {others}.
+"""
+
+_xls_options = ['xlrd']
+_xlsm_options = ['xlrd', 'openpyxl']
+_xlsx_options = ['xlrd', 'openpyxl']
+
+
+with cf.config_prefix("io.excel.xls"):
+    cf.register_option("reader", "auto",
+                       reader_engine_doc.format(
+                           ext='xls',
+                           others=', '.join(_xls_options)),
+                       validator=str)
+
+with cf.config_prefix("io.excel.xlsm"):
+    cf.register_option("reader", "auto",
+                       reader_engine_doc.format(
+                           ext='xlsm',
+                           others=', '.join(_xlsm_options)),
+                       validator=str)
+
+
+with cf.config_prefix("io.excel.xlsx"):
+    cf.register_option("reader", "auto",
+                       reader_engine_doc.format(
+                           ext='xlsx',
+                           others=', '.join(_xlsx_options)),
+                       validator=str)
+
+
+# Set up the io.excel specific writer configuration.
 writer_engine_doc = """
 : string
     The default Excel writer engine for '{ext}' files. Available options:
@@ -459,6 +497,40 @@ with cf.config_prefix('io.parquet'):
 # --------
 # Plotting
 # ---------
+
+plotting_backend_doc = """
+: str
+    The plotting backend to use. The default value is "matplotlib", the
+    backend provided with pandas. Other backends can be specified by
+    prodiving the name of the module that implements the backend.
+"""
+
+
+def register_plotting_backend_cb(key):
+    backend_str = cf.get_option(key)
+    if backend_str == 'matplotlib':
+        try:
+            import pandas.plotting._matplotlib  # noqa
+        except ImportError:
+            raise ImportError('matplotlib is required for plotting when the '
+                              'default backend "matplotlib" is selected.')
+        else:
+            return
+
+    try:
+        importlib.import_module(backend_str)
+    except ImportError:
+        raise ValueError('"{}" does not seem to be an installed module. '
+                         'A pandas plotting backend must be a module that '
+                         'can be imported'.format(backend_str))
+
+
+with cf.config_prefix('plotting'):
+    cf.register_option('backend', defval='matplotlib',
+                       doc=plotting_backend_doc,
+                       validator=str,
+                       cb=register_plotting_backend_cb)
+
 
 register_converter_doc = """
 : bool

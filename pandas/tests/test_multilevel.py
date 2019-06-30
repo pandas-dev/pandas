@@ -1840,7 +1840,7 @@ class TestSorted(Base):
 
         # 15622
         # lexsortedness should be identical
-        # across MultiIndex consruction methods
+        # across MultiIndex construction methods
 
         df = DataFrame([[1, 1], [2, 2]], index=list('ab'))
         expected = DataFrame([[1, 1], [2, 2], [1, 1], [2, 2]],

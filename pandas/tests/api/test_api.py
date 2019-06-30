@@ -81,7 +81,7 @@ class TestPDApi(Base):
                   'read_gbq', 'read_hdf', 'read_html', 'read_json',
                   'read_msgpack', 'read_pickle', 'read_sas', 'read_sql',
                   'read_sql_query', 'read_sql_table', 'read_stata',
-                  'read_table', 'read_feather', 'read_parquet']
+                  'read_table', 'read_feather', 'read_parquet', 'read_spss']
 
     # top-level to_* funcs
     funcs_to = ['to_datetime', 'to_msgpack',
@@ -131,13 +131,3 @@ class TestTesting(Base):
 
         from pandas import testing
         self.check(testing, self.funcs)
-
-
-class TestCDateRange:
-
-    def test_deprecation_cdaterange(self):
-        # GH17596
-        from pandas.core.indexes.datetimes import cdate_range
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            cdate_range('2017-01-01', '2017-12-31')
