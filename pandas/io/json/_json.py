@@ -19,8 +19,8 @@ from pandas.io.common import (
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import _validate_integer
 
-from .normalize import _convert_to_line_delimits
-from .table_schema import build_table_schema, parse_table_schema
+from ._normalize import _convert_to_line_delimits
+from ._table_schema import build_table_schema, parse_table_schema
 
 loads = json.loads
 dumps = json.dumps
