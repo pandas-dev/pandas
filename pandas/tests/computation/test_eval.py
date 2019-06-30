@@ -1713,7 +1713,7 @@ class TestMathPythonPython:
 
     def test_result_types2(self):
         # xref https://github.com/pandas-dev/pandas/issues/12293
-        # at one point this was unreliable on compled128
+        # at one point this was unreliable on complex128
 
         # Did not test complex64 because DataFrame is converting it to
         # complex128. Due to https://github.com/pandas-dev/pandas/issues/10952
