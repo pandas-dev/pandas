@@ -86,8 +86,8 @@ class _ODFReader(_BaseExcelReader):
 
                 if row_span > 1:
                     if j > 0:
-                        raise ValueError(
-                            "The odf reader only supports vertical "
+                        raise NotImplementedError(
+                            "The odf reader only supports vertical cell"
                             "merging in the initial column")
                     else:
                         row_spans[j] = row_span

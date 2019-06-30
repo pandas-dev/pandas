@@ -69,3 +69,9 @@ def test_runlengthencoding():
     assert list(sheet[0]) == [1.0, 1.0, 2.0, 2.0, 2.0]
     assert list(sheet[1]) == [1.0, 2.0, 2.0, 2.0, 2.0]
     assert list(sheet[2]) == [1.0, 2.0, 2.0, 2.0, 2.0]
+
+
+def test_raises_repeated_rows_not_in_col_0():
+    with pytest.raises(NotImplementedError,
+                       match="merging in the initial column"):
+        pd.read_excel("raising_repeats.ods")
