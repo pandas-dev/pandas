@@ -29,7 +29,7 @@ from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
 
 from pandas.tseries.frequencies import Resolution, to_offset
-from pandas.tseries.offsets import CDay, Nano, prefix_mapping
+from pandas.tseries.offsets import Nano, prefix_mapping
 
 
 def _new_DatetimeIndex(cls, d):
