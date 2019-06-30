@@ -83,7 +83,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
                     s = o._data.get_dtype_counts()
                     if len(s) > 1:
                         return False
-                    dtypes |= set(s.keys)
+                    dtypes |= set(s.keys())
                 elif isinstance(o, np.ndarray):
                     dtypes |= {o.dtype.name}
 
