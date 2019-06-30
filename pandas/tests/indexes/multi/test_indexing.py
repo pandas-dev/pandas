@@ -401,9 +401,10 @@ def test_get_indexer_categorical_time():
 
 def test_timestamp_multiindex_indexer():
     # https://github.com/pandas-dev/pandas/issues/26944
-    dt_index = pd.date_range(start="1jan2019 00:15:33", periods=100,
-                             freq="h", name="date")
-    df = pd.DataFrame(index=dt_index,
-                      data={'foo': range(len(dt_index)), 'bar': 'x', 'zaa': 3})
-    df = df.reset_index().set_index(["date", "bar", "zaa"])
+    idx = pd.MultiIndex.from_product([
+        pd.date_range("2019-01-01T00:15:33", periods=100, freq="H", name="date"),
+        ['x'],
+        [3]
+    ])
+    df = pd.DataFrame({'foo': np.arange(len(idx))}, idx)
     assert df.loc[pd.IndexSlice['2019-1-2':, "x", :], 'foo'][-1] == 98
