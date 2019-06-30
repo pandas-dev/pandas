@@ -407,3 +407,4 @@ def test_timestamp_multiindex_indexer():
                       data={'foo': range(len(dt_index)), 'bar': 'x', 'zaa': 3})
     df = df.reset_index().set_index(["date", "bar", "zaa"])
     assert df.loc[pd.IndexSlice['2019-1-2':, "x", :], 'foo'][-1] == 98
+    
