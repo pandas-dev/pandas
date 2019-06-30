@@ -50,7 +50,7 @@ from .io import BaseParsingTests  # noqa
 from .methods import BaseMethodsTests  # noqa
 from .missing import BaseMissingTests  # noqa
 from .ops import (  # noqa
-    BaseArithmeticOpsTests, BaseComparisonOpsTests, BaseOpsUtil)
+    BaseArithmeticOpsTests, BaseComparisonOpsTests, BaseOpsUtil, BaseUnaryOpsTests)
 from .printing import BasePrintingTests  # noqa
 from .reduce import (  # noqa
     BaseBooleanReduceTests, BaseNoReduceTests, BaseNumericReduceTests)
