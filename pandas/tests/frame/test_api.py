@@ -433,9 +433,10 @@ class SharedWithSparse:
                          'B': timedelta_range('1 day', periods=10)})
         t = df.T
 
-        result = Series(t._data.get_dtype_counts())
+        #result = Series(t._data.get_dtype_counts())
+        result = t.dtypes.value_counts()
         if self.klass is DataFrame:
-            expected = Series({'object': 10})
+            expected = Series({np.dtype('object'): 10})
         else:
             expected = Series({'Sparse[object, nan]': 10})
         tm.assert_series_equal(result, expected)
