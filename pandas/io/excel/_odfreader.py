@@ -78,7 +78,7 @@ class _ODFReader(_BaseExcelReader):
                     empty_cells += column_repeat
                 else:
                     if empty_cells > 0:
-                        table_row.extend([None] * empty_cells)
+                        table_row.extend([''] * empty_cells)
                         empty_cells = 0
                     table_row.extend([value] * column_repeat)
 
@@ -91,7 +91,7 @@ class _ODFReader(_BaseExcelReader):
             else:
                 if empty_rows > 0:
                     # add blank rows to our table
-                    table.extend([[None]] * empty_rows)
+                    table.extend([['']] * empty_rows)
                     empty_rows = 0
                 table.append(table_row)
 
