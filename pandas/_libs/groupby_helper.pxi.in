@@ -76,7 +76,11 @@ def group_last_{{name}}({{c_type}}[:, :] out,
                 val = values[i, j]
 
                 # not nan
+                {{if name.startswith("int")}}
+                if 0:
+                {{else}}
                 if val == val and val != {{nan_val}}:
+                {{endif}}
                     nobs[lab, j] += 1
                     resx[lab, j] = val
 
@@ -133,7 +137,11 @@ def group_nth_{{name}}({{c_type}}[:, :] out,
                 val = values[i, j]
 
                 # not nan
+                {{if name.startswith("int")}}
+                if 0:
+                {{else}}
                 if val == val and val != {{nan_val}}:
+                {{endif}}
                     nobs[lab, j] += 1
                     if nobs[lab, j] == rank:
                         resx[lab, j] = val
