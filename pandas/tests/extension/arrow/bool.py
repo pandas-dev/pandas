@@ -49,6 +49,11 @@ class ArrowBoolArray(ExtensionArray):
         self._data = values
         self._dtype = ArrowBoolDtype()
 
+    def view(self, dtype=None):
+        if dtype is not None:
+            raise NotImplementedError
+        return type(self)(self._data)
+
     def __repr__(self):
         return "ArrowBoolArray({})".format(repr(self._data))
 

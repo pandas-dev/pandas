@@ -830,6 +830,20 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
+    def view(self, dtype=None) -> ABCExtensionArray:
+        """
+        Return a view on the array.
+
+        Returns
+        -------
+        ExtensionArray
+
+        Notes
+        -----
+        This must return a *new* object, not self.
+        """
+        raise AbstractMethodError(self)
+
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
@@ -896,6 +910,20 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Reshaping
     # ------------------------------------------------------------------------
+
+    @property
+    def T(self) -> ABCExtensionArray:
+        """
+        Return a transposed view on self.  For 1-D arrays this is a no-op.
+        """
+        if self.ndim != 1:
+            raise NotImplementedError
+        return self
+
+    def ravel(self, order=None) -> ABCExtensionArray:
+        if self.ndim != 1:
+            raise NotImplementedError
+        return self
 
     @classmethod
     def _concat_same_type(

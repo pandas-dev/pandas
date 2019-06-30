@@ -1685,9 +1685,11 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         numpy.array
         """
-        return np.array(self)
+        if self.ndim != 1:
+            raise NotImplementedError
+        return self
 
-    def view(self):
+    def view(self, dtype=None):
         """
         Return a view of myself.
 
@@ -1698,7 +1700,11 @@ class Categorical(ExtensionArray, PandasObject):
         view : Categorical
            Returns `self`!
         """
-        return self
+        if dtype is not None:
+            return NotImplementedError(dtype)
+        return self._constructor(values=self._codes,
+                                 dtype=self.dtype,
+                                 fastpath=True)
 
     def to_dense(self):
         """

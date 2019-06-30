@@ -299,6 +299,11 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
         return type(self)(unique(self._ndarray))
 
+    def view(self, dtype=None):
+        if dtype is not None:
+            raise NotImplementedError(dtype)
+        return type(self)(self._ndarray)
+
     # ------------------------------------------------------------------------
     # Reductions
 

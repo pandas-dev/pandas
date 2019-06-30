@@ -269,3 +269,8 @@ class BaseReshapingTests(BaseExtensionTests):
             result = result.astype(object)
 
             self.assert_frame_equal(result, expected)
+
+    def ravel(self, data):
+        assert data.ndim == 1
+        result = data.ravel()
+        assert result is data

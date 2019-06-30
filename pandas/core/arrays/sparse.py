@@ -1266,6 +1266,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         values = self.sp_values.copy()
         return self._simple_new(values, self.sp_index, self.dtype)
 
+    def view(self, dtype=None):
+        if dtype is not None:
+            raise NotImplementedError
+        return self._simple_new(self.sp_values, self.sp_index, self.dtype)
+
+    def ravel(self, order=None):
+        if self.ndim != 1:
+            raise NotImplementedError
+        return self
+
     @classmethod
     def _concat_same_type(cls, to_concat):
         fill_values = [x.fill_value for x in to_concat]
