@@ -1,3 +1,4 @@
+import functools
 from collections import OrderedDict
 
 import numpy as np
@@ -9,9 +10,15 @@ import pandas.util.testing as tm
 pytest.importorskip("odf")
 
 
-def test_read_types(datapath):
-    path = datapath("io", "data", "datatypes.ods")
-    sheet = pd.read_excel(path, header=None, engine='odf')
+@pytest.fixture(autouse=True)
+def cd_and_set_engine(monkeypatch, datapath):
+    func = functools.partial(pd.read_excel, engine="odf")
+    monkeypatch.setattr(pd, 'read_excel', func)
+    monkeypatch.chdir(datapath("io", "data"))
+
+
+def test_read_types():
+    sheet = pd.read_excel("datatypes.ods", header=None)
 
     expected = pd.DataFrame(
         [[1.0],
@@ -28,31 +35,29 @@ def test_read_types(datapath):
     tm.assert_equal(sheet, expected)
 
 
-def test_read_invalid_types_raises(datapath):
+def test_read_invalid_types_raises():
     # the invalid_value_type.ods required manually editing
     # of the included content.xml file
-    path = datapath("io", "data", "invalid_value_type.ods")
     with pytest.raises(ValueError,
                        match="Unrecognized type awesome_new_type"):
-        pd.read_excel(path, header=None, engine='odf')
+        pd.read_excel("invalid_value_type.ods", header=None)
 
 
-def test_read_lower_diagonal(datapath):
+def test_read_lower_diagonal():
     # Make sure we can parse:
     # 1
     # 2 3
     # 4 5 6
     # 7 8 9 10
-    path = datapath("io", "data", "lowerdiagonal.ods")
-    sheet = pd.read_excel(path, 'Sheet1',
-                          index_col=None, header=None, engine='odf')
+
+    sheet = pd.read_excel("lowerdiagonal.ods", 'Sheet1',
+                          index_col=None, header=None)
 
     assert sheet.shape == (4, 4)
 
 
-def test_read_headers(datapath):
-    path = datapath("io", "data", "headers.ods")
-    sheet = pd.read_excel(path, 'Sheet1', index_col=0, engine='odf')
+def test_read_headers():
+    sheet = pd.read_excel("headers.ods", 'Sheet1', index_col=0)
 
     expected = pd.DataFrame.from_dict(OrderedDict([
         ("Header", ["Row 1", "Row 2"]),
@@ -71,12 +76,11 @@ def test_read_headers(datapath):
             assert pd.isnull(value)
 
 
-def test_read_writer_table(datapath):
+def test_read_writer_table():
     # Also test reading tables from an text OpenDocument file
     # (.odt)
 
-    path = datapath("io", "data", "writertable.odt")
-    table = pd.read_excel(path, 'Table1', index_col=0, engine='odf')
+    table = pd.read_excel("writertable.odt", 'Table1', index_col=0)
 
     assert table.shape == (3, 3)
     expected = pd.DataFrame.from_dict(OrderedDict([
@@ -93,9 +97,8 @@ def test_read_writer_table(datapath):
         assert pd.isnull(table["Unnamed: 2"][i])
 
 
-def test_blank_row_repeat(datapath):
-    path = datapath("io", "data", "blank-row-repeat.ods")
-    table = pd.read_excel(path, 'Value', engine='odf')
+def test_blank_row_repeat():
+    table = pd.read_excel("blank-row-repeat.ods", 'Value')
 
     assert table.shape == (14, 2)
     assert table['value'][7] == 9.0
@@ -103,9 +106,8 @@ def test_blank_row_repeat(datapath):
     assert not pd.isnull(table['value'][11])
 
 
-def test_runlengthencoding(datapath):
-    path = datapath("io", "data", "runlengthencoding.ods")
-    sheet = pd.read_excel(path, 'Sheet1', header=None, engine='odf')
+def test_runlengthencoding():
+    sheet = pd.read_excel("runlengthencoding.ods", 'Sheet1', header=None)
     assert sheet.shape == (5, 3)
     # check by column, not by row.
     assert list(sheet[0]) == [1.0, 1.0, 2.0, 2.0, 2.0]
