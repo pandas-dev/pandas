@@ -743,7 +743,7 @@ class TestExcelFileRead:
         pytest.param('openpyxl', marks=pytest.mark.skipif(
             not td.safe_import("openpyxl"), reason="no openpyxl")),
         pytest.param("odf", marks=pytest.mark.skipif(
-            not td.safe_import("odf"), reason="no odfpy")),        
+            not td.safe_import("odf"), reason="no odfpy")),
         pytest.param(None, marks=pytest.mark.skipif(
             not td.safe_import("xlrd"), reason="no xlrd")),
     ])
@@ -754,7 +754,7 @@ class TestExcelFileRead:
         if request.param == 'odf' and read_ext != '.ods':
             pytest.skip()
         if read_ext == ".ods" and request.param != "odf":
-            pytest.skip()            
+            pytest.skip()
         if request.param == 'openpyxl' and read_ext == '.xls':
             pytest.skip()
 
