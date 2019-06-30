@@ -79,11 +79,11 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
             # check for dtype compatibility
             dtypes = set()
             for o in [a, b]:
-                if hasattr(o, 'get_dtype_counts'):
-                    s = o.get_dtype_counts()
+                if hasattr(o, '_data'):
+                    s = o._data.get_dtype_counts()
                     if len(s) > 1:
                         return False
-                    dtypes |= set(s.index)
+                    dtypes |= set(s.keys)
                 elif isinstance(o, np.ndarray):
                     dtypes |= {o.dtype.name}
 

@@ -123,7 +123,9 @@ class TestSeriesComparison:
         ser = Series([1, 3, 2], index=range(3))
         const = 2
 
-        result = getattr(ser, opname)(const).get_dtype_counts()
+        result = Series(
+            getattr(ser, opname)(const)._data.get_dtype_counts()
+        )
         tm.assert_series_equal(result, Series([1], ['bool']))
 
     @pytest.mark.parametrize('opname', ['eq', 'ne', 'gt', 'lt', 'ge', 'le'])
@@ -133,7 +135,7 @@ class TestSeriesComparison:
         empty = ser.iloc[:0]
         const = 2
 
-        result = getattr(empty, opname)(const).get_dtype_counts()
+        result = Series(getattr(empty, opname)(const)._data.get_dtype_counts())
         tm.assert_series_equal(result, Series([1], ['bool']))
 
     @pytest.mark.parametrize('op', [operator.eq, operator.ne,

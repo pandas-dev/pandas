@@ -293,7 +293,7 @@ class TestSparseDataFrame(SharedWithSparse):
         df.loc[:9998] = np.nan
         sdf = df.to_sparse()
 
-        result = sdf.get_dtype_counts()
+        result = Series(sdf._data.get_dtype_counts())
         expected = Series({'Sparse[float64, nan]': 4})
         tm.assert_series_equal(result, expected)
 
@@ -902,7 +902,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_describe(self, float_frame):
         float_frame['foo'] = np.nan
-        float_frame.get_dtype_counts()
+        Series(float_frame._data.get_dtype_counts())
         str(float_frame)
         desc = float_frame.describe()  # noqa
 

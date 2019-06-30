@@ -159,16 +159,22 @@ class TestDataFrameMutateColumns:
         # new item
         df['x'] = df['a'].astype('float32')
         result = Series(dict(float32=1, float64=5))
-        assert (df.get_dtype_counts().sort_index() == result).all()
+        assert (
+                Series(df._data.get_dtype_counts()).sort_index() == result
+        ).all()
 
         # replacing current (in different block)
         df['a'] = df['a'].astype('float32')
         result = Series(dict(float32=2, float64=4))
-        assert (df.get_dtype_counts().sort_index() == result).all()
+        assert (
+                Series(df._data.get_dtype_counts()).sort_index() == result
+        ).all()
 
         df['y'] = df['a'].astype('int32')
         result = Series(dict(float32=2, float64=4, int32=1))
-        assert (df.get_dtype_counts().sort_index() == result).all()
+        assert (
+                Series(df._data.get_dtype_counts()).sort_index() == result
+        ).all()
 
         with pytest.raises(ValueError, match='already exists'):
             df.insert(1, 'a', df['b'])

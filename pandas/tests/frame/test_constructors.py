@@ -1579,7 +1579,7 @@ class TestDataFrameConstructors:
                         'D': Timestamp("20010101"),
                         'E': datetime(2001, 1, 2, 0, 0)},
                        index=np.arange(10))
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({'int64': 1, datetime64name: 2, objectname: 2})
         result.sort_index()
         expected.sort_index()
@@ -1591,7 +1591,7 @@ class TestDataFrameConstructors:
                         floatname: np.array(1., dtype=floatname),
                         intname: np.array(1, dtype=intname)},
                        index=np.arange(10))
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = {objectname: 1}
         if intname == 'int64':
             expected['int64'] = 2
@@ -1613,7 +1613,7 @@ class TestDataFrameConstructors:
                         floatname: np.array([1.] * 10, dtype=floatname),
                         intname: np.array([1] * 10, dtype=intname)},
                        index=np.arange(10))
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         result = result.sort_index()
         tm.assert_series_equal(result, expected)
 
@@ -1623,7 +1623,7 @@ class TestDataFrameConstructors:
         datetime_s = Series(datetimes)
         assert datetime_s.dtype == 'M8[ns]'
         df = DataFrame({'datetime_s': datetime_s})
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({datetime64name: 1})
         result = result.sort_index()
         expected = expected.sort_index()
@@ -1634,7 +1634,7 @@ class TestDataFrameConstructors:
         datetimes = [ts.to_pydatetime() for ts in ind]
         dates = [ts.date() for ts in ind]
         df = DataFrame({'datetimes': datetimes, 'dates': dates})
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({datetime64name: 1, objectname: 1})
         result = result.sort_index()
         expected = expected.sort_index()
@@ -1693,7 +1693,7 @@ class TestDataFrameConstructors:
         for arr in [np.array([None, None, None, None,
                               datetime.now(), None]),
                     np.array([None, None, datetime.now(), None])]:
-            result = DataFrame(arr).get_dtype_counts()
+            result = Series(DataFrame(arr)._data.get_dtype_counts())
             expected = Series({'datetime64[ns]': 1})
             tm.assert_series_equal(result, expected)
 
@@ -1706,49 +1706,49 @@ class TestDataFrameConstructors:
 
         # test list of lists/ndarrays
         df = DataFrame([np.arange(5) for x in range(5)])
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({'int64': 5})
 
         df = DataFrame([np.array(np.arange(5), dtype='int32')
                         for x in range(5)])
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({'int32': 5})
 
         # overflow issue? (we always expecte int64 upcasting here)
         df = DataFrame({'a': [2 ** 31, 2 ** 31 + 1]})
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({'int64': 1})
         tm.assert_series_equal(result, expected)
 
         # GH #2751 (construction with no index specified), make sure we cast to
         # platform values
         df = DataFrame([1, 2])
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({'int64': 1})
         tm.assert_series_equal(result, expected)
 
         df = DataFrame([1., 2.])
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({'float64': 1})
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({'a': [1, 2]})
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({'int64': 1})
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({'a': [1., 2.]})
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({'float64': 1})
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({'a': 1}, index=range(3))
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({'int64': 1})
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({'a': 1.}, index=range(3))
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({'float64': 1})
         tm.assert_series_equal(result, expected)
 
@@ -1757,7 +1757,7 @@ class TestDataFrameConstructors:
                         'c': list('abcd'),
                         'd': [datetime(2000, 1, 1) for i in range(4)],
                         'e': [1., 2, 4., 7]})
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series(
             {'int64': 1, 'float64': 2, datetime64name: 1, objectname: 1})
         result = result.sort_index()
@@ -2077,14 +2077,14 @@ class TestDataFrameConstructors:
         rows.append([datetime(2010, 1, 1), 1])
         rows.append([datetime(2010, 1, 2), 'hi'])  # test col upconverts to obj
         df2_obj = DataFrame.from_records(rows, columns=['date', 'test'])
-        results = df2_obj.get_dtype_counts()
+        results = Series(df2_obj._data.get_dtype_counts())
         expected = Series({'datetime64[ns]': 1, 'object': 1})
 
         rows = []
         rows.append([datetime(2010, 1, 1), 1])
         rows.append([datetime(2010, 1, 2), 1])
         df2_obj = DataFrame.from_records(rows, columns=['date', 'test'])
-        results = df2_obj.get_dtype_counts().sort_index()
+        results = Series(df2_obj._data.get_dtype_counts()).sort_index()
         expected = Series({'datetime64[ns]': 1, 'int64': 1})
         tm.assert_series_equal(results, expected)
 

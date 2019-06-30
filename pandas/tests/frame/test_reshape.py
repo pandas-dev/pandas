@@ -502,14 +502,14 @@ class TestDataFrameReshape(TestData):
                 [2, 2, 3, 4]]
 
         df = DataFrame(rows, columns=list('ABCD'))
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({'int64': 4})
         assert_series_equal(result, expected)
 
         # single dtype
         df2 = df.set_index(['A', 'B'])
         df3 = df2.unstack('B')
-        result = df3.get_dtype_counts()
+        result = Series(df3._data.get_dtype_counts())
         expected = Series({'int64': 4})
         assert_series_equal(result, expected)
 
@@ -517,13 +517,13 @@ class TestDataFrameReshape(TestData):
         df2 = df.set_index(['A', 'B'])
         df2['C'] = 3.
         df3 = df2.unstack('B')
-        result = df3.get_dtype_counts()
+        result = Series(df3._data.get_dtype_counts())
         expected = Series({'int64': 2, 'float64': 2})
         assert_series_equal(result, expected)
 
         df2['D'] = 'foo'
         df3 = df2.unstack('B')
-        result = df3.get_dtype_counts()
+        result = Series(df3._data.get_dtype_counts())
         expected = Series({'float64': 2, 'object': 2})
         assert_series_equal(result, expected)
 

@@ -433,7 +433,7 @@ class SharedWithSparse:
                          'B': timedelta_range('1 day', periods=10)})
         t = df.T
 
-        result = t.get_dtype_counts()
+        result = Series(t._data.get_dtype_counts())
         if self.klass is DataFrame:
             expected = Series({'object': 10})
         else:

@@ -17,7 +17,7 @@ class TestDataFrameConcatCommon:
         A = DataFrame(data=np.ones((10, 2)), columns=[
                       'foo', 'bar'], dtype=np.float64)
         B = DataFrame(data=np.ones((10, 2)), dtype=np.float32)
-        results = pd.concat((A, B), axis=1).get_dtype_counts()
+        results = Series(pd.concat((A, B), axis=1)._data.get_dtype_counts())
         expected = Series(dict(float64=2, float32=2))
         assert_series_equal(results, expected)
 

@@ -273,7 +273,7 @@ class TestFrameFlexComparisons:
         df = pd.DataFrame({'x': [1, 2, 3], 'y': [1., 2., 3.]})
         const = 2
 
-        result = getattr(df, opname)(const).get_dtype_counts()
+        result = pd.Series(getattr(df, opname)(const)._data.get_dtype_counts())
         tm.assert_series_equal(result, pd.Series([2], ['bool']))
 
     @pytest.mark.parametrize('opname', ['eq', 'ne', 'gt', 'lt', 'ge', 'le'])
@@ -283,7 +283,9 @@ class TestFrameFlexComparisons:
         const = 2
 
         empty = df.iloc[:0]
-        result = getattr(empty, opname)(const).get_dtype_counts()
+        result = pd.Series(
+            getattr(empty, opname)(const)._data.get_dtype_counts()
+        )
         tm.assert_series_equal(result, pd.Series([2], ['bool']))
 
 

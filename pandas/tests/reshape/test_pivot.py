@@ -245,7 +245,7 @@ class TestPivotTable:
 
         z = pivot_table(f, values='v', index=['a'], columns=[
                         'i'], fill_value=0, aggfunc=np.sum)
-        result = z.get_dtype_counts()
+        result = Series(z._data.get_dtype_counts())
         expected = Series(dict(int64=2))
         tm.assert_series_equal(result, expected)
 
@@ -256,7 +256,7 @@ class TestPivotTable:
 
         z = pivot_table(f, values='v', index=['a'], columns=[
                         'i'], fill_value=0, aggfunc=np.mean)
-        result = z.get_dtype_counts()
+        result = Series(z._data.get_dtype_counts())
         expected = Series(dict(float64=2))
         tm.assert_series_equal(result, expected)
 

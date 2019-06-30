@@ -300,14 +300,14 @@ class TestDataFrameIndexing(TestData):
         df['F1'] = df['F'].copy()
 
         casted = df[df > 0]
-        result = casted.get_dtype_counts()
+        result = Series(casted._data.get_dtype_counts())
         expected = Series({'float64': 4, 'int32': 2, 'int64': 2})
         assert_series_equal(result, expected)
 
         # int block splitting
         df.loc[df.index[1:3], ['E1', 'F1']] = 0
         casted = df[df > 0]
-        result = casted.get_dtype_counts()
+        result = Series(casted._data.get_dtype_counts())
         expected = Series({'float64': 6, 'int32': 1, 'int64': 1})
         assert_series_equal(result, expected)
 
@@ -615,7 +615,7 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame(np.random.rand(30, 3), columns=tuple('ABC'))
         df['event'] = np.nan
         df.loc[10, 'event'] = 'foo'
-        result = df.get_dtype_counts().sort_values()
+        result = Series(df._data.get_dtype_counts()).sort_values()
         expected = Series({'float64': 3, 'object': 1}).sort_values()
         assert_series_equal(result, expected)
 
@@ -1614,7 +1614,7 @@ class TestDataFrameIndexing(TestData):
         df['timestamp'] = Timestamp('20010102')
 
         # check our dtypes
-        result = df.get_dtype_counts()
+        result = Series(df._data.get_dtype_counts())
         expected = Series({'float64': 3, 'datetime64[ns]': 1})
         assert_series_equal(result, expected)
 
@@ -2637,7 +2637,7 @@ class TestDataFrameIndexing(TestData):
                         for c in ['float32', 'float64',
                                   'int32', 'int64']})
         df.iloc[1, :] = 0
-        result = df.where(df >= 0).get_dtype_counts()
+        result = Series(df.where(df >= 0)._data.get_dtype_counts())
 
         # when we don't preserve boolean casts
         #

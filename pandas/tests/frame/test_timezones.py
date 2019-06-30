@@ -154,7 +154,7 @@ class TestDataFrameTimezones:
                         'dr_tz': dr_tz,
                         'datetimes_naive': datetimes_naive,
                         'datetimes_with_tz': datetimes_with_tz})
-        result = df.get_dtype_counts().sort_index()
+        result = Series(df._data.get_dtype_counts()).sort_index()
         expected = Series({'datetime64[ns]': 2,
                            str(tz_expected): 2}).sort_index()
         tm.assert_series_equal(result, expected)
