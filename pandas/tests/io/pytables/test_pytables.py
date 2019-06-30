@@ -5183,3 +5183,20 @@ class TestTimezones(Base):
                 store.append('df', df)
                 result = store.select('df')
                 assert_frame_equal(result, df)
+
+    def test_read_with_where_tz_aware_index(self):
+        # GH 11926
+        periods = 10
+        dts = pd.date_range('20151201', periods=periods,
+                            freq='D', tz='UTC')
+        mi = pd.MultiIndex.from_arrays([dts, range(periods)],
+                                       names=['DATE', 'NO'])
+        expected = pd.DataFrame({'MYCOL': 0}, index=mi)
+
+        key = 'mykey'
+        with ensure_clean_path(self.path) as path:
+            with pd.HDFStore(path) as store:
+                store.append(key, expected, format='table', append=True)
+            result = pd.read_hdf(path, key,
+                                 where="DATE > 20151130")
+            assert_frame_equal(result, expected)
