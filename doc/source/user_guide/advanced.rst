@@ -938,9 +938,8 @@ for interval notation.
 The ``IntervalIndex`` allows some unique indexing and is also used as a
 return type for the categories in :func:`cut` and :func:`qcut`.
 
-.. warning::
-
-   These indexing behaviors are provisional and may change in a future version of pandas.
+Indexing with an ``IntervalIndex``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 An ``IntervalIndex`` can be used in ``Series`` and in ``DataFrame`` as the index.
 
@@ -985,7 +984,11 @@ Selecting all ``Intervals`` that overlap a given ``Interval`` can be performed u
 .. ipython:: python
 
    idxr = df.index.overlaps(pd.Interval(0.5, 2.5))
+   idxr
    df[idxr]
+
+Binning data with ``cut`` and ``qcut``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``Interval`` and ``IntervalIndex`` are used by ``cut`` and ``qcut``:
 

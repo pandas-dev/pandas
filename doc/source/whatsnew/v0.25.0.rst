@@ -611,6 +611,7 @@ previous behavior of returning overlapping matches.
 .. ipython:: python
 
    idxr = s.index.overlaps(pd.Interval(2, 3))
+   idxr
    s[idxr]
    s.loc[idxr]
 
