@@ -133,8 +133,9 @@ class _ODFReader(_BaseExcelReader):
         from odf.namespaces import OFFICENS
         cell_type = cell.attributes.get((OFFICENS, 'value-type'))
         if cell_type == 'boolean':
-            cell_value = cell.attributes.get((OFFICENS, 'boolean'))
-            return bool(cell_value)
+            if str(cell) == "TRUE":
+                return True
+            return False
         if cell_type is None:
             return ''  # compat with xlrd
         elif cell_type == 'float':
