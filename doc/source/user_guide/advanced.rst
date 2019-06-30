@@ -966,7 +966,7 @@ If you select a label *contained* within an interval, this will also select the 
    df.loc[[2.5, 3.5]]
 
 :func:`cut` and :func:`qcut` both return a ``Categorical`` object, and the bins they
-create are stored as an ``IntervalIndex`` in its `.categories` attribute.
+create are stored as an ``IntervalIndex`` in its ``.categories`` attribute.
 
 .. ipython:: python
 
@@ -974,18 +974,19 @@ create are stored as an ``IntervalIndex`` in its `.categories` attribute.
    c
    c.categories
 
-:func:`cut` also accepts an ``IntervalIndex`` for its `bins` argument, which enables
-a useful pandas idiom. We call :func:`cut` once on some data with `bins` set to a
-fixed number, to generate the bins. We can then pass `.categories` as the `bins` argument
-in subsequent calls to :func:`cut`, to have the new data binned into the same bins.
+:func:`cut` also accepts an ``IntervalIndex`` for its ``bins`` argument, which enables
+a useful pandas idiom. First, We call :func:`cut` with some data and ``bins`` set to a
+fixed number, to establish the bins. Then, we can pass the value of ``.categories`` as
+the ``bins`` argument in subsequent calls to :func:`cut`, supplying new data which
+will be binned into the same bins.
 
 .. ipython:: python
 
    pd.cut([0, 3, 5, 1], bins=c.categories)
 
 When :func:`cut`  is passed an ``IntervalIndex`` for the `bins` argument, The ``Interval``
-values in the ``IntervalIndex`` define the bins and any value which falls outside all bins
-will be assigned a ``NaN`` value.
+values in the ``IntervalIndex`` define the bins and any value which falls outside all
+bins will be assigned a ``NaN`` value.
 
 
 Generating ranges of intervals
