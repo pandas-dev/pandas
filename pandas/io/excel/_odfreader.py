@@ -72,15 +72,15 @@ class _ODFReader(_BaseExcelReader):
             table_row = []
             for j, sheet_cell in enumerate(sheet_cells):
                 value = self._get_cell_value(sheet_cell, convert_float)
-                column_repeat = self._get_cell_repeat(sheet_cell)
+                column_span = self._get_column_span(sheet_cell)
 
                 if len(sheet_cell.childNodes) == 0:
-                    empty_cells += column_repeat
+                    empty_cells += column_span
                 else:
                     if empty_cells > 0:
                         table_row.extend([''] * empty_cells)
                         empty_cells = 0
-                    table_row.extend([value] * column_repeat)
+                    table_row.extend([value] * column_span)
 
             if max_row_len < len(table_row):
                 max_row_len = len(table_row)
@@ -114,9 +114,10 @@ class _ODFReader(_BaseExcelReader):
             return 1
         return int(repeat)
 
-    def _get_cell_repeat(self, cell):
+    def _get_column_span(self, cell):
+        # TODO: seems like row spans need to be handled as well...
         from odf.namespaces import TABLENS
-        repeat = cell.attributes.get((TABLENS, 'number-columns-repeated'))
+        repeat = cell.attributes.get((TABLENS, 'number-columns-spanned'))
         if repeat is None:
             return 1
         return int(repeat)
@@ -161,7 +162,7 @@ class _ODFReader(_BaseExcelReader):
             return float(cell_value)
         elif cell_type == 'date':
             cell_value = cell.attributes.get((OFFICENS, 'date-value'))
-            return pd.Timestamp(cell_value)
+            return pd.to_datetime(cell_value)
         elif cell_type == 'time':
             return pd.to_datetime(str(cell)).time()
         else:
