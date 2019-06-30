@@ -18,7 +18,7 @@ from pandas.core.dtypes.missing import notna
 
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.generic import NDFrame
 from pandas.core.index import (
     Index, MultiIndex, _get_objs_combined_axis, ensure_index)
 import pandas.core.indexes.base as ibase
@@ -1243,13 +1243,6 @@ class Panel(NDFrame):
                       kwargs.pop('minor', None))
         return super().rename(items=items, major_axis=major_axis,
                               minor_axis=minor_axis, **kwargs)
-
-    @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
-    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
-                     limit=None, fill_value=np.nan):
-        return super().reindex_axis(labels=labels, axis=axis, method=method,
-                                    level=level, copy=copy, limit=limit,
-                                    fill_value=fill_value)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.transpose.__doc__)
