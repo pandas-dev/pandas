@@ -272,7 +272,7 @@ class ExtensionArray:
         -------
         length : int
         """
-        raise AbstractMethodError(self)
+        return self.shape[0]
 
     def __iter__(self):
         """
@@ -300,14 +300,21 @@ class ExtensionArray:
         """
         Return a tuple of the array dimensions.
         """
-        return (len(self),)
+        raise AbstractMethodError(self)
 
     @property
     def ndim(self) -> int:
         """
         Extension Arrays are only allowed to be 1-dimensional.
         """
-        return 1
+        return len(self.shape)
+
+    @property
+    def size(self) -> int:
+        """
+        The number of elements in this array.
+        """
+        return np.prod(self.shape)
 
     @property
     def nbytes(self) -> int:

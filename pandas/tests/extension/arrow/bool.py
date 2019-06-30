@@ -73,8 +73,9 @@ class ArrowBoolArray(ExtensionArray):
             vals = self._data.to_pandas()[item]
             return type(self).from_scalars(vals)
 
-    def __len__(self):
-        return len(self._data)
+    @property
+    def shape(self):
+        return (len(self._data),)
 
     def astype(self, dtype, copy=True):
         # needed to fix this astype for the Series constructor.

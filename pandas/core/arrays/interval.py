@@ -466,8 +466,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __iter__(self):
         return iter(np.asarray(self))
 
-    def __len__(self):
-        return len(self.left)
+    @property
+    def shape(self):
+        return self.left.shape
 
     def __getitem__(self, value):
         left = self.left[value]
@@ -700,11 +701,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def nbytes(self):
         return self.left.nbytes + self.right.nbytes
-
-    @property
-    def size(self):
-        # Avoid materializing self.values
-        return self.left.size
 
     @property
     def shape(self):

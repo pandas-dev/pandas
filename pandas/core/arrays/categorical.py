@@ -490,20 +490,6 @@ class Categorical(ExtensionArray, PandasObject):
         return np.array(self, dtype=dtype, copy=copy)
 
     @cache_readonly
-    def ndim(self):
-        """
-        Number of dimensions of the Categorical
-        """
-        return self._codes.ndim
-
-    @cache_readonly
-    def size(self):
-        """
-        return the len of myself
-        """
-        return len(self)
-
-    @cache_readonly
     def itemsize(self):
         """
         return the size of a single category
@@ -1927,11 +1913,9 @@ class Categorical(ExtensionArray, PandasObject):
         codes = self._codes[slicer]
         return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
 
-    def __len__(self):
-        """
-        The length of this Categorical.
-        """
-        return len(self._codes)
+    @property
+    def shape(self):
+        return self._codes.shape
 
     def __iter__(self):
         """

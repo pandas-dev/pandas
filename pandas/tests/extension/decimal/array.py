@@ -118,8 +118,9 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
             value = decimal.Decimal(value)
         self._data[key] = value
 
-    def __len__(self):
-        return len(self._data)
+    @property
+    def shape(self):
+        return self._data.shape
 
     @property
     def nbytes(self):

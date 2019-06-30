@@ -105,8 +105,9 @@ class JSONArray(ExtensionArray):
                     assert isinstance(v, self.dtype.type)
                     self.data[k] = v
 
-    def __len__(self):
-        return len(self.data)
+    @property
+    def shape(self):
+        return (len(self.data),)
 
     @property
     def nbytes(self):
