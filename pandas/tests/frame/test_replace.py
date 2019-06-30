@@ -1158,11 +1158,12 @@ class TestDataFrameReplace(TestData):
         # GH 26988
         df = DataFrame([[1, 1], [2, 2]], columns=['a', 'b'], dtype='category')
         expected = DataFrame(final_data, columns=['a', 'b'], dtype='category')
-        expected['a'].cat.set_categories([1, 2, 3], inplace=True)
-        expected['b'].cat.set_categories([1, 2, 3], inplace=True)
+        expected['a'] = expected['a'].cat.set_categories([1, 2, 3])
+        expected['b'] = expected['b'].cat.set_categories([1, 2, 3])
         result = df.replace(replace_dict, 3)
         assert_frame_equal(result, expected)
         with pytest.raises(AssertionError):
+            # ensure non-inplace call does not affect original
             assert_frame_equal(df, expected)
         df.replace(replace_dict, 3, inplace=True)
         assert_frame_equal(df, expected)

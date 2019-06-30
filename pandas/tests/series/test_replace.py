@@ -306,7 +306,7 @@ class TestSeriesReplace(TestData):
 
         result = c.replace(c[2], 'foo')
         tm.assert_series_equal(expected, result)
-        assert c[2] != 'foo'
+        assert c[2] != 'foo'  # ensure non-inplace call does not alter original
 
         c.replace(c[2], 'foo', inplace=True)
         tm.assert_series_equal(expected, c)
