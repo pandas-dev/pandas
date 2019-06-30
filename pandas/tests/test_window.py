@@ -521,8 +521,8 @@ class TestRolling(Base):
             df.rolling(window=3, closed='neither')
 
     @pytest.mark.parametrize("closed", ["neither", "left"])
-    @pytest.mark.parametrize(
-        "func", ["std", "mean", "median", "sum", "max", "min", "var"])
+    @pytest.mark.parametrize("func", ["var", "std", "mean", "median", "sum",
+                                      "max", "min", "kurt", "skew"])
     def test_closed_empty(self, closed, func):
         # GH 26005
         ser = pd.Series(data=np.arange(5),
