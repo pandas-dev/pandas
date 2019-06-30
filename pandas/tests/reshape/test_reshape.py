@@ -618,7 +618,7 @@ class TestCategoricalReshape:
         df.index.names = ["major", "minor"]
         df["str"] = "foo"
 
-        dti = df.index.levels[0]
+        dti = df.index.levels[0].set_names(["major"])
 
         df["category"] = df["str"].astype("category")
         result = df["category"].unstack()

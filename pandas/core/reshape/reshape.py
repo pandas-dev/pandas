@@ -259,10 +259,13 @@ class _Unstacker:
     def get_new_columns(self):
         if self.value_columns is None:
             if self.lift == 0:
-                return self.removed_level
+                lev = self.removed_level._shallow_copy()
+                lev.name = self.removed_name
+                return lev
 
-            lev = self.removed_level
-            return lev.insert(0, lev._na_value)
+            lev = self.removed_level.insert(0, item=self.removed_level._na_value)
+            lev.name = self.removed_name
+            return lev
 
         stride = len(self.removed_level) + self.lift
         width = len(self.value_columns)
@@ -301,7 +304,9 @@ class _Unstacker:
             lev, lab = self.new_index_levels[0], result_codes[0]
             if (lab == -1).any():
                 lev = lev.insert(len(lev), lev._na_value)
-            return lev.take(lab)
+            new_index = lev.take(lab)
+            new_index.name = self.new_index_names[0]
+            return new_index
 
         return MultiIndex(
             levels=self.new_index_levels,
@@ -661,7 +666,9 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_names = this.columns.names[:-1]
         new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
     else:
-        new_columns = unique_groups = this.columns.levels[0]
+        new_columns = this.columns.levels[0]._shallow_copy()
+        new_columns.name = this.columns.names[0]
+        unique_groups = new_columns
 
     # time to ravel the values
     new_data = {}

@@ -274,6 +274,7 @@ class MultiIndex(Index):
         result._set_levels(levels, copy=copy, validate=False)
         result._set_codes(codes, copy=copy, validate=False)
 
+        result._names = [None for _ in levels]
         if names is not None:
             # handles name validation
             result._set_names(names)
@@ -1216,7 +1217,7 @@ class MultiIndex(Index):
         return len(self.codes[0])
 
     def _get_names(self):
-        return FrozenList(level.name for level in self.levels)
+        return FrozenList(self._names)
 
     def _set_names(self, names, level=None, validate=True):
         """
@@ -1262,7 +1263,7 @@ class MultiIndex(Index):
             level = [self._get_level_number(l) for l in level]
 
         # set the name
-        for l, name in zip(level, names):
+        for lev, name in zip(level, names):
             if name is not None:
                 # GH 20527
                 # All items in 'names' need to be hashable:
@@ -1272,7 +1273,7 @@ class MultiIndex(Index):
                             self.__class__.__name__
                         )
                     )
-            self.levels[l].rename(name, inplace=True)
+            self._names[lev] = name
 
     names = property(
         fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex.\n"""
@@ -1582,13 +1583,13 @@ class MultiIndex(Index):
         values : ndarray
         """
 
-        values = self.levels[level]
+        lev = self.levels[level]
         level_codes = self.codes[level]
+        name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        filled = algos.take_1d(values._values, level_codes, fill_value=values._na_value)
-        values = values._shallow_copy(filled)
-        return values
+        filled = algos.take_1d(lev._values, level_codes, fill_value=lev._na_value)
+        return lev._shallow_copy(filled, name=name)
 
     def get_level_values(self, level):
         """

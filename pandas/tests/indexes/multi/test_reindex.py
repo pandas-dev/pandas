@@ -13,12 +13,12 @@ def check_level_names(index, names):
 def test_reindex(idx):
     result, indexer = idx.reindex(list(idx[:4]))
     assert isinstance(result, MultiIndex)
-    check_level_names(result, idx[:4].names)
+    check_level_names(result, [None, None])
 
     result, indexer = idx.reindex(list(idx))
     assert isinstance(result, MultiIndex)
     assert indexer is None
-    check_level_names(result, idx.names)
+    check_level_names(result, [None, None])
 
 
 def test_reindex_level(idx):

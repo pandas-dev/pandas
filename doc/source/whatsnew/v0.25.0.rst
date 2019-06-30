@@ -272,6 +272,18 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
     df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
 
 
+.. _whatsnew_0250.api_breaking.MultiIndex._names:
+
+
+``MultiIndex.levels`` do not hold level names any longer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A :class:`MultiIndex` previously stored the level names as attributes of each of its
+:attr:`MultiIndex.levels`. From Pandas 0.25, the names are only accessed through
+:attr:`MultiIndex.names` (which was also possible previously). This is done in order to
+make :attr:`MultiIndex.levels` more similar to :attr:`CategoricalIndex.categories`.
+
+
 .. _whatsnew_0250.api_breaking.multi_indexing:
 
 
