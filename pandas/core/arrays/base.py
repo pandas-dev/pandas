@@ -47,7 +47,7 @@ class ExtensionArray:
     * _from_sequence
     * _from_factorized
     * __getitem__
-    * __len__
+    * shape
     * dtype
     * nbytes
     * isna
