@@ -2393,7 +2393,7 @@ def convert_to_index_sliceable(obj, key):
     elif isinstance(key, str):
 
         # we are an actual column
-        if obj._data.items.contains(key):
+        if key in obj._data.items:
             return None
 
         # We might have a datetimelike string that we can translate to a
