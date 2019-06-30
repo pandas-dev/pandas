@@ -311,14 +311,11 @@ default 'raise'
                 elif mode == RoundTo.MINUS_INFTY:
                     result = (self - offset).asi8
                 elif mode == RoundTo.NEAREST_HALF_EVEN:
-                    msg = ("round only supported fixed offsets "
+                    msg = ("round only supports fixed offsets "
                            "(i.e. 'Day' is ok, 'MonthEnd' is not). "
-                           "You may use snap or floor/ceil if applicable.")
+                           "You can use dti.snap or floor/ceil if "
+                           "applicable.")
                     raise ValueError(msg)
-                    # upper = (self + offset).asi8
-                    # lower = (self - offset).asi8
-                    # mask = (upper-values) <= (values-lower)
-                    # result = np.where(mask, lower, upper).asi8
                 else:
                     raise e
         result = self._maybe_mask_results(result, fill_value=NaT)
