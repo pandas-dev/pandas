@@ -31,24 +31,29 @@ def ignore_xlrd_time_clock_warning():
         yield
 
 
+@pytest.fixture(params=[
+    # Add any engines to test here
+    pytest.param('xlrd', marks=td.skip_if_no('xlrd')),
+    pytest.param('openpyxl', marks=td.skip_if_no('openpyxl')),
+    pytest.param(None, marks=td.skip_if_no('xlrd')),
+])
+def engine(request):
+    """
+    A fixture for Excel reader engines.
+    """
+    return request.param
+
+
 class TestReaders:
 
-    @pytest.fixture(autouse=True, params=[
-        # Add any engines to test here
-        pytest.param('xlrd', marks=pytest.mark.skipif(
-            not td.safe_import("xlrd"), reason="no xlrd")),
-        pytest.param('openpyxl', marks=pytest.mark.skipif(
-            not td.safe_import("openpyxl"), reason="no openpyxl")),
-        pytest.param(None, marks=pytest.mark.skipif(
-            not td.safe_import("xlrd"), reason="no xlrd")),
-    ])
-    def cd_and_set_engine(self, request, datapath, monkeypatch, read_ext):
+    @pytest.fixture(autouse=True)
+    def cd_and_set_engine(self, engine, datapath, monkeypatch, read_ext):
         """
         Change directory and set engine for read_excel calls.
         """
-        if request.param == 'openpyxl' and read_ext == '.xls':
+        if engine == 'openpyxl' and read_ext == '.xls':
             pytest.skip()
-        func = partial(pd.read_excel, engine=request.param)
+        func = partial(pd.read_excel, engine=engine)
         monkeypatch.chdir(datapath("io", "data"))
         monkeypatch.setattr(pd, 'read_excel', func)
 
@@ -726,23 +731,15 @@ class TestReaders:
 
 class TestExcelFileRead:
 
-    @pytest.fixture(autouse=True, params=[
-        # Add any engines to test here
-        pytest.param('xlrd', marks=pytest.mark.skipif(
-            not td.safe_import("xlrd"), reason="no xlrd")),
-        pytest.param('openpyxl', marks=pytest.mark.skipif(
-            not td.safe_import("openpyxl"), reason="no openpyxl")),
-        pytest.param(None, marks=pytest.mark.skipif(
-            not td.safe_import("xlrd"), reason="no xlrd")),
-    ])
-    def cd_and_set_engine(self, request, datapath, monkeypatch, read_ext):
+    @pytest.fixture(autouse=True)
+    def cd_and_set_engine(self, engine, datapath, monkeypatch, read_ext):
         """
         Change directory and set engine for ExcelFile objects.
         """
-        if request.param == 'openpyxl' and read_ext == '.xls':
+        if engine == 'openpyxl' and read_ext == '.xls':
             pytest.skip()
 
-        func = partial(pd.ExcelFile, engine=request.param)
+        func = partial(pd.ExcelFile, engine=engine)
         monkeypatch.chdir(datapath("io", "data"))
         monkeypatch.setattr(pd, 'ExcelFile', func)
 
@@ -830,20 +827,18 @@ class TestExcelFileRead:
         tm.assert_frame_equal(df1_parse, df_ref, check_names=False)
         tm.assert_frame_equal(df2_parse, df_ref, check_names=False)
 
-    def test_excel_read_buffer(self, read_ext):
+    def test_excel_read_buffer(self, engine, read_ext):
         pth = 'test1' + read_ext
-        engine = pd.ExcelFile.keywords['engine']  # TODO: fixturize
         expected = pd.read_excel(pth, 'Sheet1', index_col=0, engine=engine)
 
         with open(pth, 'rb') as f:
             with pd.ExcelFile(f) as xls:
                 actual = pd.read_excel(xls, 'Sheet1', index_col=0)
 
-            tm.assert_frame_equal(expected, actual)
+        tm.assert_frame_equal(expected, actual)
 
-    def test_reader_closes_file(self, read_ext):
+    def test_reader_closes_file(self, engine, read_ext):
         f = open('test1' + read_ext, 'rb')
-        engine = pd.ExcelFile.keywords['engine']  # TODO: fixturize
         with pd.ExcelFile(f) as xlsx:
             # parses okay
             pd.read_excel(xlsx, 'Sheet1', index_col=0, engine=engine)
