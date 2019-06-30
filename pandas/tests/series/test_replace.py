@@ -299,9 +299,9 @@ class TestSeriesReplace(TestData):
         c = s.astype('category')
 
         expected = c.copy()
-        expected.cat.add_categories('foo', inplace=True)
+        expected = expected.cat.add_categories('foo')
         expected[2] = 'foo'
-        expected.cat.remove_unused_categories(inplace=True)
+        expected = expected.cat.remove_unused_categories()
         assert c[2] != 'foo'
 
         result = c.replace(c[2], 'foo')
