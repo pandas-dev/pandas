@@ -520,6 +520,19 @@ class TestRolling(Base):
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
 
+    @pytest.mark.parametrize("closed", ["neither", "left"])
+    @pytest.mark.parametrize(
+        "func", ["std", "mean", "median", "sum", "max", "min", "var"])
+    def test_closed_empty(self, closed, func):
+        # GH 26005
+        ser = pd.Series(data=np.arange(5),
+                        index=pd.date_range("2000", periods=5, freq="2D"))
+        roll = ser.rolling("1D", closed=closed)
+
+        result = getattr(roll, func)()
+        expected = pd.Series([np.nan] * 5, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("func", ['min', 'max'])
     def test_closed_one_entry(self, func):
         # GH24718
