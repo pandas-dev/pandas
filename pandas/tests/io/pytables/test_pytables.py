@@ -17,9 +17,9 @@ from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex,
-    RangeIndex, Series, Timestamp, bdate_range, concat, date_range, isna,
-    timedelta_range)
+    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index, Int64Index,
+    MultiIndex, RangeIndex, Series, Timestamp, bdate_range, concat, date_range,
+    isna, timedelta_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal, assert_series_equal, set_timezone)
@@ -4748,6 +4748,19 @@ class TestHDFStore(Base):
                 store.put("df", df, "t")
                 result = pd.read_hdf(store, "df", where=where)
                 assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize('idx', [
+        date_range('2019', freq='D', periods=3, tz='UTC'),
+        CategoricalIndex(list('abc'))
+    ])
+    def test_to_hdf_multiindex_extension_dtype(self, idx):
+        # GH 7775
+        mi = MultiIndex.from_arrays([idx, idx])
+        df = pd.DataFrame(0, index=mi, columns=['a'])
+        with ensure_clean_path(self.path) as path:
+            with pytest.raises(NotImplementedError,
+                               match="Saving a MultiIndex"):
+                df.to_hdf(path, 'df')
 
 
 class TestHDFComplexValues(Base):
