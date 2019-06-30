@@ -776,11 +776,6 @@ def test_ufuncs_binary_int(ufunc):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_ufunc_fallback():
-    a = integer_array([1, 2, -3, np.nan])
-    assert pd.isna(np.add.reduce(a))
-
-
 @pytest.mark.parametrize('values', [
     [0, 1], [0, None]
 ])
