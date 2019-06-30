@@ -66,21 +66,43 @@ class _ODFReader(_BaseExcelReader):
         table = []
         empty_rows = 0
         max_row_len = 0
+        row_spans = {}  # type: Dict[int, int]
+
         for i, sheet_row in enumerate(sheet_rows):
             sheet_cells = sheet_row.getElementsByType(TableCell)
             empty_cells = 0
             table_row = []
+
             for j, sheet_cell in enumerate(sheet_cells):
+                # Handle vertically merged cells; only works with first column
+                if row_spans.get(j, 0) > 1:
+                    table_row.append('')
+                    row_spans[j] = row_spans[j] - 1
+
                 value = self._get_cell_value(sheet_cell, convert_float)
+                column_repeat = self._get_column_repeat(sheet_cell)
                 column_span = self._get_column_span(sheet_cell)
+                row_span = self._get_row_span(sheet_cell)
+
+                if row_span > 1:
+                    if j > 0:
+                        raise ValueError(
+                            "The odf reader only supports vertical "
+                            "merging in the initial column")
+                    else:
+                        row_spans[j] = row_span
 
                 if len(sheet_cell.childNodes) == 0:
-                    empty_cells += column_span
+                    empty_cells += column_repeat
                 else:
                     if empty_cells > 0:
                         table_row.extend([''] * empty_cells)
                         empty_cells = 0
-                    table_row.extend([value] * column_span)
+                    table_row.extend([value] * column_repeat)
+
+                    # horizontally merged cells should only show first value
+                    if column_span > 1:
+                        table_row.extend([''] * (column_span - 1))
 
             if max_row_len < len(table_row):
                 max_row_len = len(table_row)
@@ -114,8 +136,23 @@ class _ODFReader(_BaseExcelReader):
             return 1
         return int(repeat)
 
+    def _get_column_repeat(self, cell):
+        from odf.namespaces import TABLENS
+        repeat = cell.attributes.get((TABLENS, 'number-columns-repeated'))
+        if repeat is None:
+            return 1
+        return int(repeat)
+
+    def _get_row_span(self, cell):
+        """For handling cells merged vertically."""
+        from odf.namespaces import TABLENS
+        repeat = cell.attributes.get((TABLENS, 'number-rows-spanned'))
+        if repeat is None:
+            return 1
+        return int(repeat)
+
     def _get_column_span(self, cell):
-        # TODO: seems like row spans need to be handled as well...
+        """For handling cells merged horizontally."""
         from odf.namespaces import TABLENS
         repeat = cell.attributes.get((TABLENS, 'number-columns-spanned'))
         if repeat is None:
