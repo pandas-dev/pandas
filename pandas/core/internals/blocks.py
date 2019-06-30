@@ -1304,8 +1304,8 @@ class Block(PandasObject):
             other = self._try_coerce_args(other)
 
             try:
-                return self._try_coerce_result(expressions.where(
-                    cond, values, other))
+                fastres = expressions.where(cond, values, other)
+                return self._try_coerce_result(fastres)
             except Exception as detail:
                 if errors == 'raise':
                     raise TypeError(
@@ -1352,10 +1352,10 @@ class Block(PandasObject):
         result_blocks = []
         for m in [mask, ~mask]:
             if m.any():
-                r = self._try_cast_result(result.take(m.nonzero()[0],
-                                                      axis=axis))
-                result_blocks.append(
-                    self.make_block(r.T, placement=self.mgr_locs[m]))
+                taken = result.take(m.nonzero()[0], axis=axis)
+                r = self._try_cast_result(taken)
+                nb = self.make_block(r.T, placement=self.mgr_locs[m])
+                result_blocks.append(nb)
 
         return result_blocks
 
