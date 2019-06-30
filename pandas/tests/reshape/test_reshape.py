@@ -110,10 +110,12 @@ class TestGetDummies:
         expected_counts[dtype_name] = 3 + expected_counts.get(dtype_name, 0)
 
         expected = Series(expected_counts).sort_index()
-        tm.assert_series_equal(Series(
-            result._data.get_dtype_counts()
-        ).sort_index(),
-                               expected)
+        tm.assert_series_equal(
+            Series(
+                result._data.get_dtype_counts()
+            ).sort_index(),
+            expected
+        )
 
     def test_just_na(self, sparse):
         just_na_list = [np.nan]
