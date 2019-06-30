@@ -458,7 +458,6 @@ You can mix pandas' ``reindex`` and ``interpolate`` methods to interpolate
 at the new values.
 
 .. ipython:: python
-   :okexcept:
 
    ser = pd.Series(np.sort(np.random.uniform(size=100)))
 
