@@ -2796,8 +2796,10 @@ class NDFrame(PandasObject, SelectionMixin):
             Formatter functions to apply to columns' elements by position or
             name. The result of each function must be a unicode string.
             List must be of length equal to the number of columns.
-        float_format : str, optional
-            Format string for floating point numbers.
+        float_format : one-parameter function or str, optional, default None
+            Formatter for floating point numbers. For example
+            ``float_format="%%.2f"`` and ``float_format="{:0.2f}".format`` will
+            both result in 0.1234 being formatted as 0.12.
         sparsify : bool, optional
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row. By default, the value will be
