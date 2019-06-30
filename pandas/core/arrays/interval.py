@@ -1055,7 +1055,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @Appender(_interval_shared_docs['contains'] % _shared_docs_kwargs)
     def contains(self, other):
         if isinstance(other, Interval):
-            raise TypeError('contains not defined for two intervals')
+            raise NotImplementedError(
+                'contains not implemented for two intervals'
+            )
 
         return (
             (self.left < other if self.open_left else self.left <= other) &

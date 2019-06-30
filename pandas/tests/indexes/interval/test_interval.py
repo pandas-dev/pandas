@@ -771,7 +771,9 @@ class TestIntervalIndex(Base):
 
         # __contains__ not implemented for "interval in interval", follow
         # that for the contains method for now
-        with pytest.raises(TypeError):
+        with pytest.raises(
+                NotImplementedError,
+                match='contains not implemented for two'):
             i.contains(Interval(0, 1))
 
     def test_dropna(self, closed):
