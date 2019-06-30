@@ -122,41 +122,31 @@ class _ODFReader(_BaseExcelReader):
 
         return table
 
-    def _get_row_repeat(self, row):
+    def _get_row_repeat(self, row) -> int:
         """Return number of times this row was repeated
         Repeating an empty row appeared to be a common way
         of representing sparse rows in the table.
         """
         from odf.namespaces import TABLENS
-        repeat = row.attributes.get((TABLENS, 'number-rows-repeated'))
-        if repeat is None:
-            return 1
-        return int(repeat)
 
-    def _get_column_repeat(self, cell):
+        return int(row.attributes.get((TABLENS, 'number-rows-repeated'), 1))
+
+    def _get_column_repeat(self, cell) -> int:
         from odf.namespaces import TABLENS
-        repeat = cell.attributes.get((TABLENS, 'number-columns-repeated'))
-        if repeat is None:
-            return 1
-        return int(repeat)
+        return int(cell.attributes.get(
+            (TABLENS, 'number-columns-repeated'), 1))
 
-    def _get_row_span(self, cell):
+    def _get_row_span(self, cell) -> int:
         """For handling cells merged vertically."""
         from odf.namespaces import TABLENS
-        repeat = cell.attributes.get((TABLENS, 'number-rows-spanned'))
-        if repeat is None:
-            return 1
-        return int(repeat)
+        return int(cell.attributes.get((TABLENS, 'number-rows-spanned'), 1))
 
-    def _get_column_span(self, cell):
+    def _get_column_span(self, cell) -> int:
         """For handling cells merged horizontally."""
         from odf.namespaces import TABLENS
-        repeat = cell.attributes.get((TABLENS, 'number-columns-spanned'))
-        if repeat is None:
-            return 1
-        return int(repeat)
+        return int(cell.attributes.get((TABLENS, 'number-columns-spanned'), 1))
 
-    def _is_empty_row(self, row):
+    def _is_empty_row(self, row) -> bool:
         """Helper function to find empty rows
         """
         for column in row.childNodes:
