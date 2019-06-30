@@ -1675,20 +1675,6 @@ class Categorical(ExtensionArray, PandasObject):
             )
         return values
 
-    def ravel(self, order='C'):
-        """
-        Return a flattened (numpy) array.
-
-        For internal compatibility with numpy arrays.
-
-        Returns
-        -------
-        numpy.array
-        """
-        if self.ndim != 1:
-            raise NotImplementedError
-        return self
-
     def view(self, dtype=None):
         """
         Return a view of myself.
