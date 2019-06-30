@@ -637,6 +637,9 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated behavior of altering column or index labels with :meth:`Series.rename_axis` or :meth:`DataFrame.rename_axis` (:issue:`17842`)
 - Removed the previously deprecated ``tupleize_cols`` keyword argument in :meth:`read_html`, :meth:`read_csv`, and :meth:`DataFrame.to_csv` (:issue:`17877`, :issue:`17820`)
 - Removed the previously deprecated ``DataFrame.from.csv`` and ``Series.from_csv`` (:issue:`17812`)
+- Removed the previously deprecated ``raise_on_error`` keyword argument in :meth:`DataFrame.where` and :meth:`DataFrame.mask` (:issue:`17744`)
+- Removed the previously deprecated ``ordered`` and ``categories`` keyword arguments in ``astype`` (:issue:`17742`)
+- Removed the previously deprecated ``cdate_range`` (:issue:`17691`)
 
 .. _whatsnew_0250.performance:
 

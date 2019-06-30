@@ -542,17 +542,10 @@ class Block(PandasObject):
         if self.is_categorical_astype(dtype):
 
             # deprecated 17636
-            if ('categories' in kwargs or 'ordered' in kwargs):
-                if isinstance(dtype, CategoricalDtype):
-                    raise TypeError(
-                        "Cannot specify a CategoricalDtype and also "
-                        "`categories` or `ordered`. Use "
-                        "`dtype=CategoricalDtype(categories, ordered)`"
-                        " instead.")
-                warnings.warn("specifying 'categories' or 'ordered' in "
-                              ".astype() is deprecated; pass a "
-                              "CategoricalDtype instead",
-                              FutureWarning, stacklevel=7)
+            for deprecated_arg in ('categories', 'ordered'):
+                if deprecated_arg in kwargs:
+                    raise ValueError('Got an unexpected argument: {}'.format(
+                        deprecated_arg))
 
             categories = kwargs.get('categories', None)
             ordered = kwargs.get('ordered', None)
