@@ -375,11 +375,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 inputs2.append(x)
 
         def reconstruct(x):
-            if np.isscalar(x):
-                # reductions.
-                if mask.any():
-                    return np.nan
-                return x
+            # we don't worry about scalar `x` here, since we
+            # raise for reduce up above.
+
             if is_integer_dtype(x.dtype):
                 m = mask.copy()
                 return IntegerArray(x, m)

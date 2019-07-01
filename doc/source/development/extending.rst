@@ -217,14 +217,15 @@ NumPy Universal Functions
 pandas unboxes the ``ExtensionArray`` from the :class:`Series`, applies the ufunc,
 and re-boxes it if necessary.
 
-If applicable, we highly recommend that your implement ``__array_ufunc__`` in your
+If applicable, we highly recommend that you implement ``__array_ufunc__`` in your
 extension array to avoid coercion to an ndarray. See
 `the numpy documentation <https://docs.scipy.org/doc/numpy/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
 for an example.
 
-As part of your implementation, we require that you defer to ``Series.__array_ufunc__``
-by returning ``NotImplemented`` when a Series is detected in ``inputs``. Pandas will
-extract the array from the Series and re-call the ufunc on the unwrapped inputs.
+As part of your implementation, we require that you defer to pandas when a pandas
+container (:class:`Series`, :class:`DataFrame`, :class:`Index`) is detected in ``inputs``.
+If any of those is present, you should return ``NotImplemented``. Pandas will take care of
+unboxing the array from the container and re-calling the ufunc with the unwrapped input.
 
 .. _extending.extension.testing:
 

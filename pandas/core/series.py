@@ -715,6 +715,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
     # NDArray Compat
+    _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
     def __array_ufunc__(
             self,
@@ -744,7 +745,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             has_array_ufunc = (
                 hasattr(item, '__array_ufunc__') and
                 type(item).__array_ufunc__ not in no_defer and
-                not is_extension_array_dtype(item)
+                not isinstance(item, self._HANDLED_TYPES)
             )
             if higher_priority or has_array_ufunc:
                 return NotImplemented
