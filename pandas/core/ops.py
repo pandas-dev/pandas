@@ -1891,7 +1891,7 @@ def _comp_method_SERIES(cls, op, special):
                                      name=res_name, dtype='bool')
 
         else:
-            values = self.get_values()
+            values = self.to_numpy()
 
             with np.errstate(all='ignore'):
                 res = na_op(values, other)
