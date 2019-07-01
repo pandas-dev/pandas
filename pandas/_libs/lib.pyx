@@ -477,7 +477,7 @@ def maybe_indices_to_slice(ndarray[int64_t] indices, int max_len):
 def maybe_booleans_to_slice(ndarray[uint8_t] mask):
     cdef:
         Py_ssize_t i, n = len(mask)
-        Py_ssize_t start, end
+        Py_ssize_t start = 0 , end = 0
         bint started = 0, finished = 0
 
     for i in range(n):
