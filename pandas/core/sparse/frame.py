@@ -242,6 +242,11 @@ class SparseDataFrame(DataFrame):
     def to_coo(self):
         return SparseFrameAccessor(self).to_coo()
 
+    def __repr__(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Sparse")
+            return super().__repr__()
+
     def __getstate__(self):
         # pickling
         return dict(_typ=self._typ, _subtyp=self._subtyp, _data=self._data,
@@ -488,7 +493,7 @@ class SparseDataFrame(DataFrame):
             return data
 
         i = self.index.get_loc(key)
-        data = self.take([i]).get_values()[0]
+        data = self.take([i])._internal_get_values()[0]
         return Series(data, index=self.columns)
 
     # ----------------------------------------------------------------------
@@ -689,9 +694,10 @@ class SparseDataFrame(DataFrame):
             if col not in self:
                 continue
             if row_indexer is not None:
-                new_arrays[col] = algos.take_1d(self[col].get_values(),
-                                                row_indexer,
-                                                fill_value=fill_value)
+                new_arrays[col] = algos.take_1d(
+                    self[col]._internal_get_values(),
+                    row_indexer,
+                    fill_value=fill_value)
             else:
                 new_arrays[col] = self[col]
 

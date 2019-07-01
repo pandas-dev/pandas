@@ -57,13 +57,6 @@ _index_doc_kwargs = dict(klass='Index', inplace='',
 _index_shared_docs = dict()
 
 
-def _try_get_item(x):
-    try:
-        return x.item()
-    except AttributeError:
-        return x
-
-
 def _make_comparison_op(op, cls):
     def cmp_method(self, other):
         if isinstance(other, (np.ndarray, Index, ABCSeries)):
@@ -76,13 +69,8 @@ def _make_comparison_op(op, cls):
                 result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
 
         else:
-
-            # numpy will show a DeprecationWarning on invalid elementwise
-            # comparisons, this will raise in the future
-            with warnings.catch_warnings(record=True):
-                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                with np.errstate(all='ignore'):
-                    result = op(self.values, np.asarray(other))
+            with np.errstate(all='ignore'):
+                result = op(self.values, np.asarray(other))
 
         # technically we could support bool dtyped Index
         # for now just return the indexing array directly
@@ -229,7 +217,6 @@ class Index(IndexOpsMixin, PandasObject):
     _data = None
     _id = None
     name = None
-    asi8 = None
     _comparables = ['name']
     _attributes = ['name']
     _is_numeric_dtype = False
@@ -273,8 +260,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(data, RangeIndex):
             return RangeIndex(start=data, copy=copy, dtype=dtype, name=name)
         elif isinstance(data, range):
-            return RangeIndex.from_range(data, copy=copy, dtype=dtype,
-                                         name=name)
+            return RangeIndex.from_range(data, dtype=dtype, name=name)
 
         # categorical
         elif is_categorical_dtype(data) or is_categorical_dtype(dtype):
@@ -502,6 +488,18 @@ class Index(IndexOpsMixin, PandasObject):
     See each method's docstring.
     """
 
+    @property
+    def asi8(self):
+        """
+        Integer representation of the values.
+
+        Returns
+        -------
+        ndarray
+            An ndarray with int64 dtype.
+        """
+        return None
+
     @classmethod
     def _simple_new(cls, values, name=None, dtype=None, **kwargs):
         """
@@ -681,11 +679,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data.dtype
 
-    @cache_readonly
+    @property
     def dtype_str(self):
         """
         Return the dtype str of the underlying data.
+
+        .. deprecated:: 0.25.0
         """
+        warnings.warn('`dtype_str` has been deprecated. Call `str` on the '
+                      'dtype attribute instead.', FutureWarning,
+                      stacklevel=2)
         return str(self.dtype)
 
     def ravel(self, order='C'):
@@ -1126,7 +1129,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         .. versionadded:: 0.24.0
 
-        This is implemented for compatability with subclass implementations
+        This is implemented for compatibility with subclass implementations
         when chaining.
 
         Returns
@@ -1322,16 +1325,23 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.MultiIndex.from_product([['python', 'cobra'],
         ...                                   [2018, 2019]])
         >>> idx
-        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]])
+        MultiIndex([('python', 2018),
+                    ('python', 2019),
+                    ( 'cobra', 2018),
+                    ( 'cobra', 2019)],
+                   )
         >>> idx.set_names(['kind', 'year'], inplace=True)
         >>> idx
-        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
+        MultiIndex([('python', 2018),
+                    ('python', 2019),
+                    ( 'cobra', 2018),
+                    ( 'cobra', 2019)],
                    names=['kind', 'year'])
         >>> idx.set_names('species', level=0)
-        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
+        MultiIndex([('python', 2018),
+                    ('python', 2019),
+                    ( 'cobra', 2018),
+                    ( 'cobra', 2019)],
                    names=['species', 'year'])
         """
 
@@ -1393,12 +1403,16 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                   [2018, 2019]],
         ...                                   names=['kind', 'year'])
         >>> idx
-        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
+        MultiIndex([('python', 2018),
+                    ('python', 2019),
+                    ( 'cobra', 2018),
+                    ( 'cobra', 2019)],
                    names=['kind', 'year'])
         >>> idx.rename(['species', 'year'])
-        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
+        MultiIndex([('python', 2018),
+                    ('python', 2019),
+                    ( 'cobra', 2018),
+                    ( 'cobra', 2019)],
                    names=['species', 'year'])
         >>> idx.rename('species')
         Traceback (most recent call last):
@@ -1411,6 +1425,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def nlevels(self):
+        """
+        Number of levels.
+        """
         return 1
 
     def _sort_levels_monotonic(self):
@@ -1467,7 +1484,7 @@ class Index(IndexOpsMixin, PandasObject):
         Return an Index of values for requested level.
 
         This is primarily useful to get an individual level of values from a
-        MultiIndex, but is provided on Index as well for compatability.
+        MultiIndex, but is provided on Index as well for compatibility.
 
         Parameters
         ----------
@@ -1740,6 +1757,9 @@ class Index(IndexOpsMixin, PandasObject):
         return self.inferred_type in ['mixed']
 
     def holds_integer(self):
+        """
+        Whether the type is an integer type.
+        """
         return self.inferred_type in ['integer', 'mixed-integer']
 
     @cache_readonly
@@ -2440,9 +2460,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _wrap_setop_result(self, other, result):
         return self._constructor(result, name=get_op_result_name(self, other))
 
-    # TODO: standardize return type of non-union setops type(self vs other)
-    def intersection(self, other, sort=False):
-        """
+    _index_shared_docs['intersection'] = """
         Form the intersection of two Index objects.
 
         This returns a new Index with elements common to the index and `other`.
@@ -2476,6 +2494,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.intersection(idx2)
         Int64Index([3, 4], dtype='int64')
         """
+
+    # TODO: standardize return type of non-union setops type(self vs other)
+    @Appender(_index_shared_docs['intersection'])
+    def intersection(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other = ensure_index(other)
@@ -2702,16 +2724,10 @@ class Index(IndexOpsMixin, PandasObject):
             * backfill / bfill: use NEXT index value if no exact match
             * nearest: use the NEAREST index value if no exact match. Tied
               distances are broken by preferring the larger index value.
-        tolerance : optional
+        tolerance : int or float, optional
             Maximum distance from index value for inexact matches. The value of
             the index at the matching location most satisfy the equation
             ``abs(index[loc] - key) <= tolerance``.
-
-            Tolerance may be a scalar
-            value, which applies the same tolerance to all values, or
-            list-like, which applies variable tolerance per element. List-like
-            includes list, tuple, array, Series, and must be the same size as
-            the index and its dtype must exactly match the index's type.
 
             .. versionadded:: 0.21.0 (list-like tolerance)
 
@@ -3748,6 +3764,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return `Index` data as an `numpy.ndarray`.
 
+        .. deprecated:: 0.25.0
+            Use :meth:`Index.to_numpy` or :attr:`Index.array` instead.
+
         Returns
         -------
         numpy.ndarray
@@ -3786,6 +3805,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> midx.get_values().ndim
         1
         """
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version. Use '.to_numpy()' or '.array' instead.",
+            FutureWarning, stacklevel=2)
+        return self._internal_get_values()
+
+    def _internal_get_values(self):
         return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
@@ -3861,7 +3887,7 @@ class Index(IndexOpsMixin, PandasObject):
         from .numeric import Int64Index, UInt64Index
         if not is_unsigned_integer_dtype(dtype):
             # skip int64 conversion attempt if uint-like dtype is passed, as
-            # this could return Int64Index when UInt64Index is what's desrired
+            # this could return Int64Index when UInt64Index is what's desired
             try:
                 res = data.astype('i8', copy=False)
                 if (res == data).all():
@@ -3964,6 +3990,9 @@ class Index(IndexOpsMixin, PandasObject):
         return self.is_object()
 
     def is_type_compatible(self, kind):
+        """
+        Whether the index type is compatible with the provided type.
+        """
         return kind == self.inferred_type
 
     _index_shared_docs['contains'] = """
@@ -4013,11 +4042,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
-        hash(key)
-        try:
-            return key in self._engine
-        except (TypeError, ValueError):
-            return False
+        return key in self
 
     def __hash__(self):
         raise TypeError("unhashable type: %r" % type(self).__name__)
@@ -4147,7 +4172,8 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         bool
-            If two Index objects have equal elements True, otherwise False.
+            True if "other" is an Index and it has the same elements as calling
+            index; False otherwise.
         """
         if self.is_(other):
             return True
@@ -4340,6 +4366,9 @@ class Index(IndexOpsMixin, PandasObject):
             return sorted_index
 
     def sort(self, *args, **kwargs):
+        """
+        Use sort_values instead.
+        """
         raise TypeError("cannot sort an Index object in-place, use "
                         "sort_values instead")
 
@@ -5422,8 +5451,8 @@ def ensure_index_from_sequences(sequences, names=None):
 
     >>> ensure_index_from_sequences([['a', 'a'], ['a', 'b']],
                                     names=['L1', 'L2'])
-    MultiIndex(levels=[['a'], ['a', 'b']],
-               codes=[[0, 0], [0, 1]],
+    MultiIndex([('a', 'a'),
+                ('a', 'b')],
                names=['L1', 'L2'])
 
     See Also
@@ -5463,8 +5492,10 @@ def ensure_index(index_like, copy=False):
     Index([('a', 'a'), ('b', 'c')], dtype='object')
 
     >>> ensure_index([['a', 'a'], ['b', 'c']])
-    MultiIndex(levels=[['a'], ['b', 'c']],
-               codes=[[0, 0], [0, 1]])
+    MultiIndex([('a', 'b'),
+                ('a', 'c')],
+               dtype='object')
+               )
 
     See Also
     --------

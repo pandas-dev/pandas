@@ -355,9 +355,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         name = get_op_result_name(self, other)
         return self._shallow_copy(result, name=name)
 
-    def get_values(self):
-        """ return the underlying data as an ndarray """
-        return self._data.get_values()
+    def _internal_get_values(self):
+        # override base Index version to get the numpy array representation of
+        # the underlying Categorical
+        return self._data._internal_get_values()
 
     def tolist(self):
         return self._data.tolist()
@@ -534,7 +535,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     @Appender(_index_shared_docs['where'])
     def where(self, cond, other=None):
         # TODO: Investigate an alternative implementation with
-        # 1. copy the underyling Categorical
+        # 1. copy the underlying Categorical
         # 2. setitem with `cond` and `other`
         # 3. Rebuild CategoricalIndex.
         if other is None:

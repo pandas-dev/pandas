@@ -2708,7 +2708,7 @@ class StataWriter117(StataWriter):
         Each label must be 80 characters or smaller.
     convert_strl : list
         List of columns names to convert to Stata StrL format.  Columns with
-        more than 2045 characters are aautomatically written as StrL.
+        more than 2045 characters are automatically written as StrL.
         Smaller columns can be converted by including the column name.  Using
         StrLs can reduce output file size when strings are longer than 8
         characters, and either frequently repeated or sparse.

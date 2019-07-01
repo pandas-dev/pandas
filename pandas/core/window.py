@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.window as libwindow
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -21,7 +22,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDateOffset, ABCDatetimeIndex, ABCPeriodIndex, ABCSeries,
     ABCTimedeltaIndex)
 
-from pandas.core.base import PandasObject, SelectionMixin
+from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
@@ -242,7 +243,7 @@ class _Window(PandasObject, SelectionMixin):
             return type(obj)(result, index=index, columns=block.columns)
         return result
 
-    def _wrap_results(self, results, blocks, obj):
+    def _wrap_results(self, results, blocks, obj, exclude=None):
         """
         Wrap the results.
 
@@ -251,6 +252,7 @@ class _Window(PandasObject, SelectionMixin):
         results : list of ndarrays
         blocks : list of blocks
         obj : conformed data (may be resampled)
+        exclude: list of columns to exclude, default to None
         """
 
         from pandas import Series, concat
@@ -283,6 +285,13 @@ class _Window(PandasObject, SelectionMixin):
                     columns = self.obj.columns
                     indexer = columns.get_indexer(selection.tolist() + [name])
                     columns = columns.take(sorted(indexer))
+
+        # exclude nuisance columns so that they are not reindexed
+        if exclude is not None and exclude:
+            columns = [c for c in columns if c not in exclude]
+
+            if not columns:
+                raise DataError('No numeric types to aggregate')
 
         if not len(final):
             return obj.astype('float64')
@@ -530,8 +539,8 @@ class Window(_Window):
     >>> df.rolling(2, win_type='triang').sum()
          B
     0  NaN
-    1  1.0
-    2  2.5
+    1  0.5
+    2  1.5
     3  NaN
     4  NaN
 
@@ -595,11 +604,11 @@ class Window(_Window):
         elif is_integer(window):
             if window <= 0:
                 raise ValueError("window must be > 0 ")
-            try:
-                import scipy.signal as sig
-            except ImportError:
-                raise ImportError('Please install scipy to generate window '
-                                  'weight')
+            import_optional_dependency(
+                "scipy",
+                extra="Scipy is required to generate window weight."
+            )
+            import scipy.signal as sig
 
             if not isinstance(self.win_type, str):
                 raise ValueError('Invalid win_type {0}'.format(self.win_type))
@@ -671,13 +680,21 @@ class Window(_Window):
         center = self.center
 
         blocks, obj, index = self._create_blocks()
+        block_list = list(blocks)
+
         results = []
-        for b in blocks:
+        exclude = []
+        for i, b in enumerate(blocks):
             try:
                 values = self._prep_values(b.values)
-            except TypeError:
-                results.append(b.values.copy())
-                continue
+
+            except (TypeError, NotImplementedError):
+                if isinstance(obj, ABCDataFrame):
+                    exclude.extend(b.columns)
+                    del block_list[i]
+                    continue
+                else:
+                    raise DataError('No numeric types to aggregate')
 
             if values.size == 0:
                 results.append(values.copy())
@@ -699,7 +716,7 @@ class Window(_Window):
                 result = self._center_window(result, window)
             results.append(result)
 
-        return self._wrap_results(results, blocks, obj)
+        return self._wrap_results(results, block_list, obj, exclude)
 
     _agg_see_also_doc = dedent("""
     See Also
@@ -842,10 +859,22 @@ class _Rolling(_Window):
             check_minp = _use_window
 
         blocks, obj, index = self._create_blocks()
+        block_list = list(blocks)
         index, indexi = self._get_index(index=index)
+
         results = []
-        for b in blocks:
-            values = self._prep_values(b.values)
+        exclude = []
+        for i, b in enumerate(blocks):
+            try:
+                values = self._prep_values(b.values)
+
+            except (TypeError, NotImplementedError):
+                if isinstance(obj, ABCDataFrame):
+                    exclude.extend(b.columns)
+                    del block_list[i]
+                    continue
+                else:
+                    raise DataError('No numeric types to aggregate')
 
             if values.size == 0:
                 results.append(values.copy())
@@ -891,7 +920,7 @@ class _Rolling(_Window):
 
             results.append(result)
 
-        return self._wrap_results(results, blocks, obj)
+        return self._wrap_results(results, block_list, obj, exclude)
 
 
 class _Rolling_and_Expanding(_Rolling):
@@ -2290,13 +2319,21 @@ class EWM(_Rolling):
         y : same type as input argument
         """
         blocks, obj, index = self._create_blocks()
+        block_list = list(blocks)
+
         results = []
-        for b in blocks:
+        exclude = []
+        for i, b in enumerate(blocks):
             try:
                 values = self._prep_values(b.values)
-            except TypeError:
-                results.append(b.values.copy())
-                continue
+
+            except (TypeError, NotImplementedError):
+                if isinstance(obj, ABCDataFrame):
+                    exclude.extend(b.columns)
+                    del block_list[i]
+                    continue
+                else:
+                    raise DataError('No numeric types to aggregate')
 
             if values.size == 0:
                 results.append(values.copy())
@@ -2315,7 +2352,7 @@ class EWM(_Rolling):
 
             results.append(np.apply_along_axis(func, self.axis, values))
 
-        return self._wrap_results(results, blocks, obj)
+        return self._wrap_results(results, block_list, obj, exclude)
 
     @Substitution(name='ewm')
     @Appender(_doc_template)

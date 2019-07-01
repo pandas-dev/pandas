@@ -122,7 +122,7 @@ def observed(request):
     """ pass in the observed keyword to groupby for [True, False]
     This indicates whether categoricals should return values for
     values which are not in the grouper [False / None], or only values which
-    appear in the grouper [True]. [None] is supported for future compatiblity
+    appear in the grouper [True]. [None] is supported for future compatibility
     if we decide to change the default (and would need to warn if this
     parameter is not passed)"""
     return request.param
@@ -378,12 +378,7 @@ TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
              FixedOffset(0), FixedOffset(-300), timezone.utc,
              timezone(timedelta(hours=1)),
              timezone(timedelta(hours=-1), name='foo')]
-TIMEZONE_IDS = ['None', 'UTC', 'US/Eastern', 'Asia/Tokyp',
-                'dateutil/US/Pacific', 'dateutil/Asia/Singapore',
-                'dateutil.tz.tzutz()', 'dateutil.tz.tzlocal()',
-                'pytz.FixedOffset(300)', 'pytz.FixedOffset(0)',
-                'pytz.FixedOffset(-300)', 'datetime.timezone.utc',
-                'datetime.timezone.+1', 'datetime.timezone.-1.named']
+TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
 @td.parametrize_fixture_doc(str(TIMEZONE_IDS))
@@ -402,6 +397,10 @@ def tz_aware_fixture(request):
     Fixture for trying explicit timezones: {0}
     """
     return request.param
+
+
+# Generate cartesian product of tz_aware_fixture:
+tz_aware_fixture2 = tz_aware_fixture
 
 
 # ----------------------------------------------------------------
@@ -439,6 +438,46 @@ def string_dtype(request):
     * str
     * 'str'
     * 'U'
+    """
+    return request.param
+
+
+@pytest.fixture(params=BYTES_DTYPES)
+def bytes_dtype(request):
+    """Parametrized fixture for bytes dtypes.
+
+    * bytes
+    * 'bytes'
+    """
+    return request.param
+
+
+@pytest.fixture(params=OBJECT_DTYPES)
+def object_dtype(request):
+    """Parametrized fixture for object dtypes.
+
+    * object
+    * 'object'
+    """
+    return request.param
+
+
+@pytest.fixture(params=DATETIME64_DTYPES)
+def datetime64_dtype(request):
+    """Parametrized fixture for datetime64 dtypes.
+
+    * 'datetime64[ns]'
+    * 'M8[ns]'
+    """
+    return request.param
+
+
+@pytest.fixture(params=TIMEDELTA64_DTYPES)
+def timedelta64_dtype(request):
+    """Parametrized fixture for timedelta64 dtypes.
+
+    * 'timedelta64[ns]'
+    * 'm8[ns]'
     """
     return request.param
 

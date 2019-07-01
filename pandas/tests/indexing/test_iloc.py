@@ -20,7 +20,7 @@ class TestiLoc(Base):
         # iloc should allow indexers that exceed the bounds
         df = DataFrame(np.random.random_sample((20, 5)), columns=list('ABCDE'))
 
-        # lists of positions should raise IndexErrror!
+        # lists of positions should raise IndexError!
         msg = 'positional indexers are out-of-bounds'
         with pytest.raises(IndexError, match=msg):
             df.iloc[:, [0, 1, 2, 3, 4, 5]]
@@ -264,6 +264,16 @@ class TestiLoc(Base):
         self.check_result('bool', 'iloc', b, 'ix', b,
                           typs=['labels', 'mixed', 'ts', 'floats', 'empty'],
                           fails=IndexError)
+
+    @pytest.mark.parametrize('index', [[True, False],
+                                       [True, False, True, False]])
+    def test_iloc_getitem_bool_diff_len(self, index):
+        # GH26658
+        s = Series([1, 2, 3])
+        with pytest.raises(IndexError,
+                           match=('Item wrong length {} instead of {}.'.format(
+                               len(index), len(s)))):
+            _ = s.iloc[index]
 
     def test_iloc_getitem_slice(self):
 
@@ -614,10 +624,10 @@ class TestiLoc(Base):
                                  'cannot use an indexable as a mask'),
             ('locs', ''): 'Unalignable boolean Series provided as indexer '
                           '(index of the boolean Series and of the indexed '
-                          'object do not match',
+                          'object do not match).',
             ('locs', '.loc'): 'Unalignable boolean Series provided as indexer '
                               '(index of the boolean Series and of the '
-                              'indexed object do not match',
+                              'indexed object do not match).',
             ('locs', '.iloc'): ('iLocation based boolean indexing on an '
                                 'integer type is not available'),
         }

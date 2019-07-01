@@ -91,12 +91,7 @@ class TestCategoricalAPI:
     def test_rename_categories_series(self):
         # https://github.com/pandas-dev/pandas/issues/17981
         c = Categorical(['a', 'b'])
-        xpr = "Treating Series 'new_categories' as a list-like "
-        with tm.assert_produces_warning(FutureWarning) as rec:
-            result = c.rename_categories(Series([0, 1]))
-
-        assert len(rec) == 1
-        assert xpr in str(rec[0].message)
+        result = c.rename_categories(Series([0, 1], index=['a', 'b']))
         expected = Categorical([0, 1])
         tm.assert_categorical_equal(result, expected)
 
@@ -248,7 +243,7 @@ class TestCategoricalAPI:
         tm.assert_index_equal(c.categories, Index([1, 2, 3, 4]))
 
         exp = np.array([1, 2, 3, 4, 1], dtype=np.int64)
-        tm.assert_numpy_array_equal(c.get_values(), exp)
+        tm.assert_numpy_array_equal(c.to_dense(), exp)
 
         # all "pointers" to '4' must be changed from 3 to 0,...
         c = c.set_categories([4, 3, 2, 1])
@@ -262,7 +257,7 @@ class TestCategoricalAPI:
 
         # output is the same
         exp = np.array([1, 2, 3, 4, 1], dtype=np.int64)
-        tm.assert_numpy_array_equal(c.get_values(), exp)
+        tm.assert_numpy_array_equal(c.to_dense(), exp)
         assert c.min() == 4
         assert c.max() == 1
 
@@ -270,13 +265,13 @@ class TestCategoricalAPI:
         c2 = c.set_categories([4, 3, 2, 1], ordered=False)
         assert not c2.ordered
 
-        tm.assert_numpy_array_equal(c.get_values(), c2.get_values())
+        tm.assert_numpy_array_equal(c.to_dense(), c2.to_dense())
 
         # set_categories should pass thru the ordering
         c2 = c.set_ordered(False).set_categories([4, 3, 2, 1])
         assert not c2.ordered
 
-        tm.assert_numpy_array_equal(c.get_values(), c2.get_values())
+        tm.assert_numpy_array_equal(c.to_dense(), c2.to_dense())
 
     @pytest.mark.parametrize('values, categories, new_categories', [
         # No NaNs, same cats, same order
@@ -383,7 +378,7 @@ class TestCategoricalAPI:
         tm.assert_index_equal(out.categories, Index(['B', 'D', 'F']))
         exp_codes = np.array([2, -1, 1, 0, 1, 2, -1], dtype=np.int8)
         tm.assert_numpy_array_equal(out.codes, exp_codes)
-        assert out.get_values().tolist() == val
+        assert out.tolist() == val
 
         alpha = list('abcdefghijklmnopqrstuvwxyz')
         val = np.random.choice(alpha[::2], 10000).astype('object')
@@ -391,7 +386,7 @@ class TestCategoricalAPI:
 
         cat = Categorical(values=val, categories=alpha)
         out = cat.remove_unused_categories()
-        assert out.get_values().tolist() == val.tolist()
+        assert out.tolist() == val.tolist()
 
 
 class TestCategoricalAPIWithFactor(TestCategorical):
@@ -504,3 +499,9 @@ class TestPrivateCategoricalAPI:
         new = Index(expected)
         result = _recode_for_categories(codes, old, new)
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_deprecated_get_values(self):
+        cat = Categorical(["a", "b", "c", "a"])
+        with tm.assert_produces_warning(FutureWarning):
+            res = cat.get_values()
+        tm.assert_numpy_array_equal(res, np.array(cat))

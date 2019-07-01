@@ -19,6 +19,12 @@ def dropna(request):
     return request.param
 
 
+@pytest.fixture(params=[([0] * 4, [1] * 4), (range(0, 3), range(1, 4))])
+def interval_values(request, closed):
+    left, right = request.param
+    return Categorical(pd.IntervalIndex.from_arrays(left, right, closed))
+
+
 class TestPivotTable:
 
     def setup_method(self, method):
@@ -196,6 +202,18 @@ class TestPivotTable:
                                           ordered=True),
                 name='A'))
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_with_interval_index(self, interval_values, dropna):
+        # GH 25814
+        df = DataFrame(
+            {'A': interval_values,
+             'B': 1})
+        result = df.pivot_table(index='A', values='B', dropna=dropna)
+        expected = DataFrame(
+            {'B': 1},
+            index=Index(interval_values.unique(),
+                        name='A'))
         tm.assert_frame_equal(result, expected)
 
     def test_pass_array(self):
@@ -410,6 +428,46 @@ class TestPivotTable:
         else:
             pv = pd.pivot(df, index='dt1', columns='dt2', values='data1')
         tm.assert_frame_equal(pv, expected)
+
+    def test_pivot_tz_in_values(self):
+        # GH 14948
+        df = pd.DataFrame([{'uid': u'aa',
+                            'ts': pd.Timestamp('2016-08-12 13:00:00-0700',
+                                               tz='US/Pacific')},
+                           {'uid': u'aa',
+                            'ts': pd.Timestamp('2016-08-12 08:00:00-0700',
+                                               tz='US/Pacific')},
+                           {'uid': u'aa',
+                            'ts': pd.Timestamp('2016-08-12 14:00:00-0700',
+                                               tz='US/Pacific')},
+                           {'uid': u'aa',
+                            'ts': pd.Timestamp('2016-08-25 11:00:00-0700',
+                                               tz='US/Pacific')},
+                           {'uid': u'aa',
+                            'ts': pd.Timestamp('2016-08-25 13:00:00-0700',
+                                               tz='US/Pacific')}])
+
+        df = df.set_index('ts').reset_index()
+        mins = df.ts.map(lambda x: x.replace(hour=0, minute=0,
+                                             second=0, microsecond=0))
+
+        result = pd.pivot_table(df.set_index('ts').reset_index(),
+                                values='ts', index=['uid'], columns=[mins],
+                                aggfunc=np.min)
+        expected = pd.DataFrame(
+            [
+                [pd.Timestamp('2016-08-12 08:00:00-0700', tz='US/Pacific'),
+                 pd.Timestamp('2016-08-25 11:00:00-0700', tz='US/Pacific')]
+            ],
+            index=pd.Index(['aa'], name='uid'),
+            columns=pd.DatetimeIndex(
+                [
+                    pd.Timestamp('2016-08-12 00:00:00', tz='US/Pacific'),
+                    pd.Timestamp('2016-08-25 00:00:00', tz='US/Pacific')
+                ],
+                name='ts')
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('method', [True, False])
     def test_pivot_periods(self, method):

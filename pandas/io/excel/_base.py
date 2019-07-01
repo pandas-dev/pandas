@@ -289,6 +289,9 @@ def read_excel(io,
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
+    elif engine and engine != io.engine:
+        raise ValueError("Engine should not be specified when passing "
+                         "an ExcelFile - ExcelFile already has the engine set")
 
     return io.parse(
         sheet_name=sheet_name,
@@ -419,7 +422,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             data = self.get_sheet_data(sheet, convert_float)
             usecols = _maybe_convert_usecols(usecols)
 
-            if sheet.nrows == 0:
+            if not data:
                 output[asheetname] = DataFrame()
                 continue
 
@@ -766,9 +769,11 @@ class ExcelFile:
     """
 
     from pandas.io.excel._xlrd import _XlrdReader
+    from pandas.io.excel._openpyxl import _OpenpyxlReader
 
     _engines = {
         'xlrd': _XlrdReader,
+        'openpyxl': _OpenpyxlReader,
     }
 
     def __init__(self, io, engine=None):
@@ -777,6 +782,7 @@ class ExcelFile:
         if engine not in self._engines:
             raise ValueError("Unknown engine: {engine}".format(engine=engine))
 
+        self.engine = engine
         # could be a str, ExcelFile, Book, etc.
         self.io = io
         # Always a string

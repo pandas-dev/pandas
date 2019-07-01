@@ -41,12 +41,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
-from textwrap import dedent
 import warnings
 
 from dateutil.parser import parse
 import numpy as np
 
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
 from pandas.util._move import (
     BadMove as _BadMove, move_into_mutable_buffer as _move_into_mutable_buffer)
@@ -69,47 +69,6 @@ from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 from pandas.io.common import _stringify_path, get_filepath_or_buffer
 from pandas.io.msgpack import ExtType, Packer as _Packer, Unpacker as _Unpacker
 
-# check which compression libs we have installed
-try:
-    import zlib
-
-    def _check_zlib():
-        pass
-except ImportError:
-    def _check_zlib():
-        raise ImportError('zlib is not installed')
-
-_check_zlib.__doc__ = dedent(
-    """\
-    Check if zlib is installed.
-
-    Raises
-    ------
-    ImportError
-        Raised when zlib is not installed.
-    """,
-)
-
-try:
-    import blosc
-
-    def _check_blosc():
-        pass
-except ImportError:
-    def _check_blosc():
-        raise ImportError('blosc is not installed')
-
-_check_blosc.__doc__ = dedent(
-    """\
-    Check if blosc is installed.
-
-    Raises
-    ------
-    ImportError
-        Raised when blosc is not installed.
-    """,
-)
-
 # until we can pass this into our conversion functions,
 # this is pretty hacky
 compressor = None
@@ -119,8 +78,11 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     """
     msgpack (serialize) object to input file path
 
-    THIS IS AN EXPERIMENTAL LIBRARY and the storage format
-    may not be stable until a future release.
+    .. deprecated:: 0.25.0
+
+    to_msgpack is deprecated and will be removed in a future version.
+    It is recommended to use pyarrow for on-the-wire transmission of
+    pandas objects.
 
     Parameters
     ----------
@@ -133,6 +95,12 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     compress : type of compressor (zlib or blosc), default to None (no
                compression)
     """
+    warnings.warn("to_msgpack is deprecated and will be removed in a "
+                  "future version.\n"
+                  "It is recommended to use pyarrow for on-the-wire "
+                  "transmission of pandas objects.",
+                  FutureWarning, stacklevel=3)
+
     global compressor
     compressor = kwargs.pop('compress', None)
     append = kwargs.pop('append', None)
@@ -162,8 +130,11 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
     Load msgpack pandas object from the specified
     file path.
 
-    THIS IS AN EXPERIMENTAL LIBRARY and the storage format
-    may not be stable until a future release.
+    .. deprecated:: 0.25.0
+
+    read_msgpack is deprecated and will be removed in a future version.
+    It is recommended to use pyarrow for on-the-wire transmission of
+    pandas objects.
 
     Parameters
     ----------
@@ -175,7 +146,18 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
     Returns
     -------
     obj : same type as object stored in file
+
+    Notes
+    -----
+    read_msgpack is only guaranteed to be backwards compatible to pandas
+    0.20.3.
     """
+    warnings.warn("The read_msgpack is deprecated and will be removed in a "
+                  "future version.\n"
+                  "It is recommended to use pyarrow for on-the-wire "
+                  "transmission of pandas objects.",
+                  FutureWarning, stacklevel=3)
+
     path_or_buf, _, _, should_close = get_filepath_or_buffer(path_or_buf)
     if iterator:
         return Iterator(path_or_buf)
@@ -274,7 +256,10 @@ def convert(values):
     v = values.ravel()
 
     if compressor == 'zlib':
-        _check_zlib()
+        zlib = import_optional_dependency(
+            "zlib",
+            extra="zlib is required when `compress='zlib'`."
+        )
 
         # return string arrays like they are
         if dtype == np.object_:
@@ -285,7 +270,10 @@ def convert(values):
         return ExtType(0, zlib.compress(v))
 
     elif compressor == 'blosc':
-        _check_blosc()
+        blosc = import_optional_dependency(
+            "blosc",
+            extra="zlib is required when `compress='blosc'`."
+        )
 
         # return string arrays like they are
         if dtype == np.object_:
@@ -319,10 +307,16 @@ def unconvert(values, dtype, compress=None):
 
     if compress:
         if compress == 'zlib':
-            _check_zlib()
+            zlib = import_optional_dependency(
+                "zlib",
+                extra="zlib is required when `compress='zlib'`."
+            )
             decompress = zlib.decompress
         elif compress == 'blosc':
-            _check_blosc()
+            blosc = import_optional_dependency(
+                "blosc",
+                extra="zlib is required when `compress='blosc'`."
+            )
             decompress = blosc.decompress
         else:
             raise ValueError("compress must be one of 'zlib' or 'blosc'")
@@ -367,9 +361,10 @@ def encode(obj):
             return {'typ': 'range_index',
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
-                    'start': getattr(obj, '_start', None),
-                    'stop': getattr(obj, '_stop', None),
-                    'step': getattr(obj, '_step', None)}
+                    'start': obj._range.start,
+                    'stop': obj._range.stop,
+                    'step': obj._range.step,
+                    }
         elif isinstance(obj, PeriodIndex):
             return {'typ': 'period_index',
                     'klass': obj.__class__.__name__,
@@ -546,16 +541,16 @@ def encode(obj):
             return {'typ': 'np_scalar',
                     'sub_typ': 'np_complex',
                     'dtype': obj.dtype.name,
-                    'real': obj.real.__repr__(),
-                    'imag': obj.imag.__repr__()}
+                    'real': np.real(obj).__repr__(),
+                    'imag': np.imag(obj).__repr__()}
         else:
             return {'typ': 'np_scalar',
                     'dtype': obj.dtype.name,
                     'data': obj.__repr__()}
     elif isinstance(obj, complex):
         return {'typ': 'np_complex',
-                'real': obj.real.__repr__(),
-                'imag': obj.imag.__repr__()}
+                'real': np.real(obj).__repr__(),
+                'imag': np.imag(obj).__repr__()}
 
     return obj
 

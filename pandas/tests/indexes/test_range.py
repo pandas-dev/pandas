@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import ensure_platform_int
+
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, RangeIndex, Series
 import pandas.util.testing as tm
@@ -51,10 +53,8 @@ class TestRangeIndex(Numeric):
         expected = Index(np.arange(start, stop, step, dtype=np.int64),
                          name=name)
         assert isinstance(result, RangeIndex)
-        assert result._start == start
-        assert result._stop == stop
-        assert result._step == step
         assert result.name is name
+        assert result._range == range(start, stop, step)
         tm.assert_index_equal(result, expected)
 
     def test_constructor_invalid_args(self):
@@ -96,8 +96,9 @@ class TestRangeIndex(Numeric):
 
     def test_constructor_range(self):
 
-        with pytest.raises(TypeError):
-            RangeIndex(range(1, 5, 2))
+        msg = "Value needs to be a scalar value, was type <class 'range'>"
+        with pytest.raises(TypeError, match=msg):
+            result = RangeIndex(range(1, 5, 2))
 
         result = RangeIndex.from_range(range(1, 5, 2))
         expected = RangeIndex(1, 5, 2)
@@ -122,6 +123,9 @@ class TestRangeIndex(Numeric):
 
         with pytest.raises(TypeError):
             Index(range(1, 5, 2), dtype='float64')
+        msg = r'^from_range\(\) got an unexpected keyword argument'
+        with pytest.raises(TypeError, match=msg):
+            pd.RangeIndex.from_range(range(10), copy=True)
 
     def test_constructor_name(self):
         # GH12288
@@ -169,14 +173,19 @@ class TestRangeIndex(Numeric):
         assert index.stop == stop
         assert index.step == step
 
+    @pytest.mark.parametrize('attr_name', ['_start', '_stop', '_step'])
+    def test_deprecated_start_stop_step_attrs(self, attr_name):
+        # GH 26581
+        idx = self.create_index()
+        with tm.assert_produces_warning(DeprecationWarning):
+            getattr(idx, attr_name)
+
     def test_copy(self):
         i = RangeIndex(5, name='Foo')
         i_copy = i.copy()
         assert i_copy is not i
         assert i_copy.identical(i)
-        assert i_copy._start == 0
-        assert i_copy._stop == 5
-        assert i_copy._step == 1
+        assert i_copy._range == range(0, 5, 1)
         assert i_copy.name == 'Foo'
 
     def test_repr(self):
@@ -242,9 +251,9 @@ class TestRangeIndex(Numeric):
         assert self.index.dtype == np.int64
 
     def test_cached_data(self):
-        # GH 26565
+        # GH 26565, GH26617
         # Calling RangeIndex._data caches an int64 array of the same length at
-        # self._cached_data. This tests whether _cached_data has been set.
+        # self._cached_data. This test checks whether _cached_data has been set
         idx = RangeIndex(0, 100, 10)
 
         assert idx._cached_data is None
@@ -256,6 +265,24 @@ class TestRangeIndex(Numeric):
         assert idx._cached_data is None
 
         idx.get_loc(20)
+        assert idx._cached_data is None
+
+        90 in idx
+        assert idx._cached_data is None
+
+        91 in idx
+        assert idx._cached_data is None
+
+        idx.contains(90)
+        assert idx._cached_data is None
+
+        idx.contains(91)
+        assert idx._cached_data is None
+
+        idx.all()
+        assert idx._cached_data is None
+
+        idx.any()
         assert idx._cached_data is None
 
         df = pd.DataFrame({'a': range(10)}, index=idx)
@@ -273,7 +300,7 @@ class TestRangeIndex(Numeric):
         df.iloc[5:10]
         assert idx._cached_data is None
 
-        # actually calling data._data
+        # actually calling idx._data
         assert isinstance(idx._data, np.ndarray)
         assert isinstance(idx._cached_data, np.ndarray)
 
@@ -940,3 +967,23 @@ class TestRangeIndex(Numeric):
             # Append single item rather than list
             result2 = indices[0].append(indices[1])
             tm.assert_index_equal(result2, expected, exact=True)
+
+    def test_engineless_lookup(self):
+        # GH 16685
+        # Standard lookup on RangeIndex should not require the engine to be
+        # created
+        idx = RangeIndex(2, 10, 3)
+
+        assert idx.get_loc(5) == 1
+        tm.assert_numpy_array_equal(idx.get_indexer([2, 8]),
+                                    ensure_platform_int(np.array([0, 2])))
+        with pytest.raises(KeyError):
+            idx.get_loc(3)
+
+        assert '_engine' not in idx._cache
+
+        # The engine is still required for lookup of a different dtype scalar:
+        with pytest.raises(KeyError):
+            assert idx.get_loc('a') == -1
+
+        assert '_engine' in idx._cache

@@ -3,6 +3,7 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from textwrap import dedent
+from typing import Dict
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
@@ -16,18 +17,18 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_float64, ensure_int64, ensure_object, ensure_platform_int,
     ensure_uint64, is_array_like, is_bool_dtype, is_categorical_dtype,
-    is_complex_dtype, is_datetime64_any_dtype, is_datetime64tz_dtype,
-    is_datetimelike, is_extension_array_dtype, is_float_dtype, is_integer,
-    is_integer_dtype, is_interval_dtype, is_list_like, is_numeric_dtype,
-    is_object_dtype, is_period_dtype, is_scalar, is_signed_integer_dtype,
-    is_sparse, is_timedelta64_dtype, is_unsigned_integer_dtype,
-    needs_i8_conversion)
+    is_complex_dtype, is_datetime64_any_dtype, is_datetime64_ns_dtype,
+    is_datetime64tz_dtype, is_datetimelike, is_extension_array_dtype,
+    is_float_dtype, is_integer, is_integer_dtype, is_interval_dtype,
+    is_list_like, is_numeric_dtype, is_object_dtype, is_period_dtype,
+    is_scalar, is_signed_integer_dtype, is_sparse, is_timedelta64_dtype,
+    is_unsigned_integer_dtype, needs_i8_conversion)
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
 
-_shared_docs = {}
+_shared_docs = {}  # type: Dict[str, str]
 
 
 # --------------- #
@@ -104,6 +105,13 @@ def _ensure_data(values, dtype=None):
             dtype = values.dtype
         else:
             # Datetime
+            if values.ndim > 1 and is_datetime64_ns_dtype(values):
+                # Avoid calling the DatetimeIndex constructor as it is 1D only
+                # Note: this is reached by DataFrame.rank calls GH#27027
+                asi8 = values.view('i8')
+                dtype = values.dtype
+                return asi8, dtype, 'int64'
+
             from pandas import DatetimeIndex
             values = DatetimeIndex(values)
             dtype = values.dtype
@@ -1525,7 +1533,7 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
 
     if allow_fill:
         # Pandas style, -1 means NA
-        validate_indices(indices, len(arr))
+        validate_indices(indices, arr.shape[axis])
         result = take_1d(arr, indices, axis=axis, allow_fill=True,
                          fill_value=fill_value)
     else:
@@ -1582,7 +1590,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     if is_sparse(arr):
-        arr = arr.get_values()
+        arr = arr.to_dense()
     elif isinstance(arr, (ABCIndexClass, ABCSeries)):
         arr = arr.values
 

@@ -5,7 +5,6 @@ to disk
 
 import copy
 from datetime import date, datetime
-from distutils.version import LooseVersion
 import itertools
 import os
 import re
@@ -19,11 +18,13 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype, is_list_like, is_timedelta64_dtype)
+    is_datetime64tz_dtype, is_extension_type, is_list_like,
+    is_timedelta64_dtype)
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
@@ -98,7 +99,7 @@ def _ensure_term(where, scope_level):
         where = wlist
     elif maybe_expression(where):
         where = Term(where, scope_level=level)
-    return where
+    return where if where is None or len(where) else None
 
 
 class PossibleDataLossError(Exception):
@@ -225,10 +226,6 @@ def _tables():
     if _table_mod is None:
         import tables
         _table_mod = tables
-
-        # version requirements
-        if LooseVersion(tables.__version__) < LooseVersion('3.0.0'):
-            raise ImportError("PyTables version >= 3.0.0 is required")
 
         # set the file open policy
         # return the file open policy; this changes as of pytables 3.1
@@ -448,11 +445,7 @@ class HDFStore:
         if 'format' in kwargs:
             raise ValueError('format is not a defined argument for HDFStore')
 
-        try:
-            import tables  # noqa
-        except ImportError as ex:  # pragma: no cover
-            raise ImportError('HDFStore requires PyTables, "{ex!s}" problem '
-                              'importing'.format(ex=ex))
+        tables = import_optional_dependency("tables")
 
         if complib is not None and complib not in tables.filters.all_complibs:
             raise ValueError(
@@ -827,7 +820,7 @@ class HDFStore:
                 raise ValueError(
                     "all tables must have exactly the same nrows!")
 
-        # axis is the concentation axes
+        # axis is the concentration axes
         axis = list({t.non_index_axes[0][0] for t in tbls})[0]
 
         def func(_start, _stop, _where):
@@ -951,7 +944,7 @@ class HDFStore:
             of the object are indexed. See `here
             <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         min_itemsize : dict of columns that specify minimum string sizes
-        nan_rep      : string to use as string nan represenation
+        nan_rep      : string to use as string nan representation
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
         encoding     : default None, provide an encoding for strings
@@ -1346,7 +1339,7 @@ class HDFStore:
 
             else:
 
-                # distiguish between a frame/table
+                # distinguish between a frame/table
                 tt = 'legacy_panel'
                 try:
                     fields = group.table._v_attrs.fields
@@ -1627,7 +1620,8 @@ class IndexCol:
         new_self.read_metadata(handler)
         return new_self
 
-    def convert(self, values, nan_rep, encoding, errors):
+    def convert(self, values, nan_rep, encoding, errors, start=None,
+                stop=None):
         """ set the values from this selection: take = take ownership """
 
         # values is a recarray
@@ -1816,10 +1810,29 @@ class GenericIndexCol(IndexCol):
     def is_indexed(self):
         return False
 
-    def convert(self, values, nan_rep, encoding, errors):
-        """ set the values from this selection: take = take ownership """
+    def convert(self, values, nan_rep, encoding, errors, start=None,
+                stop=None):
+        """ set the values from this selection: take = take ownership
 
-        self.values = Int64Index(np.arange(self.table.nrows))
+        Parameters
+        ----------
+
+        values : np.ndarray
+        nan_rep : str
+        encoding : str
+        errors : str
+        start : int, optional
+            Table row number: the start of the sub-selection.
+        stop : int, optional
+            Table row number: the end of the sub-selection. Values larger than
+            the underlying table's row count are normalized to that.
+        """
+
+        start = start if start is not None else 0
+        stop = (min(stop, self.table.nrows)
+                if stop is not None else self.table.nrows)
+        self.values = Int64Index(np.arange(stop - start))
+
         return self
 
     def get_attr(self):
@@ -2162,7 +2175,8 @@ class DataCol(IndexCol):
                 raise ValueError("appended items dtype do not match existing "
                                  "items dtype in table!")
 
-    def convert(self, values, nan_rep, encoding, errors):
+    def convert(self, values, nan_rep, encoding, errors, start=None,
+                stop=None):
         """set the data from this selection (and convert to the correct dtype
         if we can)
         """
@@ -2634,6 +2648,9 @@ class GenericFixed(Fixed):
                                                          index.codes,
                                                          index.names)):
             # write the level
+            if is_extension_type(lev):
+                raise NotImplementedError("Saving a MultiIndex with an "
+                                          "extension dtype is not supported.")
             level_key = '{key}_level{idx}'.format(key=key, idx=i)
             conv_level = _convert_index(lev, self.encoding, self.errors,
                                         self.format_type).set_name(level_key)
@@ -3298,7 +3315,7 @@ class Table(Fixed):
                 warnings.warn(ws, IncompatibilityWarning)
 
     def validate_min_itemsize(self, min_itemsize):
-        """validate the min_itemisze doesn't contain items that are not in the
+        """validate the min_itemsize doesn't contain items that are not in the
         axes this needs data_columns to be defined
         """
         if min_itemsize is None:
@@ -3434,8 +3451,11 @@ class Table(Fixed):
         # convert the data
         for a in self.axes:
             a.set_info(self.info)
+            # `kwargs` may contain `start` and `stop` arguments if passed to
+            # `store.select()`. If set they determine the index size.
             a.convert(values, nan_rep=self.nan_rep, encoding=self.encoding,
-                      errors=self.errors)
+                      errors=self.errors, start=kwargs.get('start'),
+                      stop=kwargs.get('stop'))
 
         return True
 
@@ -3479,7 +3499,7 @@ class Table(Fixed):
     def create_axes(self, axes, obj, validate=True, nan_rep=None,
                     data_columns=None, min_itemsize=None, **kwargs):
         """ create and return the axes
-        leagcy tables create an indexable column, indexable index,
+        legacy tables create an indexable column, indexable index,
         non-indexable fields
 
             Parameters
