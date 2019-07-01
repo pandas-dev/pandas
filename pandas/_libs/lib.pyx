@@ -1913,8 +1913,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         ndarray[int64_t] ints
         ndarray[uint64_t] uints
         ndarray[uint8_t] bools
-        ndarray[int64_t] idatetimes
-        ndarray[int64_t] itimedeltas
+        int64_t[::1]  idatetimes
+        int64_t[::1] itimedeltas
         Seen seen = Seen()
         object val
         float64_t fval, fnan
