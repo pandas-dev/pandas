@@ -5,8 +5,12 @@ What's new in 0.25.0 (April XX, 2019)
 
 .. warning::
 
-   Starting with the 0.25.x series of releases, pandas only supports Python 3.5 and higher.
+   Starting with the 0.25.x series of releases, pandas only supports Python 3.5.3 and higher.
    See :ref:`install.dropping-27` for more details.
+
+.. warning::
+
+   The minimum supported Python version will be bumped to 3.6 in a future release.
 
 .. warning::
 
@@ -563,6 +567,7 @@ Other API changes
 - Removed support of gtk package for clipboards (:issue:`26563`)
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
 - :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` will now raise a ``ValueError`` when saving timezone aware data. (:issue:`27008`, :issue:`7056`)
+- :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` will now raise a ``NotImplementedError`` when saving a :class:`MultiIndex` with extention data types for a ``fixed`` format. (:issue:`7775`)
 
 .. _whatsnew_0250.deprecations:
 
@@ -611,6 +616,9 @@ Other deprecations
   Use the public attributes :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop` and :attr:`~RangeIndex.step` instead (:issue:`26581`).
 - The :meth:`Series.ftype`, :meth:`Series.ftypes` and :meth:`DataFrame.ftypes` methods are deprecated and will be removed in a future version.
   Instead, use :meth:`Series.dtype` and :meth:`DataFrame.dtypes` (:issue:`26705`).
+- The :meth:`Series.get_values`, :meth:`DataFrame.get_values`, :meth:`Index.get_values`,
+  :meth:`SparseArray.get_values` and :meth:`Categorical.get_values` methods are deprecated.
+  One of ``np.asarray(..)`` or :meth:`~Series.to_numpy` can be used instead (:issue:`19617`).
 - :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
 - :func:`read_table` has been undeprecated. (:issue:`25220`)
 - :attr:`Index.dtype_str` is deprecated. (:issue:`18262`)
@@ -634,6 +642,9 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated behavior of altering column or index labels with :meth:`Series.rename_axis` or :meth:`DataFrame.rename_axis` (:issue:`17842`)
 - Removed the previously deprecated ``tupleize_cols`` keyword argument in :meth:`read_html`, :meth:`read_csv`, and :meth:`DataFrame.to_csv` (:issue:`17877`, :issue:`17820`)
 - Removed the previously deprecated ``DataFrame.from.csv`` and ``Series.from_csv`` (:issue:`17812`)
+- Removed the previously deprecated ``raise_on_error`` keyword argument in :meth:`DataFrame.where` and :meth:`DataFrame.mask` (:issue:`17744`)
+- Removed the previously deprecated ``ordered`` and ``categories`` keyword arguments in ``astype`` (:issue:`17742`)
+- Removed the previously deprecated ``cdate_range`` (:issue:`17691`)
 
 .. _whatsnew_0250.performance:
 
@@ -713,6 +724,7 @@ Timezones
 - Bug in :func:`to_datetime` with ``unit='ns'`` would drop timezone information from the parsed argument (:issue:`26168`)
 - Bug in :func:`DataFrame.join` where joining a timezone aware index with a timezone aware column would result in a column of ``NaN`` (:issue:`26335`)
 - Bug in :func:`date_range` where ambiguous or nonexistent start or end times were not handled by the ``ambiguous`` or ``nonexistent`` keywords respectively (:issue:`27088`)
+- Bug in :meth:`DatetimeIndex.union` when combining a timezone aware and timezone unaware :class:`DatetimeIndex` (:issue:`21671`)
 
 Numeric
 ^^^^^^^
@@ -808,6 +820,7 @@ I/O
 - :func:`read_excel` now raises a ``ValueError`` when input is of type :class:`pandas.io.excel.ExcelFile` and ``engine`` param is passed since :class:`pandas.io.excel.ExcelFile` has an engine defined (:issue:`26566`)
 - Bug while selecting from :class:`HDFStore` with ``where=''`` specified (:issue:`26610`).
 - Fixed bug in :func:`DataFrame.to_excel()` where custom objects (i.e. `PeriodIndex`) inside merged cells were not being converted into types safe for the Excel writer (:issue:`27006`)
+- Bug in :meth:`read_hdf` where reading a timezone aware :class:`DatetimeIndex` would raise a ``TypeError`` (:issue:`11926`)
 
 Plotting
 ^^^^^^^^
@@ -862,6 +875,7 @@ Reshaping
 - Bug in :meth:`Series.nlargest` treats ``True`` as smaller than ``False`` (:issue:`26154`)
 - Bug in :func:`DataFrame.pivot_table` with a :class:`IntervalIndex` as pivot index would raise ``TypeError`` (:issue:`25814`)
 - Bug in :meth:`DataFrame.transpose` where transposing a DataFrame with a timezone-aware datetime column would incorrectly raise ``ValueError`` (:issue:`26825`)
+- Bug in :func:`pivot_table` when pivoting a timezone aware column as the ``values`` would remove timezone information (:issue:`14948`)
 
 Sparse
 ^^^^^^
