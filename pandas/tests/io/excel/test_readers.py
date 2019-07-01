@@ -33,9 +33,20 @@ def ignore_xlrd_time_clock_warning():
 
 @pytest.fixture(params=[
     # Add any engines to test here
-    pytest.param('xlrd', marks=td.skip_if_no('xlrd')),
-    pytest.param('openpyxl', marks=td.skip_if_no('openpyxl')),
-    pytest.param(None, marks=td.skip_if_no('xlrd')),
+    # When defusedxml is installed it triggers deprecation warnings for
+    # xlrd and openpyxl, so catch those here
+    pytest.param('xlrd', marks=[
+        td.skip_if_no('xlrd'),
+        pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
+    ]),
+    pytest.param('openpyxl', marks=[
+        td.skip_if_no('openpyxl'),
+        pytest.mark.filterwarnings("ignore:.*html argument"),
+    ]),
+    pytest.param(None, marks=[
+        td.skip_if_no('xlrd'),
+        pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
+    ]),
     pytest.param("odf", marks=td.skip_if_no("odf")),
 ])
 def engine(request):
