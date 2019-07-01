@@ -1434,7 +1434,7 @@ int to_boolean(const char *item, uint8_t *val) {
     char *tmp;
     int i, status = 0;
     size_t length0 = (strlen(item) + 1);
-    int bufsize = sizeof(char) * length0;
+    int bufsize = length0;
 
     static const char *tstrs[1] = {"TRUE"};
     static const char *fstrs[1] = {"FALSE"};
