@@ -12,6 +12,7 @@ dependencies:
   - geopandas
   - html5lib
   - matplotlib
+  - moto
   - nomkl
   - numexpr
   - numpy=1.15.*
@@ -46,6 +47,5 @@ dependencies:
   - pip:
     - brotlipy
     - coverage
-    - moto
     - pandas-datareader
     - python-dateutil
