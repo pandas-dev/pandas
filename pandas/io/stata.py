@@ -83,8 +83,17 @@ Read Stata file into DataFrame.
 
 Parameters
 ----------
-filepath_or_buffer : str, path object, URL or file-like object
-    Path to .dta file or object implementing a binary read() functions.
+filepath_or_buffer : str, path object or file-like object
+    Any valid string path is acceptable. The string could be a URL. Valid
+    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    expected. A local file could be: ``file://localhost/path/to/table.dta``.
+
+    If you want to pass in a path object, pandas accepts either
+    ``pathlib.Path`` or ``py._path.local.LocalPath``.
+
+    By file-like object, we refer to objects with a ``read()`` method,
+    such as a file handler (e.g. via builtin ``open`` function)
+    or ``StringIO``.
 %s
 %s
 %s

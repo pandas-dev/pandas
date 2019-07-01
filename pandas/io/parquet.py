@@ -227,11 +227,17 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
 
     Parameters
     ----------
-    path : str, path object, URL or file-like object
-        Either a path to a file (a :class:`str`,
-        :class:`pathlib.Path`,
-        or :class:`py:py._path.local.LocalPath`),
-        URL (including http, ftp, and S3 locations), or any file-like object.
+    path : str, path object or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be: ``file://localhost/path/to/table.parquet``.
+
+        If you want to pass in a path object, pandas accepts either
+        ``pathlib.Path`` or ``py._path.local.LocalPath``.
+
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function)
+        or ``StringIO``.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``

@@ -71,7 +71,7 @@ def read_feather(path, columns=None, use_threads=True):
 
     Parameters
     ----------
-    path : str, path object, URL or file-like object
+    path : str, path object or file-like object
         Either a path to a file (a :class:`str`,
         :class:`pathlib.Path`,
         or :class:`py:py._path.local.LocalPath`),

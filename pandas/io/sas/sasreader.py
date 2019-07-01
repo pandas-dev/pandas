@@ -11,8 +11,17 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object, URL or file-like object
-        Path to the SAS file.
+    filepath_or_buffer : str, path object or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be: ``file://localhost/path/to/table.sas``.
+
+        If you want to pass in a path object, pandas accepts either
+        ``pathlib.Path`` or ``py._path.local.LocalPath``.
+
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function)
+        or ``StringIO``.
     format : string {'xport', 'sas7bdat'} or None
         If None, file format is inferred from file extension. If 'xport' or
         'sas7bdat', uses the corresponding format.
