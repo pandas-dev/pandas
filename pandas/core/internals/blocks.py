@@ -177,6 +177,12 @@ class Block(PandasObject):
             return self.values.astype(object)
         return self.values
 
+    def get_block_values(self, dtype=None):
+        """
+        This is used in the JSON C code
+        """
+        return self.get_values(dtype=dtype)
+
     def to_dense(self):
         return self.values.view()
 
@@ -2921,7 +2927,7 @@ class CategoricalBlock(ExtensionBlock):
         # Categorical.get_values returns a DatetimeIndex for datetime
         # categories, so we can't simply use `np.asarray(self.values)` like
         # other types.
-        return self.values.get_values()
+        return self.values._internal_get_values()
 
     def to_native_types(self, slicer=None, na_rep='', quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
@@ -3222,7 +3228,7 @@ def _putmask_smart(v, m, n):
     dtype, _ = maybe_promote(n.dtype)
 
     if is_extension_type(v.dtype) and is_object_dtype(dtype):
-        v = v.get_values(dtype)
+        v = v._internal_get_values(dtype)
     else:
         v = v.astype(dtype)
 

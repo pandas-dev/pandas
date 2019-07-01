@@ -1483,6 +1483,8 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Return the values.
 
+        .. deprecated:: 0.25.0
+
         For internal compatibility with pandas formatting.
 
         Returns
@@ -1491,6 +1493,11 @@ class Categorical(ExtensionArray, PandasObject):
             A numpy array of the same dtype as categorical.categories.dtype or
             Index if datetime / periods.
         """
+        warn("The 'get_values' method is deprecated and will be removed in a "
+             "future version", FutureWarning, stacklevel=2)
+        return self._internal_get_values()
+
+    def _internal_get_values(self):
         # if we are a datetime and period index, return Index to keep metadata
         if is_datetimelike(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)
@@ -1923,7 +1930,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Returns an Iterator over the values of this Categorical.
         """
-        return iter(self.get_values().tolist())
+        return iter(self._internal_get_values().tolist())
 
     def __contains__(self, key):
         """
