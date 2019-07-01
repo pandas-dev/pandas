@@ -1176,11 +1176,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Notes
         -----
-        Prior to version 0.21.0, ``rename_axis`` could also be used to change
-        the axis *labels* by passing a mapping or scalar. This behavior is
-        deprecated and will be removed in a future version. Use ``rename``
-        instead.
-
         ``DataFrame.rename_axis`` supports two calling conventions
 
         * ``(index=index_mapper, columns=columns_mapper, ...)``
@@ -1280,22 +1275,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
-        if (mapper is not sentinel):
+        if mapper is not sentinel:
             # Use v0.23 behavior if a scalar or list
             non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
                                                is_dict_like(mapper))
             if non_mapper:
                 return self._set_axis_name(mapper, axis=axis, inplace=inplace)
             else:
-                # Deprecated (v0.21) behavior is if mapper is specified,
-                # and not a list or scalar, then call rename
-                msg = ("Using 'rename_axis' to alter labels is deprecated. "
-                       "Use '.rename' instead")
-                warnings.warn(msg, FutureWarning, stacklevel=3)
-                axis = self._get_axis_name(axis)
-                d = {'copy': copy, 'inplace': inplace}
-                d[axis] = mapper
-                return self.rename(**d)
+                raise ValueError("Use `.rename` to alter labels "
+                                 "with a mapper.")
         else:
             # Use new behavior.  Means that index and/or columns
             # is specified
@@ -2915,7 +2903,7 @@ class NDFrame(PandasObject, SelectionMixin):
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None, compression='infer', quoting=None,
                quotechar='"', line_terminator=None, chunksize=None,
-               tupleize_cols=None, date_format=None, doublequote=True,
+               date_format=None, doublequote=True,
                escapechar=None, decimal='.'):
         r"""
         Write object to a comma-separated values (csv) file.
@@ -2988,14 +2976,6 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionchanged:: 0.24.0
         chunksize : int or None
             Rows to write at a time.
-        tupleize_cols : bool, default False
-            Write MultiIndex columns as a list of tuples (if True) or in
-            the new, expanded format, where each MultiIndex column is a row
-            in the CSV (if False).
-
-            .. deprecated:: 0.21.0
-               This argument will be removed and will always write each row
-               of the multi-index as a separate row in the CSV file.
         date_format : str, default None
             Format string for datetime objects.
         doublequote : bool, default True
@@ -3029,13 +3009,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
-        if tupleize_cols is not None:
-            warnings.warn("The 'tupleize_cols' parameter is deprecated and "
-                          "will be removed in a future version",
-                          FutureWarning, stacklevel=2)
-        else:
-            tupleize_cols = False
-
         from pandas.io.formats.csvs import CSVFormatter
         formatter = CSVFormatter(df, path_or_buf,
                                  line_terminator=line_terminator, sep=sep,
@@ -3045,7 +3018,6 @@ class NDFrame(PandasObject, SelectionMixin):
                                  cols=columns, header=header, index=index,
                                  index_label=index_label, mode=mode,
                                  chunksize=chunksize, quotechar=quotechar,
-                                 tupleize_cols=tupleize_cols,
                                  date_format=date_format,
                                  doublequote=doublequote,
                                  escapechar=escapechar, decimal=decimal)
@@ -4377,89 +4349,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _reindex_multi(self, axes, copy, fill_value):
         return NotImplemented
-
-    _shared_docs['reindex_axis'] = ("""
-        Conform input object to new index.
-
-        .. deprecated:: 0.21.0
-            Use `reindex` instead.
-
-        By default, places NaN in locations having no value in the
-        previous index. A new object is produced unless the new index
-        is equivalent to the current one and copy=False.
-
-        Parameters
-        ----------
-        labels : array-like
-            New labels / index to conform to. Preferably an Index object to
-            avoid duplicating data.
-        axis : %(axes_single_arg)s
-            Indicate whether to use rows or columns.
-        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
-            Method to use for filling holes in reindexed DataFrame:
-
-            * default: don't fill gaps.
-            * pad / ffill: propagate last valid observation forward to next
-              valid.
-            * backfill / bfill: use next valid observation to fill gap.
-            * nearest: use nearest valid observations to fill gap.
-
-        level : int or str
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level.
-        copy : bool, default True
-            Return a new object, even if the passed indexes are the same.
-        limit : int, optional
-            Maximum number of consecutive elements to forward or backward fill.
-        fill_value : float, default NaN
-            Value used to fill in locations having no value in the previous
-            index.
-
-            .. versionadded:: 0.21.0 (list-like tolerance)
-
-        Returns
-        -------
-        %(klass)s
-            Returns a new DataFrame object with new indices, unless the new
-            index is equivalent to the current one and copy=False.
-
-        See Also
-        --------
-        DataFrame.set_index : Set row labels.
-        DataFrame.reset_index : Remove row labels or move them to new columns.
-        DataFrame.reindex : Change to new indices or expand indices.
-        DataFrame.reindex_like : Change to same indices as other DataFrame.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({'num_legs': [4, 2], 'num_wings': [0, 2]},
-        ...                   index=['dog', 'hawk'])
-        >>> df
-              num_legs  num_wings
-        dog          4          0
-        hawk         2          2
-        >>> df.reindex(['num_wings', 'num_legs', 'num_heads'],
-        ...            axis='columns')
-              num_wings  num_legs  num_heads
-        dog           0         4        NaN
-        hawk          2         2        NaN
-        """)
-
-    @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
-    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
-                     limit=None, fill_value=None):
-        msg = ("'.reindex_axis' is deprecated and will be removed in a future "
-               "version. Use '.reindex' instead.")
-        self._consolidate_inplace()
-
-        axis_name = self._get_axis_name(axis)
-        axis_values = self._get_axis(axis_name)
-        method = missing.clean_reindex_fill_method(method)
-        warnings.warn(msg, FutureWarning, stacklevel=3)
-        new_index, indexer = axis_values.reindex(labels, method, level,
-                                                 limit=limit)
-        return self._reindex_with_indexers({axis: [new_index, indexer]},
-                                           fill_value=fill_value, copy=copy)
 
     def _reindex_with_indexers(self, reindexers, fill_value=None, copy=False,
                                allow_dups=False):
@@ -8755,13 +8644,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         try_cast : bool, default False
             Try to cast the result back to the input type (if possible).
-        raise_on_error : bool, default True
-            Whether to raise on invalid data types (e.g. trying to where on
-            strings).
-
-            .. deprecated:: 0.21.0
-
-               Use `errors`.
 
         Returns
         -------
@@ -8849,18 +8731,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                            cond_rev="False", name='where',
                                            name_other='mask'))
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
-              errors='raise', try_cast=False, raise_on_error=None):
-
-        if raise_on_error is not None:
-            warnings.warn(
-                "raise_on_error is deprecated in "
-                "favor of errors='raise|ignore'",
-                FutureWarning, stacklevel=2)
-
-            if raise_on_error:
-                errors = 'raise'
-            else:
-                errors = 'ignore'
+              errors='raise', try_cast=False):
 
         other = com.apply_if_callable(other, self)
         return self._where(cond, other, inplace, axis, level,
@@ -8870,18 +8741,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                            cond_rev="True", name='mask',
                                            name_other='where'))
     def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
-             errors='raise', try_cast=False, raise_on_error=None):
-
-        if raise_on_error is not None:
-            warnings.warn(
-                "raise_on_error is deprecated in "
-                "favor of errors='raise|ignore'",
-                FutureWarning, stacklevel=2)
-
-            if raise_on_error:
-                errors = 'raise'
-            else:
-                errors = 'ignore'
+             errors='raise', try_cast=False):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cond = com.apply_if_callable(cond, self)
