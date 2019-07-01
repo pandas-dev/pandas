@@ -17,9 +17,12 @@ from .inference import is_list_like
 
 str_type = str
 
-# sentinel value used for the default value of ordered in the CategoricalDtype
-# constructor to detect when ordered=None is explicitly passed (GH 26403)
+# GH26403: sentinel value used for the default value of ordered in the
+# CategoricalDtype constructor to detect when ordered=None is explicitly passed
 sentinel = object()  # type: object
+
+# TODO(GH26403): Replace with Optional[bool] or bool
+OrderedType = Union[None, bool, object]
 
 
 def register_extension_dtype(cls: Type[ExtensionDtype],
@@ -220,7 +223,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     def __init__(self,
                  categories=None,
-                 ordered: Union[None, bool, object] = sentinel):
+                 ordered: OrderedType = sentinel):
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
@@ -236,7 +239,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def _from_categorical_dtype(cls,
                                 dtype: 'CategoricalDtype',
                                 categories=None,
-                                ordered: Optional[bool] = None,
+                                ordered: OrderedType = None,
                                 ) -> 'CategoricalDtype':
         if categories is ordered is None:
             return dtype
@@ -336,7 +339,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     def _finalize(self,
                   categories,
-                  ordered: Optional[bool],
+                  ordered: OrderedType,
                   fastpath: bool = False,
                   ) -> None:
 
@@ -416,7 +419,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return tpl.format(data, self._ordered)
 
     @staticmethod
-    def _hash_categories(categories, ordered: Optional[bool] = True) -> int:
+    def _hash_categories(categories, ordered: OrderedType = True) -> int:
         from pandas.core.util.hashing import (
             hash_array, _combine_hash_arrays, hash_tuples
         )
@@ -466,7 +469,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return Categorical
 
     @staticmethod
-    def validate_ordered(ordered: bool) -> None:
+    def validate_ordered(ordered: OrderedType) -> None:
         """
         Validates that we have a valid ordered parameter. If
         it is not a boolean, a TypeError will be raised.
@@ -570,7 +573,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return self._categories
 
     @property
-    def ordered(self) -> Optional[bool]:
+    def ordered(self) -> OrderedType:
         """
         Whether the categories have an ordered relationship.
         """
