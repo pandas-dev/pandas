@@ -923,10 +923,6 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        if not isinstance(self._parent,
-                          pandas.core.dtypes.generic.ABCDataFrame):
-            raise ValueError(
-                "plot kind scatter can only be used for data frames")
         return self(kind='scatter', x=x, y=y, s=s, c=c, **kwargs)
 
     def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None,
@@ -1012,11 +1008,6 @@ class PlotAccessor(PandasObject):
             ...                     gridsize=10,
             ...                     cmap="viridis")
         """
-        if not isinstance(self._parent,
-                          pandas.core.dtypes.generic.ABCDataFrame):
-            raise ValueError(
-                "plot kind hexbin can only be used for data frames")
-
         if reduce_C_function is not None:
             kwargs['reduce_C_function'] = reduce_C_function
         if gridsize is not None:
