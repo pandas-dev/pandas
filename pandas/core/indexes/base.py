@@ -3764,6 +3764,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return `Index` data as an `numpy.ndarray`.
 
+        .. deprecated:: 0.25.0
+            Use :meth:`Index.to_numpy` or :attr:`Index.array` instead.
+
         Returns
         -------
         numpy.ndarray
@@ -3802,6 +3805,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> midx.get_values().ndim
         1
         """
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version. Use '.to_numpy()' or '.array' instead.",
+            FutureWarning, stacklevel=2)
+        return self._internal_get_values()
+
+    def _internal_get_values(self):
         return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)

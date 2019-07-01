@@ -1616,7 +1616,8 @@ class DataFrame(NDFrame):
                 else:
                     ix_vals = [self.index.values]
 
-            arrays = ix_vals + [self[c].get_values() for c in self.columns]
+            arrays = ix_vals + [self[c]._internal_get_values()
+                                for c in self.columns]
 
             count = 0
             index_names = list(self.index.names)
@@ -1632,7 +1633,7 @@ class DataFrame(NDFrame):
             names = [str(name) for name in itertools.chain(index_names,
                                                            self.columns)]
         else:
-            arrays = [self[c].get_values() for c in self.columns]
+            arrays = [self[c]._internal_get_values() for c in self.columns]
             names = [str(c) for c in self.columns]
             index_names = []
 

@@ -454,7 +454,7 @@ def _sparse_array_op(
 
     if left.sp_index.ngaps == 0 or right.sp_index.ngaps == 0:
         with np.errstate(all='ignore'):
-            result = op(left.get_values(), right.get_values())
+            result = op(left.to_dense(), right.to_dense())
             fill = op(_get_fill(left), _get_fill(right))
 
         if left.sp_index.ngaps == 0:
@@ -1468,8 +1468,21 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         return np.asarray(self, dtype=self.sp_values.dtype)
 
-    # TODO: Look into deprecating this in favor of `to_dense`.
-    get_values = to_dense
+    def get_values(self):
+        """
+        Convert SparseArray to a NumPy array.
+
+        .. deprecated:: 0.25.0
+            Use `to_dense` instead.
+
+        """
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version. Use the 'to_dense' method instead.",
+            FutureWarning, stacklevel=2)
+        return self._internal_get_values()
+
+    _internal_get_values = to_dense
 
     # ------------------------------------------------------------------------
     # IO

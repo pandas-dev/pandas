@@ -1590,7 +1590,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     if is_sparse(arr):
-        arr = arr.get_values()
+        arr = arr.to_dense()
     elif isinstance(arr, (ABCIndexClass, ABCSeries)):
         arr = arr.values
 

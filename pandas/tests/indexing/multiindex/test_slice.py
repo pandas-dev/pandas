@@ -21,7 +21,7 @@ class TestMultiIndexSlicers:
         # example test case
         ix = MultiIndex.from_product([_mklbl('A', 5), _mklbl('B', 7), _mklbl(
             'C', 4), _mklbl('D', 2)])
-        df = DataFrame(np.arange(len(ix.get_values())), index=ix)
+        df = DataFrame(np.arange(len(ix.to_numpy())), index=ix)
 
         result = df.loc[(slice('A1', 'A3'), slice(None), ['C1', 'C3']), :]
         expected = df.loc[[tuple([a, b, c, d])
@@ -88,7 +88,7 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
         # multi-level series
-        s = Series(np.arange(len(ix.get_values())), index=ix)
+        s = Series(np.arange(len(ix.to_numpy())), index=ix)
         result = s.loc['A1':'A3', :, ['C1', 'C3']]
         expected = s.loc[[tuple([a, b, c, d])
                           for a, b, c, d in s.index.values

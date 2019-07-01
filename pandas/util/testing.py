@@ -1052,7 +1052,8 @@ def assert_series_equal(left, right, check_dtype=True,
             assert_attr_equal('dtype', left, right)
 
     if check_exact:
-        assert_numpy_array_equal(left.get_values(), right.get_values(),
+        assert_numpy_array_equal(left._internal_get_values(),
+                                 right._internal_get_values(),
                                  check_dtype=check_dtype,
                                  obj='{obj}'.format(obj=obj),)
     elif check_datetimelike_compat:
@@ -1071,11 +1072,11 @@ def assert_series_equal(left, right, check_dtype=True,
                        '{right}.').format(left=left.values, right=right.values)
                 raise AssertionError(msg)
         else:
-            assert_numpy_array_equal(left.get_values(), right.get_values(),
+            assert_numpy_array_equal(left._internal_get_values(),
+                                     right._internal_get_values(),
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
         assert_interval_array_equal(left.array, right.array)
-
     elif (is_extension_array_dtype(left.dtype) and
           is_datetime64tz_dtype(left.dtype)):
         # .values is an ndarray, but ._values is the ExtensionArray.
@@ -1086,7 +1087,8 @@ def assert_series_equal(left, right, check_dtype=True,
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
         assert_extension_array_equal(left.array, right.array)
     else:
-        _testing.assert_almost_equal(left.get_values(), right.get_values(),
+        _testing.assert_almost_equal(left._internal_get_values(),
+                                     right._internal_get_values(),
                                      check_less_precise=check_less_precise,
                                      check_dtype=check_dtype,
                                      obj='{obj}'.format(obj=obj))

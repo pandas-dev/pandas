@@ -1246,7 +1246,7 @@ class MultiIndex(Index):
         for i in range(self.nlevels):
             vals = self._get_level_values(i)
             if is_categorical_dtype(vals):
-                vals = vals.get_values()
+                vals = vals._internal_get_values()
             if (isinstance(vals.dtype, ExtensionDtype)
                     or hasattr(vals, '_box_values')):
                 vals = vals.astype(object)

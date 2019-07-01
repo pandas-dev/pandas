@@ -129,7 +129,7 @@ class CategoricalFormatter:
         return str(footer)
 
     def _get_formatted_values(self):
-        return format_array(self.categorical.get_values(), None,
+        return format_array(self.categorical._internal_get_values(), None,
                             float_format=None, na_rep=self.na_rep)
 
     def to_string(self):
@@ -1196,7 +1196,7 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
 
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo
-            array = values.get_values()
+            array = values._internal_get_values()
         else:
             array = np.asarray(values)
 
