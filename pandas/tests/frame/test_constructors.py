@@ -1597,7 +1597,7 @@ class TestDataFrameConstructors:
                           [np.dtype('int64')] +
                           [np.dtype('object')] +
                           [np.dtype('float64')] +
-                          [np.dtype('int64')],
+                          [np.dtype(intname)],
                           index=['a', 'b', 'c', floatname, intname])
         tm.assert_series_equal(result, expected)
 
@@ -1689,12 +1689,6 @@ class TestDataFrameConstructors:
             tm.assert_series_equal(result, expected)
 
     def test_constructor_for_list_with_dtypes(self):
-        # TODO(wesm): unused
-        intname = np.dtype(np.int_).name  # noqa
-        floatname = np.dtype(np.float_).name  # noqa
-        datetime64name = np.dtype('M8[ns]').name
-        objectname = np.dtype(np.object_).name
-
         # test list of lists/ndarrays
         df = DataFrame([np.arange(5) for x in range(5)])
         result = df.dtypes
