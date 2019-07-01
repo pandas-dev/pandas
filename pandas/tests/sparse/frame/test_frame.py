@@ -901,7 +901,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_describe(self, float_frame):
         float_frame['foo'] = np.nan
-        Series(float_frame._data.get_dtype_counts())
+        float_frame.dtypes.value_counts()
         str(float_frame)
         desc = float_frame.describe()  # noqa
 
