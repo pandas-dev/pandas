@@ -223,15 +223,12 @@ class TestSeriesDtypes:
         with pytest.raises(KeyError, match=msg):
             s.astype(dt5)
 
-    def test_astype_categories_deprecation(self):
+    def test_astype_categories_deprecation_raises(self):
 
         # deprecated 17636
         s = Series(['a', 'b', 'a'])
-        expected = s.astype(CategoricalDtype(['a', 'b'], ordered=True))
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = s.astype('category', categories=['a', 'b'], ordered=True)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match="Got an unexpected"):
+            s.astype('category', categories=['a', 'b'], ordered=True)
 
     def test_astype_from_categorical(self):
         items = ["a", "b", "c", "a"]
@@ -349,19 +346,10 @@ class TestSeriesDtypes:
         expected = Series(s_data, name=name, dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = s.astype('category', ordered=dtype_ordered)
-        tm.assert_series_equal(result, expected)
-
         # different categories
         dtype = CategoricalDtype(list('adc'), dtype_ordered)
         result = s.astype(dtype)
         expected = Series(s_data, name=name, dtype=dtype)
-        tm.assert_series_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = s.astype(
-                'category', categories=list('adc'), ordered=dtype_ordered)
         tm.assert_series_equal(result, expected)
 
         if dtype_ordered is False:
@@ -386,20 +374,6 @@ class TestSeriesDtypes:
                                       ordered=False))
         tm.assert_series_equal(result, expected)
         tm.assert_index_equal(result.cat.categories, Index(['a', 'b', 'c']))
-
-    def test_astype_categoricaldtype_with_args(self):
-        s = Series(['a', 'b'])
-        type_ = CategoricalDtype(['a', 'b'])
-
-        msg = (r"Cannot specify a CategoricalDtype and also `categories` or"
-               r" `ordered`\. Use `dtype=CategoricalDtype\(categories,"
-               r" ordered\)` instead\.")
-        with pytest.raises(TypeError, match=msg):
-            s.astype(type_, ordered=True)
-        with pytest.raises(TypeError, match=msg):
-            s.astype(type_, categories=['a', 'b'])
-        with pytest.raises(TypeError, match=msg):
-            s.astype(type_, categories=['a', 'b'], ordered=False)
 
     @pytest.mark.parametrize("dtype", [
         np.datetime64,
@@ -428,17 +402,25 @@ class TestSeriesDtypes:
             as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
 
+    @pytest.mark.filterwarnings('ignore::FutureWarning')
     def test_complex(self):
         # see gh-4819: complex access for ndarray compat
         a = np.arange(5, dtype=np.float64)
         b = Series(a + 4j * a)
 
-        tm.assert_numpy_array_equal(a, b.real)
-        tm.assert_numpy_array_equal(4 * a, b.imag)
+        tm.assert_numpy_array_equal(a, np.real(b))
+        tm.assert_numpy_array_equal(4 * a, np.imag(b))
 
         b.real = np.arange(5) + 5
-        tm.assert_numpy_array_equal(a + 5, b.real)
-        tm.assert_numpy_array_equal(4 * a, b.imag)
+        tm.assert_numpy_array_equal(a + 5, np.real(b))
+        tm.assert_numpy_array_equal(4 * a, np.imag(b))
+
+    def test_real_imag_deprecated(self):
+        # GH 18262
+        s = pd.Series([1])
+        with tm.assert_produces_warning(FutureWarning):
+            s.imag
+            s.real
 
     def test_arg_for_errors_in_astype(self):
         # see gh-14878
