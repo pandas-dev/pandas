@@ -668,24 +668,20 @@ class TestDataFrameAlterAxes:
         assert no_return is None
         tm.assert_frame_equal(result, expected)
 
-    def test_rename_axis_warns(self):
+    def test_rename_axis_raises(self):
         # https://github.com/pandas-dev/pandas/issues/17833
         df = DataFrame({"A": [1, 2], "B": [1, 2]})
-        with tm.assert_produces_warning(FutureWarning) as w:
+        with pytest.raises(ValueError, match="Use `.rename`"):
             df.rename_axis(id, axis=0)
-            assert 'rename' in str(w[0].message)
 
-        with tm.assert_produces_warning(FutureWarning) as w:
+        with pytest.raises(ValueError, match="Use `.rename`"):
             df.rename_axis({0: 10, 1: 20}, axis=0)
-            assert 'rename' in str(w[0].message)
 
-        with tm.assert_produces_warning(FutureWarning) as w:
+        with pytest.raises(ValueError, match="Use `.rename`"):
             df.rename_axis(id, axis=1)
-            assert 'rename' in str(w[0].message)
 
-        with tm.assert_produces_warning(FutureWarning) as w:
+        with pytest.raises(ValueError, match="Use `.rename`"):
             df['A'].rename_axis(id)
-            assert 'rename' in str(w[0].message)
 
     def test_rename_axis_mapper(self):
         # GH 19978
