@@ -3,8 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
-from pandas.util.testing import (
-    assert_frame_equal, assert_produces_warning, assert_series_equal)
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 def test_first_last_nth(df):
@@ -171,10 +170,7 @@ def test_nth():
     # doc example
     df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
     g = df.groupby('A')
-    # PR 17493, related to issue 11038
-    # test Series.nth with True for dropna produces FutureWarning
-    with assert_produces_warning(FutureWarning):
-        result = g.B.nth(0, dropna=True)
+    result = g.B.nth(0, dropna='all')
     expected = g.B.first()
     assert_series_equal(result, expected)
 
