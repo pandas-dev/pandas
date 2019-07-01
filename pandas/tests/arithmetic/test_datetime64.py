@@ -670,6 +670,10 @@ class TestDatetimeIndexComparisons:
     @pytest.mark.parametrize('other', [datetime(2016, 1, 1),
                                        Timestamp('2016-01-01'),
                                        np.datetime64('2016-01-01')])
+    # Bug in NumPy? https://github.com/numpy/numpy/issues/13841
+    # Raising in __eq__ will fallback to NumPy, which warns, fails,
+    # then re-raises the original exception. So we just need to ignore.
+    @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
     def test_scalar_comparison_tzawareness(self, op, other, tz_aware_fixture,
                                            box_with_array):
         tz = tz_aware_fixture

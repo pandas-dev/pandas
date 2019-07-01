@@ -23,7 +23,8 @@ from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype, is_list_like, is_timedelta64_dtype)
+    is_datetime64tz_dtype, is_extension_type, is_list_like,
+    is_timedelta64_dtype)
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
@@ -2647,6 +2648,9 @@ class GenericFixed(Fixed):
                                                          index.codes,
                                                          index.names)):
             # write the level
+            if is_extension_type(lev):
+                raise NotImplementedError("Saving a MultiIndex with an "
+                                          "extension dtype is not supported.")
             level_key = '{key}_level{idx}'.format(key=key, idx=i)
             conv_level = _convert_index(lev, self.encoding, self.errors,
                                         self.format_type).set_name(level_key)

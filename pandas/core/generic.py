@@ -2796,8 +2796,10 @@ class NDFrame(PandasObject, SelectionMixin):
             Formatter functions to apply to columns' elements by position or
             name. The result of each function must be a unicode string.
             List must be of length equal to the number of columns.
-        float_format : str, optional
-            Format string for floating point numbers.
+        float_format : one-parameter function or str, optional, default None
+            Formatter for floating point numbers. For example
+            ``float_format="%%.2f"`` and ``float_format="{:0.2f}".format`` will
+            both result in 0.1234 being formatted as 0.12.
         sparsify : bool, optional
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row. By default, the value will be
@@ -5220,6 +5222,9 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return an ndarray after converting sparse values to dense.
 
+        .. deprecated:: 0.25.0
+            Use ``np.asarray(..)`` or :meth:`DataFrame.values` instead.
+
         This is the same as ``.values`` for non-sparse data. For sparse
         data contained in a `SparseArray`, the data are first
         converted to a dense representation.
@@ -5259,6 +5264,13 @@ class NDFrame(PandasObject, SelectionMixin):
                [nan,  2.],
                [nan,  3.]])
         """
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version. Use '.values' or 'np.asarray(..)' instead.",
+            FutureWarning, stacklevel=2)
+        return self._internal_get_values()
+
+    def _internal_get_values(self):
         return self.values
 
     def get_dtype_counts(self):

@@ -14,7 +14,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame, Index, Series, Timestamp, bdate_range, concat, isna, notna)
-from pandas.core.base import SpecificationError
+from pandas.core.base import DataError, SpecificationError
 from pandas.core.sorting import safe_sort
 import pandas.core.window as rwindow
 import pandas.util.testing as tm
@@ -118,9 +118,11 @@ class TestApi(Base):
     def test_skip_sum_object_raises(self):
         df = DataFrame({'A': range(5), 'B': range(5, 10), 'C': 'foo'})
         r = df.rolling(window=3)
-
-        with pytest.raises(TypeError, match='cannot handle this type'):
-            r.sum()
+        result = r.sum()
+        expected = DataFrame({'A': [np.nan, np.nan, 3, 6, 9],
+                              'B': [np.nan, np.nan, 18, 21, 24]},
+                             columns=list('AB'))
+        tm.assert_frame_equal(result, expected)
 
     def test_agg(self):
         df = DataFrame({'A': range(5), 'B': range(0, 10, 2)})
@@ -1069,15 +1071,12 @@ class DatetimeLike(Dtype):
     def check_dtypes(self, f, f_name, d, d_name, exp):
 
         roll = d.rolling(window=self.window)
-
         if f_name == 'count':
             result = f(roll)
             tm.assert_almost_equal(result, exp)
 
         else:
-
-            # other methods not Implemented ATM
-            with pytest.raises(NotImplementedError):
+            with pytest.raises(DataError):
                 f(roll)
 
 
