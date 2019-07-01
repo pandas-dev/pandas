@@ -424,13 +424,13 @@ static void append_warning(parser_t *self, const char *msg) {
 
     if (self->warn_msg == NULL) {
         self->warn_msg = (char *)malloc(length + 1);
-        strncpy(self->warn_msg, msg, strlen(msg) + 1);
+        strcpy(self->warn_msg, msg);
     } else {
         ex_length = strlen(self->warn_msg);
         newptr = safe_realloc(self->warn_msg, ex_length + length + 1);
         if (newptr != NULL) {
             self->warn_msg = (char *)newptr;
-            strncpy(self->warn_msg + ex_length, msg, strlen(msg) + 1);
+            strcpy(self->warn_msg + ex_length, msg);
         }
     }
 }
@@ -1439,7 +1439,7 @@ int to_boolean(const char *item, uint8_t *val) {
     static const char *fstrs[1] = {"FALSE"};
 
     tmp = malloc(bufsize);
-    strncpy(tmp, item, bufsize);
+    strcpy(tmp, item);
     uppercase(tmp);
 
     for (i = 0; i < 1; ++i) {
