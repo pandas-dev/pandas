@@ -146,8 +146,9 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
         If you want to pass in a path object, pandas accepts either
         ``pathlib.Path`` or ``py._path.local.LocalPath``.
 
-        By file-like object, we refer to objects with a ``read()`` method, such as
-        a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function) or
+        ``StringIO``.
     encoding : Encoding for decoding msgpack str type
     iterator : boolean, if True, return an iterator to the unpacker
                (default is False)
