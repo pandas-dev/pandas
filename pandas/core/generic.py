@@ -5329,6 +5329,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Return an ndarray after converting sparse values to dense.
 
         .. deprecated:: 0.25.0
+            Use ``np.asarray(..)`` or :meth:`DataFrame.values` instead.
 
         This is the same as ``.values`` for non-sparse data. For sparse
         data contained in a `SparseArray`, the data are first
@@ -5371,7 +5372,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         warnings.warn(
             "The 'get_values' method is deprecated and will be removed in a "
-            "future version", FutureWarning, stacklevel=2)
+            "future version. Use '.values' or 'np.asarray(..)' instead.",
+            FutureWarning, stacklevel=2)
         return self._internal_get_values()
 
     def _internal_get_values(self):
