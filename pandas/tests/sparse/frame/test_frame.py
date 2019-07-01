@@ -292,9 +292,8 @@ class TestSparseDataFrame(SharedWithSparse):
         df = DataFrame(np.random.randn(10000, 4))
         df.loc[:9998] = np.nan
         sdf = df.to_sparse()
-
-        result = Series(sdf._data.get_dtype_counts())
-        expected = Series({'Sparse[float64, nan]': 4})
+        result = sdf.dtypes
+        expected = Series(['Sparse[float64, nan]'] * 4)
         tm.assert_series_equal(result, expected)
 
     def test_shape(self, float_frame, float_frame_int_kind,

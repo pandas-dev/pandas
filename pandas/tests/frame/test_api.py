@@ -7,8 +7,8 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Series, SparseDataFrame, compat, date_range,
-    timedelta_range)
+    Categorical, DataFrame, Series, SparseDataFrame, SparseDtype,
+    compat, date_range, timedelta_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
@@ -437,7 +437,7 @@ class SharedWithSparse:
         if self.klass is DataFrame:
             expected = Series({np.dtype('object'): 10})
         else:
-            expected = Series({'Sparse[object, nan]': 10})
+            expected = Series({SparseDtype(dtype=object): 10})
         tm.assert_series_equal(result, expected)
 
 
