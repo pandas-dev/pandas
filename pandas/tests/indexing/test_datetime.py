@@ -39,7 +39,7 @@ class TestDatetimeIndex:
 
     def test_indexing_with_datetime_tz(self):
 
-        # 8260
+        # GH#8260
         # support datetime64 with tz
 
         idx = Index(date_range('20130101', periods=3, tz='US/Eastern'),
@@ -65,11 +65,12 @@ class TestDatetimeIndex:
         # indexing - fast_xs
         df = DataFrame({'a': date_range('2014-01-01', periods=10, tz='UTC')})
         result = df.iloc[5]
-        expected = Timestamp('2014-01-06 00:00:00+0000', tz='UTC', freq='D')
-        assert result == expected
+        expected = Series([Timestamp('2014-01-06 00:00:00+0000', tz='UTC')],
+                          index=['a'], name=5)
+        tm.assert_series_equal(result, expected)
 
         result = df.loc[5]
-        assert result == expected
+        tm.assert_series_equal(result, expected)
 
         # indexing - boolean
         result = df[df.a > df.a[3]]

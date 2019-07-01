@@ -421,11 +421,15 @@ def test_agg_timezone_round_trip():
     assert ts == grouped.nth(0)['B'].iloc[0]
     assert ts == grouped.head(1)['B'].iloc[0]
     assert ts == grouped.first()['B'].iloc[0]
-    assert ts == grouped.apply(lambda x: x.iloc[0])[0]
+
+    # GH#27110 applying iloc should return a DataFrame
+    assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 0]
 
     ts = df['B'].iloc[2]
     assert ts == grouped.last()['B'].iloc[0]
-    assert ts == grouped.apply(lambda x: x.iloc[-1])[0]
+
+    # GH#27110 applying iloc should return a DataFrame
+    assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 0]
 
 
 def test_sum_uint64_overflow():
