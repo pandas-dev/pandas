@@ -79,14 +79,16 @@ class TestReaders:
 
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+                                        check_stacklevel=False,
+                                        raise_on_extra_warnings=False):
             with ignore_xlrd_time_clock_warning():
                 df1 = pd.read_excel("test1" + read_ext, "Sheet1",
                                     index_col=0, usecols=3)
 
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+                                        check_stacklevel=False,
+                                        raise_on_extra_warnings=False):
             with ignore_xlrd_time_clock_warning():
                 df2 = pd.read_excel("test1" + read_ext, "Sheet2", skiprows=[1],
                                     index_col=0, usecols=3)
@@ -826,7 +828,8 @@ class TestExcelFileRead:
             df3 = pd.read_excel(excel, 0, index_col=0, skipfooter=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False,
+                                        raise_on_extra_warnings=False):
             with pd.ExcelFile('test1' + read_ext) as excel:
                 df4 = pd.read_excel(excel, 0, index_col=0, skip_footer=1)
 
