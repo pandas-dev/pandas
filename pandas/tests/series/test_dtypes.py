@@ -8,10 +8,11 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 
+from pandas.core.dtypes.dtypes import CategoricalDtype, sentinel
+
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, Series, Timedelta, Timestamp, date_range)
-from pandas.api.types import CategoricalDtype
 import pandas.util.testing as tm
 
 
@@ -233,12 +234,14 @@ class TestSeriesDtypes:
             result = s.astype('category', categories=['a', 'b'], ordered=True)
         tm.assert_series_equal(result, expected)
 
-    def test_astype_category_ordered_none_deprecated(self):
-        # GH 26336
+    @pytest.mark.parametrize('none, warning', [
+        (None, None), (sentinel, FutureWarning)])
+    def test_astype_category_ordered_none_deprecated(self, none, warning):
+        # GH 26336: only warn if None is not explicitly passed
         cdt1 = CategoricalDtype(categories=list('cdab'), ordered=True)
-        cdt2 = CategoricalDtype(categories=list('cedafb'))
+        cdt2 = CategoricalDtype(categories=list('cedafb'), ordered=none)
         s = Series(list('abcdaba'), dtype=cdt1)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
             s.astype(cdt2)
 
     def test_astype_from_categorical(self):

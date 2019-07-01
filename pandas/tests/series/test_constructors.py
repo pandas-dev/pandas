@@ -12,12 +12,12 @@ from pandas.compat import PY36
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64tz_dtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype, sentinel
 
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
     Timestamp, date_range, isna, period_range, timedelta_range)
-from pandas.api.types import CategoricalDtype
 from pandas.core.arrays import period_array
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
@@ -386,17 +386,19 @@ class TestSeriesConstructors:
         result = Series(result, dtype='category')
         tm.assert_series_equal(result, expected)
 
-    def test_categorical_ordered_none_deprecated(self):
-        # GH 26336
+    @pytest.mark.parametrize('none, warning', [
+        (None, None), (sentinel, FutureWarning)])
+    def test_categorical_ordered_none_deprecated(self, none, warning):
+        # GH 26336: only warn if None is not explicitly passed
         cdt1 = CategoricalDtype(categories=list('cdab'), ordered=True)
-        cdt2 = CategoricalDtype(categories=list('cedafb'))
+        cdt2 = CategoricalDtype(categories=list('cedafb'), ordered=none)
 
         cat = Categorical(list('abcdaba'), dtype=cdt1)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
             Series(cat, dtype=cdt2)
 
         s = Series(cat)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
             Series(s, dtype=cdt2)
 
     def test_categorical_sideeffects_free(self):
