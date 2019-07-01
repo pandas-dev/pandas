@@ -167,6 +167,9 @@ def test_nth():
     result = s.groupby(g, sort=False).nth(0, dropna='all')
     assert_series_equal(result, expected)
 
+    with pytest.raises(ValueError, match='For a DataFrame groupby'):
+        s.groupby(g, sort=False).nth(0, dropna=True)
+
     # doc example
     df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
     g = df.groupby('A')
