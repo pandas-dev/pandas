@@ -154,9 +154,14 @@ class TestDataFrameTimezones:
                         'dr_tz': dr_tz,
                         'datetimes_naive': datetimes_naive,
                         'datetimes_with_tz': datetimes_with_tz})
-        result = Series(df._data.get_dtype_counts()).sort_index()
-        expected = Series({'datetime64[ns]': 2,
-                           str(tz_expected): 2}).sort_index()
+        result = df.dtypes
+        expected = Series([
+            np.dtype('datetime64[ns]'),
+            DatetimeTZDtype(tz=tz),
+            np.dtype('datetime64[ns]'),
+            DatetimeTZDtype(tz=tz)
+        ],
+            index=['dr', 'dr_tz', 'datetimes_naive', 'datetimes_with_tz'])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('tz', ['US/Eastern', 'dateutil/US/Eastern'])
