@@ -80,7 +80,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
             dtypes = set()
             for o in [a, b]:
                 if hasattr(o, 'dtypes'):
-                    s = o.dtpyes.value_counts()
+                    s = o.dtypes.value_counts()
                     if len(s) > 1:
                         return False
                     dtypes |= set(s.index.astype(str))
