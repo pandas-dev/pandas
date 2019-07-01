@@ -5275,6 +5275,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return counts of unique dtypes in this object.
 
+        .. deprecated:: 0.25.0
+
         Returns
         -------
         dtype : Series
