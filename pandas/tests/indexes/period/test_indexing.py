@@ -464,19 +464,13 @@ class TestIndexing:
         idx0 = pd.PeriodIndex(ps0)
 
         for p in ps0:
-            assert idx0.contains(p)
             assert p in idx0
-
-            assert idx0.contains(str(p))
             assert str(p) in idx0
 
-        assert idx0.contains('2017-09-01 00:00:01')
         assert '2017-09-01 00:00:01' in idx0
 
-        assert idx0.contains('2017-09')
         assert '2017-09' in idx0
 
-        assert not idx0.contains(p3)
         assert p3 not in idx0
 
     def test_get_value(self):

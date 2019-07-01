@@ -248,7 +248,6 @@ IntervalIndex components
    IntervalIndex.from_arrays
    IntervalIndex.from_tuples
    IntervalIndex.from_breaks
-   IntervalIndex.contains
    IntervalIndex.left
    IntervalIndex.right
    IntervalIndex.mid
@@ -260,6 +259,7 @@ IntervalIndex components
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
+   IntervalIndex.contains
    IntervalIndex.overlaps
    IntervalIndex.to_tuples
 

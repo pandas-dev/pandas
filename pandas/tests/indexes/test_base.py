@@ -2159,6 +2159,11 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('idx.', 4))
 
+    def test_deprecated_contains(self):
+        for index in self.indices.values():
+            with tm.assert_produces_warning(FutureWarning):
+                index.contains(1)
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
