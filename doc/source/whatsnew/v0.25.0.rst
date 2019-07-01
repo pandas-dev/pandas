@@ -644,6 +644,7 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``raise_on_error`` keyword argument in :meth:`DataFrame.where` and :meth:`DataFrame.mask` (:issue:`17744`)
 - Removed the previously deprecated ``ordered`` and ``categories`` keyword arguments in ``astype`` (:issue:`17742`)
 - Removed the previously deprecated ``cdate_range`` (:issue:`17691`)
+- Removed the previously deprecated ``True`` option for the ``dropna`` keyword argument in :func:`SeriesGroupBy.nth` (:issue:`17493`)
 
 .. _whatsnew_0250.performance:
 
