@@ -72,10 +72,17 @@ def read_feather(path, columns=None, use_threads=True):
     Parameters
     ----------
     path : str, path object or file-like object
-        Either a path to a file (a :class:`str`,
-        :class:`pathlib.Path`,
-        or :class:`py:py._path.local.LocalPath`),
-        URL (including http, ftp, and S3 locations), or any file-like object.
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be:
+        ``file://localhost/path/to/table.feather``.
+
+        If you want to pass in a path object, pandas accepts either
+        ``pathlib.Path`` or ``py._path.local.LocalPath``.
+
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function)
+        or ``StringIO``.
     columns : sequence, default None
         If not provided, all columns are read.
 
