@@ -215,6 +215,9 @@ class PlotAccessor(PandasObject):
         plot_backend = _get_plot_backend()
         data = self._parent.copy()
 
+        if isinstance(data, pandas.core.dtypes.generic.ABCSeries):
+            kwargs['new_plot'] = True
+
         if kind in self._dataframe_kinds:
             if isinstance(data, ABCDataFrame):
                 return plot_backend.plot(data, x=x, y=y, kind=kind, **kwargs)

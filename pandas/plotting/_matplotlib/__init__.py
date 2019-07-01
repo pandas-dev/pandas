@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 
 from pandas._config import get_option
 
-import pandas
-
 from pandas.plotting._matplotlib.boxplot import (
     BoxPlot, boxplot, boxplot_frame, boxplot_frame_groupby)
 from pandas.plotting._matplotlib.converter import deregister, register
@@ -33,7 +31,7 @@ if get_option("plotting.matplotlib.register_converters"):
 
 
 def plot(data, kind, **kwargs):
-    if isinstance(data, pandas.core.dtypes.generic.ABCSeries):
+    if kwargs.pop('new_plot', False):
         ax = kwargs.get('ax')
         if ax is None and len(plt.get_fignums()) > 0:
             with plt.rc_context():
