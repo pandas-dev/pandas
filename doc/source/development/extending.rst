@@ -222,13 +222,9 @@ extension array to avoid coercion to an ndarray. See
 `the numpy documentation <https://docs.scipy.org/doc/numpy/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
 for an example.
 
-As part of your implementation, we require that you
-
-1. Define a ``_HANDLED_TYPES`` attribute, a tuple, containing the types your
-   array can handle
-2. Defer to the :class:`Series` implementatio by returning ``NotImplemented``
-   if there are any :class:`Series` in the ``types``. This ensures consistent
-   metadata handling, and associativity for binary operations.
+As part of your implementation, we require that you defer to ``Series.__array_ufunc__``
+by returning ``NotImplemented`` when a Series is detected in ``inputs``. Pandas will
+extract the array from the Series and re-call the ufunc on the unwrapped inputs.
 
 .. _extending.extension.testing:
 

@@ -3,7 +3,6 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from collections import OrderedDict
 from io import StringIO
-import numbers
 from shutil import get_terminal_size
 from textwrap import dedent
 from typing import Any, Callable
@@ -706,8 +705,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
     # NDArray Compat
-    _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray, numbers.Number,
-                      list)  # what other builtins? array? deque? ...
 
     def __array_ufunc__(
             self,
@@ -718,12 +715,29 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     ):
         # TODO: handle DataFrame
         from pandas.core.internals.construction import extract_array
+        cls = type(self)
 
         # for binary ops, use our custom dunder methods
         result = ops.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs)
         if result is not NotImplemented:
             return result
+
+        # Determine if we should defer.
+        no_defer = (np.ndarray.__array_ufunc__, cls.__array_ufunc__)
+
+        for item in inputs:
+            higher_priority = (
+                hasattr(item, '__array_priority__') and
+                item.__array_priority__ > self.__array_priority__
+            )
+            has_array_ufunc = (
+                hasattr(item, '__array_ufunc__') and
+                type(item).__array_ufunc__ not in no_defer and
+                not is_extension_array_dtype(item)
+            )
+            if higher_priority or has_array_ufunc:
+                return NotImplemented
 
         # align all the inputs.
         names = [getattr(x, 'name') for x in inputs if hasattr(x, 'name')]
@@ -744,21 +758,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             index = self.index
 
-        # dtype check: can we do this, given the inputs?
-        # It's expected that the following classes defer to us when
-        # any Series is present in inputs.
-        #   1. Index.
-        #   2. ExtensionArray.
-
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
-        handled_types = sum([getattr(x, '_HANDLED_TYPES', ()) for x in inputs],
-                            self._HANDLED_TYPES + (Series,))
-        any_object = any(getattr(x, 'dtype', None) == 'object' for x in inputs)
-        # defer when an unknown object and not object dtype.
-        if (not all(isinstance(t, handled_types) for t in inputs) and
-                not any_object):
-            return NotImplemented
-
         result = getattr(ufunc, method)(*inputs, **kwargs)
         if len(set(names)) == 1:
             # we require names to be hashable, right?
