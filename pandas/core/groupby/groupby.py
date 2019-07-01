@@ -13,7 +13,6 @@ import datetime
 from functools import partial, wraps
 import types
 from typing import FrozenSet, List, Optional, Tuple, Type, Union
-import warnings
 
 import numpy as np
 
