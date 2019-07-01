@@ -224,6 +224,13 @@ class TestSeriesConstructors:
             result = Series(obj, index=[0, 1, 2])
             assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('dtype', ['bool', 'int32', 'int64', 'float64'])
+    def test_constructor_index_dtype(self, dtype):
+        # GH 17088
+
+        s = Series(Index([0, 2, 4]), dtype=dtype)
+        assert s.dtype == dtype
+
     @pytest.mark.parametrize('input_vals', [
         ([1, 2]),
         (['1', '2']),

@@ -20,7 +20,7 @@ def test_shift(idx):
 
 def test_groupby(idx):
     groups = idx.groupby(np.array([1, 1, 1, 2, 2, 2]))
-    labels = idx.get_values().tolist()
+    labels = idx.tolist()
     exp = {1: labels[:3], 2: labels[3:]}
     tm.assert_dict_equal(groups, exp)
 
