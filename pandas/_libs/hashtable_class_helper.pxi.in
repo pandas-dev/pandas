@@ -424,13 +424,8 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 val = values[i]
 
-                if ignore_na and (
-                {{if name.lower().startswith(("uint", "int"))}}
-                0
-                {{else}}
-                val != val or (use_na_value and val == na_value2)
-                {{endif}}
-                ):
+                if ignore_na and (val != val
+                                  or (use_na_value and val == na_value2)):
                     # if missing values do not count as unique values (i.e. if
                     # ignore_na is True), skip the hashtable entry for them,
                     # and replace the corresponding label with na_sentinel
@@ -1025,13 +1020,8 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            if ignore_na and (
-                {{if name.lower().startswith(("uint", "int"))}}
-                0
-                {{else}}
-                (val != val or val is None)
-                              or (use_na_value and val == na_value)
-                {{endif}}):
+            if ignore_na and ((val != val or val is None)
+                              or (use_na_value and val == na_value)):
                 # if missing values do not count as unique values (i.e. if
                 # ignore_na is True), skip the hashtable entry for them, and
                 # replace the corresponding label with na_sentinel
