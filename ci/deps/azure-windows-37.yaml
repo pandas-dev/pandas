@@ -10,6 +10,7 @@ dependencies:
   - jinja2
   - lxml
   - matplotlib=2.2.*
+  - moto
   - numexpr
   - numpy=1.14.*
   - openpyxl
@@ -29,6 +30,5 @@ dependencies:
   - pytest-xdist
   - pytest-mock
   - pytest-azurepipelines
-  - moto
   - hypothesis>=3.58.0
   - pyreadstat

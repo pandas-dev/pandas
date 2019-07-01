@@ -965,7 +965,8 @@ If you select a label *contained* within an interval, this will also select the 
    df.loc[2.5]
    df.loc[[2.5, 3.5]]
 
-``Interval`` and ``IntervalIndex`` are used by ``cut`` and ``qcut``:
+:func:`cut` and :func:`qcut` both return a ``Categorical`` object, and the bins they
+create are stored as an ``IntervalIndex`` in its ``.categories`` attribute.
 
 .. ipython:: python
 
@@ -973,13 +974,17 @@ If you select a label *contained* within an interval, this will also select the 
    c
    c.categories
 
-Furthermore, ``IntervalIndex`` allows one to bin *other* data with these same
-bins, with ``NaN`` representing a missing value similar to other dtypes.
+:func:`cut` also accepts an ``IntervalIndex`` for its ``bins`` argument, which enables
+a useful pandas idiom. First, We call :func:`cut` with some data and ``bins`` set to a
+fixed number, to generate the bins. Then, we pass the values of ``.categories`` as the
+``bins`` argument in subsequent calls to :func:`cut`, supplying new data which will be
+binned into the same bins.
 
 .. ipython:: python
 
    pd.cut([0, 3, 5, 1], bins=c.categories)
 
+Any value which falls outside all bins will be assigned a ``NaN`` value.
 
 Generating ranges of intervals
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1108,6 +1113,8 @@ the :meth:`~Index.is_unique` attribute.
    weakly_monotonic.is_monotonic_increasing
    weakly_monotonic.is_monotonic_increasing & weakly_monotonic.is_unique
 
+.. _advanced.endpoints_are_inclusive:
+
 Endpoints are inclusive
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1137,7 +1144,7 @@ index can be somewhat complicated. For example, the following does not work:
     s.loc['c':'e' + 1]
 
 A very common use case is to limit a time series to start and end at two
-specific dates. To enable this, we made the design to make label-based
+specific dates. To enable this, we made the design choice to make label-based
 slicing include both endpoints:
 
 .. ipython:: python
