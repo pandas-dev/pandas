@@ -679,7 +679,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data.dtype
 
-    @cache_readonly
+    @property
     def dtype_str(self):
         """
         Return the dtype str of the underlying data.
