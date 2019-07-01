@@ -37,7 +37,8 @@ from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
 
-from .base import ExtensionArray, _extension_array_shared_docs, implement_2d
+from ._reshaping import implement_2d
+from .base import ExtensionArray, _extension_array_shared_docs
 
 _take_msg = textwrap.dedent("""\
     Interpreting negative values in 'indexer' as missing values.

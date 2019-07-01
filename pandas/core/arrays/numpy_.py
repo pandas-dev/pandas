@@ -17,7 +17,8 @@ from pandas.core import nanops
 from pandas.core.algorithms import searchsorted
 from pandas.core.missing import backfill_1d, pad_1d
 
-from .base import ExtensionArray, ExtensionOpsMixin, implement_2d
+from ._reshaping import implement_2d
+from .base import ExtensionArray, ExtensionOpsMixin
 
 
 class PandasDtype(ExtensionDtype):
@@ -289,6 +290,11 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
     def copy(self):
         return type(self)(self._ndarray.copy())
+
+    def view(self, dtype=None):
+        if dtype is not None:
+            raise NotImplementedError
+        return type(self)(self._ndarray)
 
     def _values_for_argsort(self):
         return self._ndarray

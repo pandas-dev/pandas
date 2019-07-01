@@ -20,8 +20,9 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCInterval, ABCIntervalIndex, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core.arrays._reshaping import implement_2d
 from pandas.core.arrays.base import (
-    ExtensionArray, _extension_array_shared_docs, implement_2d)
+    ExtensionArray, _extension_array_shared_docs)
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, ensure_index

@@ -36,7 +36,8 @@ import pandas.core.common as com
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
 
-from .base import ExtensionArray, ExtensionOpsMixin, implement_2d
+from ._reshaping import implement_2d
+from .base import ExtensionArray, ExtensionOpsMixin
 
 
 class AttributesMixin:

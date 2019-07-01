@@ -23,36 +23,11 @@ from pandas.core.dtypes.missing import isna
 
 from pandas._typing import ArrayLike
 from pandas.core import ops
+from pandas.core.arrays._reshaping import tuplify_shape
 
 _not_implemented_message = "{} does not implement {}."
 
 _extension_array_shared_docs = dict()  # type: Dict[str, str]
-
-
-def implement_2d(cls):
-    """
-    A decorator to take a 1-dimension-only ExtensionArray subclass and make
-    it support limited 2-dimensional operations.
-    """
-
-    # For backwards-compatibility, if an EA author implemented __len__
-    #  but not size, we use that __len__ method to get an array's size.
-    has_size = cls.size is not ExtensionArray.size
-    has_shape = cls.shape is not ExtensionArray.shape
-    has_len = cls.__len__ is not ExtensionArray.__len__
-
-    if not has_size and has_len:
-        cls.size = property(cls.__len__)
-        cls.__len__ = ExtensionArray.__len__
-
-    elif not has_size and has_shape:
-        @property
-        def size(self) -> int:
-            return np.prod(self.shape)
-
-        cls.size = size
-
-    return cls
 
 
 class ExtensionArray:
@@ -148,6 +123,12 @@ class ExtensionArray:
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = 'extension'
+
+    # Whether this class supports 2D arrays natively.  If so, set _allows_2d
+    #  to True and override reshape, ravel, and T.  Otherwise, apply the
+    #  `implement_2d` decorator to use default implementations of limited
+    #  2D functionality.
+    _allows_2d = False
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -963,22 +944,29 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
+    def reshape(self, *shape):
+        # numpy accepts either a single tuple or an expanded tuple
+        shape = tuplify_shape(self.size, shape)
+        result = self.view()
+        result._shape = shape
+        return result
+
     @property
     def T(self) -> ABCExtensionArray:
         """
-        Return a transposed view on self.  For 1-D arrays this is a no-op.
+        Return a transposed view on self.
         """
-        if self.ndim != 1:
-            raise NotImplementedError
-        return self
+        shape = self.shape[::-1]
+        return self.reshape(shape)
 
     def ravel(self, order=None) -> ABCExtensionArray:
         """
-        Return a flattened view on self.  For 1-D arrays this is a no-op.
+        Return a flattened view on self.
         """
-        if self.ndim != 1:
-            raise NotImplementedError
-        return self
+        # Note: we ignore `order`, keep the argument for compat with
+        #  numpy signature.
+        shape = (self.size,)
+        return self.reshape(shape)
 
     @classmethod
     def _concat_same_type(
