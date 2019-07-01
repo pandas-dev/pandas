@@ -576,7 +576,7 @@ class PlotAccessor(PandasObject):
         data = self._parent.copy()
 
         if isinstance(data, pandas.core.dtypes.generic.ABCSeries):
-            kwargs['new_plot'] = True
+            kwargs['reuse_plot'] = True
 
         if kind in self._dataframe_kinds:
             if isinstance(data, ABCDataFrame):

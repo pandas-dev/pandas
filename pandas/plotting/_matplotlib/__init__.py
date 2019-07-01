@@ -31,7 +31,7 @@ if get_option("plotting.matplotlib.register_converters"):
 
 
 def plot(data, kind, **kwargs):
-    if kwargs.pop('new_plot', False):
+    if kwargs.pop('reuse_plot', False):
         ax = kwargs.get('ax')
         if ax is None and len(plt.get_fignums()) > 0:
             with plt.rc_context():
