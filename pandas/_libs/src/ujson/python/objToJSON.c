@@ -78,15 +78,6 @@ typedef struct __NpyArrContext {
     char **columnLabels;
 } NpyArrContext;
 
-typedef struct __PdBlockContext {
-    int colIdx;
-    int ncols;
-    int transpose;
-
-    int *cindices;             // frame column -> block column map
-    NpyArrContext **npyCtxts;  // NpyArrContext for each column
-} PdBlockContext;
-
 typedef struct __TypeContext {
     JSPFN_ITERBEGIN iterBegin;
     JSPFN_ITEREND iterEnd;
@@ -108,7 +99,6 @@ typedef struct __TypeContext {
 
     char *cStr;
     NpyArrContext *npyarr;
-    PdBlockContext *pdblock;
     int transpose;
     char **rowLabels;
     char **columnLabels;
@@ -121,9 +111,6 @@ typedef struct __PyObjectEncoder {
 
     // pass through the NpyArrContext when encoding multi-dimensional arrays
     NpyArrContext *npyCtxtPassthru;
-
-    // pass through the PdBlockContext when encoding blocks
-    PdBlockContext *blkCtxtPassthru;
 
     // pass-through to encode numpy data directly
     int npyType;
@@ -145,8 +132,6 @@ typedef struct __PyObjectEncoder {
 enum PANDAS_FORMAT { SPLIT, RECORDS, INDEX, COLUMNS, VALUES };
 
 #define PRINTMARK()
-
-int PdBlock_iterNext(JSOBJ, JSONTypeContext *);
 
 void *initObjToJSON(void)
 {
@@ -200,7 +185,6 @@ static TypeContext *createTypeContext(void) {
     pc->doubleValue = 0.0;
     pc->cStr = NULL;
     pc->npyarr = NULL;
-    pc->pdblock = NULL;
     pc->rowLabels = NULL;
     pc->columnLabels = NULL;
     pc->transpose = 0;
@@ -312,18 +296,6 @@ static PyObject *get_sub_attr(PyObject *obj, char *attr, char *subAttr) {
     ret = PyObject_GetAttrString(tmp, subAttr);
     Py_DECREF(tmp);
 
-    return ret;
-}
-
-static int is_simple_frame(PyObject *obj) {
-    PyObject *check = get_sub_attr(obj, "_data", "is_mixed_type");
-    int ret = (check == Py_False);
-
-    if (!check) {
-        return 0;
-    }
-
-    Py_DECREF(check);
     return ret;
 }
 
@@ -804,311 +776,6 @@ char *NpyArr_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
 }
 
 //=============================================================================
-// Pandas block iteration functions
-//
-// Serialises a DataFrame column by column to avoid unnecessary data copies and
-// more representative serialisation when dealing with mixed dtypes.
-//
-// Uses a dedicated NpyArrContext for each column.
-//=============================================================================
-
-void PdBlockPassThru_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
-    PdBlockContext *blkCtxt = GET_TC(tc)->pdblock;
-    PRINTMARK();
-
-    if (blkCtxt->transpose) {
-        blkCtxt->colIdx++;
-    } else {
-        blkCtxt->colIdx = 0;
-    }
-
-    NpyArr_freeItemValue(obj, tc);
-}
-
-int PdBlock_iterNextItem(JSOBJ obj, JSONTypeContext *tc) {
-    PdBlockContext *blkCtxt = GET_TC(tc)->pdblock;
-    PRINTMARK();
-
-    if (blkCtxt->colIdx >= blkCtxt->ncols) {
-        return 0;
-    }
-
-    GET_TC(tc)->npyarr = blkCtxt->npyCtxts[blkCtxt->colIdx];
-    blkCtxt->colIdx++;
-    return NpyArr_iterNextItem(obj, tc);
-}
-
-char *PdBlock_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
-    PdBlockContext *blkCtxt = GET_TC(tc)->pdblock;
-    NpyArrContext *npyarr = blkCtxt->npyCtxts[0];
-    npy_intp idx;
-    PRINTMARK();
-
-    if (GET_TC(tc)->iterNext == PdBlock_iterNextItem) {
-        idx = blkCtxt->colIdx - 1;
-        NpyArr_getLabel(obj, tc, outLen, idx, npyarr->columnLabels);
-    } else {
-        idx = GET_TC(tc)->iterNext != PdBlock_iterNext
-                  ? npyarr->index[npyarr->stridedim - npyarr->inc] - 1
-                  : npyarr->index[npyarr->stridedim];
-
-        NpyArr_getLabel(obj, tc, outLen, idx, npyarr->rowLabels);
-    }
-    return NULL;
-}
-
-char *PdBlock_iterGetName_Transpose(JSOBJ obj, JSONTypeContext *tc,
-                                    size_t *outLen) {
-    PdBlockContext *blkCtxt = GET_TC(tc)->pdblock;
-    NpyArrContext *npyarr = blkCtxt->npyCtxts[blkCtxt->colIdx];
-    npy_intp idx;
-    PRINTMARK();
-
-    if (GET_TC(tc)->iterNext == NpyArr_iterNextItem) {
-        idx = npyarr->index[npyarr->stridedim] - 1;
-        NpyArr_getLabel(obj, tc, outLen, idx, npyarr->columnLabels);
-    } else {
-        idx = blkCtxt->colIdx;
-        NpyArr_getLabel(obj, tc, outLen, idx, npyarr->rowLabels);
-    }
-    return NULL;
-}
-
-int PdBlock_iterNext(JSOBJ obj, JSONTypeContext *tc) {
-    PdBlockContext *blkCtxt = GET_TC(tc)->pdblock;
-    NpyArrContext *npyarr;
-    PRINTMARK();
-
-    if (PyErr_Occurred() || ((JSONObjectEncoder *)tc->encoder)->errorMsg) {
-        return 0;
-    }
-
-    if (blkCtxt->transpose) {
-        if (blkCtxt->colIdx >= blkCtxt->ncols) {
-            return 0;
-        }
-    } else {
-        npyarr = blkCtxt->npyCtxts[0];
-        if (npyarr->index[npyarr->stridedim] >= npyarr->dim) {
-            return 0;
-        }
-    }
-
-    ((PyObjectEncoder *)tc->encoder)->blkCtxtPassthru = blkCtxt;
-    GET_TC(tc)->itemValue = obj;
-
-    return 1;
-}
-
-void PdBlockPassThru_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
-    PdBlockContext *blkCtxt = GET_TC(tc)->pdblock;
-    PRINTMARK();
-
-    if (blkCtxt->transpose) {
-        // if transposed we exhaust each column before moving to the next
-        GET_TC(tc)->iterNext = NpyArr_iterNextItem;
-        GET_TC(tc)->iterGetName = PdBlock_iterGetName_Transpose;
-        GET_TC(tc)->npyarr = blkCtxt->npyCtxts[blkCtxt->colIdx];
-    }
-}
-
-void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
-    PyObject *obj, *blocks, *block, *values, *tmp;
-    PyArrayObject *locs;
-    PdBlockContext *blkCtxt;
-    NpyArrContext *npyarr;
-    Py_ssize_t i;
-    PyArray_Descr *dtype;
-    NpyIter *iter;
-    NpyIter_IterNextFunc *iternext;
-    npy_int64 **dataptr;
-    npy_int64 colIdx;
-    npy_intp idx;
-
-    PRINTMARK();
-
-    i = 0;
-    blocks = NULL;
-    dtype = PyArray_DescrFromType(NPY_INT64);
-    obj = (PyObject *)_obj;
-
-    GET_TC(tc)
-        ->iterGetName = GET_TC(tc)->transpose ? PdBlock_iterGetName_Transpose
-                                              : PdBlock_iterGetName;
-
-    blkCtxt = PyObject_Malloc(sizeof(PdBlockContext));
-    if (!blkCtxt) {
-        PyErr_NoMemory();
-        GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-        goto BLKRET;
-    }
-    GET_TC(tc)->pdblock = blkCtxt;
-
-    blkCtxt->colIdx = 0;
-    blkCtxt->transpose = GET_TC(tc)->transpose;
-    blkCtxt->ncols = get_attr_length(obj, "columns");
-
-    if (blkCtxt->ncols == 0) {
-        blkCtxt->npyCtxts = NULL;
-        blkCtxt->cindices = NULL;
-
-        GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-        goto BLKRET;
-    }
-
-    blkCtxt->npyCtxts =
-        PyObject_Malloc(sizeof(NpyArrContext *) * blkCtxt->ncols);
-    if (!blkCtxt->npyCtxts) {
-        PyErr_NoMemory();
-        GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-        goto BLKRET;
-    }
-    for (i = 0; i < blkCtxt->ncols; i++) {
-        blkCtxt->npyCtxts[i] = NULL;
-    }
-
-    blkCtxt->cindices = PyObject_Malloc(sizeof(int) * blkCtxt->ncols);
-    if (!blkCtxt->cindices) {
-        PyErr_NoMemory();
-        GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-        goto BLKRET;
-    }
-
-    blocks = get_sub_attr(obj, "_data", "blocks");
-    if (!blocks) {
-        GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-        goto BLKRET;
-    }
-
-    // force transpose so each NpyArrContext strides down its column
-    GET_TC(tc)->transpose = 1;
-
-    for (i = 0; i < PyObject_Length(blocks); i++) {
-        block = get_item(blocks, i);
-        if (!block) {
-            GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            goto BLKRET;
-        }
-
-        tmp = get_values(block);
-        if (!tmp) {
-            ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
-            Py_DECREF(block);
-            GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            goto BLKRET;
-        }
-
-        values = PyArray_Transpose((PyArrayObject *)tmp, NULL);
-        Py_DECREF(tmp);
-        if (!values) {
-            Py_DECREF(block);
-            GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            goto BLKRET;
-        }
-
-        locs = (PyArrayObject *)get_sub_attr(block, "mgr_locs", "as_array");
-        if (!locs) {
-            Py_DECREF(block);
-            Py_DECREF(values);
-            GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            goto BLKRET;
-        }
-
-        iter = NpyIter_New(locs, NPY_ITER_READONLY, NPY_KEEPORDER,
-                           NPY_NO_CASTING, dtype);
-        if (!iter) {
-            Py_DECREF(block);
-            Py_DECREF(values);
-            Py_DECREF(locs);
-            GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            goto BLKRET;
-        }
-        iternext = NpyIter_GetIterNext(iter, NULL);
-        if (!iternext) {
-            NpyIter_Deallocate(iter);
-            Py_DECREF(block);
-            Py_DECREF(values);
-            Py_DECREF(locs);
-            GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            goto BLKRET;
-        }
-        dataptr = (npy_int64 **)NpyIter_GetDataPtrArray(iter);
-        do {
-            colIdx = **dataptr;
-            idx = NpyIter_GetIterIndex(iter);
-
-            blkCtxt->cindices[colIdx] = idx;
-
-            // Reference freed in Pdblock_iterend
-            Py_INCREF(values);
-            GET_TC(tc)->newObj = values;
-
-            // init a dedicated context for this column
-            NpyArr_iterBegin(obj, tc);
-            npyarr = GET_TC(tc)->npyarr;
-
-            // set the dataptr to our desired column and initialise
-            if (npyarr != NULL) {
-                npyarr->dataptr += npyarr->stride * idx;
-                NpyArr_iterNext(obj, tc);
-            }
-            GET_TC(tc)->itemValue = NULL;
-            ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = NULL;
-
-            blkCtxt->npyCtxts[colIdx] = npyarr;
-            GET_TC(tc)->newObj = NULL;
-        } while (iternext(iter));
-
-        NpyIter_Deallocate(iter);
-        Py_DECREF(block);
-        Py_DECREF(values);
-        Py_DECREF(locs);
-    }
-    GET_TC(tc)->npyarr = blkCtxt->npyCtxts[0];
-
-BLKRET:
-    Py_XDECREF(dtype);
-    Py_XDECREF(blocks);
-}
-
-void PdBlock_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
-    PdBlockContext *blkCtxt;
-    NpyArrContext *npyarr;
-    int i;
-    PRINTMARK();
-
-    GET_TC(tc)->itemValue = NULL;
-    npyarr = GET_TC(tc)->npyarr;
-
-    blkCtxt = GET_TC(tc)->pdblock;
-
-    if (blkCtxt) {
-        for (i = 0; i < blkCtxt->ncols; i++) {
-            npyarr = blkCtxt->npyCtxts[i];
-            if (npyarr) {
-                if (npyarr->array) {
-                    Py_DECREF(npyarr->array);
-                    npyarr->array = NULL;
-                }
-
-                GET_TC(tc)->npyarr = npyarr;
-                NpyArr_iterEnd(obj, tc);
-
-                blkCtxt->npyCtxts[i] = NULL;
-            }
-        }
-
-        if (blkCtxt->npyCtxts) {
-            PyObject_Free(blkCtxt->npyCtxts);
-        }
-        if (blkCtxt->cindices) {
-            PyObject_Free(blkCtxt->cindices);
-        }
-        PyObject_Free(blkCtxt);
-    }
-}
-
-//=============================================================================
 // Tuple iteration functions
 // itemValue is borrowed reference, no ref counting
 //=============================================================================
@@ -1467,15 +1134,10 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
         GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "index");
     } else if (index == 2) {
         memcpy(GET_TC(tc)->cStr, "data", sizeof(char) * 5);
-        if (is_simple_frame(obj)) {
-            GET_TC(tc)->itemValue = get_values(obj);
-            if (!GET_TC(tc)->itemValue) {
-                return 0;
-            }
-        } else {
-            Py_INCREF(obj);
-            GET_TC(tc)->itemValue = obj;
-        }
+	GET_TC(tc)->itemValue = get_values(obj);
+	if (!GET_TC(tc)->itemValue) {
+	  return 0;
+	}
     } else {
         PRINTMARK();
         return 0;
@@ -2002,21 +1664,6 @@ ISITERABLE:
         pc->iterGetName = NpyArr_iterGetName;
         return;
     } else if (PyObject_TypeCheck(obj, cls_dataframe)) {
-        if (enc->blkCtxtPassthru) {
-            PRINTMARK();
-            pc->pdblock = enc->blkCtxtPassthru;
-            tc->type =
-                (pc->pdblock->npyCtxts[0]->columnLabels ? JT_OBJECT : JT_ARRAY);
-
-            pc->iterBegin = PdBlockPassThru_iterBegin;
-            pc->iterEnd = PdBlockPassThru_iterEnd;
-            pc->iterNext = PdBlock_iterNextItem;
-            pc->iterGetName = PdBlock_iterGetName;
-            pc->iterGetValue = NpyArr_iterGetValue;
-
-            enc->blkCtxtPassthru = NULL;
-            return;
-        }
 
         if (enc->outputFormat == SPLIT) {
             PRINTMARK();
@@ -2030,22 +1677,16 @@ ISITERABLE:
         }
 
         PRINTMARK();
-        if (is_simple_frame(obj)) {
-            pc->iterBegin = NpyArr_iterBegin;
-            pc->iterEnd = NpyArr_iterEnd;
-            pc->iterNext = NpyArr_iterNext;
-            pc->iterGetName = NpyArr_iterGetName;
+	pc->iterBegin = NpyArr_iterBegin;
+	pc->iterEnd = NpyArr_iterEnd;
+	pc->iterNext = NpyArr_iterNext;
+	pc->iterGetName = NpyArr_iterGetName;
 
-            pc->newObj = get_values(obj);
-            if (!pc->newObj) {
-                goto INVALID;
-            }
-        } else {
-            pc->iterBegin = PdBlock_iterBegin;
-            pc->iterEnd = PdBlock_iterEnd;
-            pc->iterNext = PdBlock_iterNext;
-            pc->iterGetName = PdBlock_iterGetName;
-        }
+	pc->newObj = get_values(obj);
+	if (!pc->newObj) {
+	  goto INVALID;
+	}
+
         pc->iterGetValue = NpyArr_iterGetValue;
 
         if (enc->outputFormat == VALUES) {
@@ -2326,7 +1967,6 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
     JSONObjectEncoder *encoder = (JSONObjectEncoder *)&pyEncoder;
 
     pyEncoder.npyCtxtPassthru = NULL;
-    pyEncoder.blkCtxtPassthru = NULL;
     pyEncoder.npyType = -1;
     pyEncoder.npyValue = NULL;
     pyEncoder.datetimeIso = 0;
