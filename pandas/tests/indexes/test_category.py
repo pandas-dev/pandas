@@ -5,7 +5,7 @@ import pandas._config.config as cf
 
 from pandas._libs import index as libindex
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, sentinel
+from pandas.core.dtypes.dtypes import CategoricalDtype, ordered_sentinel
 
 import pandas as pd
 from pandas import Categorical, IntervalIndex
@@ -491,7 +491,7 @@ class TestCategoricalIndex(Base):
             tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('none, warning', [
-        (None, None), (sentinel, FutureWarning)])
+        (None, None), (ordered_sentinel, FutureWarning)])
     def test_astype_category_ordered_none_deprecated(self, none, warning):
         # GH 26336: only warn if None is not explicitly passed
         cdt1 = CategoricalDtype(categories=list('cdab'), ordered=True)

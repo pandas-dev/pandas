@@ -10,8 +10,8 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype, is_datetimetz, is_dtype_equal, is_interval_dtype,
     is_period, is_period_dtype, is_string_dtype)
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, DatetimeTZDtype, IntervalDtype, PeriodDtype, registry,
-    sentinel)
+    CategoricalDtype, DatetimeTZDtype, IntervalDtype, PeriodDtype,
+    ordered_sentinel, registry)
 
 import pandas as pd
 from pandas import (
@@ -807,7 +807,8 @@ class TestCategoricalDtypeParametrized:
 
     @pytest.mark.parametrize('new_categories', [
         list('abc'), list('cba'), list('wxyz'), None])
-    @pytest.mark.parametrize('new_ordered', [True, False, None, sentinel])
+    @pytest.mark.parametrize('new_ordered', [
+        True, False, None, ordered_sentinel])
     def test_update_dtype(self, ordered_fixture, new_categories, new_ordered):
         dtype = CategoricalDtype(list('abc'), ordered_fixture)
         new_dtype = CategoricalDtype(new_categories, new_ordered)
@@ -817,11 +818,11 @@ class TestCategoricalDtypeParametrized:
             expected_categories = dtype.categories
 
         expected_ordered = new_ordered
-        if new_ordered is sentinel or new_ordered is None:
+        if new_ordered is ordered_sentinel or new_ordered is None:
             expected_ordered = dtype.ordered
 
         # GH 26336
-        if new_ordered is sentinel and ordered_fixture is True:
+        if new_ordered is ordered_sentinel and ordered_fixture is True:
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 result = dtype.update_dtype(new_dtype)
@@ -847,11 +848,11 @@ class TestCategoricalDtypeParametrized:
         with pytest.raises(ValueError, match=msg):
             dtype.update_dtype(bad_dtype)
 
-    @pytest.mark.parametrize('ordered', [sentinel, None, True, False])
+    @pytest.mark.parametrize('ordered', [ordered_sentinel, None, True, False])
     def test_ordered_none_default_deprecated(self, ordered):
         # GH 26403: CDT.ordered only warns if ordered is not explicitly passed
         dtype = CategoricalDtype(list('abc'), ordered=ordered)
-        warning = FutureWarning if ordered is sentinel else None
+        warning = FutureWarning if ordered is ordered_sentinel else None
         with tm.assert_produces_warning(warning):
             dtype.ordered
 

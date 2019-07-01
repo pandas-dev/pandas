@@ -19,7 +19,7 @@ str_type = str
 
 # GH26403: sentinel value used for the default value of ordered in the
 # CategoricalDtype constructor to detect when ordered=None is explicitly passed
-sentinel = object()  # type: object
+ordered_sentinel = object()  # type: object
 
 # TODO(GH26403): Replace with Optional[bool] or bool
 OrderedType = Union[None, bool, object]
@@ -223,7 +223,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     def __init__(self,
                  categories=None,
-                 ordered: OrderedType = sentinel):
+                 ordered: OrderedType = ordered_sentinel):
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
@@ -343,7 +343,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                   fastpath: bool = False,
                   ) -> None:
 
-        if ordered is not None and ordered is not sentinel:
+        if ordered is not None and ordered is not ordered_sentinel:
             self.validate_ordered(ordered)
 
         if categories is not None:
@@ -351,8 +351,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                                                   fastpath=fastpath)
 
         self._categories = categories
-        self._ordered = ordered if ordered is not sentinel else None
-        self._ordered_from_sentinel = ordered is sentinel
+        self._ordered = ordered if ordered is not ordered_sentinel else None
+        self._ordered_from_sentinel = ordered is ordered_sentinel
 
     def __setstate__(self, state: Dict[str_type, Any]) -> None:
         # for pickle compat. __get_state__ is defined in the
