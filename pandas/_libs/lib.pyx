@@ -1631,7 +1631,7 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
     Doesn't check values are datetime-like types.
     """
     cdef:
-        Py_ssize_t i, j, n = len(values)
+        Py_ssize_t i = 0, j, n = len(values)
         object base_val, base_tz, val, tz
 
     if n == 0:
