@@ -424,13 +424,13 @@ static void append_warning(parser_t *self, const char *msg) {
 
     if (self->warn_msg == NULL) {
         self->warn_msg = (char *)malloc(length + 1);
-        strcpy(self->warn_msg, msg);
+        snprintf(self->warn_msg, length + 1, "%s", msg);
     } else {
         ex_length = strlen(self->warn_msg);
         newptr = safe_realloc(self->warn_msg, ex_length + length + 1);
         if (newptr != NULL) {
             self->warn_msg = (char *)newptr;
-            strcpy(self->warn_msg + ex_length, msg);
+            snprintf(self->warn_msg + ex_length, length + 1, "%s", msg);
         }
     }
 }
@@ -1433,13 +1433,14 @@ PANDAS_INLINE void uppercase(char *p) {
 int to_boolean(const char *item, uint8_t *val) {
     char *tmp;
     int i, status = 0;
-    int bufsize = sizeof(char) * (strlen(item) + 1);
+    size_t length0 = (strlen(item) + 1);
+    int bufsize = sizeof(char) * length0;
 
     static const char *tstrs[1] = {"TRUE"};
     static const char *fstrs[1] = {"FALSE"};
 
     tmp = malloc(bufsize);
-    strcpy(tmp, item);
+    snprintf(tmp,  length0, "%s", item);
     uppercase(tmp);
 
     for (i = 0; i < 1; ++i) {
