@@ -220,7 +220,7 @@ class Block(PandasObject):
         if dtype is not None:
             # issue 19431 fastparquet is passing this
             warnings.warn("dtype argument is deprecated, will be removed "
-                          "in a future release.", DeprecationWarning)
+                          "in a future release.", FutureWarning)
         if placement is None:
             placement = self.mgr_locs
         return make_block(values, placement=placement, ndim=ndim,
@@ -542,17 +542,10 @@ class Block(PandasObject):
         if self.is_categorical_astype(dtype):
 
             # deprecated 17636
-            if ('categories' in kwargs or 'ordered' in kwargs):
-                if isinstance(dtype, CategoricalDtype):
-                    raise TypeError(
-                        "Cannot specify a CategoricalDtype and also "
-                        "`categories` or `ordered`. Use "
-                        "`dtype=CategoricalDtype(categories, ordered)`"
-                        " instead.")
-                warnings.warn("specifying 'categories' or 'ordered' in "
-                              ".astype() is deprecated; pass a "
-                              "CategoricalDtype instead",
-                              FutureWarning, stacklevel=7)
+            for deprecated_arg in ('categories', 'ordered'):
+                if deprecated_arg in kwargs:
+                    raise ValueError('Got an unexpected argument: {}'.format(
+                        deprecated_arg))
 
             categories = kwargs.get('categories', None)
             ordered = kwargs.get('ordered', None)
@@ -722,16 +715,6 @@ class Block(PandasObject):
         try:
             values, to_replace = self._try_coerce_args(self.values,
                                                        to_replace)
-            mask = missing.mask_missing(values, to_replace)
-            if filter is not None:
-                filtered_out = ~self.mgr_locs.isin(filter)
-                mask[filtered_out.nonzero()[0]] = False
-
-            blocks = self.putmask(mask, value, inplace=inplace)
-            if convert:
-                blocks = [b.convert(by_item=True, numeric=False,
-                                    copy=not inplace) for b in blocks]
-            return blocks
         except (TypeError, ValueError):
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
@@ -746,6 +729,32 @@ class Block(PandasObject):
                                  filter=filter,
                                  regex=regex,
                                  convert=convert)
+
+        mask = missing.mask_missing(values, to_replace)
+        if filter is not None:
+            filtered_out = ~self.mgr_locs.isin(filter)
+            mask[filtered_out.nonzero()[0]] = False
+
+        try:
+            blocks = self.putmask(mask, value, inplace=inplace)
+        except (TypeError, ValueError):
+            # GH 22083, TypeError or ValueError occurred within error handling
+            # causes infinite loop. Cast and retry only if not objectblock.
+            if is_object_dtype(self):
+                raise
+
+            # try again with a compatible block
+            block = self.astype(object)
+            return block.replace(to_replace=original_to_replace,
+                                 value=value,
+                                 inplace=inplace,
+                                 filter=filter,
+                                 regex=regex,
+                                 convert=convert)
+        if convert:
+            blocks = [b.convert(by_item=True, numeric=False,
+                                copy=not inplace) for b in blocks]
+        return blocks
 
     def _replace_single(self, *args, **kwargs):
         """ no-op on a non-ObjectBlock """
@@ -1778,7 +1787,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                 "'ExtensionArray._formatting_values' is deprecated. "
                 "Specify 'ExtensionArray._formatter' instead."
             )
-            warnings.warn(msg, DeprecationWarning, stacklevel=10)
+            warnings.warn(msg, FutureWarning, stacklevel=10)
             return self.values._formatting_values()
 
         return self.values
@@ -3040,7 +3049,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
     if fastpath is not None:
         # GH#19265 pyarrow is passing this
         warnings.warn("fastpath argument is deprecated, will be removed "
-                      "in a future release.", DeprecationWarning)
+                      "in a future release.", FutureWarning)
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)

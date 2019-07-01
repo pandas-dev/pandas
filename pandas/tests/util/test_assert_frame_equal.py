@@ -5,7 +5,12 @@ from pandas.util.testing import assert_frame_equal
 
 
 @pytest.fixture(params=[True, False])
-def by_blocks(request):
+def by_blocks_fixture(request):
+    return request.param
+
+
+@pytest.fixture(params=['DataFrame', 'Series'])
+def obj_fixture(request):
     return request.param
 
 
@@ -70,29 +75,35 @@ def _assert_not_frame_equal_both(a, b, **kwargs):
 
 
 @pytest.mark.parametrize("check_like", [True, False])
-def test_frame_equal_row_order_mismatch(check_like):
+def test_frame_equal_row_order_mismatch(check_like, obj_fixture):
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]},
                     index=["a", "b", "c"])
     df2 = DataFrame({"A": [3, 2, 1], "B": [6, 5, 4]},
                     index=["c", "b", "a"])
 
     if not check_like:  # Do not ignore row-column orderings.
-        msg = "DataFrame.index are different"
+        msg = "{obj}.index are different".format(obj=obj_fixture)
         with pytest.raises(AssertionError, match=msg):
-            assert_frame_equal(df1, df2, check_like=check_like)
+            assert_frame_equal(df1,
+                               df2,
+                               check_like=check_like,
+                               obj=obj_fixture)
     else:
-        _assert_frame_equal_both(df1, df2, check_like=check_like)
+        _assert_frame_equal_both(df1,
+                                 df2,
+                                 check_like=check_like,
+                                 obj=obj_fixture)
 
 
 @pytest.mark.parametrize("df1,df2", [
     (DataFrame({"A": [1, 2, 3]}), DataFrame({"A": [1, 2, 3, 4]})),
     (DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}), DataFrame({"A": [1, 2, 3]})),
 ])
-def test_frame_equal_shape_mismatch(df1, df2):
-    msg = "DataFrame are different"
+def test_frame_equal_shape_mismatch(df1, df2, obj_fixture):
+    msg = "{obj} are different".format(obj=obj_fixture)
 
     with pytest.raises(AssertionError, match=msg):
-        assert_frame_equal(df1, df2)
+        assert_frame_equal(df1, df2, obj=obj_fixture)
 
 
 @pytest.mark.parametrize("df1,df2,msg", [
@@ -136,12 +147,13 @@ def test_empty_dtypes(check_dtype):
         assert_frame_equal(df1, df2, **kwargs)
 
 
-def test_frame_equal_index_mismatch():
-    msg = """DataFrame\\.index are different
+def test_frame_equal_index_mismatch(obj_fixture):
+    msg = """{obj}\\.index are different
 
-DataFrame\\.index values are different \\(33\\.33333 %\\)
+{obj}\\.index values are different \\(33\\.33333 %\\)
 \\[left\\]:  Index\\(\\['a', 'b', 'c'\\], dtype='object'\\)
-\\[right\\]: Index\\(\\['a', 'b', 'd'\\], dtype='object'\\)"""
+\\[right\\]: Index\\(\\['a', 'b', 'd'\\], dtype='object'\\)""".format(
+        obj=obj_fixture)
 
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]},
                     index=["a", "b", "c"])
@@ -149,15 +161,16 @@ DataFrame\\.index values are different \\(33\\.33333 %\\)
                     index=["a", "b", "d"])
 
     with pytest.raises(AssertionError, match=msg):
-        assert_frame_equal(df1, df2)
+        assert_frame_equal(df1, df2, obj=obj_fixture)
 
 
-def test_frame_equal_columns_mismatch():
-    msg = """DataFrame\\.columns are different
+def test_frame_equal_columns_mismatch(obj_fixture):
+    msg = """{obj}\\.columns are different
 
-DataFrame\\.columns values are different \\(50\\.0 %\\)
+{obj}\\.columns values are different \\(50\\.0 %\\)
 \\[left\\]:  Index\\(\\['A', 'B'\\], dtype='object'\\)
-\\[right\\]: Index\\(\\['A', 'b'\\], dtype='object'\\)"""
+\\[right\\]: Index\\(\\['A', 'b'\\], dtype='object'\\)""".format(
+        obj=obj_fixture)
 
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]},
                     index=["a", "b", "c"])
@@ -165,43 +178,50 @@ DataFrame\\.columns values are different \\(50\\.0 %\\)
                     index=["a", "b", "c"])
 
     with pytest.raises(AssertionError, match=msg):
-        assert_frame_equal(df1, df2)
+        assert_frame_equal(df1, df2, obj=obj_fixture)
 
 
-def test_frame_equal_block_mismatch(by_blocks):
-    msg = """DataFrame\\.iloc\\[:, 1\\] are different
+def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
+    msg = """{obj}\\.iloc\\[:, 1\\] are different
 
-DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
+{obj}\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[4, 5, 6\\]
-\\[right\\]: \\[4, 5, 7\\]"""
+\\[right\\]: \\[4, 5, 7\\]""".format(obj=obj_fixture)
 
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     df2 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 7]})
 
     with pytest.raises(AssertionError, match=msg):
-        assert_frame_equal(df1, df2, by_blocks=by_blocks)
+        assert_frame_equal(df1,
+                           df2,
+                           by_blocks=by_blocks_fixture,
+                           obj=obj_fixture)
 
 
 @pytest.mark.parametrize("df1,df2,msg", [
     (DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]}),
      DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "e̊"]}),
-     """DataFrame\\.iloc\\[:, 1\\] are different
+     """{obj}\\.iloc\\[:, 1\\] are different
 
-DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
+{obj}\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[é, è, ë\\]
 \\[right\\]: \\[é, è, e̊\\]"""),
     (DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]}),
      DataFrame({"A": ["a", "a", "a"], "E": ["e", "e", "e"]}),
-     """DataFrame\\.iloc\\[:, 0\\] are different
+     """{obj}\\.iloc\\[:, 0\\] are different
 
-DataFrame\\.iloc\\[:, 0\\] values are different \\(100\\.0 %\\)
+{obj}\\.iloc\\[:, 0\\] values are different \\(100\\.0 %\\)
 \\[left\\]:  \\[á, à, ä\\]
 \\[right\\]: \\[a, a, a\\]"""),
 ])
-def test_frame_equal_unicode(df1, df2, msg, by_blocks):
+def test_frame_equal_unicode(df1, df2, msg, by_blocks_fixture, obj_fixture):
     # see gh-20503
     #
     # Test ensures that `assert_frame_equals` raises the right exception
     # when comparing DataFrames containing differing unicode objects.
+    msg = msg.format(obj=obj_fixture)
     with pytest.raises(AssertionError, match=msg):
-        assert_frame_equal(df1, df2, by_blocks=by_blocks)
+        assert_frame_equal(df1,
+                           df2,
+                           by_blocks=by_blocks_fixture,
+                           obj=obj_fixture)
