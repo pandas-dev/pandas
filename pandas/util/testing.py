@@ -1220,7 +1220,7 @@ def assert_frame_equal(left, right, check_dtype=True,
     # shape comparison
     if left.shape != right.shape:
         raise_assert_detail(obj,
-                            'DataFrame shape mismatch',
+                            '{obj} shape mismatch'.format(obj=obj),
                             '{shape!r}'.format(shape=left.shape),
                             '{shape!r}'.format(shape=right.shape))
 
@@ -1251,7 +1251,7 @@ def assert_frame_equal(left, right, check_dtype=True,
             assert dtype in lblocks
             assert dtype in rblocks
             assert_frame_equal(lblocks[dtype], rblocks[dtype],
-                               check_dtype=check_dtype, obj='DataFrame.blocks')
+                               check_dtype=check_dtype, obj=obj)
 
     # compare by columns
     else:
@@ -1266,7 +1266,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                 check_exact=check_exact, check_names=check_names,
                 check_datetimelike_compat=check_datetimelike_compat,
                 check_categorical=check_categorical,
-                obj='DataFrame.iloc[:, {idx}]'.format(idx=i))
+                obj='{obj}.iloc[:, {idx}]'.format(obj=obj, idx=i))
 
 
 def assert_equal(left, right, **kwargs):

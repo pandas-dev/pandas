@@ -228,7 +228,8 @@ def _maybe_get_mask(values: np.ndarray, skipna: bool,
 
 
 def _get_values(values: np.ndarray, skipna: bool, fill_value: Any = None,
-                fill_value_typ: str = None, mask: Optional[np.ndarray] = None
+                fill_value_typ: Optional[str] = None,
+                mask: Optional[np.ndarray] = None
                 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.dtype,
                            np.dtype, Any]:
     """ Utility to get the values view, mask, dtype, dtype_max, and fill_value.
@@ -1274,7 +1275,7 @@ def _ensure_numeric(x):
             except (TypeError, ValueError):
                 x = x.astype(np.float64)
             else:
-                if not np.any(x.imag):
+                if not np.any(np.imag(x)):
                     x = x.real
     elif not (is_float(x) or is_integer(x) or is_complex(x)):
         try:

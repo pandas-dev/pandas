@@ -198,7 +198,6 @@ Reindexing / selection / label manipulation
    DataFrame.idxmin
    DataFrame.last
    DataFrame.reindex
-   DataFrame.reindex_axis
    DataFrame.reindex_like
    DataFrame.rename
    DataFrame.rename_axis
@@ -337,7 +336,6 @@ Serialization / IO / conversion
 .. autosummary::
    :toctree: api/
 
-   DataFrame.from_csv
    DataFrame.from_dict
    DataFrame.from_items
    DataFrame.from_records

@@ -435,7 +435,7 @@ class Categorical(ExtensionArray, PandasObject):
         return self.dtype.ordered
 
     @property
-    def dtype(self):
+    def dtype(self) -> CategoricalDtype:
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance
         """
@@ -887,11 +887,6 @@ class Categorical(ExtensionArray, PandasObject):
 
              .. versionadded:: 0.23.0
 
-           .. warning::
-
-              Currently, Series are considered list like. In a future version
-              of pandas they'll be considered dict-like.
-
         inplace : bool, default False
            Whether or not to rename the categories inplace or return a copy of
            this categorical with renamed categories.
@@ -938,15 +933,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
-
-        if isinstance(new_categories, ABCSeries):
-            msg = ("Treating Series 'new_categories' as a list-like and using "
-                   "the values. In a future version, 'rename_categories' will "
-                   "treat Series like a dictionary.\n"
-                   "For dict-like, use 'new_categories.to_dict()'\n"
-                   "For list-like, use 'new_categories.values'.")
-            warn(msg, FutureWarning, stacklevel=2)
-            new_categories = list(new_categories)
 
         if is_dict_like(new_categories):
             cat.categories = [new_categories.get(item, item)
@@ -1996,9 +1982,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
 
         category_strs = self._repr_categories()
-        dtype = getattr(self.categories, 'dtype_str',
-                        str(self.categories.dtype))
-
+        dtype = str(self.categories.dtype)
         levheader = "Categories ({length}, {dtype}): ".format(
             length=len(self.categories), dtype=dtype)
         width, height = get_terminal_size()

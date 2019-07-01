@@ -262,6 +262,7 @@ class TestReadHtml:
             self.read_html('git://github.com', match='.*Water.*')
 
     @network
+    @pytest.mark.slow
     def test_invalid_url(self):
         try:
             with pytest.raises(URLError):
@@ -309,10 +310,8 @@ class TestReadHtml:
 
     @pytest.mark.slow
     def test_multiindex_header_skiprows_tuples(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df = self._bank_data(header=[0, 1], skiprows=1,
-                                 tupleize_cols=True)[0]
-            assert isinstance(df.columns, Index)
+        df = self._bank_data(header=[0, 1], skiprows=1)[0]
+        assert isinstance(df.columns, MultiIndex)
 
     @pytest.mark.slow
     def test_multiindex_header_skiprows(self):

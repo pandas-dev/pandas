@@ -5,8 +5,12 @@ What's new in 0.25.0 (April XX, 2019)
 
 .. warning::
 
-   Starting with the 0.25.x series of releases, pandas only supports Python 3.5 and higher.
+   Starting with the 0.25.x series of releases, pandas only supports Python 3.5.3 and higher.
    See :ref:`install.dropping-27` for more details.
+
+.. warning::
+
+   The minimum supported Python version will be bumped to 3.6 in a future release.
 
 .. warning::
 
@@ -159,6 +163,7 @@ Other enhancements
 - Added support for reading SPSS .sav files using :func:`read_spss` (:issue:`26537`)
 - Added new option ``plotting.backend`` to be able to select a plotting backend different than the existing ``matplotlib`` one. Use ``pandas.set_option('plotting.backend', '<backend-module>')`` where ``<backend-module`` is a library implementing the pandas plotting API (:issue:`14130`)
 - :class:`pandas.offsets.BusinessHour` supports multiple opening hours intervals (:issue:`15481`)
+- :func:`read_excel` can now use ``openpyxl`` to read Excel files via the ``engine='openpyxl'`` argument. This will become the default in a future release (:issue:`11499`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -560,6 +565,8 @@ Other API changes
 - The ``.str``-accessor has been disabled for 1-level :class:`MultiIndex`, use :meth:`MultiIndex.to_flat_index` if necessary (:issue:`23679`)
 - Removed support of gtk package for clipboards (:issue:`26563`)
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
+- :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` will now raise a ``ValueError`` when saving timezone aware data. (:issue:`27008`, :issue:`7056`)
+- :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` will now raise a ``NotImplementedError`` when saving a :class:`MultiIndex` with extention data types for a ``fixed`` format. (:issue:`7775`)
 
 .. _whatsnew_0250.deprecations:
 
@@ -589,6 +596,12 @@ by a ``Series`` or ``DataFrame`` with sparse values.
 
 The memory usage of the two approaches is identical. See :ref:`sparse.migration` for more (:issue:`19239`).
 
+msgpack format
+^^^^^^^^^^^^^^
+
+The msgpack format is deprecated as of 0.25 and will be removed in a future version. It is recommended to use pyarrow for on-the-wire transmission of pandas objects. (:issue:`27084`)
+
+
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 
@@ -606,6 +619,11 @@ Other deprecations
   :meth:`SparseArray.get_values` and :meth:`Categorical.get_values` methods are deprecated.
   One of ``np.asarray(..)`` or :meth:`~Series.to_numpy` can be used instead (:issue:`19617`).
 - :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
+- :func:`read_table` has been undeprecated. (:issue:`25220`)
+- :attr:`Index.dtype_str` is deprecated. (:issue:`18262`)
+- :attr:`Series.imag` and :attr:`Series.real` are deprecated. (:issue:`18262`)
+- :meth:`Series.put` is deprecated. (:issue:`18262`)
+- :meth:`Index.item` and :meth:`Series.item` is deprecated. (:issue:`18262`)
 
 .. _whatsnew_0250.prior_deprecations:
 
@@ -618,6 +636,14 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``pd.options.html.border`` (:issue:`16970`)
 - Removed the previously deprecated ``convert_objects`` (:issue:`11221`)
 - Removed the previously deprecated ``select`` method of ``DataFrame`` and ``Series`` (:issue:`17633`)
+- Removed the previously deprecated behavior of :class:`Series` treated as list-like in :meth:`~Series.cat.rename_categories` (:issue:`17982`)
+- Removed the previously deprecated ``DataFrame.reindex_axis`` and ``Series.reindex_axis``` (:issue:`17842`)
+- Removed the previously deprecated behavior of altering column or index labels with :meth:`Series.rename_axis` or :meth:`DataFrame.rename_axis` (:issue:`17842`)
+- Removed the previously deprecated ``tupleize_cols`` keyword argument in :meth:`read_html`, :meth:`read_csv`, and :meth:`DataFrame.to_csv` (:issue:`17877`, :issue:`17820`)
+- Removed the previously deprecated ``DataFrame.from.csv`` and ``Series.from_csv`` (:issue:`17812`)
+- Removed the previously deprecated ``raise_on_error`` keyword argument in :meth:`DataFrame.where` and :meth:`DataFrame.mask` (:issue:`17744`)
+- Removed the previously deprecated ``ordered`` and ``categories`` keyword arguments in ``astype`` (:issue:`17742`)
+- Removed the previously deprecated ``cdate_range`` (:issue:`17691`)
 
 .. _whatsnew_0250.performance:
 
@@ -630,6 +656,7 @@ Performance improvements
   int8/int16/int32 and the searched key is within the integer bounds for the dtype (:issue:`22034`)
 - Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
 - Improved performance of slicing and other selected operation on a :class:`RangeIndex` (:issue:`26565`, :issue:`26617`, :issue:`26722`)
+- :class:`RangeIndex` now performs standard lookup without instantiating an actual hashtable, hence saving memory (:issue:`16685`)
 - Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
 - Improved performance of :meth:`read_csv` by faster parsing of N/A and boolean values (:issue:`25804`)
 - Improved performance of :attr:`IntervalIndex.is_monotonic`, :attr:`IntervalIndex.is_monotonic_increasing` and :attr:`IntervalIndex.is_monotonic_decreasing` by removing conversion to :class:`MultiIndex` (:issue:`24813`)
@@ -696,6 +723,7 @@ Timezones
 - Bug in :func:`to_datetime` with ``unit='ns'`` would drop timezone information from the parsed argument (:issue:`26168`)
 - Bug in :func:`DataFrame.join` where joining a timezone aware index with a timezone aware column would result in a column of ``NaN`` (:issue:`26335`)
 - Bug in :func:`date_range` where ambiguous or nonexistent start or end times were not handled by the ``ambiguous`` or ``nonexistent`` keywords respectively (:issue:`27088`)
+- Bug in :meth:`DatetimeIndex.union` when combining a timezone aware and timezone unaware :class:`DatetimeIndex` (:issue:`21671`)
 
 Numeric
 ^^^^^^^
@@ -791,6 +819,7 @@ I/O
 - :func:`read_excel` now raises a ``ValueError`` when input is of type :class:`pandas.io.excel.ExcelFile` and ``engine`` param is passed since :class:`pandas.io.excel.ExcelFile` has an engine defined (:issue:`26566`)
 - Bug while selecting from :class:`HDFStore` with ``where=''`` specified (:issue:`26610`).
 - Fixed bug in :func:`DataFrame.to_excel()` where custom objects (i.e. `PeriodIndex`) inside merged cells were not being converted into types safe for the Excel writer (:issue:`27006`)
+- Bug in :meth:`read_hdf` where reading a timezone aware :class:`DatetimeIndex` would raise a ``TypeError`` (:issue:`11926`)
 
 Plotting
 ^^^^^^^^
@@ -845,6 +874,7 @@ Reshaping
 - Bug in :meth:`Series.nlargest` treats ``True`` as smaller than ``False`` (:issue:`26154`)
 - Bug in :func:`DataFrame.pivot_table` with a :class:`IntervalIndex` as pivot index would raise ``TypeError`` (:issue:`25814`)
 - Bug in :meth:`DataFrame.transpose` where transposing a DataFrame with a timezone-aware datetime column would incorrectly raise ``ValueError`` (:issue:`26825`)
+- Bug in :func:`pivot_table` when pivoting a timezone aware column as the ``values`` would remove timezone information (:issue:`14948`)
 
 Sparse
 ^^^^^^
