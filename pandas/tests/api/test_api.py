@@ -51,7 +51,7 @@ class TestPDApi(Base):
                ]
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['']
+    deprecated_classes = []
 
     # these should be deprecated in the future
     deprecated_classes_in_future = []
