@@ -208,6 +208,25 @@ will
 2. call ``result = op(values, ExtensionArray)``
 3. re-box the result in a ``Series``
 
+.. _extending.extension.ufunc:
+
+NumPy Universal Functions
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Series` implements ``__array_ufunc__``. As part of the implementation,
+pandas unboxes the ``ExtensionArray`` from the :class:`Series`, applies the ufunc,
+and re-boxes it if necessary.
+
+If applicable, we highly recommend that you implement ``__array_ufunc__`` in your
+extension array to avoid coercion to an ndarray. See
+`the numpy documentation <https://docs.scipy.org/doc/numpy/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
+for an example.
+
+As part of your implementation, we require that you defer to pandas when a pandas
+container (:class:`Series`, :class:`DataFrame`, :class:`Index`) is detected in ``inputs``.
+If any of those is present, you should return ``NotImplemented``. Pandas will take care of
+unboxing the array from the container and re-calling the ufunc with the unwrapped input.
+
 .. _extending.extension.testing:
 
 Testing extension arrays

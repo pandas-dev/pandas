@@ -26,6 +26,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import factorize, take, take_1d, unique1d
@@ -1291,6 +1292,20 @@ class Categorical(ExtensionArray, PandasObject):
             # ndarray.
             ret = np.asarray(ret)
         return ret
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # for binary ops, use our custom dunder methods
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs)
+        if result is not NotImplemented:
+            return result
+
+        # for all other cases, raise for now (similarly as what happens in
+        # Series.__array_prepare__)
+        raise TypeError("Object with dtype {dtype} cannot perform "
+                        "the numpy op {op}".format(
+                            dtype=self.dtype,
+                            op=ufunc.__name__))
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
