@@ -662,6 +662,14 @@ class Block(PandasObject):
     def _coerce_values(self, values):
         """
         Coerce values (usually derived from self.values) for an operation.
+
+        Parameters
+        ----------
+        values : ndarray or ExtensionArray
+
+        Returns
+        -------
+        ndarray or ExtensionArray
         """
         return values
 
@@ -2131,9 +2139,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
                 isna(element))
 
     def _coerce_values(self, values):
-        """
-        Coerce values (usually derived from self.values) for an operation.
-        """
         return values.view('i8')
 
     def _try_coerce_args(self, other):
@@ -2312,9 +2317,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return self.values[slicer]
 
     def _coerce_values(self, values):
-        """
-        Coerce values (usually derived from self.values) for an operation.
-        """
         # asi8 is a view, needs copy
         return _block_shape(values.view("i8"), ndim=self.ndim)
 
@@ -2499,9 +2501,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         return super().fillna(value, **kwargs)
 
     def _coerce_values(self, values):
-        """
-        Coerce values (usually derived from self.values) for an operation.
-        """
         return values.view('i8')
 
     def _try_coerce_args(self, other):
