@@ -1815,7 +1815,7 @@ double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
     double r = PyOS_string_to_double(p, q, 0);
     if (maybe_int != NULL) *maybe_int = 0;
     if (PyErr_Occurred() != NULL) *error = -1;
-    else if (r == Py_HUGE_VAL) *error = Py_HUGE_VAL;
+    else if (r == Py_HUGE_VAL) *error = (int)Py_HUGE_VAL;
     PyErr_Clear();
     return r;
 }
