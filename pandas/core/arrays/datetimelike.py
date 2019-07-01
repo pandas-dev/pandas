@@ -36,7 +36,7 @@ import pandas.core.common as com
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
 
-from .base import ExtensionArray, ExtensionOpsMixin
+from .base import ExtensionArray, ExtensionOpsMixin, implement_2d
 
 
 class AttributesMixin:
@@ -324,6 +324,7 @@ default 'raise'
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
 
+@implement_2d
 class DatetimeLikeArrayMixin(ExtensionOpsMixin,
                              AttributesMixin,
                              ExtensionArray):

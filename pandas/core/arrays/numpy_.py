@@ -17,7 +17,7 @@ from pandas.core import nanops
 from pandas.core.algorithms import searchsorted
 from pandas.core.missing import backfill_1d, pad_1d
 
-from .base import ExtensionArray, ExtensionOpsMixin
+from .base import ExtensionArray, ExtensionOpsMixin, implement_2d
 
 
 class PandasDtype(ExtensionDtype):
@@ -83,6 +83,7 @@ class PandasDtype(ExtensionDtype):
         return self._dtype.itemsize
 
 
+@implement_2d
 class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     """
     A pandas ExtensionArray for NumPy data.

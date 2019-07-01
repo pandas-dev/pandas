@@ -19,7 +19,7 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin, implement_2d
 from pandas.core.tools.numeric import to_numeric
 
 
@@ -214,6 +214,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     return values, mask
 
 
+@implement_2d
 class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     """
     Array of integer (optional missing) values.

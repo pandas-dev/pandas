@@ -34,7 +34,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 from pandas._typing import Dtype
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin, implement_2d
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
@@ -518,6 +518,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
                        dtype=dtype)
 
 
+@implement_2d
 class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     """
     An ExtensionArray for storing sparse data.

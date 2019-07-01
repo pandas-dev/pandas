@@ -21,7 +21,7 @@ import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
 
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import ExtensionArray, implement_2d
 
 
 class JSONDtype(ExtensionDtype):
@@ -48,6 +48,7 @@ class JSONDtype(ExtensionDtype):
                             "'{}'".format(cls, string))
 
 
+@implement_2d
 class JSONArray(ExtensionArray):
     dtype = JSONDtype()
     __array_priority__ = 1000

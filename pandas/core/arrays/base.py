@@ -29,6 +29,32 @@ _not_implemented_message = "{} does not implement {}."
 _extension_array_shared_docs = dict()  # type: Dict[str, str]
 
 
+def implement_2d(cls):
+    """
+    A decorator to take a 1-dimension-only ExtensionArray subclass and make
+    it support limited 2-dimensional operations.
+    """
+
+    # For backwards-compatibility, if an EA author implemented __len__
+    #  but not size, we use that __len__ method to get an array's size.
+    has_size = cls.size is not ExtensionArray.size
+    has_shape = cls.shape is not ExtensionArray.shape
+    has_len = cls.__len__ is not ExtensionArray.__len__
+
+    if not has_size and has_len:
+        cls.size = property(cls.__len__)
+        cls.__len__ = ExtensionArray.__len__
+
+    elif not has_size and has_shape:
+        @property
+        def size(self) -> int:
+            return np.prod(self.shape)
+
+        cls.size = size
+
+    return cls
+
+
 class ExtensionArray:
     """
     Abstract base class for custom 1-D array types.
@@ -47,7 +73,7 @@ class ExtensionArray:
     * _from_sequence
     * _from_factorized
     * __getitem__
-    * shape
+    * __len__ *or* size
     * dtype
     * nbytes
     * isna
@@ -298,6 +324,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Required attributes
     # ------------------------------------------------------------------------
+    _shape = None
 
     @property
     def dtype(self) -> ExtensionDtype:
@@ -311,7 +338,12 @@ class ExtensionArray:
         """
         Return a tuple of the array dimensions.
         """
-        raise AbstractMethodError(self)
+        if self._shape is not None:
+            return self._shape
+
+        # Default to 1D
+        length = self.size
+        return (length,)
 
     @property
     def ndim(self) -> int:
@@ -325,7 +357,7 @@ class ExtensionArray:
         """
         The number of elements in this array.
         """
-        return np.prod(self.shape)
+        raise AbstractMethodError(self)
 
     @property
     def nbytes(self) -> int:
@@ -848,6 +880,22 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
+    def view(self, dtype=None) -> ABCExtensionArray:
+        """
+        Return a view on the array.
+
+        Returns
+        -------
+        ExtensionArray
+
+        Notes
+        -----
+        - This must return a *new* object, not self.
+        - The only case that *must* be implemented is with dtype=None,
+          giving a view with the same dtype as self.
+        """
+        raise AbstractMethodError(self)
+
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
@@ -914,6 +962,23 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Reshaping
     # ------------------------------------------------------------------------
+
+    @property
+    def T(self) -> ABCExtensionArray:
+        """
+        Return a transposed view on self.  For 1-D arrays this is a no-op.
+        """
+        if self.ndim != 1:
+            raise NotImplementedError
+        return self
+
+    def ravel(self, order=None) -> ABCExtensionArray:
+        """
+        Return a flattened view on self.  For 1-D arrays this is a no-op.
+        """
+        if self.ndim != 1:
+            raise NotImplementedError
+        return self
 
     @classmethod
     def _concat_same_type(

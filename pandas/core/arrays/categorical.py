@@ -37,7 +37,7 @@ from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
 
-from .base import ExtensionArray, _extension_array_shared_docs
+from .base import ExtensionArray, _extension_array_shared_docs, implement_2d
 
 _take_msg = textwrap.dedent("""\
     Interpreting negative values in 'indexer' as missing values.
@@ -208,6 +208,7 @@ setter to change values in the categorical.
 """
 
 
+@implement_2d
 class Categorical(ExtensionArray, PandasObject):
     """
     Represent a categorical variable in classic R / S-plus fashion.

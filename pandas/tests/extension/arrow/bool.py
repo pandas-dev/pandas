@@ -14,6 +14,7 @@ import pyarrow as pa
 import pandas as pd
 from pandas.api.extensions import (
     ExtensionArray, ExtensionDtype, register_extension_dtype, take)
+from pandas.core.arrays import implement_2d
 
 
 @register_extension_dtype
@@ -40,6 +41,7 @@ class ArrowBoolDtype(ExtensionDtype):
         return True
 
 
+@implement_2d
 class ArrowBoolArray(ExtensionArray):
     def __init__(self, values):
         if not isinstance(values, pa.ChunkedArray):
