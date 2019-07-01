@@ -6,7 +6,7 @@ This is not a public API.
 import datetime
 import operator
 import textwrap
-from typing import Dict, Optional
+from typing import Any, Callable, Dict, Optional
 import warnings
 
 import numpy as np
@@ -29,6 +29,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
+from pandas._typing import ArrayLike
 import pandas.core.common as com
 import pandas.core.missing as missing
 
@@ -1660,7 +1661,14 @@ def _arith_method_SERIES(cls, op, special):
                                               lambda val: op(val, y))
             raise
 
-        result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
+        if isinstance(result, tuple):
+            # e.g. divmod
+            result = tuple(
+                missing.fill_zeros(r, x, y, op_name, fill_zeros)
+                for r in result
+            )
+        else:
+            result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
         return result
 
     def wrapper(left, right):
@@ -2349,3 +2357,78 @@ def _arith_method_SPARSE_ARRAY(cls, op, special):
 
     wrapper.__name__ = op_name
     return wrapper
+
+
+def maybe_dispatch_ufunc_to_dunder_op(
+    self: ArrayLike,
+    ufunc: Callable,
+    method: str,
+    *inputs: ArrayLike,
+    **kwargs: Any
+):
+    """
+    Dispatch a ufunc to the equivalent dunder method.
+
+    Parameters
+    ----------
+    self : ArrayLike
+        The array whose dunder method we dispatch to
+    ufunc : Callable
+        A NumPy ufunc
+    method : {'reduce', 'accumulate', 'reduceat', 'outer', 'at', '__call__'}
+    inputs : ArrayLike
+        The input arrays.
+    kwargs : Any
+        The additional keyword arguments, e.g. ``out``.
+
+    Returns
+    -------
+    result : Any
+        The result of applying the ufunc
+    """
+    # special has the ufuncs we dispatch to the dunder op on
+    special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
+               'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder',
+               'matmul'}
+    aliases = {
+        'subtract': 'sub',
+        'multiply': 'mul',
+        'floor_divide': 'floordiv',
+        'true_divide': 'truediv',
+        'power': 'pow',
+        'remainder': 'mod',
+        'divide': 'div',
+        'equal': 'eq',
+        'not_equal': 'ne',
+        'less': 'lt',
+        'less_equal': 'le',
+        'greater': 'gt',
+        'greater_equal': 'ge',
+    }
+
+    # For op(., Array) -> Array.__r{op}__
+    flipped = {
+        'lt': '__gt__',
+        'le': '__ge__',
+        'gt': '__lt__',
+        'ge': '__le__',
+        'eq': '__eq__',
+        'ne': '__ne__',
+    }
+
+    op_name = ufunc.__name__
+    op_name = aliases.get(op_name, op_name)
+
+    def not_implemented(*args, **kwargs):
+        return NotImplemented
+
+    if (method == '__call__' and op_name in special
+            and kwargs.get('out') is None):
+        if isinstance(inputs[0], type(self)):
+            name = '__{}__'.format(op_name)
+            return getattr(self, name, not_implemented)(inputs[1])
+        else:
+            name = flipped.get(op_name, '__r{}__'.format(op_name))
+            return getattr(self, name, not_implemented)(inputs[0])
+    else:
+        return NotImplemented
