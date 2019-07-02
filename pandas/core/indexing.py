@@ -1074,7 +1074,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                                         raise_missing=raise_missing)
             return ax[indexer], indexer
 
-        if ax.is_unique:
+        if ax.is_unique and not getattr(ax, 'is_overlapping', False):
             # If we are trying to get actual keys from empty Series, we
             # patiently wait for a KeyError later on - otherwise, convert
             if len(ax) or not len(key):

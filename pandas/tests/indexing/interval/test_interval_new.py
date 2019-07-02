@@ -4,8 +4,6 @@ import pytest
 from pandas import Interval, IntervalIndex, Series
 import pandas.util.testing as tm
 
-pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
-
 
 class TestIntervalIndex:
 
@@ -72,10 +70,9 @@ class TestIntervalIndex:
         assert s.loc[1.5] == 1
         assert s.loc[2] == 1
 
-        # TODO with __getitem__ same rules as loc, or positional ?
-        # assert s[1] == 0
-        # assert s[1.5] == 1
-        # assert s[2] == 1
+        assert s[1] == 0
+        assert s[1.5] == 1
+        assert s[2] == 1
 
         expected = s.iloc[1:4]
         tm.assert_series_equal(expected, s.loc[[1.5, 2.5, 3.5]])
@@ -107,22 +104,23 @@ class TestIntervalIndex:
         result = s[Interval(0, 1):Interval(2, 3)]
         tm.assert_series_equal(expected, result)
 
-        expected = s.iloc[4:]
+        expected = s.iloc[3:]
         result = s.loc[Interval(3, 4):]
         tm.assert_series_equal(expected, result)
         result = s[Interval(3, 4):]
         tm.assert_series_equal(expected, result)
 
-        with pytest.raises(KeyError):
+        msg = 'Interval objects are not currently supported'
+        with pytest.raises(NotImplementedError, match=msg):
             s.loc[Interval(3, 6):]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(NotImplementedError, match=msg):
             s[Interval(3, 6):]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(NotImplementedError, match=msg):
             s.loc[Interval(3, 4, closed='left'):]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(NotImplementedError, match=msg):
             s[Interval(3, 4, closed='left'):]
 
         # TODO with non-existing intervals ?
@@ -134,17 +132,14 @@ class TestIntervalIndex:
         tm.assert_series_equal(expected, s.loc[:3])
         tm.assert_series_equal(expected, s.loc[:2.5])
         tm.assert_series_equal(expected, s.loc[0.1:2.5])
+        tm.assert_series_equal(expected, s.loc[-1:3])
 
-        # TODO should this work? (-1 is not contained in any of the Intervals)
-        # tm.assert_series_equal(expected, s.loc[-1:3])
-
-        # TODO with __getitem__ same rules as loc, or positional ?
-        # tm.assert_series_equal(expected, s[:3])
-        # tm.assert_series_equal(expected, s[:2.5])
-        # tm.assert_series_equal(expected, s[0.1:2.5])
+        tm.assert_series_equal(expected, s[:3])
+        tm.assert_series_equal(expected, s[:2.5])
+        tm.assert_series_equal(expected, s[0.1:2.5])
 
         # slice of scalar with step != 1
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(ValueError):
             s[0:4:2]
 
     def test_loc_with_overlap(self):
@@ -169,10 +164,10 @@ class TestIntervalIndex:
         # interval
         expected = 0
         result = s.loc[Interval(1, 5)]
-        tm.assert_series_equal(expected, result)
+        result == expected
 
         result = s[Interval(1, 5)]
-        tm.assert_series_equal(expected, result)
+        result == expected
 
         expected = s
         result = s.loc[[Interval(1, 5), Interval(3, 7)]]

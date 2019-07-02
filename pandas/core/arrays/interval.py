@@ -41,11 +41,6 @@ _interval_shared_docs['class'] = """
 
 .. versionadded:: %(versionadded)s
 
-.. warning::
-
-   The indexing behaviors are provisional and may change in
-   a future version of pandas.
-
 Parameters
 ----------
 data : array-like (1-dimensional)
