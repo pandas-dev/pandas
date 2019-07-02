@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import List
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -65,7 +65,7 @@ class _ODFReader(_BaseExcelReader):
 
         covered_cell_name = CoveredTableCell().qname
         table_cell_name = TableCell().qname
-        cell_names = { covered_cell_name, table_cell_name }
+        cell_names = {covered_cell_name, table_cell_name}
 
         sheet_rows = sheet.getElementsByType(TableRow)
         empty_rows = 0
