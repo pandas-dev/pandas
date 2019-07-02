@@ -924,12 +924,12 @@ class MultiIndex(Index):
 
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
+        names = kwargs.pop('names', kwargs.pop('name', self.names))
         if values is not None:
-            names = kwargs.pop('names', kwargs.pop('name', self.names))
             # discards freq
             kwargs.pop('freq', None)
             return MultiIndex.from_tuples(values, names=names, **kwargs)
-        return self.view()
+        return self.copy(names=names, **kwargs)
 
     @cache_readonly
     def dtype(self):
@@ -1810,7 +1810,7 @@ class MultiIndex(Index):
             new_levels.append(lev)
             new_codes.append(level_codes)
 
-        result = self._shallow_copy()
+        result = self.view()
 
         if changed:
             result._reset_identity()
