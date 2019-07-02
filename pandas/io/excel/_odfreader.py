@@ -80,10 +80,10 @@ class _ODFReader(_BaseExcelReader):
             table_row = []  # type: List[Scalar]
 
             for j, sheet_cell in enumerate(sheet_cells):
-                if sheet_cell.qname == covered_cell_name:
-                    value = self.empty_value
-                else:
+                if sheet_cell.qname == table_cell_name:
                     value = self._get_cell_value(sheet_cell, convert_float)
+                else:
+                    value = self.empty_value
 
                 column_repeat = self._get_column_repeat(sheet_cell)
 
