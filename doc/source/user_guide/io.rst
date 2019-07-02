@@ -108,8 +108,7 @@ header : int or list of ints, default ``'infer'``
   line of data rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
-  explicitly pass ``header=None``. Duplicates in this list will cause
-  a ``UserWarning`` to be issued.
+  explicitly pass ``header=None``. Duplicates in this list are not allowed.
 index_col : int, str, sequence of int / str, or False, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as
   string name or column index. If a sequence of int / str is given, a
