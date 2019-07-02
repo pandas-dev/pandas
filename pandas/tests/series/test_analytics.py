@@ -52,6 +52,9 @@ class TestSeriesAnalytics:
 
         result = s[:0].describe()
         tm.assert_series_equal(result, expected)
+        # ensure NaN, not None
+        assert np.isnan(result.iloc[2])
+        assert np.isnan(result.iloc[3])
 
     def test_describe_with_tz(self, tz_naive_fixture):
         # GH 21332

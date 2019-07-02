@@ -601,14 +601,17 @@ class TestDataFrameAnalytics:
 
     def test_describe_empty_categorical_column(self):
         # GH 26397
-        # Ensure the index of an an empty categoric DataFrame column
+        # Ensure the index of an an empty categorical DataFrame column
         # also contains (count, unique, top, freq)
         df = pd.DataFrame({"empty_col": Categorical([])})
         result = df.describe()
-        expected = DataFrame({'empty_col': [0, 0, None, None]},
+        expected = DataFrame({'empty_col': [0, 0, np.nan, np.nan]},
                              index=['count', 'unique', 'top', 'freq'],
                              dtype='object')
         tm.assert_frame_equal(result, expected)
+        # ensure NaN, not None
+        assert np.isnan(result.iloc[2, 0])
+        assert np.isnan(result.iloc[3, 0])
 
     def test_describe_categorical_columns(self):
         # GH 11558
