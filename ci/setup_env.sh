@@ -81,7 +81,7 @@ if [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
     echo "Install ccache"
     conda install ccache -y
     echo "Using ccache"
-    ccache --status
+    ccache --show-stats
     ccache --version
     if [ -z "$GCC" ]; then
         GCC=$(which gcc)
@@ -94,7 +94,7 @@ elif [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "osx" ]; then
     echo "Install ccache"
     conda install ccache -y
     echo "Using ccache"
-    ccache --status
+    ccache --show-stats
     ccache --version
     gcc=$CC
     if [ -z "$CC" ]; then
