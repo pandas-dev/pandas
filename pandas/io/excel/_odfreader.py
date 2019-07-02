@@ -30,6 +30,11 @@ class _ODFReader(_BaseExcelReader):
         return load(filepath_or_buffer)
 
     @property
+    def empty_value(self) -> str:
+        """Property for compat with other readers."""
+        return ''
+
+    @property
     def sheet_names(self) -> List[str]:
         """Return a list of sheet names present in the document"""
         from odf.table import Table
@@ -56,49 +61,39 @@ class _ODFReader(_BaseExcelReader):
     def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
         """Parse an ODF Table into a list of lists
         """
-        from odf.table import TableCell, TableRow
+        from odf.table import CoveredTableCell, TableCell, TableRow
+
+        covered_cell_name = CoveredTableCell().qname
+        table_cell_name = TableCell().qname
+        cell_names = { covered_cell_name, table_cell_name }
 
         sheet_rows = sheet.getElementsByType(TableRow)
-        table = []  # type: List[List[Scalar]]
         empty_rows = 0
         max_row_len = 0
-        row_spans = {}  # type: Dict[int, int]
+
+        table = []  # type: List[List[Scalar]]
 
         for i, sheet_row in enumerate(sheet_rows):
-            sheet_cells = sheet_row.getElementsByType(TableCell)
+            sheet_cells = [x for x in sheet_row.childNodes
+                           if x.qname in cell_names]
             empty_cells = 0
             table_row = []  # type: List[Scalar]
 
             for j, sheet_cell in enumerate(sheet_cells):
-                # Handle vertically merged cells; only works with first column
-                if row_spans.get(j, 0) > 1:
-                    table_row.append('')
-                    row_spans[j] = row_spans[j] - 1
+                if sheet_cell.qname == covered_cell_name:
+                    value = self.empty_value
+                else:
+                    value = self._get_cell_value(sheet_cell, convert_float)
 
-                value = self._get_cell_value(sheet_cell, convert_float)
                 column_repeat = self._get_column_repeat(sheet_cell)
-                column_span = self._get_column_span(sheet_cell)
-                row_span = self._get_row_span(sheet_cell)
 
-                if row_span > 1:
-                    if j > 0:
-                        raise NotImplementedError(
-                            "The odf reader only supports vertical cell"
-                            "merging in the initial column")
-                    else:
-                        row_spans[j] = row_span
-
-                if len(sheet_cell.childNodes) == 0:
+                # Queue up empty values, writing only if content succeeds them
+                if value == self.empty_value:
                     empty_cells += column_repeat
                 else:
-                    if empty_cells > 0:
-                        table_row.extend([''] * empty_cells)
-                        empty_cells = 0
+                    table_row.extend([self.empty_value] * empty_cells)
+                    empty_cells = 0
                     table_row.extend([value] * column_repeat)
-
-                    # horizontally merged cells should only show first value
-                    if column_span > 1:
-                        table_row.extend([''] * (column_span - 1))
 
             if max_row_len < len(table_row):
                 max_row_len = len(table_row)
@@ -107,17 +102,16 @@ class _ODFReader(_BaseExcelReader):
             if self._is_empty_row(sheet_row):
                 empty_rows += row_repeat
             else:
-                if empty_rows > 0:
-                    # add blank rows to our table
-                    table.extend([['']] * empty_rows)
-                    empty_rows = 0
+                # add blank rows to our table
+                table.extend([[self.empty_value]] * empty_rows)
+                empty_rows = 0
                 for _ in range(row_repeat):
                     table.append(table_row)
 
         # Make our table square
         for row in table:
             if len(row) < max_row_len:
-                row.extend([''] * (max_row_len - len(row)))
+                row.extend([self.empty_value] * (max_row_len - len(row)))
 
         return table
 
@@ -134,16 +128,6 @@ class _ODFReader(_BaseExcelReader):
         from odf.namespaces import TABLENS
         return int(cell.attributes.get(
             (TABLENS, 'number-columns-repeated'), 1))
-
-    def _get_row_span(self, cell) -> int:
-        """For handling cells merged vertically."""
-        from odf.namespaces import TABLENS
-        return int(cell.attributes.get((TABLENS, 'number-rows-spanned'), 1))
-
-    def _get_column_span(self, cell) -> int:
-        """For handling cells merged horizontally."""
-        from odf.namespaces import TABLENS
-        return int(cell.attributes.get((TABLENS, 'number-columns-spanned'), 1))
 
     def _is_empty_row(self, row) -> bool:
         """Helper function to find empty rows
@@ -162,7 +146,7 @@ class _ODFReader(_BaseExcelReader):
                 return True
             return False
         if cell_type is None:
-            return ''  # compat with xlrd
+            return self.empty_value
         elif cell_type == 'float':
             # GH5394
             cell_value = float(cell.attributes.get((OFFICENS, 'value')))
