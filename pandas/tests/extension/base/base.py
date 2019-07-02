@@ -2,6 +2,9 @@ import pandas.util.testing as tm
 
 
 class BaseExtensionTests:
+    # Whether the EA being tested supports __setitem__
+    _supports_setitem = True
+
     assert_equal = staticmethod(tm.assert_equal)
     assert_series_equal = staticmethod(tm.assert_series_equal)
     assert_frame_equal = staticmethod(tm.assert_frame_equal)

@@ -82,6 +82,7 @@ def data_for_grouping(request):
 
 
 class BaseSparseTests:
+    _supports_setitem = False
 
     def _check_unsupported(self, data):
         if data.dtype == SparseDtype(int, 0):
