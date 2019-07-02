@@ -402,11 +402,6 @@ class PlotAccessor(PandasObject):
     Make plots of Series or DataFrame using the backend specified by the
     option ``plotting.backend``. By default, matplotlib is used.
 
-    *New in version 0.17.0:* Each plot kind has a corresponding method on
-    the Series or DataFrame accessor, for example:
-    ``Series.plot(kind='line')`` is equivalent to
-    ``Series.plot.line()``.
-
     Parameters
     ----------
     data : Series or DataFrame
@@ -517,13 +512,11 @@ class PlotAccessor(PandasObject):
     @staticmethod
     def _get_call_args(data, args, kwargs):
         """
-        We used to have different accessors for Series and DataFrame. Their
-        signatures were different:
-
-        - SeriesPlotMethods.__call__(kind, ..., **kwargs)
-        - DataFramePlotMethods.__call__(x, y, kind, ..., **kwargs)
-
-        This function makes this unified `__call__` method compatible with both
+        This function makes calls to this accessor `__call__` method compatible
+        with the previous `SeriesPlotMethods.__call__` and
+        `DataFramePlotMethods.__call__`. Those had slightly different
+        signatures, since `DataFramePlotMethods` accepted `x` and `y`
+        parameters.
         """
         if args and isinstance(data, ABCSeries):
             # TODO raise warning here, positional arguments shouldn't be
@@ -573,6 +566,9 @@ class PlotAccessor(PandasObject):
             raise ValueError('{} is not a valid plot kind'.format(kind))
 
         plot_backend = _get_plot_backend()
+        # The original data structured can be transformed before passed to the
+        # backend. For example, for DataFrame is common to set the index as the
+        # `x` parameter, and return a Series with the parameter `y` as values.
         data = self._parent.copy()
 
         if isinstance(data, pandas.core.dtypes.generic.ABCSeries):
