@@ -1,6 +1,7 @@
 """
 Utilities for implementing 2D compatibility for 1D ExtensionArrays.
 """
+from functools import wraps
 from typing import Tuple
 
 import numpy as np
@@ -32,10 +33,43 @@ def implement_2d(cls):
 
         cls.size = size
 
+    orig_copy = cls.copy
+
+    @wraps(orig_copy)
+    def copy(self):
+        result = orig_copy(self)
+        result._shape = self._shape
+        return result
+
+    cls.copy = copy
+
     return cls
 
 
-def tuplify_shape(size: int, shape) -> Tuple[int, ...]:
+def can_safe_ravel(shape: Tuple[int, ...]) -> bool:
+    """
+    Check if an array with the given shape can be ravelled unambiguously
+    regardless of column/row order.
+
+    Parameters
+    ----------
+    shape : tuple[int]
+
+    Returns
+    -------
+    bool
+    """
+    if len(shape) == 1:
+        return True
+    if len(shape) > 2:
+        raise NotImplementedError(shape)
+    if shape[0] == 1 or shape[1] == 1:
+        # column-like or row-like
+        return True
+    return False
+
+
+def tuplify_shape(size: int, shape, restrict=True) -> Tuple[int, ...]:
     """
     Convert a passed shape into a valid tuple.
     Following ndarray.reshape, we accept either `reshape(a, b)` or
@@ -45,6 +79,8 @@ def tuplify_shape(size: int, shape) -> Tuple[int, ...]:
     ----------
     size : int
     shape : tuple
+    restrict : bool, default True
+        Whether to restrict to shapes (N), (1,N), and (N,1)
 
     Returns
     -------
@@ -84,7 +120,7 @@ def tuplify_shape(size: int, shape) -> Tuple[int, ...]:
                                                 size=size))
 
     num_gt1 = len([x for x in shape if x > 1])
-    if num_gt1 > 1:
+    if num_gt1 > 1 and restrict:
         raise ValueError("The default `reshape` implementation is limited to "
                          "shapes (N,), (N,1), and (1,N), not {shape}"
                          .format(shape=shape))

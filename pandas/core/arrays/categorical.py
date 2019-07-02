@@ -1208,17 +1208,8 @@ class Categorical(ExtensionArray, PandasObject):
 
     # for Series/ndarray like compat
     @property
-    def shape(self):
-        """
-        Shape of the Categorical.
-
-        For internal compatibility with numpy arrays.
-
-        Returns
-        -------
-        shape : tuple
-        """
-        return self._codes.shape
+    def size(self) -> int:
+        return self._codes.size
 
     def shift(self, periods, fill_value=None):
         """

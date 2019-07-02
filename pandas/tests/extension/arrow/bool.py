@@ -76,8 +76,8 @@ class ArrowBoolArray(ExtensionArray):
             return type(self).from_scalars(vals)
 
     @property
-    def shape(self):
-        return (len(self._data),)
+    def size(self) -> int:
+        return len(self._data)
 
     def astype(self, dtype, copy=True):
         # needed to fix this astype for the Series constructor.

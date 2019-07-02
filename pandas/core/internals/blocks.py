@@ -598,10 +598,8 @@ class Block(PandasObject):
 
                 # TODO(extension)
                 # should we make this attribute?
-                try:
+                if isinstance(values, np.ndarray):
                     values = values.reshape(self.shape)
-                except AttributeError:
-                    pass
 
             newb = make_block(values, placement=self.mgr_locs,
                               ndim=self.ndim)
@@ -2639,10 +2637,8 @@ class ObjectBlock(Block):
         def f(m, v, i):
             shape = v.shape
             values = fn(v.ravel(), **fn_kwargs)
-            try:
+            if isinstance(values, np.ndarray):
                 values = values.reshape(shape)
-            except (AttributeError, NotImplementedError):
-                pass
 
             values = _block_shape(values, ndim=self.ndim)
             return values

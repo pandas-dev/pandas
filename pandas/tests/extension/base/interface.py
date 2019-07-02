@@ -75,6 +75,13 @@ class BaseInterfaceTests(BaseExtensionTests):
         data[1] = data[0]
         assert result[1] != result[0]
 
+    def test_copy_preserves_shape(self, data):
+        data_2d = data.reshape(1, -1)
+        assert data_2d.shape == (1, len(data)), data_2d.shape
+
+        copied = data_2d.copy()
+        assert copied.shape == data_2d.shape, (copied.shape, data_2d.shape)
+
     def test_view(self, data):
         # view with no dtype should return a shallow copy, *not* the same
         #  object

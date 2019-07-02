@@ -107,8 +107,8 @@ class JSONArray(ExtensionArray):
                     self.data[k] = v
 
     @property
-    def shape(self):
-        return (len(self.data),)
+    def size(self) -> int:
+        return len(self.data)
 
     @property
     def nbytes(self):

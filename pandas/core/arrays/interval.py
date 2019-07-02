@@ -470,8 +470,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return iter(np.asarray(self))
 
     @property
-    def shape(self):
-        return self.left.shape
+    def size(self) -> int:
+        return self.left.size
 
     def __getitem__(self, value):
         left = self.left[value]

@@ -404,8 +404,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         return self._data
 
     @property
-    def shape(self):
-        return self._data.shape
+    def size(self) -> int:
+        return self._data.size
 
     def __getitem__(self, key):
         """

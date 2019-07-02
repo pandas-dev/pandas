@@ -243,8 +243,8 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             self._ndarray[key] = value
 
     @property
-    def shape(self):
-        return self._ndarray.shape
+    def size(self) -> int:
+        return self._ndarray.size
 
     @property
     def nbytes(self):

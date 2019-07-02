@@ -23,7 +23,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas._typing import ArrayLike
 from pandas.core import ops
-from pandas.core.arrays._reshaping import tuplify_shape
+from pandas.core.arrays._reshaping import tuplify_shape, can_safe_ravel
 
 _not_implemented_message = "{} does not implement {}."
 
@@ -326,6 +326,13 @@ class ExtensionArray:
         # Default to 1D
         length = self.size
         return (length,)
+
+    @shape.setter
+    def shape(self, value):
+        size = np.prod(value)
+        if size != self.size:
+            raise ValueError("Implied size must match actual size.")
+        self._shape = value
 
     @property
     def ndim(self) -> int:
@@ -949,7 +956,7 @@ class ExtensionArray:
         # numpy accepts either a single tuple or an expanded tuple
         shape = tuplify_shape(self.size, shape)
         result = self.view()
-        result._shape = shape
+        result.shape = shape
         return result
 
     @property
@@ -957,6 +964,8 @@ class ExtensionArray:
         """
         Return a transposed view on self.
         """
+        if not can_safe_ravel(self.shape):
+            raise NotImplementedError
         shape = self.shape[::-1]
         return self.reshape(shape)
 
@@ -966,6 +975,8 @@ class ExtensionArray:
         """
         # Note: we ignore `order`, keep the argument for compat with
         #  numpy signature.
+        if not can_safe_ravel(self.shape):
+            raise NotImplementedError
         shape = (self.size,)
         return self.reshape(shape)
 
