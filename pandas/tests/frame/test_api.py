@@ -7,8 +7,8 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Series, SparseDataFrame, SparseDtype,
-    compat, date_range, timedelta_range)
+    Categorical, DataFrame, Series, SparseDataFrame, SparseDtype, compat,
+    date_range, timedelta_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
