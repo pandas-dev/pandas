@@ -598,6 +598,29 @@ class TestIntervalIndex(Base):
         with pytest.raises(ValueError, match=msg):
             index._maybe_convert_i8(key)
 
+    def test_contains_method(self):
+        # can select values that are IN the range of a value
+        i = IntervalIndex.from_arrays([0, 1], [1, 2])
+
+        expected = np.array([False, False], dtype='bool')
+        actual = i.contains(0)
+        tm.assert_numpy_array_equal(actual, expected)
+        actual = i.contains(3)
+        tm.assert_numpy_array_equal(actual, expected)
+
+        expected = np.array([True, False], dtype='bool')
+        actual = i.contains(0.5)
+        tm.assert_numpy_array_equal(actual, expected)
+        actual = i.contains(1)
+        tm.assert_numpy_array_equal(actual, expected)
+
+        # __contains__ not implemented for "interval in interval", follow
+        # that for the contains method for now
+        with pytest.raises(
+                NotImplementedError,
+                match='contains not implemented for two'):
+            i.contains(Interval(0, 1))
+
     def test_dropna(self, closed):
 
         expected = IntervalIndex.from_tuples(
@@ -765,11 +788,9 @@ class TestIntervalIndex(Base):
         assert iv_false not in index
 
         # .contains does check individual points
-        assert not index.contains(Timestamp('2000-01-01', tz=tz))
-        assert index.contains(Timestamp('2000-01-01T12', tz=tz))
-        assert index.contains(Timestamp('2000-01-02', tz=tz))
-        assert index.contains(iv_true)
-        assert not index.contains(iv_false)
+        assert not index.contains(Timestamp('2000-01-01', tz=tz)).any()
+        assert index.contains(Timestamp('2000-01-01T12', tz=tz)).any()
+        assert index.contains(Timestamp('2000-01-02', tz=tz)).any()
 
         # test get_indexer
         start = Timestamp('1999-12-31T12:00', tz=tz)

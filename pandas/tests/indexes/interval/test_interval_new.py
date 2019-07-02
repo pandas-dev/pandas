@@ -258,23 +258,3 @@ class TestIntervalIndex:
         assert Interval(-1, 0, closed='left') not in index
         assert Interval(0, 1, closed='left') not in index
         assert Interval(0, 1, closed='both') not in index
-
-    def test_contains_method(self):
-
-        index = IntervalIndex.from_arrays([0, 1], [1, 2], closed='right')
-
-        assert not index.contains(0)
-        assert index.contains(0.1)
-        assert index.contains(0.5)
-        assert index.contains(1)
-
-        assert index.contains(Interval(0, 1, closed='right'))
-        assert not index.contains(Interval(0, 1, closed='left'))
-        assert not index.contains(Interval(0, 1, closed='both'))
-        assert not index.contains(Interval(0, 2, closed='right'))
-
-        assert not index.contains(Interval(0, 3, closed='right'))
-        assert not index.contains(Interval(1, 3, closed='right'))
-
-        assert not index.contains(20)
-        assert not index.contains(-20)

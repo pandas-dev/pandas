@@ -421,7 +421,11 @@ class Index(IndexOpsMixin, PandasObject):
                     return Float64Index(subarr, copy=copy, name=name)
                 elif inferred == 'interval':
                     from .interval import IntervalIndex
-                    return IntervalIndex(subarr, name=name, copy=copy)
+                    try:
+                        return IntervalIndex(subarr, name=name, copy=copy)
+                    except ValueError:
+                        # GH27172: mixed closed Intervals --> object dtype
+                        pass
                 elif inferred == 'boolean':
                     # don't support boolean explicitly ATM
                     pass
@@ -4020,13 +4024,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx
         Int64Index([1, 2, 3, 4], dtype='int64')
 
-        >>> idx.contains(2)
-        True
-        >>> idx.contains(6)
-        False
-
-        This is equivalent to:
-
         >>> 2 in idx
         True
         >>> 6 in idx
@@ -4041,8 +4038,21 @@ class Index(IndexOpsMixin, PandasObject):
         except (OverflowError, TypeError, ValueError):
             return False
 
-    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
+        """
+        Return a boolean indicating whether the provided key is in the index.
+
+        .. deprecated:: 0.25.0
+            Use ``key in index`` instead of ``index.contains(key)``.
+
+        Returns
+        -------
+        bool
+        """
+        warnings.warn(
+            "The 'contains' method is deprecated and will be removed in a "
+            "future version. Use 'key in index' instead of "
+            "'index.contains(key)'", FutureWarning, stacklevel=2)
         return key in self
 
     def __hash__(self):

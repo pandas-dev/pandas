@@ -386,10 +386,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         return contains(self, key, container=self._engine)
 
-    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
-    def contains(self, key):
-        return key in self
-
     def __array__(self, dtype=None):
         """ the array interface, return my values """
         return np.array(self._data, dtype=dtype)
