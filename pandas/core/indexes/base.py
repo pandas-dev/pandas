@@ -421,7 +421,11 @@ class Index(IndexOpsMixin, PandasObject):
                     return Float64Index(subarr, copy=copy, name=name)
                 elif inferred == 'interval':
                     from .interval import IntervalIndex
-                    return IntervalIndex(subarr, name=name, copy=copy)
+                    try:
+                        return IntervalIndex(subarr, name=name, copy=copy)
+                    except ValueError:
+                        # GH27172: mixed closed Intervals --> object dtype
+                        pass
                 elif inferred == 'boolean':
                     # don't support boolean explicitly ATM
                     pass
