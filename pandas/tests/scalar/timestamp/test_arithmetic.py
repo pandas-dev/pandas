@@ -99,7 +99,7 @@ class TestTimestampArithmetic:
     @pytest.mark.parametrize('freq, td, td64', [
         ('D', timedelta(days=1), np.timedelta64(1, 'D')),
         ('W', timedelta(weeks=1), np.timedelta64(1, 'W')),
-        ('M', timedelta(months=1), np.timedelta64(1, 'M'))
+        ('M', None, np.timedelta64(1, 'M'))
     ])
     def test_addition_subtraction_preserve_frequency(self, freq, td, td64):
         ts = Timestamp('2014-03-05', freq=freq)
