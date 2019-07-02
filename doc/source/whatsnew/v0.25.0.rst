@@ -567,6 +567,7 @@ Other API changes
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
 - :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` will now raise a ``ValueError`` when saving timezone aware data. (:issue:`27008`, :issue:`7056`)
 - :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` will now raise a ``NotImplementedError`` when saving a :class:`MultiIndex` with extention data types for a ``fixed`` format. (:issue:`7775`)
+- Passing duplicate ``names`` in :meth:`read_csv` will now raise a ``ValueError`` (:issue:`17346`)
 
 .. _whatsnew_0250.deprecations:
 
@@ -615,12 +616,16 @@ Other deprecations
   Use the public attributes :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop` and :attr:`~RangeIndex.step` instead (:issue:`26581`).
 - The :meth:`Series.ftype`, :meth:`Series.ftypes` and :meth:`DataFrame.ftypes` methods are deprecated and will be removed in a future version.
   Instead, use :meth:`Series.dtype` and :meth:`DataFrame.dtypes` (:issue:`26705`).
+- The :meth:`Series.get_values`, :meth:`DataFrame.get_values`, :meth:`Index.get_values`,
+  :meth:`SparseArray.get_values` and :meth:`Categorical.get_values` methods are deprecated.
+  One of ``np.asarray(..)`` or :meth:`~Series.to_numpy` can be used instead (:issue:`19617`).
 - :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
 - :func:`read_table` has been undeprecated. (:issue:`25220`)
 - :attr:`Index.dtype_str` is deprecated. (:issue:`18262`)
 - :attr:`Series.imag` and :attr:`Series.real` are deprecated. (:issue:`18262`)
 - :meth:`Series.put` is deprecated. (:issue:`18262`)
 - :meth:`Index.item` and :meth:`Series.item` is deprecated. (:issue:`18262`)
+- :meth:`Index.contains` is deprecated. Use ``key in index`` (``__contains__``) instead (:issue:`17753`).
 
 .. _whatsnew_0250.prior_deprecations:
 
@@ -641,6 +646,8 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``raise_on_error`` keyword argument in :meth:`DataFrame.where` and :meth:`DataFrame.mask` (:issue:`17744`)
 - Removed the previously deprecated ``ordered`` and ``categories`` keyword arguments in ``astype`` (:issue:`17742`)
 - Removed the previously deprecated ``cdate_range`` (:issue:`17691`)
+- Removed the previously deprecated ``True`` option for the ``dropna`` keyword argument in :func:`SeriesGroupBy.nth` (:issue:`17493`)
+- Removed the previously deprecated ``convert`` keyword argument in :meth:`Series.take` and :meth:`DataFrame.take`(:issue:`17352`)
 
 .. _whatsnew_0250.performance:
 
@@ -757,7 +764,7 @@ Interval
 
 - Construction of :class:`Interval` is restricted to numeric, :class:`Timestamp` and :class:`Timedelta` endpoints (:issue:`23013`)
 - Fixed bug in :class:`Series`/:class:`DataFrame` not displaying ``NaN`` in :class:`IntervalIndex` with missing values (:issue:`25984`)
--
+- Bug in :class:`Index` constructor where passing mixed closed :class:`Interval` objects would result in a ``ValueError`` instead of an ``object`` dtype ``Index`` (:issue:`27172`)
 
 Indexing
 ^^^^^^^^
@@ -770,7 +777,9 @@ Indexing
 - Bug in which :meth:`DataFrame.to_csv` caused a segfault for a reindexed data frame, when the indices were single-level :class:`MultiIndex` (:issue:`26303`).
 - Fixed bug where assigning a :class:`arrays.PandasArray` to a :class:`pandas.core.frame.DataFrame` would raise error (:issue:`26390`)
 - Allow keyword arguments for callable local reference used in the :meth:`DataFrame.query` string (:issue:`26426`)
-
+- Bug which produced ``AttributeError`` on partial matching :class:`Timestamp` in a :class:`MultiIndex`  (:issue:`26944`)
+- Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` on a :class:`DataFrame` with a single timezone-aware datetime64[ns] column incorrectly returning a scalar instead of a :class:`Series` (:issue:`27110`)
+-
 
 Missing
 ^^^^^^^
@@ -851,6 +860,8 @@ Groupby/resample/rolling
 - Bug in :meth:`pandas.core.groupby.GroupBy.agg` where incorrect results are returned for uint64 columns. (:issue:`26310`)
 - Bug in :meth:`pandas.core.window.Rolling.median` and :meth:`pandas.core.window.Rolling.quantile` where MemoryError is raised with empty window (:issue:`26005`)
 - Bug in :meth:`pandas.core.window.Rolling.median` and :meth:`pandas.core.window.Rolling.quantile` where incorrect results are returned with ``closed='left'`` and ``closed='neither'`` (:issue:`26005`)
+- Improved :class:`pandas.core.window.Rolling`, :class:`pandas.core.window.Window` and :class:`pandas.core.window.EWM` functions to exclude nuisance columns from results instead of raising errors and raise a ``DataError`` only if all columns are nuisance (:issue:`12537`)
+- Bug in :meth:`pandas.core.window.Rolling.max` and :meth:`pandas.core.window.Rolling.min` where incorrect results are returned with an empty variable window`` (:issue:`26005`)
 
 Reshaping
 ^^^^^^^^^
@@ -882,6 +893,7 @@ Sparse
 - Introduce a better error message in :meth:`Series.sparse.from_coo` so it returns a ``TypeError`` for inputs that are not coo matrices (:issue:`26554`)
 - Bug in :func:`numpy.modf` on a :class:`SparseArray`. Now a tuple of :class:`SparseArray` is returned (:issue:`26946`).
 
+
 Build Changes
 ^^^^^^^^^^^^^
 
@@ -892,6 +904,7 @@ ExtensionArray
 
 - Bug in :func:`factorize` when passing an ``ExtensionArray`` with a custom ``na_sentinel`` (:issue:`25696`).
 - :meth:`Series.count` miscounts NA values in ExtensionArrays (:issue:`26835`)
+- Added ``Series.__array_ufunc__`` to better handle NumPy ufuncs applied to Series backed by extension arrays (:issue:`23293`).
 - Keyword argument ``deep`` has been removed from :meth:`ExtensionArray.copy` (:issue:`27083`)
 
 Other

@@ -37,17 +37,13 @@ def test_basic_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_basic_names_warn(all_parsers):
+def test_basic_names_raise(all_parsers):
     # See gh-7160
     parser = all_parsers
 
     data = "0,1,2\n3,4,5"
-    expected = DataFrame([[0, 1, 2], [3, 4, 5]],
-                         columns=["a", "b", "a.1"])
-
-    with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), names=["a", "b", "a"])
-        tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match='Duplicate names'):
+        parser.read_csv(StringIO(data), names=["a", "b", "a"])
 
 
 @pytest.mark.parametrize("data,expected", [
@@ -90,9 +86,8 @@ def test_thorough_mangle_names(all_parsers, data, names, expected):
     # see gh-17095
     parser = all_parsers
 
-    with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), names=names)
-        tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match='Duplicate names'):
+        parser.read_csv(StringIO(data), names=names)
 
 
 def test_mangled_unnamed_placeholders(all_parsers):
