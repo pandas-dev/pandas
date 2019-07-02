@@ -697,6 +697,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # TODO: Could skip verify_integrity here.
         return type(self).from_arrays(left, right, closed=closed)
 
+    def view(self, dtype=None):
+        if dtype is not None:
+            raise NotImplementedError
+        return type(self)._simple_new(self._left, self._right, self.closed,
+                                      copy=False, dtype=None,
+                                      verify_integrity=False)
+
     def isna(self):
         return isna(self.left)
 
