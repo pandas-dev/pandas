@@ -76,15 +76,6 @@ cpdef inline object get_timezone(object tz):
                 zone = tz.zone
                 if zone is None:
                     return tz
-
-                # UTC and Etc/GMT or Etc/GMT+0 are the same timezones
-                if not isinstance(zone, str):
-                    str_zone = str(zone)
-                else:
-                    str_zone = zone
-
-                if str_zone == 'Etc/GMT' or str_zone == 'Etc/GMT+0':
-                    return UTC
                 return zone
             except AttributeError:
                 return tz

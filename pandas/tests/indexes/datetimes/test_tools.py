@@ -6,9 +6,6 @@ import locale
 
 from dateutil.parser import parse
 from dateutil.tz.tz import tzoffset
-from hypothesis import given
-from hypothesis.extra.pytz import timezones
-from hypothesis.strategies import datetimes
 import numpy as np
 import pytest
 import pytz
@@ -517,27 +514,6 @@ class TestToDatetime:
         expected = pd.Index([parse(x) for x in arr])
         result = pd.to_datetime(arr, cache=cache)
         tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize('errors', ('ignore', 'coerce', 'raise'))
-    @pytest.mark.parametrize('suffix', ([], ['foo']))
-    @pytest.mark.parametrize('convertor', (lambda x: x, str))
-    @given(date1=datetimes(timezones=timezones()),
-           date2=datetimes(timezones=timezones()))
-    def test_to_datetime_cache_invariance(self, date1, date2, suffix,
-                                          errors, convertor):
-        # prepare a list of dates to parse with some duplicates
-        # and possible invalid string
-        arg = [convertor(date1), convertor(date2)] * 5 + suffix
-
-        def _get_answer(cache):
-            try:
-                return pd.to_datetime(arg, cache=cache, errors=errors)
-            except ValueError as err:
-                return err.args
-
-        cache_on = _get_answer(cache=True)
-        cache_off = _get_answer(cache=False)
-        tm.assert_almost_equal(cache_on, cache_off)
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_tz_pytz(self, cache):
