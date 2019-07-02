@@ -852,10 +852,7 @@ class IntervalIndex(IntervalMixin, Index):
                    'IntervalIndex.get_indexer_non_unique')
             raise InvalidIndexError(msg)
 
-        try:
-            target = ensure_index(target)
-        except ValueError:
-            target = Index(target, dtype=object)
+        target = ensure_index(target)
 
         if isinstance(target, IntervalIndex):
             # equal indexes -> 1:1 positional match
@@ -895,11 +892,7 @@ class IntervalIndex(IntervalMixin, Index):
     def get_indexer_non_unique(self,
                                target: AnyArrayLike
                                ) -> Tuple[np.ndarray, np.ndarray]:
-
-        try:
-            target = ensure_index(target)
-        except ValueError:
-            target = Index(target, dtype=object)
+        target = ensure_index(target)
 
         # check that target IntervalIndex is compatible
         if isinstance(target, IntervalIndex):
