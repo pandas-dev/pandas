@@ -139,7 +139,7 @@ class SetopCheck:
     name=_index_doc_kwargs['name'],
     versionadded="0.20.0",
     extra_attributes="is_overlapping\nvalues\n",
-    extra_methods="contains\n",
+    extra_methods="",
     examples=textwrap.dedent("""\
     Examples
     --------
@@ -285,27 +285,6 @@ class IntervalIndex(IntervalMixin, Index):
         if not isinstance(key, Interval):
             return False
 
-        try:
-            self.get_loc(key)
-            return True
-        except KeyError:
-            return False
-
-    def contains(self, key):
-        """
-        Return a boolean indicating if the key is IN the index
-
-        We accept / allow keys to be not *just* actual
-        objects.
-
-        Parameters
-        ----------
-        key : int, float, Interval
-
-        Returns
-        -------
-        boolean
-        """
         try:
             self.get_loc(key)
             return True
@@ -1136,6 +1115,10 @@ class IntervalIndex(IntervalMixin, Index):
         return (self.left.equals(other.left) and
                 self.right.equals(other.right) and
                 self.closed == other.closed)
+
+    @Appender(_interval_shared_docs['contains'] % _index_doc_kwargs)
+    def contains(self, other):
+        return self._data.contains(other)
 
     @Appender(_interval_shared_docs['overlaps'] % _index_doc_kwargs)
     def overlaps(self, other):

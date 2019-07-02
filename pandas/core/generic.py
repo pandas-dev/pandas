@@ -3365,7 +3365,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return result
 
-    def take(self, indices, axis=0, convert=None, is_copy=True, **kwargs):
+    def take(self, indices, axis=0, is_copy=True, **kwargs):
         """
         Return the elements in the given *positional* indices along an axis.
 
@@ -3380,15 +3380,6 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
-        convert : bool, default True
-            Whether to convert negative indices into positive ones.
-            For example, ``-1`` would map to the ``len(axis) - 1``.
-            The conversions are similar to the behavior of indexing a
-            regular Python list.
-
-            .. deprecated:: 0.21.0
-               In the future, negative indices will always be converted.
-
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
         **kwargs
@@ -3449,11 +3440,6 @@ class NDFrame(PandasObject, SelectionMixin):
         1  monkey  mammal        NaN
         3    lion  mammal       80.5
         """
-        if convert is not None:
-            msg = ("The 'convert' parameter is deprecated "
-                   "and will be removed in a future version.")
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-
         nv.validate_take(tuple(), kwargs)
         return self._take(indices, axis=axis, is_copy=is_copy)
 
