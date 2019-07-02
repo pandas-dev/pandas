@@ -1,12 +1,14 @@
 """ define the IntervalIndex """
+from operator import le, lt
 import textwrap
+from typing import Any, Optional, Tuple, Union
 import warnings
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import Timedelta, Timestamp
+from pandas._libs import Timedelta, Timestamp, lib
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._exceptions import rewrite_exception
@@ -17,13 +19,15 @@ from pandas.core.dtypes.common import (
     ensure_platform_int, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype,
     is_dtype_equal, is_float, is_float_dtype, is_integer, is_integer_dtype,
     is_interval_dtype, is_list_like, is_number, is_object_dtype, is_scalar)
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import AnyArrayLike
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
-    Index, _index_shared_docs, default_pprint, ensure_index)
+    Index, InvalidIndexError, _index_shared_docs, default_pprint, ensure_index)
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
@@ -601,6 +605,23 @@ class IntervalIndex(IntervalMixin, Index):
 
         return key
 
+    def _can_reindex(self, indexer: np.ndarray) -> None:
+        """
+        Check if we are allowing reindexing with this particular indexer.
+
+        Parameters
+        ----------
+        indexer : an integer indexer
+
+        Raises
+        ------
+        ValueError if its a duplicate axis
+        """
+
+        # trying to reindex on an axis with duplicates
+        if self.is_overlapping and len(indexer):
+            raise ValueError("cannot reindex from an overlapping axis")
+
     def _needs_i8_conversion(self, key):
         """
         Check if a given key needs i8 conversion. Conversion is necessary for
@@ -694,7 +715,8 @@ class IntervalIndex(IntervalMixin, Index):
                            'increasing or decreasing')
 
         if isinstance(label, IntervalMixin):
-            raise NotImplementedError
+            msg = 'Interval objects are not currently supported'
+            raise NotImplementedError(msg)
 
         # GH 20921: "not is_monotonic_increasing" for the second condition
         # instead of "is_monotonic_decreasing" to account for single element
@@ -710,18 +732,6 @@ class IntervalIndex(IntervalMixin, Index):
                 label = _get_prev_label(label)
 
         return sub_idx._searchsorted_monotonic(label, side)
-
-    def _get_loc_only_exact_matches(self, key):
-        if isinstance(key, Interval):
-
-            if not self.is_unique:
-                raise ValueError("cannot index with a slice Interval"
-                                 " and a non-unique index")
-
-            # TODO: this expands to a tuple index, see if we can
-            # do better
-            return Index(self._multiindex.values).get_loc(key)
-        raise KeyError
 
     def _find_non_overlapping_monotonic_bounds(self, key):
         if isinstance(key, IntervalMixin):
@@ -749,7 +759,10 @@ class IntervalIndex(IntervalMixin, Index):
             stop = self._searchsorted_monotonic(key, 'right')
         return start, stop
 
-    def get_loc(self, key, method=None):
+    def get_loc(self,
+                key: Any,
+                method: Optional[str] = None
+                ) -> Union[int, slice, np.ndarray]:
         """
         Get integer location, slice or boolean mask for requested label.
 
@@ -770,11 +783,8 @@ class IntervalIndex(IntervalMixin, Index):
         >>> index.get_loc(1)
         0
 
-        You can also supply an interval or an location for a point inside an
-        interval.
+        You can also supply a point inside an interval.
 
-        >>> index.get_loc(pd.Interval(0, 2))
-        array([0, 1], dtype=int64)
         >>> index.get_loc(1.5)
         1
 
@@ -782,63 +792,42 @@ class IntervalIndex(IntervalMixin, Index):
         relevant intervals.
 
         >>> i3 = pd.Interval(0, 2)
-        >>> overlapping_index = pd.IntervalIndex([i2, i3])
-        >>> overlapping_index.get_loc(1.5)
-        array([0, 1], dtype=int64)
+        >>> overlapping_index = pd.IntervalIndex([i1, i2, i3])
+        >>> overlapping_index.get_loc(0.5)
+        array([ True, False,  True])
+
+        Only exact matches will be returned if an interval is provided.
+
+        >>> index.get_loc(pd.Interval(0, 1))
+        0
         """
         self._check_method(method)
 
-        original_key = key
-        key = self._maybe_cast_indexed(key)
+        # list-like are invalid labels for II but in some cases may work, e.g
+        # single element array of comparable type, so guard against them early
+        if is_list_like(key):
+            raise KeyError(key)
 
-        if self.is_non_overlapping_monotonic:
-            if isinstance(key, Interval):
-                left = self._maybe_cast_slice_bound(key.left, 'left', None)
-                right = self._maybe_cast_slice_bound(key.right, 'right', None)
-                key = Interval(left, right, key.closed)
-            else:
-                key = self._maybe_cast_slice_bound(key, 'left', None)
-
-            start, stop = self._find_non_overlapping_monotonic_bounds(key)
-
-            if start is None or stop is None:
-                return slice(start, stop)
-            elif start + 1 == stop:
-                return start
-            elif start < stop:
-                return slice(start, stop)
-            else:
-                raise KeyError(original_key)
-
+        if isinstance(key, Interval):
+            if self.closed != key.closed:
+                raise KeyError(key)
+            mask = (self.left == key.left) & (self.right == key.right)
         else:
-            # use the interval tree
-            key = self._maybe_convert_i8(key)
-            if isinstance(key, Interval):
-                left, right = _get_interval_closed_bounds(key)
-                return self._engine.get_loc_interval(left, right)
-            else:
-                return self._engine.get_loc(key)
-
-    def get_value(self, series, key):
-        if com.is_bool_indexer(key):
-            loc = key
-        elif is_list_like(key):
-            loc = self.get_indexer(key)
-        elif isinstance(key, slice):
-
-            if not (key.step is None or key.step == 1):
-                raise ValueError("cannot support not-default step in a slice")
-
+            # assume scalar
+            op_left = le if self.closed_left else lt
+            op_right = le if self.closed_right else lt
             try:
-                loc = self.get_loc(key)
+                mask = op_left(self.left, key) & op_right(key, self.right)
             except TypeError:
-                # we didn't find exact intervals or are non-unique
-                msg = "unable to slice with this key: {key}".format(key=key)
-                raise ValueError(msg)
+                # scalar is not comparable to II subtype --> invalid label
+                raise KeyError(key)
 
-        else:
-            loc = self.get_loc(key)
-        return series.iloc[loc]
+        matches = mask.sum()
+        if matches == 0:
+            raise KeyError(key)
+        elif matches == 1:
+            return mask.argmax()
+        return lib.maybe_booleans_to_slice(mask.view('u1'))
 
     @Substitution(**dict(_index_doc_kwargs,
                          **{'raises_section': textwrap.dedent("""
@@ -849,112 +838,133 @@ class IntervalIndex(IntervalMixin, Index):
             None is specified as these are not yet implemented.
         """)}))
     @Appender(_index_shared_docs['get_indexer'])
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
+    def get_indexer(self,
+                    target: AnyArrayLike,
+                    method: Optional[str] = None,
+                    limit: Optional[int] = None,
+                    tolerance: Optional[Any] = None
+                    ) -> np.ndarray:
 
         self._check_method(method)
+
+        if self.is_overlapping:
+            msg = ('cannot handle overlapping indices; use '
+                   'IntervalIndex.get_indexer_non_unique')
+            raise InvalidIndexError(msg)
+
         target = ensure_index(target)
-        target = self._maybe_cast_indexed(target)
 
-        if self.equals(target):
-            return np.arange(len(self), dtype='intp')
-
-        if self.is_non_overlapping_monotonic:
-            start, stop = self._find_non_overlapping_monotonic_bounds(target)
-
-            start_plus_one = start + 1
-            if not ((start_plus_one < stop).any()):
-                return np.where(start_plus_one == stop, start, -1)
-
-        if not self.is_unique:
-            raise ValueError("cannot handle non-unique indices")
-
-        # IntervalIndex
         if isinstance(target, IntervalIndex):
-            indexer = self._get_reindexer(target)
+            # equal indexes -> 1:1 positional match
+            if self.equals(target):
+                return np.arange(len(self), dtype='intp')
 
-        # non IntervalIndex
+            # different closed or incompatible subtype -> no matches
+            common_subtype = find_common_type([
+                self.dtype.subtype, target.dtype.subtype])
+            if self.closed != target.closed or is_object_dtype(common_subtype):
+                return np.repeat(np.intp(-1), len(target))
+
+            # non-overlapping -> at most one match per interval in target
+            # want exact matches -> need both left/right to match, so defer to
+            # left/right get_indexer, compare elementwise, equality -> match
+            left_indexer = self.left.get_indexer(target.left)
+            right_indexer = self.right.get_indexer(target.right)
+            indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
+        elif not is_object_dtype(target):
+            # homogeneous scalar index: use IntervalTree
+            target = self._maybe_convert_i8(target)
+            indexer = self._engine.get_indexer(target.values)
         else:
-            indexer = np.concatenate([self.get_loc(i) for i in target])
+            # heterogeneous scalar index: defer elementwise to get_loc
+            # (non-overlapping so get_loc guarantees scalar of KeyError)
+            indexer = []
+            for key in target:
+                try:
+                    loc = self.get_loc(key)
+                except KeyError:
+                    loc = -1
+                indexer.append(loc)
 
         return ensure_platform_int(indexer)
 
-    def _get_reindexer(self, target):
-        """
-        Return an indexer for a target IntervalIndex with self
-        """
-
-        # find the left and right indexers
-        left = self._maybe_convert_i8(target.left)
-        right = self._maybe_convert_i8(target.right)
-        lindexer = self._engine.get_indexer(left.values)
-        rindexer = self._engine.get_indexer(right.values)
-
-        # we want to return an indexer on the intervals
-        # however, our keys could provide overlapping of multiple
-        # intervals, so we iterate thru the indexers and construct
-        # a set of indexers
-
-        indexer = []
-        n = len(self)
-
-        for i, (lhs, rhs) in enumerate(zip(lindexer, rindexer)):
-
-            target_value = target[i]
-
-            # matching on the lhs bound
-            if (lhs != -1 and
-                    self.closed == 'right' and
-                    target_value.left == self[lhs].right):
-                lhs += 1
-
-            # matching on the lhs bound
-            if (rhs != -1 and
-                    self.closed == 'left' and
-                    target_value.right == self[rhs].left):
-                rhs -= 1
-
-            # not found
-            if lhs == -1 and rhs == -1:
-                indexer.append(np.array([-1]))
-
-            elif rhs == -1:
-
-                indexer.append(np.arange(lhs, n))
-
-            elif lhs == -1:
-
-                # care about left/right closed here
-                value = self[i]
-
-                # target.closed same as self.closed
-                if self.closed == target.closed:
-                    if target_value.left < value.left:
-                        indexer.append(np.array([-1]))
-                        continue
-
-                # target.closed == 'left'
-                elif self.closed == 'right':
-                    if target_value.left <= value.left:
-                        indexer.append(np.array([-1]))
-                        continue
-
-                # target.closed == 'right'
-                elif self.closed == 'left':
-                    if target_value.left <= value.left:
-                        indexer.append(np.array([-1]))
-                        continue
-
-                indexer.append(np.arange(0, rhs + 1))
-
-            else:
-                indexer.append(np.arange(lhs, rhs + 1))
-
-        return np.concatenate(indexer)
-
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target):
-        target = self._maybe_cast_indexed(ensure_index(target))
-        return super().get_indexer_non_unique(target)
+    def get_indexer_non_unique(self,
+                               target: AnyArrayLike
+                               ) -> Tuple[np.ndarray, np.ndarray]:
+        target = ensure_index(target)
+
+        # check that target IntervalIndex is compatible
+        if isinstance(target, IntervalIndex):
+            common_subtype = find_common_type([
+                self.dtype.subtype, target.dtype.subtype])
+            if self.closed != target.closed or is_object_dtype(common_subtype):
+                # different closed or incompatible subtype -> no matches
+                return np.repeat(-1, len(target)), np.arange(len(target))
+
+        if is_object_dtype(target) or isinstance(target, IntervalIndex):
+            # target might contain intervals: defer elementwise to get_loc
+            indexer, missing = [], []
+            for i, key in enumerate(target):
+                try:
+                    locs = self.get_loc(key)
+                    if isinstance(locs, slice):
+                        locs = np.arange(
+                            locs.start, locs.stop, locs.step, dtype='intp')
+                    locs = np.array(locs, ndmin=1)
+                except KeyError:
+                    missing.append(i)
+                    locs = np.array([-1])
+                indexer.append(locs)
+            indexer = np.concatenate(indexer)
+        else:
+            target = self._maybe_convert_i8(target)
+            indexer, missing = self._engine.get_indexer_non_unique(
+                target.values)
+
+        return ensure_platform_int(indexer), ensure_platform_int(missing)
+
+    def get_indexer_for(self,
+                        target: AnyArrayLike,
+                        **kwargs
+                        ) -> np.ndarray:
+        """
+        Guaranteed return of an indexer even when overlapping.
+
+        This dispatches to get_indexer or get_indexer_non_unique
+        as appropriate.
+
+        Returns
+        -------
+        numpy.ndarray
+            List of indices.
+        """
+        if self.is_overlapping:
+            return self.get_indexer_non_unique(target, **kwargs)[0]
+        return self.get_indexer(target, **kwargs)
+
+    @Appender(_index_shared_docs['get_value'] % _index_doc_kwargs)
+    def get_value(self,
+                  series: ABCSeries,
+                  key: Any
+                  ) -> Any:
+
+        if com.is_bool_indexer(key):
+            loc = key
+        elif is_list_like(key):
+            if self.is_overlapping:
+                loc, missing = self.get_indexer_non_unique(key)
+                if len(missing):
+                    raise KeyError
+            else:
+                loc = self.get_indexer(key)
+        elif isinstance(key, slice):
+            if not (key.step is None or key.step == 1):
+                raise ValueError("cannot support not-default step in a slice")
+            loc = self._convert_slice_indexer(key, kind='getitem')
+        else:
+            loc = self.get_loc(key)
+        return series.iloc[loc]
 
     @Appender(_index_shared_docs['where'])
     def where(self, cond, other=None):

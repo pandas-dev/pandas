@@ -201,6 +201,16 @@ class TestDataFrameMissingData:
                              index=[0, 3])
         assert_frame_equal(result, expected)
 
+    def test_dropna_categorical_interval_index(self):
+        # GH 25087
+        ii = pd.IntervalIndex.from_breaks([0, 2.78, 3.14, 6.28])
+        ci = pd.CategoricalIndex(ii)
+        df = pd.DataFrame({'A': list('abc')}, index=ci)
+
+        expected = df
+        result = df.dropna()
+        tm.assert_frame_equal(result, expected)
+
     def test_fillna_datetime(self, datetime_frame):
         tf = datetime_frame
         tf.loc[tf.index[:5], 'A'] = np.nan
