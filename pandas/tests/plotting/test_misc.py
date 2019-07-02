@@ -262,13 +262,6 @@ class TestDataFramePlots(TestPlotBase):
         prev_next_tupels = zip([i for i in ordered_color_label_tuples[0:-1]],
                                [i for i in ordered_color_label_tuples[1:]])
         for prev, nxt in prev_next_tupels:
-            # FIXME: Showing in the CI what's in ordered_color_label_tuples
-            if ((isinstance(prev[1], list) and isinstance(nxt[1], str))
-                    or (isinstance(prev[0], list)
-                        and isinstance(nxt[0], str))):
-                raise ValueError('ordered_color_label_tuples: {}'.format(
-                    ordered_color_label_tuples))
-
             # labels and colors are ordered strictly increasing
             assert prev[1] < nxt[1] and prev[0] < nxt[0]
 
