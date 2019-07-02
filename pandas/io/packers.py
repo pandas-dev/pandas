@@ -176,14 +176,11 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
 
     # see if we have an actual file
     if isinstance(path_or_buf, str):
-        try:
-            exists = os.path.exists(path_or_buf)
-        except (TypeError, ValueError):
-            exists = False
-
-        if exists:
-            with open(path_or_buf, 'rb') as fh:
-                return read(fh)
+        # Note, we immediately try to read the file here if we
+        # got a string, as opposed to trying to parse it as something
+        # else. See #27160.
+        with open(path_or_buf, 'rb') as fh:
+            return read(fh)
 
     if isinstance(path_or_buf, bytes):
         # treat as a binary-like

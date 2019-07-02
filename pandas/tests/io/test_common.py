@@ -140,7 +140,7 @@ bar2,12,13,14,15
         (pd.read_stata, 'os', FileNotFoundError, 'dta'),
         (pd.read_sas, 'os', FileNotFoundError, 'sas7bdat'),
         (pd.read_json, 'os', ValueError, 'json'),
-        (pd.read_msgpack, 'os', ValueError, 'mp'),
+        (pd.read_msgpack, 'os', FileNotFoundError, 'mp'),
         (pd.read_pickle, 'os', FileNotFoundError, 'pickle'),
     ])
     def test_read_non_existant(self, reader, module, error_class, fn_ext):
@@ -169,7 +169,7 @@ bar2,12,13,14,15
         (pd.read_stata, 'os', FileNotFoundError, 'dta'),
         (pd.read_sas, 'os', FileNotFoundError, 'sas7bdat'),
         (pd.read_json, 'os', ValueError, 'json'),
-        (pd.read_msgpack, 'os', ValueError, 'mp'),
+        (pd.read_msgpack, 'os', FileNotFoundError, 'mp'),
         (pd.read_pickle, 'os', FileNotFoundError, 'pickle'),
     ])
     def test_read_expands_user_home_dir(self, reader, module,
