@@ -1,5 +1,5 @@
 tseries: pandas/_libs/lib.pyx pandas/_libs/tslib.pyx pandas/_libs/hashtable.pyx
-	python setup.py build_ext --inplace --compiler=$(CC)
+	python setup.py build_ext --inplace
 
 .PHONY : develop build clean clean_pyc tseries doc
 
@@ -10,7 +10,7 @@ clean_pyc:
 	-find . -name '*.py[co]' -exec rm {} \;
 
 build: clean_pyc
-	python setup.py build_ext --inplace --compiler=$(CC)
+	python setup.py build_ext --inplace
 
 lint-diff:
 	git diff upstream/master --name-only -- "*.py" | xargs flake8
