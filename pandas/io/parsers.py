@@ -9,6 +9,7 @@ from io import StringIO
 import re
 import sys
 from textwrap import fill
+from typing import Any, Dict, Set
 import warnings
 
 import numpy as np
@@ -98,8 +99,8 @@ header : int, list of int, default 'infer'
     data rather than the first line of the file.
 names : array-like, optional
     List of column names to use. If file contains no header row, then you
-    should explicitly pass ``header=None``. Duplicates in this list will cause
-    a ``UserWarning`` to be issued.
+    should explicitly pass ``header=None``. Duplicates in this list are not
+    allowed.
 index_col : int, str, sequence of int / str, or False, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as
   string name or column index. If a sequence of int / str is given, a
@@ -293,13 +294,6 @@ dialect : str or csv.Dialect, optional
     `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
     override values, a ParserWarning will be issued. See csv.Dialect
     documentation for more details.
-tupleize_cols : bool, default False
-    Leave a list of tuples on columns as is (default is to convert to
-    a MultiIndex on the columns).
-
-    .. deprecated:: 0.21.0
-       This argument will be removed and will always convert to MultiIndex
-
 error_bad_lines : bool, default True
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
@@ -400,10 +394,7 @@ def _validate_names(names):
 
     if names is not None:
         if len(names) != len(set(names)):
-            msg = ("Duplicate names specified. This "
-                   "will raise an error in the future.")
-            warnings.warn(msg, UserWarning, stacklevel=3)
-
+            raise ValueError('Duplicate names are not allowed.')
     return names
 
 
@@ -501,7 +492,6 @@ _parser_defaults = {
     'squeeze': False,
     'compression': None,
     'mangle_dupe_cols': True,
-    'tupleize_cols': False,
     'infer_datetime_format': False,
     'skip_blank_lines': True
 }
@@ -514,7 +504,6 @@ _c_parser_defaults = {
     'memory_map': False,
     'error_bad_lines': True,
     'warn_bad_lines': True,
-    'tupleize_cols': False,
     'float_precision': None
 }
 
@@ -530,12 +519,8 @@ _python_unsupported = {
     'float_precision',
 }
 
-_deprecated_defaults = {
-    'tupleize_cols': None
-}
-_deprecated_args = {
-    'tupleize_cols',
-}
+_deprecated_defaults = {}  # type: Dict[str, Any]
+_deprecated_args = set()  # type: Set[str]
 
 
 def _make_parser_function(name, default_sep=','):
@@ -595,7 +580,6 @@ def _make_parser_function(name, default_sep=','):
                  comment=None,
                  encoding=None,
                  dialect=None,
-                 tupleize_cols=None,
 
                  # Error Handling
                  error_bad_lines=True,
@@ -691,7 +675,6 @@ def _make_parser_function(name, default_sep=','):
                     error_bad_lines=error_bad_lines,
                     low_memory=low_memory,
                     mangle_dupe_cols=mangle_dupe_cols,
-                    tupleize_cols=tupleize_cols,
                     infer_datetime_format=infer_datetime_format,
                     skip_blank_lines=skip_blank_lines)
 
@@ -1052,10 +1035,6 @@ class TextFileReader(BaseIterator):
                    "and will be removed in a future version."
                    .format(arg=arg))
 
-            if arg == 'tupleize_cols':
-                msg += (' Column tuples will then '
-                        'always be converted to MultiIndex.')
-
             if result.get(arg, depr_default) != depr_default:
                 # raise Exception(result.get(arg, depr_default), depr_default)
                 depr_warning += msg + '\n\n'
@@ -1362,7 +1341,6 @@ class ParserBase:
 
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
-        self.tupleize_cols = kwds.get('tupleize_cols', False)
         self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
         self.infer_datetime_format = kwds.pop('infer_datetime_format', False)
         self.cache_dates = kwds.pop('cache_dates', True)

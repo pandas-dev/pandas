@@ -22,7 +22,8 @@ from pandas import (
     CategoricalIndex, DataFrame, DatetimeIndex, Float64Index, Int64Index,
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, UInt64Index, date_range,
     isna, period_range)
-from pandas.core.index import _get_combined_index, ensure_index_from_sequences
+from pandas.core.index import (
+    _get_combined_index, ensure_index, ensure_index_from_sequences)
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.sorting import safe_sort
 from pandas.tests.indexes.common import Base
@@ -1439,9 +1440,12 @@ class TestIndex(Base):
             index.get_indexer(['a', 'b', 'c', 'd'], method='pad',
                               tolerance=[2, 2, 2, 2])
 
-    def test_get_indexer_numeric_index_boolean_target(self):
+    @pytest.mark.parametrize("idx_class", [Int64Index, RangeIndex,
+                                           Float64Index])
+    def test_get_indexer_numeric_index_boolean_target(self, idx_class):
         # GH 16877
-        numeric_index = pd.Index(range(4))
+
+        numeric_index = idx_class(RangeIndex((4)))
         result = numeric_index.get_indexer([True, False, True])
         expected = np.array([-1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -2156,6 +2160,11 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('idx.', 4))
 
+    def test_deprecated_contains(self):
+        for index in self.indices.values():
+            with tm.assert_produces_warning(FutureWarning):
+                index.contains(1)
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
@@ -2422,6 +2431,16 @@ class TestIndexUtils:
     ])
     def test_ensure_index_from_sequences(self, data, names, expected):
         result = ensure_index_from_sequences(data, names)
+        tm.assert_index_equal(result, expected)
+
+    def test_ensure_index_mixed_closed_intervals(self):
+        # GH27172
+        intervals = [pd.Interval(0, 1, closed='left'),
+                     pd.Interval(1, 2, closed='right'),
+                     pd.Interval(2, 3, closed='neither'),
+                     pd.Interval(3, 4, closed='both')]
+        result = ensure_index(intervals)
+        expected = Index(intervals, dtype=object)
         tm.assert_index_equal(result, expected)
 
 

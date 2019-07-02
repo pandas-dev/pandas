@@ -13,7 +13,6 @@ import datetime
 from functools import partial, wraps
 import types
 from typing import FrozenSet, List, Optional, Tuple, Type, Union
-import warnings
 
 import numpy as np
 
@@ -1741,22 +1740,11 @@ class GroupBy(_GroupBy):
                 "dropna option with a list of nth values is not supported")
 
         if dropna not in ['any', 'all']:
-            if isinstance(self._selected_obj, Series) and dropna is True:
-                warnings.warn("the dropna={dropna} keyword is deprecated,"
-                              "use dropna='all' instead. "
-                              "For a Series groupby, dropna must be "
-                              "either None, 'any' or 'all'.".format(
-                                  dropna=dropna),
-                              FutureWarning,
-                              stacklevel=2)
-                dropna = 'all'
-            else:
-                # Note: when agg-ing picker doesn't raise this,
-                # just returns NaN
-                raise ValueError("For a DataFrame groupby, dropna must be "
-                                 "either None, 'any' or 'all', "
-                                 "(was passed {dropna}).".format(
-                                     dropna=dropna))
+            # Note: when agg-ing picker doesn't raise this, just returns NaN
+            raise ValueError("For a DataFrame groupby, dropna must be "
+                             "either None, 'any' or 'all', "
+                             "(was passed {dropna}).".format(
+                                 dropna=dropna))
 
         # old behaviour, but with all and any support for DataFrames.
         # modified in GH 7559 to have better perf

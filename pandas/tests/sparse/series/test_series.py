@@ -542,15 +542,6 @@ class TestSparseSeries(SharedWithSparse):
         exp = pd.Series(np.repeat(nan, 5))
         tm.assert_series_equal(sp.take([0, 1, 2, 3, 4]), exp.to_sparse())
 
-        # multiple FutureWarnings, can't check stacklevel
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sp.take([1, 5], convert=True)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            sp.take([1, 5], convert=False)
-
     def test_numpy_take(self):
         sp = SparseSeries([1.0, 2.0, 3.0])
         indices = [1, 2]
@@ -1515,14 +1506,6 @@ class TestSparseSeriesAnalytics:
                                                 check_stacklevel=False,
                                                 raise_on_extra_warnings=False):
                     getattr(getattr(self, series), func)()
-
-    def test_deprecated_reindex_axis(self):
-        # https://github.com/pandas-dev/pandas/issues/17833
-        # Multiple FutureWarnings, can't check stacklevel
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False) as m:
-            self.bseries.reindex_axis([0, 1, 2])
-        assert 'reindex' in str(m[0].message)
 
 
 @pytest.mark.parametrize(

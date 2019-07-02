@@ -14,7 +14,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame, Index, Series, Timestamp, bdate_range, concat, isna, notna)
-from pandas.core.base import SpecificationError
+from pandas.core.base import DataError, SpecificationError
 from pandas.core.sorting import safe_sort
 import pandas.core.window as rwindow
 import pandas.util.testing as tm
@@ -45,6 +45,12 @@ def win_types(request):
 @pytest.fixture(params=['kaiser', 'gaussian', 'general_gaussian',
                         'exponential'])
 def win_types_special(request):
+    return request.param
+
+
+@pytest.fixture(params=["sum", "mean", "median", "max", "min",
+                        "var", "std", "kurt", "skew"])
+def arithmetic_win_operators(request):
     return request.param
 
 
@@ -118,9 +124,11 @@ class TestApi(Base):
     def test_skip_sum_object_raises(self):
         df = DataFrame({'A': range(5), 'B': range(5, 10), 'C': 'foo'})
         r = df.rolling(window=3)
-
-        with pytest.raises(TypeError, match='cannot handle this type'):
-            r.sum()
+        result = r.sum()
+        expected = DataFrame({'A': [np.nan, np.nan, 3, 6, 9],
+                              'B': [np.nan, np.nan, 18, 21, 24]},
+                             columns=list('AB'))
+        tm.assert_frame_equal(result, expected)
 
     def test_agg(self):
         df = DataFrame({'A': range(5), 'B': range(0, 10, 2)})
@@ -519,6 +527,18 @@ class TestRolling(Base):
         # closed only allowed for datetimelike
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
+
+    @pytest.mark.parametrize("closed", ["neither", "left"])
+    def test_closed_empty(self, closed, arithmetic_win_operators):
+        # GH 26005
+        func_name = arithmetic_win_operators
+        ser = pd.Series(data=np.arange(5),
+                        index=pd.date_range("2000", periods=5, freq="2D"))
+        roll = ser.rolling("1D", closed=closed)
+
+        result = getattr(roll, func_name)()
+        expected = pd.Series([np.nan] * 5, index=ser.index)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("func", ['min', 'max'])
     def test_closed_one_entry(self, func):
@@ -1069,15 +1089,12 @@ class DatetimeLike(Dtype):
     def check_dtypes(self, f, f_name, d, d_name, exp):
 
         roll = d.rolling(window=self.window)
-
         if f_name == 'count':
             result = f(roll)
             tm.assert_almost_equal(result, exp)
 
         else:
-
-            # other methods not Implemented ATM
-            with pytest.raises(NotImplementedError):
+            with pytest.raises(DataError):
                 f(roll)
 
 
