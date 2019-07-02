@@ -37,9 +37,3 @@ def test_read_writer_table():
     result = pd.read_excel("writertable.odt", 'Table1', index_col=0)
 
     tm.assert_frame_equal(result, expected)
-
-
-def test_raises_repeated_rows_not_in_col_0():
-    with pytest.raises(NotImplementedError,
-                       match="merging in the initial column"):
-        pd.read_excel("raising_repeats.ods")
