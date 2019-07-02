@@ -659,7 +659,7 @@ cdef class StringHashTable(HashTable):
             int64_t[:] locs = np.empty(n, dtype=np.int64)
 
         # these by-definition *must* be strings
-        vecs = <char **>malloc(n * sizeof(char *))
+        vecs = <const char **>malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 

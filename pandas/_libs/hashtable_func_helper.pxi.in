@@ -241,7 +241,7 @@ def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values):
 
     # construct the table
     n = len(values)
-    kh_resize_{{ttype}}(table, min(n, len(values)))
+    kh_resize_{{ttype}}(table, n)
 
     {{if dtype == 'object'}}
     for i in range(n):
