@@ -629,7 +629,7 @@ Binary ufuncs on Series now align
 Applying a binary ufunc like :func:`numpy.power` now aligns the inputs
 when both are :class:`Series` (:issue:`23293`).
 
-.. ipython:: python:
+.. ipython:: python
 
    s1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
    s2 = pd.Series([3, 4, 5], index=['d', 'c', 'b'])
