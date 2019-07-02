@@ -919,13 +919,8 @@ class TestDataFrameSelectReindex:
             expected = df.reindex(df.index.take(order))
             assert_frame_equal(result, expected)
 
-            with tm.assert_produces_warning(FutureWarning):
-                result = df.take(order, convert=True, axis=0)
-                assert_frame_equal(result, expected)
-
-            with tm.assert_produces_warning(FutureWarning):
-                result = df.take(order, convert=False, axis=0)
-                assert_frame_equal(result, expected)
+            result = df.take(order, axis=0)
+            assert_frame_equal(result, expected)
 
             # axis = 1
             result = df.take(order, axis=1)

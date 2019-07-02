@@ -224,15 +224,12 @@ class TestSeriesDtypes:
         with pytest.raises(KeyError, match=msg):
             s.astype(dt5)
 
-    def test_astype_categories_deprecation(self):
+    def test_astype_categories_deprecation_raises(self):
 
         # deprecated 17636
         s = Series(['a', 'b', 'a'])
-        expected = s.astype(CategoricalDtype(['a', 'b'], ordered=True))
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = s.astype('category', categories=['a', 'b'], ordered=True)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match="Got an unexpected"):
+            s.astype('category', categories=['a', 'b'], ordered=True)
 
     @pytest.mark.parametrize('none, warning', [
         (None, None), (ordered_sentinel, FutureWarning)])
@@ -360,19 +357,10 @@ class TestSeriesDtypes:
         expected = Series(s_data, name=name, dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = s.astype('category', ordered=dtype_ordered)
-        tm.assert_series_equal(result, expected)
-
         # different categories
         dtype = CategoricalDtype(list('adc'), dtype_ordered)
         result = s.astype(dtype)
         expected = Series(s_data, name=name, dtype=dtype)
-        tm.assert_series_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = s.astype(
-                'category', categories=list('adc'), ordered=dtype_ordered)
         tm.assert_series_equal(result, expected)
 
         if dtype_ordered is False:
@@ -397,20 +385,6 @@ class TestSeriesDtypes:
                                       ordered=False))
         tm.assert_series_equal(result, expected)
         tm.assert_index_equal(result.cat.categories, Index(['a', 'b', 'c']))
-
-    def test_astype_categoricaldtype_with_args(self):
-        s = Series(['a', 'b'])
-        type_ = CategoricalDtype(['a', 'b'])
-
-        msg = (r"Cannot specify a CategoricalDtype and also `categories` or"
-               r" `ordered`\. Use `dtype=CategoricalDtype\(categories,"
-               r" ordered\)` instead\.")
-        with pytest.raises(TypeError, match=msg):
-            s.astype(type_, ordered=True)
-        with pytest.raises(TypeError, match=msg):
-            s.astype(type_, categories=['a', 'b'])
-        with pytest.raises(TypeError, match=msg):
-            s.astype(type_, categories=['a', 'b'], ordered=False)
 
     @pytest.mark.parametrize("dtype", [
         np.datetime64,

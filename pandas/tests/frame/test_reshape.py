@@ -804,7 +804,7 @@ class TestDataFrameReshape(TestData):
                     else:
                         assert_frame_equal(result, expected)
 
-                df.columns = MultiIndex.from_tuples(df.columns.get_values(),
+                df.columns = MultiIndex.from_tuples(df.columns.to_numpy(),
                                                     names=df.columns.names)
                 expected = df.stack(level=level, dropna=False)
                 if isinstance(expected, Series):

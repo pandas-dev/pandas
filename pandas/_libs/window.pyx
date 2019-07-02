@@ -1313,9 +1313,11 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
 
         # if right is open then the first window is empty
         close_offset = 0 if endi[0] > starti[0] else 1
+        # first window's size
+        curr_win_size = endi[0] - starti[0]
 
         for i in range(endi[0], endi[N-1]):
-            if not Q.empty():
+            if not Q.empty() and curr_win_size > 0:
                 output[i-1+close_offset] = calc_mm(
                     minp, nobs, values[Q.front()])
             else:
@@ -1344,7 +1346,7 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
             Q.push_back(i)
             W.push_back(i)
 
-        if not Q.empty():
+        if not Q.empty() and curr_win_size > 0:
             output[N-1] = calc_mm(minp, nobs, values[Q.front()])
         else:
             output[N-1] = NaN

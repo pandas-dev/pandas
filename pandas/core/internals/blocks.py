@@ -177,6 +177,12 @@ class Block(PandasObject):
             return self.values.astype(object)
         return self.values
 
+    def get_block_values(self, dtype=None):
+        """
+        This is used in the JSON C code
+        """
+        return self.get_values(dtype=dtype)
+
     def to_dense(self):
         return self.values.view()
 
@@ -202,17 +208,15 @@ class Block(PandasObject):
         """
         return self.dtype
 
-    def make_block(self, values, placement=None, ndim=None):
+    def make_block(self, values, placement=None):
         """
         Create a new block, with type inference propagate any values that are
         not specified
         """
         if placement is None:
             placement = self.mgr_locs
-        if ndim is None:
-            ndim = self.ndim
 
-        return make_block(values, placement=placement, ndim=ndim)
+        return make_block(values, placement=placement, ndim=self.ndim)
 
     def make_block_same_class(self, values, placement=None, ndim=None,
                               dtype=None):
@@ -363,7 +367,9 @@ class Block(PandasObject):
 
         # fillna, but if we cannot coerce, then try again as an ObjectBlock
         try:
-            values, _ = self._try_coerce_args(self.values, value)
+            # Note: we only call try_coerce_args to let it raise
+            self._try_coerce_args(value)
+
             blocks = self.putmask(mask, value, inplace=inplace)
             blocks = [b.make_block(values=self._try_coerce_result(b.values))
                       for b in blocks]
@@ -542,17 +548,10 @@ class Block(PandasObject):
         if self.is_categorical_astype(dtype):
 
             # deprecated 17636
-            if ('categories' in kwargs or 'ordered' in kwargs):
-                if isinstance(dtype, CategoricalDtype):
-                    raise TypeError(
-                        "Cannot specify a CategoricalDtype and also "
-                        "`categories` or `ordered`. Use "
-                        "`dtype=CategoricalDtype(categories, ordered)`"
-                        " instead.")
-                warnings.warn("specifying 'categories' or 'ordered' in "
-                              ".astype() is deprecated; pass a "
-                              "CategoricalDtype instead",
-                              FutureWarning, stacklevel=7)
+            for deprecated_arg in ('categories', 'ordered'):
+                if deprecated_arg in kwargs:
+                    raise ValueError('Got an unexpected argument: {}'.format(
+                        deprecated_arg))
 
             categories = kwargs.get('categories', None)
             ordered = kwargs.get('ordered', None)
@@ -660,7 +659,21 @@ class Block(PandasObject):
         # may need to change the dtype here
         return maybe_downcast_to_dtype(result, dtype)
 
-    def _try_coerce_args(self, values, other):
+    def _coerce_values(self, values):
+        """
+        Coerce values (usually derived from self.values) for an operation.
+
+        Parameters
+        ----------
+        values : ndarray or ExtensionArray
+
+        Returns
+        -------
+        ndarray or ExtensionArray
+        """
+        return values
+
+    def _try_coerce_args(self, other):
         """ provide coercion to our input arguments """
 
         if np.any(notna(other)) and not self._can_hold_element(other):
@@ -670,7 +683,7 @@ class Block(PandasObject):
                 type(other).__name__,
                 type(self).__name__.lower().replace('Block', '')))
 
-        return values, other
+        return other
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
@@ -719,9 +732,9 @@ class Block(PandasObject):
 
         # try to replace, if we raise an error, convert to ObjectBlock and
         # retry
+        values = self._coerce_values(self.values)
         try:
-            values, to_replace = self._try_coerce_args(self.values,
-                                                       to_replace)
+            to_replace = self._try_coerce_args(to_replace)
         except (TypeError, ValueError):
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
@@ -794,7 +807,8 @@ class Block(PandasObject):
         # coerce if block dtype can store value
         values = self.values
         try:
-            values, value = self._try_coerce_args(values, value)
+            value = self._try_coerce_args(value)
+            values = self._coerce_values(values)
             # can keep its own dtype
             if hasattr(value, 'dtype') and is_dtype_equal(values.dtype,
                                                           value.dtype):
@@ -926,7 +940,7 @@ class Block(PandasObject):
             new = self.fill_value
 
         if self._can_hold_element(new):
-            _, new = self._try_coerce_args(new_values, new)
+            new = self._try_coerce_args(new)
 
             if transpose:
                 new_values = new_values.T
@@ -1128,7 +1142,8 @@ class Block(PandasObject):
                     return [self.copy()]
 
         values = self.values if inplace else self.values.copy()
-        values, fill_value = self._try_coerce_args(values, fill_value)
+        values = self._coerce_values(values)
+        fill_value = self._try_coerce_args(fill_value)
         values = missing.interpolate_2d(values, method=method, axis=axis,
                                         limit=limit, fill_value=fill_value,
                                         dtype=self.dtype)
@@ -1299,11 +1314,12 @@ class Block(PandasObject):
             if cond.ravel().all():
                 return values
 
-            values, other = self._try_coerce_args(values, other)
+            values = self._coerce_values(values)
+            other = self._try_coerce_args(other)
 
             try:
-                return self._try_coerce_result(expressions.where(
-                    cond, values, other))
+                fastres = expressions.where(cond, values, other)
+                return self._try_coerce_result(fastres)
             except Exception as detail:
                 if errors == 'raise':
                     raise TypeError(
@@ -1350,10 +1366,10 @@ class Block(PandasObject):
         result_blocks = []
         for m in [mask, ~mask]:
             if m.any():
-                r = self._try_cast_result(result.take(m.nonzero()[0],
-                                                      axis=axis))
-                result_blocks.append(
-                    self.make_block(r.T, placement=self.mgr_locs[m]))
+                taken = result.take(m.nonzero()[0], axis=axis)
+                r = self._try_cast_result(taken)
+                nb = self.make_block(r.T, placement=self.mgr_locs[m])
+                result_blocks.append(nb)
 
         return result_blocks
 
@@ -1424,7 +1440,7 @@ class Block(PandasObject):
             values = values[None, :]
         else:
             values = self.get_values()
-            values, _ = self._try_coerce_args(values, values)
+            values = self._coerce_values(values)
 
         is_empty = values.shape[axis] == 0
         orig_scalar = not is_list_like(qs)
@@ -1539,6 +1555,10 @@ class NonConsolidatableMixIn:
             col, loc = col
             if not com.is_null_slice(col) and col != 0:
                 raise IndexError("{0} only contains one item".format(self))
+            elif isinstance(col, slice):
+                if col != slice(None):
+                    raise NotImplementedError(col)
+                return self.values[[loc]]
             return self.values[loc]
         else:
             if col != 0:
@@ -1576,7 +1596,8 @@ class NonConsolidatableMixIn:
         # use block's copy logic.
         # .values may be an Index which does shallow copy by default
         new_values = self.values if inplace else self.copy().values
-        new_values, new = self._try_coerce_args(new_values, new)
+        new_values = self._coerce_values(new_values)
+        new = self._try_coerce_args(new)
 
         if isinstance(new, np.ndarray) and len(new) == len(mask):
             new = new[mask]
@@ -2117,24 +2138,24 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return (is_integer(element) or isinstance(element, datetime) or
                 isna(element))
 
-    def _try_coerce_args(self, values, other):
+    def _coerce_values(self, values):
+        return values.view('i8')
+
+    def _try_coerce_args(self, other):
         """
-        Coerce values and other to dtype 'i8'. NaN and NaT convert to
+        Coerce other to dtype 'i8'. NaN and NaT convert to
         the smallest i8, and will correctly round-trip to NaT if converted
         back in _try_coerce_result. values is always ndarray-like, other
         may not be
 
         Parameters
         ----------
-        values : ndarray-like
         other : ndarray-like or scalar
 
         Returns
         -------
-        base-type values, base-type other
+        base-type other
         """
-
-        values = values.view('i8')
 
         if isinstance(other, bool):
             raise TypeError
@@ -2153,7 +2174,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             # let higher levels handle
             raise TypeError(other)
 
-        return values, other
+        return other
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
@@ -2246,13 +2267,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # check the ndarray values of the DatetimeIndex values
         return self.values._data.base is not None
 
-    def copy(self, deep=True):
-        """ copy constructor """
-        values = self.values
-        if deep:
-            values = values.copy()
-        return self.make_block_same_class(values)
-
     def get_values(self, dtype=None):
         """
         Returns an ndarray of values.
@@ -2302,21 +2316,22 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             return self.values[loc]
         return self.values[slicer]
 
-    def _try_coerce_args(self, values, other):
+    def _coerce_values(self, values):
+        # asi8 is a view, needs copy
+        return _block_shape(values.view("i8"), ndim=self.ndim)
+
+    def _try_coerce_args(self, other):
         """
         localize and return i8 for the values
 
         Parameters
         ----------
-        values : ndarray-like
         other : ndarray-like or scalar
 
         Returns
         -------
-        base-type values, base-type other
+        base-type other
         """
-        # asi8 is a view, needs copy
-        values = _block_shape(values.view("i8"), ndim=self.ndim)
 
         if isinstance(other, ABCSeries):
             other = self._holder(other)
@@ -2344,7 +2359,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         else:
             raise TypeError(other)
 
-        return values, other
+        return other
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
@@ -2485,21 +2500,22 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             value = Timedelta(value, unit='s')
         return super().fillna(value, **kwargs)
 
-    def _try_coerce_args(self, values, other):
+    def _coerce_values(self, values):
+        return values.view('i8')
+
+    def _try_coerce_args(self, other):
         """
         Coerce values and other to int64, with null values converted to
         iNaT. values is always ndarray-like, other may not be
 
         Parameters
         ----------
-        values : ndarray-like
         other : ndarray-like or scalar
 
         Returns
         -------
-        base-type values, base-type other
+        base-type other
         """
-        values = values.view('i8')
 
         if isinstance(other, bool):
             raise TypeError
@@ -2514,7 +2530,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             # let higher levels handle
             raise TypeError(other)
 
-        return values, other
+        return other
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args / try_operate """
@@ -2685,7 +2701,7 @@ class ObjectBlock(Block):
     def _can_hold_element(self, element):
         return True
 
-    def _try_coerce_args(self, values, other):
+    def _try_coerce_args(self, other):
         """ provide coercion to our input arguments """
 
         if isinstance(other, ABCDatetimeIndex):
@@ -2698,7 +2714,7 @@ class ObjectBlock(Block):
             # when falling back to ObjectBlock.where
             other = other.astype(object)
 
-        return values, other
+        return other
 
     def should_store(self, value):
         return not (issubclass(value.dtype.type,
@@ -2928,7 +2944,7 @@ class CategoricalBlock(ExtensionBlock):
         # Categorical.get_values returns a DatetimeIndex for datetime
         # categories, so we can't simply use `np.asarray(self.values)` like
         # other types.
-        return self.values.get_values()
+        return self.values._internal_get_values()
 
     def to_native_types(self, slicer=None, na_rep='', quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
@@ -3229,7 +3245,7 @@ def _putmask_smart(v, m, n):
     dtype, _ = maybe_promote(n.dtype)
 
     if is_extension_type(v.dtype) and is_object_dtype(dtype):
-        v = v.get_values(dtype)
+        v = v._internal_get_values(dtype)
     else:
         v = v.astype(dtype)
 
