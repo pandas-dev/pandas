@@ -3224,10 +3224,17 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 OpenDocument Spreadsheets
 -------------------------
 
+.. versionadded:: 0.25
+
 The :func:`~pandas.read_excel` method can also read OpenDocument spreadsheets
 using the ``odfpy`` module. The semantics and features for reading
 OpenDocument spreadsheets match what can be done for `Excel files`_ using
 ``engine='odf'``.
+
+.. code-block:: python
+
+   # Returns a DataFrame
+   pd.read_excel('path_to_file.ods', engine='odf')
 
 .. note::
 
