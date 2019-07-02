@@ -567,6 +567,7 @@ Other API changes
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
 - :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` will now raise a ``ValueError`` when saving timezone aware data. (:issue:`27008`, :issue:`7056`)
 - :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` will now raise a ``NotImplementedError`` when saving a :class:`MultiIndex` with extention data types for a ``fixed`` format. (:issue:`7775`)
+- Passing duplicate ``names`` in :meth:`read_csv` will now raise a ``ValueError`` (:issue:`17346`)
 
 .. _whatsnew_0250.deprecations:
 

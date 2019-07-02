@@ -424,18 +424,17 @@ def test_empty_with_dup_column_pass_dtype_by_indexes(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_empty_with_dup_column_pass_dtype_by_indexes_warn(all_parsers):
+def test_empty_with_dup_column_pass_dtype_by_indexes_raises(all_parsers):
     # see gh-9424
     parser = all_parsers
     expected = concat([Series([], name="one", dtype="u1"),
                        Series([], name="one.1", dtype="f")], axis=1)
     expected.index = expected.index.astype(object)
 
-    with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+    with pytest.raises(ValueError, match='Duplicate names'):
         data = ""
-        result = parser.read_csv(StringIO(data), names=["one", "one"],
-                                 dtype={0: "u1", 1: "f"})
-        tm.assert_frame_equal(result, expected)
+        parser.read_csv(StringIO(data), names=["one", "one"],
+                        dtype={0: "u1", 1: "f"})
 
 
 def test_raise_on_passed_int_dtype_with_nas(all_parsers):

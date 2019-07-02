@@ -218,7 +218,7 @@ contained the values ``[0, 3]``.
 **New behavior**:
 
 .. ipython:: python
-   :okwarning:
+   :okexcept:
 
    pd.read_csv(StringIO(data), names=names)
 
