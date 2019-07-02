@@ -159,10 +159,3 @@ Here are just a few of the things that pandas does well:
     conversion, moving window statistics, moving window linear regressions,
     date shifting and lagging, etc.
 """
-
-testbench_flags = (
-    " -n {self.nnvm_json_path}"
-               " -p {self.nnvm_params_path}"
-                           " -c {self.hw_config}"
-                           " -m {self.mapconfig}"
-                           "{input_files_cla}").format(**locals())
