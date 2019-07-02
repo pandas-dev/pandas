@@ -3,6 +3,8 @@ channels:
   - defaults
   - conda-forge
 dependencies:
+  - cxx-compiler
+  - ccache
   - beautifulsoup4
   - bottleneck
   - gcsfs

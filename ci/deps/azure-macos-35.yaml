@@ -4,6 +4,8 @@ channels:
 dependencies:
   - beautifulsoup4
   - bottleneck
+  - ccache
+  - cxx-compiler
   - cython>=0.28.2
   - html5lib
   - jinja2

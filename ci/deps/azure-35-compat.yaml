@@ -5,6 +5,8 @@ channels:
 dependencies:
   - beautifulsoup4=4.6.0
   - bottleneck=1.2.1
+  - ccache
+  - cxx-compiler
   - jinja2=2.8
   - numexpr=2.6.2
   - numpy=1.13.3

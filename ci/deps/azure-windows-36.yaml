@@ -6,6 +6,7 @@ dependencies:
   - blosc
   - bottleneck
   - boost-cpp<1.67
+  - cxx-compiler
   - fastparquet>=0.2.1
   - matplotlib=3.0.2
   - numexpr

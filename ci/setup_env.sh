@@ -56,31 +56,9 @@ conda update -n base conda
 echo "conda info -a"
 conda info -a
 
-echo
-echo "set the compiler cache to work"
-if [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-    echo "Using ccache"
-    export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
-    GCC=$(which gcc)
-    echo "gcc: $GCC"
-    CCACHE=$(which ccache)
-    echo "ccache: $CCACHE"
-    export CC='ccache gcc'
-elif [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-    echo "Install ccache"
-    brew install ccache > /dev/null 2>&1
-    echo "Using ccache"
-    export PATH=/usr/local/opt/ccache/libexec:$PATH
-    gcc=$(which gcc)
-    echo "gcc: $gcc"
-    CCACHE=$(which ccache)
-    echo "ccache: $CCACHE"
-else
-    echo "Not using ccache"
-fi
 
-echo "source deactivate"
-source deactivate
+echo "conda deactivate"
+conda deactivate
 
 echo "conda list (root environment)"
 conda list
@@ -96,6 +74,36 @@ time conda env create -q --file="${ENV_FILE}"
 
 echo "activate pandas-dev"
 source activate pandas-dev
+
+echo
+echo "set the compiler cache to work"
+if [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+    echo "Using ccache"
+    ccache --status
+    ccache --version
+    if [ -z "$GCC" ]; then
+        GCC=$(which gcc)
+    fi
+    echo "gcc: $GCC"
+    CCACHE=ccache
+    echo "ccache: $CCACHE"
+    export CC="ccache $CC"
+elif [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+    echo "Install ccache"
+    brew install ccache > /dev/null 2>&1
+    echo "Using ccache"
+    ccache --status
+    ccache --version
+    gcc=$CC
+    if [ -z "$CC" ]; then
+        gcc=$(which clang)
+    fi
+    echo "gcc: $gcc"
+    CCACHE=ccache
+    echo "ccache: $CCACHE"
+else
+    echo "Not using ccache"
+fi
 
 echo
 echo "remove any installed pandas package"

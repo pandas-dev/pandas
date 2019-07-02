@@ -14,8 +14,10 @@ dependencies:
 
   # building
   - cython>=0.28.2
+  # This conda-forge package is necessary to install the compilers for each platform.
+  # That is useful to isolate the compilation from the system and to avoid any kinda of
+  # problem related to systems configuration
   - cxx-compiler
-  - zlib
 
   # code checks
   - cpplint

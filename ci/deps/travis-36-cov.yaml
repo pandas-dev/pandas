@@ -5,6 +5,8 @@ channels:
 dependencies:
   - beautifulsoup4
   - botocore>=1.11
+  - ccache
+  - cxx-compiler
   - cython>=0.28.2
   - dask
   - fastparquet>=0.2.1

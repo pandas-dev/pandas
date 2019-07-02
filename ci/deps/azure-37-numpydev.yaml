@@ -4,6 +4,8 @@ channels:
 dependencies:
   - python=3.7.*
   - pytz
+  - ccache
+  - cxx-compiler
   - Cython>=0.28.2
   # universal
   - pytest>=4.0.2
