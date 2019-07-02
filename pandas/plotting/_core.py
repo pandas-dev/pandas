@@ -546,7 +546,7 @@ class PlotAccessor(PandasObject):
                              'Series or DataFrame').format(
                                  type(data).__name__))
 
-        if args and isinstance(data, ABCSeries):
+        if args and isinstance(data, ABCSeries) and False:  # FIXME not generating the warning to see if parallel coordinates test is fixed in the CI
             msg = ('`Series.plot()` should not be called with positional '
                    'arguments, only keyword arguments. The order of '
                    'positional arguments will change in the future. '
