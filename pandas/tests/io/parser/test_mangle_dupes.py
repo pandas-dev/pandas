@@ -37,14 +37,11 @@ def test_basic_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_basic_names_warn(all_parsers):
+def test_basic_names_raise(all_parsers):
     # See gh-7160
     parser = all_parsers
 
     data = "0,1,2\n3,4,5"
-    expected = DataFrame([[0, 1, 2], [3, 4, 5]],
-                         columns=["a", "b", "a.1"])
-
     with pytest.raises(ValueError, match='Duplicate names'):
         parser.read_csv(StringIO(data), names=["a", "b", "a"])
 
