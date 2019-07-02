@@ -525,6 +525,17 @@ class TestDataFrameAnalytics:
                              index=['count', 'unique', 'top', 'freq'])
         tm.assert_frame_equal(result, expected)
 
+    def test_describe_empty_object(self):
+        # https://github.com/pandas-dev/pandas/issues/27183
+        df = pd.DataFrame({"A": [None, None]}, dtype=object)
+        result = df.describe()
+        expected = pd.DataFrame({"A": [0, 0, np.nan, np.nan]}, dtype=object,
+                                index=['count', 'unique', 'top', 'freq'])
+        tm.assert_frame_equal(result, expected)
+
+        result = df.iloc[:0].describe()
+        tm.assert_frame_equal(result, expected)
+
     def test_describe_bool_frame(self):
         # GH 13891
         df = pd.DataFrame({
@@ -595,7 +606,8 @@ class TestDataFrameAnalytics:
         df = pd.DataFrame({"empty_col": Categorical([])})
         result = df.describe()
         expected = DataFrame({'empty_col': [0, 0, None, None]},
-                             index=['count', 'unique', 'top', 'freq'])
+                             index=['count', 'unique', 'top', 'freq'],
+                             dtype='object')
         tm.assert_frame_equal(result, expected)
 
     def test_describe_categorical_columns(self):
