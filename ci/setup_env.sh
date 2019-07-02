@@ -78,6 +78,8 @@ source activate pandas-dev
 echo
 echo "set the compiler cache to work"
 if [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+    echo "Install ccache"
+    conda install ccache -y
     echo "Using ccache"
     ccache --status
     ccache --version
@@ -90,13 +92,13 @@ if [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
     export CC="ccache $CC"
 elif [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "osx" ]; then
     echo "Install ccache"
-    brew install ccache > /dev/null 2>&1
+    conda install ccache -y
     echo "Using ccache"
     ccache --status
     ccache --version
     gcc=$CC
     if [ -z "$CC" ]; then
-        gcc=$(which clang)
+        gcc=$(which gcc)
     fi
     echo "gcc: $gcc"
     CCACHE=ccache
