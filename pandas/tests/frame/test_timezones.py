@@ -150,10 +150,10 @@ class TestDataFrameTimezones:
         # GH#2810 (with timezones)
         datetimes_naive = [ts.to_pydatetime() for ts in dr]
         datetimes_with_tz = [ts.to_pydatetime() for ts in dr_tz]
-        df = DataFrame({'dr': dr,
-                        'dr_tz': dr_tz,
-                        'datetimes_naive': datetimes_naive,
-                        'datetimes_with_tz': datetimes_with_tz})
+        df = DataFrame({'dr': dr})
+        df['dr_tz'] = dr_tz
+        df['datetimes_naive'] = datetimes_naive
+        df['datetimes_with_tz'] = datetimes_with_tz
         result = df.dtypes
         expected = Series([
             np.dtype('datetime64[ns]'),
