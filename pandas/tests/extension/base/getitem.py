@@ -73,6 +73,20 @@ class BaseGetitemTests(BaseExtensionTests):
         result = df.loc[:3, 'A']
         self.assert_series_equal(result, expected)
 
+    def test_loc_iloc_frame_single_dtype(self, data):
+        # GH#27110 bug in ExtensionBlock.iget caused df.iloc[n] to incorrectly
+        #  return a scalar
+        df = pd.DataFrame({"A": data})
+        expected = pd.Series([data[2]], index=["A"], name=2, dtype=data.dtype)
+
+        result = df.loc[2]
+        self.assert_series_equal(result, expected)
+
+        expected = pd.Series([data[-1]], index=["A"], name=len(data) - 1,
+                             dtype=data.dtype)
+        result = df.iloc[-1]
+        self.assert_series_equal(result, expected)
+
     def test_getitem_scalar(self, data):
         result = data[0]
         assert isinstance(result, data.dtype.type)
