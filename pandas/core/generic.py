@@ -5265,6 +5265,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         .. deprecated:: 0.25.0
 
+        Use `.dtypes.value_counts()` instead.
+
         Returns
         -------
         dtype : Series
