@@ -120,7 +120,7 @@ conda list pandas
 # Make sure any error below is reported as such
 
 echo "Build extensions and install pandas"
-python setup.py build_ext -q --inplace --compiler=${CC}
+python setup.py build_ext -q --inplace --compiler=unix -I ${CONDA_PREFIX}/include/ -L ${CONDA_PREFIX}/lib/ -R ${CONDA_PREFIX}/lib/
 python -m pip install -e .
 
 echo
