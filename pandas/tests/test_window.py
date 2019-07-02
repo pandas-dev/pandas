@@ -14,7 +14,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame, Index, Series, Timestamp, bdate_range, concat, isna, notna)
-from pandas.core.base import SpecificationError
+from pandas.core.base import DataError, SpecificationError
 from pandas.core.sorting import safe_sort
 import pandas.core.window as rwindow
 import pandas.util.testing as tm
@@ -45,6 +45,12 @@ def win_types(request):
 @pytest.fixture(params=['kaiser', 'gaussian', 'general_gaussian',
                         'exponential'])
 def win_types_special(request):
+    return request.param
+
+
+@pytest.fixture(params=["sum", "mean", "median", "max", "min",
+                        "var", "std", "kurt", "skew"])
+def arithmetic_win_operators(request):
     return request.param
 
 
@@ -118,9 +124,11 @@ class TestApi(Base):
     def test_skip_sum_object_raises(self):
         df = DataFrame({'A': range(5), 'B': range(5, 10), 'C': 'foo'})
         r = df.rolling(window=3)
-
-        with pytest.raises(TypeError, match='cannot handle this type'):
-            r.sum()
+        result = r.sum()
+        expected = DataFrame({'A': [np.nan, np.nan, 3, 6, 9],
+                              'B': [np.nan, np.nan, 18, 21, 24]},
+                             columns=list('AB'))
+        tm.assert_frame_equal(result, expected)
 
     def test_agg(self):
         df = DataFrame({'A': range(5), 'B': range(0, 10, 2)})
@@ -520,6 +528,18 @@ class TestRolling(Base):
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
 
+    @pytest.mark.parametrize("closed", ["neither", "left"])
+    def test_closed_empty(self, closed, arithmetic_win_operators):
+        # GH 26005
+        func_name = arithmetic_win_operators
+        ser = pd.Series(data=np.arange(5),
+                        index=pd.date_range("2000", periods=5, freq="2D"))
+        roll = ser.rolling("1D", closed=closed)
+
+        result = getattr(roll, func_name)()
+        expected = pd.Series([np.nan] * 5, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("func", ['min', 'max'])
     def test_closed_one_entry(self, func):
         # GH24718
@@ -594,6 +614,25 @@ class TestRolling(Base):
         expected = pd.Series(expected, index=ser.index)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("closed,expected", [
+        ('right', [0, 0.5, 1, 2, 3, 4, 5, 6, 7, 8]),
+        ('both', [0, 0.5, 1, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5]),
+        ('neither', [np.nan, 0, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5]),
+        ('left', [np.nan, 0, 0.5, 1, 2, 3, 4, 5, 6, 7])
+    ])
+    def test_closed_median_quantile(self, closed, expected):
+        # GH 26005
+        ser = pd.Series(data=np.arange(10),
+                        index=pd.date_range('2000', periods=10))
+        roll = ser.rolling('3D', closed=closed)
+        expected = pd.Series(expected, index=ser.index)
+
+        result = roll.median()
+        tm.assert_series_equal(result, expected)
+
+        result = roll.quantile(0.5)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize('roller', ['1s', 1])
     def tests_empty_df_rolling(self, roller):
         # GH 15819 Verifies that datetime and integer rolling windows can be
@@ -607,6 +646,17 @@ class TestRolling(Base):
         expected = DataFrame(index=pd.DatetimeIndex([]))
         result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
+
+    def test_empty_window_median_quantile(self):
+        # GH 26005
+        expected = pd.Series([np.nan, np.nan, np.nan])
+        roll = pd.Series(np.arange(3)).rolling(0)
+
+        result = roll.median()
+        tm.assert_series_equal(result, expected)
+
+        result = roll.quantile(0.1)
+        tm.assert_series_equal(result, expected)
 
     def test_missing_minp_zero(self):
         # https://github.com/pandas-dev/pandas/pull/18921
@@ -1039,15 +1089,12 @@ class DatetimeLike(Dtype):
     def check_dtypes(self, f, f_name, d, d_name, exp):
 
         roll = d.rolling(window=self.window)
-
         if f_name == 'count':
             result = f(roll)
             tm.assert_almost_equal(result, exp)
 
         else:
-
-            # other methods not Implemented ATM
-            with pytest.raises(NotImplementedError):
+            with pytest.raises(DataError):
                 f(roll)
 
 
@@ -1357,7 +1404,7 @@ class TestMoments(Base):
 
     def test_rolling_quantile_np_percentile(self):
         # #9413: Tests that rolling window's quantile default behavior
-        # is analogus to Numpy's percentile
+        # is analogous to Numpy's percentile
         row = 10
         col = 5
         idx = pd.date_range('20100101', periods=row, freq='B')
@@ -1973,7 +2020,7 @@ class TestPairwise:
 
         # DataFrame with itself, pairwise=True
         # note that we may construct the 1st level of the MI
-        # in a non-motononic way, so compare accordingly
+        # in a non-monotonic way, so compare accordingly
         results = []
         for i, df in enumerate(self.df1s):
             result = f(df)
@@ -2124,7 +2171,7 @@ def _create_consistency_data():
     def no_nans(x):
         return x.notna().all().all()
 
-    # data is a tuple(object, is_contant, no_nans)
+    # data is a tuple(object, is_constant, no_nans)
     data = create_series() + create_dataframes()
 
     return [(x, is_constant(x), no_nans(x)) for x in data]

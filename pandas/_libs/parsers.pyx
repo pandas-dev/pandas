@@ -119,24 +119,24 @@ cdef extern from "parser/tokenizer.h":
 
         # where to write out tokenized data
         char *stream
-        int64_t stream_len
-        int64_t stream_cap
+        uint64_t stream_len
+        uint64_t stream_cap
 
         # Store words in (potentially ragged) matrix for now, hmm
         char **words
         int64_t *word_starts  # where we are in the stream
-        int64_t words_len
-        int64_t words_cap
-        int64_t max_words_cap    # maximum word cap encountered
+        uint64_t words_len
+        uint64_t words_cap
+        uint64_t max_words_cap   # maximum word cap encountered
 
         char *pword_start        # pointer to stream start of current field
         int64_t word_start       # position start of current field
 
         int64_t *line_start      # position in words for start of line
         int64_t *line_fields     # Number of fields in each line
-        int64_t lines            # Number of lines observed
-        int64_t file_lines       # Number of lines observed (with bad/skipped)
-        int64_t lines_cap        # Vector capacity
+        uint64_t lines           # Number of lines observed
+        uint64_t file_lines      # Number of lines observed (with bad/skipped)
+        uint64_t lines_cap       # Vector capacity
 
         # Tokenizing stuff
         ParserState state
@@ -168,7 +168,7 @@ cdef extern from "parser/tokenizer.h":
 
         int header                  # Boolean: 1: has header, 0: no header
         int64_t header_start        # header row start
-        int64_t header_end          # header row end
+        uint64_t header_end         # header row end
 
         void *skipset
         PyObject *skipfunc
@@ -297,7 +297,6 @@ cdef class TextReader:
         object encoding
         object compression
         object mangle_dupe_cols
-        object tupleize_cols
         object usecols
         list dtype_cast_order
         set unnamed_cols
@@ -351,7 +350,6 @@ cdef class TextReader:
                   skipfooter=0,
                   verbose=False,
                   mangle_dupe_cols=True,
-                  tupleize_cols=False,
                   float_precision=None,
                   skip_blank_lines=True):
 
@@ -370,7 +368,6 @@ cdef class TextReader:
         self.parser.chunksize = tokenize_chunksize
 
         self.mangle_dupe_cols = mangle_dupe_cols
-        self.tupleize_cols = tupleize_cols
 
         # For timekeeping
         self.clocks = []

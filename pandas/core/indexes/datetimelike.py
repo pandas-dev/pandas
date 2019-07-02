@@ -2,6 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 import operator
+from typing import Set
 import warnings
 
 import numpy as np
@@ -62,14 +63,17 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
     # subclasses bc they are immutable
-    inferred_freq = cache_readonly(DatetimeLikeArrayMixin.inferred_freq.fget)
-    _isnan = cache_readonly(DatetimeLikeArrayMixin._isnan.fget)
-    hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)
+    inferred_freq = cache_readonly(
+        DatetimeLikeArrayMixin.inferred_freq.fget)  # type: ignore
+    _isnan = cache_readonly(DatetimeLikeArrayMixin._isnan.fget)  # type: ignore
+    hasnans = cache_readonly(
+        DatetimeLikeArrayMixin._hasnans.fget)  # type: ignore
     _hasnans = hasnans  # for index / array -agnostic code
-    _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
-    resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
+    _resolution = cache_readonly(
+        DatetimeLikeArrayMixin._resolution.fget)  # type: ignore
+    resolution = cache_readonly(
+        DatetimeLikeArrayMixin.resolution.fget)  # type: ignore
 
-    _box_values = ea_passthrough(DatetimeLikeArrayMixin._box_values)
     _maybe_mask_results = ea_passthrough(
         DatetimeLikeArrayMixin._maybe_mask_results)
     __iter__ = ea_passthrough(DatetimeLikeArrayMixin.__iter__)
@@ -131,11 +135,11 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     # Abstract data attributes
 
     @property
-    def values(self) -> np.ndarray:
+    def values(self):
         # Note: PeriodArray overrides this to return an ndarray of objects.
         return self._data._data
 
-    @property
+    @property  # type: ignore # https://github.com/python/mypy/issues/1362
     @Appender(DatetimeLikeArrayMixin.asi8.__doc__)
     def asi8(self):
         return self._data.asi8
@@ -216,8 +220,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
                     (is_list_like(res) and len(res)))
         except (KeyError, TypeError, ValueError):
             return False
-
-    contains = __contains__
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
@@ -762,9 +764,9 @@ class DatetimelikeDelegateMixin(PandasDelegate):
         boxed in an index, after being returned from the array
     """
     # raw_methods : dispatch methods that shouldn't be boxed in an Index
-    _raw_methods = set()
+    _raw_methods = set()  # type: Set[str]
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
-    _raw_properties = set()
+    _raw_properties = set()  # type: Set[str]
     name = None
     _data = None
 

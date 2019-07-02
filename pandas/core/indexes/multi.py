@@ -922,8 +922,6 @@ class MultiIndex(Index):
         except (LookupError, TypeError, ValueError):
             return False
 
-    contains = __contains__
-
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None:
@@ -947,7 +945,7 @@ class MultiIndex(Index):
     def memory_usage(self, deep=False):
         # we are overwriting our base class to avoid
         # computing .values here which could materialize
-        # a tuple representation uncessarily
+        # a tuple representation unnecessarily
         return self._nbytes(deep)
 
     @cache_readonly
@@ -1074,7 +1072,7 @@ class MultiIndex(Index):
             sentinel = ''
             # GH3547
             # use value of sparsify as sentinel,  unless it's an obvious
-            # "Truthey" value
+            # "Truthy" value
             if sparsify not in [True, 1]:
                 sentinel = sparsify
             # little bit of a kludge job for #1217
@@ -1149,7 +1147,7 @@ class MultiIndex(Index):
             self.levels[l].rename(name, inplace=True)
 
     names = property(fset=_set_names, fget=_get_names,
-                     doc="Names of levels in MultiIndex")
+                     doc="""\nNames of levels in MultiIndex\n""")
 
     @Appender(_index_shared_docs['_get_grouper_for_level'])
     def _get_grouper_for_level(self, mapper, level):
@@ -1246,7 +1244,7 @@ class MultiIndex(Index):
         for i in range(self.nlevels):
             vals = self._get_level_values(i)
             if is_categorical_dtype(vals):
-                vals = vals.get_values()
+                vals = vals._internal_get_values()
             if (isinstance(vals.dtype, ExtensionDtype)
                     or hasattr(vals, '_box_values')):
                 vals = vals.astype(object)
@@ -1823,12 +1821,16 @@ class MultiIndex(Index):
 
     @property
     def nlevels(self):
-        """Integer number of levels in this MultiIndex."""
+        """
+        Integer number of levels in this MultiIndex.
+        """
         return len(self.levels)
 
     @property
     def levshape(self):
-        """A tuple with the length of each level."""
+        """
+        A tuple with the length of each level.
+        """
         return tuple(len(x) for x in self.levels)
 
     def __reduce__(self):
@@ -2725,7 +2727,7 @@ class MultiIndex(Index):
             return m
 
         if isinstance(key, slice):
-            # handle a slice, returnig a slice if we can
+            # handle a slice, returning a slice if we can
             # otherwise a boolean indexer
 
             try:
@@ -2751,7 +2753,9 @@ class MultiIndex(Index):
                 # a partial date slicer on a DatetimeIndex generates a slice
                 # note that the stop ALREADY includes the stopped point (if
                 # it was a string sliced)
-                return convert_indexer(start.start, stop.stop, step)
+                start = getattr(start, 'start', start)
+                stop = getattr(stop, 'stop', stop)
+                return convert_indexer(start, stop, step)
 
             elif level > 0 or self.lexsort_depth == 0 or step is not None:
                 # need to have like semantics here to right

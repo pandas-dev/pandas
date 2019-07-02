@@ -73,10 +73,7 @@ def _get_series_result_type(result, objs=None):
             return DataFrame
 
     # otherwise it is a SingleBlockManager (axis = 0)
-    if result._block.is_sparse:
-        return SparseSeries
-    else:
-        return objs[0]._constructor
+    return objs[0]._constructor
 
 
 def _get_frame_result_type(result, objs):
@@ -197,7 +194,7 @@ def _concat_categorical(to_concat, axis=0):
             return union_categoricals(categoricals)
 
     # extract the categoricals & coerce to object if needed
-    to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
+    to_concat = [x._internal_get_values() if is_categorical_dtype(x.dtype)
                  else np.asarray(x).ravel() if not is_datetime64tz_dtype(x)
                  else np.asarray(x.astype(object)) for x in to_concat]
     result = _concat_compat(to_concat)

@@ -1835,7 +1835,7 @@ def is_complex_dtype(arr_or_dtype):
     Returns
     -------
     boolean
-        Whether or not the array or dtype is of a compex dtype.
+        Whether or not the array or dtype is of a complex dtype.
 
     Examples
     --------
@@ -1929,7 +1929,7 @@ def _is_dtype_type(arr_or_dtype, condition):
 
     Returns
     -------
-    bool : if the condition is satisifed for the arr_or_dtype
+    bool : if the condition is satisfied for the arr_or_dtype
     """
 
     if arr_or_dtype is None:

@@ -402,6 +402,10 @@ class ExcelFormatter:
                 val = '-{inf}'.format(inf=self.inf_rep)
             elif self.float_format is not None:
                 val = float(self.float_format % val)
+        if getattr(val, 'tzinfo', None) is not None:
+            raise ValueError('Excel does not support datetimes with '
+                             'timezones. Please ensure that datetimes '
+                             'are timezone unaware before writing to Excel.')
         return val
 
     def _format_header_mi(self):
@@ -557,7 +561,7 @@ class ExcelFormatter:
 
             # MultiIndex columns require an extra row
             # with index names (blank if None) for
-            # unambigous round-trip, unless not merging,
+            # unambiguous round-trip, unless not merging,
             # in which case the names all go on one row Issue #11328
             if isinstance(self.columns, ABCMultiIndex) and self.merge_cells:
                 self.rowcounter += 1

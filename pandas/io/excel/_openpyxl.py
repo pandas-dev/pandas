@@ -1,4 +1,12 @@
-from pandas.io.excel._base import ExcelWriter
+from typing import List
+
+import numpy as np
+
+from pandas.compat._optional import import_optional_dependency
+
+from pandas._typing import FilePathOrBuffer, Scalar
+
+from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
 from pandas.io.excel._util import _validate_freeze_panes
 
 
@@ -451,3 +459,67 @@ class _OpenpyxlWriter(ExcelWriter):
                             xcell = wks.cell(column=col, row=row)
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
+
+
+class _OpenpyxlReader(_BaseExcelReader):
+
+    def __init__(self, filepath_or_buffer: FilePathOrBuffer) -> None:
+        """Reader using openpyxl engine.
+
+        Parameters
+        ----------
+        filepath_or_buffer : string, path object or Workbook
+            Object to be parsed.
+        """
+        import_optional_dependency("openpyxl")
+        super().__init__(filepath_or_buffer)
+
+    @property
+    def _workbook_class(self):
+        from openpyxl import Workbook
+        return Workbook
+
+    def load_workbook(self, filepath_or_buffer: FilePathOrBuffer):
+        from openpyxl import load_workbook
+        return load_workbook(filepath_or_buffer,
+                             read_only=True, data_only=True, keep_links=False)
+
+    @property
+    def sheet_names(self) -> List[str]:
+        return self.book.sheetnames
+
+    def get_sheet_by_name(self, name: str):
+        return self.book[name]
+
+    def get_sheet_by_index(self, index: int):
+        return self.book.worksheets[index]
+
+    def _convert_cell(self, cell, convert_float: bool) -> Scalar:
+
+        # TODO: replace with openpyxl constants
+        if cell.is_date:
+            return cell.value
+        elif cell.data_type == 'e':
+            return np.nan
+        elif cell.data_type == 'b':
+            return bool(cell.value)
+        elif cell.value is None:
+            return ''  # compat with xlrd
+        elif cell.data_type == 'n':
+            # GH5394
+            if convert_float:
+                val = int(cell.value)
+                if val == cell.value:
+                    return val
+            else:
+                return float(cell.value)
+
+        return cell.value
+
+    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
+        data = []  # type: List[List[Scalar]]
+        for row in sheet.rows:
+            data.append(
+                [self._convert_cell(cell, convert_float) for cell in row])
+
+        return data

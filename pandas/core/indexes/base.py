@@ -57,13 +57,6 @@ _index_doc_kwargs = dict(klass='Index', inplace='',
 _index_shared_docs = dict()
 
 
-def _try_get_item(x):
-    try:
-        return x.item()
-    except AttributeError:
-        return x
-
-
 def _make_comparison_op(op, cls):
     def cmp_method(self, other):
         if isinstance(other, (np.ndarray, Index, ABCSeries)):
@@ -76,13 +69,8 @@ def _make_comparison_op(op, cls):
                 result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
 
         else:
-
-            # numpy will show a DeprecationWarning on invalid elementwise
-            # comparisons, this will raise in the future
-            with warnings.catch_warnings(record=True):
-                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                with np.errstate(all='ignore'):
-                    result = op(self.values, np.asarray(other))
+            with np.errstate(all='ignore'):
+                result = op(self.values, np.asarray(other))
 
         # technically we could support bool dtyped Index
         # for now just return the indexing array directly
@@ -433,7 +421,11 @@ class Index(IndexOpsMixin, PandasObject):
                     return Float64Index(subarr, copy=copy, name=name)
                 elif inferred == 'interval':
                     from .interval import IntervalIndex
-                    return IntervalIndex(subarr, name=name, copy=copy)
+                    try:
+                        return IntervalIndex(subarr, name=name, copy=copy)
+                    except ValueError:
+                        # GH27172: mixed closed Intervals --> object dtype
+                        pass
                 elif inferred == 'boolean':
                     # don't support boolean explicitly ATM
                     pass
@@ -691,11 +683,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data.dtype
 
-    @cache_readonly
+    @property
     def dtype_str(self):
         """
         Return the dtype str of the underlying data.
+
+        .. deprecated:: 0.25.0
         """
+        warnings.warn('`dtype_str` has been deprecated. Call `str` on the '
+                      'dtype attribute instead.', FutureWarning,
+                      stacklevel=2)
         return str(self.dtype)
 
     def ravel(self, order='C'):
@@ -1136,7 +1133,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         .. versionadded:: 0.24.0
 
-        This is implemented for compatability with subclass implementations
+        This is implemented for compatibility with subclass implementations
         when chaining.
 
         Returns
@@ -1491,7 +1488,7 @@ class Index(IndexOpsMixin, PandasObject):
         Return an Index of values for requested level.
 
         This is primarily useful to get an individual level of values from a
-        MultiIndex, but is provided on Index as well for compatability.
+        MultiIndex, but is provided on Index as well for compatibility.
 
         Parameters
         ----------
@@ -2731,16 +2728,10 @@ class Index(IndexOpsMixin, PandasObject):
             * backfill / bfill: use NEXT index value if no exact match
             * nearest: use the NEAREST index value if no exact match. Tied
               distances are broken by preferring the larger index value.
-        tolerance : optional
+        tolerance : int or float, optional
             Maximum distance from index value for inexact matches. The value of
             the index at the matching location most satisfy the equation
             ``abs(index[loc] - key) <= tolerance``.
-
-            Tolerance may be a scalar
-            value, which applies the same tolerance to all values, or
-            list-like, which applies variable tolerance per element. List-like
-            includes list, tuple, array, Series, and must be the same size as
-            the index and its dtype must exactly match the index's type.
 
             .. versionadded:: 0.21.0 (list-like tolerance)
 
@@ -3777,6 +3768,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return `Index` data as an `numpy.ndarray`.
 
+        .. deprecated:: 0.25.0
+            Use :meth:`Index.to_numpy` or :attr:`Index.array` instead.
+
         Returns
         -------
         numpy.ndarray
@@ -3815,6 +3809,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> midx.get_values().ndim
         1
         """
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version. Use '.to_numpy()' or '.array' instead.",
+            FutureWarning, stacklevel=2)
+        return self._internal_get_values()
+
+    def _internal_get_values(self):
         return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
@@ -3890,7 +3891,7 @@ class Index(IndexOpsMixin, PandasObject):
         from .numeric import Int64Index, UInt64Index
         if not is_unsigned_integer_dtype(dtype):
             # skip int64 conversion attempt if uint-like dtype is passed, as
-            # this could return Int64Index when UInt64Index is what's desrired
+            # this could return Int64Index when UInt64Index is what's desired
             try:
                 res = data.astype('i8', copy=False)
                 if (res == data).all():
@@ -4022,13 +4023,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx
         Int64Index([1, 2, 3, 4], dtype='int64')
 
-        >>> idx.contains(2)
-        True
-        >>> idx.contains(6)
-        False
-
-        This is equivalent to:
-
         >>> 2 in idx
         True
         >>> 6 in idx
@@ -4043,8 +4037,21 @@ class Index(IndexOpsMixin, PandasObject):
         except (OverflowError, TypeError, ValueError):
             return False
 
-    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
+        """
+        Return a boolean indicating whether the provided key is in the index.
+
+        .. deprecated:: 0.25.0
+            Use ``key in index`` instead of ``index.contains(key)``.
+
+        Returns
+        -------
+        bool
+        """
+        warnings.warn(
+            "The 'contains' method is deprecated and will be removed in a "
+            "future version. Use 'key in index' instead of "
+            "'index.contains(key)'", FutureWarning, stacklevel=2)
         return key in self
 
     def __hash__(self):
@@ -4175,7 +4182,8 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         bool
-            If two Index objects have equal elements True, otherwise False.
+            True if "other" is an Index and it has the same elements as calling
+            index; False otherwise.
         """
         if self.is_(other):
             return True

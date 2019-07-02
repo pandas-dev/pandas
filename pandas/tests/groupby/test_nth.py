@@ -3,8 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
-from pandas.util.testing import (
-    assert_frame_equal, assert_produces_warning, assert_series_equal)
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 def test_first_last_nth(df):
@@ -168,13 +167,13 @@ def test_nth():
     result = s.groupby(g, sort=False).nth(0, dropna='all')
     assert_series_equal(result, expected)
 
+    with pytest.raises(ValueError, match='For a DataFrame groupby'):
+        s.groupby(g, sort=False).nth(0, dropna=True)
+
     # doc example
     df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
     g = df.groupby('A')
-    # PR 17493, related to issue 11038
-    # test Series.nth with True for dropna produces FutureWarning
-    with assert_produces_warning(FutureWarning):
-        result = g.B.nth(0, dropna=True)
+    result = g.B.nth(0, dropna='all')
     expected = g.B.first()
     assert_series_equal(result, expected)
 
@@ -282,18 +281,21 @@ def test_first_last_tz(data, expected_first, expected_last):
 ])
 def test_first_last_tz_multi_column(method, ts, alpha):
     # GH 21603
+    category_string = pd.Series(list('abc')).astype(
+        'category')
     df = pd.DataFrame({'group': [1, 1, 2],
-                       'category_string': pd.Series(list('abc')).astype(
-                           'category'),
+                       'category_string': category_string,
                        'datetimetz': pd.date_range('20130101', periods=3,
                                                    tz='US/Eastern')})
     result = getattr(df.groupby('group'), method)()
-    expepcted = pd.DataFrame({'category_string': [alpha, 'c'],
-                              'datetimetz': [ts,
-                                             Timestamp('2013-01-03',
-                                                       tz='US/Eastern')]},
-                             index=pd.Index([1, 2], name='group'))
-    assert_frame_equal(result, expepcted)
+    expected = pd.DataFrame(
+        {'category_string': pd.Categorical(
+            [alpha, 'c'], dtype=category_string.dtype),
+         'datetimetz': [ts,
+                        Timestamp('2013-01-03',
+                                  tz='US/Eastern')]},
+        index=pd.Index([1, 2], name='group'))
+    assert_frame_equal(result, expected)
 
 
 def test_nth_multi_index_as_expected():

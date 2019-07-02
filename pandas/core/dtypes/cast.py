@@ -1038,6 +1038,8 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                                          .tz_convert(dtype.tz))
                         elif is_timedelta64:
                             value = to_timedelta(value, errors=errors)._values
+                    except OutOfBoundsDatetime:
+                        raise
                     except (AttributeError, ValueError, TypeError):
                         pass
 
@@ -1063,7 +1065,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
             dtype = value.dtype
 
             if dtype.kind == 'M' and dtype != _NS_DTYPE:
-                value = value.astype(_NS_DTYPE)
+                value = tslibs.conversion.ensure_datetime64ns(value)
 
             elif dtype.kind == 'm' and dtype != _TD_DTYPE:
                 value = to_timedelta(value)

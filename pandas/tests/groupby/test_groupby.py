@@ -129,12 +129,14 @@ def test_groupby_return_type():
     result = df.groupby('X', squeeze=False).count()
     assert isinstance(result, DataFrame)
 
+
+def test_inconsistent_return_type():
     # GH5592
-    # inconcistent return type
+    # inconsistent return type
     df = DataFrame(dict(A=['Tiger', 'Tiger', 'Tiger', 'Lamb', 'Lamb',
-                           'Pony', 'Pony'], B=Series(
-                               np.arange(7), dtype='int64'), C=date_range(
-                                   '20130101', periods=7)))
+                           'Pony', 'Pony'],
+                        B=Series(np.arange(7), dtype='int64'),
+                        C=date_range('20130101', periods=7)))
 
     def f(grp):
         return grp.iloc[0]

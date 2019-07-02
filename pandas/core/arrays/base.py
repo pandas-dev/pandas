@@ -6,7 +6,7 @@
    without warning.
 """
 import operator
-from typing import Any, Callable, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -26,7 +26,7 @@ from pandas.core import ops
 
 _not_implemented_message = "{} does not implement {}."
 
-_extension_array_shared_docs = dict()
+_extension_array_shared_docs = dict()  # type: Dict[str, str]
 
 
 class ExtensionArray:
@@ -107,6 +107,17 @@ class ExtensionArray:
     attributes called ``.values`` or ``._values`` to ensure full compatibility
     with pandas internals. But other names as ``.data``, ``._data``,
     ``._items``, ... can be freely used.
+
+    If implementing NumPy's ``__array_ufunc__`` interface, pandas expects
+    that
+
+    1. You defer by raising ``NotImplemented`` when any Series are present
+       in `inputs`. Pandas will extract the arrays and call the ufunc again.
+    2. You define a ``_HANDLED_TYPES`` tuple as an attribute on the class.
+       Pandas inspect this to determine whether the ufunc is valid for the
+       types present.
+
+    See :ref:`extending.extension.ufunc` for more.
     """
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
@@ -115,6 +126,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Constructors
     # ------------------------------------------------------------------------
+
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         """
@@ -286,6 +298,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Required attributes
     # ------------------------------------------------------------------------
+
     @property
     def dtype(self) -> ExtensionDtype:
         """
@@ -319,6 +332,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Additional Methods
     # ------------------------------------------------------------------------
+
     def astype(self, dtype, copy=True):
         """
         Cast to a NumPy array with 'dtype'.
@@ -479,8 +493,7 @@ class ExtensionArray:
     def shift(
             self,
             periods: int = 1,
-            fill_value: object = None,
-    ) -> ABCExtensionArray:
+            fill_value: object = None) -> ABCExtensionArray:
         """
         Shift values by desired number.
 
@@ -653,7 +666,7 @@ class ExtensionArray:
         -----
         :meth:`pandas.factorize` offers a `sort` keyword as well.
         """
-        # Impelmentor note: There are two ways to override the behavior of
+        # Implementer note: There are two ways to override the behavior of
         # pandas.factorize
         # 1. _values_for_factorize and _from_factorize.
         #    Specify the values passed to pandas' internal factorization
@@ -818,14 +831,9 @@ class ExtensionArray:
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self, deep: bool = False) -> ABCExtensionArray:
+    def copy(self) -> ABCExtensionArray:
         """
         Return a copy of the array.
-
-        Parameters
-        ----------
-        deep : bool, default False
-            Also copy the underlying data backing this array.
 
         Returns
         -------
@@ -836,6 +844,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
+
     def __repr__(self):
         from pandas.io.formats.printing import format_object_summary
 

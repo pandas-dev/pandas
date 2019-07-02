@@ -116,7 +116,7 @@ in many places
 
 .. _sparse.accessor:
 
-Sparse Accessor
+Sparse accessor
 ---------------
 
 .. versionadded:: 0.24.0
@@ -142,7 +142,7 @@ See :ref:`api.frame.sparse` for more.
 
 .. _sparse.calculation:
 
-Sparse Calculation
+Sparse calculation
 ------------------
 
 You can apply NumPy `ufuncs <https://docs.scipy.org/doc/numpy/reference/ufuncs.html>`_
@@ -239,7 +239,7 @@ Sparse-specific properties, like ``density``, are available on the ``.sparse`` a
 
    df.sparse.density
 
-**General Differences**
+**General differences**
 
 In a ``SparseDataFrame``, *all* columns were sparse. A :class:`DataFrame` can have a mixture of
 sparse and dense columns. As a consequence, assigning new columns to a ``DataFrame`` with sparse
@@ -370,7 +370,7 @@ row and columns coordinates of the matrix. Note that this will consume a signifi
 
 .. _sparse.subclasses:
 
-Sparse Subclasses
+Sparse subclasses
 -----------------
 
 The :class:`SparseSeries` and :class:`SparseDataFrame` classes are deprecated. Visit their

@@ -1,4 +1,4 @@
-import copy
+import numbers
 import sys
 from typing import Type
 import warnings
@@ -18,7 +18,7 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core import nanops
+from pandas.core import nanops, ops
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.tools.numeric import to_numeric
 
@@ -28,7 +28,7 @@ class _IntegerDtype(ExtensionDtype):
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
     These specific implementations are subclasses of the non-public
-    _IntegerDtype. For example we have Int8Dtype to represnt signed int 8s.
+    _IntegerDtype. For example we have Int8Dtype to represent signed int 8s.
 
     The attributes name & type are set when these subclasses are created.
     """
@@ -345,6 +345,52 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         """
         return self._coerce_to_ndarray()
 
+    _HANDLED_TYPES = (np.ndarray, numbers.Number)
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # For IntegerArray inputs, we apply the ufunc to ._data
+        # and mask the result.
+        if method == 'reduce':
+            # Not clear how to handle missing values in reductions. Raise.
+            raise NotImplementedError("The 'reduce' method is not supported.")
+        out = kwargs.get('out', ())
+
+        for x in inputs + out:
+            if not isinstance(x, self._HANDLED_TYPES + (IntegerArray,)):
+                return NotImplemented
+
+        # for binary ops, use our custom dunder methods
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs)
+        if result is not NotImplemented:
+            return result
+
+        mask = np.zeros(len(self), dtype=bool)
+        inputs2 = []
+        for x in inputs:
+            if isinstance(x, IntegerArray):
+                mask |= x._mask
+                inputs2.append(x._data)
+            else:
+                inputs2.append(x)
+
+        def reconstruct(x):
+            # we don't worry about scalar `x` here, since we
+            # raise for reduce up above.
+
+            if is_integer_dtype(x.dtype):
+                m = mask.copy()
+                return IntegerArray(x, m)
+            else:
+                x[mask] = np.nan
+            return x
+
+        result = getattr(ufunc, method)(*inputs2, **kwargs)
+        if isinstance(result, tuple):
+            tuple(reconstruct(x) for x in result)
+        else:
+            return reconstruct(result)
+
     def __iter__(self):
         for i in range(len(self)):
             if self._mask[i]:
@@ -375,14 +421,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         return type(self)(result, mask, copy=False)
 
-    def copy(self, deep=False):
+    def copy(self):
         data, mask = self._data, self._mask
-        if deep:
-            data = copy.deepcopy(data)
-            mask = copy.deepcopy(mask)
-        else:
-            data = data.copy()
-            mask = mask.copy()
+        data = data.copy()
+        mask = mask.copy()
         return type(self)(data, mask, copy=False)
 
     def __setitem__(self, key, value):

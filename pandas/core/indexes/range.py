@@ -13,8 +13,8 @@ from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.common import (
-    ensure_python_int, is_int64_dtype, is_integer, is_scalar,
-    is_timedelta64_dtype)
+    ensure_platform_int, ensure_python_int, is_int64_dtype, is_integer,
+    is_integer_dtype, is_list_like, is_scalar, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCSeries, ABCTimedeltaIndex)
 
@@ -348,6 +348,36 @@ class RangeIndex(Int64Index):
                 raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
+    @Appender(_index_shared_docs['get_indexer'])
+    def get_indexer(self, target, method=None, limit=None, tolerance=None):
+        if not (method is None and tolerance is None and is_list_like(target)):
+            return super().get_indexer(target, method=method,
+                                       tolerance=tolerance)
+
+        if self.step > 0:
+            start, stop, step = self.start, self.stop, self.step
+        else:
+            # Work on reversed range for simplicity:
+            start, stop, step = (self.stop - self.step,
+                                 self.start + 1,
+                                 - self.step)
+
+        target_array = np.asarray(target)
+        if not (is_integer_dtype(target_array) and target_array.ndim == 1):
+            # checks/conversions/roundings are delegated to general method
+            return super().get_indexer(target, method=method,
+                                       tolerance=tolerance)
+
+        locs = target_array - start
+        valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)
+        locs[~valid] = -1
+        locs[valid] = locs[valid] / step
+
+        if step != self.step:
+            # We reversed this range: transform to original locs
+            locs[valid] = len(self) - 1 - locs[valid]
+        return ensure_platform_int(locs)
+
     def tolist(self):
         return list(self._range)
 
@@ -525,7 +555,7 @@ class RangeIndex(Int64Index):
 
         sort : False or None, default None
             Whether to sort resulting index. ``sort=None`` returns a
-            mononotically increasing ``RangeIndex`` if possible or a sorted
+            monotonically increasing ``RangeIndex`` if possible or a sorted
             ``Int64Index`` if not. ``sort=False`` always returns an
             unsorted ``Int64Index``
 

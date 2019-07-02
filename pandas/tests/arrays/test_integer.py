@@ -164,13 +164,13 @@ class TestArithmeticOps(BaseOpsUtil):
             self._check_op_integer(result, expected, mask, s, op_name, other)
 
     def _check_op_float(self, result, expected, mask, s, op_name, other):
-        # check comparisions that are resulting in float dtypes
+        # check comparisons that are resulting in float dtypes
 
         expected[mask] = np.nan
         tm.assert_series_equal(result, expected)
 
     def _check_op_integer(self, result, expected, mask, s, op_name, other):
-        # check comparisions that are resulting in integer dtypes
+        # check comparisons that are resulting in integer dtypes
 
         # to compare properly, we convert the expected
         # to float, mask to nans and convert infs
@@ -715,6 +715,74 @@ def test_astype_nansafe():
 
     with pytest.raises(ValueError, match=msg):
         arr.astype('uint32')
+
+
+@pytest.mark.parametrize(
+    'ufunc', [np.abs, np.sign])
+def test_ufuncs_single_int(ufunc):
+    a = integer_array([1, 2, -3, np.nan])
+    result = ufunc(a)
+    expected = integer_array(ufunc(a.astype(float)))
+    tm.assert_extension_array_equal(result, expected)
+
+    s = pd.Series(a)
+    result = ufunc(s)
+    expected = pd.Series(integer_array(ufunc(a.astype(float))))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    'ufunc', [np.log, np.exp, np.sin, np.cos, np.sqrt])
+def test_ufuncs_single_float(ufunc):
+    a = integer_array([1, 2, -3, np.nan])
+    with np.errstate(invalid='ignore'):
+        result = ufunc(a)
+        expected = ufunc(a.astype(float))
+    tm.assert_numpy_array_equal(result, expected)
+
+    s = pd.Series(a)
+    with np.errstate(invalid='ignore'):
+        result = ufunc(s)
+        expected = ufunc(s.astype(float))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    'ufunc', [np.add, np.subtract])
+def test_ufuncs_binary_int(ufunc):
+    # two IntegerArrays
+    a = integer_array([1, 2, -3, np.nan])
+    result = ufunc(a, a)
+    expected = integer_array(ufunc(a.astype(float), a.astype(float)))
+    tm.assert_extension_array_equal(result, expected)
+
+    # IntegerArray with numpy array
+    arr = np.array([1, 2, 3, 4])
+    result = ufunc(a, arr)
+    expected = integer_array(ufunc(a.astype(float), arr))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = ufunc(arr, a)
+    expected = integer_array(ufunc(arr, a.astype(float)))
+    tm.assert_extension_array_equal(result, expected)
+
+    # IntegerArray with scalar
+    result = ufunc(a, 1)
+    expected = integer_array(ufunc(a.astype(float), 1))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = ufunc(1, a)
+    expected = integer_array(ufunc(1, a.astype(float)))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize('values', [
+    [0, 1], [0, None]
+])
+def test_ufunc_reduce_raises(values):
+    a = integer_array(values)
+    with pytest.raises(NotImplementedError):
+        np.add.reduce(a)
 
 
 # TODO(jreback) - these need testing / are broken

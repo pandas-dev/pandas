@@ -263,7 +263,7 @@ Now, to find prices per store/product, we can simply do:
 See the :ref:`documentation <groupby.pipe>` for more.
 
 
-.. _whatsnew_0210.enhancements.reanme_categories:
+.. _whatsnew_0210.enhancements.rename_categories:
 
 ``Categorical.rename_categories`` accepts a dict-like
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -300,7 +300,7 @@ as in :meth:`DataFrame.rename`.
 
 .. _whatsnew_0210.enhancements.other:
 
-Other Enhancements
+Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 New functions or methods
@@ -412,13 +412,13 @@ Previously WITH ``bottleneck``:
    In [2]: s.sum()
    Out[2]: 0.0
 
-New Behavior, without regard to the bottleneck installation:
+New behavior, without regard to the bottleneck installation:
 
 .. ipython:: python
 
    s.sum()
 
-Note that this also changes the sum of an empty ``Series``. Previously this always returned 0 regardless of a ``bottlenck`` installation:
+Note that this also changes the sum of an empty ``Series``. Previously this always returned 0 regardless of a ``bottleneck`` installation:
 
 .. code-block:: ipython
 
@@ -434,7 +434,7 @@ but for consistency with the all-NaN case, this was changed to return NaN as wel
 
 .. _whatsnew_0210.api_breaking.loc:
 
-Indexing with a list with missing labels is Deprecated
+Indexing with a list with missing labels is deprecated
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously, selecting with a list of labels, where one or more labels were missing would always succeed, returning ``NaN`` for missing labels.
@@ -448,7 +448,7 @@ See the :ref:`deprecation docs <indexing.deprecate_loc_reindex_listlike>`.
    s = pd.Series([1, 2, 3])
    s
 
-Previous Behavior
+Previous behavior
 
 .. code-block:: ipython
 
@@ -460,7 +460,7 @@ Previous Behavior
    dtype: float64
 
 
-Current Behavior
+Current behavior
 
 .. code-block:: ipython
 
@@ -492,7 +492,7 @@ Selection with all keys found is unchanged.
 
 .. _whatsnew_0210.api.na_changes:
 
-NA naming Changes
+NA naming changes
 ^^^^^^^^^^^^^^^^^
 
 In order to promote more consistency among the pandas API, we have added additional top-level
@@ -524,7 +524,7 @@ Previously:
    In [2]: type(list(s)[0])
    Out[2]: numpy.int64
 
-New Behaviour:
+New behavior:
 
 .. ipython:: python
 
@@ -544,7 +544,7 @@ Previously:
    In [8]: type(df.to_dict()['a'][0])
    Out[8]: numpy.int64
 
-New Behaviour:
+New behavior:
 
 .. ipython:: python
 
@@ -561,7 +561,7 @@ you would get a label based selection, potentially duplicating result labels, ra
 (where ``True`` selects elements), this was inconsistent how a boolean numpy array indexed. The new behavior is to
 act like a boolean numpy array indexer. (:issue:`17738`)
 
-Previous Behavior:
+Previous behavior:
 
 .. ipython:: python
 
@@ -578,7 +578,7 @@ Previous Behavior:
    True     2
    dtype: int64
 
-Current Behavior
+Current behavior
 
 .. ipython:: python
 
@@ -588,7 +588,7 @@ Current Behavior
 Furthermore, previously if you had an index that was non-numeric (e.g. strings), then a boolean Index would raise a ``KeyError``.
 This will now be treated as a boolean indexer.
 
-Previously Behavior:
+Previously behavior:
 
 .. ipython:: python
 
@@ -600,7 +600,7 @@ Previously Behavior:
    In [39]: s.loc[pd.Index([True, False, True])]
    KeyError: "None of [Index([True, False, True], dtype='object')] are in the [index]"
 
-Current Behavior
+Current behavior
 
 .. ipython:: python
 
@@ -614,7 +614,7 @@ Current Behavior
 
 In previous versions of pandas, resampling a ``Series``/``DataFrame`` indexed by a ``PeriodIndex`` returned a ``DatetimeIndex`` in some cases (:issue:`12884`). Resampling to a multiplied frequency now returns a ``PeriodIndex`` (:issue:`15944`). As a minor enhancement, resampling a ``PeriodIndex`` can now handle ``NaT`` values (:issue:`13224`)
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -634,7 +634,7 @@ Previous Behavior:
    In [5]: resampled.index
    Out[5]: DatetimeIndex(['2017-03-31', '2017-09-30', '2018-03-31'], dtype='datetime64[ns]', freq='2Q-DEC')
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -650,7 +650,7 @@ New Behavior:
 
 Upsampling and calling ``.ohlc()`` previously returned a ``Series``, basically identical to calling ``.asfreq()``. OHLC upsampling now returns a DataFrame with columns ``open``, ``high``, ``low`` and ``close`` (:issue:`13083`). This is consistent with downsampling and ``DatetimeIndex`` behavior.
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -670,7 +670,7 @@ Previous Behavior:
             open  high  low  close
    2000-01     0     9    0      9
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -732,7 +732,7 @@ the target. Now, a ``ValueError`` will be raised when such an input is passed in
 
 .. _whatsnew_0210.api_breaking.dtype_conversions:
 
-Dtype Conversions
+Dtype conversions
 ^^^^^^^^^^^^^^^^^
 
 Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignment, would coerce to same the type (e.g. int / float), or raise for datetimelikes. These will now preserve the bools with ``object`` dtypes. (:issue:`16821`).
@@ -752,7 +752,7 @@ Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignmen
    2    3
    dtype: int64
 
-New Behavior
+New behavior
 
 .. ipython:: python
 
@@ -789,7 +789,7 @@ These now coerce to ``object`` dtype.
 
 .. _whatsnew_210.api.multiindex_single:
 
-MultiIndex Constructor with a Single Level
+MultiIndex constructor with a single level
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``MultiIndex`` constructors no longer squeezes a MultiIndex with all
@@ -818,7 +818,7 @@ UTC Localization with Series
 
 Previously, :func:`to_datetime` did not localize datetime ``Series`` data when ``utc=True`` was passed. Now, :func:`to_datetime` will correctly localize ``Series`` with a ``datetime64[ns, UTC]`` dtype to be consistent with how list-like and ``Index`` data are handled. (:issue:`6415`).
 
-Previous Behavior
+Previous behavior
 
 .. ipython:: python
 
@@ -833,7 +833,7 @@ Previous Behavior
    2   2013-01-01
    dtype: datetime64[ns]
 
-New Behavior
+New behavior
 
 .. ipython:: python
 
@@ -843,14 +843,14 @@ Additionally, DataFrames with datetime columns that were parsed by :func:`read_s
 
 .. _whatsnew_0210.api.consistency_of_range_functions:
 
-Consistency of Range Functions
+Consistency of range functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In previous versions, there were some inconsistencies between the various range functions: :func:`date_range`, :func:`bdate_range`, :func:`period_range`, :func:`timedelta_range`, and :func:`interval_range`. (:issue:`17471`).
 
 One of the inconsistent behaviors occurred when the ``start``, ``end`` and ``period`` parameters were all specified, potentially leading to ambiguous ranges.  When all three parameters were passed, ``interval_range`` ignored the ``period`` parameter, ``period_range`` ignored the ``end`` parameter, and the other range functions raised.  To promote consistency among the range functions, and avoid potentially ambiguous ranges, ``interval_range`` and ``period_range`` will now raise when all three parameters are passed.
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -863,7 +863,7 @@ Previous Behavior:
   In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')
   Out[3]: PeriodIndex(['2017Q1', '2017Q2', '2017Q3', '2017Q4', '2018Q1', '2018Q2'], dtype='period[Q-DEC]', freq='Q-DEC')
 
-New Behavior:
+New behavior:
 
 .. code-block:: ipython
 
@@ -877,7 +877,7 @@ New Behavior:
 
 Additionally, the endpoint parameter ``end`` was not included in the intervals produced by ``interval_range``.  However, all other range functions include ``end`` in their output.  To promote consistency among the range functions, ``interval_range`` will now include ``end`` as the right endpoint of the final interval, except if ``freq`` is specified in a way which skips ``end``.
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -888,7 +888,7 @@ Previous Behavior:
                  dtype='interval[int64]')
 
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -896,7 +896,7 @@ New Behavior:
 
 .. _whatsnew_0210.api.mpl_converters:
 
-No Automatic Matplotlib Converters
+No automatic Matplotlib converters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Pandas no longer registers our ``date``, ``time``, ``datetime``,
@@ -915,7 +915,7 @@ converters on first-use (:issue:`17710`).
 
 .. _whatsnew_0210.api:
 
-Other API Changes
+Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
@@ -1024,7 +1024,7 @@ Removal of prior version deprecations/changes
 
 .. _whatsnew_0210.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of instantiating :class:`SparseDataFrame` (:issue:`16773`)
@@ -1036,7 +1036,7 @@ Performance Improvements
 
 .. _whatsnew_0210.docs:
 
-Documentation Changes
+Documentation changes
 ~~~~~~~~~~~~~~~~~~~~~
 
 - Several ``NaT`` method docstrings (e.g. :func:`NaT.ctime`) were incorrect (:issue:`17327`)
@@ -1044,7 +1044,7 @@ Documentation Changes
 
 .. _whatsnew_0210.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 Conversion
@@ -1114,7 +1114,7 @@ Plotting
 - Bug causing ``plotting.parallel_coordinates`` to reset the random seed when using random colors (:issue:`17525`)
 
 
-Groupby/Resample/Rolling
+Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in ``DataFrame.resample(...).size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)

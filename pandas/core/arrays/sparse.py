@@ -38,6 +38,7 @@ from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
+import pandas.core.ops as ops
 
 import pandas.io.formats.printing as printing
 
@@ -454,7 +455,7 @@ def _sparse_array_op(
 
     if left.sp_index.ngaps == 0 or right.sp_index.ngaps == 0:
         with np.errstate(all='ignore'):
-            result = op(left.get_values(), right.get_values())
+            result = op(left.to_dense(), right.to_dense())
             fill = op(_get_fill(left), _get_fill(right))
 
         if left.sp_index.ngaps == 0:
@@ -562,7 +563,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         * 'block': Stores a `block` and `block_length` for each
           contiguous *span* of sparse values. This is best when
           sparse data tends to be clumped together, with large
-          regsions of ``fill-value`` values between sparse values.
+          regions of ``fill-value`` values between sparse values.
         * 'integer': uses an integer to store the location of
           each sparse value.
 
@@ -1262,12 +1263,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             v, side, sorter
         )
 
-    def copy(self, deep=False):
-        if deep:
-            values = self.sp_values.copy()
-        else:
-            values = self.sp_values
-
+    def copy(self):
+        values = self.sp_values.copy()
         return self._simple_new(values, self.sp_index, self.dtype)
 
     @classmethod
@@ -1316,7 +1313,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             sp_index = IntIndex(length, indices)
 
         else:
-            # when concatentating block indices, we don't claim that you'll
+            # when concatenating block indices, we don't claim that you'll
             # get an identical index as concating the values and then
             # creating a new index. We don't want to spend the time trying
             # to merge blocks across arrays in `to_concat`, so the resulting
@@ -1472,8 +1469,21 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         return np.asarray(self, dtype=self.sp_values.dtype)
 
-    # TODO: Look into deprecating this in favor of `to_dense`.
-    get_values = to_dense
+    def get_values(self):
+        """
+        Convert SparseArray to a NumPy array.
+
+        .. deprecated:: 0.25.0
+            Use `to_dense` instead.
+
+        """
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version. Use the 'to_dense' method instead.",
+            FutureWarning, stacklevel=2)
+        return self._internal_get_values()
+
+    _internal_get_values = to_dense
 
     # ------------------------------------------------------------------------
     # IO
@@ -1656,42 +1666,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             if not isinstance(x, self._HANDLED_TYPES + (SparseArray,)):
                 return NotImplemented
 
-        special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
-                   'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder'}
-        aliases = {
-            'subtract': 'sub',
-            'multiply': 'mul',
-            'floor_divide': 'floordiv',
-            'true_divide': 'truediv',
-            'power': 'pow',
-            'remainder': 'mod',
-            'divide': 'div',
-            'equal': 'eq',
-            'not_equal': 'ne',
-            'less': 'lt',
-            'less_equal': 'le',
-            'greater': 'gt',
-            'greater_equal': 'ge',
-        }
-
-        flipped = {
-            'lt': '__gt__',
-            'le': '__ge__',
-            'gt': '__lt__',
-            'ge': '__le__',
-            'eq': '__eq__',
-            'ne': '__ne__',
-        }
-
-        op_name = ufunc.__name__
-        op_name = aliases.get(op_name, op_name)
-
-        if op_name in special and kwargs.get('out') is None:
-            if isinstance(inputs[0], type(self)):
-                return getattr(self, '__{}__'.format(op_name))(inputs[1])
-            else:
-                name = flipped.get(op_name, '__r{}__'.format(op_name))
-                return getattr(self, name)(inputs[0])
+        # for binary ops, use our custom dunder methods
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs)
+        if result is not NotImplemented:
+            return result
 
         if len(inputs) == 1:
             # No alignment necessary.
@@ -1866,15 +1845,6 @@ def _maybe_to_dense(obj):
     if hasattr(obj, 'to_dense'):
         return obj.to_dense()
     return obj
-
-
-def _maybe_to_sparse(array):
-    """
-    array must be SparseSeries or SparseArray
-    """
-    if isinstance(array, ABCSparseSeries):
-        array = array.array.copy()
-    return array
 
 
 def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):

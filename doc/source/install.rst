@@ -236,7 +236,7 @@ Package                                                          Minimum support
 
 .. _install.recommended_dependencies:
 
-Recommended Dependencies
+Recommended dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
@@ -255,7 +255,7 @@ Recommended Dependencies
 
 .. _install.optional_dependencies:
 
-Optional Dependencies
+Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
 Pandas has many optional dependencies that are only used for specific methods.
@@ -276,16 +276,17 @@ SciPy                     0.19.0             Miscellaneous statistical functions
 XLsxWriter                0.9.8              Excel writing
 blosc                                        Compression for msgpack
 fastparquet               0.2.1              Parquet reading / writing
-gcsfs                     0.1.0              Google Cloud Storage access
+gcsfs                     0.2.2              Google Cloud Storage access
 html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
-lxml                                         HTML parser for read_html (see :ref:`note <optional_html>`)
+lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
 matplotlib                2.2.2              Visualization
 openpyxl                  2.4.8              Reading / writing for xlsx files
 pandas-gbq                0.8.0              Google Big Query access
 psycopg2                                     PostgreSQL engine for sqlalchemy
 pyarrow                   0.9.0              Parquet and feather reading / writing
-pymysql                                      MySQL engine for sqlalchemy
+pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
+pytables                  3.4.2              HDF5 reading / writing
 qtpy                                         Clipboard I/O
 s3fs                      0.0.8              Amazon S3 access
 xarray                    0.8.2              pandas-like API for N-dimensional data
@@ -298,7 +299,7 @@ zlib                                         Compression for msgpack
 
 .. _optional_html:
 
-Optional Dependencies for Parsing HTML
+Optional dependencies for parsing HTML
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 One of the following combinations of libraries is needed to use the
