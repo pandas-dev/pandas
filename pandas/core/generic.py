@@ -5291,7 +5291,8 @@ class NDFrame(PandasObject, SelectionMixin):
         dtype: int64
         """
         warnings.warn("`get_dtype_counts` has been deprecated and will be "
-                      "removed in a future version.", FutureWarning,
+                      "removed in a future version. For DataFrames use "
+                      "`.dtypes.value_counts()", FutureWarning,
                       stacklevel=2)
         from pandas import Series
         return Series(self._data.get_dtype_counts())
