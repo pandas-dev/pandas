@@ -83,6 +83,7 @@ if [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
     echo "Using ccache"
     ccache --show-stats
     ccache --version
+    
     if [ -z "$GCC" ]; then
         GCC=$(which gcc)
     fi
@@ -105,6 +106,11 @@ elif [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "osx" ]; then
     echo "ccache: $CCACHE"
 else
     echo "Not using ccache"
+    if [ -z "$CC" ]; then
+        GCC=$(which gcc)
+    else
+        update-alternatives --set gcc "${CC}"
+    fi
 fi
 
 echo
