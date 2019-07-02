@@ -2796,8 +2796,10 @@ class NDFrame(PandasObject, SelectionMixin):
             Formatter functions to apply to columns' elements by position or
             name. The result of each function must be a unicode string.
             List must be of length equal to the number of columns.
-        float_format : str, optional
-            Format string for floating point numbers.
+        float_format : one-parameter function or str, optional, default None
+            Formatter for floating point numbers. For example
+            ``float_format="%%.2f"`` and ``float_format="{:0.2f}".format`` will
+            both result in 0.1234 being formatted as 0.12.
         sparsify : bool, optional
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row. By default, the value will be
@@ -3363,7 +3365,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return result
 
-    def take(self, indices, axis=0, convert=None, is_copy=True, **kwargs):
+    def take(self, indices, axis=0, is_copy=True, **kwargs):
         """
         Return the elements in the given *positional* indices along an axis.
 
@@ -3378,15 +3380,6 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
-        convert : bool, default True
-            Whether to convert negative indices into positive ones.
-            For example, ``-1`` would map to the ``len(axis) - 1``.
-            The conversions are similar to the behavior of indexing a
-            regular Python list.
-
-            .. deprecated:: 0.21.0
-               In the future, negative indices will always be converted.
-
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
         **kwargs
@@ -3447,11 +3440,6 @@ class NDFrame(PandasObject, SelectionMixin):
         1  monkey  mammal        NaN
         3    lion  mammal       80.5
         """
-        if convert is not None:
-            msg = ("The 'convert' parameter is deprecated "
-                   "and will be removed in a future version.")
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-
         nv.validate_take(tuple(), kwargs)
         return self._take(indices, axis=axis, is_copy=is_copy)
 
@@ -5220,6 +5208,9 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return an ndarray after converting sparse values to dense.
 
+        .. deprecated:: 0.25.0
+            Use ``np.asarray(..)`` or :meth:`DataFrame.values` instead.
+
         This is the same as ``.values`` for non-sparse data. For sparse
         data contained in a `SparseArray`, the data are first
         converted to a dense representation.
@@ -5259,6 +5250,13 @@ class NDFrame(PandasObject, SelectionMixin):
                [nan,  2.],
                [nan,  3.]])
         """
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version. Use '.values' or 'np.asarray(..)' instead.",
+            FutureWarning, stacklevel=2)
+        return self._internal_get_values()
+
+    def _internal_get_values(self):
         return self.values
 
     def get_dtype_counts(self):
