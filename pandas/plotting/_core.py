@@ -511,7 +511,7 @@ class PlotAccessor(PandasObject):
         self._parent = data
 
     @staticmethod
-    def _get_call_args(data, args, kwargs):
+    def _get_call_args(backend_name, data, args, kwargs):
         """
         This function makes calls to this accessor `__call__` method compatible
         with the previous `SeriesPlotMethods.__call__` and
@@ -542,9 +542,9 @@ class PlotAccessor(PandasObject):
                 ('yerr', None), ('xerr', None), ('secondary_y', False),
                 ('sort_columns', False)]
         else:
-            return TypeError(('Called plot accessor for type {}, expected '
-                              'Series or DataFrame').format(
-                                  type(data).__name__))
+            raise TypeError(('Called plot accessor for type {}, expected '
+                             'Series or DataFrame').format(
+                                 type(data).__name__))
 
         if args and isinstance(data, ABCSeries):
             msg = ('`Series.plot()` should not be called with positional '
@@ -559,7 +559,10 @@ class PlotAccessor(PandasObject):
                           FutureWarning, stacklevel=3)
 
         pos_args = {name: value for value, (name, _) in zip(args, arg_def)}
-        kwargs = dict(arg_def, **pos_args, **kwargs)
+        if backend_name == 'pandas.plotting._matplotlib':
+            kwargs = dict(arg_def, **pos_args, **kwargs)
+        else:
+            kwargs = dict(pos_args, **kwargs)
 
         x = kwargs.pop('x', None)
         y = kwargs.pop('y', None)
@@ -567,13 +570,15 @@ class PlotAccessor(PandasObject):
         return x, y, kind, kwargs
 
     def __call__(self, *args, **kwargs):
-        x, y, kind, kwargs = self._get_call_args(self._parent, args, kwargs)
+        plot_backend = _get_plot_backend()
+
+        x, y, kind, kwargs = self._get_call_args(plot_backend.__name__,
+                                                 self._parent, args, kwargs)
 
         kind = self._kind_aliases.get(kind, kind)
         if kind not in self._all_kinds:
             raise ValueError('{} is not a valid plot kind'.format(kind))
 
-        plot_backend = _get_plot_backend()
         # The original data structured can be transformed before passed to the
         # backend. For example, for DataFrame is common to set the index as the
         # `x` parameter, and return a Series with the parameter `y` as values.
