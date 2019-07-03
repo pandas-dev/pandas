@@ -1,5 +1,5 @@
 import pandas as pd
-from pandas import api
+from pandas import api, compat
 from pandas.util import testing as tm
 
 
@@ -49,6 +49,8 @@ class TestPDApi(Base):
                'UInt8Dtype', 'UInt16Dtype', 'UInt32Dtype', 'UInt64Dtype',
                'NamedAgg',
                ]
+    if not compat.PY37:
+        classes.append("Panel")
 
     # these are already deprecated; awaiting removal
     deprecated_classes = []
