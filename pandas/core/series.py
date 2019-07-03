@@ -5,6 +5,7 @@ from collections import OrderedDict
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
+from typing import Any, Callable
 import warnings
 
 import numpy as np
@@ -137,7 +138,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'reshape', 'get_value', 'set_value',
-         'from_csv', 'valid', 'tolist'])
+         'valid', 'tolist'])
 
     # Override cache_readonly bc Series is mutable
     hasnans = property(base.IndexOpsMixin.hasnans.func,
@@ -506,11 +507,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Same as values (but handles sparseness conversions); is a view.
 
+        .. deprecated:: 0.25.0
+            Use :meth:`Series.to_numpy` or :attr:`Series.array` instead.
+
         Returns
         -------
         numpy.ndarray
             Data of the Series.
         """
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version. Use '.to_numpy()' or '.array' instead.",
+            FutureWarning, stacklevel=2)
+        return self._internal_get_values()
+
+    def _internal_get_values(self):
         return self._data.get_values()
 
     @property
@@ -617,10 +628,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Apply the `put` method to its `values` attribute if it has one.
 
+        .. deprecated:: 0.25.0
+
         See Also
         --------
         numpy.ndarray.put
         """
+        warnings.warn('`put` has been deprecated and will be removed in a'
+                      'future version.', FutureWarning, stacklevel=2)
         self._values.put(*args, **kwargs)
 
     def __len__(self):
@@ -700,6 +715,84 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
     # NDArray Compat
+    _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
+
+    def __array_ufunc__(
+            self,
+            ufunc: Callable,
+            method: str,
+            *inputs: Any,
+            **kwargs: Any
+    ):
+        # TODO: handle DataFrame
+        from pandas.core.internals.construction import extract_array
+        cls = type(self)
+
+        # for binary ops, use our custom dunder methods
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs)
+        if result is not NotImplemented:
+            return result
+
+        # Determine if we should defer.
+        no_defer = (np.ndarray.__array_ufunc__, cls.__array_ufunc__)
+
+        for item in inputs:
+            higher_priority = (
+                hasattr(item, '__array_priority__') and
+                item.__array_priority__ > self.__array_priority__
+            )
+            has_array_ufunc = (
+                hasattr(item, '__array_ufunc__') and
+                type(item).__array_ufunc__ not in no_defer and
+                not isinstance(item, self._HANDLED_TYPES)
+            )
+            if higher_priority or has_array_ufunc:
+                return NotImplemented
+
+        # align all the inputs.
+        names = [getattr(x, 'name') for x in inputs if hasattr(x, 'name')]
+        types = tuple(type(x) for x in inputs)
+        # TODO: dataframe
+        alignable = [x for x, t in zip(inputs, types) if issubclass(t, Series)]
+
+        if len(alignable) > 1:
+            # This triggers alignment.
+            # At the moment, there aren't any ufuncs with more than two inputs
+            # so this ends up just being x1.index | x2.index, but we write
+            # it to handle *args.
+            index = alignable[0].index
+            for s in alignable[1:]:
+                index |= s.index
+            inputs = tuple(x.reindex(index) if issubclass(t, Series) else x
+                           for x, t in zip(inputs, types))
+        else:
+            index = self.index
+
+        inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
+        result = getattr(ufunc, method)(*inputs, **kwargs)
+        if len(set(names)) == 1:
+            # we require names to be hashable, right?
+            name = names[0]  # type: Any
+        else:
+            name = None
+
+        def construct_return(result):
+            if lib.is_scalar(result):
+                return result
+            return self._constructor(result,
+                                     index=index,
+                                     name=name,
+                                     copy=False)
+
+        if type(result) is tuple:
+            # multiple return values
+            return tuple(construct_return(x) for x in result)
+        elif method == 'at':
+            # no return value
+            return None
+        else:
+            return construct_return(result)
 
     def __array__(self, dtype=None):
         """
@@ -762,30 +855,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             dtype = 'M8[ns]'
         return np.asarray(self.array, dtype)
 
-    def __array_wrap__(self, result, context=None):
-        """
-        Gets called after a ufunc.
-        """
-        return self._constructor(result, index=self.index,
-                                 copy=False).__finalize__(self)
-
-    def __array_prepare__(self, result, context=None):
-        """
-        Gets called prior to a ufunc.
-        """
-
-        # nice error message for non-ufunc types
-        if (context is not None and
-                (not isinstance(self._values, (np.ndarray, ExtensionArray))
-                 or isinstance(self._values, Categorical))):
-            obj = context[1][0]
-            raise TypeError("{obj} with dtype {dtype} cannot perform "
-                            "the numpy op {op}".format(
-                                obj=type(obj).__name__,
-                                dtype=getattr(obj, 'dtype', None),
-                                op=context[0].__name__))
-        return result
-
     # ----------------------------------------------------------------------
     # Unary Methods
 
@@ -793,7 +862,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def real(self):
         """
         Return the real value of vector.
+
+        .. deprecated 0.25.0
         """
+        warnings.warn("`real` has be deprecated and will be removed in a "
+                      "future verison", FutureWarning, stacklevel=2)
         return self.values.real
 
     @real.setter
@@ -804,7 +877,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def imag(self):
         """
         Return imag value of vector.
+
+        .. deprecated 0.25.0
         """
+        warnings.warn("`imag` has be deprecated and will be removed in a "
+                      "future verison", FutureWarning, stacklevel=2)
         return self.values.imag
 
     @imag.setter
@@ -3990,27 +4067,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return super().shift(periods=periods, freq=freq, axis=axis,
                              fill_value=fill_value)
 
-    def reindex_axis(self, labels, axis=0, **kwargs):
-        """
-        Conform Series to new index with optional filling logic.
-
-        .. deprecated:: 0.21.0
-            Use ``Series.reindex`` instead.
-
-        Returns
-        -------
-        Series
-            Reindexed Series.
-        """
-        # for compatibility with higher dims
-        if axis != 0:
-            raise ValueError("cannot reindex series on non-zero axis!")
-        msg = ("'.reindex_axis' is deprecated and will be removed in a future "
-               "version. Use '.reindex' instead.")
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-
-        return self.reindex(index=labels, **kwargs)
-
     def memory_usage(self, index=True, deep=False):
         """
         Return the memory usage of the Series.
@@ -4225,81 +4281,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return lmask & rmask
 
-    @classmethod
-    def from_csv(cls, path, sep=',', parse_dates=True, header=None,
-                 index_col=0, encoding=None, infer_datetime_format=False):
-        """
-        Read CSV file.
-
-        .. deprecated:: 0.21.0
-            Use :func:`pandas.read_csv` instead.
-
-        It is preferable to use the more powerful :func:`pandas.read_csv`
-        for most general purposes, but ``from_csv`` makes for an easy
-        roundtrip to and from a file (the exact counterpart of
-        ``to_csv``), especially with a time Series.
-
-        This method only differs from :func:`pandas.read_csv` in some defaults:
-
-        - `index_col` is ``0`` instead of ``None`` (take first column as index
-          by default)
-        - `header` is ``None`` instead of ``0`` (the first row is not used as
-          the column names)
-        - `parse_dates` is ``True`` instead of ``False`` (try parsing the index
-          as datetime by default)
-
-        With :func:`pandas.read_csv`, the option ``squeeze=True`` can be used
-        to return a Series like ``from_csv``.
-
-        Parameters
-        ----------
-        path : str, file path, or file handle / StringIO
-        sep : str, default ','
-            Field delimiter.
-        parse_dates : bool, default True
-            Parse dates. Different default from read_table.
-        header : int, default None
-            Row to use as header (skip prior rows).
-        index_col : int or sequence, default 0
-            Column to use for index. If a sequence is given, a MultiIndex
-            is used. Different default from read_table.
-        encoding : str, optional
-            A string representing the encoding to use if the contents are
-            non-ascii, for python versions prior to 3.
-        infer_datetime_format : bool, default False
-            If True and `parse_dates` is True for a column, try to infer the
-            datetime format based on the first datetime string. If the format
-            can be inferred, there often will be a large parsing speed-up.
-
-        Returns
-        -------
-        Series
-
-        See Also
-        --------
-        read_csv
-        """
-
-        # We're calling `DataFrame.from_csv` in the implementation,
-        # which will propagate a warning regarding `from_csv` deprecation.
-        from pandas.core.frame import DataFrame
-        df = DataFrame.from_csv(path, header=header, index_col=index_col,
-                                sep=sep, parse_dates=parse_dates,
-                                encoding=encoding,
-                                infer_datetime_format=infer_datetime_format)
-        result = df.iloc[:, 0]
-        if header is None:
-            result.index.name = result.name = None
-
-        return result
-
     @Appender(generic.NDFrame.to_csv.__doc__)
     def to_csv(self, *args, **kwargs):
 
         names = ["path_or_buf", "sep", "na_rep", "float_format", "columns",
                  "header", "index", "index_label", "mode", "encoding",
                  "compression", "quoting", "quotechar", "line_terminator",
-                 "chunksize", "tupleize_cols", "date_format", "doublequote",
+                 "chunksize", "date_format", "doublequote",
                  "escapechar", "decimal"]
 
         old_names = ["path_or_buf", "index", "sep", "na_rep", "float_format",

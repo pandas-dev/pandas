@@ -177,7 +177,7 @@ API changes
     ``__repr__``). Plus string safety throughout. Now employed in many places
     throughout the pandas library. (:issue:`4090`, :issue:`4092`)
 
-I/O Enhancements
+I/O enhancements
 ~~~~~~~~~~~~~~~~
 
   - ``pd.read_html()`` can now parse HTML strings, files or urls and return
@@ -282,7 +282,7 @@ I/O Enhancements
   - ``read_csv`` will now throw a more informative error message when a file
     contains no columns, e.g., all newline characters
 
-Other Enhancements
+Other enhancements
 ~~~~~~~~~~~~~~~~~~
 
   - ``DataFrame.replace()`` now allows regular expressions on contained
@@ -371,7 +371,7 @@ Other Enhancements
     is detected (:issue:`4214`)
 
 
-Experimental Features
+Experimental features
 ~~~~~~~~~~~~~~~~~~~~~
 
   - Added experimental ``CustomBusinessDay`` class to support ``DateOffsets``
@@ -398,7 +398,7 @@ Experimental Features
       dts = pd.date_range(dt, periods=5, freq=bday_egypt)
       print(pd.Series(dts.weekday, dts).map(pd.Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
   - Plotting functions now raise a ``TypeError`` before trying to plot anything

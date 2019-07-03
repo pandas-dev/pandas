@@ -484,18 +484,18 @@ class TestSeriesAnalytics:
         b = DataFrame(np.random.randn(3, 4), index=['1', '2', '3'],
                       columns=['p', 'q', 'r', 's']).T
 
-        # Series @ DataFrame
+        # Series @ DataFrame -> Series
         result = operator.matmul(a, b)
         expected = Series(np.dot(a.values, b.values), index=['1', '2', '3'])
         assert_series_equal(result, expected)
 
-        # DataFrame @ Series
+        # DataFrame @ Series -> Series
         result = operator.matmul(b.T, a)
         expected = Series(np.dot(b.T.values, a.T.values),
                           index=['1', '2', '3'])
         assert_series_equal(result, expected)
 
-        # Series @ Series
+        # Series @ Series -> scalar
         result = operator.matmul(a, a)
         expected = np.dot(a.values, a.values)
         assert_almost_equal(result, expected)

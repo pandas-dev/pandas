@@ -33,15 +33,6 @@ class TestDataFrameToCSV(TestData):
 
         return pd.read_csv(path, **params)
 
-    def test_from_csv_deprecation(self):
-        # see gh-17812
-        with ensure_clean('__tmp_from_csv_deprecation__') as path:
-            self.tsframe.to_csv(path)
-
-            with tm.assert_produces_warning(FutureWarning):
-                depr_recons = DataFrame.from_csv(path)
-                assert_frame_equal(self.tsframe, depr_recons)
-
     def test_to_csv_from_csv1(self):
 
         with ensure_clean('__tmp_to_csv_from_csv1__') as path:
@@ -582,19 +573,6 @@ class TestDataFrameToCSV(TestData):
             result.columns.names = df.columns.names
             assert_frame_equal(df, result)
 
-            # tupleize_cols=True and index=False
-            df = _make_frame(True)
-            with tm.assert_produces_warning(FutureWarning):
-                df.to_csv(path, tupleize_cols=True, index=False)
-
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                result = read_csv(path, header=0,
-                                  tupleize_cols=True,
-                                  index_col=None)
-            result.columns = df.columns
-            assert_frame_equal(df, result)
-
             # whatsnew example
             df = _make_frame()
             df.to_csv(path)
@@ -606,18 +584,6 @@ class TestDataFrameToCSV(TestData):
             df.to_csv(path)
             result = read_csv(path, header=[0, 1],
                               index_col=[0])
-            assert_frame_equal(df, result)
-
-            # column & index are multi-index (compatibility)
-            df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
-            with tm.assert_produces_warning(FutureWarning):
-                df.to_csv(path, tupleize_cols=True)
-
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                result = read_csv(path, header=0, index_col=[0, 1],
-                                  tupleize_cols=True)
-            result.columns = df.columns
             assert_frame_equal(df, result)
 
             # invalid options

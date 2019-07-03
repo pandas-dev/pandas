@@ -433,8 +433,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             except Exception:
                 return False
 
-    contains = __contains__
-
     @cache_readonly
     def _int64index(self):
         return Int64Index._simple_new(self.asi8, name=self.name)
@@ -874,7 +872,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """
         return the first element of the underlying data as a python
         scalar
+
+        .. deprecated 0.25.0
+
         """
+        warnings.warn('`item` has been deprecated and will be removed in a '
+                      'future version', FutureWarning, stacklevel=2)
         # TODO(DatetimeArray): remove
         if len(self) == 1:
             return self[0]

@@ -26,6 +26,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import factorize, take, take_1d, unique1d
@@ -435,7 +436,7 @@ class Categorical(ExtensionArray, PandasObject):
         return self.dtype.ordered
 
     @property
-    def dtype(self):
+    def dtype(self) -> CategoricalDtype:
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance
         """
@@ -887,11 +888,6 @@ class Categorical(ExtensionArray, PandasObject):
 
              .. versionadded:: 0.23.0
 
-           .. warning::
-
-              Currently, Series are considered list like. In a future version
-              of pandas they'll be considered dict-like.
-
         inplace : bool, default False
            Whether or not to rename the categories inplace or return a copy of
            this categorical with renamed categories.
@@ -938,15 +934,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
-
-        if isinstance(new_categories, ABCSeries):
-            msg = ("Treating Series 'new_categories' as a list-like and using "
-                   "the values. In a future version, 'rename_categories' will "
-                   "treat Series like a dictionary.\n"
-                   "For dict-like, use 'new_categories.to_dict()'\n"
-                   "For list-like, use 'new_categories.values'.")
-            warn(msg, FutureWarning, stacklevel=2)
-            new_categories = list(new_categories)
 
         if is_dict_like(new_categories):
             cat.categories = [new_categories.get(item, item)
@@ -1306,6 +1293,20 @@ class Categorical(ExtensionArray, PandasObject):
             ret = np.asarray(ret)
         return ret
 
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # for binary ops, use our custom dunder methods
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs)
+        if result is not NotImplemented:
+            return result
+
+        # for all other cases, raise for now (similarly as what happens in
+        # Series.__array_prepare__)
+        raise TypeError("Object with dtype {dtype} cannot perform "
+                        "the numpy op {op}".format(
+                            dtype=self.dtype,
+                            op=ufunc.__name__))
+
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         if not isinstance(state, dict):
@@ -1497,6 +1498,8 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Return the values.
 
+        .. deprecated:: 0.25.0
+
         For internal compatibility with pandas formatting.
 
         Returns
@@ -1505,6 +1508,11 @@ class Categorical(ExtensionArray, PandasObject):
             A numpy array of the same dtype as categorical.categories.dtype or
             Index if datetime / periods.
         """
+        warn("The 'get_values' method is deprecated and will be removed in a "
+             "future version", FutureWarning, stacklevel=2)
+        return self._internal_get_values()
+
+    def _internal_get_values(self):
         # if we are a datetime and period index, return Index to keep metadata
         if is_datetimelike(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)
@@ -1937,7 +1945,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Returns an Iterator over the values of this Categorical.
         """
-        return iter(self.get_values().tolist())
+        return iter(self._internal_get_values().tolist())
 
     def __contains__(self, key):
         """
@@ -1989,9 +1997,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
 
         category_strs = self._repr_categories()
-        dtype = getattr(self.categories, 'dtype_str',
-                        str(self.categories.dtype))
-
+        dtype = str(self.categories.dtype)
         levheader = "Categories ({length}, {dtype}): ".format(
             length=len(self.categories), dtype=dtype)
         width, height = get_terminal_size()

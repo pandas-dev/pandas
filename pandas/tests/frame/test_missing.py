@@ -201,6 +201,16 @@ class TestDataFrameMissingData:
                              index=[0, 3])
         assert_frame_equal(result, expected)
 
+    def test_dropna_categorical_interval_index(self):
+        # GH 25087
+        ii = pd.IntervalIndex.from_breaks([0, 2.78, 3.14, 6.28])
+        ci = pd.CategoricalIndex(ii)
+        df = pd.DataFrame({'A': list('abc')}, index=ci)
+
+        expected = df
+        result = df.dropna()
+        tm.assert_frame_equal(result, expected)
+
     def test_fillna_datetime(self, datetime_frame):
         tf = datetime_frame
         tf.loc[tf.index[:5], 'A'] = np.nan
@@ -515,6 +525,22 @@ class TestDataFrameMissingData:
 
         # it works!
         df.fillna(np.nan)
+
+    @pytest.mark.parametrize("type", [int, float])
+    def test_fillna_positive_limit(self, type):
+        df = DataFrame(np.random.randn(10, 4)).astype(type)
+
+        msg = "Limit must be greater than 0"
+        with pytest.raises(ValueError, match=msg):
+            df.fillna(0, limit=-5)
+
+    @pytest.mark.parametrize("type", [int, float])
+    def test_fillna_integer_limit(self, type):
+        df = DataFrame(np.random.randn(10, 4)).astype(type)
+
+        msg = "Limit must be an integer"
+        with pytest.raises(ValueError, match=msg):
+            df.fillna(0, limit=0.5)
 
     def test_fillna_inplace(self):
         df = DataFrame(np.random.randn(10, 4))

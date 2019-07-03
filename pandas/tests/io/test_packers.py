@@ -1,9 +1,8 @@
 import datetime
-from distutils.version import LooseVersion
 import glob
 from io import BytesIO
 import os
-from warnings import catch_warnings
+from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 import pytest
@@ -84,7 +83,7 @@ def check_arbitrary(a, b):
         assert(a == b)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestPackers:
 
     def setup_method(self, method):
@@ -99,7 +98,7 @@ class TestPackers:
             return read_msgpack(p, **kwargs)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestAPI(TestPackers):
 
     def test_string_io(self):
@@ -162,6 +161,7 @@ class TestAPI(TestPackers):
             read_msgpack(path_or_buf=A())
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestNumpy(TestPackers):
 
     def test_numpy_scalar_float(self):
@@ -280,6 +280,7 @@ class TestNumpy(TestPackers):
         tm.assert_almost_equal(tuple(x), x_rec)
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestBasic(TestPackers):
 
     def test_timestamp(self):
@@ -325,6 +326,7 @@ class TestBasic(TestPackers):
             assert i == i_rec
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestIndex(TestPackers):
 
     def setup_method(self, method):
@@ -390,6 +392,7 @@ class TestIndex(TestPackers):
         tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestSeries(TestPackers):
 
     def setup_method(self, method):
@@ -440,6 +443,7 @@ class TestSeries(TestPackers):
                 assert_series_equal(i, i_rec)
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestCategorical(TestPackers):
 
     def setup_method(self, method):
@@ -463,7 +467,7 @@ class TestCategorical(TestPackers):
                 assert_categorical_equal(i, i_rec)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+@pytest.mark.filterwarnings("ignore:msgpack:FutureWarning")
 class TestNDFrame(TestPackers):
 
     def setup_method(self, method):
@@ -553,6 +557,7 @@ class TestNDFrame(TestPackers):
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 @pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestSparse(TestPackers):
 
     def _check_roundtrip(self, obj, comparator, **kwargs):
@@ -599,6 +604,7 @@ class TestSparse(TestPackers):
                               check_frame_type=True)
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestCompression(TestPackers):
     """See https://github.com/pandas-dev/pandas/pull/9783
     """
@@ -680,18 +686,21 @@ class TestCompression(TestPackers):
         with monkeypatch.context() as m, \
                 tm.assert_produces_warning(PerformanceWarning) as ws:
             m.setattr(compress_module, 'decompress', decompress)
-            i_rec = self.encode_decode(self.frame, compress=compress)
-            for k in self.frame.keys():
 
-                value = i_rec[k]
-                expected = self.frame[k]
-                assert_frame_equal(value, expected)
-                # make sure that we can write to the new frames even though
-                # we needed to copy the data
-                for block in value._data.blocks:
-                    assert block.values.flags.writeable
-                    # mutate the data in some way
-                    block.values[0] += rhs[block.dtype]
+            with catch_warnings():
+                filterwarnings('ignore', category=FutureWarning)
+                i_rec = self.encode_decode(self.frame, compress=compress)
+                for k in self.frame.keys():
+
+                    value = i_rec[k]
+                    expected = self.frame[k]
+                    assert_frame_equal(value, expected)
+                    # make sure that we can write to the new frames even though
+                    # we needed to copy the data
+                    for block in value._data.blocks:
+                        assert block.values.flags.writeable
+                        # mutate the data in some way
+                        block.values[0] += rhs[block.dtype]
 
         for w in ws:
             # check the messages from our warnings
@@ -719,14 +728,18 @@ class TestCompression(TestPackers):
     def _test_small_strings_no_warn(self, compress):
         empty = np.array([], dtype='uint8')
         with tm.assert_produces_warning(None):
-            empty_unpacked = self.encode_decode(empty, compress=compress)
+            with catch_warnings():
+                filterwarnings('ignore', category=FutureWarning)
+                empty_unpacked = self.encode_decode(empty, compress=compress)
 
         tm.assert_numpy_array_equal(empty_unpacked, empty)
         assert empty_unpacked.flags.writeable
 
         char = np.array([ord(b'a')], dtype='uint8')
         with tm.assert_produces_warning(None):
-            char_unpacked = self.encode_decode(char, compress=compress)
+            with catch_warnings():
+                filterwarnings('ignore', category=FutureWarning)
+                char_unpacked = self.encode_decode(char, compress=compress)
 
         tm.assert_numpy_array_equal(char_unpacked, char)
         assert char_unpacked.flags.writeable
@@ -798,6 +811,7 @@ class TestCompression(TestPackers):
         assert_frame_equal(expected, result)
 
 
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestEncoding(TestPackers):
 
     def setup_method(self, method):
@@ -842,8 +856,8 @@ def legacy_packer(request, datapath):
     return datapath(request.param)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestMsgpack:
     """
     How to add msgpack tests:
@@ -858,15 +872,11 @@ class TestMsgpack:
     minimum_structure = {'series': ['float', 'int', 'mixed',
                                     'ts', 'mi', 'dup'],
                          'frame': ['float', 'int', 'mixed', 'mi'],
-                         'panel': ['float'],
                          'index': ['int', 'date', 'period'],
                          'mi': ['reg2']}
 
     def check_min_structure(self, data, version):
         for typ, v in self.minimum_structure.items():
-            if typ == "panel":
-                # FIXME: kludge; get this key out of the legacy file
-                continue
 
             assert typ in data, '"{0}" not found in unpacked data'.format(typ)
             for kind in v:
@@ -874,15 +884,7 @@ class TestMsgpack:
                 assert kind in data[typ], msg
 
     def compare(self, current_data, all_data, vf, version):
-        # GH12277 encoding default used to be latin-1, now utf-8
-        if LooseVersion(version) < LooseVersion('0.18.0'):
-            data = read_msgpack(vf, encoding='latin-1')
-        else:
-            data = read_msgpack(vf)
-
-        if "panel" in data:
-            # FIXME: kludge; get the key out of the stored file
-            del data["panel"]
+        data = read_msgpack(vf)
 
         self.check_min_structure(data, version)
         for typ, dv in data.items():
@@ -909,33 +911,16 @@ class TestMsgpack:
         return data
 
     def compare_series_dt_tz(self, result, expected, typ, version):
-        # 8260
-        # dtype is object < 0.17.0
-        if LooseVersion(version) < LooseVersion('0.17.0'):
-            expected = expected.astype(object)
-            tm.assert_series_equal(result, expected)
-        else:
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def compare_frame_dt_mixed_tzs(self, result, expected, typ, version):
-        # 8260
-        # dtype is object < 0.17.0
-        if LooseVersion(version) < LooseVersion('0.17.0'):
-            expected = expected.astype(object)
-            tm.assert_frame_equal(result, expected)
-        else:
-            tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_msgpacks_legacy(self, current_packers_data, all_packers_data,
                              legacy_packer, datapath):
 
         version = os.path.basename(os.path.dirname(legacy_packer))
 
-        # GH12142 0.17 files packed in P2 can't be read in P3
-        if (version.startswith('0.17.') and
-                legacy_packer.split('.')[-4][-1] == '2'):
-            msg = "Files packed in Py2 can't be read in Py3 ({})"
-            pytest.skip(msg.format(version))
         try:
             with catch_warnings(record=True):
                 self.compare(current_packers_data, all_packers_data,

@@ -232,6 +232,18 @@ def mixed_int_frame():
 
 
 @pytest.fixture
+def mixed_type_frame():
+    """
+    Fixture for DataFrame of float/int/string columns with RangeIndex
+    Columns are ['a', 'b', 'c', 'float32', 'int32'].
+    """
+    return DataFrame({'a': 1., 'b': 2, 'c': 'foo',
+                      'float32': np.array([1.] * 10, dtype='float32'),
+                      'int32': np.array([1] * 10, dtype='int32')},
+                     index=np.arange(10))
+
+
+@pytest.fixture
 def timezone_frame():
     """
     Fixture for DataFrame of date_range Series with different time zones
@@ -251,6 +263,17 @@ def timezone_frame():
     df.iloc[1, 1] = NaT
     df.iloc[1, 2] = NaT
     return df
+
+
+@pytest.fixture
+def uint64_frame():
+    """
+    Fixture for DataFrame with uint64 values
+
+    Columns are ['A', 'B']
+    """
+    return DataFrame({'A': np.arange(3), 'B': [2**63, 2**63 + 5, 2**63 + 10]},
+                     dtype=np.uint64)
 
 
 @pytest.fixture

@@ -2,7 +2,6 @@
 Tests for Timestamp timezone-related methods
 """
 from datetime import date, datetime, timedelta
-from distutils.version import LooseVersion
 
 import dateutil
 from dateutil.tz import gettz, tzoffset
@@ -145,18 +144,11 @@ class TestTimestampTZOperations:
         assert result_pytz.value == result_dateutil.value
         assert result_pytz.value == 1382835600000000000
 
-        if LooseVersion(dateutil.__version__) < LooseVersion('2.6.0'):
-            # dateutil 2.6 buggy w.r.t. ambiguous=0
-            # see gh-14621
-            # see https://github.com/dateutil/dateutil/issues/321
-            assert (result_pytz.to_pydatetime().tzname() ==
-                    result_dateutil.to_pydatetime().tzname())
-            assert str(result_pytz) == str(result_dateutil)
-        elif LooseVersion(dateutil.__version__) > LooseVersion('2.6.0'):
-            # fixed ambiguous behavior
-            assert result_pytz.to_pydatetime().tzname() == 'GMT'
-            assert result_dateutil.to_pydatetime().tzname() == 'BST'
-            assert str(result_pytz) != str(result_dateutil)
+        # fixed ambiguous behavior
+        # see gh-14621
+        assert result_pytz.to_pydatetime().tzname() == 'GMT'
+        assert result_dateutil.to_pydatetime().tzname() == 'BST'
+        assert str(result_pytz) != str(result_dateutil)
 
         # 1 hour difference
         result_pytz = naive.tz_localize(pytz_zone, ambiguous=1)
@@ -164,12 +156,10 @@ class TestTimestampTZOperations:
         assert result_pytz.value == result_dateutil.value
         assert result_pytz.value == 1382832000000000000
 
-        # dateutil < 2.6 is buggy w.r.t. ambiguous timezones
-        if LooseVersion(dateutil.__version__) > LooseVersion('2.5.3'):
-            # see gh-14621
-            assert str(result_pytz) == str(result_dateutil)
-            assert (result_pytz.to_pydatetime().tzname() ==
-                    result_dateutil.to_pydatetime().tzname())
+        # see gh-14621
+        assert str(result_pytz) == str(result_dateutil)
+        assert (result_pytz.to_pydatetime().tzname() ==
+                result_dateutil.to_pydatetime().tzname())
 
     @pytest.mark.parametrize('tz', [pytz.timezone('US/Eastern'),
                                     gettz('US/Eastern'),

@@ -102,16 +102,11 @@ class BlockManager(PandasObject):
         self.blocks = tuple(blocks)  # type: Tuple[Block, ...]
 
         for block in blocks:
-            if block.is_sparse:
-                if len(block.mgr_locs) != 1:
-                    raise AssertionError("Sparse block refers to multiple "
-                                         "items")
-            else:
-                if self.ndim != block.ndim:
-                    raise AssertionError(
-                        'Number of Block dimensions ({block}) must equal '
-                        'number of axes ({self})'.format(block=block.ndim,
-                                                         self=self.ndim))
+            if self.ndim != block.ndim:
+                raise AssertionError(
+                    'Number of Block dimensions ({block}) must equal '
+                    'number of axes ({self})'.format(block=block.ndim,
+                                                     self=self.ndim))
 
         if do_integrity_check:
             self._verify_integrity()
@@ -821,48 +816,6 @@ class BlockManager(PandasObject):
         return {dtype: self.combine(blocks, copy=copy)
                 for dtype, blocks in bd.items()}
 
-    def xs(self, key, axis=1, copy=True, takeable=False):
-        if axis < 1:
-            raise AssertionError(
-                'Can only take xs across axis >= 1, got {ax}'.format(ax=axis))
-
-        # take by position
-        if takeable:
-            loc = key
-        else:
-            loc = self.axes[axis].get_loc(key)
-
-        slicer = [slice(None, None) for _ in range(self.ndim)]
-        slicer[axis] = loc
-        slicer = tuple(slicer)
-
-        new_axes = list(self.axes)
-
-        # could be an array indexer!
-        if isinstance(loc, (slice, np.ndarray)):
-            new_axes[axis] = new_axes[axis][loc]
-        else:
-            new_axes.pop(axis)
-
-        new_blocks = []
-        if len(self.blocks) > 1:
-            # we must copy here as we are mixed type
-            for blk in self.blocks:
-                newb = make_block(values=blk.values[slicer],
-                                  klass=blk.__class__,
-                                  placement=blk.mgr_locs)
-                new_blocks.append(newb)
-        elif len(self.blocks) == 1:
-            block = self.blocks[0]
-            vals = block.values[slicer]
-            if copy:
-                vals = vals.copy()
-            new_blocks = [make_block(values=vals,
-                                     placement=block.mgr_locs,
-                                     klass=block.__class__)]
-
-        return self.__class__(new_blocks, new_axes)
-
     def fast_xs(self, loc):
         """
         get a cross sectional for a given location in the
@@ -966,7 +919,7 @@ class BlockManager(PandasObject):
         """
         block = self.blocks[self._blknos[i]]
         values = block.iget(self._blklocs[i])
-        if not fastpath or not block._box_to_block_values or values.ndim != 1:
+        if not fastpath or values.ndim != 1:
             return values
 
         # fastpath shortcut for select a single-dim from a 2-dim BM
@@ -1820,8 +1773,7 @@ def _stack_arrays(tuples, dtype):
 
 
 def _interleaved_dtype(
-        blocks: List[Block]
-) -> Optional[Union[np.dtype, ExtensionDtype]]:
+        blocks: List[Block]) -> Optional[Union[np.dtype, ExtensionDtype]]:
     """Find the common dtype for `blocks`.
 
     Parameters
@@ -1905,48 +1857,6 @@ def _compare_or_regex_search(a, b, regex=False):
             "Cannot compare types {a!r} and {b!r}".format(a=type_names[0],
                                                           b=type_names[1]))
     return result
-
-
-# TODO: this is no longer used in this module, could be moved to concat
-def items_overlap_with_suffix(left, lsuffix, right, rsuffix):
-    """
-    If two indices overlap, add suffixes to overlapping entries.
-
-    If corresponding suffix is empty, the entry is simply converted to string.
-
-    """
-    to_rename = left.intersection(right)
-    if len(to_rename) == 0:
-        return left, right
-    else:
-        if not lsuffix and not rsuffix:
-            raise ValueError('columns overlap but no suffix specified: '
-                             '{rename}'.format(rename=to_rename))
-
-        def renamer(x, suffix):
-            """Rename the left and right indices.
-
-            If there is overlap, and suffix is not None, add
-            suffix, otherwise, leave it as-is.
-
-            Parameters
-            ----------
-            x : original column name
-            suffix : str or None
-
-            Returns
-            -------
-            x : renamed column name
-            """
-            if x in to_rename and suffix is not None:
-                return '{x}{suffix}'.format(x=x, suffix=suffix)
-            return x
-
-        lrenamer = partial(renamer, suffix=lsuffix)
-        rrenamer = partial(renamer, suffix=rsuffix)
-
-        return (_transform_index(left, lrenamer),
-                _transform_index(right, rrenamer))
 
 
 def _transform_index(index, func, level=None):

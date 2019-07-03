@@ -229,17 +229,6 @@ def test_where_unsafe():
     assert_series_equal(result, expected)
 
 
-def test_where_raise_on_error_deprecation():
-    # gh-14968
-    # deprecation of raise_on_error
-    s = Series(np.random.randn(5))
-    cond = s > 0
-    with tm.assert_produces_warning(FutureWarning):
-        s.where(cond, raise_on_error=True)
-    with tm.assert_produces_warning(FutureWarning):
-        s.mask(cond, raise_on_error=True)
-
-
 def test_where():
     s = Series(np.random.randn(5))
     cond = s > 0

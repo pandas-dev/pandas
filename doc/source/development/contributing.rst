@@ -127,7 +127,7 @@ to build the documentation locally before pushing your changes.
 
 .. _contributing.dev_c:
 
-Installing a C Compiler
+Installing a C compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Pandas uses C extensions (mostly written using Cython) to speed up certain
@@ -155,7 +155,7 @@ Let us know if you have any difficulties by opening an issue or reaching out on
 
 .. _contributing.dev_python:
 
-Creating a Python Environment
+Creating a Python environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now that you have a C compiler, create an isolated pandas development
@@ -178,7 +178,6 @@ We'll now kick off a three-step process:
    # Create and activate the build environment
    conda env create -f environment.yml
    conda activate pandas-dev
-   conda uninstall --force pandas
 
    # or with older versions of Anaconda:
    source activate pandas-dev
@@ -209,7 +208,7 @@ See the full conda docs `here <http://conda.pydata.org/docs>`__.
 
 .. _contributing.pip:
 
-Creating a Python Environment (pip)
+Creating a Python environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you aren't using conda for your development environment, follow these instructions.
@@ -605,7 +604,7 @@ and run ``flake8`` on them, one after the other.
 
 .. _contributing.import-formatting:
 
-Import Formatting
+Import formatting
 ~~~~~~~~~~~~~~~~~
 *pandas* uses `isort <https://pypi.org/project/isort/>`__ to standardise import
 formatting across the codebase.
@@ -651,7 +650,7 @@ The `--recursive` flag can be passed to sort all files in a directory.
 
 You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
 
-Backwards Compatibility
+Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Please try to maintain backward compatibility. *pandas* has lots of users with lots of
@@ -699,7 +698,7 @@ See :ref:`contributing.warnings` for more.
 
 .. _contributing.ci:
 
-Testing With Continuous Integration
+Testing with continuous integration
 -----------------------------------
 
 The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__ and
@@ -930,7 +929,7 @@ options or subtle interactions to test (or think of!) all of them.
 
 .. _contributing.warnings:
 
-Testing Warnings
+Testing warnings
 ~~~~~~~~~~~~~~~~
 
 By default, one of pandas CI workers will fail if any unhandled warnings are emitted.
