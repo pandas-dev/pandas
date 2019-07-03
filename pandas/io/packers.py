@@ -116,14 +116,9 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     path_or_buf = _stringify_path(path_or_buf)
     if isinstance(path_or_buf, str):
         try:
-            exists = os.path.exists(os.path.dirname(path_or_buf))
-        except (TypeError, ValueError):
-            exists = False
-
-        if exists:
             with open(path_or_buf, mode) as fh:
                 writer(fh)
-        else:
+        except (FileNotFoundError, ValueError):
             raise ValueError('path_or_buf is invalid or was not found')
 
     elif path_or_buf is None:
