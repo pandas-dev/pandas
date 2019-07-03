@@ -182,10 +182,14 @@ class SeriesFormatter:
         from pandas.core.reshape.concat import concat
         min_rows = self.min_rows
         max_rows = self.max_rows
-        if max_rows and min_rows is None:
+        # if min_rows is None, follow value of max_rows
+        if max_rows and not min_rows:
             min_rows = max_rows
+        # if both are set, min_rows is minimum of both
         if min_rows and max_rows:
             min_rows = min(min_rows, max_rows)
+        # truncation determined by max_rows, actual truncated number of rows
+        # used below by min_rows
         truncate_v = max_rows and (len(self.series) > max_rows)
         series = self.series
         if truncate_v:
@@ -480,6 +484,7 @@ class DataFrameFormatter(TableFormatter):
         if not hasattr(self, 'max_rows_adj'):
             if max_rows:
                 if (len(self.frame) > max_rows) and self.min_rows:
+                    # if truncated, set max_rows showed to min_rows
                     max_rows = min(self.min_rows, max_rows)
             self.max_rows_adj = max_rows
         if not hasattr(self, 'max_cols_adj'):
