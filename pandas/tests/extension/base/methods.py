@@ -49,7 +49,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_argsort_missing_array(self, data_missing_for_sorting):
         result = data_missing_for_sorting.argsort()
-        expected = np.array([2, 0, 1])
+        expected = np.array([2, 0, 1], dtype=np.dtype("int"))
         tm.assert_numpy_array_equal(result, expected)
 
     def test_argsort_missing(self, data_missing_for_sorting):
