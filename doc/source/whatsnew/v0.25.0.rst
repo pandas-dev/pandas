@@ -135,6 +135,29 @@ the output will truncate, if it's wider than :attr:`options.display.width`
 (default: 80 characters).
 
 
+.. _whatsnew_0250.enhancements.json_normalize_with_max_level:
+
+Json normalize with max_level param support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`json_normalize` normalizes the provided input dict to all
+nested levels. The new max_level parameter provides more control over
+which level to end normalization (:issue:`23843`):
+
+The repr now looks like this:
+
+.. ipython:: python
+
+    from pandas.io.json import json_normalize
+    data = [{
+        'CreatedBy': {'Name': 'User001'},
+        'Lookup': {'TextField': 'Some text',
+                   'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+        'Image': {'a': 'b'}
+    }]
+    json_normalize(data, max_level=1)
+
+
 .. _whatsnew_0250.enhancements.other:
 
 Other enhancements
@@ -620,6 +643,48 @@ previous behavior of returning overlapping matches.
    s[idxr]
    s.loc[idxr]
 
+
+.. _whatsnew_0250.api_breaking.ufunc:
+
+Binary ufuncs on Series now align
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Applying a binary ufunc like :func:`numpy.power` now aligns the inputs
+when both are :class:`Series` (:issue:`23293`).
+
+.. ipython:: python
+
+   s1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+   s2 = pd.Series([3, 4, 5], index=['d', 'c', 'b'])
+   s1
+   s2
+
+*Previous behavior*
+
+.. code-block:: python
+
+   In [5]: np.power(s1, s2)
+   Out[5]:
+   a      1
+   b     16
+   c    243
+   dtype: int64
+
+*New behavior*
+
+.. ipython:: python
+
+   np.power(s1, s2)
+
+This matches the behavior of other binary operations in pandas, like :meth:`Series.add`.
+To retain the previous behavior, convert the other ``Series`` to an array before
+applying the ufunc.
+
+.. ipython:: python
+
+   np.power(s1, s2.array)
+
+
 .. _whatsnew_0250.api_breaking.deps:
 
 Increased minimum versions for dependencies
@@ -744,6 +809,7 @@ Other deprecations
 
 - The deprecated ``.ix[]`` indexer now raises a more visible ``FutureWarning`` instead of ``DeprecationWarning`` (:issue:`26438`).
 - Deprecated the ``units=M`` (months) and ``units=Y`` (year) parameters for ``units`` of :func:`pandas.to_timedelta`, :func:`pandas.Timedelta` and :func:`pandas.TimedeltaIndex` (:issue:`16344`)
+- :meth:`pandas.concat` has deprecated the ``join_axes``-keyword. Instead, use :meth:`DataFrame.reindex` or :meth:`DataFrame.reindex_like` on the result or on the inputs (:issue:`21951`)
 - The :attr:`SparseArray.values` attribute is deprecated. You can use ``np.asarray(...)`` or
   the :meth:`SparseArray.to_dense` method instead (:issue:`26421`).
 - The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64` or :meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
@@ -755,13 +821,16 @@ Other deprecations
 - The :meth:`Series.get_values`, :meth:`DataFrame.get_values`, :meth:`Index.get_values`,
   :meth:`SparseArray.get_values` and :meth:`Categorical.get_values` methods are deprecated.
   One of ``np.asarray(..)`` or :meth:`~Series.to_numpy` can be used instead (:issue:`19617`).
+- The 'outer' method on NumPy ufuncs, e.g. ``np.subtract.outer`` has been deprecated on :class:`Series` objects. Convert the input to an array with :attr:`Series.array` first (:issue:`27186`)
 - :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
 - :func:`read_table` has been undeprecated. (:issue:`25220`)
 - :attr:`Index.dtype_str` is deprecated. (:issue:`18262`)
 - :attr:`Series.imag` and :attr:`Series.real` are deprecated. (:issue:`18262`)
 - :meth:`Series.put` is deprecated. (:issue:`18262`)
 - :meth:`Index.item` and :meth:`Series.item` is deprecated. (:issue:`18262`)
+- The default value ``ordered=None`` in :class:`~pandas.api.types.CategoricalDtype` has been deprecated in favor of ``ordered=False``. When converting between categorical types ``ordered=True`` must be explicitly passed in order to be preserved. (:issue:`26336`)
 - :meth:`Index.contains` is deprecated. Use ``key in index`` (``__contains__``) instead (:issue:`17753`).
+- :meth:`DataFrame.get_dtype_counts` is deprecated. (:issue:`18262`)
 
 .. _whatsnew_0250.prior_deprecations:
 
@@ -842,6 +911,8 @@ Datetimelike
 - Bug in :func:`date_range` with unnecessary ``OverflowError`` being raised for very large or very small dates (:issue:`26651`)
 - Bug where adding :class:`Timestamp` to a ``np.timedelta64`` object would raise instead of returning a :class:`Timestamp` (:issue:`24775`)
 - Bug where comparing a zero-dimensional numpy array containing a ``np.datetime64`` object to a :class:`Timestamp` would incorrect raise ``TypeError`` (:issue:`26916`)
+- Bug in :func:`to_datetime` which would raise ``ValueError: Tz-aware datetime.datetime cannot be converted to datetime64 unless utc=True`` when called with ``cache=True``, with ``arg`` including datetime strings with different offset (:issue:`26097`)
+-
 
 Timedelta
 ^^^^^^^^^

@@ -1,6 +1,7 @@
 from collections import abc
 from datetime import datetime, time
 from functools import partial
+from typing import Optional, TypeVar, Union
 
 import numpy as np
 
@@ -14,11 +15,24 @@ from pandas.util._decorators import deprecate_kwarg
 from pandas.core.dtypes.common import (
     ensure_object, is_datetime64_dtype, is_datetime64_ns_dtype,
     is_datetime64tz_dtype, is_float, is_integer, is_integer_dtype,
-    is_list_like, is_numeric_dtype, is_object_dtype, is_scalar)
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+    is_list_like, is_numeric_dtype, is_scalar)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCDatetimeIndex, ABCIndex, ABCIndexClass, ABCSeries)
 from pandas.core.dtypes.missing import notna
 
+from pandas._typing import ArrayLike
 from pandas.core import algorithms
+
+# ---------------------------------------------------------------------
+# types used in annotations
+
+Scalar = Union[int, float, str]
+DatetimeScalar = TypeVar('DatetimeScalar', Scalar, datetime)
+DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, list, tuple,
+                                         ArrayLike, ABCSeries]
+
+
+# ---------------------------------------------------------------------
 
 
 def _guess_datetime_format_for_array(arr, **kwargs):
@@ -60,7 +74,43 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     return cache_array
 
 
-def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
+def _box_as_indexlike(
+    dt_array: ArrayLike,
+    utc: Optional[bool] = None,
+    name: Optional[str] = None
+) -> Union[ABCIndex, ABCDatetimeIndex]:
+    """
+    Properly boxes the ndarray of datetimes to DatetimeIndex
+    if it is possible or to generic Index instead
+
+    Parameters
+    ----------
+    dt_array: 1-d array
+        array of datetimes to be boxed
+    tz : object
+        None or 'utc'
+    name : string, default None
+        Name for a resulting index
+
+    Returns
+    -------
+    result : datetime of converted dates
+        - DatetimeIndex if convertible to sole datetime64 type
+        - general Index otherwise
+    """
+    from pandas import DatetimeIndex, Index
+    if is_datetime64_dtype(dt_array):
+        tz = 'utc' if utc else None
+        return DatetimeIndex(dt_array, tz=tz, name=name)
+    return Index(dt_array, name=name)
+
+
+def _convert_and_box_cache(
+    arg: DatetimeScalarOrArrayConvertible,
+    cache_array: ABCSeries,
+    box: bool,
+    name: Optional[str] = None
+) -> Union[ABCIndex, np.ndarray]:
     """
     Convert array of dates with a cache and box the result
 
@@ -71,26 +121,19 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
         Cache of converted, unique dates
     box : boolean
         True boxes result as an Index-like, False returns an ndarray
-    errors : string
-        'ignore' plus box=True will convert result to Index
     name : string, default None
         Name for a DatetimeIndex
 
     Returns
     -------
     result : datetime of converted dates
-        Returns:
-
         - Index-like if box=True
         - ndarray if box=False
     """
-    from pandas import Series, DatetimeIndex, Index
+    from pandas import Series
     result = Series(arg).map(cache_array)
     if box:
-        if errors == 'ignore':
-            return Index(result, name=name)
-        else:
-            return DatetimeIndex(result, name=name)
+        return _box_as_indexlike(result, utc=None, name=name)
     return result.values
 
 
@@ -118,7 +161,6 @@ def _return_parsed_timezone_results(result, timezones, box, tz, name):
 
         - Index-like if box=True
         - ndarray of Timestamps if box=False
-
     """
     if tz is not None:
         raise ValueError("Cannot pass a tz argument when "
@@ -324,13 +366,8 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
             return np.array(result, dtype=object)
 
     if box:
-        # Ensure we return an Index in all cases where box=True
-        if is_datetime64_dtype(result):
-            return DatetimeIndex(result, tz=tz, name=name)
-        elif is_object_dtype(result):
-            # e.g. an Index of datetime objects
-            from pandas import Index
-            return Index(result, name=name)
+        utc = tz == 'utc'
+        return _box_as_indexlike(result, utc=utc, name=name)
     return result
 
 
@@ -611,7 +648,7 @@ dtype='datetime64[ns]', freq=None)
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
-            result = _convert_and_box_cache(arg, cache_array, box, errors,
+            result = _convert_and_box_cache(arg, cache_array, box,
                                             name=arg.name)
         else:
             convert_listlike = partial(convert_listlike, name=arg.name)
@@ -619,7 +656,7 @@ dtype='datetime64[ns]', freq=None)
     elif is_list_like(arg):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
-            result = _convert_and_box_cache(arg, cache_array, box, errors)
+            result = _convert_and_box_cache(arg, cache_array, box)
         else:
             result = convert_listlike(arg, box, format)
     else:

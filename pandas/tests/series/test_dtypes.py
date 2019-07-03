@@ -8,10 +8,11 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 
+from pandas.core.dtypes.dtypes import CategoricalDtype, ordered_sentinel
+
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, Series, Timedelta, Timestamp, date_range)
-from pandas.api.types import CategoricalDtype
 import pandas.util.testing as tm
 
 
@@ -56,8 +57,6 @@ class TestSeriesDtypes:
         # GH 26705 - Assert .ftypes is deprecated
         with tm.assert_produces_warning(FutureWarning):
             assert datetime_series.ftypes == 'float64:dense'
-        tm.assert_series_equal(datetime_series.get_dtype_counts(),
-                               Series(1, ['float64']))
         # GH18243 - Assert .get_ftype_counts is deprecated
         with tm.assert_produces_warning(FutureWarning):
             tm.assert_series_equal(datetime_series.get_ftype_counts(),
@@ -229,6 +228,16 @@ class TestSeriesDtypes:
         s = Series(['a', 'b', 'a'])
         with pytest.raises(ValueError, match="Got an unexpected"):
             s.astype('category', categories=['a', 'b'], ordered=True)
+
+    @pytest.mark.parametrize('none, warning', [
+        (None, None), (ordered_sentinel, FutureWarning)])
+    def test_astype_category_ordered_none_deprecated(self, none, warning):
+        # GH 26336: only warn if None is not explicitly passed
+        cdt1 = CategoricalDtype(categories=list('cdab'), ordered=True)
+        cdt2 = CategoricalDtype(categories=list('cedafb'), ordered=none)
+        s = Series(list('abcdaba'), dtype=cdt1)
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            s.astype(cdt2)
 
     def test_astype_from_categorical(self):
         items = ["a", "b", "c", "a"]

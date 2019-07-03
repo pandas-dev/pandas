@@ -310,3 +310,18 @@ def test_object_dtype_ok():
     result = np.add(s, Thing(1))
     expected = pd.Series([Thing(2), Thing(3)])
     tm.assert_series_equal(result, expected)
+
+
+def test_outer():
+    # https://github.com/pandas-dev/pandas/issues/27186
+    s = pd.Series([1, 2, 3])
+    o = np.array([1, 2, 3])
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = np.subtract.outer(s, o)
+    expected = np.array([
+        [0, -1, -2],
+        [1, 0, -1],
+        [2, 1, 0]
+    ], dtype=np.dtype('int64'))
+    tm.assert_numpy_array_equal(result, expected)

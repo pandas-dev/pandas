@@ -932,3 +932,9 @@ class TestNDFrame:
         with tm.assert_produces_warning(FutureWarning):
             result = ser.to_dense()
         tm.assert_series_equal(result, ser)
+
+    def test_deprecated_get_dtype_counts(self):
+        # GH 18262
+        df = DataFrame([1])
+        with tm.assert_produces_warning(FutureWarning):
+            df.get_dtype_counts()

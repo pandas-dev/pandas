@@ -593,22 +593,21 @@ class Block(PandasObject):
                         values = self.get_values(dtype=dtype)
 
                     # _astype_nansafe works fine with 1-d only
-                    values = astype_nansafe(
-                        values.ravel(), dtype, copy=True, **kwargs)
+                    vals1d = values.ravel()
+                    values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
 
                 # TODO(extension)
                 # should we make this attribute?
-                try:
+                if isinstance(values, np.ndarray):
                     values = values.reshape(self.shape)
-                except AttributeError:
-                    pass
 
-            newb = make_block(values, placement=self.mgr_locs,
-                              ndim=self.ndim)
         except Exception:  # noqa: E722
             if errors == 'raise':
                 raise
             newb = self.copy() if copy else self
+        else:
+            newb = make_block(values, placement=self.mgr_locs,
+                              ndim=self.ndim)
 
         if newb.is_numeric and self.is_numeric:
             if newb.shape != self.shape:
@@ -1311,10 +1310,6 @@ class Block(PandasObject):
 
         # our where function
         def func(cond, values, other):
-            if cond.ravel().all():
-                return values
-
-            values = self._coerce_values(values)
             other = self._try_coerce_args(other)
 
             try:
@@ -1331,20 +1326,24 @@ class Block(PandasObject):
                     result.fill(np.nan)
                     return result
 
-        # see if we can operate on the entire block, or need item-by-item
-        # or if we are a single block (ndim == 1)
-        try:
-            result = func(cond, values, other)
-        except TypeError:
+        if cond.ravel().all():
+            result = values
+        else:
+            # see if we can operate on the entire block, or need item-by-item
+            # or if we are a single block (ndim == 1)
+            values = self._coerce_values(values)
+            try:
+                result = func(cond, values, other)
+            except TypeError:
 
-            # we cannot coerce, return a compat dtype
-            # we are explicitly ignoring errors
-            block = self.coerce_to_target_dtype(other)
-            blocks = block.where(orig_other, cond, align=align,
-                                 errors=errors,
-                                 try_cast=try_cast, axis=axis,
-                                 transpose=transpose)
-            return self._maybe_downcast(blocks, 'infer')
+                # we cannot coerce, return a compat dtype
+                # we are explicitly ignoring errors
+                block = self.coerce_to_target_dtype(other)
+                blocks = block.where(orig_other, cond, align=align,
+                                     errors=errors,
+                                     try_cast=try_cast, axis=axis,
+                                     transpose=transpose)
+                return self._maybe_downcast(blocks, 'infer')
 
         if self._can_hold_na or self.ndim == 1:
 
@@ -1456,7 +1455,8 @@ class Block(PandasObject):
                                                     len(qs))
         else:
             # asarray needed for Sparse, see GH#24600
-            # TODO: Why self.values and not values?
+            # Note: we use self.values below instead of values because the
+            #  `asi8` conversion above will behave differently under `isna`
             mask = np.asarray(isna(self.values))
             result = nanpercentile(values, np.array(qs) * 100,
                                    axis=axis, na_value=self.fill_value,
@@ -2652,10 +2652,9 @@ class ObjectBlock(Block):
         def f(m, v, i):
             shape = v.shape
             values = fn(v.ravel(), **fn_kwargs)
-            try:
+            if isinstance(values, np.ndarray):
+                # TODO: allow EA once reshape is supported
                 values = values.reshape(shape)
-            except (AttributeError, NotImplementedError):
-                pass
 
             values = _block_shape(values, ndim=self.ndim)
             return values
@@ -2668,26 +2667,6 @@ class ObjectBlock(Block):
                                  placement=self.mgr_locs)]
 
         return blocks
-
-    def set(self, locs, values):
-        """
-        Modify Block in-place with new item value
-
-        Returns
-        -------
-        None
-        """
-        try:
-            self.values[locs] = values
-        except (ValueError):
-
-            # broadcasting error
-            # see GH6171
-            new_shape = list(values.shape)
-            new_shape[0] = len(self.items)
-            self.values = np.empty(tuple(new_shape), dtype=self.dtype)
-            self.values.fill(np.nan)
-            self.values[locs] = values
 
     def _maybe_downcast(self, blocks, downcast=None):
 
