@@ -704,9 +704,9 @@ Other notable API changes:
   .. code-block:: python
 
      >>> p = pd.Panel(np.arange(2 * 3 * 4).reshape(2, 3, 4),
-                      items=['ItemA', 'ItemB'],
-                      major_axis=[1, 2, 3],
-                      minor_axis=['A', 'B', 'C', 'D'])
+     ...              items=['ItemA', 'ItemB'],
+     ...              major_axis=[1, 2, 3],
+     ...              minor_axis=['A', 'B', 'C', 'D'])
      >>> p
      <class 'pandas.core.panel.Panel'>
      Dimensions: 2 (items) x 3 (major_axis) x 4 (minor_axis)
