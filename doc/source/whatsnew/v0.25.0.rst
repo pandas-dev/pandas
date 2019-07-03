@@ -786,6 +786,7 @@ Other deprecations
 - :meth:`Index.item` and :meth:`Series.item` is deprecated. (:issue:`18262`)
 - The default value ``ordered=None`` in :class:`~pandas.api.types.CategoricalDtype` has been deprecated in favor of ``ordered=False``. When converting between categorical types ``ordered=True`` must be explicitly passed in order to be preserved. (:issue:`26336`)
 - :meth:`Index.contains` is deprecated. Use ``key in index`` (``__contains__``) instead (:issue:`17753`).
+- :meth:`DataFrame.get_dtype_counts` is deprecated. (:issue:`18262`)
 
 .. _whatsnew_0250.prior_deprecations:
 

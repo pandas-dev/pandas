@@ -502,29 +502,41 @@ class TestDataFrameReshape(TestData):
                 [2, 2, 3, 4]]
 
         df = DataFrame(rows, columns=list('ABCD'))
-        result = df.get_dtype_counts()
-        expected = Series({'int64': 4})
+        result = df.dtypes
+        expected = Series([np.dtype('int64')] * 4,
+                          index=list('ABCD'))
         assert_series_equal(result, expected)
 
         # single dtype
         df2 = df.set_index(['A', 'B'])
         df3 = df2.unstack('B')
-        result = df3.get_dtype_counts()
-        expected = Series({'int64': 4})
+        result = df3.dtypes
+        expected = Series([np.dtype('int64')] * 4,
+                          index=pd.MultiIndex.from_arrays([
+                              ['C', 'C', 'D', 'D'],
+                              [1, 2, 1, 2]
+                          ], names=(None, 'B')))
         assert_series_equal(result, expected)
 
         # mixed
         df2 = df.set_index(['A', 'B'])
         df2['C'] = 3.
         df3 = df2.unstack('B')
-        result = df3.get_dtype_counts()
-        expected = Series({'int64': 2, 'float64': 2})
+        result = df3.dtypes
+        expected = Series([np.dtype('float64')] * 2 + [np.dtype('int64')] * 2,
+                          index=pd.MultiIndex.from_arrays([
+                              ['C', 'C', 'D', 'D'],
+                              [1, 2, 1, 2]
+                          ], names=(None, 'B')))
         assert_series_equal(result, expected)
-
         df2['D'] = 'foo'
         df3 = df2.unstack('B')
-        result = df3.get_dtype_counts()
-        expected = Series({'float64': 2, 'object': 2})
+        result = df3.dtypes
+        expected = Series([np.dtype('float64')] * 2 + [np.dtype('object')] * 2,
+                          index=pd.MultiIndex.from_arrays([
+                              ['C', 'C', 'D', 'D'],
+                              [1, 2, 1, 2]
+                          ], names=(None, 'B')))
         assert_series_equal(result, expected)
 
         # GH7405

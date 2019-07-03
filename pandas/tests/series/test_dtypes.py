@@ -57,8 +57,6 @@ class TestSeriesDtypes:
         # GH 26705 - Assert .ftypes is deprecated
         with tm.assert_produces_warning(FutureWarning):
             assert datetime_series.ftypes == 'float64:dense'
-        tm.assert_series_equal(datetime_series.get_dtype_counts(),
-                               Series(1, ['float64']))
         # GH18243 - Assert .get_ftype_counts is deprecated
         with tm.assert_produces_warning(FutureWarning):
             tm.assert_series_equal(datetime_series.get_ftype_counts(),

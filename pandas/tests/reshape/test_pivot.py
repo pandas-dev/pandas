@@ -245,8 +245,9 @@ class TestPivotTable:
 
         z = pivot_table(f, values='v', index=['a'], columns=[
                         'i'], fill_value=0, aggfunc=np.sum)
-        result = z.get_dtype_counts()
-        expected = Series(dict(int64=2))
+        result = z.dtypes
+        expected = Series([np.dtype('int64')] * 2,
+                          index=Index(list('ab'), name='i'))
         tm.assert_series_equal(result, expected)
 
         # cannot convert dtypes
@@ -256,8 +257,9 @@ class TestPivotTable:
 
         z = pivot_table(f, values='v', index=['a'], columns=[
                         'i'], fill_value=0, aggfunc=np.mean)
-        result = z.get_dtype_counts()
-        expected = Series(dict(float64=2))
+        result = z.dtypes
+        expected = Series([np.dtype('float64')] * 2,
+                          index=Index(list('ab'), name='i'))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('columns,values',
