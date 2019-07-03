@@ -9,7 +9,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame
+from pandas import DataFrame, Series
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 import pandas.util.testing as tm
 
@@ -23,6 +23,12 @@ def test_import_error_message():
 
     with pytest.raises(ImportError, match="No module named 'matplotlib'"):
         df.plot()
+
+
+@td.skip_if_no_mpl
+def test_series_plot_with_positional_arguments_warns():
+    with tm.assert_produces_warning(FutureWarning):
+        Series([1, 2, 3]).plot('line', None)
 
 
 @td.skip_if_no_mpl
