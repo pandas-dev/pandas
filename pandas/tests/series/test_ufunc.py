@@ -323,5 +323,5 @@ def test_outer():
         [0, -1, -2],
         [1, 0, -1],
         [2, 1, 0]
-    ])
+    ], dtype=np.dtype('int64'))
     tm.assert_numpy_array_equal(result, expected)
