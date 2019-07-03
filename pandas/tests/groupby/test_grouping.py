@@ -580,10 +580,10 @@ class TestGrouping:
         # check group properties
         assert len(gr.grouper.groupings) == 1
         tm.assert_numpy_array_equal(gr.grouper.group_info[0],
-                                    np.array([], dtype=np.intp))
+                                    np.array([], dtype=np.dtype("intp")))
 
         tm.assert_numpy_array_equal(gr.grouper.group_info[1],
-                                    np.array([], dtype=np.intp))
+                                    np.array([], dtype=np.dtype('int')))
 
         assert gr.grouper.group_info[2] == 0
 
