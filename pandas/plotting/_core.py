@@ -1,5 +1,6 @@
 import importlib
 from typing import List, Type  # noqa
+import warnings
 
 from pandas.util._decorators import Appender
 
@@ -544,6 +545,18 @@ class PlotAccessor(PandasObject):
             raise TypeError(('Called plot accessor for type {}, expected '
                              'Series or DataFrame').format(
                                  type(data).__name__))
+
+        if args and isinstance(data, ABCSeries):
+            msg = ('`Series.plot()` should not be called with positional '
+                   'arguments, only keyword arguments. The order of '
+                   'positional arguments will change in the future. '
+                   'Use `Series.plot({})` instead of `Series.plot({})`.')
+            positional_args = str(args)[1:-1]
+            keyword_args = ', '.join('{}={!r}'.format(name, value)
+                                     for (name, default), value
+                                     in zip(arg_def, args))
+            warnings.warn(msg.format(keyword_args, positional_args),
+                          FutureWarning, stacklevel=3)
 
         pos_args = {name: value for value, (name, _) in zip(args, arg_def)}
         if backend_name == 'pandas.plotting._matplotlib':
