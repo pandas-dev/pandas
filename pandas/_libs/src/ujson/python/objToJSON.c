@@ -1109,39 +1109,66 @@ char *Series_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
 //=============================================================================
 void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
+    Py_ssize_t n_cols;
+
+    // For SPLIT format the index tracks columns->index->data progression
+    // all other formats use this to index by column
     GET_TC(tc)->index = 0;
-    GET_TC(tc)->cStr = PyObject_Malloc(20 * sizeof(char));
-    enc->outputFormat = VALUES;  // for contained series & index
-    if (!GET_TC(tc)->cStr) {
-        PyErr_NoMemory();
-    }
+    
+    if (enc->outputFormat == SPLIT) {
+        PRINTMARK();
+        tc->type = JT_OBJECT;
+        GET_TC(tc)->cStr = PyObject_Malloc(20 * sizeof(char));
+        enc->outputFormat = VALUES;  // for contained series & index
+        if (!GET_TC(tc)->cStr) {
+	  PyErr_NoMemory();
+        }
+    } else {
+      n_cols = get_attr_length(obj, "columns");
+      if (n_cols == 0) {
+	GET_TC(tc)->iterNext = NpyArr_iterNextNone;
+      }
+    }      
+
     PRINTMARK();
 }
 
 int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     Py_ssize_t index;
-    if (!GET_TC(tc)->cStr) {
-        return 0;
-    }
+    Py_ssize_t n_cols;
+    PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
 
-    index = GET_TC(tc)->index;
-    Py_XDECREF(GET_TC(tc)->itemValue);
-    if (index == 0) {
+    if (enc->outputFormat == SPLIT) {
+      if (!GET_TC(tc)->cStr) {
+        return 0;
+      }
+
+      index = GET_TC(tc)->index;
+      Py_XDECREF(GET_TC(tc)->itemValue);
+      if (index == 0) {
         memcpy(GET_TC(tc)->cStr, "columns", sizeof(char) * 8);
         GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "columns");
-    } else if (index == 1) {
+      } else if (index == 1) {
         memcpy(GET_TC(tc)->cStr, "index", sizeof(char) * 6);
         GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "index");
-    } else if (index == 2) {
+      } else if (index == 2) {
         memcpy(GET_TC(tc)->cStr, "data", sizeof(char) * 5);
 	GET_TC(tc)->itemValue = get_values(obj);
 	if (!GET_TC(tc)->itemValue) {
 	  return 0;
 	}
-    } else {
+      } else {
         PRINTMARK();
         return 0;
-    }
+      }
+    } else {
+      n_cols = get_attr_length(obj, "columns");
+      if (n_cols == 0) {
+	GET_TC(tc)->iterNext = NpyArr_iterNextNone;
+	goto BLKRET;
+      }
+      if (index >= n_cols) {
+	return 0;
 
     GET_TC(tc)->index++;
     PRINTMARK();
@@ -1665,16 +1692,14 @@ ISITERABLE:
         return;
     } else if (PyObject_TypeCheck(obj, cls_dataframe)) {
 
-        if (enc->outputFormat == SPLIT) {
-            PRINTMARK();
-            tc->type = JT_OBJECT;
-            pc->iterBegin = DataFrame_iterBegin;
-            pc->iterEnd = DataFrame_iterEnd;
-            pc->iterNext = DataFrame_iterNext;
-            pc->iterGetValue = DataFrame_iterGetValue;
-            pc->iterGetName = DataFrame_iterGetName;
-            return;
-        }
+        pc->iterBegin = DataFrame_iterBegin;
+        pc->iterEnd = DataFrame_iterEnd;
+        pc->iterNext = DataFrame_iterNext;
+        pc->iterGetValue = DataFrame_iterGetValue;
+        pc->iterGetName = DataFrame_iterGetName;
+	return;
+    }
+
 
         PRINTMARK();
 	pc->iterBegin = NpyArr_iterBegin;
