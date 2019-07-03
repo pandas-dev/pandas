@@ -16,6 +16,7 @@ dependencies:
   - nomkl
   - numexpr
   - numpy=1.15.*
+  - odfpy
   - openpyxl
   - pandas-gbq
   # https://github.com/pydata/pandas-gbq/issues/271

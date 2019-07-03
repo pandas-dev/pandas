@@ -422,6 +422,7 @@ reader_engine_doc = """
 _xls_options = ['xlrd']
 _xlsm_options = ['xlrd', 'openpyxl']
 _xlsx_options = ['xlrd', 'openpyxl']
+_ods_options = ['odf']
 
 
 with cf.config_prefix("io.excel.xls"):
@@ -444,6 +445,14 @@ with cf.config_prefix("io.excel.xlsx"):
                        reader_engine_doc.format(
                            ext='xlsx',
                            others=', '.join(_xlsx_options)),
+                       validator=str)
+
+
+with cf.config_prefix("io.excel.ods"):
+    cf.register_option("reader", "auto",
+                       reader_engine_doc.format(
+                           ext='ods',
+                           others=', '.join(_ods_options)),
                        validator=str)
 
 

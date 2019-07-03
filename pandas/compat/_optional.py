@@ -13,6 +13,7 @@ VERSIONS = {
     "lxml.etree": "3.8.0",
     "matplotlib": "2.2.2",
     "numexpr": "2.6.2",
+    "odfpy": "1.3.0",
     "openpyxl": "2.4.8",
     "pandas_gbq": "0.8.0",
     "pyarrow": "0.9.0",

@@ -32,6 +32,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
     binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
@@ -2791,9 +2792,10 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 Excel files
 -----------
 
-The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``) and
-Excel 2007+ (``.xlsx``) files using the ``xlrd`` Python
-module.  The :meth:`~DataFrame.to_excel` instance method is used for
+The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``)
+files using the ``xlrd`` Python module.  Excel 2007+ (``.xlsx``) files
+can be read using either ``xlrd`` or ``openpyxl``.
+The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
@@ -3229,7 +3231,27 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 * ``float_format`` : Format string for floating point numbers (default ``None``).
 * ``freeze_panes`` : A tuple of two integers representing the bottommost row and rightmost column to freeze. Each of these parameters is one-based, so (1, 1) will freeze the first row and first column (default ``None``).
 
+.. _io.ods:
 
+OpenDocument Spreadsheets
+-------------------------
+
+.. versionadded:: 0.25
+
+The :func:`~pandas.read_excel` method can also read OpenDocument spreadsheets
+using the ``odfpy`` module. The semantics and features for reading
+OpenDocument spreadsheets match what can be done for `Excel files`_ using
+``engine='odf'``.
+
+.. code-block:: python
+
+   # Returns a DataFrame
+   pd.read_excel('path_to_file.ods', engine='odf')
+
+.. note::
+
+   Currently pandas only supports *reading* OpenDocument spreadsheets. Writing
+   is not implemented.
 
 .. _io.clipboard:
 

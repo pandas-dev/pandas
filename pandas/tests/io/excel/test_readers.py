@@ -33,9 +33,21 @@ def ignore_xlrd_time_clock_warning():
 
 @pytest.fixture(params=[
     # Add any engines to test here
-    pytest.param('xlrd', marks=td.skip_if_no('xlrd')),
-    pytest.param('openpyxl', marks=td.skip_if_no('openpyxl')),
-    pytest.param(None, marks=td.skip_if_no('xlrd')),
+    # When defusedxml is installed it triggers deprecation warnings for
+    # xlrd and openpyxl, so catch those here
+    pytest.param('xlrd', marks=[
+        td.skip_if_no('xlrd'),
+        pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
+    ]),
+    pytest.param('openpyxl', marks=[
+        td.skip_if_no('openpyxl'),
+        pytest.mark.filterwarnings("ignore:.*html argument"),
+    ]),
+    pytest.param(None, marks=[
+        td.skip_if_no('xlrd'),
+        pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
+    ]),
+    pytest.param("odf", marks=td.skip_if_no("odf")),
 ])
 def engine(request):
     """
@@ -53,6 +65,11 @@ class TestReaders:
         """
         if engine == 'openpyxl' and read_ext == '.xls':
             pytest.skip()
+        if engine == 'odf' and read_ext != '.ods':
+            pytest.skip()
+        if read_ext == ".ods" and engine != "odf":
+            pytest.skip()
+
         func = partial(pd.read_excel, engine=engine)
         monkeypatch.chdir(datapath("io", "data"))
         monkeypatch.setattr(pd, 'read_excel', func)
@@ -62,14 +79,16 @@ class TestReaders:
 
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+                                        check_stacklevel=False,
+                                        raise_on_extra_warnings=False):
             with ignore_xlrd_time_clock_warning():
                 df1 = pd.read_excel("test1" + read_ext, "Sheet1",
                                     index_col=0, usecols=3)
 
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+                                        check_stacklevel=False,
+                                        raise_on_extra_warnings=False):
             with ignore_xlrd_time_clock_warning():
                 df2 = pd.read_excel("test1" + read_ext, "Sheet2", skiprows=[1],
                                     index_col=0, usecols=3)
@@ -439,6 +458,9 @@ class TestReaders:
 
     @tm.network
     def test_read_from_http_url(self, read_ext):
+        if read_ext == '.ods':  # TODO: remove once on master
+            pytest.skip()
+
         url = ('https://raw.github.com/pandas-dev/pandas/master/'
                'pandas/tests/io/data/test1' + read_ext)
         url_table = pd.read_excel(url)
@@ -736,6 +758,10 @@ class TestExcelFileRead:
         """
         Change directory and set engine for ExcelFile objects.
         """
+        if engine == 'odf' and read_ext != '.ods':
+            pytest.skip()
+        if read_ext == ".ods" and engine != "odf":
+            pytest.skip()
         if engine == 'openpyxl' and read_ext == '.xls':
             pytest.skip()
 
@@ -802,7 +828,8 @@ class TestExcelFileRead:
             df3 = pd.read_excel(excel, 0, index_col=0, skipfooter=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False,
+                                        raise_on_extra_warnings=False):
             with pd.ExcelFile('test1' + read_ext) as excel:
                 df4 = pd.read_excel(excel, 0, index_col=0, skip_footer=1)
 
