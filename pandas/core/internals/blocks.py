@@ -1455,7 +1455,8 @@ class Block(PandasObject):
                                                     len(qs))
         else:
             # asarray needed for Sparse, see GH#24600
-            # TODO: Why self.values and not values?
+            # Note: we use self.values below instead of values because the
+            #  `asi8` conversion above will behave differently under `isna`
             mask = np.asarray(isna(self.values))
             result = nanpercentile(values, np.array(qs) * 100,
                                    axis=axis, na_value=self.fill_value,
