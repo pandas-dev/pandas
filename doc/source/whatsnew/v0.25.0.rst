@@ -688,7 +688,7 @@ Categorical.argsort now places missing values at the end
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :meth:`Categorical.argsort` now places missing values at the end of the array, making it
-consistent with NumPy and the rest of pandas.
+consistent with NumPy and the rest of pandas (:issue:`21801`).
 
 .. ipython:: python
 
