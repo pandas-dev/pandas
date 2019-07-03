@@ -134,6 +134,30 @@ than :attr:`options.display.max_seq_items` (default: 100 items). Horizontally,
 the output will truncate, if it's wider than :attr:`options.display.width`
 (default: 80 characters).
 
+.. _whatsnew_0250.enhancements.shorter_truncated_repr:
+
+Shorter truncated repr for Series and DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Currently, the default display options of pandas ensure that when a Series
+or DataFrame has more than 60 rows, its repr gets truncated to this maximum
+of 60 rows (the ``display.max_rows`` option). However, this still gives
+a repr that takes up a large part of the vertical screen estate. Therefore,
+a new option ``display.min_rows`` is introduced with a default of 10 which
+determines the number of rows showed in the truncated repr:
+
+- For small Series or DataFrames, up to ``max_rows`` number of rows is shown
+  (default: 60).
+- For larger Series of DataFrame with a length above ``max_rows``, only
+  ``min_rows`` number of rows is shown (default: 10, i.e. the first and last
+  5 rows).
+
+This dual option allows to still see the full content of relatively small
+objects (e.g. ``df.head(20)`` shows all 20 rows), while giving a brief repr
+for large objects.
+
+To restore the previous behaviour of a single threshold, set
+``pd.options.display.min_rows = None``.
 
 .. _whatsnew_0250.enhancements.json_normalize_with_max_level:
 
@@ -187,6 +211,7 @@ Other enhancements
 - Added new option ``plotting.backend`` to be able to select a plotting backend different than the existing ``matplotlib`` one. Use ``pandas.set_option('plotting.backend', '<backend-module>')`` where ``<backend-module`` is a library implementing the pandas plotting API (:issue:`14130`)
 - :class:`pandas.offsets.BusinessHour` supports multiple opening hours intervals (:issue:`15481`)
 - :func:`read_excel` can now use ``openpyxl`` to read Excel files via the ``engine='openpyxl'`` argument. This will become the default in a future release (:issue:`11499`)
+- :func:`pandas.io.excel.read_excel` supports reading OpenDocument tables. Specify ``engine='odf'`` to enable. Consult the :ref:`IO User Guide <io.ods>` for more details (:issue:`9070`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -661,7 +686,7 @@ when both are :class:`Series` (:issue:`23293`).
 
 *Previous behavior*
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [5]: np.power(s1, s2)
    Out[5]:
@@ -684,6 +709,36 @@ applying the ufunc.
 
    np.power(s1, s2.array)
 
+Categorical.argsort now places missing values at the end
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`Categorical.argsort` now places missing values at the end of the array, making it
+consistent with NumPy and the rest of pandas (:issue:`21801`).
+
+.. ipython:: python
+
+   cat = pd.Categorical(['b', None, 'a'], categories=['a', 'b'], ordered=True)
+
+*Previous behavior*
+
+.. code-block:: ipython
+
+   In [2]: cat = pd.Categorical(['b', None, 'a'], categories=['a', 'b'], ordered=True)
+
+   In [3]: cat.argsort()
+   Out[3]: array([1, 2, 0])
+
+   In [4]: cat[cat.argsort()]
+   Out[4]:
+   [NaN, a, b]
+   categories (2, object): [a < b]
+
+*New behavior*
+
+.. ipython:: python
+
+   cat.argsort()
+   cat[cat.argsort()]
 
 .. _whatsnew_0250.api_breaking.deps:
 
@@ -767,6 +822,7 @@ Other API changes
 - Removed support of gtk package for clipboards (:issue:`26563`)
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
 - :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` will now raise a ``ValueError`` when saving timezone aware data. (:issue:`27008`, :issue:`7056`)
+- :meth:`ExtensionArray.argsort` places NA values at the end of the sorted array. (:issue:`21801`)
 - :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` will now raise a ``NotImplementedError`` when saving a :class:`MultiIndex` with extention data types for a ``fixed`` format. (:issue:`7775`)
 - Passing duplicate ``names`` in :meth:`read_csv` will now raise a ``ValueError`` (:issue:`17346`)
 
@@ -831,6 +887,7 @@ Other deprecations
 - The default value ``ordered=None`` in :class:`~pandas.api.types.CategoricalDtype` has been deprecated in favor of ``ordered=False``. When converting between categorical types ``ordered=True`` must be explicitly passed in order to be preserved. (:issue:`26336`)
 - :meth:`Index.contains` is deprecated. Use ``key in index`` (``__contains__``) instead (:issue:`17753`).
 - :meth:`DataFrame.get_dtype_counts` is deprecated. (:issue:`18262`)
+- :meth:`Categorical.ravel` will return a :class:`Categorical` instead of a ``np.ndarray`` (:issue:`27199`)
 
 .. _whatsnew_0250.prior_deprecations:
 

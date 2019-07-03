@@ -42,7 +42,7 @@ from .concat import (  # all for concatenate_block_managers
 
 class BlockManager(PandasObject):
     """
-    Core internal data structure to implement DataFrame, Series, Panel, etc.
+    Core internal data structure to implement DataFrame, Series, etc.
 
     Manage a bunch of labeled 2D mixed-type ndarrays. Essentially it's a
     lightweight blocked set of labeled data to be manipulated by the DataFrame
