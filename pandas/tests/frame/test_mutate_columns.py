@@ -158,17 +158,26 @@ class TestDataFrameMutateColumns:
 
         # new item
         df['x'] = df['a'].astype('float32')
-        result = Series(dict(float32=1, float64=5))
-        assert (df.get_dtype_counts().sort_index() == result).all()
+        result = df.dtypes
+        expected = Series([np.dtype('float64')] * 5 + [np.dtype('float32')],
+                          index=['foo', 'c', 'bar', 'b', 'a', 'x'])
+        tm.assert_series_equal(result, expected)
 
         # replacing current (in different block)
         df['a'] = df['a'].astype('float32')
-        result = Series(dict(float32=2, float64=4))
-        assert (df.get_dtype_counts().sort_index() == result).all()
+        result = df.dtypes
+        expected = Series([np.dtype('float64')] * 4 +
+                          [np.dtype('float32')] * 2,
+                          index=['foo', 'c', 'bar', 'b', 'a', 'x'])
+        tm.assert_series_equal(result, expected)
 
         df['y'] = df['a'].astype('int32')
-        result = Series(dict(float32=2, float64=4, int32=1))
-        assert (df.get_dtype_counts().sort_index() == result).all()
+        result = df.dtypes
+        expected = Series([np.dtype('float64')] * 4 +
+                          [np.dtype('float32')] * 2 +
+                          [np.dtype('int32')],
+                          index=['foo', 'c', 'bar', 'b', 'a', 'x', 'y'])
+        tm.assert_series_equal(result, expected)
 
         with pytest.raises(ValueError, match='already exists'):
             df.insert(1, 'a', df['b'])

@@ -722,6 +722,26 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
+    def test_concat_join_axes_deprecated(self, axis):
+        # GH21951
+        one = pd.DataFrame([[0., 1.], [2., 3.]], columns=list('ab'))
+        two = pd.DataFrame([[10., 11.], [12., 13.]], index=[1, 2],
+                           columns=list('bc'))
+
+        expected = pd.concat([one, two],
+                             axis=1, sort=False).reindex(index=two.index)
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            result = pd.concat([one, two],
+                               axis=1, sort=False, join_axes=[two.index])
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.concat([one, two],
+                             axis=0, sort=False).reindex(columns=two.columns)
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            result = pd.concat([one, two],
+                               axis=0, sort=False, join_axes=[two.columns])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestAppend:
 
@@ -878,13 +898,13 @@ class TestAppend:
         pd.Index(list('abc')),
         pd.CategoricalIndex('A B C'.split()),
         pd.CategoricalIndex('D E F'.split(), ordered=True),
+        pd.IntervalIndex.from_breaks([7, 8, 9, 10]),
         pd.DatetimeIndex([dt.datetime(2013, 1, 3, 0, 0),
                           dt.datetime(2013, 1, 3, 6, 10),
                           dt.datetime(2013, 1, 3, 7, 12)]),
     ]
 
     indexes_cannot_append_with_other = [
-        pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
         pd.MultiIndex.from_arrays(['A B C'.split(), 'D E F'.split()]),
     ]
 
@@ -946,7 +966,7 @@ class TestAppend:
     def test_append_different_columns_types_raises(
             self, index_can_append, index_cannot_append_with_other):
         # GH18359
-        # Dataframe.append will raise if IntervalIndex/MultiIndex appends
+        # Dataframe.append will raise if MultiIndex appends
         # or is appended to a different index type
         #
         # See also test 'test_append_different_columns_types' above for
@@ -955,16 +975,10 @@ class TestAppend:
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=index_can_append)
         ser = pd.Series([7, 8, 9], index=index_cannot_append_with_other,
                         name=2)
-        msg = (r"unorderable types: (Interval|int)\(\) (<|>) "
-               r"(int|long|float|str|Timestamp)\(\)|"
-               r"Expected tuple, got (int|long|float|str)|"
-               r"Cannot compare type 'Timestamp' with type '(int|long)'|"
-               r"'(<|>)' not supported between instances of 'int' "
-               r"and '(str|Timestamp)'|"
-               r"the other index needs to be an IntervalIndex too, but was"
-               r" type {}|"
-               r"object of type '(int|float|Timestamp)' has no len\(\)|"
-               "Expected tuple, got str")
+        msg = (r"Expected tuple, got (int|long|float|str|"
+               r"pandas._libs.interval.Interval)|"
+               r"object of type '(int|float|Timestamp|"
+               r"pandas._libs.interval.Interval)' has no len\(\)|")
         with pytest.raises(TypeError, match=msg):
             df.append(ser)
 

@@ -221,8 +221,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         except (KeyError, TypeError, ValueError):
             return False
 
-    contains = __contains__
-
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
     def map(self, mapper, na_action=None):
