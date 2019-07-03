@@ -762,7 +762,7 @@ Other deprecations
 - :meth:`Series.put` is deprecated. (:issue:`18262`)
 - :meth:`Index.item` and :meth:`Series.item` is deprecated. (:issue:`18262`)
 - :meth:`Index.contains` is deprecated. Use ``key in index`` (``__contains__``) instead (:issue:`17753`).
-- :meth:`Categorical.ravel` will return a :class:`Categorical` instead of a ``np.ndarray`` (:issue:`????`)
+- :meth:`Categorical.ravel` will return a :class:`Categorical` instead of a ``np.ndarray`` (:issue:`27199`)
 
 .. _whatsnew_0250.prior_deprecations:
 
