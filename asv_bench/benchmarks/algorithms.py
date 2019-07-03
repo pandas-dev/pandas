@@ -141,7 +141,7 @@ class Quantile:
         self.idx.quantile(quantile, interpolation=interpolation)
 
 
-class EASorting:
+class SortIntegerArray:
     params = [10**3, 10**5]
 
     def setup(self, N):
