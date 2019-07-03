@@ -701,14 +701,19 @@ Other notable API changes:
 
   This can also be seen in multi-axis indexing with a ``Panel``.
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: python
 
-     p = pd.Panel(np.arange(2 * 3 * 4).reshape(2, 3, 4),
-                  items=['ItemA', 'ItemB'],
-                  major_axis=[1, 2, 3],
-                  minor_axis=['A', 'B', 'C', 'D'])
-     p
+     >>> p = pd.Panel(np.arange(2 * 3 * 4).reshape(2, 3, 4),
+     ...              items=['ItemA', 'ItemB'],
+     ...              major_axis=[1, 2, 3],
+     ...              minor_axis=['A', 'B', 'C', 'D'])
+     >>> p
+     <class 'pandas.core.panel.Panel'>
+     Dimensions: 2 (items) x 3 (major_axis) x 4 (minor_axis)
+     Items axis: ItemA to ItemB
+     Major_axis axis: 1 to 3
+     Minor_axis axis: A to D
+
 
   The following would raise ``KeyError`` prior to 0.15.0:
 
