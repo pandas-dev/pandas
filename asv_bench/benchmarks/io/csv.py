@@ -336,7 +336,6 @@ class ParseDateComparison(StringIORewind):
             # cache_dates is a new keyword in 0.25
             pass
 
-
     def time_to_datetime_dayfirst(self, cache_dates):
         df = read_csv(self.data(self.StringIO_input),
                       dtype={'date': str}, names=['date'])
