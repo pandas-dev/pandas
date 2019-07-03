@@ -247,7 +247,7 @@ def test_agg_consistency():
                                     check_stacklevel=False):
         expected = r[['A', 'B', 'C']].agg({'r1': 'mean', 'r2': 'sum'})
         result = r.agg({'r1': 'mean', 'r2': 'sum'})
-    assert_frame_equal(result, expected)
+    assert_frame_equal(result, expected, check_like=True)
 
 # TODO: once GH 14008 is fixed, move these tests into
 # `Base` test class
