@@ -30,7 +30,7 @@ class TestPDApi(Base):
            'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = []
+    deprecated_modules = ['Panel']
 
     # misc
     misc = ['IndexSlice', 'NaT']
