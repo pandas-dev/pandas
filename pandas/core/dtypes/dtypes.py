@@ -17,6 +17,13 @@ from .inference import is_list_like
 
 str_type = str
 
+# GH26403: sentinel value used for the default value of ordered in the
+# CategoricalDtype constructor to detect when ordered=None is explicitly passed
+ordered_sentinel = object()  # type: object
+
+# TODO(GH26403): Replace with Optional[bool] or bool
+OrderedType = Union[None, bool, object]
+
 
 def register_extension_dtype(cls: Type[ExtensionDtype],
                              ) -> Type[ExtensionDtype]:
@@ -214,7 +221,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     _metadata = ('categories', 'ordered')
     _cache = {}  # type: Dict[str_type, PandasExtensionDtype]
 
-    def __init__(self, categories=None, ordered: Optional[bool] = None):
+    def __init__(self,
+                 categories=None,
+                 ordered: OrderedType = ordered_sentinel):
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
@@ -230,7 +239,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def _from_categorical_dtype(cls,
                                 dtype: 'CategoricalDtype',
                                 categories=None,
-                                ordered: Optional[bool] = None,
+                                ordered: OrderedType = None,
                                 ) -> 'CategoricalDtype':
         if categories is ordered is None:
             return dtype
@@ -330,11 +339,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     def _finalize(self,
                   categories,
-                  ordered: Optional[bool],
+                  ordered: OrderedType,
                   fastpath: bool = False,
                   ) -> None:
 
-        if ordered is not None:
+        if ordered is not None and ordered is not ordered_sentinel:
             self.validate_ordered(ordered)
 
         if categories is not None:
@@ -342,7 +351,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                                                   fastpath=fastpath)
 
         self._categories = categories
-        self._ordered = ordered
+        self._ordered = ordered if ordered is not ordered_sentinel else None
+        self._ordered_from_sentinel = ordered is ordered_sentinel
 
     def __setstate__(self, state: Dict[str_type, Any]) -> None:
         # for pickle compat. __get_state__ is defined in the
@@ -355,12 +365,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         # _hash_categories returns a uint64, so use the negative
         # space for when we have unknown categories to avoid a conflict
         if self.categories is None:
-            if self.ordered:
+            if self._ordered:
                 return -1
             else:
                 return -2
         # We *do* want to include the real self.ordered here
-        return int(self._hash_categories(self.categories, self.ordered))
+        return int(self._hash_categories(self.categories, self._ordered))
 
     def __eq__(self, other: Any) -> bool:
         """
@@ -379,7 +389,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return other == self.name
         elif other is self:
             return True
-        elif not (hasattr(other, 'ordered') and hasattr(other, 'categories')):
+        elif not (hasattr(other, '_ordered') and hasattr(other, 'categories')):
             return False
         elif self.categories is None or other.categories is None:
             # We're forced into a suboptimal corner thanks to math and
@@ -388,10 +398,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # CDT(., .) = CDT(None, False) and *all*
             # CDT(., .) = CDT(None, True).
             return True
-        elif self.ordered or other.ordered:
+        elif self._ordered or other._ordered:
             # At least one has ordered=True; equal if both have ordered=True
             # and the same values for categories in the same order.
-            return ((self.ordered == other.ordered) and
+            return ((self._ordered == other._ordered) and
                     self.categories.equals(other.categories))
         else:
             # Neither has ordered=True; equal if both have the same categories,
@@ -406,10 +416,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             data = "None, "
         else:
             data = self.categories._format_data(name=self.__class__.__name__)
-        return tpl.format(data, self.ordered)
+        return tpl.format(data, self._ordered)
 
     @staticmethod
-    def _hash_categories(categories, ordered: Optional[bool] = True) -> int:
+    def _hash_categories(categories, ordered: OrderedType = True) -> int:
         from pandas.core.util.hashing import (
             hash_array, _combine_hash_arrays, hash_tuples
         )
@@ -459,7 +469,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return Categorical
 
     @staticmethod
-    def validate_ordered(ordered: bool) -> None:
+    def validate_ordered(ordered: OrderedType) -> None:
         """
         Validates that we have a valid ordered parameter. If
         it is not a boolean, a TypeError will be raised.
@@ -534,17 +544,25 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             msg = ('a CategoricalDtype must be passed to perform an update, '
                    'got {dtype!r}').format(dtype=dtype)
             raise ValueError(msg)
-        elif dtype.categories is not None and dtype.ordered is self.ordered:
-            return dtype
 
         # dtype is CDT: keep current categories/ordered if None
         new_categories = dtype.categories
         if new_categories is None:
             new_categories = self.categories
 
-        new_ordered = dtype.ordered
+        new_ordered = dtype._ordered
+        new_ordered_from_sentinel = dtype._ordered_from_sentinel
         if new_ordered is None:
-            new_ordered = self.ordered
+            # maintain existing ordered if new dtype has ordered=None
+            new_ordered = self._ordered
+            if self._ordered and new_ordered_from_sentinel:
+                # only warn if we'd actually change the existing behavior
+                msg = ("Constructing a CategoricalDtype without specifying "
+                       "`ordered` will default to `ordered=False` in a future "
+                       "version, which will cause the resulting categorical's "
+                       "`ordered` attribute to change to False; `ordered=True`"
+                       " must be explicitly passed in order to be retained")
+                warnings.warn(msg, FutureWarning, stacklevel=3)
 
         return CategoricalDtype(new_categories, new_ordered)
 
@@ -556,10 +574,18 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return self._categories
 
     @property
-    def ordered(self) -> Optional[bool]:
+    def ordered(self) -> OrderedType:
         """
         Whether the categories have an ordered relationship.
         """
+        # TODO: remove if block when ordered=None as default is deprecated
+        if self._ordered_from_sentinel and self._ordered is None:
+            # warn when accessing ordered if ordered=None and None was not
+            # explicitly passed to the constructor
+            msg = ("Constructing a CategoricalDtype without specifying "
+                   "`ordered` will default to `ordered=False` in a future "
+                   "version; `ordered=None` must be explicitly passed.")
+            warnings.warn(msg, FutureWarning, stacklevel=2)
         return self._ordered
 
     @property

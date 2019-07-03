@@ -12,12 +12,12 @@ from pandas.compat import PY36
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64tz_dtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype, ordered_sentinel
 
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
     Timestamp, date_range, isna, period_range, timedelta_range)
-from pandas.api.types import CategoricalDtype
 from pandas.core.arrays import period_array
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
@@ -371,6 +371,35 @@ class TestSeriesConstructors:
         expected = Series(['a', 'a'], index=[0, 1],
                           dtype=CategoricalDtype(['a', 'b'], ordered=True))
         tm.assert_series_equal(result, expected, check_categorical=True)
+
+    def test_constructor_categorical_string(self):
+        # GH 26336: the string 'category' maintains existing CategoricalDtype
+        cdt = CategoricalDtype(categories=list('dabc'), ordered=True)
+        expected = Series(list('abcabc'), dtype=cdt)
+
+        # Series(Categorical, dtype='category') keeps existing dtype
+        cat = Categorical(list('abcabc'), dtype=cdt)
+        result = Series(cat, dtype='category')
+        tm.assert_series_equal(result, expected)
+
+        # Series(Series[Categorical], dtype='category') keeps existing dtype
+        result = Series(result, dtype='category')
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('none, warning', [
+        (None, None), (ordered_sentinel, FutureWarning)])
+    def test_categorical_ordered_none_deprecated(self, none, warning):
+        # GH 26336: only warn if None is not explicitly passed
+        cdt1 = CategoricalDtype(categories=list('cdab'), ordered=True)
+        cdt2 = CategoricalDtype(categories=list('cedafb'), ordered=none)
+
+        cat = Categorical(list('abcdaba'), dtype=cdt1)
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            Series(cat, dtype=cdt2)
+
+        s = Series(cat)
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            Series(s, dtype=cdt2)
 
     def test_categorical_sideeffects_free(self):
         # Passing a categorical to a Series and then changing values in either

@@ -10,7 +10,8 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype, is_datetimetz, is_dtype_equal, is_interval_dtype,
     is_period, is_period_dtype, is_string_dtype)
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, DatetimeTZDtype, IntervalDtype, PeriodDtype, registry)
+    CategoricalDtype, DatetimeTZDtype, IntervalDtype, PeriodDtype,
+    ordered_sentinel, registry)
 
 import pandas as pd
 from pandas import (
@@ -54,7 +55,8 @@ class Base:
 class TestCategoricalDtype(Base):
 
     def create(self):
-        return CategoricalDtype()
+        # TODO(GH 26403): Remove when default ordered becomes False
+        return CategoricalDtype(ordered=None)
 
     def test_pickle(self):
         # make sure our cache is NOT pickled
@@ -675,7 +677,8 @@ class TestCategoricalDtypeParametrized:
     def test_categories(self):
         result = CategoricalDtype(['a', 'b', 'c'])
         tm.assert_index_equal(result.categories, pd.Index(['a', 'b', 'c']))
-        assert result.ordered is None
+        with tm.assert_produces_warning(FutureWarning):
+            assert result.ordered is None
 
     def test_equal_but_different(self, ordered_fixture):
         c1 = CategoricalDtype([1, 2, 3])
@@ -804,7 +807,8 @@ class TestCategoricalDtypeParametrized:
 
     @pytest.mark.parametrize('new_categories', [
         list('abc'), list('cba'), list('wxyz'), None])
-    @pytest.mark.parametrize('new_ordered', [True, False, None])
+    @pytest.mark.parametrize('new_ordered', [
+        True, False, None, ordered_sentinel])
     def test_update_dtype(self, ordered_fixture, new_categories, new_ordered):
         dtype = CategoricalDtype(list('abc'), ordered_fixture)
         new_dtype = CategoricalDtype(new_categories, new_ordered)
@@ -813,11 +817,18 @@ class TestCategoricalDtypeParametrized:
         if expected_categories is None:
             expected_categories = dtype.categories
 
-        expected_ordered = new_dtype.ordered
-        if expected_ordered is None:
+        expected_ordered = new_ordered
+        if new_ordered is ordered_sentinel or new_ordered is None:
             expected_ordered = dtype.ordered
 
-        result = dtype.update_dtype(new_dtype)
+        # GH 26336
+        if new_ordered is ordered_sentinel and ordered_fixture is True:
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = dtype.update_dtype(new_dtype)
+        else:
+            result = dtype.update_dtype(new_dtype)
+
         tm.assert_index_equal(result.categories, expected_categories)
         assert result.ordered is expected_ordered
 
@@ -836,6 +847,14 @@ class TestCategoricalDtypeParametrized:
         msg = 'a CategoricalDtype must be passed to perform an update, '
         with pytest.raises(ValueError, match=msg):
             dtype.update_dtype(bad_dtype)
+
+    @pytest.mark.parametrize('ordered', [ordered_sentinel, None, True, False])
+    def test_ordered_none_default_deprecated(self, ordered):
+        # GH 26403: CDT.ordered only warns if ordered is not explicitly passed
+        dtype = CategoricalDtype(list('abc'), ordered=ordered)
+        warning = FutureWarning if ordered is ordered_sentinel else None
+        with tm.assert_produces_warning(warning):
+            dtype.ordered
 
 
 @pytest.mark.parametrize('dtype', [
