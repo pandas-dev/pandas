@@ -629,7 +629,7 @@ class TestDataFrameSortIndexKinds(TestData):
 
         reversed_categories = sorted(categories, reverse=True)
         reversed_category_indices = sorted(category_indices, reverse=True)
-        reversed_na_indices = sorted(na_indices, reverse=True)
+        reversed_na_indices = sorted(na_indices)
 
         df = pd.DataFrame({
             column_name: pd.Categorical(['A', np.nan, 'B', np.nan, 'C'],
