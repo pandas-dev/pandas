@@ -484,7 +484,7 @@ class TestDataFrameConstructors(TestData):
             dct.update(v.to_dict())
             data[k] = dct
         frame = DataFrame(data)
-        tm.assert_frame_equal(self.frame, frame)
+        tm.assert_frame_equal(self.frame, frame.reindex(self.frame.index))
 
     def test_constructor_dict_block(self):
         expected = np.array([[4., 3., 2., 1.]])
