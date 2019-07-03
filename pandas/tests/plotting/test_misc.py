@@ -25,12 +25,6 @@ def test_import_error_message():
         df.plot()
 
 
-@td.skip_if_no_mpl
-def test_series_plot_with_positional_arguments_warns():
-    with tm.assert_produces_warning(FutureWarning):
-        Series([1, 2, 3]).plot('line', None)
-
-
 def test_get_accessor_args():
     func = plotting._core.PlotAccessor._get_call_args
 
