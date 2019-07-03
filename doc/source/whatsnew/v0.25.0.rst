@@ -821,6 +821,7 @@ Other deprecations
 - The :meth:`Series.get_values`, :meth:`DataFrame.get_values`, :meth:`Index.get_values`,
   :meth:`SparseArray.get_values` and :meth:`Categorical.get_values` methods are deprecated.
   One of ``np.asarray(..)`` or :meth:`~Series.to_numpy` can be used instead (:issue:`19617`).
+- The 'outer' method on NumPy ufuncs, e.g. ``np.subtract.outer`` has been deprecated on :class:`Series` objects. Convert the input to an array with :attr:`Series.array` first (:issue:`27186`)
 - :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
 - :func:`read_table` has been undeprecated. (:issue:`25220`)
 - :attr:`Index.dtype_str` is deprecated. (:issue:`18262`)
