@@ -269,3 +269,12 @@ class BaseReshapingTests(BaseExtensionTests):
             result = result.astype(object)
 
             self.assert_frame_equal(result, expected)
+
+    def test_ravel(self, data):
+        # as long as EA is 1D-only, ravel is a no-op
+        result = data.ravel()
+        assert type(result) == type(data)
+
+        # Check that we have a view, not a copy
+        result[0] = result[1]
+        assert data[0] == data[1]

@@ -909,6 +909,21 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
+    def ravel(self, order="C") -> ABCExtensionArray:
+        """
+        Return a flattened view on this array.
+
+        Parameters
+        ----------
+        order : {None, 'C', 'F', 'A', 'K'}, default 'C'
+
+        Notes
+        -----
+        - Because ExtensionArrays are 1D-only, this is a no-op.
+        - The "order" argument is ignored, is for compatibility with NumPy.
+        """
+        return self
+
     @classmethod
     def _concat_same_type(
             cls,
