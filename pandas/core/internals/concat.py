@@ -376,8 +376,6 @@ def is_uniform_join_units(join_units):
         all(not ju.is_na or ju.block.is_extension for ju in join_units) and
         # no blocks with indexers (as then the dimensions do not fit)
         all(not ju.indexers for ju in join_units) and
-        # disregard Panels
-        all(ju.block.ndim <= 2 for ju in join_units) and
         # only use this path when there is something to concatenate
         len(join_units) > 1)
 
