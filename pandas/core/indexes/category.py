@@ -355,9 +355,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         name = get_op_result_name(self, other)
         return self._shallow_copy(result, name=name)
 
-    def get_values(self):
-        """ return the underlying data as an ndarray """
-        return self._data.get_values()
+    def _internal_get_values(self):
+        # override base Index version to get the numpy array representation of
+        # the underlying Categorical
+        return self._data._internal_get_values()
 
     def tolist(self):
         return self._data.tolist()
@@ -384,10 +385,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             return self.hasnans
 
         return contains(self, key, container=self._engine)
-
-    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
-    def contains(self, key):
-        return key in self
 
     def __array__(self, dtype=None):
         """ the array interface, return my values """
