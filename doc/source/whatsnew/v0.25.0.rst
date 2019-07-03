@@ -661,7 +661,7 @@ when both are :class:`Series` (:issue:`23293`).
 
 *Previous behavior*
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [5]: np.power(s1, s2)
    Out[5]:
@@ -684,6 +684,36 @@ applying the ufunc.
 
    np.power(s1, s2.array)
 
+Categorical.argsort now places missing values at the end
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`Categorical.argsort` now places missing values at the end of the array, making it
+consistent with NumPy and the rest of pandas.
+
+.. ipython:: python
+
+   cat = pd.Categorical(['b', None, 'a'], categories=['a', 'b'], ordered=True)
+
+*Previous behavior*
+
+.. code-block:: ipython
+
+   In [2]: cat = pd.Categorical(['b', None, 'a'], categories=['a', 'b'], ordered=True)
+
+   In [3]: cat.argsort()
+   Out[3]: array([1, 2, 0])
+
+   In [4]: cat[cat.argsort()]
+   Out[4]:
+   [NaN, a, b]
+   categories (2, object): [a < b]
+
+*New behavior*
+
+.. ipython:: python
+
+   cat.argsort()
+   cat[cat.argsort()]
 
 .. _whatsnew_0250.api_breaking.deps:
 

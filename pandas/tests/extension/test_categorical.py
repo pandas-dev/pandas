@@ -193,10 +193,6 @@ class TestMethods(base.BaseMethodsTests):
         if not data_for_sorting.ordered:
             raise pytest.skip(reason="searchsorted requires ordered data.")
 
-    @pytest.mark.xfail(reason="TODO")
-    def test_argsort_missing_array(self, data_missing_for_sorting):
-        super().test_argsort_missing_array(data_missing_for_sorting)
-
 
 class TestCasting(base.BaseCastingTests):
     pass
