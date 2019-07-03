@@ -132,7 +132,7 @@ def _maybe_cache(arg, format, cache, convert_listlike):
         if not should_cache(arg):
             return cache_array
 
-        unique_dates = Index(arg).unique()
+        unique_dates = Index(arg).unique().values
         if len(unique_dates) < len(arg):
             cache_dates = convert_listlike(unique_dates, True, format)
             cache_array = Series(cache_dates, index=unique_dates)
