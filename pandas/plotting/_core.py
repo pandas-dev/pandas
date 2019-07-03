@@ -1,5 +1,6 @@
 import importlib
 from typing import List, Type  # noqa
+import warnings
 
 from pandas.util._decorators import Appender
 
@@ -518,11 +519,6 @@ class PlotAccessor(PandasObject):
         signatures, since `DataFramePlotMethods` accepted `x` and `y`
         parameters.
         """
-        if args and isinstance(data, ABCSeries):
-            # TODO raise warning here, positional arguments shouldn't be
-            # used anymore, so we can add x, y and kind to the signature
-            pass
-
         if isinstance(data, ABCSeries):
             arg_def = [
                 ('kind', 'line'), ('ax', None), ('figsize', None),
@@ -549,6 +545,18 @@ class PlotAccessor(PandasObject):
             return TypeError(('Called plot accessor for type {}, expected '
                               'Series or DataFrame').format(
                                   type(data).__name__))
+
+        if args and isinstance(data, ABCSeries):
+            msg = ('`Series.plot()` should not be called with positional '
+                   'arguments, only keyword arguments. The order of '
+                   'positional arguments will change in the future. '
+                   'Use `Series.plot({})` instead of `Series.plot({})`.')
+            positional_args = str(args)[1:-1]
+            keyword_args = ', '.join('{}={!r}'.format(name, value)
+                                     for (name, default), value
+                                     in zip(arg_def, args))
+            warnings.warn(msg.format(keyword_args, positional_args),
+                          FutureWarning, stacklevel=3)
 
         pos_args = {name: value for value, (name, _) in zip(args, arg_def)}
         kwargs = dict(arg_def, **pos_args, **kwargs)
