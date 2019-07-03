@@ -1713,6 +1713,9 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         numpy.array
         """
+        warn("Categorical.ravel will return a Categorical object instead "
+             "of an ndarray in a future version.",
+             FutureWarning, stacklevel=2)
         return np.array(self)
 
     def view(self):
