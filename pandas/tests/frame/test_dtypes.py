@@ -836,23 +836,28 @@ class TestDataFrameDataTypes:
         df = DataFrame(dict(A=Series(date_range('2012-1-1', periods=3,
                                                 freq='D')),
                             B=Series([timedelta(days=i) for i in range(3)])))
-        result = df.get_dtype_counts().sort_index()
-        expected = Series(
-            {'datetime64[ns]': 1, 'timedelta64[ns]': 1}).sort_index()
+        result = df.dtypes
+        expected = Series([np.dtype('datetime64[ns]'),
+                           np.dtype('timedelta64[ns]')],
+                          index=list("AB"))
         assert_series_equal(result, expected)
 
         df['C'] = df['A'] + df['B']
-        expected = Series(
-            {'datetime64[ns]': 2, 'timedelta64[ns]': 1}).sort_values()
-        result = df.get_dtype_counts().sort_values()
+        result = df.dtypes
+        expected = Series([np.dtype('datetime64[ns]'),
+                           np.dtype('timedelta64[ns]'),
+                           np.dtype('datetime64[ns]')],
+                          index=list("ABC"))
         assert_series_equal(result, expected)
 
         # mixed int types
         df['D'] = 1
-        expected = Series({'datetime64[ns]': 2,
-                           'timedelta64[ns]': 1,
-                           'int64': 1}).sort_values()
-        result = df.get_dtype_counts().sort_values()
+        result = df.dtypes
+        expected = Series([np.dtype('datetime64[ns]'),
+                           np.dtype('timedelta64[ns]'),
+                           np.dtype('datetime64[ns]'),
+                           np.dtype('int64')],
+                          index=list("ABCD"))
         assert_series_equal(result, expected)
 
     def test_arg_for_errors_in_astype(self):

@@ -1214,7 +1214,7 @@ class BlockManager(PandasObject):
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_tuple[0] is None:
                     _, fill_value = maybe_promote(blk.dtype)
-                    fill_tuple = (fill_value, )
+                    fill_tuple = (fill_value,)
 
                 return [blk.take_nd(slobj, axis=0,
                                     new_mgr_locs=slice(0, sllen),
@@ -1579,7 +1579,7 @@ def create_block_manager_from_blocks(blocks, axes):
         mgr._consolidate_inplace()
         return mgr
 
-    except (ValueError) as e:
+    except ValueError as e:
         blocks = [getattr(b, 'values', b) for b in blocks]
         tot_items = sum(b.shape[0] for b in blocks)
         construction_error(tot_items, blocks[0].shape[1:], axes, e)

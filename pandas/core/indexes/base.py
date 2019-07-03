@@ -421,7 +421,11 @@ class Index(IndexOpsMixin, PandasObject):
                     return Float64Index(subarr, copy=copy, name=name)
                 elif inferred == 'interval':
                     from .interval import IntervalIndex
-                    return IntervalIndex(subarr, name=name, copy=copy)
+                    try:
+                        return IntervalIndex(subarr, name=name, copy=copy)
+                    except ValueError:
+                        # GH27172: mixed closed Intervals --> object dtype
+                        pass
                 elif inferred == 'boolean':
                     # don't support boolean explicitly ATM
                     pass
@@ -679,7 +683,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data.dtype
 
-    @cache_readonly
+    @property
     def dtype_str(self):
         """
         Return the dtype str of the underlying data.
@@ -3231,8 +3235,9 @@ class Index(IndexOpsMixin, PandasObject):
             if self.equals(target):
                 indexer = None
             else:
-
-                if self.is_unique:
+                # check is_overlapping for IntervalIndex compat
+                if (self.is_unique and
+                        not getattr(self, 'is_overlapping', False)):
                     indexer = self.get_indexer(target, method=method,
                                                limit=limit,
                                                tolerance=tolerance)
@@ -3764,6 +3769,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return `Index` data as an `numpy.ndarray`.
 
+        .. deprecated:: 0.25.0
+            Use :meth:`Index.to_numpy` or :attr:`Index.array` instead.
+
         Returns
         -------
         numpy.ndarray
@@ -3802,6 +3810,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> midx.get_values().ndim
         1
         """
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version. Use '.to_numpy()' or '.array' instead.",
+            FutureWarning, stacklevel=2)
+        return self._internal_get_values()
+
+    def _internal_get_values(self):
         return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
@@ -4009,13 +4024,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx
         Int64Index([1, 2, 3, 4], dtype='int64')
 
-        >>> idx.contains(2)
-        True
-        >>> idx.contains(6)
-        False
-
-        This is equivalent to:
-
         >>> 2 in idx
         True
         >>> 6 in idx
@@ -4030,8 +4038,21 @@ class Index(IndexOpsMixin, PandasObject):
         except (OverflowError, TypeError, ValueError):
             return False
 
-    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
+        """
+        Return a boolean indicating whether the provided key is in the index.
+
+        .. deprecated:: 0.25.0
+            Use ``key in index`` instead of ``index.contains(key)``.
+
+        Returns
+        -------
+        bool
+        """
+        warnings.warn(
+            "The 'contains' method is deprecated and will be removed in a "
+            "future version. Use 'key in index' instead of "
+            "'index.contains(key)'", FutureWarning, stacklevel=2)
         return key in self
 
     def __hash__(self):
@@ -4461,8 +4482,7 @@ class Index(IndexOpsMixin, PandasObject):
             result = np.array(self)
         return result.argsort(*args, **kwargs)
 
-    def get_value(self, series, key):
-        """
+    _index_shared_docs['get_value'] = """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing.
 
@@ -4471,6 +4491,9 @@ class Index(IndexOpsMixin, PandasObject):
         scalar
             A value in the Series with the index of the key value in self.
         """
+
+    @Appender(_index_shared_docs['get_value'] % _index_doc_kwargs)
+    def get_value(self, series, key):
 
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
@@ -4895,13 +4918,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError('index must be monotonic increasing or decreasing')
 
-    def _get_loc_only_exact_matches(self, key):
-        """
-        This is overridden on subclasses (namely, IntervalIndex) to control
-        get_slice_bound.
-        """
-        return self.get_loc(key)
-
     def get_slice_bound(self, label, side, kind):
         """
         Calculate slice bound that corresponds to given label.
@@ -4935,7 +4951,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # we need to look up the label
         try:
-            slc = self._get_loc_only_exact_matches(label)
+            slc = self.get_loc(label)
         except KeyError as err:
             try:
                 return self._searchsorted_monotonic(label, side)

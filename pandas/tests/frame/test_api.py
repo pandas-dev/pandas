@@ -7,8 +7,8 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Series, SparseDataFrame, compat, date_range,
-    timedelta_range)
+    Categorical, DataFrame, Series, SparseDataFrame, SparseDtype, compat,
+    date_range, timedelta_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
@@ -433,11 +433,11 @@ class SharedWithSparse:
                          'B': timedelta_range('1 day', periods=10)})
         t = df.T
 
-        result = t.get_dtype_counts()
+        result = t.dtypes.value_counts()
         if self.klass is DataFrame:
-            expected = Series({'object': 10})
+            expected = Series({np.dtype('object'): 10})
         else:
-            expected = Series({'Sparse[object, nan]': 10})
+            expected = Series({SparseDtype(dtype=object): 10})
         tm.assert_series_equal(result, expected)
 
 
@@ -547,3 +547,9 @@ class TestDataFrameMisc(SharedWithSparse):
         with tm.assert_produces_warning(None):
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('df.', 1))
+
+    def test_get_values_deprecated(self):
+        df = DataFrame({'a': [1, 2], 'b': [.1, .2]})
+        with tm.assert_produces_warning(FutureWarning):
+            res = df.get_values()
+        tm.assert_numpy_array_equal(res, df.values)

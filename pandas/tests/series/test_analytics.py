@@ -42,6 +42,20 @@ class TestSeriesAnalytics:
                           index=['count', 'unique', 'top', 'freq'])
         tm.assert_series_equal(result, expected)
 
+    def test_describe_empty_object(self):
+        # https://github.com/pandas-dev/pandas/issues/27183
+        s = pd.Series([None, None], dtype=object)
+        result = s.describe()
+        expected = pd.Series([0, 0, np.nan, np.nan], dtype=object,
+                             index=['count', 'unique', 'top', 'freq'])
+        tm.assert_series_equal(result, expected)
+
+        result = s[:0].describe()
+        tm.assert_series_equal(result, expected)
+        # ensure NaN, not None
+        assert np.isnan(result.iloc[2])
+        assert np.isnan(result.iloc[3])
+
     def test_describe_with_tz(self, tz_naive_fixture):
         # GH 21332
         tz = tz_naive_fixture
@@ -484,18 +498,18 @@ class TestSeriesAnalytics:
         b = DataFrame(np.random.randn(3, 4), index=['1', '2', '3'],
                       columns=['p', 'q', 'r', 's']).T
 
-        # Series @ DataFrame
+        # Series @ DataFrame -> Series
         result = operator.matmul(a, b)
         expected = Series(np.dot(a.values, b.values), index=['1', '2', '3'])
         assert_series_equal(result, expected)
 
-        # DataFrame @ Series
+        # DataFrame @ Series -> Series
         result = operator.matmul(b.T, a)
         expected = Series(np.dot(b.T.values, a.T.values),
                           index=['1', '2', '3'])
         assert_series_equal(result, expected)
 
-        # Series @ Series
+        # Series @ Series -> scalar
         result = operator.matmul(a, a)
         expected = np.dot(a.values, a.values)
         assert_almost_equal(result, expected)

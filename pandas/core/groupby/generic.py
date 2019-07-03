@@ -562,8 +562,10 @@ class NDFrameGroupBy(GroupBy):
                 applied.append(res)
 
         concat_index = obj.columns if self.axis == 0 else obj.index
-        concatenated = concat(applied, join_axes=[concat_index],
-                              axis=self.axis, verify_integrity=False)
+        other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1
+        concatenated = concat(applied, axis=self.axis, verify_integrity=False)
+        concatenated = concatenated.reindex(concat_index, axis=other_axis,
+                                            copy=False)
         return self._set_result_index_ordered(concatenated)
 
     @Substitution(klass='DataFrame', selected='')
@@ -1118,7 +1120,7 @@ class SeriesGroupBy(GroupBy):
         """
         ids, _, _ = self.grouper.group_info
 
-        val = self.obj.get_values()
+        val = self.obj._internal_get_values()
 
         try:
             sorter = np.lexsort((val, ids))
@@ -1192,7 +1194,7 @@ class SeriesGroupBy(GroupBy):
                               bins=bins)
 
         ids, _, _ = self.grouper.group_info
-        val = self.obj.get_values()
+        val = self.obj._internal_get_values()
 
         # groupby removes null keys from groupings
         mask = ids != -1
@@ -1306,7 +1308,7 @@ class SeriesGroupBy(GroupBy):
             Count of values within each group.
         """
         ids, _, ngroups = self.grouper.group_info
-        val = self.obj.get_values()
+        val = self.obj._internal_get_values()
 
         mask = (ids != -1) & ~isna(val)
         ids = ensure_platform_int(ids)

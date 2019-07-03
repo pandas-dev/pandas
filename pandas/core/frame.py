@@ -1616,7 +1616,8 @@ class DataFrame(NDFrame):
                 else:
                     ix_vals = [self.index.values]
 
-            arrays = ix_vals + [self[c].get_values() for c in self.columns]
+            arrays = ix_vals + [self[c]._internal_get_values()
+                                for c in self.columns]
 
             count = 0
             index_names = list(self.index.names)
@@ -1632,7 +1633,7 @@ class DataFrame(NDFrame):
             names = [str(name) for name in itertools.chain(index_names,
                                                            self.columns)]
         else:
-            arrays = [self[c].get_values() for c in self.columns]
+            arrays = [self[c]._internal_get_values() for c in self.columns]
             names = [str(c) for c in self.columns]
             index_names = []
 
@@ -2325,7 +2326,7 @@ class DataFrame(NDFrame):
             else:
                 _verbose_repr()
 
-        counts = self.get_dtype_counts()
+        counts = self._data.get_dtype_counts()
         dtypes = ['{k}({kk:d})'.format(k=k[0], kk=k[1]) for k
                   in sorted(counts.items())]
         lines.append('dtypes: {types}'.format(types=', '.join(dtypes)))
@@ -6805,12 +6806,12 @@ class DataFrame(NDFrame):
             # join indexes only using concat
             if can_concat:
                 if how == 'left':
-                    how = 'outer'
-                    join_axes = [self.index]
+                    res = concat(frames, axis=1, join='outer',
+                                 verify_integrity=True)
+                    return res.reindex(self.index, copy=False)
                 else:
-                    join_axes = None
-                return concat(frames, axis=1, join=how, join_axes=join_axes,
-                              verify_integrity=True)
+                    return concat(frames, axis=1, join=how,
+                                  verify_integrity=True)
 
             joined = frames[0]
 
