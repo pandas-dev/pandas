@@ -364,6 +364,16 @@ class TestClassConstructors(Base):
         assert type(result) is Index
         tm.assert_numpy_array_equal(result.values, np.array(values))
 
+    def test_index_mixed_closed(self):
+        # GH27172
+        intervals = [Interval(0, 1, closed='left'),
+                     Interval(1, 2, closed='right'),
+                     Interval(2, 3, closed='neither'),
+                     Interval(3, 4, closed='both')]
+        result = Index(intervals)
+        expected = Index(intervals, dtype=object)
+        tm.assert_index_equal(result, expected)
+
 
 class TestFromIntervals(TestClassConstructors):
     """
@@ -387,4 +397,8 @@ class TestFromIntervals(TestClassConstructors):
 
     @pytest.mark.skip(reason='parent class test that is not applicable')
     def test_index_object_dtype(self):
+        pass
+
+    @pytest.mark.skip(reason='parent class test that is not applicable')
+    def test_index_mixed_closed(self):
         pass
