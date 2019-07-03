@@ -161,7 +161,7 @@ class TestAPI(TestPackers):
             read_msgpack(path_or_buf=A())
         with pytest.raises(ValueError):
             df = tm.makeDataFrame()
-            df.to_msgpack('/non/existent/path/df.msgpack')
+            df.to_msgpack(os.path.join('nonexistent_dir', 'df.msgpack'))
 
 
 @pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
