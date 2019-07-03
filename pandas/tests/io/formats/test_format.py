@@ -377,6 +377,34 @@ class TestDataFrameFormatting:
                 printing.pprint_thing(df._repr_fits_horizontal_())
                 assert has_expanded_repr(df)
 
+    def test_repr_min_rows(self):
+        df = pd.DataFrame({'a': range(20)})
+
+        # default setting no truncation even if above min_rows
+        assert '..' not in repr(df)
+
+        df = pd.DataFrame({'a': range(61)})
+
+        # default of max_rows 60 triggers truncation if above
+        assert '..' in repr(df)
+
+        with option_context('display.max_rows', 10, 'display.min_rows', 4):
+            # truncated after first two rows
+            assert '..' in repr(df)
+            assert '2  ' not in repr(df)
+
+        with option_context('display.max_rows', 12, 'display.min_rows', None):
+            # when set to None, follow value of max_rows
+            assert '5    5' in repr(df)
+
+        with option_context('display.max_rows', 10, 'display.min_rows', 12):
+            # when set value higher as max_rows, use the minimum
+            assert '5    5' not in repr(df)
+
+        with option_context('display.max_rows', None, 'display.min_rows', 12):
+            # max_rows of None -> never truncate
+            assert '..' not in repr(df)
+
     def test_str_max_colwidth(self):
         # GH 7856
         df = pd.DataFrame([{'a': 'foo',
@@ -2283,6 +2311,34 @@ class TestSeriesFormatting:
         with option_context("display.max_rows", 4,
                             "display.show_dimensions", False):
             assert 'Length' not in repr(s)
+
+    def test_repr_min_rows(self):
+        s = pd.Series(range(20))
+
+        # default setting no truncation even if above min_rows
+        assert '..' not in repr(s)
+
+        s = pd.Series(range(61))
+
+        # default of max_rows 60 triggers truncation if above
+        assert '..' in repr(s)
+
+        with option_context('display.max_rows', 10, 'display.min_rows', 4):
+            # truncated after first two rows
+            assert '..' in repr(s)
+            assert '2  ' not in repr(s)
+
+        with option_context('display.max_rows', 12, 'display.min_rows', None):
+            # when set to None, follow value of max_rows
+            assert '5      5' in repr(s)
+
+        with option_context('display.max_rows', 10, 'display.min_rows', 12):
+            # when set value higher as max_rows, use the minimum
+            assert '5      5' not in repr(s)
+
+        with option_context('display.max_rows', None, 'display.min_rows', 12):
+            # max_rows of None -> never truncate
+            assert '..' not in repr(s)
 
     def test_to_string_name(self):
         s = Series(range(100), dtype='int64')

@@ -184,7 +184,8 @@ class SeriesFormatter:
         max_rows = self.max_rows
         if max_rows and min_rows is None:
             min_rows = max_rows
-        min_rows = min(min_rows, max_rows)
+        if min_rows and max_rows:
+            min_rows = min(min_rows, max_rows)
         truncate_v = max_rows and (len(self.series) > max_rows)
         series = self.series
         if truncate_v:
