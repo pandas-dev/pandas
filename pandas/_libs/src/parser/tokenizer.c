@@ -424,13 +424,13 @@ static void append_warning(parser_t *self, const char *msg) {
 
     if (self->warn_msg == NULL) {
         self->warn_msg = (char *)malloc(length + 1);
-        strncpy(self->warn_msg, msg, strlen(msg) + 1);
+        snprintf(self->warn_msg, length + 1, "%s", msg);
     } else {
         ex_length = strlen(self->warn_msg);
         newptr = safe_realloc(self->warn_msg, ex_length + length + 1);
         if (newptr != NULL) {
             self->warn_msg = (char *)newptr;
-            strncpy(self->warn_msg + ex_length, msg, strlen(msg) + 1);
+            snprintf(self->warn_msg + ex_length, length + 1, "%s", msg);
         }
     }
 }
@@ -1433,13 +1433,14 @@ PANDAS_INLINE void uppercase(char *p) {
 int to_boolean(const char *item, uint8_t *val) {
     char *tmp;
     int i, status = 0;
-    int bufsize = sizeof(char) * (strlen(item) + 1);
+    size_t length0 = (strlen(item) + 1);
+    int bufsize = length0;
 
     static const char *tstrs[1] = {"TRUE"};
     static const char *fstrs[1] = {"FALSE"};
 
     tmp = malloc(bufsize);
-    strncpy(tmp, item, bufsize);
+    snprintf(tmp,  length0, "%s", item);
     uppercase(tmp);
 
     for (i = 0; i < 1; ++i) {
@@ -1815,7 +1816,7 @@ double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
     double r = PyOS_string_to_double(p, q, 0);
     if (maybe_int != NULL) *maybe_int = 0;
     if (PyErr_Occurred() != NULL) *error = -1;
-    else if (r == Py_HUGE_VAL) *error = Py_HUGE_VAL;
+    else if (r == Py_HUGE_VAL) *error = (int)Py_HUGE_VAL;
     PyErr_Clear();
     return r;
 }
