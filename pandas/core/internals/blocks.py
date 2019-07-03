@@ -572,10 +572,9 @@ class Block(PandasObject):
                 return self.copy()
             return self
 
-        try:
-            # force the copy here
-            if values is None:
-
+        if values is None:
+            try:
+                # force the copy here
                 if self.is_extension:
                     values = self.values.astype(dtype)
                 else:
@@ -601,10 +600,13 @@ class Block(PandasObject):
                 if isinstance(values, np.ndarray):
                     values = values.reshape(self.shape)
 
-        except Exception:  # noqa: E722
-            if errors == 'raise':
-                raise
-            newb = self.copy() if copy else self
+            except Exception:  # noqa: E722
+                if errors == 'raise':
+                    raise
+                newb = self.copy() if copy else self
+            else:
+                newb = make_block(values, placement=self.mgr_locs,
+                                  ndim=self.ndim)
         else:
             newb = make_block(values, placement=self.mgr_locs,
                               ndim=self.ndim)

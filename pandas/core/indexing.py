@@ -110,10 +110,16 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         for x in key)
             try:
                 values = self.obj._get_value(*key)
+            except KeyError:
+                pass
+            except TypeError:
+                if any(isinstance(x, (slice, list, MultiIndex)) for x in key):
+                    pass
+                else:
+                    raise
+            else:
                 if is_scalar(values):
                     return values
-            except Exception:
-                pass
 
             return self._getitem_tuple(key)
         else:
