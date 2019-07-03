@@ -569,6 +569,27 @@ class TestGrouping:
         result = getattr(g[2], func)(lambda x: x)
         assert_series_equal(result, expected)
 
+    def test_groupby_empty(self):
+        # https://github.com/pandas-dev/pandas/issues/27190
+        s = pd.Series([], name='name')
+        gr = s.groupby([])
+
+        result = gr.mean()
+        tm.assert_series_equal(result, s)
+
+        # check group properties
+        assert len(gr.grouper.groupings) == 1
+        tm.assert_numpy_array_equal(gr.grouper.group_info[0],
+                                    np.array([], dtype=np.dtype("intp")))
+
+        tm.assert_numpy_array_equal(gr.grouper.group_info[1],
+                                    np.array([], dtype=np.dtype('int')))
+
+        assert gr.grouper.group_info[2] == 0
+
+        # check name
+        assert s.groupby(s).grouper.names == ['name']
+
 
 # get_group
 # --------------------------------
