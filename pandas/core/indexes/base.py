@@ -4781,7 +4781,8 @@ class Index(IndexOpsMixin, PandasObject):
         # overridden in DatetimeIndex, TimedeltaIndex and PeriodIndex
         raise NotImplementedError
 
-    def slice_indexer(self, start=None, end=None, step=None, kind=None):
+    def slice_indexer(
+            self, start=None, end=None, step=None, kind=None, closed=None):
         """
         For an ordered or unique index, compute the slice indexer for input
         labels and step.
@@ -4821,7 +4822,7 @@ class Index(IndexOpsMixin, PandasObject):
         slice(1, 3)
         """
         start_slice, end_slice = self.slice_locs(start, end, step=step,
-                                                 kind=kind)
+                                                 kind=kind, closed=closed)
 
         # return a slice
         if not is_scalar(start_slice):
@@ -4883,7 +4884,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs['_maybe_cast_slice_bound'])
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side, kind, closed=None):
         assert kind in ['ix', 'loc', 'getitem', None]
 
         # We are a plain index here (sub-class override this method if they
@@ -4922,7 +4923,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.get_loc(key)
 
-    def get_slice_bound(self, label, side, kind):
+    def get_slice_bound(self, label, side, kind, closed=None):
         """
         Calculate slice bound that corresponds to given label.
 
@@ -4951,7 +4952,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # For datetime indices label may be a string that has to be converted
         # to datetime boundary according to its resolution.
-        label = self._maybe_cast_slice_bound(label, side, kind)
+        label = self._maybe_cast_slice_bound(label, side, kind, closed=closed)
 
         # we need to look up the label
         try:
@@ -4981,11 +4982,18 @@ class Index(IndexOpsMixin, PandasObject):
                 return slc.stop
         else:
             if side == 'right':
-                return slc + 1
+                if closed in ['right', 'both']:
+                    return slc
+                else:
+                    return slc + 1
             else:
-                return slc
+                if closed in ['left', 'both']:
+                    return slc + 1
+                else:
+                    return slc
 
-    def slice_locs(self, start=None, end=None, step=None, kind=None):
+    def slice_locs(
+            self, start=None, end=None, step=None, kind=None, closed=None):
         """
         Compute slice locations for input labels.
 
@@ -5039,13 +5047,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         start_slice = None
         if start is not None:
-            start_slice = self.get_slice_bound(start, 'left', kind)
+            start_slice = self.get_slice_bound(
+                start, 'left', kind, closed=closed)
         if start_slice is None:
             start_slice = 0
 
         end_slice = None
         if end is not None:
-            end_slice = self.get_slice_bound(end, 'right', kind)
+            end_slice = self.get_slice_bound(end, 'right', kind, closed=closed)
         if end_slice is None:
             end_slice = len(self)
 

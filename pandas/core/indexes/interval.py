@@ -564,7 +564,7 @@ class IntervalIndex(IntervalMixin, Index):
             return super()._convert_scalar_indexer(key, kind=kind)
         return key
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side, kind, closed=None):
         return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
 
     @Appender(_index_shared_docs['_convert_list_indexer'])

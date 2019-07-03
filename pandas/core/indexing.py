@@ -17,6 +17,8 @@ from pandas.core.dtypes.missing import _infer_fill_value, isna
 import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex
 
+_VALID_CLOSED = {'left', 'right', 'both', 'neither'}
+
 
 # the supported indexers
 def get_indexers_list():
@@ -76,8 +78,21 @@ class _IndexSlice:
            B1   10   11
     """
 
+    def __init__(self, closed=None):
+        if closed is not None and closed not in _VALID_CLOSED:
+            msg = "invalid option for 'closed': {closed}".format(closed=closed)
+            raise ValueError(msg)
+        self.closed = closed
+
+    def __call__(self, closed=None):
+        return _IndexSlice(closed=closed)
+
     def __getitem__(self, arg):
-        return arg
+        if self.closed is None:
+            return arg
+        else:
+            self.arg = arg
+            return self
 
 
 IndexSlice = _IndexSlice()
@@ -1425,8 +1440,9 @@ class _LocationIndexer(_NDFrameIndexer):
             # we by definition only have the 0th axis
             axis = self.axis or 0
 
-            maybe_callable = com.apply_if_callable(key, self.obj)
-            return self._getitem_axis(maybe_callable, axis=axis)
+            if not isinstance(key, _IndexSlice):
+                key = com.apply_if_callable(key, self.obj)
+            return self._getitem_axis(key, axis=axis)
 
     def _is_scalar_access(self, key):
         raise NotImplementedError()
@@ -1452,6 +1468,11 @@ class _LocationIndexer(_NDFrameIndexer):
         """ this is pretty simple as we just have to deal with labels """
         if axis is None:
             axis = self.axis or 0
+        if isinstance(slice_obj, _IndexSlice):
+            closed = slice_obj.closed
+            slice_obj = slice_obj.arg
+        else:
+            closed = None
 
         obj = self.obj
         if not need_slice(slice_obj):
@@ -1459,7 +1480,8 @@ class _LocationIndexer(_NDFrameIndexer):
 
         labels = obj._get_axis(axis)
         indexer = labels.slice_indexer(slice_obj.start, slice_obj.stop,
-                                       slice_obj.step, kind=self.name)
+                                       slice_obj.step, kind=self.name,
+                                       closed=closed)
 
         if isinstance(indexer, slice):
             return self._slice(indexer, axis=axis, kind='iloc')
@@ -1718,7 +1740,7 @@ class _LocIndexer(_LocationIndexer):
         # slice of integers (only if in the labels)
         # boolean
 
-        if isinstance(key, slice):
+        if isinstance(key, (slice, _IndexSlice)):
             return
 
         if com.is_bool_indexer(key):
@@ -1791,7 +1813,7 @@ class _LocIndexer(_LocationIndexer):
         labels = self.obj._get_axis(axis)
         key = self._get_partial_string_timestamp_match_key(key, labels)
 
-        if isinstance(key, slice):
+        if isinstance(key, (slice, _IndexSlice)):
             self._validate_key(key, axis)
             return self._get_slice_axis(key, axis=axis)
         elif com.is_bool_indexer(key):

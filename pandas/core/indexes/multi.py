@@ -2361,13 +2361,14 @@ class MultiIndex(Index):
 
         return target, indexer
 
-    def get_slice_bound(self, label, side, kind):
+    def get_slice_bound(self, label, side, kind, closed=None):
 
         if not isinstance(label, tuple):
             label = label,
         return self._partial_tup_index(label, side=side)
 
-    def slice_locs(self, start=None, end=None, step=None, kind=None):
+    def slice_locs(
+            self, start=None, end=None, step=None, kind=None, closed=None):
         """
         For an ordered MultiIndex, compute the slice locations for input
         labels.

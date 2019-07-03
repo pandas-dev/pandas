@@ -689,7 +689,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             except KeyError:
                 raise KeyError(key)
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side, kind, closed=None):
         """
         If label is a string or a datetime, cast it to Period.ordinal according
         to resolution.
