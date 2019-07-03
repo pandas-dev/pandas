@@ -9652,6 +9652,7 @@ class NDFrame(PandasObject, SelectionMixin):
             objcounts = data.value_counts()
             count_unique = len(objcounts[objcounts != 0])
             result = [data.count(), count_unique]
+            dtype = None
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
 
@@ -9676,9 +9677,10 @@ class NDFrame(PandasObject, SelectionMixin):
             # to maintain output shape consistency
             else:
                 names += ['top', 'freq']
-                result += [None, None]
+                result += [np.nan, np.nan]
+                dtype = 'object'
 
-            return pd.Series(result, index=names, name=data.name)
+            return pd.Series(result, index=names, name=data.name, dtype=dtype)
 
         def describe_1d(data):
             if is_bool_dtype(data):
