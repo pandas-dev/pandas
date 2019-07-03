@@ -164,4 +164,6 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.25.0..HEAD
+.. TODO. Change to v0.25.0..HEAD
+
+.. contributors:: HEAD..HEAD
