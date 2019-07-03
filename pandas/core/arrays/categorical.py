@@ -1531,12 +1531,13 @@ class Categorical(ExtensionArray, PandasObject):
     def _values_for_argsort(self):
         return self._codes.copy()
 
-    def argsort(self, *args, **kwargs):
-        # TODO(PY2): use correct signature
-        # We have to do *args, **kwargs to avoid a a py2-only signature
-        # issue since np.argsort differs from argsort.
+    def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
         """
         Return the indices that would sort the Categorical.
+
+        .. versionchanged:: 0.25.0
+
+           Changed to sort missing values at the end.
 
         Parameters
         ----------
@@ -1574,9 +1575,14 @@ class Categorical(ExtensionArray, PandasObject):
         ...                      ordered=True)
         >>> cat.argsort()
         array([3, 0, 1, 2])
+
+        Missing values are placed at the end
+
+        >>> cat = pd.Categorical([2, None, 1])
+        >>> cat.argsort()
+        array([2, 0, 1])
         """
-        # Keep the implementation here just for the docstring.
-        return super().argsort(*args, **kwargs)
+        return super().argsort(ascending=ascending, kind=kind, *args, **kwargs)
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
         """

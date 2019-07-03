@@ -141,4 +141,16 @@ class Quantile:
         self.idx.quantile(quantile, interpolation=interpolation)
 
 
+class SortIntegerArray:
+    params = [10**3, 10**5]
+
+    def setup(self, N):
+        data = np.arange(N, dtype=float)
+        data[40] = np.nan
+        self.array = pd.array(data, dtype='Int64')
+
+    def time_argsort(self, N):
+        self.array.argsort()
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
