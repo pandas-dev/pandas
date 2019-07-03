@@ -684,8 +684,8 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     def test_kind_both_ways(self):
         s = Series(range(3))
-        kinds = (plotting._core._common_kinds +
-                 plotting._core._series_kinds)
+        kinds = (plotting.PlotAccessor._common_kinds +
+                 plotting.PlotAccessor._series_kinds)
         _, ax = self.plt.subplots()
         for kind in kinds:
 
@@ -696,7 +696,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_invalid_plot_data(self):
         s = Series(list('abcd'))
         _, ax = self.plt.subplots()
-        for kind in plotting._core._common_kinds:
+        for kind in plotting.PlotAccessor._common_kinds:
 
             msg = "no numeric data to plot"
             with pytest.raises(TypeError, match=msg):
@@ -705,13 +705,13 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     def test_valid_object_plot(self):
         s = Series(range(10), dtype=object)
-        for kind in plotting._core._common_kinds:
+        for kind in plotting.PlotAccessor._common_kinds:
             _check_plot_works(s.plot, kind=kind)
 
     def test_partially_invalid_plot_data(self):
         s = Series(['a', 'b', 1.0, 2])
         _, ax = self.plt.subplots()
-        for kind in plotting._core._common_kinds:
+        for kind in plotting.PlotAccessor._common_kinds:
 
             msg = "no numeric data to plot"
             with pytest.raises(TypeError, match=msg):
@@ -781,8 +781,8 @@ class TestSeriesPlots(TestPlotBase):
     def test_series_grid_settings(self):
         # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
         self._check_grid_settings(Series([1, 2, 3]),
-                                  plotting._core._series_kinds +
-                                  plotting._core._common_kinds)
+                                  plotting.PlotAccessor._series_kinds +
+                                  plotting.PlotAccessor._common_kinds)
 
     @pytest.mark.slow
     def test_standard_colors(self):
