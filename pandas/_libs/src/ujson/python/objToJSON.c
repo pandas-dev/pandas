@@ -78,6 +78,11 @@ typedef struct __NpyArrContext {
     char **columnLabels;
 } NpyArrContext;
 
+typedef struct __PdFrameContext {
+  PyObject *items;   // reference to appropriate iterator
+  Py_ssize_t index;  // current position of iteration in frame
+}  PdFrameContext;
+
 typedef struct __TypeContext {
     JSPFN_ITERBEGIN iterBegin;
     JSPFN_ITEREND iterEnd;
@@ -1124,17 +1129,23 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 	  PyErr_NoMemory();
         }
     } else {
-      n_cols = get_attr_length(obj, "columns");
-      if (n_cols == 0) {
-	GET_TC(tc)->iterNext = NpyArr_iterNextNone;
+      // Begin iteration over a dataframe's columns
+      PyObject *tmp = PyObject_CallMethod(obj, "items");
+      
+      if (tmp == 0) {
+	return;
       }
+
+      PyObject *ctx = PyObject_Malloc(size(PdFrameContext));
+      ctx->index = 0;
+      ctx->items = tmp;
+      GET_TC(tc)->prv = ctx;
     }      
 
     PRINTMARK();
 }
 
 int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
-    Py_ssize_t index;
     Py_ssize_t n_cols;
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
 
@@ -1157,37 +1168,55 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
 	if (!GET_TC(tc)->itemValue) {
 	  return 0;
 	}
+	
+	GET_TC(tc)->index++;
       } else {
         PRINTMARK();
         return 0;
       }
     } else {
       n_cols = get_attr_length(obj, "columns");
-      if (n_cols == 0) {
-	GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-	goto BLKRET;
-      }
-      if (index >= n_cols) {
-	return 0;
+      PdFrameContext *ctx = &(GET_TC(tc)->prv);
+      
+      if (ctx->index >= n_cols)
+	return 0;  // TODO: does n_cols own a reference here?
+      
+      ctx->index++;
+    }
 
-    GET_TC(tc)->index++;
     PRINTMARK();
     return 1;
 }
 
 void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
+  PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
+  
+  if (enc->outputFormat == SPLIT) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
+  } else {
+    PyObject_Free(GET_TC(tc)->items);
+  }
     enc->outputFormat = enc->originalOutputFormat;
-    PRINTMARK();
+  
 }
 
 JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
+  PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
+  if (enc->outputFormat == SPLIT) {  
     return GET_TC(tc)->itemValue;
+  } else {
+    // get appropriate object from iterable
+  }
 }
 
 char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
+  PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
+  if (enc->outputFormat == SPLIT) {  
     *outLen = strlen(GET_TC(tc)->cStr);
     return GET_TC(tc)->cStr;
+  } else {
+    // Return label of array here...
+  }
 }
 
 //=============================================================================
