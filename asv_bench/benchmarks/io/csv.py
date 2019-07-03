@@ -329,7 +329,8 @@ class ParseDateComparison(StringIORewind):
     def time_read_csv_dayfirst(self, cache_dates):
         try:
             read_csv(self.data(self.StringIO_input), sep=',', header=None,
-                     names=['Date'], parse_dates=['Date'], cache_dates=cache_dates,
+                     names=['Date'], parse_dates=['Date'],
+                     cache_dates=cache_dates,
                      dayfirst=True)
         except TypeError:
             # cache_dates is a new keyword in 0.25
