@@ -76,7 +76,7 @@ def _maybe_cache(arg, format, cache, convert_listlike):
 
 def _box_as_indexlike(
     dt_array: ArrayLike,
-    tz=None,
+    utc: Optional[bool] = None,
     name: Optional[str] = None
 ) -> Union[ABCIndex, ABCDatetimeIndex]:
     """
@@ -100,6 +100,7 @@ def _box_as_indexlike(
     """
     from pandas import DatetimeIndex, Index
     if is_datetime64_dtype(dt_array):
+        tz = 'utc' if utc else None
         return DatetimeIndex(dt_array, tz=tz, name=name)
     return Index(dt_array, name=name)
 
@@ -132,7 +133,7 @@ def _convert_and_box_cache(
     from pandas import Series
     result = Series(arg).map(cache_array)
     if box:
-        return _box_as_indexlike(result, tz=None, name=name)
+        return _box_as_indexlike(result, utc=None, name=name)
     return result.values
 
 
@@ -365,7 +366,8 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
             return np.array(result, dtype=object)
 
     if box:
-        return _box_as_indexlike(result, tz=tz, name=name)
+        utc = tz == 'utc'
+        return _box_as_indexlike(result, utc=utc, name=name)
     return result
 
 
