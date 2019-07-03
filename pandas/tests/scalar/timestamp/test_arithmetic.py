@@ -96,9 +96,16 @@ class TestTimestampArithmetic:
         assert type(ts + td64) == Timestamp
         assert type(ts - td64) == Timestamp
 
-    def test_addition_subtraction_preserve_frequency(self):
-        ts = Timestamp('2014-03-05', freq='D')
-        td = timedelta(days=1)
+    @pytest.mark.parametrize('freq, td, td64', [
+        ('S', timedelta(seconds=1), np.timedelta64(1, 's')),
+        ('min', timedelta(minutes=1), np.timedelta64(1, 'm')),
+        ('H', timedelta(hours=1), np.timedelta64(1, 'h')),
+        ('D', timedelta(days=1), np.timedelta64(1, 'D')),
+        ('W', timedelta(weeks=1), np.timedelta64(1, 'W')),
+        ('M', None, np.timedelta64(1, 'M'))
+    ])
+    def test_addition_subtraction_preserve_frequency(self, freq, td, td64):
+        ts = Timestamp('2014-03-05 00:00:00', freq=freq)
         original_freq = ts.freq
 
         with tm.assert_produces_warning(FutureWarning):
@@ -106,10 +113,14 @@ class TestTimestampArithmetic:
             assert (ts + 1).freq == original_freq
             assert (ts - 1).freq == original_freq
 
-        assert (ts + td).freq == original_freq
-        assert (ts - td).freq == original_freq
+        assert (ts + 1 * original_freq).freq == original_freq
+        assert (ts - 1 * original_freq).freq == original_freq
 
-        td64 = np.timedelta64(1, 'D')
+        if td is not None:
+            # timedelta does not support months as unit
+            assert (ts + td).freq == original_freq
+            assert (ts - td).freq == original_freq
+
         assert (ts + td64).freq == original_freq
         assert (ts - td64).freq == original_freq
 
