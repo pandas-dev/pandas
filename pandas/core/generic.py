@@ -9716,7 +9716,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 if name not in names:
                     names.append(name)
 
-        d = pd.concat(ldesc, join_axes=pd.Index([names]), axis=1)
+        d = pd.concat([x.reindex(names, copy=False) for x in ldesc],
+                      axis=1, sort=False)
         d.columns = data.columns.copy()
         return d
 
