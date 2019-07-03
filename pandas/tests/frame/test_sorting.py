@@ -539,7 +539,7 @@ class TestDataFrameSortIndexKinds(TestData):
         assert_frame_equal(result, expected)
 
         result = df.sort_index(ascending=False)
-        expected = df.iloc[[3, 2, 5, 1, 0, 4]]
+        expected = df.iloc[[2, 3, 0, 1, 5, 4]]
         assert_frame_equal(result, expected)
 
     def test_sort_index(self):
@@ -629,7 +629,7 @@ class TestDataFrameSortIndexKinds(TestData):
 
         reversed_categories = sorted(categories, reverse=True)
         reversed_category_indices = sorted(category_indices, reverse=True)
-        reversed_na_indices = sorted(na_indices, reverse=True)
+        reversed_na_indices = sorted(na_indices)
 
         df = pd.DataFrame({
             column_name: pd.Categorical(['A', np.nan, 'B', np.nan, 'C'],

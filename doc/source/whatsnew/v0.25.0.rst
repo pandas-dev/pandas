@@ -661,7 +661,7 @@ when both are :class:`Series` (:issue:`23293`).
 
 *Previous behavior*
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [5]: np.power(s1, s2)
    Out[5]:
@@ -684,6 +684,36 @@ applying the ufunc.
 
    np.power(s1, s2.array)
 
+Categorical.argsort now places missing values at the end
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`Categorical.argsort` now places missing values at the end of the array, making it
+consistent with NumPy and the rest of pandas (:issue:`21801`).
+
+.. ipython:: python
+
+   cat = pd.Categorical(['b', None, 'a'], categories=['a', 'b'], ordered=True)
+
+*Previous behavior*
+
+.. code-block:: ipython
+
+   In [2]: cat = pd.Categorical(['b', None, 'a'], categories=['a', 'b'], ordered=True)
+
+   In [3]: cat.argsort()
+   Out[3]: array([1, 2, 0])
+
+   In [4]: cat[cat.argsort()]
+   Out[4]:
+   [NaN, a, b]
+   categories (2, object): [a < b]
+
+*New behavior*
+
+.. ipython:: python
+
+   cat.argsort()
+   cat[cat.argsort()]
 
 .. _whatsnew_0250.api_breaking.deps:
 
@@ -767,6 +797,7 @@ Other API changes
 - Removed support of gtk package for clipboards (:issue:`26563`)
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
 - :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` will now raise a ``ValueError`` when saving timezone aware data. (:issue:`27008`, :issue:`7056`)
+- :meth:`ExtensionArray.argsort` places NA values at the end of the sorted array. (:issue:`21801`)
 - :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` will now raise a ``NotImplementedError`` when saving a :class:`MultiIndex` with extention data types for a ``fixed`` format. (:issue:`7775`)
 - Passing duplicate ``names`` in :meth:`read_csv` will now raise a ``ValueError`` (:issue:`17346`)
 
