@@ -643,6 +643,48 @@ previous behavior of returning overlapping matches.
    s[idxr]
    s.loc[idxr]
 
+
+.. _whatsnew_0250.api_breaking.ufunc:
+
+Binary ufuncs on Series now align
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Applying a binary ufunc like :func:`numpy.power` now aligns the inputs
+when both are :class:`Series` (:issue:`23293`).
+
+.. ipython:: python
+
+   s1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+   s2 = pd.Series([3, 4, 5], index=['d', 'c', 'b'])
+   s1
+   s2
+
+*Previous behavior*
+
+.. code-block:: python
+
+   In [5]: np.power(s1, s2)
+   Out[5]:
+   a      1
+   b     16
+   c    243
+   dtype: int64
+
+*New behavior*
+
+.. ipython:: python
+
+   np.power(s1, s2)
+
+This matches the behavior of other binary operations in pandas, like :meth:`Series.add`.
+To retain the previous behavior, convert the other ``Series`` to an array before
+applying the ufunc.
+
+.. ipython:: python
+
+   np.power(s1, s2.array)
+
+
 .. _whatsnew_0250.api_breaking.deps:
 
 Increased minimum versions for dependencies
