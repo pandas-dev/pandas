@@ -134,6 +134,30 @@ than :attr:`options.display.max_seq_items` (default: 100 items). Horizontally,
 the output will truncate, if it's wider than :attr:`options.display.width`
 (default: 80 characters).
 
+.. _whatsnew_0250.enhancements.shorter_truncated_repr:
+
+Shorter truncated repr for Series and DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Currently, the default display options of pandas ensure that when a Series
+or DataFrame has more than 60 rows, its repr gets truncated to this maximum
+of 60 rows (the ``display.max_rows`` option). However, this still gives
+a repr that takes up a large part of the vertical screen estate. Therefore,
+a new option ``display.min_rows`` is introduced with a default of 10 which
+determines the number of rows showed in the truncated repr:
+
+- For small Series or DataFrames, up to ``max_rows`` number of rows is shown
+  (default: 60).
+- For larger Series of DataFrame with a length above ``max_rows``, only
+  ``min_rows`` number of rows is shown (default: 10, i.e. the first and last
+  5 rows).
+
+This dual option allows to still see the full content of relatively small
+objects (e.g. ``df.head(20)`` shows all 20 rows), while giving a brief repr
+for large objects.
+
+To restore the previous behaviour of a single threshold, set
+``pd.options.display.min_rows = None``.
 
 .. _whatsnew_0250.enhancements.json_normalize_with_max_level:
 

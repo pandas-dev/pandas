@@ -79,6 +79,9 @@ common_docstring = """
             * unset.
         max_rows : int, optional
             Maximum number of rows to display in the console.
+        min_rows : int, optional
+            The number of rows to display in the console in a truncated repr
+            (when number of rows is above `max_rows`).
         max_cols : int, optional
             Maximum number of columns to display in the console.
         show_dimensions : bool, default False
@@ -159,7 +162,7 @@ class SeriesFormatter:
 
     def __init__(self, series, buf=None, length=True, header=True, index=True,
                  na_rep='NaN', name=False, float_format=None, dtype=True,
-                 max_rows=None):
+                 max_rows=None, min_rows=None):
         self.series = series
         self.buf = buf if buf is not None else StringIO()
         self.name = name
@@ -168,6 +171,7 @@ class SeriesFormatter:
         self.length = length
         self.index = index
         self.max_rows = max_rows
+        self.min_rows = min_rows
 
         if float_format is None:
             float_format = get_option("display.float_format")
@@ -179,10 +183,17 @@ class SeriesFormatter:
 
     def _chk_truncate(self):
         from pandas.core.reshape.concat import concat
+        min_rows = self.min_rows
         max_rows = self.max_rows
+        # truncation determined by max_rows, actual truncated number of rows
+        # used below by min_rows
         truncate_v = max_rows and (len(self.series) > max_rows)
         series = self.series
         if truncate_v:
+            if min_rows:
+                # if min_rows is set (not None or 0), set max_rows to minimum
+                # of both
+                max_rows = min(min_rows, max_rows)
             if max_rows == 1:
                 row_num = max_rows
                 series = series.iloc[:max_rows]
@@ -391,8 +402,8 @@ class DataFrameFormatter(TableFormatter):
                  header=True, index=True, na_rep='NaN', formatters=None,
                  justify=None, float_format=None, sparsify=None,
                  index_names=True, line_width=None, max_rows=None,
-                 max_cols=None, show_dimensions=False, decimal='.',
-                 table_id=None, render_links=False, **kwds):
+                 min_rows=None, max_cols=None, show_dimensions=False,
+                 decimal='.', table_id=None, render_links=False, **kwds):
         self.frame = frame
         if buf is not None:
             self.buf = _expand_user(_stringify_path(buf))
@@ -414,6 +425,7 @@ class DataFrameFormatter(TableFormatter):
         self.index = index
         self.line_width = line_width
         self.max_rows = max_rows
+        self.min_rows = min_rows
         self.max_cols = max_cols
         self.max_rows_displayed = min(max_rows or len(self.frame),
                                       len(self.frame))
@@ -471,6 +483,10 @@ class DataFrameFormatter(TableFormatter):
                 max_rows = h
 
         if not hasattr(self, 'max_rows_adj'):
+            if max_rows:
+                if (len(self.frame) > max_rows) and self.min_rows:
+                    # if truncated, set max_rows showed to min_rows
+                    max_rows = min(self.min_rows, max_rows)
             self.max_rows_adj = max_rows
         if not hasattr(self, 'max_cols_adj'):
             self.max_cols_adj = max_cols
