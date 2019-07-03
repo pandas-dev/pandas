@@ -129,7 +129,11 @@ if pandas.compat.PY37:
                 "from the top-level namespace will also be removed in "
                 "the next version",
                 FutureWarning, stacklevel=2)
-            return None
+
+            class Panel:
+                pass
+
+            return Panel
         raise AttributeError(
             "module 'pandas' has no attribute {}".format(name))
 else:
