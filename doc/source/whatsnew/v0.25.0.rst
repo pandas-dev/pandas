@@ -148,7 +148,7 @@ determines the number of rows showed in the truncated repr:
 
 - For small Series or DataFrames, up to ``max_rows` number of rows is shown
   (default: 60).
-- For larger Series of DataFrame with a length above `max_rows``, only
+- For larger Series of DataFrame with a length above ``max_rows``, only
   ``min_rows`` number of rows is shown (default: 10, i.e. the first and last
   5 rows).
 
