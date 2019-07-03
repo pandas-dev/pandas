@@ -77,6 +77,13 @@ pc_max_rows_doc = """
     correct auto-detection.
 """
 
+pc_min_rows_doc = """
+: int
+    The numbers of rows to show in a truncated view (when `max_rows` is
+    exceeded). Ignored when `max_rows` is set to None or 0. When set to
+    None, follows the value of `max_rows`.
+"""
+
 pc_max_cols_doc = """
 : int
     If max_cols is exceeded, switch to truncate view. Depending on
@@ -306,6 +313,8 @@ with cf.config_prefix('display'):
                        validator=is_instance_factory((int, type(None))))
     cf.register_option('max_rows', 60, pc_max_rows_doc,
                        validator=is_instance_factory([type(None), int]))
+    cf.register_option('min_rows', 10, pc_min_rows_doc,
+                       validator=is_instance_factory([type(None), int]))
     cf.register_option('max_categories', 8, pc_max_categories_doc,
                        validator=is_int)
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
@@ -422,6 +431,7 @@ reader_engine_doc = """
 _xls_options = ['xlrd']
 _xlsm_options = ['xlrd', 'openpyxl']
 _xlsx_options = ['xlrd', 'openpyxl']
+_ods_options = ['odf']
 
 
 with cf.config_prefix("io.excel.xls"):
@@ -444,6 +454,14 @@ with cf.config_prefix("io.excel.xlsx"):
                        reader_engine_doc.format(
                            ext='xlsx',
                            others=', '.join(_xlsx_options)),
+                       validator=str)
+
+
+with cf.config_prefix("io.excel.ods"):
+    cf.register_option("reader", "auto",
+                       reader_engine_doc.format(
+                           ext='ods',
+                           others=', '.join(_ods_options)),
                        validator=str)
 
 

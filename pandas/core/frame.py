@@ -588,14 +588,16 @@ class DataFrame(NDFrame):
             return buf.getvalue()
 
         max_rows = get_option("display.max_rows")
+        min_rows = get_option("display.min_rows")
         max_cols = get_option("display.max_columns")
         show_dimensions = get_option("display.show_dimensions")
         if get_option("display.expand_frame_repr"):
             width, _ = console.get_console_size()
         else:
             width = None
-        self.to_string(buf=buf, max_rows=max_rows, max_cols=max_cols,
-                       line_width=width, show_dimensions=show_dimensions)
+        self.to_string(buf=buf, max_rows=max_rows, min_rows=min_rows,
+                       max_cols=max_cols, line_width=width,
+                       show_dimensions=show_dimensions)
 
         return buf.getvalue()
 
@@ -633,8 +635,8 @@ class DataFrame(NDFrame):
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
                   sparsify=None, index_names=True, justify=None,
-                  max_rows=None, max_cols=None, show_dimensions=False,
-                  decimal='.', line_width=None):
+                  max_rows=None, min_rows=None, max_cols=None,
+                  show_dimensions=False, decimal='.', line_width=None):
         """
         Render a DataFrame to a console-friendly tabular output.
         %(shared_params)s
@@ -663,6 +665,7 @@ class DataFrame(NDFrame):
                                            sparsify=sparsify, justify=justify,
                                            index_names=index_names,
                                            header=header, index=index,
+                                           min_rows=min_rows,
                                            max_rows=max_rows,
                                            max_cols=max_cols,
                                            show_dimensions=show_dimensions,
