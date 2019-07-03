@@ -125,8 +125,9 @@ if pandas.compat.PY37:
         if name == 'Panel':
             import warnings
             warnings.warn(
-                "The Panel class is removed from pandas. Accessing it from the "
-                "top-level namespace will also be removed in the next version",
+                "The Panel class is removed from pandas. Accessing it "
+                "from the top-level namespace will also be removed in "
+                "the next version",
                 FutureWarning, stacklevel=2)
             return None
         raise AttributeError(
