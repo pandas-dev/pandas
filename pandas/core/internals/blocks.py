@@ -1310,7 +1310,6 @@ class Block(PandasObject):
 
         # our where function
         def func(cond, values, other):
-            values = self._coerce_values(values)
             other = self._try_coerce_args(other)
 
             try:
@@ -1332,6 +1331,7 @@ class Block(PandasObject):
         else:
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
+            values = self._coerce_values(values)
             try:
                 result = func(cond, values, other)
             except TypeError:
