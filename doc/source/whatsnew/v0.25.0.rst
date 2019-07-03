@@ -135,6 +135,29 @@ the output will truncate, if it's wider than :attr:`options.display.width`
 (default: 80 characters).
 
 
+.. _whatsnew_0250.enhancements.json_normalize_with_max_level:
+
+Json normalize with max_level param support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`json_normalize` normalizes the provided input dict to all
+nested levels. The new max_level parameter provides more control over
+which level to end normalization (:issue:`23843`):
+
+The repr now looks like this:
+
+.. ipython:: python
+
+    from pandas.io.json import json_normalize
+    data = [{
+        'CreatedBy': {'Name': 'User001'},
+        'Lookup': {'TextField': 'Some text',
+                   'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+        'Image': {'a': 'b'}
+    }]
+    json_normalize(data, max_level=1)
+
+
 .. _whatsnew_0250.enhancements.other:
 
 Other enhancements
@@ -762,6 +785,7 @@ Other deprecations
 - :attr:`Series.imag` and :attr:`Series.real` are deprecated. (:issue:`18262`)
 - :meth:`Series.put` is deprecated. (:issue:`18262`)
 - :meth:`Index.item` and :meth:`Series.item` is deprecated. (:issue:`18262`)
+- The default value ``ordered=None`` in :class:`~pandas.api.types.CategoricalDtype` has been deprecated in favor of ``ordered=False``. When converting between categorical types ``ordered=True`` must be explicitly passed in order to be preserved. (:issue:`26336`)
 - :meth:`Index.contains` is deprecated. Use ``key in index`` (``__contains__``) instead (:issue:`17753`).
 
 .. _whatsnew_0250.prior_deprecations:
