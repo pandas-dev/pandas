@@ -275,7 +275,6 @@ class BaseReshapingTests(BaseExtensionTests):
         result = data.ravel()
         assert type(result) == type(data)
 
-        if self._supports_setitem:
-            # Check that we have a view, not a copy
-            result[0] = result[1]
-            assert data[0] == data[1]
+        # Check that we have a view, not a copy
+        result[0] = result[1]
+        assert data[0] == data[1]

@@ -82,11 +82,13 @@ def data_for_grouping(request):
 
 
 class BaseSparseTests:
-    _supports_setitem = False
-
     def _check_unsupported(self, data):
         if data.dtype == SparseDtype(int, 0):
             pytest.skip("Can't store nan in int array.")
+
+    @pytest.mark.xfail(reason="SparseArray does not support setitem")
+    def test_ravel(self, data):
+        super().test_ravel(data)
 
 
 class TestDtype(BaseSparseTests, base.BaseDtypeTests):
