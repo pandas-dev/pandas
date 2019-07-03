@@ -159,6 +159,9 @@ class TestAPI(TestPackers):
             read_msgpack(path_or_buf={})
         with pytest.raises(ValueError, match=msg.format(r'.*\.A')):
             read_msgpack(path_or_buf=A())
+        with pytest.raises(ValueError):
+            df = tm.makeDataFrame()
+            df.to_msgpack('/non/existent/path/df.msgpack')
 
 
 @pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
