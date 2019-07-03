@@ -2176,6 +2176,19 @@ into a flat table.
 
    json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
 
+The max_level parameter provides more control over which level to end normalization.
+With max_level=1 the following snippet normalizes until 1st nesting level of the provided dict.
+
+.. ipython:: python
+
+    data = [{'CreatedBy': {'Name': 'User001'},
+             'Lookup': {'TextField': 'Some text',
+                        'UserField': {'Id': 'ID001',
+                                      'Name': 'Name001'}},
+             'Image': {'a': 'b'}
+             }]
+    json_normalize(data, max_level=1)
+
 .. _io.jsonl:
 
 Line delimited json
@@ -3754,7 +3767,7 @@ defaults to `nan`.
     store.append('df_mixed', df_mixed, min_itemsize={'values': 50})
     df_mixed1 = store.select('df_mixed')
     df_mixed1
-    df_mixed1.get_dtype_counts()
+    df_mixed1.dtypes.value_counts()
 
     # we have provided a minimum string column size
     store.root.df_mixed.table

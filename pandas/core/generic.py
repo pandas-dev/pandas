@@ -5263,6 +5263,10 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return counts of unique dtypes in this object.
 
+        .. deprecated:: 0.25.0
+
+        Use `.dtypes.value_counts()` instead.
+
         Returns
         -------
         dtype : Series
@@ -5288,6 +5292,10 @@ class NDFrame(PandasObject, SelectionMixin):
         object     1
         dtype: int64
         """
+        warnings.warn("`get_dtype_counts` has been deprecated and will be "
+                      "removed in a future version. For DataFrames use "
+                      "`.dtypes.value_counts()", FutureWarning,
+                      stacklevel=2)
         from pandas import Series
         return Series(self._data.get_dtype_counts())
 
@@ -9644,6 +9652,7 @@ class NDFrame(PandasObject, SelectionMixin):
             objcounts = data.value_counts()
             count_unique = len(objcounts[objcounts != 0])
             result = [data.count(), count_unique]
+            dtype = None
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
 
@@ -9668,9 +9677,10 @@ class NDFrame(PandasObject, SelectionMixin):
             # to maintain output shape consistency
             else:
                 names += ['top', 'freq']
-                result += [None, None]
+                result += [np.nan, np.nan]
+                dtype = 'object'
 
-            return pd.Series(result, index=names, name=data.name)
+            return pd.Series(result, index=names, name=data.name, dtype=dtype)
 
         def describe_1d(data):
             if is_bool_dtype(data):
@@ -9706,7 +9716,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 if name not in names:
                     names.append(name)
 
-        d = pd.concat(ldesc, join_axes=pd.Index([names]), axis=1)
+        d = pd.concat([x.reindex(names, copy=False) for x in ldesc],
+                      axis=1, sort=False)
         d.columns = data.columns.copy()
         return d
 

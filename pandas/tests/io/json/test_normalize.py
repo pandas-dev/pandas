@@ -85,6 +85,19 @@ def missing_metadata():
     ]
 
 
+@pytest.fixture
+def max_level_test_input_data():
+    """
+    input data to test json_normalize with max_level param
+    """
+    return [{
+        'CreatedBy': {'Name': 'User001'},
+        'Lookup': {'TextField': 'Some text',
+                   'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+        'Image': {'a': 'b'}
+    }]
+
+
 class TestJSONNormalize:
 
     def test_simple_records(self):
@@ -168,8 +181,6 @@ class TestJSONNormalize:
 
         result = json_normalize(deep_nested, ['states', 'cities'],
                                 meta=['country', ['states', 'name']])
-        # meta_prefix={'states': 'state_'})
-
         ex_data = {'country': ['USA'] * 4 + ['Germany'] * 3,
                    'states.name': ['California', 'California', 'Ohio', 'Ohio',
                                    'Bayern', 'Nordrhein-Westfalen',
@@ -294,6 +305,50 @@ class TestJSONNormalize:
         expected = DataFrame(ex_data)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("max_level,expected", [
+        (0, [{"TextField": "Some text",
+              'UserField': {'Id': 'ID001',
+                            'Name': 'Name001'},
+              "CreatedBy": {"Name": "User001"},
+              'Image': {'a': 'b'}},
+             {"TextField": "Some text",
+              'UserField': {'Id': 'ID001',
+                            'Name': 'Name001'},
+              "CreatedBy": {"Name": "User001"},
+              'Image': {'a': 'b'}}]),
+        (1, [{"TextField": "Some text",
+              "UserField.Id": "ID001",
+              "UserField.Name": "Name001",
+              "CreatedBy": {"Name": "User001"},
+              'Image': {'a': 'b'}},
+             {"TextField": "Some text",
+              "UserField.Id": "ID001",
+              "UserField.Name": "Name001",
+              "CreatedBy": {"Name": "User001"},
+              'Image': {'a': 'b'}}])])
+    def test_max_level_with_records_path(self, max_level, expected):
+        # GH23843: Enhanced JSON normalize
+        test_input = [{'CreatedBy': {'Name': 'User001'},
+                       'Lookup': [{'TextField': 'Some text',
+                                   'UserField': {'Id': 'ID001',
+                                                 'Name': 'Name001'}},
+                                  {'TextField': 'Some text',
+                                   'UserField': {'Id': 'ID001',
+                                                 'Name': 'Name001'}}
+                                  ],
+                       'Image': {'a': 'b'},
+                       'tags': [{'foo': 'something', 'bar': 'else'},
+                                {'foo': 'something2', 'bar': 'else2'}]
+                       }]
+
+        result = json_normalize(test_input,
+                                record_path=["Lookup"],
+                                meta=[["CreatedBy"], ["Image"]],
+                                max_level=max_level)
+        expected_df = DataFrame(data=expected,
+                                columns=result.columns.values)
+        tm.assert_equal(expected_df, result)
+
 
 class TestNestedToRecord:
 
@@ -301,7 +356,6 @@ class TestNestedToRecord:
         recs = [dict(flat1=1, flat2=2),
                 dict(flat1=3, flat2=4),
                 ]
-
         result = nested_to_record(recs)
         expected = recs
         assert result == expected
@@ -356,20 +410,6 @@ class TestNestedToRecord:
             record_path='addresses',
             meta='name',
             errors='ignore')
-        ex_data = [
-            {'city': 'Massillon',
-             'number': 9562,
-             'state': 'OH',
-             'street': 'Morris St.',
-             'zip': 44646,
-             'name': 'Alice'},
-            {'city': 'Elizabethton',
-             'number': 8449,
-             'state': 'TN',
-             'street': 'Spring St.',
-             'zip': 37643,
-             'name': np.nan}
-        ]
         ex_data = [
             ['Massillon', 9562, 'OH', 'Morris St.', 44646, 'Alice'],
             ['Elizabethton', 8449, 'TN', 'Spring St.', 37643, np.nan]
@@ -460,3 +500,68 @@ class TestNestedToRecord:
             'location.country.state.town.info.y': -33.148521423339844,
             'location.country.state.town.info.z': 27.572303771972656}
         assert result == expected
+
+    @pytest.mark.parametrize("max_level, expected", [
+        (None,
+         [{'CreatedBy.Name': 'User001',
+           'Lookup.TextField': 'Some text',
+           'Lookup.UserField.Id': 'ID001',
+           'Lookup.UserField.Name': 'Name001',
+           'Image.a': 'b'
+           }]),
+        (0,
+         [{'CreatedBy': {'Name': 'User001'},
+           'Lookup': {'TextField': 'Some text',
+                      'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+           'Image': {'a': 'b'}
+           }]),
+        (1,
+         [{'CreatedBy.Name': 'User001',
+           'Lookup.TextField': 'Some text',
+           'Lookup.UserField': {'Id': 'ID001',
+                                'Name': 'Name001'},
+           'Image.a': 'b'
+           }])
+    ])
+    def test_with_max_level(self, max_level,
+                            expected, max_level_test_input_data):
+        # GH23843: Enhanced JSON normalize
+        output = nested_to_record(max_level_test_input_data,
+                                  max_level=max_level)
+        assert output == expected
+
+    def test_with_large_max_level(self):
+        # GH23843: Enhanced JSON normalize
+        max_level = 100
+        input_data = [{'CreatedBy': {
+            "user": {
+                "name": {"firstname": "Leo",
+                         "LastName": "Thomson"},
+                "family_tree": {
+                    "father": {
+                        "name": "Father001",
+                        "father": {
+                            "Name": "Father002",
+                            "father": {
+                                "name": "Father003",
+                                "father": {
+                                    "Name": "Father004",
+                                },
+                            },
+                        }
+                    }
+                }
+            }
+        }}]
+        expected = [
+            {'CreatedBy.user.name.firstname': 'Leo',
+             'CreatedBy.user.name.LastName': 'Thomson',
+             'CreatedBy.user.family_tree.father.name': 'Father001',
+             'CreatedBy.user.family_tree.father.father.Name': 'Father002',
+             'CreatedBy.user.family_tree.father.father.father.name':
+                 'Father003',
+             'CreatedBy.user.family_tree.father.father.father.father.Name':
+                 'Father004'}
+        ]
+        output = nested_to_record(input_data, max_level=max_level)
+        assert output == expected
