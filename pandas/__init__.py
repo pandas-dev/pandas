@@ -135,7 +135,7 @@ if pandas.compat.PY37:
 
             return Panel
         raise AttributeError(
-            "module 'pandas' has no attribute {}".format(name))
+            "module 'pandas' has no attribute '{}'".format(name))
 else:
     class Panel:
         pass
