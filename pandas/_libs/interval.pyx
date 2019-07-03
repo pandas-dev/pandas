@@ -149,7 +149,7 @@ cdef class IntervalMixin:
 
         >>> ivs = [pd.Interval(0, 0, closed='neither'),
         ...        pd.Interval(1, 2, closed='neither')]
-        >>> pd.core.arrays.IntervalArray(ivs).is_empty
+        >>> pd.arrays.IntervalArray(ivs).is_empty
         array([ True, False])
 
         Missing values are not considered empty:
