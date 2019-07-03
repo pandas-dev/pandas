@@ -635,7 +635,7 @@ class DataFrame(NDFrame):
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
                   sparsify=None, index_names=True, justify=None,
-                  min_rows=None, max_rows=None, max_cols=None,
+                  max_rows=None, min_rows=None, max_cols=None,
                   show_dimensions=False, decimal='.', line_width=None):
         """
         Render a DataFrame to a console-friendly tabular output.

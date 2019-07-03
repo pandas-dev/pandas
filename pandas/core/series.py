@@ -1499,7 +1499,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None, header=True,
                   index=True, length=False, dtype=False, name=False,
-                  min_rows=None, max_rows=None):
+                  max_rows=None, min_rows=None):
         """
         Render a string representation of the Series.
 
@@ -1525,6 +1525,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         max_rows : int, optional
             Maximum number of rows to show before truncating. If None, show
             all.
+        min_rows : int, optional
+            The number of rows to display in a truncated repr (when number
+            of rows is above `max_rows`).
 
         Returns
         -------

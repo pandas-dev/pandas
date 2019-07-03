@@ -79,6 +79,9 @@ common_docstring = """
             * unset.
         max_rows : int, optional
             Maximum number of rows to display in the console.
+        min_rows : int, optional
+            The number of rows to display in the console in a truncated repr
+            (when number of rows is above `max_rows`).
         max_cols : int, optional
             Maximum number of columns to display in the console.
         show_dimensions : bool, default False
@@ -159,7 +162,7 @@ class SeriesFormatter:
 
     def __init__(self, series, buf=None, length=True, header=True, index=True,
                  na_rep='NaN', name=False, float_format=None, dtype=True,
-                 min_rows=None, max_rows=None):
+                 max_rows=None, min_rows=None):
         self.series = series
         self.buf = buf if buf is not None else StringIO()
         self.name = name
@@ -167,8 +170,8 @@ class SeriesFormatter:
         self.header = header
         self.length = length
         self.index = index
-        self.min_rows = min_rows
         self.max_rows = max_rows
+        self.min_rows = min_rows
 
         if float_format is None:
             float_format = get_option("display.float_format")
@@ -398,8 +401,8 @@ class DataFrameFormatter(TableFormatter):
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
                  justify=None, float_format=None, sparsify=None,
-                 index_names=True, line_width=None, min_rows=None,
-                 max_rows=None, max_cols=None, show_dimensions=False,
+                 index_names=True, line_width=None, max_rows=None,
+                 min_rows=None, max_cols=None, show_dimensions=False,
                  decimal='.', table_id=None, render_links=False, **kwds):
         self.frame = frame
         if buf is not None:
@@ -421,8 +424,8 @@ class DataFrameFormatter(TableFormatter):
         self.header = header
         self.index = index
         self.line_width = line_width
-        self.min_rows = min_rows
         self.max_rows = max_rows
+        self.min_rows = min_rows
         self.max_cols = max_cols
         self.max_rows_displayed = min(max_rows or len(self.frame),
                                       len(self.frame))
