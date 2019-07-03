@@ -101,7 +101,9 @@ class TestGetDummies:
             dtype_name = self.effective_dtype(dtype).name
 
         expected = Series({dtype_name: 8})
-        tm.assert_series_equal(result.get_dtype_counts(), expected)
+        result = result.dtypes.value_counts()
+        result.index = [str(i) for i in result.index]
+        tm.assert_series_equal(result, expected)
 
         result = get_dummies(s_df, columns=['a'], sparse=sparse, dtype=dtype)
 
@@ -109,8 +111,10 @@ class TestGetDummies:
         expected_counts[dtype_name] = 3 + expected_counts.get(dtype_name, 0)
 
         expected = Series(expected_counts).sort_index()
-        tm.assert_series_equal(result.get_dtype_counts().sort_index(),
-                               expected)
+        result = result.dtypes.value_counts()
+        result.index = [str(i) for i in result.index]
+        result = result.sort_index()
+        tm.assert_series_equal(result, expected)
 
     def test_just_na(self, sparse):
         just_na_list = [np.nan]

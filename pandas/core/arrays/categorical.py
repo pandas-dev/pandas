@@ -26,6 +26,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import factorize, take, take_1d, unique1d
@@ -331,7 +332,7 @@ class Categorical(ExtensionArray, PandasObject):
         # sanitize input
         if is_categorical_dtype(values):
             if dtype.categories is None:
-                dtype = CategoricalDtype(values.categories, dtype.ordered)
+                dtype = CategoricalDtype(values.categories, dtype._ordered)
         elif not isinstance(values, (ABCIndexClass, ABCSeries)):
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
@@ -354,7 +355,7 @@ class Categorical(ExtensionArray, PandasObject):
                 codes, categories = factorize(values, sort=True)
             except TypeError:
                 codes, categories = factorize(values, sort=False)
-                if dtype.ordered:
+                if dtype._ordered:
                     # raise, as we don't have a sortable data structure and so
                     # the user should give us one by specifying categories
                     raise TypeError("'values' is not ordered, please "
@@ -367,7 +368,7 @@ class Categorical(ExtensionArray, PandasObject):
                                           "supported at this time")
 
             # we're inferring from values
-            dtype = CategoricalDtype(categories, dtype.ordered)
+            dtype = CategoricalDtype(categories, dtype._ordered)
 
         elif is_categorical_dtype(values):
             old_codes = (values._values.codes if isinstance(values, ABCSeries)
@@ -432,7 +433,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Whether the categories have an ordered relationship.
         """
-        return self.dtype.ordered
+        return self.dtype._ordered
 
     @property
     def dtype(self) -> CategoricalDtype:
@@ -846,7 +847,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if ordered is None:
-            ordered = self.dtype.ordered
+            ordered = self.dtype._ordered
         new_dtype = CategoricalDtype(new_categories, ordered=ordered)
 
         cat = self if inplace else self.copy()
@@ -1291,6 +1292,20 @@ class Categorical(ExtensionArray, PandasObject):
             # ndarray.
             ret = np.asarray(ret)
         return ret
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # for binary ops, use our custom dunder methods
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs)
+        if result is not NotImplemented:
+            return result
+
+        # for all other cases, raise for now (similarly as what happens in
+        # Series.__array_prepare__)
+        raise TypeError("Object with dtype {dtype} cannot perform "
+                        "the numpy op {op}".format(
+                            dtype=self.dtype,
+                            op=ufunc.__name__))
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""

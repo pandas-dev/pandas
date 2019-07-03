@@ -5,7 +5,7 @@ import pandas._config.config as cf
 
 from pandas._libs import index as libindex
 
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import CategoricalDtype, ordered_sentinel
 
 import pandas as pd
 from pandas import Categorical, IntervalIndex
@@ -250,6 +250,19 @@ class TestCategoricalIndex(Base):
             list('aabbca') + [np.nan], categories=list('cabdef'))
         assert np.nan in ci
 
+    @pytest.mark.parametrize('item, expected', [
+        (pd.Interval(0, 1), True),
+        (1.5, True),
+        (pd.Interval(0.5, 1.5), False),
+        ('a', False),
+        (pd.Timestamp(1), False),
+        (pd.Timedelta(1), False)], ids=str)
+    def test_contains_interval(self, item, expected):
+        # GH 23705
+        ci = CategoricalIndex(IntervalIndex.from_breaks(range(3)))
+        result = item in ci
+        assert result is expected
+
     def test_map(self):
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('CBA'),
                                  ordered=True)
@@ -489,6 +502,16 @@ class TestCategoricalIndex(Base):
             result = index.astype('category')
             expected = index
             tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('none, warning', [
+        (None, None), (ordered_sentinel, FutureWarning)])
+    def test_astype_category_ordered_none_deprecated(self, none, warning):
+        # GH 26336: only warn if None is not explicitly passed
+        cdt1 = CategoricalDtype(categories=list('cdab'), ordered=True)
+        cdt2 = CategoricalDtype(categories=list('cedafb'), ordered=none)
+        idx = CategoricalIndex(list('abcdaba'), dtype=cdt1)
+        with tm.assert_produces_warning(warning):
+            idx.astype(cdt2)
 
     def test_reindex_base(self):
         # Determined by cat ordering.

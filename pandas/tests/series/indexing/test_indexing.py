@@ -801,9 +801,6 @@ def test_take():
     with pytest.raises(IndexError, match=msg.format(5)):
         s.take([2, 5])
 
-    with tm.assert_produces_warning(FutureWarning):
-        s.take([-1, 3, 4], convert=False)
-
 
 def test_take_categorical():
     # https://github.com/pandas-dev/pandas/issues/20664

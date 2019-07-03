@@ -1074,7 +1074,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                                         raise_missing=raise_missing)
             return ax[indexer], indexer
 
-        if ax.is_unique:
+        if ax.is_unique and not getattr(ax, 'is_overlapping', False):
             # If we are trying to get actual keys from empty Series, we
             # patiently wait for a KeyError later on - otherwise, convert
             if len(ax) or not len(key):
@@ -2393,7 +2393,7 @@ def convert_to_index_sliceable(obj, key):
     elif isinstance(key, str):
 
         # we are an actual column
-        if obj._data.items.contains(key):
+        if key in obj._data.items:
             return None
 
         # We might have a datetimelike string that we can translate to a
