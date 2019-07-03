@@ -539,7 +539,7 @@ class TestDataFrameSortIndexKinds(TestData):
         assert_frame_equal(result, expected)
 
         result = df.sort_index(ascending=False)
-        expected = df.iloc[[3, 2, 5, 1, 0, 4]]
+        expected = df.iloc[[2, 3, 0, 1, 5, 4]]
         assert_frame_equal(result, expected)
 
     def test_sort_index(self):
