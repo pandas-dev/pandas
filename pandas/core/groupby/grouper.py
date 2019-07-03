@@ -606,8 +606,11 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
         groupings.append(ping)
 
-    if len(groupings) == 0:
+    if len(groupings) == 0 and len(obj):
         raise ValueError('No group keys passed!')
+    elif len(groupings) == 0:
+        groupings.append(Grouping(Index([], dtype='int'),
+                                  np.array([], dtype=np.intp)))
 
     # create the internals grouper
     grouper = BaseGrouper(group_axis, groupings, sort=sort, mutated=mutated)
