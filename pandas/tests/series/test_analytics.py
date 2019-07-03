@@ -42,6 +42,20 @@ class TestSeriesAnalytics:
                           index=['count', 'unique', 'top', 'freq'])
         tm.assert_series_equal(result, expected)
 
+    def test_describe_empty_object(self):
+        # https://github.com/pandas-dev/pandas/issues/27183
+        s = pd.Series([None, None], dtype=object)
+        result = s.describe()
+        expected = pd.Series([0, 0, np.nan, np.nan], dtype=object,
+                             index=['count', 'unique', 'top', 'freq'])
+        tm.assert_series_equal(result, expected)
+
+        result = s[:0].describe()
+        tm.assert_series_equal(result, expected)
+        # ensure NaN, not None
+        assert np.isnan(result.iloc[2])
+        assert np.isnan(result.iloc[3])
+
     def test_describe_with_tz(self, tz_naive_fixture):
         # GH 21332
         tz = tz_naive_fixture
