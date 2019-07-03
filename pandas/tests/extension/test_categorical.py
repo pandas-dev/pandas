@@ -22,6 +22,7 @@ import pandas as pd
 from pandas import Categorical
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 
 def make_data():
@@ -97,7 +98,7 @@ class TestReshaping(base.BaseReshapingTests):
 
     def test_ravel(self, data):
         # GH#27199 Categorical.ravel returns self until after deprecation cycle
-        with pytest.warns(FutureWarning, match="will return a Categorical"):
+        with tm.assert_produces_warning(FutureWarning):
             data.ravel()
 
 
