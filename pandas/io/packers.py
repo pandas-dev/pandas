@@ -57,7 +57,7 @@ from pandas.core.dtypes.common import (
 
 from pandas import (  # noqa:F401
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
-    Index, Int64Index, Interval, IntervalIndex, MultiIndex, NaT, Panel, Period,
+    Index, Int64Index, Interval, IntervalIndex, MultiIndex, NaT, Period,
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, Timestamp)
 from pandas.core import internals
 from pandas.core.arrays import DatetimeArray, IntervalArray, PeriodArray
@@ -671,11 +671,6 @@ def decode(obj):
     #        default_fill_value=obj['default_fill_value'],
     #        default_kind=obj['default_kind']
     #    )
-    # elif typ == 'sparse_panel':
-    #    return SparsePanel(
-    #        obj['data'], items=obj['items'],
-    #        default_fill_value=obj['default_fill_value'],
-    #        default_kind=obj['default_kind'])
     elif typ == 'block_index':
         return globals()[obj['klass']](obj['length'], obj['blocs'],
                                        obj['blengths'])
