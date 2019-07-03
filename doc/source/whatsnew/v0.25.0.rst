@@ -135,6 +135,29 @@ the output will truncate, if it's wider than :attr:`options.display.width`
 (default: 80 characters).
 
 
+.. _whatsnew_0250.enhancements.json_normalize_with_max_level:
+
+Json normalize with max_level param support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`json_normalize` normalizes the provided input dict to all
+nested levels. The new max_level parameter provides more control over
+which level to end normalization (:issue:`23843`):
+
+The repr now looks like this:
+
+.. ipython:: python
+
+    from pandas.io.json import json_normalize
+    data = [{
+        'CreatedBy': {'Name': 'User001'},
+        'Lookup': {'TextField': 'Some text',
+                   'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+        'Image': {'a': 'b'}
+    }]
+    json_normalize(data, max_level=1)
+
+
 .. _whatsnew_0250.enhancements.other:
 
 Other enhancements
