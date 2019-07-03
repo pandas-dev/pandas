@@ -217,7 +217,7 @@ class TestDataFrameBlockInternals:
         df = DataFrame(data)
 
         # check dtypes
-        result = df.get_dtype_counts().sort_values()
+        result = df.dtypes
         expected = Series({'datetime64[ns]': 3})
 
         # mixed-type frames
@@ -225,11 +225,13 @@ class TestDataFrameBlockInternals:
         float_string_frame['timedelta'] = timedelta(days=1, seconds=1)
         assert float_string_frame['datetime'].dtype == 'M8[ns]'
         assert float_string_frame['timedelta'].dtype == 'm8[ns]'
-        result = float_string_frame.get_dtype_counts().sort_values()
-        expected = Series({'float64': 4,
-                           'object': 1,
-                           'datetime64[ns]': 1,
-                           'timedelta64[ns]': 1}).sort_values()
+        result = float_string_frame.dtypes
+        expected = Series([np.dtype('float64')] * 4 +
+                          [np.dtype('object'),
+                           np.dtype('datetime64[ns]'),
+                           np.dtype('timedelta64[ns]')],
+                          index=list('ABCD') + ['foo', 'datetime',
+                                                'timedelta'])
         assert_series_equal(result, expected)
 
     def test_construction_with_conversions(self):
@@ -409,11 +411,12 @@ starting,ending,measure
         df = DataFrame({'a': 1., 'b': 2, 'c': 'foo',
                         'f': Timestamp('20010102')},
                        index=np.arange(10))
-        result = df.get_dtype_counts()
-        expected = Series({'int64': 1, 'float64': 1,
-                           datetime64name: 1, objectname: 1})
-        result = result.sort_index()
-        expected = expected.sort_index()
+        result = df.dtypes
+        expected = Series([np.dtype('float64'),
+                           np.dtype('int64'),
+                           np.dtype(objectname),
+                           np.dtype(datetime64name)],
+                          index=['a', 'b', 'c', 'f'])
         assert_series_equal(result, expected)
 
         df = DataFrame({'a': 1., 'b': 2, 'c': 'foo',

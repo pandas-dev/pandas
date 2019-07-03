@@ -105,7 +105,7 @@ pandas objects provide compatibility between ``NaT`` and ``NaN``.
    df2
    df2.loc[['a', 'c', 'h'], ['one', 'timestamp']] = np.nan
    df2
-   df2.get_dtype_counts()
+   df2.dtypes.value_counts()
 
 .. _missing.inserting:
 

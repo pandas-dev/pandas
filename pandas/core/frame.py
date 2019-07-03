@@ -2326,7 +2326,7 @@ class DataFrame(NDFrame):
             else:
                 _verbose_repr()
 
-        counts = self.get_dtype_counts()
+        counts = self._data.get_dtype_counts()
         dtypes = ['{k}({kk:d})'.format(k=k[0], kk=k[1]) for k
                   in sorted(counts.items())]
         lines.append('dtypes: {types}'.format(types=', '.join(dtypes)))

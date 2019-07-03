@@ -3767,7 +3767,7 @@ defaults to `nan`.
     store.append('df_mixed', df_mixed, min_itemsize={'values': 50})
     df_mixed1 = store.select('df_mixed')
     df_mixed1
-    df_mixed1.get_dtype_counts()
+    df_mixed1.dtypes.value_counts()
 
     # we have provided a minimum string column size
     store.root.df_mixed.table

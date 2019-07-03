@@ -296,7 +296,7 @@ Furthermore ``datetime64[ns]`` columns are created by default, when passed datet
    df
 
    # datetime64[ns] out of the box
-   df.get_dtype_counts()
+   df.dtypes.value_counts()
 
    # use the traditional nan, which is mapped to NaT internally
    df.loc[df.index[2:4], ['A', 'timestamp']] = np.nan

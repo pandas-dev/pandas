@@ -1985,7 +1985,8 @@ class TestHDFStore(Base):
             df1['time2'] = Timestamp('20130102')
 
             store.append('df_mixed_dtypes1', df1)
-            result = store.select('df_mixed_dtypes1').get_dtype_counts()
+            result = store.select('df_mixed_dtypes1').dtypes.value_counts()
+            result.index = [str(i) for i in result.index]
             expected = Series({'float32': 2, 'float64': 1, 'int32': 1,
                                'bool': 1, 'int16': 1, 'int8': 1,
                                'int64': 1, 'object': 1, 'datetime64[ns]': 2})

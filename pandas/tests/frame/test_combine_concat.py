@@ -17,8 +17,10 @@ class TestDataFrameConcatCommon:
         A = DataFrame(data=np.ones((10, 2)), columns=[
                       'foo', 'bar'], dtype=np.float64)
         B = DataFrame(data=np.ones((10, 2)), dtype=np.float32)
-        results = pd.concat((A, B), axis=1).get_dtype_counts()
-        expected = Series(dict(float64=2, float32=2))
+        results = pd.concat((A, B), axis=1).dtypes
+        expected = Series([np.dtype('float64')] * 2 +
+                          [np.dtype('float32')] * 2,
+                          index=['foo', 'bar', 0, 1])
         assert_series_equal(results, expected)
 
     @pytest.mark.parametrize('data', [
