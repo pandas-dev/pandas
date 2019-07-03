@@ -562,8 +562,10 @@ class NDFrameGroupBy(GroupBy):
                 applied.append(res)
 
         concat_index = obj.columns if self.axis == 0 else obj.index
-        concatenated = concat(applied, join_axes=[concat_index],
-                              axis=self.axis, verify_integrity=False)
+        other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1
+        concatenated = concat(applied, axis=self.axis, verify_integrity=False)
+        concatenated = concatenated.reindex(concat_index, axis=other_axis,
+                                            copy=False)
         return self._set_result_index_ordered(concatenated)
 
     @Substitution(klass='DataFrame', selected='')

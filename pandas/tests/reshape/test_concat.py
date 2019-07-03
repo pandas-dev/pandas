@@ -722,6 +722,26 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
+    def test_concat_join_axes_deprecated(self, axis):
+        # GH21951
+        one = pd.DataFrame([[0., 1.], [2., 3.]], columns=list('ab'))
+        two = pd.DataFrame([[10., 11.], [12., 13.]], index=[1, 2],
+                           columns=list('bc'))
+
+        expected = pd.concat([one, two],
+                             axis=1, sort=False).reindex(index=two.index)
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            result = pd.concat([one, two],
+                               axis=1, sort=False, join_axes=[two.index])
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.concat([one, two],
+                             axis=0, sort=False).reindex(columns=two.columns)
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            result = pd.concat([one, two],
+                               axis=0, sort=False, join_axes=[two.columns])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestAppend:
 
