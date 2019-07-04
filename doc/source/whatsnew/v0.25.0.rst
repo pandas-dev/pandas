@@ -212,6 +212,7 @@ Other enhancements
 - :class:`pandas.offsets.BusinessHour` supports multiple opening hours intervals (:issue:`15481`)
 - :func:`read_excel` can now use ``openpyxl`` to read Excel files via the ``engine='openpyxl'`` argument. This will become the default in a future release (:issue:`11499`)
 - :func:`pandas.io.excel.read_excel` supports reading OpenDocument tables. Specify ``engine='odf'`` to enable. Consult the :ref:`IO User Guide <io.ods>` for more details (:issue:`9070`)
+- :class:`Interval`, :class:`IntervalIndex`, and :class:`~arrays.IntervalArray` have gained an :attr:`~Interval.is_empty` attribute denoting if the given interval(s) are empty (:issue:`27219`)
 
 .. _whatsnew_0250.api_breaking:
 

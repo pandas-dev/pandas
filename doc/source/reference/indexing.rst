@@ -254,6 +254,7 @@ IntervalIndex components
    IntervalIndex.closed
    IntervalIndex.length
    IntervalIndex.values
+   IntervalIndex.is_empty
    IntervalIndex.is_non_overlapping_monotonic
    IntervalIndex.is_overlapping
    IntervalIndex.get_loc
