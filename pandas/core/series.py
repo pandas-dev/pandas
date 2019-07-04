@@ -1614,9 +1614,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def to_html(self):
         text = self.to_frame().to_html()
 
-        lines = text.split('\n')
-        head_start = [i for i, line in enumerate(lines) if line.strip().startswith("<thead>")][0]
-        head_stop = [i for i, line in enumerate(lines) if line.strip().startswith("</thead>")][0]
+        lines = text.split("\n")
+        head_start = [
+            i for i, line in enumerate(lines) if line.strip().startswith("<thead>")
+        ][0]
+        head_stop = [
+            i for i, line in enumerate(lines) if line.strip().startswith("</thead>")
+        ][0]
         del lines[head_start:head_stop]
 
         tail = """
@@ -1624,11 +1628,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
           <td> name: </td>
           <th> %s </th>
         </tr>
-        """ % (self.name or "--")
-        body_end = [i for i, line in enumerate(lines) if line.strip().startswith("</tbody>")][0]
-        lines[body_end:body_end] = tail.split('\n')
+        """ % (
+            self.name or "--"
+        )
+        body_end = [
+            i for i, line in enumerate(lines) if line.strip().startswith("</tbody>")
+        ][0]
+        lines[body_end:body_end] = tail.split("\n")
 
-        return '\n'.join(lines)
+        return "\n".join(lines)
 
     def _repr_html_(self):
         return self.to_html()

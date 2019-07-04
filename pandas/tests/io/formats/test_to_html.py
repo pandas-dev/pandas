@@ -716,7 +716,7 @@ def test_to_html_with_col_space_units(unit):
 
 
 def test_series():
-    df = DataFrame({'abc': range(1000)})
+    df = DataFrame({"abc": range(1000)})
 
     a = df.to_html()
     b = df.abc.to_html()
