@@ -5,40 +5,64 @@ from pandas._libs import NaT, lib
 
 import pandas.core.common as com
 from pandas.core.indexes.base import (
-    Index, _new_Index, ensure_index, ensure_index_from_sequences)
+    Index,
+    _new_Index,
+    ensure_index,
+    ensure_index_from_sequences,
+)
 from pandas.core.indexes.base import InvalidIndexError  # noqa:F401
 from pandas.core.indexes.category import CategoricalIndex  # noqa:F401
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.interval import IntervalIndex  # noqa:F401
 from pandas.core.indexes.multi import MultiIndex  # noqa:F401
 from pandas.core.indexes.numeric import (  # noqa:F401
-    Float64Index, Int64Index, NumericIndex, UInt64Index)
+    Float64Index,
+    Int64Index,
+    NumericIndex,
+    UInt64Index,
+)
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.range import RangeIndex  # noqa:F401
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-_sort_msg = textwrap.dedent("""\
+_sort_msg = textwrap.dedent(
+    """\
 Sorting because non-concatenation axis is not aligned. A future version
 of pandas will change to not sort by default.
 
 To accept the future behavior, pass 'sort=False'.
 
 To retain the current behavior and silence the warning, pass 'sort=True'.
-""")
+"""
+)
 
 
 # TODO: there are many places that rely on these private methods existing in
 # pandas.core.index
-__all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
-           'CategoricalIndex', 'IntervalIndex', 'RangeIndex', 'UInt64Index',
-           'InvalidIndexError', 'TimedeltaIndex',
-           'PeriodIndex', 'DatetimeIndex',
-           '_new_Index', 'NaT',
-           'ensure_index', 'ensure_index_from_sequences',
-           '_get_combined_index',
-           '_get_objs_combined_axis', '_union_indexes',
-           '_get_consensus_names',
-           '_all_indexes_same']
+__all__ = [
+    "Index",
+    "MultiIndex",
+    "NumericIndex",
+    "Float64Index",
+    "Int64Index",
+    "CategoricalIndex",
+    "IntervalIndex",
+    "RangeIndex",
+    "UInt64Index",
+    "InvalidIndexError",
+    "TimedeltaIndex",
+    "PeriodIndex",
+    "DatetimeIndex",
+    "_new_Index",
+    "NaT",
+    "ensure_index",
+    "ensure_index_from_sequences",
+    "_get_combined_index",
+    "_get_objs_combined_axis",
+    "_union_indexes",
+    "_get_consensus_names",
+    "_all_indexes_same",
+]
 
 
 def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
@@ -64,8 +88,7 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
     -------
     Index
     """
-    obs_idxes = [obj._get_axis(axis) for obj in objs
-                 if hasattr(obj, '_get_axis')]
+    obs_idxes = [obj._get_axis(axis) for obj in objs if hasattr(obj, "_get_axis")]
     if obs_idxes:
         return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
 
@@ -142,7 +165,7 @@ def _union_indexes(indexes, sort=True):
     Index
     """
     if len(indexes) == 0:
-        raise AssertionError('Must have at least 1 Index to union')
+        raise AssertionError("Must have at least 1 Index to union")
     if len(indexes) == 1:
         result = indexes[0]
         if isinstance(result, list):
@@ -165,24 +188,24 @@ def _union_indexes(indexes, sort=True):
         -------
         Index
         """
+
         def conv(i):
             if isinstance(i, Index):
                 i = i.tolist()
             return i
 
-        return Index(
-            lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort))
+        return Index(lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort))
 
-    if kind == 'special':
+    if kind == "special":
         result = indexes[0]
 
-        if hasattr(result, 'union_many'):
+        if hasattr(result, "union_many"):
             return result.union_many(indexes[1:])
         else:
             for other in indexes[1:]:
                 result = result.union(other)
             return result
-    elif kind == 'array':
+    elif kind == "array":
         index = indexes[0]
         for other in indexes[1:]:
             if not index.equals(other):
@@ -227,17 +250,18 @@ def _sanitize_and_check(indexes):
 
     if list in kinds:
         if len(kinds) > 1:
-            indexes = [Index(com.try_sort(x))
-                       if not isinstance(x, Index) else
-                       x for x in indexes]
+            indexes = [
+                Index(com.try_sort(x)) if not isinstance(x, Index) else x
+                for x in indexes
+            ]
             kinds.remove(list)
         else:
-            return indexes, 'list'
+            return indexes, "list"
 
     if len(kinds) > 1 or Index not in kinds:
-        return indexes, 'special'
+        return indexes, "special"
     else:
-        return indexes, 'array'
+        return indexes, "array"
 
 
 def _get_consensus_names(indexes):
@@ -259,8 +283,7 @@ def _get_consensus_names(indexes):
 
     # find the non-none names, need to tupleify to make
     # the set hashable, then reverse on return
-    consensus_names = {tuple(i.names) for i in indexes
-                       if com._any_not_none(*i.names)}
+    consensus_names = {tuple(i.names) for i in indexes if com._any_not_none(*i.names)}
     if len(consensus_names) == 1:
         return list(list(consensus_names)[0])
     return [None] * indexes[0].nlevels

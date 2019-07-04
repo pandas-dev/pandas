@@ -295,6 +295,7 @@ Properties
    Interval.closed
    Interval.closed_left
    Interval.closed_right
+   Interval.is_empty
    Interval.left
    Interval.length
    Interval.mid
@@ -331,10 +332,12 @@ A collection of intervals may be stored in an :class:`arrays.IntervalArray`.
       arrays.IntervalArray.closed
       arrays.IntervalArray.mid
       arrays.IntervalArray.length
+      arrays.IntervalArray.is_empty
       arrays.IntervalArray.is_non_overlapping_monotonic
       arrays.IntervalArray.from_arrays
       arrays.IntervalArray.from_tuples
       arrays.IntervalArray.from_breaks
+      arrays.IntervalArray.contains
       arrays.IntervalArray.overlaps
       arrays.IntervalArray.set_closed
       arrays.IntervalArray.to_tuples

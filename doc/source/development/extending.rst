@@ -416,3 +416,30 @@ Below is an example to define two original properties, "internal_cache" as a tem
    # properties defined in _metadata are retained
    >>> df[['A', 'B']].added_property
    property
+
+.. _extending.plotting-backends:
+
+Plotting backends
+-----------------
+
+Starting in 0.25 pandas can be extended with third-party plotting backends. The
+main idea is letting users select a plotting backend different than the provided
+one based on Matplotlib. For example:
+
+.. code-block:: python
+
+    >>> pd.set_option('plotting.backend', 'backend.module')
+    >>> pd.Series([1, 2, 3]).plot()
+
+This would be more or less equivalent to:
+
+.. code-block:: python
+
+    >>> import backend.module
+    >>> backend.module.plot(pd.Series([1, 2, 3]))
+
+The backend module can then use other visualization tools (Bokeh, Altair,...)
+to generate the plots.
+
+More information on how to implement a third-party plotting backend can be found at
+https://github.com/pandas-dev/pandas/blob/master/pandas/plotting/__init__.py#L1.
