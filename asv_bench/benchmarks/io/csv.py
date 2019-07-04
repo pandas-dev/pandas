@@ -4,7 +4,6 @@ import string
 import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, Categorical, date_range, read_csv, to_datetime
-from pandas.io.parsers import _parser_defaults
 from io import StringIO
 
 from ..pandas_vb_common import BaseIO
@@ -272,13 +271,12 @@ class ReadCSVCachedParseDates(StringIORewind):
         self.StringIO_input = StringIO(data)
 
     def time_read_csv_cached(self, do_cache):
-        # kwds setting here is used to avoid breaking tests in
-        # previous version of pandas, because this is api changes
-        kwds = {}
-        if 'cache_dates' in _parser_defaults:
-            kwds['cache_dates'] = do_cache
-        read_csv(self.data(self.StringIO_input), header=None,
-                 parse_dates=[0], **kwds)
+        try:
+            read_csv(self.data(self.StringIO_input), header=None,
+                     parse_dates=[0], cache_dates=do_cache)
+        except TypeError:
+            # cache_dates is a new keyword in 0.25
+            pass
 
 
 class ReadCSVMemoryGrowth(BaseIO):
@@ -329,9 +327,14 @@ class ParseDateComparison(StringIORewind):
         self.StringIO_input = StringIO(data)
 
     def time_read_csv_dayfirst(self, cache_dates):
-        read_csv(self.data(self.StringIO_input), sep=',', header=None,
-                 names=['Date'], parse_dates=['Date'], cache_dates=cache_dates,
-                 dayfirst=True)
+        try:
+            read_csv(self.data(self.StringIO_input), sep=',', header=None,
+                     names=['Date'], parse_dates=['Date'],
+                     cache_dates=cache_dates,
+                     dayfirst=True)
+        except TypeError:
+            # cache_dates is a new keyword in 0.25
+            pass
 
     def time_to_datetime_dayfirst(self, cache_dates):
         df = read_csv(self.data(self.StringIO_input),
