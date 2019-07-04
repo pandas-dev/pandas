@@ -1244,7 +1244,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 raise
         except TypeError:
             pass
-        except (ValueError):
+        except ValueError:
             if not is_int_positional:
                 raise
 
