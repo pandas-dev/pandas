@@ -66,6 +66,7 @@ right
 closed
 mid
 length
+is_empty
 is_non_overlapping_monotonic
 %(extra_attributes)s\
 
