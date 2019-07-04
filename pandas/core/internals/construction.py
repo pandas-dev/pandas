@@ -9,8 +9,8 @@ import numpy.ma as ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
-from pandas.compat import raise_with_traceback
 import pandas.compat as compat
+from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
