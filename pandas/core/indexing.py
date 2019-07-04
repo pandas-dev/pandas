@@ -2475,50 +2475,6 @@ def convert_from_missing_indexer_tuple(indexer, axes):
     return tuple(get_indexer(_i, _idx) for _i, _idx in enumerate(indexer))
 
 
-def maybe_convert_indices(indices, n):
-    """
-    Attempt to convert indices into valid, positive indices.
-
-    If we have negative indices, translate to positive here.
-    If we have indices that are out-of-bounds, raise an IndexError.
-
-    Parameters
-    ----------
-    indices : array-like
-        The array of indices that we are to convert.
-    n : int
-        The number of elements in the array that we are indexing.
-
-    Returns
-    -------
-    valid_indices : array-like
-        An array-like of positive indices that correspond to the ones
-        that were passed in initially to this function.
-
-    Raises
-    ------
-    IndexError : one of the converted indices either exceeded the number
-        of elements (specified by `n`) OR was still negative.
-    """
-
-    if isinstance(indices, list):
-        indices = np.array(indices)
-        if len(indices) == 0:
-            # If list is empty, np.array will return float and cause indexing
-            # errors.
-            return np.empty(0, dtype=np.intp)
-
-    mask = indices < 0
-    if mask.any():
-        indices = indices.copy()
-        indices[mask] += n
-
-    mask = (indices >= n) | (indices < 0)
-    if mask.any():
-        raise IndexError("indices are out-of-bounds")
-    return indices
-
-
 def maybe_convert_ix(*args):
     """
     We likely want to take the cross-product
