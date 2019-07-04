@@ -431,8 +431,9 @@ class Block(PandasObject):
             return self.split_and_operate(mask, f, inplace)
         else:
             blocks = self.putmask(mask, value, inplace=inplace)
-            blocks = [b.make_block(values=self._try_coerce_result(b.values))
-                      for b in blocks]
+            blocks = [
+                b.make_block(values=self._try_coerce_result(b.values)) for b in blocks
+            ]
             return self._maybe_downcast(blocks, downcast)
 
     def split_and_operate(self, mask, f, inplace):
@@ -643,12 +644,11 @@ class Block(PandasObject):
                     values = values.reshape(self.shape)
 
             except Exception:  # noqa: E722
-                if errors == 'raise':
+                if errors == "raise":
                     raise
                 newb = self.copy() if copy else self
             else:
-                newb = make_block(values, placement=self.mgr_locs,
-                                  ndim=self.ndim)
+                newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
         else:
             newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
 
@@ -888,11 +888,10 @@ class Block(PandasObject):
         else:
             values = self._coerce_values(values)
             # can keep its own dtype
-            if hasattr(value, 'dtype') and is_dtype_equal(values.dtype,
-                                                          value.dtype):
+            if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
                 dtype = self.dtype
             else:
-                dtype = 'infer'
+                dtype = "infer"
 
         # value must be storeable at this moment
         arr_value = np.array(value)
