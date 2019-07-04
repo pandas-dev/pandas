@@ -6,12 +6,22 @@ import pandas as pd  # noqa
 
 
 @pytest.mark.parametrize(
-    "exc", ['UnsupportedFunctionCall', 'UnsortedIndexError',
-            'OutOfBoundsDatetime',
-            'ParserError', 'PerformanceWarning', 'DtypeWarning',
-            'EmptyDataError', 'ParserWarning', 'MergeError'])
+    "exc",
+    [
+        "UnsupportedFunctionCall",
+        "UnsortedIndexError",
+        "OutOfBoundsDatetime",
+        "ParserError",
+        "PerformanceWarning",
+        "DtypeWarning",
+        "EmptyDataError",
+        "ParserWarning",
+        "MergeError",
+    ],
+)
 def test_exception_importable(exc):
     from pandas import errors
+
     e = getattr(errors, exc)
     assert e is not None
 
@@ -24,7 +34,7 @@ def test_catch_oob():
     from pandas import errors
 
     try:
-        pd.Timestamp('15000101')
+        pd.Timestamp("15000101")
     except errors.OutOfBoundsDatetime:
         pass
 
@@ -48,11 +58,11 @@ def test_error_rename():
 class Foo:
     @classmethod
     def classmethod(cls):
-        raise AbstractMethodError(cls, methodtype='classmethod')
+        raise AbstractMethodError(cls, methodtype="classmethod")
 
     @property
     def property(self):
-        raise AbstractMethodError(self, methodtype='property')
+        raise AbstractMethodError(self, methodtype="property")
 
     def method(self):
         raise AbstractMethodError(self)
