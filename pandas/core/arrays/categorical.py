@@ -256,6 +256,8 @@ class Categorical(ExtensionArray, PandasObject):
         and ``ordered``.
 
         .. versionadded:: 0.21.0
+    fastpath : bool, default False
+        Internal use only
 
     Methods
     -------
