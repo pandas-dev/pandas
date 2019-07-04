@@ -9,6 +9,7 @@ from io import StringIO
 import re
 import sys
 from textwrap import fill
+from typing import Any, Dict, Set
 import warnings
 
 import numpy as np
@@ -293,13 +294,6 @@ dialect : str or csv.Dialect, optional
     `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
     override values, a ParserWarning will be issued. See csv.Dialect
     documentation for more details.
-tupleize_cols : bool, default False
-    Leave a list of tuples on columns as is (default is to convert to
-    a MultiIndex on the columns).
-
-    .. deprecated:: 0.21.0
-       This argument will be removed and will always convert to MultiIndex
-
 error_bad_lines : bool, default True
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
@@ -501,7 +495,6 @@ _parser_defaults = {
     'squeeze': False,
     'compression': None,
     'mangle_dupe_cols': True,
-    'tupleize_cols': False,
     'infer_datetime_format': False,
     'skip_blank_lines': True
 }
@@ -514,7 +507,6 @@ _c_parser_defaults = {
     'memory_map': False,
     'error_bad_lines': True,
     'warn_bad_lines': True,
-    'tupleize_cols': False,
     'float_precision': None
 }
 
@@ -530,24 +522,14 @@ _python_unsupported = {
     'float_precision',
 }
 
-_deprecated_defaults = {
-    'tupleize_cols': None
-}
-_deprecated_args = {
-    'tupleize_cols',
-}
+_deprecated_defaults = {}  # type: Dict[str, Any]
+_deprecated_args = set()  # type: Set[str]
 
 
 def _make_parser_function(name, default_sep=','):
 
-    # prepare read_table deprecation
-    if name == "read_table":
-        sep = False
-    else:
-        sep = default_sep
-
     def parser_f(filepath_or_buffer: FilePathOrBuffer,
-                 sep=sep,
+                 sep=default_sep,
                  delimiter=None,
 
                  # Column and Index Locations and Names
@@ -601,7 +583,6 @@ def _make_parser_function(name, default_sep=','):
                  comment=None,
                  encoding=None,
                  dialect=None,
-                 tupleize_cols=None,
 
                  # Error Handling
                  error_bad_lines=True,
@@ -612,19 +593,6 @@ def _make_parser_function(name, default_sep=','):
                  low_memory=_c_parser_defaults['low_memory'],
                  memory_map=False,
                  float_precision=None):
-
-        # deprecate read_table GH21948
-        if name == "read_table":
-            if sep is False and delimiter is None:
-                warnings.warn("read_table is deprecated, use read_csv "
-                              "instead, passing sep='\\t'.",
-                              FutureWarning, stacklevel=2)
-            else:
-                warnings.warn("read_table is deprecated, use read_csv "
-                              "instead.",
-                              FutureWarning, stacklevel=2)
-            if sep is False:
-                sep = default_sep
 
         # gh-23761
         #
@@ -710,7 +678,6 @@ def _make_parser_function(name, default_sep=','):
                     error_bad_lines=error_bad_lines,
                     low_memory=low_memory,
                     mangle_dupe_cols=mangle_dupe_cols,
-                    tupleize_cols=tupleize_cols,
                     infer_datetime_format=infer_datetime_format,
                     skip_blank_lines=skip_blank_lines)
 
@@ -732,10 +699,7 @@ read_csv = Appender(_doc_read_csv_and_table.format(
 read_table = _make_parser_function('read_table', default_sep='\t')
 read_table = Appender(_doc_read_csv_and_table.format(
                       func_name='read_table',
-                      summary="""Read general delimited file into DataFrame.
-
-.. deprecated:: 0.24.0
-  Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
+                      summary='Read general delimited file into DataFrame.',
                       _default_sep=r"'\\t' (tab-stop)")
                       )(read_table)
 
@@ -1074,10 +1038,6 @@ class TextFileReader(BaseIterator):
                    "and will be removed in a future version."
                    .format(arg=arg))
 
-            if arg == 'tupleize_cols':
-                msg += (' Column tuples will then '
-                        'always be converted to MultiIndex.')
-
             if result.get(arg, depr_default) != depr_default:
                 # raise Exception(result.get(arg, depr_default), depr_default)
                 depr_warning += msg + '\n\n'
@@ -1384,7 +1344,6 @@ class ParserBase:
 
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
-        self.tupleize_cols = kwds.get('tupleize_cols', False)
         self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
         self.infer_datetime_format = kwds.pop('infer_datetime_format', False)
         self.cache_dates = kwds.pop('cache_dates', True)

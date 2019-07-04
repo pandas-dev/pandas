@@ -224,7 +224,7 @@ class SparseSeries(Series):
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
         """ perform a reduction operation """
-        return op(self.get_values(), skipna=skipna, **kwds)
+        return op(self.array.to_dense(), skipna=skipna, **kwds)
 
     def __getstate__(self):
         # pickling
@@ -450,7 +450,9 @@ class SparseSeries(Series):
         """
         # TODO: https://github.com/pandas-dev/pandas/issues/22314
         # We skip the block manager till that is resolved.
-        new_data = self.values.copy(deep=deep)
+        new_data = self.values
+        if deep:
+            new_data = new_data.copy()
         return self._constructor(new_data, sparse_index=self.sp_index,
                                  fill_value=self.fill_value,
                                  index=self.index.copy(),

@@ -5,7 +5,6 @@ to disk
 
 import copy
 from datetime import date, datetime
-from distutils.version import LooseVersion
 import itertools
 import os
 import re
@@ -24,7 +23,8 @@ from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype, is_list_like, is_timedelta64_dtype)
+    is_datetime64tz_dtype, is_extension_type, is_list_like,
+    is_timedelta64_dtype)
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
@@ -226,10 +226,6 @@ def _tables():
     if _table_mod is None:
         import tables
         _table_mod = tables
-
-        # version requirements
-        if LooseVersion(tables.__version__) < LooseVersion('3.0.0'):
-            raise ImportError("PyTables version >= 3.0.0 is required")
 
         # set the file open policy
         # return the file open policy; this changes as of pytables 3.1
@@ -2652,6 +2648,9 @@ class GenericFixed(Fixed):
                                                          index.codes,
                                                          index.names)):
             # write the level
+            if is_extension_type(lev):
+                raise NotImplementedError("Saving a MultiIndex with an "
+                                          "extension dtype is not supported.")
             level_key = '{key}_level{idx}'.format(key=key, idx=i)
             conv_level = _convert_index(lev, self.encoding, self.errors,
                                         self.format_type).set_name(level_key)

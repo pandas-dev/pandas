@@ -177,6 +177,12 @@ class Block(PandasObject):
             return self.values.astype(object)
         return self.values
 
+    def get_block_values(self, dtype=None):
+        """
+        This is used in the JSON C code
+        """
+        return self.get_values(dtype=dtype)
+
     def to_dense(self):
         return self.values.view()
 
@@ -220,7 +226,7 @@ class Block(PandasObject):
         if dtype is not None:
             # issue 19431 fastparquet is passing this
             warnings.warn("dtype argument is deprecated, will be removed "
-                          "in a future release.", DeprecationWarning)
+                          "in a future release.", FutureWarning)
         if placement is None:
             placement = self.mgr_locs
         return make_block(values, placement=placement, ndim=ndim,
@@ -344,12 +350,6 @@ class Block(PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
-        if not self._can_hold_na:
-            if inplace:
-                return self
-            else:
-                return self.copy()
-
         mask = isna(self.values)
         if limit is not None:
             if not is_integer(limit):
@@ -360,6 +360,12 @@ class Block(PandasObject):
                 raise NotImplementedError("number of dimensions for 'fillna' "
                                           "is currently limited to 2")
             mask[mask.cumsum(self.ndim - 1) > limit] = False
+
+        if not self._can_hold_na:
+            if inplace:
+                return self
+            else:
+                return self.copy()
 
         # fillna, but if we cannot coerce, then try again as an ObjectBlock
         try:
@@ -542,17 +548,10 @@ class Block(PandasObject):
         if self.is_categorical_astype(dtype):
 
             # deprecated 17636
-            if ('categories' in kwargs or 'ordered' in kwargs):
-                if isinstance(dtype, CategoricalDtype):
-                    raise TypeError(
-                        "Cannot specify a CategoricalDtype and also "
-                        "`categories` or `ordered`. Use "
-                        "`dtype=CategoricalDtype(categories, ordered)`"
-                        " instead.")
-                warnings.warn("specifying 'categories' or 'ordered' in "
-                              ".astype() is deprecated; pass a "
-                              "CategoricalDtype instead",
-                              FutureWarning, stacklevel=7)
+            for deprecated_arg in ('categories', 'ordered'):
+                if deprecated_arg in kwargs:
+                    raise ValueError('Got an unexpected argument: {}'.format(
+                        deprecated_arg))
 
             categories = kwargs.get('categories', None)
             ordered = kwargs.get('ordered', None)
@@ -594,7 +593,8 @@ class Block(PandasObject):
                         values = self.get_values(dtype=dtype)
 
                     # _astype_nansafe works fine with 1-d only
-                    values = astype_nansafe(values.ravel(), dtype, copy=True)
+                    values = astype_nansafe(
+                        values.ravel(), dtype, copy=True, **kwargs)
 
                 # TODO(extension)
                 # should we make this attribute?
@@ -647,24 +647,13 @@ class Block(PandasObject):
         if self.is_integer or self.is_bool or self.is_datetime:
             pass
         elif self.is_float and result.dtype == self.dtype:
-
             # protect against a bool/object showing up here
             if isinstance(dtype, str) and dtype == 'infer':
                 return result
-            if not isinstance(dtype, type):
-                dtype = dtype.type
-            if issubclass(dtype, (np.bool_, np.object_)):
-                if issubclass(dtype, np.bool_):
-                    if isna(result).all():
-                        return result.astype(np.bool_)
-                    else:
-                        result = result.astype(np.object_)
-                        result[result == 1] = True
-                        result[result == 0] = False
-                        return result
-                else:
-                    return result.astype(np.object_)
 
+            # This is only reached via Block.setitem, where dtype is always
+            #  either "infer", self.dtype, or values.dtype.
+            assert dtype == self.dtype, (dtype, self.dtype)
             return result
 
         # may need to change the dtype here
@@ -732,16 +721,6 @@ class Block(PandasObject):
         try:
             values, to_replace = self._try_coerce_args(self.values,
                                                        to_replace)
-            mask = missing.mask_missing(values, to_replace)
-            if filter is not None:
-                filtered_out = ~self.mgr_locs.isin(filter)
-                mask[filtered_out.nonzero()[0]] = False
-
-            blocks = self.putmask(mask, value, inplace=inplace)
-            if convert:
-                blocks = [b.convert(by_item=True, numeric=False,
-                                    copy=not inplace) for b in blocks]
-            return blocks
         except (TypeError, ValueError):
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
@@ -756,6 +735,32 @@ class Block(PandasObject):
                                  filter=filter,
                                  regex=regex,
                                  convert=convert)
+
+        mask = missing.mask_missing(values, to_replace)
+        if filter is not None:
+            filtered_out = ~self.mgr_locs.isin(filter)
+            mask[filtered_out.nonzero()[0]] = False
+
+        try:
+            blocks = self.putmask(mask, value, inplace=inplace)
+        except (TypeError, ValueError):
+            # GH 22083, TypeError or ValueError occurred within error handling
+            # causes infinite loop. Cast and retry only if not objectblock.
+            if is_object_dtype(self):
+                raise
+
+            # try again with a compatible block
+            block = self.astype(object)
+            return block.replace(to_replace=original_to_replace,
+                                 value=value,
+                                 inplace=inplace,
+                                 filter=filter,
+                                 regex=regex,
+                                 convert=convert)
+        if convert:
+            blocks = [b.convert(by_item=True, numeric=False,
+                                copy=not inplace) for b in blocks]
+        return blocks
 
     def _replace_single(self, *args, **kwargs):
         """ no-op on a non-ObjectBlock """
@@ -1533,6 +1538,10 @@ class NonConsolidatableMixIn:
             col, loc = col
             if not com.is_null_slice(col) and col != 0:
                 raise IndexError("{0} only contains one item".format(self))
+            elif isinstance(col, slice):
+                if col != slice(None):
+                    raise NotImplementedError(col)
+                return self.values[[loc]]
             return self.values[loc]
         else:
             if col != 0:
@@ -1757,6 +1766,27 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         return self.values[slicer]
 
+    def _try_cast_result(self, result, dtype=None):
+        """
+        if we have an operation that operates on for example floats
+        we want to try to cast back to our EA here if possible
+
+        result could be a 2-D numpy array, e.g. the result of
+        a numeric operation; but it must be shape (1, X) because
+        we by-definition operate on the ExtensionBlocks one-by-one
+
+        result could also be an EA Array itself, in which case it
+        is already a 1-D array
+        """
+        try:
+
+            result = self._holder._from_sequence(
+                result.ravel(), dtype=dtype)
+        except Exception:
+            pass
+
+        return result
+
     def formatting_values(self):
         # Deprecating the ability to override _formatting_values.
         # Do the warning here, it's only user in pandas, since we
@@ -1767,7 +1797,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                 "'ExtensionArray._formatting_values' is deprecated. "
                 "Specify 'ExtensionArray._formatter' instead."
             )
-            warnings.warn(msg, DeprecationWarning, stacklevel=10)
+            warnings.warn(msg, FutureWarning, stacklevel=10)
             return self.values._formatting_values()
 
         return self.values
@@ -2223,7 +2253,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """ copy constructor """
         values = self.values
         if deep:
-            values = values.copy(deep=True)
+            values = values.copy()
         return self.make_block_same_class(values)
 
     def get_values(self, dtype=None):
@@ -2901,7 +2931,7 @@ class CategoricalBlock(ExtensionBlock):
         # Categorical.get_values returns a DatetimeIndex for datetime
         # categories, so we can't simply use `np.asarray(self.values)` like
         # other types.
-        return self.values.get_values()
+        return self.values._internal_get_values()
 
     def to_native_types(self, slicer=None, na_rep='', quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
@@ -3029,7 +3059,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
     if fastpath is not None:
         # GH#19265 pyarrow is passing this
         warnings.warn("fastpath argument is deprecated, will be removed "
-                      "in a future release.", DeprecationWarning)
+                      "in a future release.", FutureWarning)
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
@@ -3202,7 +3232,7 @@ def _putmask_smart(v, m, n):
     dtype, _ = maybe_promote(n.dtype)
 
     if is_extension_type(v.dtype) and is_object_dtype(dtype):
-        v = v.get_values(dtype)
+        v = v._internal_get_values(dtype)
     else:
         v = v.astype(dtype)
 

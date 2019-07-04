@@ -78,8 +78,11 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     """
     msgpack (serialize) object to input file path
 
-    THIS IS AN EXPERIMENTAL LIBRARY and the storage format
-    may not be stable until a future release.
+    .. deprecated:: 0.25.0
+
+    to_msgpack is deprecated and will be removed in a future version.
+    It is recommended to use pyarrow for on-the-wire transmission of
+    pandas objects.
 
     Parameters
     ----------
@@ -92,6 +95,12 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     compress : type of compressor (zlib or blosc), default to None (no
                compression)
     """
+    warnings.warn("to_msgpack is deprecated and will be removed in a "
+                  "future version.\n"
+                  "It is recommended to use pyarrow for on-the-wire "
+                  "transmission of pandas objects.",
+                  FutureWarning, stacklevel=3)
+
     global compressor
     compressor = kwargs.pop('compress', None)
     append = kwargs.pop('append', None)
@@ -121,8 +130,11 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
     Load msgpack pandas object from the specified
     file path
 
-    THIS IS AN EXPERIMENTAL LIBRARY and the storage format
-    may not be stable until a future release.
+    .. deprecated:: 0.25.0
+
+    read_msgpack is deprecated and will be removed in a future version.
+    It is recommended to use pyarrow for on-the-wire transmission of
+    pandas objects.
 
     Parameters
     ----------
@@ -134,7 +146,18 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
     Returns
     -------
     obj : same type as object stored in file
+
+    Notes
+    -----
+    read_msgpack is only guaranteed to be backwards compatible to pandas
+    0.20.3.
     """
+    warnings.warn("The read_msgpack is deprecated and will be removed in a "
+                  "future version.\n"
+                  "It is recommended to use pyarrow for on-the-wire "
+                  "transmission of pandas objects.",
+                  FutureWarning, stacklevel=3)
+
     path_or_buf, _, _, should_close = get_filepath_or_buffer(path_or_buf)
     if iterator:
         return Iterator(path_or_buf)
@@ -518,16 +541,16 @@ def encode(obj):
             return {'typ': 'np_scalar',
                     'sub_typ': 'np_complex',
                     'dtype': obj.dtype.name,
-                    'real': obj.real.__repr__(),
-                    'imag': obj.imag.__repr__()}
+                    'real': np.real(obj).__repr__(),
+                    'imag': np.imag(obj).__repr__()}
         else:
             return {'typ': 'np_scalar',
                     'dtype': obj.dtype.name,
                     'data': obj.__repr__()}
     elif isinstance(obj, complex):
         return {'typ': 'np_complex',
-                'real': obj.real.__repr__(),
-                'imag': obj.imag.__repr__()}
+                'real': np.real(obj).__repr__(),
+                'imag': np.imag(obj).__repr__()}
 
     return obj
 

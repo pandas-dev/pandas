@@ -79,6 +79,7 @@ Methods
 from_arrays
 from_tuples
 from_breaks
+contains
 overlaps
 set_closed
 to_tuples
@@ -680,21 +681,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._simple_new(
             left, right, closed=closed, verify_integrity=False)
 
-    def copy(self, deep=False):
+    def copy(self):
         """
         Return a copy of the array.
-
-        Parameters
-        ----------
-        deep : bool, default False
-            Also copy the underlying data backing this array.
 
         Returns
         -------
         IntervalArray
         """
-        left = self.left.copy(deep=True) if deep else self.left
-        right = self.right.copy(deep=True) if deep else self.right
+        left = self.left.copy(deep=True)
+        right = self.right.copy(deep=True)
         closed = self.closed
         # TODO: Could skip verify_integrity here.
         return type(self).from_arrays(left, right, closed=closed)
@@ -1021,6 +1017,52 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         left_repeat = self.left.repeat(repeats)
         right_repeat = self.right.repeat(repeats)
         return self._shallow_copy(left=left_repeat, right=right_repeat)
+
+    _interval_shared_docs['contains'] = """
+        Check elementwise if the Intervals contain the value.
+
+        Return a boolean mask whether the value is contained in the Intervals
+        of the %(klass)s.
+
+        .. versionadded:: 0.25.0
+
+        Parameters
+        ----------
+        other : scalar
+            The value to check whether it is contained in the Intervals.
+
+        Returns
+        -------
+        boolean array
+
+        See Also
+        --------
+        Interval.contains : Check whether Interval object contains value.
+        %(klass)s.overlaps : Check if an Interval overlaps the values in the
+            %(klass)s.
+
+        Examples
+        --------
+        >>> intervals = pd.%(qualname)s.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals
+        %(klass)s([(0, 1], (1, 3], (2, 4]],
+              closed='right',
+              dtype='interval[int64]')
+        >>> intervals.contains(0.5)
+        array([ True, False, False])
+    """
+
+    @Appender(_interval_shared_docs['contains'] % _shared_docs_kwargs)
+    def contains(self, other):
+        if isinstance(other, Interval):
+            raise NotImplementedError(
+                'contains not implemented for two intervals'
+            )
+
+        return (
+            (self.left < other if self.open_left else self.left <= other) &
+            (other < self.right if self.open_right else other <= self.right)
+        )
 
     _interval_shared_docs['overlaps'] = """
         Check elementwise if an Interval overlaps the values in the %(klass)s.

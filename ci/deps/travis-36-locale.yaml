@@ -8,24 +8,23 @@ dependencies:
   - python-blosc
   - cython>=0.28.2
   - fastparquet=0.2.1
-  - gcsfs=0.1.0
+  - gcsfs=0.2.2
   - html5lib
   - ipython
   - jinja2
-  - lxml=3.7.0
-  - matplotlib=3.0.0
+  - lxml=3.8.0
+  - matplotlib=3.0.*
+  - moto
   - nomkl
   - numexpr
   - numpy
   - openpyxl
   - pandas-gbq=0.8.0
   - psycopg2=2.6.2
-  - pymysql=0.7.9
+  - pymysql=0.7.11
   - pytables
   - python-dateutil
-  # cannot go past python=3.6.6 for matplotlib=3.0.0 due to
-  # https://github.com/matplotlib/matplotlib/issues/12626
-  - python=3.6.6
+  - python=3.6.*
   - pytz
   - s3fs=0.0.8
   - scipy
@@ -38,7 +37,6 @@ dependencies:
   - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
-  - moto
   - pip
   - pip:
     - hypothesis>=3.58.0

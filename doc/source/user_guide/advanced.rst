@@ -3,7 +3,7 @@
 {{ header }}
 
 ******************************
-MultiIndex / Advanced Indexing
+MultiIndex / advanced indexing
 ******************************
 
 This section covers :ref:`indexing with a MultiIndex <advanced.hierarchical>`
@@ -179,7 +179,7 @@ on a deeper level.
 
 .. _advanced.shown_levels:
 
-Defined Levels
+Defined levels
 ~~~~~~~~~~~~~~
 
 The :class:`MultiIndex` keeps all the defined levels of an index, even
@@ -642,7 +642,7 @@ And now selection works as expected.
 
    dfm.loc[(0, 'y'):(1, 'z')]
 
-Take Methods
+Take methods
 ------------
 
 .. _advanced.take:
@@ -712,7 +712,7 @@ faster than fancy indexing.
 
 .. _indexing.index_types:
 
-Index Types
+Index types
 -----------
 
 We have discussed ``MultiIndex`` in the previous sections pretty extensively.
@@ -965,7 +965,8 @@ If you select a label *contained* within an interval, this will also select the 
    df.loc[2.5]
    df.loc[[2.5, 3.5]]
 
-``Interval`` and ``IntervalIndex`` are used by ``cut`` and ``qcut``:
+:func:`cut` and :func:`qcut` both return a ``Categorical`` object, and the bins they
+create are stored as an ``IntervalIndex`` in its ``.categories`` attribute.
 
 .. ipython:: python
 
@@ -973,15 +974,19 @@ If you select a label *contained* within an interval, this will also select the 
    c
    c.categories
 
-Furthermore, ``IntervalIndex`` allows one to bin *other* data with these same
-bins, with ``NaN`` representing a missing value similar to other dtypes.
+:func:`cut` also accepts an ``IntervalIndex`` for its ``bins`` argument, which enables
+a useful pandas idiom. First, We call :func:`cut` with some data and ``bins`` set to a
+fixed number, to generate the bins. Then, we pass the values of ``.categories`` as the
+``bins`` argument in subsequent calls to :func:`cut`, supplying new data which will be
+binned into the same bins.
 
 .. ipython:: python
 
    pd.cut([0, 3, 5, 1], bins=c.categories)
 
+Any value which falls outside all bins will be assigned a ``NaN`` value.
 
-Generating Ranges of Intervals
+Generating ranges of intervals
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If we need intervals on a regular frequency, we can use the :func:`interval_range` function
@@ -1108,6 +1113,8 @@ the :meth:`~Index.is_unique` attribute.
    weakly_monotonic.is_monotonic_increasing
    weakly_monotonic.is_monotonic_increasing & weakly_monotonic.is_unique
 
+.. _advanced.endpoints_are_inclusive:
+
 Endpoints are inclusive
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1137,7 +1144,7 @@ index can be somewhat complicated. For example, the following does not work:
     s.loc['c':'e' + 1]
 
 A very common use case is to limit a time series to start and end at two
-specific dates. To enable this, we made the design to make label-based
+specific dates. To enable this, we made the design choice to make label-based
 slicing include both endpoints:
 
 .. ipython:: python

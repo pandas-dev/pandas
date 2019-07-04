@@ -1439,9 +1439,12 @@ class TestIndex(Base):
             index.get_indexer(['a', 'b', 'c', 'd'], method='pad',
                               tolerance=[2, 2, 2, 2])
 
-    def test_get_indexer_numeric_index_boolean_target(self):
+    @pytest.mark.parametrize("idx_class", [Int64Index, RangeIndex,
+                                           Float64Index])
+    def test_get_indexer_numeric_index_boolean_target(self, idx_class):
         # GH 16877
-        numeric_index = pd.Index(range(4))
+
+        numeric_index = idx_class(RangeIndex((4)))
         result = numeric_index.get_indexer([True, False, True])
         expected = np.array([-1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -2155,6 +2158,11 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
         with tm.assert_produces_warning(None):
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('idx.', 4))
+
+    def test_deprecated_contains(self):
+        for index in self.indices.values():
+            with tm.assert_produces_warning(FutureWarning):
+                index.contains(1)
 
 
 class TestMixedIntIndex(Base):

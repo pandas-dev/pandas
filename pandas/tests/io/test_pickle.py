@@ -11,7 +11,6 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
 import bz2
-from distutils.version import LooseVersion
 import glob
 import gzip
 import lzma
@@ -69,18 +68,8 @@ def compare(data, vf, version):
 
     m = globals()
     for typ, dv in data.items():
-        if typ == "panel":
-            # FIXME: kludge; get this key out of the legacy file
-            continue
-
         for dt, result in dv.items():
-            try:
-                expected = data[typ][dt]
-            except (KeyError):
-                if version in ('0.10.1', '0.11.0') and dt == 'reg':
-                    break
-                else:
-                    raise
+            expected = data[typ][dt]
 
             # use a specific comparator
             # if available
@@ -92,12 +81,7 @@ def compare(data, vf, version):
 
 
 def compare_sp_series_ts(res, exp, typ, version):
-    # SparseTimeSeries integrated into SparseSeries in 0.12.0
-    # and deprecated in 0.17.0
-    if version and LooseVersion(version) <= LooseVersion("0.12.0"):
-        tm.assert_sp_series_equal(res, exp, check_series_type=False)
-    else:
-        tm.assert_sp_series_equal(res, exp)
+    tm.assert_sp_series_equal(res, exp)
 
 
 def compare_series_ts(result, expected, typ, version):
@@ -121,47 +105,19 @@ def compare_series_ts(result, expected, typ, version):
 
 
 def compare_series_dt_tz(result, expected, typ, version):
-    # 8260
-    # dtype is object < 0.17.0
-    if LooseVersion(version) < LooseVersion('0.17.0'):
-        expected = expected.astype(object)
-        tm.assert_series_equal(result, expected)
-    else:
-        tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def compare_series_cat(result, expected, typ, version):
-    # Categorical dtype is added in 0.15.0
-    # ordered is changed in 0.16.0
-    if LooseVersion(version) < LooseVersion('0.15.0'):
-        tm.assert_series_equal(result, expected, check_dtype=False,
-                               check_categorical=False)
-    elif LooseVersion(version) < LooseVersion('0.16.0'):
-        tm.assert_series_equal(result, expected, check_categorical=False)
-    else:
-        tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def compare_frame_dt_mixed_tzs(result, expected, typ, version):
-    # 8260
-    # dtype is object < 0.17.0
-    if LooseVersion(version) < LooseVersion('0.17.0'):
-        expected = expected.astype(object)
-        tm.assert_frame_equal(result, expected)
-    else:
-        tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def compare_frame_cat_onecol(result, expected, typ, version):
-    # Categorical dtype is added in 0.15.0
-    # ordered is changed in 0.16.0
-    if LooseVersion(version) < LooseVersion('0.15.0'):
-        tm.assert_frame_equal(result, expected, check_dtype=False,
-                              check_categorical=False)
-    elif LooseVersion(version) < LooseVersion('0.16.0'):
-        tm.assert_frame_equal(result, expected, check_categorical=False)
-    else:
-        tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def compare_frame_cat_and_float(result, expected, typ, version):
@@ -177,11 +133,7 @@ def compare_index_period(result, expected, typ, version):
 
 
 def compare_sp_frame_float(result, expected, typ, version):
-    if LooseVersion(version) <= LooseVersion('0.18.1'):
-        tm.assert_sp_frame_equal(result, expected, exact_indices=False,
-                                 check_dtype=False)
-    else:
-        tm.assert_sp_frame_equal(result, expected)
+    tm.assert_sp_frame_equal(result, expected)
 
 
 files = glob.glob(os.path.join(os.path.dirname(__file__), "data",

@@ -57,13 +57,6 @@ _index_doc_kwargs = dict(klass='Index', inplace='',
 _index_shared_docs = dict()
 
 
-def _try_get_item(x):
-    try:
-        return x.item()
-    except AttributeError:
-        return x
-
-
 def _make_comparison_op(op, cls):
     def cmp_method(self, other):
         if isinstance(other, (np.ndarray, Index, ABCSeries)):
@@ -686,11 +679,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data.dtype
 
-    @cache_readonly
+    @property
     def dtype_str(self):
         """
         Return the dtype str of the underlying data.
+
+        .. deprecated:: 0.25.0
         """
+        warnings.warn('`dtype_str` has been deprecated. Call `str` on the '
+                      'dtype attribute instead.', FutureWarning,
+                      stacklevel=2)
         return str(self.dtype)
 
     def ravel(self, order='C'):
@@ -2726,16 +2724,10 @@ class Index(IndexOpsMixin, PandasObject):
             * backfill / bfill: use NEXT index value if no exact match
             * nearest: use the NEAREST index value if no exact match. Tied
               distances are broken by preferring the larger index value.
-        tolerance : optional
+        tolerance : int or float, optional
             Maximum distance from index value for inexact matches. The value of
             the index at the matching location most satisfy the equation
             ``abs(index[loc] - key) <= tolerance``.
-
-            Tolerance may be a scalar
-            value, which applies the same tolerance to all values, or
-            list-like, which applies variable tolerance per element. List-like
-            includes list, tuple, array, Series, and must be the same size as
-            the index and its dtype must exactly match the index's type.
 
             .. versionadded:: 0.21.0 (list-like tolerance)
 
@@ -3772,6 +3764,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return `Index` data as an `numpy.ndarray`.
 
+        .. deprecated:: 0.25.0
+            Use :meth:`Index.to_numpy` or :attr:`Index.array` instead.
+
         Returns
         -------
         numpy.ndarray
@@ -3810,6 +3805,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> midx.get_values().ndim
         1
         """
+        warnings.warn(
+            "The 'get_values' method is deprecated and will be removed in a "
+            "future version. Use '.to_numpy()' or '.array' instead.",
+            FutureWarning, stacklevel=2)
+        return self._internal_get_values()
+
+    def _internal_get_values(self):
         return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
@@ -4017,13 +4019,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx
         Int64Index([1, 2, 3, 4], dtype='int64')
 
-        >>> idx.contains(2)
-        True
-        >>> idx.contains(6)
-        False
-
-        This is equivalent to:
-
         >>> 2 in idx
         True
         >>> 6 in idx
@@ -4038,8 +4033,21 @@ class Index(IndexOpsMixin, PandasObject):
         except (OverflowError, TypeError, ValueError):
             return False
 
-    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
+        """
+        Return a boolean indicating whether the provided key is in the index.
+
+        .. deprecated:: 0.25.0
+            Use ``key in index`` instead of ``index.contains(key)``.
+
+        Returns
+        -------
+        bool
+        """
+        warnings.warn(
+            "The 'contains' method is deprecated and will be removed in a "
+            "future version. Use 'key in index' instead of "
+            "'index.contains(key)'", FutureWarning, stacklevel=2)
         return key in self
 
     def __hash__(self):
@@ -4170,7 +4178,8 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         bool
-            If two Index objects have equal elements True, otherwise False.
+            True if "other" is an Index and it has the same elements as calling
+            index; False otherwise.
         """
         if self.is_(other):
             return True
