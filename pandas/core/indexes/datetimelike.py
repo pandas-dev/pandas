@@ -43,6 +43,7 @@ from pandas.core.indexes.extension import (
 )
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
+from pandas.core.sorting import ensure_key_mapped
 from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.tseries.frequencies import DateOffset, to_offset
@@ -164,12 +165,16 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
         )
 
-    def sort_values(self, return_indexer=False, ascending=True):
+    def sort_values(self, return_indexer=False, ascending=True, key=None):
         """
         Return sorted copy of Index.
         """
+        assert isinstance(self, Index)
+
+        idx = ensure_key_mapped(self, key)
+
         if return_indexer:
-            _as = self.argsort()
+            _as = idx.argsort()
             if not ascending:
                 _as = _as[::-1]
             sorted_index = self.take(_as)
@@ -178,7 +183,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # NB: using asi8 instead of _ndarray_values matters in numpy 1.18
             #  because the treatment of NaT has been changed to put NaT last
             #  instead of first.
-            sorted_values = np.sort(self.asi8)
+            sorted_values = np.sort(idx.asi8)
 
             freq = self.freq
             if freq is not None and not is_period_dtype(self):

@@ -181,3 +181,77 @@ class TestSeriesSortValues:
 
         tm.assert_series_equal(result_ser, expected)
         tm.assert_series_equal(ser, Series(original_list))
+
+
+class TestSeriesSortingKey:
+    def test_sort_values_key(self):
+        series = Series(np.array(["Hello", "goodbye"]))
+
+        result = series.sort_values(0)
+        expected = series
+        tm.assert_series_equal(result, expected)
+
+        # TODO: let key=Series.str.upper work
+        result = series.sort_values(0, key=lambda x: x.str.lower())
+        expected = series[::-1]
+        tm.assert_series_equal(result, expected)
+
+    def test_sort_values_key_nan(self):
+        series = Series(np.array([0, 5, np.nan, 3, 2, np.nan]))
+
+        result = series.sort_values(0)
+        expected = series.iloc[[0, 4, 3, 1, 2, 5]]
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_values(0, key=lambda x: x + 5)
+        expected = series.iloc[[0, 4, 3, 1, 2, 5]]
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_values(0, key=lambda x: -x, ascending=False)
+        expected = series.iloc[[0, 4, 3, 1, 2, 5]]
+        tm.assert_series_equal(result, expected)
+
+    def test_sort_index_kind_key(self, sort_by_key):
+        # GH #14444 & #13589:  Add support for sort algo choosing
+        series = Series(index=[3, 2, 1, 4, 3], dtype=object)
+        expected_series = Series(index=[1, 2, 3, 3, 4], dtype=object)
+
+        index_sorted_series = series.sort_index(kind="mergesort", key=sort_by_key)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+        index_sorted_series = series.sort_index(kind="quicksort", key=sort_by_key)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+        index_sorted_series = series.sort_index(kind="heapsort", key=sort_by_key)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+    def test_sort_index_kind_neg_key(self):
+        # GH #14444 & #13589:  Add support for sort algo choosing
+        series = Series(index=[3, 2, 1, 4, 3], dtype=object)
+        expected_series = Series(index=[4, 3, 3, 2, 1], dtype=object)
+
+        index_sorted_series = series.sort_index(kind="mergesort", key=lambda x: -x)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+        index_sorted_series = series.sort_index(kind="quicksort", key=lambda x: -x)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+        index_sorted_series = series.sort_index(kind="heapsort", key=lambda x: -x)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+    def test_sort_index_na_position_key(self, sort_by_key):
+        series = Series(index=[3, 2, 1, 4, 3, np.nan], dtype=object)
+        expected_series_first = Series(index=[np.nan, 1, 2, 3, 3, 4], dtype=object)
+
+        index_sorted_series = series.sort_index(na_position="first", key=sort_by_key)
+        tm.assert_series_equal(expected_series_first, index_sorted_series)
+
+        expected_series_last = Series(index=[1, 2, 3, 3, 4, np.nan], dtype=object)
+
+        index_sorted_series = series.sort_index(na_position="last", key=sort_by_key)
+        tm.assert_series_equal(expected_series_last, index_sorted_series)
+
+    def test_changes_length_raises(self):
+        s = Series([1, 2, 3])
+        with pytest.raises(ValueError, match="change the shape"):
+            s.sort_values(key=lambda x: x[:1])

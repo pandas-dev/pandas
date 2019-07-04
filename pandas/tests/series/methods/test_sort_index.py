@@ -166,3 +166,49 @@ class TestSeriesSortIndex:
 
         tm.assert_series_equal(result_ser, expected)
         tm.assert_series_equal(ser, Series(original_list))
+
+
+class TestSeriesSortIndexKey:
+    def test_sort_index_multiindex_key(self):
+        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
+        s = Series([1, 2], mi)
+        backwards = s.iloc[[1, 0]]
+
+        result = s.sort_index(key=lambda x: x.get_level_values(2))
+        tm.assert_series_equal(backwards, result)
+
+        result = s.sort_index(key=lambda x: x.get_level_values(1))  # nothing happens
+        tm.assert_series_equal(s, result)
+
+    def test_sort_index_key(self):
+        series = Series(np.arange(6, dtype="int64"), index=list("aaBBca"))
+
+        result = series.sort_index()
+        expected = series.iloc[[2, 3, 0, 1, 5, 4]]
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_index(key=lambda x: x.str.lower())
+        expected = series.iloc[[0, 1, 5, 2, 3, 4]]
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_index(key=lambda x: x.str.lower(), ascending=False)
+        expected = series.iloc[[4, 2, 3, 0, 1, 5]]
+        tm.assert_series_equal(result, expected)
+
+    def test_sort_index_key_int(self):
+        series = Series(np.arange(6, dtype="int64"), index=np.arange(6, dtype="int64"))
+
+        result = series.sort_index()
+        tm.assert_series_equal(result, series)
+
+        result = series.sort_index(key=lambda x: -x)
+        expected = series.sort_index(ascending=False)
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_index(key=lambda x: 2 * x)
+        tm.assert_series_equal(result, series)
+
+    def test_changes_length_raises(self):
+        s = Series([1, 2, 3])
+        with pytest.raises(ValueError, match="change the shape"):
+            s.sort_index(key=lambda x: x[:1])

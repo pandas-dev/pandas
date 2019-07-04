@@ -910,6 +910,15 @@ def index_or_series(request):
     return request.param
 
 
+@pytest.fixture(params=[None, lambda x: x])
+def sort_by_key(request):
+    """
+    Simple fixture for testing keys in sorting methods.
+    Tests None (no key) and the identity key.
+    """
+    return request.param
+
+
 @pytest.fixture
 def dict_subclass():
     """

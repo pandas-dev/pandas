@@ -1943,6 +1943,9 @@ def forbid_nonstring_types(forbidden, name=None):
 
         @wraps(func)
         def wrapper(self, *args, **kwargs):
+            # TODO: support passing Series / Index here.
+            # if not isinstance(self, StringMethods):
+            #     self = StringMethods(self)
             if self._inferred_dtype not in allowed_types:
                 msg = (
                     f"Cannot use .str.{func_name} with values of "

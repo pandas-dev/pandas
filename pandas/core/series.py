@@ -23,7 +23,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex, lib, properties, reshape, tslibs
-from pandas._typing import Label
+from pandas._typing import IndexKeyFunc, Label, ValueKeyFunc
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -89,6 +89,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
+from pandas.core.sorting import ensure_key_mapped
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
@@ -2790,7 +2791,7 @@ Name: Max Speed, dtype: float64
     # ----------------------------------------------------------------------
     # Reindexing, sorting
 
-    def sort_values(
+    def sort_values(  # type: ignore[override] # NOQA
         self,
         axis=0,
         ascending=True,
@@ -2798,6 +2799,7 @@ Name: Max Speed, dtype: float64
         kind: str = "quicksort",
         na_position: str = "last",
         ignore_index: bool = False,
+        key: ValueKeyFunc = None,
     ):
         """
         Sort by the values.
@@ -2821,9 +2823,19 @@ Name: Max Speed, dtype: float64
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
         ignore_index : bool, default False
-             If True, the resulting axis will be labeled 0, 1, …, n - 1.
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
 
-             .. versionadded:: 1.0.0
+            .. versionadded:: 1.0.0
+
+        key : callable, optional
+            If not None, apply the key function to the **no-missing** values
+            before sorting. This is similar to the `key` argument in the
+            builtin :meth:`sorted` function, with the notable difference that
+            this `key` function should be *vectorized*. It should expect a
+            ``Series`` or ``Index`` and return an array-like that implements
+            ``argsort``.
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -2906,6 +2918,48 @@ Name: Max Speed, dtype: float64
         2    d
         0    z
         dtype: object
+
+        Sort using a key function. Your `key` function will be
+        given the ``Series`` of values and should return an array-like.
+
+        >>> s = pd.Series(['a', 'B', 'c', 'D', 'e'])
+        >>> s.sort_values()
+        1    B
+        3    D
+        0    a
+        2    c
+        4    e
+        dtype: object
+        >>> s.sort_values(key=lambda x: x.str.lower())
+        0    a
+        1    B
+        2    c
+        3    D
+        4    e
+        dtype: object
+
+        NumPy ufuncs work well here. For example, we can
+        sort by the ``sin`` of the value
+
+        >>> s = pd.Series([-4, -2, 0, 2, 4])
+        >>> s.sort_values(key=np.sin)
+        1   -2
+        4    4
+        2    0
+        0   -4
+        3    2
+        dtype: int64
+
+        More complicated user-defined functions can be used,
+        as long as they expect a Series and return an array-like
+
+        >>> s.sort_values(key=lambda x: (np.tan(x.cumsum())))
+        0   -4
+        3    2
+        4    4
+        1   -2
+        2    0
+        dtype: int64
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         # Validate the axis parameter
@@ -2919,6 +2973,9 @@ Name: Max Speed, dtype: float64
             )
 
         def _try_kind_sort(arr):
+            arr = ensure_key_mapped(arr, key)
+            arr = getattr(arr, "_values", arr)
+
             # easier to ask forgiveness than permission
             try:
                 # if kind==mergesort, it can fail for object dtype
@@ -2936,7 +2993,7 @@ Name: Max Speed, dtype: float64
         good = ~bad
         idx = ibase.default_index(len(self))
 
-        argsorted = _try_kind_sort(arr[good])
+        argsorted = _try_kind_sort(self[good])
 
         if is_list_like(ascending):
             if len(ascending) != 1:
@@ -2982,6 +3039,7 @@ Name: Max Speed, dtype: float64
         na_position="last",
         sort_remaining=True,
         ignore_index: bool = False,
+        key: IndexKeyFunc = None,
     ):
         """
         Sort Series by index labels.
@@ -3012,6 +3070,15 @@ Name: Max Speed, dtype: float64
             levels too (in order) after sorting by specified level.
         ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.0.0
+
+        key : callable, optional
+            If not None, apply the key function to the **non-missing** values
+            before sorting. This is similar to the `key` argument in the
+            builtin :meth:`sorted` function, with the notable difference that
+            this `key` function should be *vectorized*. It should expect an
+            ``Index`` and return an ``Index`` of the same shape.
 
             .. versionadded:: 1.0.0
 
@@ -3096,22 +3163,38 @@ Name: Max Speed, dtype: float64
         baz  two    5
         bar  two    7
         dtype: int64
+
+        >>> s = pd.Series([1, 2, 3, 4, 5, 6, 7, 8])
+        >>> s.sort_index(key=lambda x : -x)
+        7    8
+        6    7
+        5    6
+        4    5
+        3    4
+        2    3
+        1    2
+        0    1
+        dtype: int64
         """
+
         # TODO: this can be combined with DataFrame.sort_index impl as
         # almost identical
         inplace = validate_bool_kwarg(inplace, "inplace")
         # Validate the axis parameter
         self._get_axis_number(axis)
-        index = self.index
+        # TODO: should ensure_key_mapped convert to an array?
+        index = ensure_key_mapped(self.index, key)
 
         if level is not None:
             new_index, indexer = index.sortlevel(
                 level, ascending=ascending, sort_remaining=sort_remaining
             )
+
         elif isinstance(index, MultiIndex):
             from pandas.core.sorting import lexsort_indexer
 
             labels = index._sort_levels_monotonic()
+
             indexer = lexsort_indexer(
                 labels._get_codes_for_sorting(),
                 orders=ascending,
@@ -3135,7 +3218,7 @@ Name: Max Speed, dtype: float64
             )
 
         indexer = ensure_platform_int(indexer)
-        new_index = index.take(indexer)
+        new_index = self.index.take(indexer)
         new_index = new_index._sort_levels_monotonic()
 
         new_values = self._values.take(indexer)

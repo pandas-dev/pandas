@@ -209,6 +209,33 @@ method on a :func:`pandas.api.indexers.BaseIndexer` subclass that will generate 
 indices used for each window during the rolling aggregation. For more details and example usage, see
 the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
 
+.. _whatsnew_100.sorting_keys:
+
+Sorting with keys
+^^^^^^^^^^^^^^^^^
+
+We've added a ``key`` argument to the DataFrame and Series sorting methods, including
+:meth:`DataFrame.sort_values`, :meth:`DataFrame.sort_index`, :meth:`Series.sort_values`,
+and :meth:`Series.sort_index`. The ``key`` can be any callable function which is applied
+to the each column of a DataFrame before sorting is performed.
+
+.. ipython:: python
+
+   s = pd.Series(['C', 'a', 'B'])
+   s.sort_values()
+   s
+
+
+Note how this is sorted with capital letters first. Now if we apply the `col.str.lower()` method, we get
+
+.. ipython:: python
+
+   s.sort_values(key=lambda x: x.str.lower())
+   s
+
+For more details, see examples and documentation in :meth:`DataFrame.sort_values`,
+:meth:`Series.sort_values`, and :meth:`~DataFrame.sort_index` (:issue:`27237`)
+
 .. _whatsnew_100.to_markdown:
 
 Converting to Markdown
@@ -259,6 +286,7 @@ Other enhancements
 - Added an experimental :attr:`~DataFrame.attrs` for storing global metadata about a dataset (:issue:`29062`)
 - :meth:`Timestamp.fromisocalendar` is now compatible with python 3.8 and above (:issue:`28115`)
 - :meth:`DataFrame.to_pickle` and :func:`read_pickle` now accept URL (:issue:`30163`)
+
 
 
 Build Changes

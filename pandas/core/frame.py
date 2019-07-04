@@ -20,6 +20,7 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
+    Callable,
     Dict,
     FrozenSet,
     Hashable,
@@ -41,7 +42,17 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib, properties
-from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Label, Level, Renamer
+from pandas._typing import (
+    Axes,
+    Axis,
+    Dtype,
+    FilePathOrBuffer,
+    IndexKeyFunc,
+    Label,
+    Level,
+    Renamer,
+    ValueKeyFunc,
+)
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -126,6 +137,7 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.ops.missing import dispatch_fill_zeros
 from pandas.core.series import Series
+from pandas.core.sorting import ensure_key_mapped
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
@@ -4919,10 +4931,10 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Sorting
-
+    # TODO: Just move the sort_values doc here.
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
-    def sort_values(
+    def sort_values(  # type: ignore[override] # NOQA
         self,
         by,
         axis=0,
@@ -4931,6 +4943,7 @@ class DataFrame(NDFrame):
         kind="quicksort",
         na_position="last",
         ignore_index=False,
+        key: ValueKeyFunc = None,
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
@@ -4941,23 +4954,26 @@ class DataFrame(NDFrame):
             raise ValueError(
                 f"Length of ascending ({len(ascending)}) != length of by ({len(by)})"
             )
+        raw = key is None
         if len(by) > 1:
             from pandas.core.sorting import lexsort_indexer
 
-            keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
-            indexer = lexsort_indexer(keys, orders=ascending, na_position=na_position)
+            keys = [self._get_label_or_level_values(x, axis=axis, raw=raw) for x in by]
+            indexer = lexsort_indexer(
+                keys, orders=ascending, na_position=na_position, key=key
+            )
             indexer = ensure_platform_int(indexer)
         else:
             from pandas.core.sorting import nargsort
 
             by = by[0]
-            k = self._get_label_or_level_values(by, axis=axis)
+            k = self._get_label_or_level_values(by, axis=axis, raw=raw)
 
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]
 
             indexer = nargsort(
-                k, kind=kind, ascending=ascending, na_position=na_position
+                k, kind=kind, ascending=ascending, na_position=na_position, key=key
             )
 
         new_data = self._data.take(
@@ -4982,6 +4998,7 @@ class DataFrame(NDFrame):
         na_position: str = "last",
         sort_remaining: bool = True,
         ignore_index: bool = False,
+        key: IndexKeyFunc = None,
     ):
         """
         Sort object by labels (along an axis).
@@ -5013,6 +5030,15 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 1.0.0
 
+        key : callable, optional
+            If not None, apply the key function to the **non-missing** values
+            before sorting. This is similar to the `key` argument in the
+            builtin :meth:`sorted` function, with the notable difference that
+            this `key` function should be *vectorized*. It should expect an
+            ``Index`` and return an ``Index`` of the same shape.
+
+            .. versionadded:: 1.0.0
+
         Returns
         -------
         sorted_obj : DataFrame or None
@@ -5026,12 +5052,12 @@ class DataFrame(NDFrame):
 
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
+        labels = ensure_key_mapped(labels, key)
 
         # make sure that the axis is lexsorted to start
         # if not we need to reconstruct to get the correct indexer
         labels = labels._sort_levels_monotonic()
         if level is not None:
-
             new_axis, indexer = labels.sortlevel(
                 level, ascending=ascending, sort_remaining=sort_remaining
             )
