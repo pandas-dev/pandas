@@ -258,9 +258,7 @@ class Block(PandasObject):
         """ Wrap given values in a block of same type as self. """
         if placement is None:
             placement = self.mgr_locs
-        return make_block(
-            values, placement=placement, ndim=ndim, klass=self.__class__
-        )
+        return make_block(values, placement=placement, ndim=ndim, klass=self.__class__)
 
     def __repr__(self):
         # don't want to print out all of the items here
