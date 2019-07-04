@@ -12,9 +12,11 @@ dependencies:
   - geopandas
   - html5lib
   - matplotlib
+  - moto
   - nomkl
   - numexpr
   - numpy=1.15.*
+  - odfpy
   - openpyxl
   - pandas-gbq
   # https://github.com/pydata/pandas-gbq/issues/271
@@ -46,6 +48,5 @@ dependencies:
   - pip:
     - brotlipy
     - coverage
-    - moto
     - pandas-datareader
     - python-dateutil

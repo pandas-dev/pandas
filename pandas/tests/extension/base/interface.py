@@ -11,6 +11,7 @@ from .base import BaseExtensionTests
 
 class BaseInterfaceTests(BaseExtensionTests):
     """Tests that the basic interface is satisfied."""
+
     # ------------------------------------------------------------------------
     # Interface
     # ------------------------------------------------------------------------
@@ -47,8 +48,8 @@ class BaseInterfaceTests(BaseExtensionTests):
     def test_no_values_attribute(self, data):
         # GH-20735: EA's with .values attribute give problems with internal
         # code, disallowing this for now until solved
-        assert not hasattr(data, 'values')
-        assert not hasattr(data, '_values')
+        assert not hasattr(data, "values")
+        assert not hasattr(data, "_values")
 
     def test_is_numeric_honored(self, data):
         result = pd.Series(data)
@@ -59,10 +60,18 @@ class BaseInterfaceTests(BaseExtensionTests):
         # _reduce. At the *very* least, you must implement any and all
         na = data_missing.isna()
         if is_extension_array_dtype(na):
-            assert na._reduce('any')
+            assert na._reduce("any")
             assert na.any()
 
-            assert not na._reduce('all')
+            assert not na._reduce("all")
             assert not na.all()
 
             assert na.dtype._is_boolean
+
+    def test_copy(self, data):
+        # GH#27083 removing deep keyword from EA.copy
+        assert data[0] != data[1]
+        result = data.copy()
+
+        data[1] = data[0]
+        assert result[1] != result[0]

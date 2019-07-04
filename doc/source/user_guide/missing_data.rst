@@ -74,7 +74,7 @@ Series and DataFrame objects:
 
       df2['one'] == np.nan
 
-Integer Dtypes and Missing Data
+Integer dtypes and missing data
 -------------------------------
 
 Because ``NaN`` is a float, a column of integers with even one missing values
@@ -105,7 +105,7 @@ pandas objects provide compatibility between ``NaT`` and ``NaN``.
    df2
    df2.loc[['a', 'c', 'h'], ['one', 'timestamp']] = np.nan
    df2
-   df2.get_dtype_counts()
+   df2.dtypes.value_counts()
 
 .. _missing.inserting:
 
@@ -175,7 +175,7 @@ account for missing data. For example:
 
 .. _missing_data.numeric_sum:
 
-Sum/Prod of Empties/Nans
+Sum/prod of empties/nans
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. warning::
@@ -458,7 +458,6 @@ You can mix pandas' ``reindex`` and ``interpolate`` methods to interpolate
 at the new values.
 
 .. ipython:: python
-   :okexcept:
 
    ser = pd.Series(np.sort(np.random.uniform(size=100)))
 
@@ -473,7 +472,7 @@ at the new values.
 
 .. _missing_data.interp_limits:
 
-Interpolation Limits
+Interpolation limits
 --------------------
 
 Like other pandas fill methods, :meth:`~DataFrame.interpolate` accepts a ``limit`` keyword
@@ -523,7 +522,7 @@ the ``limit_area`` parameter restricts filling to either inside or outside value
 
 .. _missing_data.replace:
 
-Replacing Generic Values
+Replacing generic values
 ~~~~~~~~~~~~~~~~~~~~~~~~
 Often times we want to replace arbitrary values with other values.
 
@@ -568,7 +567,7 @@ missing and interpolate over them:
 
 .. _missing_data.replace_expression:
 
-String/Regular Expression Replacement
+String/regular expression replacement
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. note::
@@ -664,7 +663,7 @@ want to use a regular expression.
    Anywhere in the above ``replace`` examples that you see a regular expression
    a compiled regular expression is valid as well.
 
-Numeric Replacement
+Numeric replacement
 ~~~~~~~~~~~~~~~~~~~
 
 :meth:`~DataFrame.replace` is similar to :meth:`~DataFrame.fillna`.

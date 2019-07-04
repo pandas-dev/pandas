@@ -12,7 +12,7 @@ v.0.5.0 (October 24, 2011)
    from pandas import * # noqa F401, F403
 
 
-New Features
+New features
 ~~~~~~~~~~~~
 
 - :ref:`Added <basics.df_join>` ``DataFrame.align`` method with standard join options
@@ -36,7 +36,7 @@ New Features
 - :ref:`Added <io.store_in_csv>` support for different delimiters in ``DataFrame.to_csv`` (:issue:`244`)
 - TODO: DOCS ABOUT TAKE METHODS
 
-Performance Enhancements
+Performance enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - VBENCH Major performance improvements in file parsing functions ``read_csv`` and ``read_table``
