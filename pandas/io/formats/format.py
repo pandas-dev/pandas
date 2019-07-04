@@ -6,7 +6,7 @@ and latex files. This module also applies to display formatting.
 from functools import partial
 from io import StringIO
 from shutil import get_terminal_size
-from typing import Any, Optional, Union
+from typing import Optional, Type, Union
 from unicodedata import east_asian_width
 
 import numpy as np
@@ -1017,7 +1017,7 @@ def format_array(
     """
 
     if is_datetime64_dtype(values.dtype):
-        fmt_klass = Datetime64Formatter  # type: Any
+        fmt_klass = Datetime64Formatter  # type: Type[GenericArrayFormatter]
     elif is_datetime64tz_dtype(values):
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
