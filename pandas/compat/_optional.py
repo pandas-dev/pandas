@@ -39,23 +39,18 @@ version_message = (
 
 
 def _get_version(module: types.ModuleType) -> str:
-    version = getattr(module, '__version__', None)
+    version = getattr(module, "__version__", None)
     if version is None:
         # xlrd uses a capitalized attribute name
-        version = getattr(module, '__VERSION__', None)
+        version = getattr(module, "__VERSION__", None)
 
     if version is None:
-        raise ImportError(
-            "Can't determine version for {}".format(module.__name__)
-        )
+        raise ImportError("Can't determine version for {}".format(module.__name__))
     return version
 
 
 def import_optional_dependency(
-    name: str,
-    extra: str = "",
-    raise_on_missing: bool = True,
-    on_version: str = "raise",
+    name: str, extra: str = "", raise_on_missing: bool = True, on_version: str = "raise"
 ):
     """
     Import an optional dependency.
@@ -105,9 +100,7 @@ def import_optional_dependency(
         if distutils.version.LooseVersion(version) < minimum_version:
             assert on_version in {"warn", "raise", "ignore"}
             msg = version_message.format(
-                minimum_version=minimum_version,
-                name=name,
-                actual_version=version,
+                minimum_version=minimum_version, name=name, actual_version=version
             )
             if on_version == "warn":
                 warnings.warn(msg, UserWarning)
