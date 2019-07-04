@@ -18,48 +18,52 @@ def writeable(request):
 # Check that take_nd works both with writeable arrays
 # (in which case fast typed memory-views implementation)
 # and read-only arrays alike.
-@pytest.fixture(params=[
-    (np.float64, True),
-    (np.float32, True),
-    (np.uint64, False),
-    (np.uint32, False),
-    (np.uint16, False),
-    (np.uint8, False),
-    (np.int64, False),
-    (np.int32, False),
-    (np.int16, False),
-    (np.int8, False),
-    (np.object_, True),
-    (np.bool, False),
-])
+@pytest.fixture(
+    params=[
+        (np.float64, True),
+        (np.float32, True),
+        (np.uint64, False),
+        (np.uint32, False),
+        (np.uint16, False),
+        (np.uint8, False),
+        (np.int64, False),
+        (np.int32, False),
+        (np.int16, False),
+        (np.int8, False),
+        (np.object_, True),
+        (np.bool, False),
+    ]
+)
 def dtype_can_hold_na(request):
     return request.param
 
 
-@pytest.fixture(params=[
-    (np.int8, np.int16(127), np.int8),
-    (np.int8, np.int16(128), np.int16),
-    (np.int32, 1, np.int32),
-    (np.int32, 2.0, np.float64),
-    (np.int32, 3.0 + 4.0j, np.complex128),
-    (np.int32, True, np.object_),
-    (np.int32, "", np.object_),
-    (np.float64, 1, np.float64),
-    (np.float64, 2.0, np.float64),
-    (np.float64, 3.0 + 4.0j, np.complex128),
-    (np.float64, True, np.object_),
-    (np.float64, "", np.object_),
-    (np.complex128, 1, np.complex128),
-    (np.complex128, 2.0, np.complex128),
-    (np.complex128, 3.0 + 4.0j, np.complex128),
-    (np.complex128, True, np.object_),
-    (np.complex128, "", np.object_),
-    (np.bool_, 1, np.object_),
-    (np.bool_, 2.0, np.object_),
-    (np.bool_, 3.0 + 4.0j, np.object_),
-    (np.bool_, True, np.bool_),
-    (np.bool_, '', np.object_),
-])
+@pytest.fixture(
+    params=[
+        (np.int8, np.int16(127), np.int8),
+        (np.int8, np.int16(128), np.int16),
+        (np.int32, 1, np.int32),
+        (np.int32, 2.0, np.float64),
+        (np.int32, 3.0 + 4.0j, np.complex128),
+        (np.int32, True, np.object_),
+        (np.int32, "", np.object_),
+        (np.float64, 1, np.float64),
+        (np.float64, 2.0, np.float64),
+        (np.float64, 3.0 + 4.0j, np.complex128),
+        (np.float64, True, np.object_),
+        (np.float64, "", np.object_),
+        (np.complex128, 1, np.complex128),
+        (np.complex128, 2.0, np.complex128),
+        (np.complex128, 3.0 + 4.0j, np.complex128),
+        (np.complex128, True, np.object_),
+        (np.complex128, "", np.object_),
+        (np.bool_, 1, np.object_),
+        (np.bool_, 2.0, np.object_),
+        (np.bool_, 3.0 + 4.0j, np.object_),
+        (np.bool_, True, np.bool_),
+        (np.bool_, "", np.object_),
+    ]
+)
 def dtype_fill_out_dtype(request):
     return request.param
 
@@ -102,15 +106,15 @@ class TestTake:
         indexer = [2, 1, 0, -1]
 
         result = algos.take_1d(data, indexer, fill_value=fill_value)
-        assert ((result[[0, 1, 2]] == data[[2, 1, 0]]).all())
-        assert (result[3] == fill_value)
-        assert (result.dtype == out_dtype)
+        assert (result[[0, 1, 2]] == data[[2, 1, 0]]).all()
+        assert result[3] == fill_value
+        assert result.dtype == out_dtype
 
         indexer = [2, 1, 0, 1]
 
         result = algos.take_1d(data, indexer, fill_value=fill_value)
-        assert ((result[[0, 1, 2, 3]] == data[indexer]).all())
-        assert (result.dtype == dtype)
+        assert (result[[0, 1, 2, 3]] == data[indexer]).all()
+        assert result.dtype == dtype
 
     def test_2d_with_out(self, dtype_can_hold_na, writeable):
         dtype, can_hold_na = dtype_can_hold_na
@@ -157,28 +161,24 @@ class TestTake:
         data = np.random.randint(0, 2, (5, 3)).astype(dtype)
         indexer = [2, 1, 0, -1]
 
-        result = algos.take_nd(data, indexer, axis=0,
-                               fill_value=fill_value)
-        assert ((result[[0, 1, 2], :] == data[[2, 1, 0], :]).all())
-        assert ((result[3, :] == fill_value).all())
-        assert (result.dtype == out_dtype)
+        result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
+        assert (result[[0, 1, 2], :] == data[[2, 1, 0], :]).all()
+        assert (result[3, :] == fill_value).all()
+        assert result.dtype == out_dtype
 
-        result = algos.take_nd(data, indexer, axis=1,
-                               fill_value=fill_value)
-        assert ((result[:, [0, 1, 2]] == data[:, [2, 1, 0]]).all())
-        assert ((result[:, 3] == fill_value).all())
-        assert (result.dtype == out_dtype)
+        result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
+        assert (result[:, [0, 1, 2]] == data[:, [2, 1, 0]]).all()
+        assert (result[:, 3] == fill_value).all()
+        assert result.dtype == out_dtype
 
         indexer = [2, 1, 0, 1]
-        result = algos.take_nd(data, indexer, axis=0,
-                               fill_value=fill_value)
-        assert ((result[[0, 1, 2, 3], :] == data[indexer, :]).all())
-        assert (result.dtype == dtype)
+        result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
+        assert (result[[0, 1, 2, 3], :] == data[indexer, :]).all()
+        assert result.dtype == dtype
 
-        result = algos.take_nd(data, indexer, axis=1,
-                               fill_value=fill_value)
-        assert ((result[:, [0, 1, 2, 3]] == data[:, indexer]).all())
-        assert (result.dtype == dtype)
+        result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
+        assert (result[:, [0, 1, 2, 3]] == data[:, indexer]).all()
+        assert result.dtype == dtype
 
     def test_3d_with_out(self, dtype_can_hold_na):
         dtype, can_hold_na = dtype_can_hold_na
@@ -237,39 +237,33 @@ class TestTake:
         data = np.random.randint(0, 2, (5, 4, 3)).astype(dtype)
         indexer = [2, 1, 0, -1]
 
-        result = algos.take_nd(data, indexer, axis=0,
-                               fill_value=fill_value)
-        assert ((result[[0, 1, 2], :, :] == data[[2, 1, 0], :, :]).all())
-        assert ((result[3, :, :] == fill_value).all())
-        assert (result.dtype == out_dtype)
+        result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
+        assert (result[[0, 1, 2], :, :] == data[[2, 1, 0], :, :]).all()
+        assert (result[3, :, :] == fill_value).all()
+        assert result.dtype == out_dtype
 
-        result = algos.take_nd(data, indexer, axis=1,
-                               fill_value=fill_value)
-        assert ((result[:, [0, 1, 2], :] == data[:, [2, 1, 0], :]).all())
-        assert ((result[:, 3, :] == fill_value).all())
-        assert (result.dtype == out_dtype)
+        result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
+        assert (result[:, [0, 1, 2], :] == data[:, [2, 1, 0], :]).all()
+        assert (result[:, 3, :] == fill_value).all()
+        assert result.dtype == out_dtype
 
-        result = algos.take_nd(data, indexer, axis=2,
-                               fill_value=fill_value)
-        assert ((result[:, :, [0, 1, 2]] == data[:, :, [2, 1, 0]]).all())
-        assert ((result[:, :, 3] == fill_value).all())
-        assert (result.dtype == out_dtype)
+        result = algos.take_nd(data, indexer, axis=2, fill_value=fill_value)
+        assert (result[:, :, [0, 1, 2]] == data[:, :, [2, 1, 0]]).all()
+        assert (result[:, :, 3] == fill_value).all()
+        assert result.dtype == out_dtype
 
         indexer = [2, 1, 0, 1]
-        result = algos.take_nd(data, indexer, axis=0,
-                               fill_value=fill_value)
-        assert ((result[[0, 1, 2, 3], :, :] == data[indexer, :, :]).all())
-        assert (result.dtype == dtype)
+        result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
+        assert (result[[0, 1, 2, 3], :, :] == data[indexer, :, :]).all()
+        assert result.dtype == dtype
 
-        result = algos.take_nd(data, indexer, axis=1,
-                               fill_value=fill_value)
-        assert ((result[:, [0, 1, 2, 3], :] == data[:, indexer, :]).all())
-        assert (result.dtype == dtype)
+        result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
+        assert (result[:, [0, 1, 2, 3], :] == data[:, indexer, :]).all()
+        assert result.dtype == dtype
 
-        result = algos.take_nd(data, indexer, axis=2,
-                               fill_value=fill_value)
-        assert ((result[:, :, [0, 1, 2, 3]] == data[:, :, indexer]).all())
-        assert (result.dtype == dtype)
+        result = algos.take_nd(data, indexer, axis=2, fill_value=fill_value)
+        assert (result[:, :, [0, 1, 2, 3]] == data[:, :, indexer]).all()
+        assert result.dtype == dtype
 
     def test_1d_other_dtypes(self):
         arr = np.random.randn(10).astype(np.float32)
@@ -336,7 +330,7 @@ class TestTake:
         tm.assert_almost_equal(result, expected)
 
         # this now accepts a float32! # test with float64 out buffer
-        out = np.empty((len(indexer), arr.shape[1]), dtype='float32')
+        out = np.empty((len(indexer), arr.shape[1]), dtype="float32")
         algos.take_nd(arr, indexer, out=out)  # it works!
 
         # axis=1
@@ -352,7 +346,7 @@ class TestTake:
     def test_2d_datetime64(self):
         # 2005/01/01 - 2006/01/01
         arr = np.random.randint(11045376, 11360736, (5, 3)) * 100000000000
-        arr = arr.view(dtype='datetime64[ns]')
+        arr = arr.view(dtype="datetime64[ns]")
         indexer = [0, 2, -1, 1, -1]
 
         # axis=0
@@ -365,11 +359,11 @@ class TestTake:
         expected.view(np.int64)[[2, 4], :] = iNaT
         tm.assert_almost_equal(result, expected)
 
-        result = algos.take_nd(arr, indexer, axis=0,
-                               fill_value=datetime(2007, 1, 1))
+        result = algos.take_nd(arr, indexer, axis=0, fill_value=datetime(2007, 1, 1))
         result2 = np.empty_like(result)
-        algos.take_nd(arr, indexer, out=result2, axis=0,
-                      fill_value=datetime(2007, 1, 1))
+        algos.take_nd(
+            arr, indexer, out=result2, axis=0, fill_value=datetime(2007, 1, 1)
+        )
         tm.assert_almost_equal(result, result2)
 
         expected = arr.take(indexer, axis=0)
@@ -386,11 +380,11 @@ class TestTake:
         expected.view(np.int64)[:, [2, 4]] = iNaT
         tm.assert_almost_equal(result, expected)
 
-        result = algos.take_nd(arr, indexer, axis=1,
-                               fill_value=datetime(2007, 1, 1))
+        result = algos.take_nd(arr, indexer, axis=1, fill_value=datetime(2007, 1, 1))
         result2 = np.empty_like(result)
-        algos.take_nd(arr, indexer, out=result2, axis=1,
-                      fill_value=datetime(2007, 1, 1))
+        algos.take_nd(
+            arr, indexer, out=result2, axis=1, fill_value=datetime(2007, 1, 1)
+        )
         tm.assert_almost_equal(result, result2)
 
         expected = arr.take(indexer, axis=1)
@@ -415,10 +409,13 @@ class TestTake:
         tm.assert_numpy_array_equal(result, expected)
 
         # allow_fill=True
-        result = algos.take(arr, [0, -1], axis=1, allow_fill=True,
-                            fill_value=0)
+        result = algos.take(arr, [0, -1], axis=1, allow_fill=True, fill_value=0)
         expected = np.array([[0, 0], [3, 0], [6, 0], [9, 0]])
         tm.assert_numpy_array_equal(result, expected)
+
+        # GH#26976 make sure we validate along the correct axis
+        with pytest.raises(IndexError, match="indices are out-of-bounds"):
+            algos.take(arr, [0, 3], axis=1, allow_fill=True, fill_value=0)
 
 
 class TestExtensionTake:
@@ -442,7 +439,7 @@ class TestExtensionTake:
         expected = np.array([1, 3, 2], dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize('allow_fill', [True, False])
+    @pytest.mark.parametrize("allow_fill", [True, False])
     def test_take_empty(self, allow_fill):
         arr = np.array([], dtype=np.int64)
         # empty take is ok
@@ -453,9 +450,8 @@ class TestExtensionTake:
             algos.take(arr, [0], allow_fill=allow_fill)
 
     def test_take_na_empty(self):
-        result = algos.take(np.array([]), [-1, -1], allow_fill=True,
-                            fill_value=0.0)
-        expected = np.array([0., 0.])
+        result = algos.take(np.array([]), [-1, -1], allow_fill=True, fill_value=0.0)
+        expected = np.array([0.0, 0.0])
         tm.assert_numpy_array_equal(result, expected)
 
     def test_take_coerces_list(self):

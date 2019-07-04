@@ -1,13 +1,16 @@
 name: pandas-dev
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - beautifulsoup4
   - bottleneck
+  - gcsfs
   - html5lib
   - jinja2
   - lxml
   - matplotlib=2.2.*
+  - moto
   - numexpr
   - numpy=1.14.*
   - openpyxl
@@ -26,6 +29,6 @@ dependencies:
   - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
-  - moto
+  - pytest-azurepipelines
   - hypothesis>=3.58.0
-  - isort
+  - pyreadstat

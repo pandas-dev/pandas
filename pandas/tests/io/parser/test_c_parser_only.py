@@ -13,7 +13,6 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -23,10 +22,9 @@ import pandas.util.testing as tm
 
 @pytest.mark.parametrize(
     "malformed",
-    ["1\r1\r1\r 1\r 1\r",
-     "1\r1\r1\r 1\r 1\r11\r",
-     "1\r1\r1\r 1\r 1\r11\r1\r"],
-    ids=["words pointer", "stream pointer", "lines pointer"])
+    ["1\r1\r1\r 1\r 1\r", "1\r1\r1\r 1\r 1\r11\r", "1\r1\r1\r 1\r 1\r11\r1\r"],
+    ids=["words pointer", "stream pointer", "lines pointer"],
+)
 def test_buffer_overflow(c_parser_only, malformed):
     # see gh-9205: test certain malformed input files that cause
     # buffer overflows in tokenizer.c
@@ -42,17 +40,17 @@ def test_buffer_rd_bytes(c_parser_only):
     # to a segfault if a corrupt gzip file is read with 'read_csv', and the
     # buffer is filled more than once before gzip raises an Exception.
 
-    data = "\x1F\x8B\x08\x00\x00\x00\x00\x00\x00\x03\xED\xC3\x41\x09" \
-           "\x00\x00\x08\x00\xB1\xB7\xB6\xBA\xFE\xA5\xCC\x21\x6C\xB0" \
-           "\xA6\x4D" + "\x55" * 267 + \
-           "\x7D\xF7\x00\x91\xE0\x47\x97\x14\x38\x04\x00" \
-           "\x1f\x8b\x08\x00VT\x97V\x00\x03\xed]\xefO"
+    data = (
+        "\x1F\x8B\x08\x00\x00\x00\x00\x00\x00\x03\xED\xC3\x41\x09"
+        "\x00\x00\x08\x00\xB1\xB7\xB6\xBA\xFE\xA5\xCC\x21\x6C\xB0"
+        "\xA6\x4D" + "\x55" * 267 + "\x7D\xF7\x00\x91\xE0\x47\x97\x14\x38\x04\x00"
+        "\x1f\x8b\x08\x00VT\x97V\x00\x03\xed]\xefO"
+    )
     parser = c_parser_only
 
     for _ in range(100):
         try:
-            parser.read_csv(StringIO(data), compression="gzip",
-                            delim_whitespace=True)
+            parser.read_csv(StringIO(data), compression="gzip", delim_whitespace=True)
         except Exception:
             pass
 
@@ -62,10 +60,8 @@ def test_delim_whitespace_custom_terminator(c_parser_only):
     data = "a b c~1 2 3~4 5 6~7 8 9"
     parser = c_parser_only
 
-    df = parser.read_csv(StringIO(data), lineterminator="~",
-                         delim_whitespace=True)
-    expected = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                         columns=["a", "b", "c"])
+    df = parser.read_csv(StringIO(data), lineterminator="~", delim_whitespace=True)
+    expected = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["a", "b", "c"])
     tm.assert_frame_equal(df, expected)
 
 
@@ -83,18 +79,15 @@ def test_dtype_and_names_error(c_parser_only):
     expected = DataFrame([[1.0, 1], [2.0, 2], [3.0, 3]])
     tm.assert_frame_equal(result, expected)
 
-    result = parser.read_csv(StringIO(data), sep=r"\s+",
-                             header=None, names=["a", "b"])
-    expected = DataFrame(
-        [[1.0, 1], [2.0, 2], [3.0, 3]], columns=["a", "b"])
+    result = parser.read_csv(StringIO(data), sep=r"\s+", header=None, names=["a", "b"])
+    expected = DataFrame([[1.0, 1], [2.0, 2], [3.0, 3]], columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
 
     # fallback casting
-    result = parser.read_csv(StringIO(
-        data), sep=r"\s+", header=None,
-        names=["a", "b"], dtype={"a": np.int32})
-    expected = DataFrame([[1, 1], [2, 2], [3, 3]],
-                         columns=["a", "b"])
+    result = parser.read_csv(
+        StringIO(data), sep=r"\s+", header=None, names=["a", "b"], dtype={"a": np.int32}
+    )
+    expected = DataFrame([[1, 1], [2, 2], [3, 3]], columns=["a", "b"])
     expected["a"] = expected["a"].astype(np.int32)
     tm.assert_frame_equal(result, expected)
 
@@ -105,31 +98,46 @@ nan 2
 """
     # fallback casting, but not castable
     with pytest.raises(ValueError, match="cannot safely convert"):
-        parser.read_csv(StringIO(data), sep=r"\s+", header=None,
-                        names=["a", "b"], dtype={"a": np.int32})
+        parser.read_csv(
+            StringIO(data),
+            sep=r"\s+",
+            header=None,
+            names=["a", "b"],
+            dtype={"a": np.int32},
+        )
 
 
-@pytest.mark.parametrize("match,kwargs", [
-    # For each of these cases, all of the dtypes are valid, just unsupported.
-    (("the dtype datetime64 is not supported for parsing, "
-      "pass this column using parse_dates instead"),
-     dict(dtype={"A": "datetime64", "B": "float64"})),
-
-    (("the dtype datetime64 is not supported for parsing, "
-      "pass this column using parse_dates instead"),
-     dict(dtype={"A": "datetime64", "B": "float64"},
-          parse_dates=["B"])),
-
-    ("the dtype timedelta64 is not supported for parsing",
-     dict(dtype={"A": "timedelta64", "B": "float64"})),
-
-    ("the dtype <U8 is not supported for parsing",
-     dict(dtype={"A": "U8"}))
-], ids=["dt64-0", "dt64-1", "td64", "<U8"])
+@pytest.mark.parametrize(
+    "match,kwargs",
+    [
+        # For each of these cases, all of the dtypes are valid, just unsupported.
+        (
+            (
+                "the dtype datetime64 is not supported for parsing, "
+                "pass this column using parse_dates instead"
+            ),
+            dict(dtype={"A": "datetime64", "B": "float64"}),
+        ),
+        (
+            (
+                "the dtype datetime64 is not supported for parsing, "
+                "pass this column using parse_dates instead"
+            ),
+            dict(dtype={"A": "datetime64", "B": "float64"}, parse_dates=["B"]),
+        ),
+        (
+            "the dtype timedelta64 is not supported for parsing",
+            dict(dtype={"A": "timedelta64", "B": "float64"}),
+        ),
+        ("the dtype <U8 is not supported for parsing", dict(dtype={"A": "U8"})),
+    ],
+    ids=["dt64-0", "dt64-1", "td64", "<U8"],
+)
 def test_unsupported_dtype(c_parser_only, match, kwargs):
     parser = c_parser_only
-    df = DataFrame(np.random.rand(5, 2), columns=list(
-        "AB"), index=["1A", "1B", "1C", "1D", "1E"])
+    df = DataFrame(
+        np.random.rand(5, 2), columns=list("AB"), index=["1A", "1B", "1C", "1D", "1E"]
+    )
 
     with tm.ensure_clean("__unsupported_dtype__.csv") as path:
         df.to_csv(path)
@@ -141,21 +149,24 @@ def test_unsupported_dtype(c_parser_only, match, kwargs):
 @td.skip_if_32bit
 def test_precise_conversion(c_parser_only):
     from decimal import Decimal
+
     parser = c_parser_only
 
     normal_errors = []
     precise_errors = []
 
     # test numbers between 1 and 2
-    for num in np.linspace(1., 2., num=500):
+    for num in np.linspace(1.0, 2.0, num=500):
         # 25 decimal digits of precision
         text = "a\n{0:.25}".format(num)
 
         normal_val = float(parser.read_csv(StringIO(text))["a"][0])
-        precise_val = float(parser.read_csv(
-            StringIO(text), float_precision="high")["a"][0])
-        roundtrip_val = float(parser.read_csv(
-            StringIO(text), float_precision="round_trip")["a"][0])
+        precise_val = float(
+            parser.read_csv(StringIO(text), float_precision="high")["a"][0]
+        )
+        roundtrip_val = float(
+            parser.read_csv(StringIO(text), float_precision="round_trip")["a"][0]
+        )
         actual_val = Decimal(text[2:])
 
         def error(val):
@@ -179,16 +190,22 @@ def test_usecols_dtypes(c_parser_only):
 7,8,9
 10,11,12"""
 
-    result = parser.read_csv(StringIO(data), usecols=(0, 1, 2),
-                             names=("a", "b", "c"),
-                             header=None,
-                             converters={"a": str},
-                             dtype={"b": int, "c": float})
-    result2 = parser.read_csv(StringIO(data), usecols=(0, 2),
-                              names=("a", "b", "c"),
-                              header=None,
-                              converters={"a": str},
-                              dtype={"b": int, "c": float})
+    result = parser.read_csv(
+        StringIO(data),
+        usecols=(0, 1, 2),
+        names=("a", "b", "c"),
+        header=None,
+        converters={"a": str},
+        dtype={"b": int, "c": float},
+    )
+    result2 = parser.read_csv(
+        StringIO(data),
+        usecols=(0, 2),
+        names=("a", "b", "c"),
+        header=None,
+        converters={"a": str},
+        dtype={"b": int, "c": float},
+    )
 
     assert (result.dtypes == [object, np.int, np.float]).all()
     assert (result2.dtypes == [object, np.float]).all()
@@ -234,21 +251,23 @@ def test_parse_ragged_csv(c_parser_only):
 1,2,3,4,5
 1,2,,,
 1,2,3,4,"""
-    result = parser.read_csv(StringIO(data), header=None,
-                             names=["a", "b", "c", "d", "e"])
+    result = parser.read_csv(
+        StringIO(data), header=None, names=["a", "b", "c", "d", "e"]
+    )
 
-    expected = parser.read_csv(StringIO(nice_data), header=None,
-                               names=["a", "b", "c", "d", "e"])
+    expected = parser.read_csv(
+        StringIO(nice_data), header=None, names=["a", "b", "c", "d", "e"]
+    )
 
     tm.assert_frame_equal(result, expected)
 
     # too many columns, cause segfault if not careful
     data = "1,2\n3,4,5"
 
-    result = parser.read_csv(StringIO(data), header=None,
-                             names=lrange(50))
-    expected = parser.read_csv(StringIO(data), header=None,
-                               names=lrange(3)).reindex(columns=lrange(50))
+    result = parser.read_csv(StringIO(data), header=None, names=range(50))
+    expected = parser.read_csv(StringIO(data), header=None, names=range(3)).reindex(
+        columns=range(50)
+    )
 
     tm.assert_frame_equal(result, expected)
 
@@ -256,11 +275,10 @@ def test_parse_ragged_csv(c_parser_only):
 def test_tokenize_CR_with_quoting(c_parser_only):
     # see gh-3453
     parser = c_parser_only
-    data = " a,b,c\r\"a,b\",\"e,d\",\"f,f\""
+    data = ' a,b,c\r"a,b","e,d","f,f"'
 
     result = parser.read_csv(StringIO(data), header=None)
-    expected = parser.read_csv(StringIO(data.replace("\r", "\n")),
-                               header=None)
+    expected = parser.read_csv(StringIO(data.replace("\r", "\n")), header=None)
     tm.assert_frame_equal(result, expected)
 
     result = parser.read_csv(StringIO(data))
@@ -281,9 +299,9 @@ def test_grow_boundary_at_cap(c_parser_only):
 
     def test_empty_header_read(count):
         s = StringIO("," * count)
-        expected = DataFrame(columns=[
-            "Unnamed: {i}".format(i=i)
-            for i in range(count + 1)])
+        expected = DataFrame(
+            columns=["Unnamed: {i}".format(i=i) for i in range(count + 1)]
+        )
         df = parser.read_csv(s)
         tm.assert_frame_equal(df, expected)
 
@@ -306,36 +324,37 @@ def test_parse_trim_buffers(c_parser_only):
 
     # Generate a large mixed-type CSV file on-the-fly (one record is
     # approx 1.5KiB).
-    record_ = \
-        """9999-9,99:99,,,,ZZ,ZZ,,,ZZZ-ZZZZ,.Z-ZZZZ,-9.99,,,9.99,Z""" \
-        """ZZZZ,,-99,9,ZZZ-ZZZZ,ZZ-ZZZZ,,9.99,ZZZ-ZZZZZ,ZZZ-ZZZZZ,""" \
-        """ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,9""" \
-        """99,ZZZ-ZZZZ,,ZZ-ZZZZ,,,,,ZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZ,,,9,9,""" \
-        """9,9,99,99,999,999,ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZ,9,ZZ-ZZZZ,9.""" \
-        """99,ZZ-ZZZZ,ZZ-ZZZZ,,,,ZZZZ,,,ZZ,ZZ,,,,,,,,,,,,,9,,,999.""" \
-        """99,999.99,,,ZZZZZ,,,Z9,,,,,,,ZZZ,ZZZ,,,,,,,,,,,ZZZZZ,ZZ""" \
-        """ZZZ,ZZZ-ZZZZZZ,ZZZ-ZZZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-ZZ""" \
-        """ZZ,,,999999,999999,ZZZ,ZZZ,,,ZZZ,ZZZ,999.99,999.99,,,,Z""" \
-        """ZZ-ZZZ,ZZZ-ZZZ,-9.99,-9.99,9,9,,99,,9.99,9.99,9,9,9.99,""" \
-        """9.99,,,,9.99,9.99,,99,,99,9.99,9.99,,,ZZZ,ZZZ,,999.99,,""" \
-        """999.99,ZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,,,ZZZZZ,ZZZZZ,ZZZ,ZZZ,9,9,""" \
-        """,,,,,ZZZ-ZZZZ,ZZZ999Z,,,999.99,,999.99,ZZZ-ZZZZ,,,9.999""" \
-        """,9.999,9.999,9.999,-9.999,-9.999,-9.999,-9.999,9.999,9.""" \
-        """999,9.999,9.999,9.999,9.999,9.999,9.999,99999,ZZZ-ZZZZ,""" \
-        """,9.99,ZZZ,,,,,,,,ZZZ,,,,,9,,,,9,,,,,,,,,,ZZZ-ZZZZ,ZZZ-Z""" \
-        """ZZZ,,ZZZZZ,ZZZZZ,ZZZZZ,ZZZZZ,,,9.99,,ZZ-ZZZZ,ZZ-ZZZZ,ZZ""" \
-        """,999,,,,ZZ-ZZZZ,ZZZ,ZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,,,99.99,99.99""" \
-        """,,,9.99,9.99,9.99,9.99,ZZZ-ZZZZ,,,ZZZ-ZZZZZ,,,,,-9.99,-""" \
-        """9.99,-9.99,-9.99,,,,,,,,,ZZZ-ZZZZ,,9,9.99,9.99,99ZZ,,-9""" \
-        """.99,-9.99,ZZZ-ZZZZ,,,,,,,ZZZ-ZZZZ,9.99,9.99,9999,,,,,,,""" \
-        """,,,-9.9,Z/Z-ZZZZ,999.99,9.99,,999.99,ZZ-ZZZZ,ZZ-ZZZZ,9.""" \
-        """99,9.99,9.99,9.99,9.99,9.99,,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZ""" \
-        """ZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ,ZZZ,ZZZ,ZZZ,9.99,,,-9.99,ZZ""" \
-        """-ZZZZ,-999.99,,-9999,,999.99,,,,999.99,99.99,,,ZZ-ZZZZZ""" \
-        """ZZZ,ZZ-ZZZZ-ZZZZZZZ,,,,ZZ-ZZ-ZZZZZZZZ,ZZZZZZZZ,ZZZ-ZZZZ""" \
-        """,9999,999.99,ZZZ-ZZZZ,-9.99,-9.99,ZZZ-ZZZZ,99:99:99,,99""" \
-        """,99,,9.99,,-99.99,,,,,,9.99,ZZZ-ZZZZ,-9.99,-9.99,9.99,9""" \
+    record_ = (
+        """9999-9,99:99,,,,ZZ,ZZ,,,ZZZ-ZZZZ,.Z-ZZZZ,-9.99,,,9.99,Z"""
+        """ZZZZ,,-99,9,ZZZ-ZZZZ,ZZ-ZZZZ,,9.99,ZZZ-ZZZZZ,ZZZ-ZZZZZ,"""
+        """ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,9"""
+        """99,ZZZ-ZZZZ,,ZZ-ZZZZ,,,,,ZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZ,,,9,9,"""
+        """9,9,99,99,999,999,ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZ,9,ZZ-ZZZZ,9."""
+        """99,ZZ-ZZZZ,ZZ-ZZZZ,,,,ZZZZ,,,ZZ,ZZ,,,,,,,,,,,,,9,,,999."""
+        """99,999.99,,,ZZZZZ,,,Z9,,,,,,,ZZZ,ZZZ,,,,,,,,,,,ZZZZZ,ZZ"""
+        """ZZZ,ZZZ-ZZZZZZ,ZZZ-ZZZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-ZZ"""
+        """ZZ,,,999999,999999,ZZZ,ZZZ,,,ZZZ,ZZZ,999.99,999.99,,,,Z"""
+        """ZZ-ZZZ,ZZZ-ZZZ,-9.99,-9.99,9,9,,99,,9.99,9.99,9,9,9.99,"""
+        """9.99,,,,9.99,9.99,,99,,99,9.99,9.99,,,ZZZ,ZZZ,,999.99,,"""
+        """999.99,ZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,,,ZZZZZ,ZZZZZ,ZZZ,ZZZ,9,9,"""
+        """,,,,,ZZZ-ZZZZ,ZZZ999Z,,,999.99,,999.99,ZZZ-ZZZZ,,,9.999"""
+        """,9.999,9.999,9.999,-9.999,-9.999,-9.999,-9.999,9.999,9."""
+        """999,9.999,9.999,9.999,9.999,9.999,9.999,99999,ZZZ-ZZZZ,"""
+        """,9.99,ZZZ,,,,,,,,ZZZ,,,,,9,,,,9,,,,,,,,,,ZZZ-ZZZZ,ZZZ-Z"""
+        """ZZZ,,ZZZZZ,ZZZZZ,ZZZZZ,ZZZZZ,,,9.99,,ZZ-ZZZZ,ZZ-ZZZZ,ZZ"""
+        """,999,,,,ZZ-ZZZZ,ZZZ,ZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,,,99.99,99.99"""
+        """,,,9.99,9.99,9.99,9.99,ZZZ-ZZZZ,,,ZZZ-ZZZZZ,,,,,-9.99,-"""
+        """9.99,-9.99,-9.99,,,,,,,,,ZZZ-ZZZZ,,9,9.99,9.99,99ZZ,,-9"""
+        """.99,-9.99,ZZZ-ZZZZ,,,,,,,ZZZ-ZZZZ,9.99,9.99,9999,,,,,,,"""
+        """,,,-9.9,Z/Z-ZZZZ,999.99,9.99,,999.99,ZZ-ZZZZ,ZZ-ZZZZ,9."""
+        """99,9.99,9.99,9.99,9.99,9.99,,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZ"""
+        """ZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ,ZZZ,ZZZ,ZZZ,9.99,,,-9.99,ZZ"""
+        """-ZZZZ,-999.99,,-9999,,999.99,,,,999.99,99.99,,,ZZ-ZZZZZ"""
+        """ZZZ,ZZ-ZZZZ-ZZZZZZZ,,,,ZZ-ZZ-ZZZZZZZZ,ZZZZZZZZ,ZZZ-ZZZZ"""
+        """,9999,999.99,ZZZ-ZZZZ,-9.99,-9.99,ZZZ-ZZZZ,99:99:99,,99"""
+        """,99,,9.99,,-99.99,,,,,,9.99,ZZZ-ZZZZ,-9.99,-9.99,9.99,9"""
         """.99,,ZZZ,,,,,,,ZZZ,ZZZ,,,,,"""
+    )
 
     # Set the number of lines so that a call to `parser_trim_buffers`
     # is triggered: after a couple of full chunks are consumed a
@@ -350,14 +369,15 @@ def test_parse_trim_buffers(c_parser_only):
 
     # Generate the expected output: manually create the dataframe
     # by splitting by comma and repeating the `n_lines` times.
-    row = tuple(val_ if val_ else np.nan
-                for val_ in record_.split(","))
-    expected = DataFrame([row for _ in range(n_lines)],
-                         dtype=object, columns=None, index=None)
+    row = tuple(val_ if val_ else np.nan for val_ in record_.split(","))
+    expected = DataFrame(
+        [row for _ in range(n_lines)], dtype=object, columns=None, index=None
+    )
 
     # Iterate over the CSV file in chunks of `chunksize` lines
-    chunks_ = parser.read_csv(StringIO(csv_data), header=None,
-                              dtype=object, chunksize=chunksize)
+    chunks_ = parser.read_csv(
+        StringIO(csv_data), header=None, dtype=object, chunksize=chunksize
+    )
     result = concat(chunks_, axis=0, ignore_index=True)
 
     # Check for data corruption if there was no segfault
@@ -366,9 +386,13 @@ def test_parse_trim_buffers(c_parser_only):
     # This extra test was added to replicate the fault in gh-5291.
     # Force 'utf-8' encoding, so that `_string_convert` would take
     # a different execution branch.
-    chunks_ = parser.read_csv(StringIO(csv_data), header=None,
-                              dtype=object, chunksize=chunksize,
-                              encoding="utf_8")
+    chunks_ = parser.read_csv(
+        StringIO(csv_data),
+        header=None,
+        dtype=object,
+        chunksize=chunksize,
+        encoding="utf_8",
+    )
     result = concat(chunks_, axis=0, ignore_index=True)
     tm.assert_frame_equal(result, expected)
 
@@ -387,8 +411,7 @@ def test_internal_null_byte(c_parser_only):
 
     names = ["a", "b", "c"]
     data = "1,2,3\n4,\x00,6\n7,8,9"
-    expected = DataFrame([[1, 2.0, 3], [4, np.nan, 6],
-                          [7, 8, 9]], columns=names)
+    expected = DataFrame([[1, 2.0, 3], [4, np.nan, 6], [7, 8, 9]], columns=names)
 
     result = parser.read_csv(StringIO(data), names=names)
     tm.assert_frame_equal(result, expected)
@@ -397,16 +420,11 @@ def test_internal_null_byte(c_parser_only):
 def test_read_nrows_large(c_parser_only):
     # gh-7626 - Read only nrows of data in for large inputs (>262144b)
     parser = c_parser_only
-    header_narrow = "\t".join(["COL_HEADER_" + str(i)
-                               for i in range(10)]) + "\n"
-    data_narrow = "\t".join(["somedatasomedatasomedata1"
-                             for _ in range(10)]) + "\n"
-    header_wide = "\t".join(["COL_HEADER_" + str(i)
-                             for i in range(15)]) + "\n"
-    data_wide = "\t".join(["somedatasomedatasomedata2"
-                           for _ in range(15)]) + "\n"
-    test_input = (header_narrow + data_narrow * 1050 +
-                  header_wide + data_wide * 2)
+    header_narrow = "\t".join(["COL_HEADER_" + str(i) for i in range(10)]) + "\n"
+    data_narrow = "\t".join(["somedatasomedatasomedata1" for _ in range(10)]) + "\n"
+    header_wide = "\t".join(["COL_HEADER_" + str(i) for i in range(15)]) + "\n"
+    data_wide = "\t".join(["somedatasomedatasomedata2" for _ in range(15)]) + "\n"
+    test_input = header_narrow + data_narrow * 1050 + header_wide + data_wide * 2
 
     df = parser.read_csv(StringIO(test_input), sep="\t", nrows=1010)
 
@@ -416,8 +434,7 @@ def test_read_nrows_large(c_parser_only):
 def test_float_precision_round_trip_with_text(c_parser_only):
     # see gh-15140
     parser = c_parser_only
-    df = parser.read_csv(StringIO("a"), header=None,
-                         float_precision="round_trip")
+    df = parser.read_csv(StringIO("a"), header=None, float_precision="round_trip")
     tm.assert_frame_equal(df, DataFrame({0: ["a"]}))
 
 
@@ -441,7 +458,7 @@ def test_data_after_quote(c_parser_only):
     # see gh-15910
     parser = c_parser_only
 
-    data = "a\n1\n\"b\"a"
+    data = 'a\n1\n"b"a'
     result = parser.read_csv(StringIO(data))
 
     expected = DataFrame({"a": ["1", "ba"]})
@@ -461,18 +478,19 @@ def test_comment_whitespace_delimited(c_parser_only, capsys):
 8# 1 field, NaN
 9 2 3 # skipped line
 # comment"""
-    df = parser.read_csv(StringIO(test_input), comment="#", header=None,
-                         delimiter="\\s+", skiprows=0,
-                         error_bad_lines=False)
+    df = parser.read_csv(
+        StringIO(test_input),
+        comment="#",
+        header=None,
+        delimiter="\\s+",
+        skiprows=0,
+        error_bad_lines=False,
+    )
     captured = capsys.readouterr()
     # skipped lines 2, 3, 4, 9
     for line_num in (2, 3, 4, 9):
         assert "Skipping line {}".format(line_num) in captured.err
-    expected = DataFrame([[1, 2],
-                          [5, 2],
-                          [6, 2],
-                          [7, np.nan],
-                          [8, np.nan]])
+    expected = DataFrame([[1, 2], [5, 2], [6, 2], [7, np.nan], [8, np.nan]])
     tm.assert_frame_equal(df, expected)
 
 
@@ -533,8 +551,7 @@ def test_bytes_exceed_2gb(c_parser_only):
     if parser.low_memory:
         pytest.skip("not a high_memory test")
 
-    csv = StringIO("strings\n" + "\n".join(
-        ["x" * (1 << 20) for _ in range(2100)]))
+    csv = StringIO("strings\n" + "\n".join(["x" * (1 << 20) for _ in range(2100)]))
     df = parser.read_csv(csv)
     assert not df.empty
 

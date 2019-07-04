@@ -127,7 +127,7 @@ to build the documentation locally before pushing your changes.
 
 .. _contributing.dev_c:
 
-Installing a C Compiler
+Installing a C compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Pandas uses C extensions (mostly written using Cython) to speed up certain
@@ -155,7 +155,7 @@ Let us know if you have any difficulties by opening an issue or reaching out on
 
 .. _contributing.dev_python:
 
-Creating a Python Environment
+Creating a Python environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now that you have a C compiler, create an isolated pandas development
@@ -178,7 +178,6 @@ We'll now kick off a three-step process:
    # Create and activate the build environment
    conda env create -f environment.yml
    conda activate pandas-dev
-   conda uninstall --force pandas
 
    # or with older versions of Anaconda:
    source activate pandas-dev
@@ -209,7 +208,7 @@ See the full conda docs `here <http://conda.pydata.org/docs>`__.
 
 .. _contributing.pip:
 
-Creating a Python Environment (pip)
+Creating a Python environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you aren't using conda for your development environment, follow these instructions.
@@ -221,7 +220,7 @@ You'll need to have at least python3.5 installed on your system.
    # Use an ENV_DIR of your choice. We'll use ~/virtualenvs/pandas-dev
    # Any parent directories should already exist
    python3 -m venv ~/virtualenvs/pandas-dev
-   # Activate the virtulaenv
+   # Activate the virtualenv
    . ~/virtualenvs/pandas-dev/bin/activate
 
    # Install the build dependencies
@@ -460,7 +459,7 @@ Building master branch documentation
 
 When pull requests are merged into the *pandas* ``master`` branch, the main parts of
 the documentation are also built by Travis-CI. These docs are then hosted `here
-<http://pandas-docs.github.io/pandas-docs-travis>`__, see also
+<https://dev.pandas.io>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
 
 .. _contributing.code:
@@ -498,6 +497,21 @@ as possible to avoid mass breakages.
 
 Additional standards are outlined on the `code style wiki
 page <https://github.com/pandas-dev/pandas/wiki/Code-Style-and-Conventions>`_.
+
+Optional dependencies
+---------------------
+
+Optional dependencies (e.g. matplotlib) should be imported with the private helper
+``pandas.compat._optional.import_optional_dependency``. This ensures a
+consistent error message when the dependency is not met.
+
+All methods using an optional dependency should include a test asserting that an
+``ImportError`` is raised when the optional dependency is not found. This test
+should be skipped if the library is present.
+
+All optional dependencies should be documented in
+:ref:`install.optional_dependencies` and the minimum required version should be
+set in the ``pandas.compat._optional.VERSIONS`` dict.
 
 C (cpplint)
 ~~~~~~~~~~~
@@ -590,7 +604,7 @@ and run ``flake8`` on them, one after the other.
 
 .. _contributing.import-formatting:
 
-Import Formatting
+Import formatting
 ~~~~~~~~~~~~~~~~~
 *pandas* uses `isort <https://pypi.org/project/isort/>`__ to standardise import
 formatting across the codebase.
@@ -636,7 +650,7 @@ The `--recursive` flag can be passed to sort all files in a directory.
 
 You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
 
-Backwards Compatibility
+Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Please try to maintain backward compatibility. *pandas* has lots of users with lots of
@@ -684,7 +698,7 @@ See :ref:`contributing.warnings` for more.
 
 .. _contributing.ci:
 
-Testing With Continuous Integration
+Testing with continuous integration
 -----------------------------------
 
 The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__ and
@@ -915,7 +929,7 @@ options or subtle interactions to test (or think of!) all of them.
 
 .. _contributing.warnings:
 
-Testing Warnings
+Testing warnings
 ~~~~~~~~~~~~~~~~
 
 By default, one of pandas CI workers will fail if any unhandled warnings are emitted.

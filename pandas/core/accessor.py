@@ -13,7 +13,8 @@ from pandas.util._decorators import Appender
 class DirNamesMixin:
     _accessors = set()  # type: Set[str]
     _deprecations = frozenset(
-        ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides'])
+        ["asobject", "base", "data", "flags", "itemsize", "strides"]
+    )
 
     def _dir_deletions(self):
         """
@@ -50,8 +51,7 @@ class PandasDelegate:
     """
 
     def _delegate_property_get(self, name, *args, **kwargs):
-        raise TypeError("You cannot access the "
-                        "property {name}".format(name=name))
+        raise TypeError("You cannot access the " "property {name}".format(name=name))
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
         raise TypeError("The property {name} cannot be set".format(name=name))
@@ -60,8 +60,7 @@ class PandasDelegate:
         raise TypeError("You cannot call method {name}".format(name=name))
 
     @classmethod
-    def _add_delegate_accessors(cls, delegate, accessors, typ,
-                                overwrite=False):
+    def _add_delegate_accessors(cls, delegate, accessors, typ, overwrite=False):
         """
         Add accessors to cls from the delegate class.
 
@@ -76,7 +75,6 @@ class PandasDelegate:
         """
 
         def _create_delegator_property(name):
-
             def _getter(self):
                 return self._delegate_property_get(name)
 
@@ -86,11 +84,11 @@ class PandasDelegate:
             _getter.__name__ = name
             _setter.__name__ = name
 
-            return property(fget=_getter, fset=_setter,
-                            doc=getattr(delegate, name).__doc__)
+            return property(
+                fget=_getter, fset=_setter, doc=getattr(delegate, name).__doc__
+            )
 
         def _create_delegator_method(name):
-
             def f(self, *args, **kwargs):
                 return self._delegate_method(name, *args, **kwargs)
 
@@ -101,7 +99,7 @@ class PandasDelegate:
 
         for name in accessors:
 
-            if typ == 'property':
+            if typ == "property":
                 f = _create_delegator_property(name)
             else:
                 f = _create_delegator_method(name)
@@ -138,9 +136,9 @@ def delegate_names(delegate, accessors, typ, overwrite=False):
     class CategoricalAccessor(PandasDelegate):
         [...]
     """
+
     def add_delegate_accessors(cls):
-        cls._add_delegate_accessors(delegate, accessors, typ,
-                                    overwrite=overwrite)
+        cls._add_delegate_accessors(delegate, accessors, typ, overwrite=overwrite)
         return cls
 
     return add_delegate_accessors
@@ -150,6 +148,7 @@ def delegate_names(delegate, accessors, typ, overwrite=False):
 # https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
 # 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
 # 2. We use a UserWarning instead of a custom Warning
+
 
 class CachedAccessor:
     """
@@ -164,6 +163,7 @@ class CachedAccessor:
         should expect one of a ``Series``, ``DataFrame`` or ``Index`` as
         the single argument ``data``
     """
+
     def __init__(self, name, accessor):
         self._name = name
         self._accessor = accessor
@@ -185,18 +185,20 @@ def _register_accessor(name, cls):
     def decorator(accessor):
         if hasattr(cls, name):
             warnings.warn(
-                'registration of accessor {!r} under name {!r} for type '
-                '{!r} is overriding a preexisting attribute with the same '
-                'name.'.format(accessor, name, cls),
+                "registration of accessor {!r} under name {!r} for type "
+                "{!r} is overriding a preexisting attribute with the same "
+                "name.".format(accessor, name, cls),
                 UserWarning,
-                stacklevel=2)
+                stacklevel=2,
+            )
         setattr(cls, name, CachedAccessor(name, accessor))
         cls._accessors.add(name)
         return accessor
+
     return decorator
 
 
-_doc = """\
+_doc = """
 Register a custom accessor on %(klass)s objects.
 
 Parameters
@@ -266,25 +268,40 @@ Back in an interactive IPython session:
 """
 
 
-@Appender(_doc % dict(klass="DataFrame",
-                      others=("register_series_accessor, "
-                              "register_index_accessor")))
+@Appender(
+    _doc
+    % dict(
+        klass="DataFrame",
+        others=("register_series_accessor, " "register_index_accessor"),
+    )
+)
 def register_dataframe_accessor(name):
     from pandas import DataFrame
+
     return _register_accessor(name, DataFrame)
 
 
-@Appender(_doc % dict(klass="Series",
-                      others=("register_dataframe_accessor, "
-                              "register_index_accessor")))
+@Appender(
+    _doc
+    % dict(
+        klass="Series",
+        others=("register_dataframe_accessor, " "register_index_accessor"),
+    )
+)
 def register_series_accessor(name):
     from pandas import Series
+
     return _register_accessor(name, Series)
 
 
-@Appender(_doc % dict(klass="Index",
-                      others=("register_dataframe_accessor, "
-                              "register_series_accessor")))
+@Appender(
+    _doc
+    % dict(
+        klass="Index",
+        others=("register_dataframe_accessor, " "register_series_accessor"),
+    )
+)
 def register_index_accessor(name):
     from pandas import Index
+
     return _register_accessor(name, Index)
