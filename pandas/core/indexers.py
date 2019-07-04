@@ -9,8 +9,7 @@ from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 
 def is_list_like_indexer(key) -> bool:
     # allow a list_like, but exclude NamedTuples which can be indexers
-    return is_list_like(key) and not (isinstance(key, tuple) and
-                                      type(key) is not tuple)
+    return is_list_like(key) and not (isinstance(key, tuple) and type(key) is not tuple)
 
 
 def length_of_indexer(indexer, target=None) -> int:
@@ -72,18 +71,24 @@ def check_setitem_lengths(indexer, value, values):
     # boolean with truth values == len of the value is ok too
     if isinstance(indexer, (np.ndarray, list)):
         if is_list_like(value) and len(indexer) != len(value):
-            if not (isinstance(indexer, np.ndarray) and
-                    indexer.dtype == np.bool_ and
-                    len(indexer[indexer]) == len(value)):
-                raise ValueError("cannot set using a list-like indexer "
-                                 "with a different length than the value")
+            if not (
+                isinstance(indexer, np.ndarray)
+                and indexer.dtype == np.bool_
+                and len(indexer[indexer]) == len(value)
+            ):
+                raise ValueError(
+                    "cannot set using a list-like indexer "
+                    "with a different length than the value"
+                )
 
     elif isinstance(indexer, slice):
         # slice
         if is_list_like(value) and len(values):
             if len(value) != length_of_indexer(indexer, values):
-                raise ValueError("cannot set using a slice indexer with a "
-                                 "different length than the value")
+                raise ValueError(
+                    "cannot set using a slice indexer with a "
+                    "different length than the value"
+                )
 
 
 def is_scalar_indexer(indexer, arr_value) -> bool:
@@ -92,8 +97,7 @@ def is_scalar_indexer(indexer, arr_value) -> bool:
     if arr_value.ndim == 1:
         if not isinstance(indexer, tuple):
             indexer = tuple([indexer])
-            return any(isinstance(idx, np.ndarray) and len(idx) == 0
-                       for idx in indexer)
+            return any(isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer)
     return False
 
 
@@ -105,8 +109,7 @@ def is_empty_indexer(indexer, arr_value) -> bool:
     if arr_value.ndim == 1:
         if not isinstance(indexer, tuple):
             indexer = tuple([indexer])
-        return any(isinstance(idx, np.ndarray) and len(idx) == 0
-                   for idx in indexer)
+        return any(isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer)
     return False
 
 
@@ -142,8 +145,9 @@ def validate_indices(indices: np.ndarray, n: int):
     if len(indices):
         min_idx = indices.min()
         if min_idx < -1:
-            msg = ("'indices' contains values less than allowed ({} < {})"
-                   .format(min_idx, -1))
+            msg = "'indices' contains values less than allowed ({} < {})".format(
+                min_idx, -1
+            )
             raise ValueError(msg)
 
         max_idx = indices.max()

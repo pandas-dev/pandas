@@ -596,8 +596,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         setter(item, value[:, i].tolist())
 
                 # we have an equal len list/ndarray
-                elif _can_do_equal_len(labels, value, plane_indexer,
-                                       lplane_indexer, self.obj):
+                elif _can_do_equal_len(
+                    labels, value, plane_indexer, lplane_indexer, self.obj
+                ):
                     setter(labels[0], value)
 
                 # per label values
@@ -2626,8 +2627,7 @@ def _maybe_numeric_slice(df, slice_, include_bool=False):
 
 def _can_do_equal_len(labels, value, plane_indexer, lplane_indexer, obj):
     """ return True if we have an equal len settable """
-    if (not len(labels) == 1 or not np.iterable(value) or
-            is_scalar(plane_indexer[0])):
+    if not len(labels) == 1 or not np.iterable(value) or is_scalar(plane_indexer[0]):
         return False
 
     item = labels[0]
