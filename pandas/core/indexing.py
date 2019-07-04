@@ -110,13 +110,12 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         for x in key)
             try:
                 values = self.obj._get_value(*key)
-            except KeyError:
+            except (KeyError, TypeError):
+                # TypeError occurs here if the key has non-hashable entries,
+                #  generally slice or list.
+                # TODO(ix): most/all of the TypeError cases here are for ix,
+                #  so this check can be removed once ix is removed.
                 pass
-            except TypeError:
-                if any(isinstance(x, (slice, list, MultiIndex)) for x in key):
-                    pass
-                else:
-                    raise
             else:
                 if is_scalar(values):
                     return values
