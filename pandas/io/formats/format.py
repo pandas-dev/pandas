@@ -6,6 +6,7 @@ and latex files. This module also applies to display formatting.
 from functools import partial
 from io import StringIO
 from shutil import get_terminal_size
+from typing import Optional, Union
 from unicodedata import east_asian_width
 
 import numpy as np
@@ -420,7 +421,11 @@ class TableFormatter:
                 i = self.columns[i]
             return self.formatters.get(i, None)
 
-    def _format_col(self, i):
+    def _format_col(self, i: int):
+        """
+        Calls `format_array` for column `i` of truncated DataFrame with
+        optional `formatter`
+        """
         frame = self.tr_frame
         formatter = self._get_formatter(i)
         values_to_format = frame.iloc[:, i]._formatting_values()
@@ -968,7 +973,7 @@ def format_array(
     justify="right",
     decimal=".",
     leading_space=None,
-    max_colwidth=None,
+    max_colwidth: Optional[Union[bool, int]] = None,
 ):
     """
     Format an array for printing.
@@ -996,6 +1001,8 @@ def format_array(
         * False: do not truncate strings
         * int: the maximum width of strings
         * None: use display.max_colwidth setting
+
+        .. versionadded:: 1.0
 
     Returns
     -------
