@@ -170,7 +170,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See the :ref:`user guide <basics.dtypes>` for more usages.
     copy : bool, default False
         Copy input data.
-    fastpath: bool, default False
+    fastpath : bool, default False
         Internal use only
     """
 
