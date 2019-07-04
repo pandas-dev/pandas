@@ -713,3 +713,14 @@ def test_to_html_with_col_space_units(unit):
     for h in hdrs:
         expected = '<th style="min-width: {unit};">'.format(unit=unit)
         assert expected in h
+
+
+def test_series():
+    df = DataFrame({'abc': range(1000)})
+
+    a = df.to_html()
+    b = df.abc.to_html()
+
+    assert a != b
+    assert 0.5 * len(b) < len(a) < 2 * len(b)
+    assert "abc" in b
