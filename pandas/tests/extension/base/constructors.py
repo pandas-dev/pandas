@@ -8,7 +8,6 @@ from .base import BaseExtensionTests
 
 
 class BaseConstructorsTests(BaseExtensionTests):
-
     def test_from_sequence_from_cls(self, data):
         result = type(data)._from_sequence(data, dtype=data.dtype)
         self.assert_extension_array_equal(result, data)
@@ -39,7 +38,7 @@ class BaseConstructorsTests(BaseExtensionTests):
         if from_series:
             data = pd.Series(data)
         result = pd.DataFrame({"A": data})
-        assert result.dtypes['A'] == data.dtype
+        assert result.dtypes["A"] == data.dtype
         assert result.shape == (len(data), 1)
         assert isinstance(result._data.blocks[0], ExtensionBlock)
 
@@ -50,7 +49,7 @@ class BaseConstructorsTests(BaseExtensionTests):
         assert isinstance(result._data.blocks[0], ExtensionBlock)
 
     def test_series_given_mismatched_index_raises(self, data):
-        msg = 'Length of passed values is 3, index implies 5'
+        msg = "Length of passed values is 3, index implies 5"
         with pytest.raises(ValueError, match=msg):
             pd.Series(data[:3], index=[0, 1, 2, 3, 4])
 
