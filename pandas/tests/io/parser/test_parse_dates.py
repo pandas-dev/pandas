@@ -635,6 +635,21 @@ def test_read_with_parse_dates_invalid_type(all_parsers, parse_dates):
         parser.read_csv(StringIO(data), parse_dates=(1,))
 
 
+@pytest.mark.parametrize("cache_dates", [True, False])
+@pytest.mark.parametrize("value", [
+    'nan', '0', ''])
+def test_bad_date_parse(all_parsers, cache_dates, value):
+    # if we have an invalid date make sure that we handle this with
+    # and w/o the cache properly
+    parser = all_parsers
+    s = StringIO(('%s,\n' % value) * 50000)
+
+    parser.read_csv(s,
+                    header=None, names=['foo', 'bar'], parse_dates=['foo'],
+                    infer_datetime_format=False,
+                    cache_dates=cache_dates)
+
+
 def test_parse_dates_empty_string(all_parsers):
     # see gh-2263
     parser = all_parsers

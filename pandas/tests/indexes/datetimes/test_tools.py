@@ -2032,3 +2032,23 @@ class TestOrigin:
         result = to_datetime([arg], unit='ns', utc=utc)
         expected = to_datetime([exp])
         tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize('listlike,do_caching', [
+    ([1, 2, 3, 4, 5, 6, 7, 8, 9, 0], False),
+    ([1, 1, 1, 1, 4, 5, 6, 7, 8, 9], True)
+])
+def test_should_cache(listlike, do_caching):
+    assert tools.should_cache(listlike, check_count=len(listlike),
+                              unique_share=0.7) == do_caching
+
+
+@pytest.mark.parametrize('unique_share,check_count, err_message', [
+    (0.5, 11, r'check_count must be in next bounds: \[0; len\(arg\)\]'),
+    (10, 2, r'unique_share must be in next bounds: \(0; 1\)')
+])
+def test_should_cache_errors(unique_share, check_count, err_message):
+    arg = [5] * 10
+
+    with pytest.raises(AssertionError, match=err_message):
+        tools.should_cache(arg, unique_share, check_count)

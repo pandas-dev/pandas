@@ -22,6 +22,14 @@ from pandas.core.dtypes.missing import notna
 
 from pandas._typing import ArrayLike
 from pandas.core import algorithms
+from pandas.core.algorithms import unique
+
+# ---------------------------------------------------------------------
+# types used in annotations
+
+ArrayConvertible = Union[list, tuple, ArrayLike, ABCSeries]
+
+# ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -42,13 +50,67 @@ def _guess_datetime_format_for_array(arr, **kwargs):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 
+def should_cache(arg: ArrayConvertible, unique_share: float = 0.7,
+                 check_count: Optional[int] = None) -> bool:
+    """
+    Decides whether to do caching.
+
+    If the percent of unique elements among `check_count` elements less
+    than `unique_share * 100` then we can do caching.
+
+    Parameters
+    ----------
+    arg: listlike, tuple, 1-d array, Series
+    unique_share: float, default=0.7, optional
+        0 < unique_share < 1
+    check_count: int, optional
+        0 <= check_count <= len(arg)
+
+    Returns
+    -------
+    do_caching: bool
+
+    Notes
+    -----
+    By default for a sequence of less than 50 items in size, we don't do
+    caching; for the number of elements less than 5000, we take ten percent of
+    all elements to check for a uniqueness share; if the sequence size is more
+    than 5000, then we check only the first 500 elements.
+    All constants were chosen empirically by.
+    """
+    do_caching = True
+
+    # default realization
+    if check_count is None:
+        # in this case, the gain from caching is negligible
+        if len(arg) <= 50:
+            return False
+
+        if len(arg) <= 5000:
+            check_count = int(len(arg) * 0.1)
+        else:
+            check_count = 500
+    else:
+        assert 0 <= check_count <= len(arg), \
+            'check_count must be in next bounds: [0; len(arg)]'
+        if check_count == 0:
+            return False
+
+    assert 0 < unique_share < 1, 'unique_share must be in next bounds: (0; 1)'
+
+    unique_elements = unique(arg[:check_count])
+    if len(unique_elements) > check_count * unique_share:
+        do_caching = False
+    return do_caching
+
+
 def _maybe_cache(arg, format, cache, convert_listlike):
     """
     Create a cache of unique dates from an array of dates
 
     Parameters
     ----------
-    arg : integer, float, string, datetime, list, tuple, 1-d array, Series
+    arg : listlike, tuple, 1-d array, Series
     format : string
         Strftime format to parse time
     cache : boolean
@@ -65,11 +127,12 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     cache_array = Series()
     if cache:
         # Perform a quicker unique check
-        from pandas import Index
-        unique_dates = Index(arg).unique()
+        if not should_cache(arg):
+            return cache_array
+
+        unique_dates = unique(arg)
         if len(unique_dates) < len(arg):
-            cache_dates = convert_listlike(unique_dates.to_numpy(),
-                                           True, format)
+            cache_dates = convert_listlike(unique_dates, True, format)
             cache_array = Series(cache_dates, index=unique_dates)
     return cache_array
 
@@ -448,7 +511,7 @@ def _adjust_to_origin(arg, origin, unit):
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False, origin='unix',
-                cache=False):
+                cache=True):
     """
     Convert argument to datetime.
 
@@ -529,12 +592,15 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
           origin.
 
         .. versionadded:: 0.20.0
-    cache : boolean, default False
+    cache : boolean, default True
         If True, use a cache of unique, converted dates to apply the datetime
         conversion. May produce significant speed-up when parsing duplicate
         date strings, especially ones with timezone offsets.
 
         .. versionadded:: 0.23.0
+
+        .. versionchanged:: 0.25.0
+            - changed default value from False to True
 
     Returns
     -------

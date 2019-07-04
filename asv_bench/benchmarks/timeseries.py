@@ -300,6 +300,19 @@ class ToDatetimeYYYYMMDD:
         to_datetime(self.stringsD, format='%Y%m%d')
 
 
+class ToDatetimeCacheSmallCount(object):
+
+    params = ([True, False], [50, 500, 5000, 100000])
+    param_names = ['cache', 'count']
+
+    def setup(self, cache, count):
+        rng = date_range(start='1/1/1971', periods=count)
+        self.unique_date_strings = rng.strftime('%Y-%m-%d').tolist()
+
+    def time_unique_date_strings(self, cache, count):
+        to_datetime(self.unique_date_strings, cache=cache)
+
+
 class ToDatetimeISO8601:
 
     def setup(self):
