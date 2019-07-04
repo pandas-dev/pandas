@@ -929,7 +929,7 @@ class MultiIndex(Index):
             # discards freq
             kwargs.pop('freq', None)
             return MultiIndex.from_tuples(values, names=names, **kwargs)
-        return self.view()
+        return self.copy(**kwargs)
 
     @cache_readonly
     def dtype(self):
@@ -1810,7 +1810,7 @@ class MultiIndex(Index):
             new_levels.append(lev)
             new_codes.append(level_codes)
 
-        result = self._shallow_copy()
+        result = self.view()
 
         if changed:
             result._reset_identity()
