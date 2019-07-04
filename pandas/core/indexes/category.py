@@ -74,6 +74,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Make a copy of input ndarray.
     name : object, optional
         Name to be stored in the index.
+    fastpath: bool, default None
+        Internal use only
 
     Attributes
     ----------

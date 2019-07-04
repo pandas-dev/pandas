@@ -167,6 +167,8 @@ class Index(IndexOpsMixin, PandasObject):
         Make a copy of input ndarray
     name : object
         Name to be stored in the index
+    fastpath : bool, default None
+        Internal use only
     tupleize_cols : bool (default: True)
         When True, attempt to create a MultiIndex if possible
 

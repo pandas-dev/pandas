@@ -132,6 +132,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See the :ref:`user guide <basics.dtypes>` for more usages.
     copy : bool, default False
         Copy input data.
+    fastpath: bool, default False
+        Internal use only
     """
     _metadata = ['name']
     _accessors = {'dt', 'cat', 'str', 'sparse'}
