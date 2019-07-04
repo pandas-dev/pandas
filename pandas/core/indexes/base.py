@@ -5127,13 +5127,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def _get_loc_only_exact_matches(self, key):
-        """
-        This is overridden on subclasses (namely, IntervalIndex) to control
-        get_slice_bound.
-        """
-        return self.get_loc(key)
-
     def get_slice_bound(self, label, side, kind, closed=None):
         """
         Calculate slice bound that corresponds to given label.
