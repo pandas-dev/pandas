@@ -20,9 +20,7 @@ class TestSeriesFlexArithmetic:
             (lambda x: x, lambda x: x * 2, False),
             (lambda x: x, lambda x: x[::2], False),
             (lambda x: x, lambda x: 5, True),
-            (lambda x: tm.makeFloatSeries(),
-             lambda x: tm.makeFloatSeries(),
-             True),
+            (lambda x: tm.makeFloatSeries(), lambda x: tm.makeFloatSeries(), True),
         ],
     )
     @pytest.mark.parametrize(
