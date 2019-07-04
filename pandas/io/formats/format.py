@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCIndexClass,
     ABCMultiIndex,
     ABCSeries,
@@ -40,7 +41,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas import DataFrame
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.index import Index, ensure_index
@@ -404,7 +404,7 @@ class TableFormatter:
 
     is_truncated = False
     show_dimensions = None
-    tr_frame = None  # type: DataFrame
+    tr_frame = None  # type: ABCDataFrame
     float_format = None
     na_rep = None
     col_space = None
