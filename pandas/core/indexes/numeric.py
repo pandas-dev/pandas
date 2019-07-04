@@ -72,9 +72,9 @@ class NumericIndex(Index):
             name = data.name
         return cls._simple_new(subarr, name=name)
 
-    @Appender(_index_shared_docs['_maybe_cast_slice_bound'])
+    @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind, closed=None):
-        assert kind in ['ix', 'loc', 'getitem', None]
+        assert kind in ["ix", "loc", "getitem", None]
 
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)

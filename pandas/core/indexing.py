@@ -26,7 +26,7 @@ from pandas.core.dtypes.missing import _infer_fill_value, isna
 import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex
 
-_VALID_CLOSED = {'left', 'right', 'both', 'neither'}
+_VALID_CLOSED = {"left", "right", "both", "neither"}
 
 
 # the supported indexers
@@ -1509,9 +1509,13 @@ class _LocationIndexer(_NDFrameIndexer):
             return obj.copy(deep=False)
 
         labels = obj._get_axis(axis)
-        indexer = labels.slice_indexer(slice_obj.start, slice_obj.stop,
-                                       slice_obj.step, kind=self.name,
-                                       closed=closed)
+        indexer = labels.slice_indexer(
+            slice_obj.start,
+            slice_obj.stop,
+            slice_obj.step,
+            kind=self.name,
+            closed=closed,
+        )
 
         if isinstance(indexer, slice):
             return self._slice(indexer, axis=axis, kind="iloc")

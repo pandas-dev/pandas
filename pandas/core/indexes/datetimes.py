@@ -1110,11 +1110,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             # length > 1 (is_monotonic_decreasing gives True for empty
             # and length 1 index)
             if self._is_strictly_monotonic_decreasing and len(self) > 1:
-                return upper if side == 'left' else lower
-            if side == 'left':
+                return upper if side == "left" else lower
+            if side == "left":
                 return lower
             else:
-                if closed in ['right', 'both']:
+                if closed in ["right", "both"]:
                     return lower
                 else:
                     return upper
@@ -1127,8 +1127,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs, use_rhs=use_rhs)
         return loc
 
-    def slice_indexer(
-            self, start=None, end=None, step=None, kind=None, closed=None):
+    def slice_indexer(self, start=None, end=None, step=None, kind=None, closed=None):
         """
         Return indexer for specified label slice.
         Index.slice_indexer, customized to handle time slicing.
@@ -1154,8 +1153,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             raise KeyError("Cannot mix time and non-time slice keys")
 
         try:
-            return Index.slice_indexer(
-                self, start, end, step, kind=kind, closed=closed)
+            return Index.slice_indexer(self, start, end, step, kind=kind, closed=closed)
         except KeyError:
             # For historical reasons DatetimeIndex by default supports
             # value-based partial (aka string) slices on non-monotonic arrays,
