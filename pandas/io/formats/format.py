@@ -6,7 +6,7 @@ and latex files. This module also applies to display formatting.
 from functools import partial
 from io import StringIO
 from shutil import get_terminal_size
-from typing import Optional, Union
+from typing import Any, Optional, Union
 from unicodedata import east_asian_width
 
 import numpy as np
@@ -40,6 +40,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas import DataFrame
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.index import Index, ensure_index
@@ -403,6 +404,12 @@ class TableFormatter:
 
     is_truncated = False
     show_dimensions = None
+    tr_frame = None  # type: DataFrame
+    float_format = None
+    na_rep = None
+    col_space = None
+    decimal = None
+    max_colwidth = None
 
     @property
     def should_show_dimensions(self):
@@ -1010,7 +1017,7 @@ def format_array(
     """
 
     if is_datetime64_dtype(values.dtype):
-        fmt_klass = Datetime64Formatter
+        fmt_klass = Datetime64Formatter  # type: Any
     elif is_datetime64tz_dtype(values):
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
