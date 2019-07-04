@@ -6,16 +6,26 @@ import warnings
 import numpy as np
 
 from pandas._libs.tslibs.frequencies import (
-    FreqGroup, get_base_alias, get_freq, is_subperiod, is_superperiod)
+    FreqGroup,
+    get_base_alias,
+    get_freq,
+    is_subperiod,
+    is_superperiod,
+)
 from pandas._libs.tslibs.period import Period
 
 from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
+    ABCDatetimeIndex,
+    ABCPeriodIndex,
+    ABCTimedeltaIndex,
+)
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.converter import (
-    TimeSeries_DateFormatter, TimeSeries_DateLocator,
-    TimeSeries_TimedeltaFormatter)
+    TimeSeries_DateFormatter,
+    TimeSeries_DateLocator,
+    TimeSeries_TimedeltaFormatter,
+)
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.offsets import DateOffset
 
@@ -41,9 +51,13 @@ def tsplot(series, plotf, ax=None, **kwargs):
        Use Series.plot() instead
     """
     import matplotlib.pyplot as plt
-    warnings.warn("'tsplot' is deprecated and will be removed in a "
-                  "future version. Please use Series.plot() instead.",
-                  FutureWarning, stacklevel=2)
+
+    warnings.warn(
+        "'tsplot' is deprecated and will be removed in a "
+        "future version. Please use Series.plot() instead.",
+        FutureWarning,
+        stacklevel=2,
+    )
 
     # Used inferred freq is possible, need a test case for inferred
     if ax is None:
@@ -66,7 +80,7 @@ def _maybe_resample(series, ax, kwargs):
     freq, ax_freq = _get_freq(ax, series)
 
     if freq is None:  # pragma: no cover
-        raise ValueError('Cannot use dynamic axis without frequency info')
+        raise ValueError("Cannot use dynamic axis without frequency info")
 
     # Convert DatetimeIndex to PeriodIndex
     if isinstance(series.index, ABCDatetimeIndex):
@@ -75,28 +89,30 @@ def _maybe_resample(series, ax, kwargs):
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy()
-            series.index = series.index.asfreq(ax_freq, how='s')
+            series.index = series.index.asfreq(ax_freq, how="s")
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
-            how = kwargs.pop('how', 'last')
-            series = getattr(series.resample('D'), how)().dropna()
+            how = kwargs.pop("how", "last")
+            series = getattr(series.resample("D"), how)().dropna()
             series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
         elif is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
         else:  # pragma: no cover
-            raise ValueError('Incompatible frequency conversion')
+            raise ValueError("Incompatible frequency conversion")
     return freq, series
 
 
 def _is_sub(f1, f2):
-    return ((f1.startswith('W') and is_subperiod('D', f2)) or
-            (f2.startswith('W') and is_subperiod(f1, 'D')))
+    return (f1.startswith("W") and is_subperiod("D", f2)) or (
+        f2.startswith("W") and is_subperiod(f1, "D")
+    )
 
 
 def _is_sup(f1, f2):
-    return ((f1.startswith('W') and is_superperiod('D', f2)) or
-            (f2.startswith('W') and is_superperiod(f1, 'D')))
+    return (f1.startswith("W") and is_superperiod("D", f2)) or (
+        f2.startswith("W") and is_superperiod(f1, "D")
+    )
 
 
 def _upsample_others(ax, freq, kwargs):
@@ -105,9 +121,9 @@ def _upsample_others(ax, freq, kwargs):
     _replot_ax(ax, freq, kwargs)
 
     other_ax = None
-    if hasattr(ax, 'left_ax'):
+    if hasattr(ax, "left_ax"):
         other_ax = ax.left_ax
-    if hasattr(ax, 'right_ax'):
+    if hasattr(ax, "right_ax"):
         other_ax = ax.right_ax
 
     if other_ax is not None:
@@ -115,16 +131,15 @@ def _upsample_others(ax, freq, kwargs):
         lines.extend(rlines)
         labels.extend(rlabels)
 
-    if (legend is not None and kwargs.get('legend', True) and
-            len(lines) > 0):
+    if legend is not None and kwargs.get("legend", True) and len(lines) > 0:
         title = legend.get_title().get_text()
-        if title == 'None':
+        if title == "None":
             title = None
-        ax.legend(lines, labels, loc='best', title=title)
+        ax.legend(lines, labels, loc="best", title=title)
 
 
 def _replot_ax(ax, freq, kwargs):
-    data = getattr(ax, '_plot_data', None)
+    data = getattr(ax, "_plot_data", None)
 
     # clear current axes and data
     ax._plot_data = []
@@ -137,21 +152,17 @@ def _replot_ax(ax, freq, kwargs):
     if data is not None:
         for series, plotf, kwds in data:
             series = series.copy()
-            idx = series.index.asfreq(freq, how='S')
+            idx = series.index.asfreq(freq, how="S")
             series.index = idx
             ax._plot_data.append((series, plotf, kwds))
 
             # for tsplot
             if isinstance(plotf, str):
-                # XXX _plot_classes is private and shouldn't be imported
-                # here. But as tsplot is deprecated, and we'll remove this
-                # code soon, it's probably better to not overcomplicate
-                # things, and just leave this the way it was implemented
-                from pandas.plotting._core import _plot_classes
-                plotf = _plot_classes()[plotf]._plot
+                from pandas.plotting._matplotlib import PLOT_CLASSES
 
-            lines.append(plotf(ax, series.index._mpl_repr(),
-                               series.values, **kwds)[0])
+                plotf = PLOT_CLASSES[plotf]._plot
+
+            lines.append(plotf(ax, series.index._mpl_repr(), series.values, **kwds)[0])
             labels.append(pprint_thing(series.name))
 
     return lines, labels
@@ -159,16 +170,16 @@ def _replot_ax(ax, freq, kwargs):
 
 def _decorate_axes(ax, freq, kwargs):
     """Initialize axes for time-series plotting"""
-    if not hasattr(ax, '_plot_data'):
+    if not hasattr(ax, "_plot_data"):
         ax._plot_data = []
 
     ax.freq = freq
     xaxis = ax.get_xaxis()
     xaxis.freq = freq
-    if not hasattr(ax, 'legendlabels'):
-        ax.legendlabels = [kwargs.get('label', None)]
+    if not hasattr(ax, "legendlabels"):
+        ax.legendlabels = [kwargs.get("label", None)]
     else:
-        ax.legendlabels.append(kwargs.get('label', None))
+        ax.legendlabels.append(kwargs.get("label", None))
     ax.view_interval = None
     ax.date_axis_info = None
 
@@ -179,19 +190,19 @@ def _get_ax_freq(ax):
     Also checks shared axes (eg when using secondary yaxis, sharex=True
     or twinx)
     """
-    ax_freq = getattr(ax, 'freq', None)
+    ax_freq = getattr(ax, "freq", None)
     if ax_freq is None:
         # check for left/right ax in case of secondary yaxis
-        if hasattr(ax, 'left_ax'):
-            ax_freq = getattr(ax.left_ax, 'freq', None)
-        elif hasattr(ax, 'right_ax'):
-            ax_freq = getattr(ax.right_ax, 'freq', None)
+        if hasattr(ax, "left_ax"):
+            ax_freq = getattr(ax.left_ax, "freq", None)
+        elif hasattr(ax, "right_ax"):
+            ax_freq = getattr(ax.right_ax, "freq", None)
     if ax_freq is None:
         # check if a shared ax (sharex/twinx) has already freq set
         shared_axes = ax.get_shared_x_axes().get_siblings(ax)
         if len(shared_axes) > 1:
             for shared_ax in shared_axes:
-                ax_freq = getattr(shared_ax, 'freq', None)
+                ax_freq = getattr(shared_ax, "freq", None)
                 if ax_freq is not None:
                     break
     return ax_freq
@@ -199,9 +210,9 @@ def _get_ax_freq(ax):
 
 def _get_freq(ax, series):
     # get frequency from data
-    freq = getattr(series.index, 'freq', None)
+    freq = getattr(series.index, "freq", None)
     if freq is None:
-        freq = getattr(series.index, 'inferred_freq', None)
+        freq = getattr(series.index, "inferred_freq", None)
 
     ax_freq = _get_ax_freq(ax)
 
@@ -245,17 +256,17 @@ def _use_dynamic_x(ax, data):
     if isinstance(data.index, ABCDatetimeIndex):
         base = get_freq(freq)
         x = data.index
-        if (base <= FreqGroup.FR_DAY):
+        if base <= FreqGroup.FR_DAY:
             return x[:1].is_normalized
         return Period(x[0], freq).to_timestamp(tz=x.tz) == x[0]
     return True
 
 
 def _get_index_freq(data):
-    freq = getattr(data.index, 'freq', None)
+    freq = getattr(data.index, "freq", None)
     if freq is None:
-        freq = getattr(data.index, 'inferred_freq', None)
-        if freq == 'B':
+        freq = getattr(data.index, "inferred_freq", None)
+        if freq == "B":
             weekdays = np.unique(data.index.dayofweek)
             if (5 in weekdays) or (6 in weekdays):
                 freq = None
@@ -266,10 +277,10 @@ def _maybe_convert_index(ax, data):
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
-        freq = getattr(data.index, 'freq', None)
+        freq = getattr(data.index, "freq", None)
 
         if freq is None:
-            freq = getattr(data.index, 'inferred_freq', None)
+            freq = getattr(data.index, "inferred_freq", None)
         if isinstance(freq, DateOffset):
             freq = freq.rule_code
 
@@ -277,7 +288,7 @@ def _maybe_convert_index(ax, data):
             freq = _get_ax_freq(ax)
 
         if freq is None:
-            raise ValueError('Could not get frequency alias for plotting')
+            raise ValueError("Could not get frequency alias for plotting")
 
         freq = get_base_alias(freq)
         freq = frequencies.get_period_alias(freq)
@@ -292,6 +303,7 @@ def _maybe_convert_index(ax, data):
 # Patch methods for subplot. Only format_dateaxis is currently used.
 # Do we need the rest for convenience?
 
+
 def format_timedelta_ticks(x, pos, n_decimals):
     """
     Convert seconds to 'D days HH:MM:SS.F'
@@ -300,12 +312,12 @@ def format_timedelta_ticks(x, pos, n_decimals):
     m, s = divmod(s, 60)
     h, m = divmod(m, 60)
     d, h = divmod(h, 24)
-    decimals = int(ns * 10**(n_decimals - 9))
-    s = r'{:02d}:{:02d}:{:02d}'.format(int(h), int(m), int(s))
+    decimals = int(ns * 10 ** (n_decimals - 9))
+    s = r"{:02d}:{:02d}:{:02d}".format(int(h), int(m), int(s))
     if n_decimals > 0:
-        s += '.{{:0{:0d}d}}'.format(n_decimals).format(decimals)
+        s += ".{{:0{:0d}d}}".format(n_decimals).format(decimals)
     if d != 0:
-        s = '{:d} days '.format(int(d)) + s
+        s = "{:d} days ".format(int(d)) + s
     return s
 
 
@@ -329,21 +341,21 @@ def format_dateaxis(subplot, freq, index):
     # interface. DatetimeIndex uses matplotlib.date directly
     if isinstance(index, ABCPeriodIndex):
 
-        majlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
-                                            minor_locator=False,
-                                            plot_obj=subplot)
-        minlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
-                                            minor_locator=True,
-                                            plot_obj=subplot)
+        majlocator = TimeSeries_DateLocator(
+            freq, dynamic_mode=True, minor_locator=False, plot_obj=subplot
+        )
+        minlocator = TimeSeries_DateLocator(
+            freq, dynamic_mode=True, minor_locator=True, plot_obj=subplot
+        )
         subplot.xaxis.set_major_locator(majlocator)
         subplot.xaxis.set_minor_locator(minlocator)
 
-        majformatter = TimeSeries_DateFormatter(freq, dynamic_mode=True,
-                                                minor_locator=False,
-                                                plot_obj=subplot)
-        minformatter = TimeSeries_DateFormatter(freq, dynamic_mode=True,
-                                                minor_locator=True,
-                                                plot_obj=subplot)
+        majformatter = TimeSeries_DateFormatter(
+            freq, dynamic_mode=True, minor_locator=False, plot_obj=subplot
+        )
+        minformatter = TimeSeries_DateFormatter(
+            freq, dynamic_mode=True, minor_locator=True, plot_obj=subplot
+        )
         subplot.xaxis.set_major_formatter(majformatter)
         subplot.xaxis.set_minor_formatter(minformatter)
 
@@ -351,9 +363,8 @@ def format_dateaxis(subplot, freq, index):
         subplot.format_coord = functools.partial(_format_coord, freq)
 
     elif isinstance(index, ABCTimedeltaIndex):
-        subplot.xaxis.set_major_formatter(
-            TimeSeries_TimedeltaFormatter())
+        subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter())
     else:
-        raise TypeError('index type not supported')
+        raise TypeError("index type not supported")
 
     pylab.draw_if_interactive()
