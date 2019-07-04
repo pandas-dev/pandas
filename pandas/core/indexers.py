@@ -41,7 +41,7 @@ def length_of_indexer(indexer, target=None) -> int:
     raise AssertionError("cannot find the length of the indexer")
 
 
-def check_setitem_lengths(indexer, value, values):
+def check_setitem_lengths(indexer, value, values) -> None:
     """
     Validate that value and indexer are the same length.
 
@@ -113,7 +113,7 @@ def is_empty_indexer(indexer, arr_value) -> bool:
     return False
 
 
-def validate_indices(indices: np.ndarray, n: int):
+def validate_indices(indices: np.ndarray, n: int) -> None:
     """
     Perform bounds-checking for an indexer.
 
