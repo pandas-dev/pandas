@@ -5189,12 +5189,12 @@ class Index(IndexOpsMixin, PandasObject):
                 return slc.stop
         else:
             if side == "right":
-                if closed in ["right", "both"]:
+                if closed in ["left", "neither"]:
                     return slc
                 else:
                     return slc + 1
             else:
-                if closed in ["left", "both"]:
+                if closed in ["right", "neither"]:
                     return slc + 1
                 else:
                     return slc

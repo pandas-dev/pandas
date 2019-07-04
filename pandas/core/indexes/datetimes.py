@@ -1114,7 +1114,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             if side == "left":
                 return lower
             else:
-                if closed in ["right", "both"]:
+                if closed in ["left", "neither"]:
                     return lower
                 else:
                     return upper
