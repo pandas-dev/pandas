@@ -119,7 +119,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
             with open(path_or_buf, mode) as fh:
                 writer(fh)
         except FileNotFoundError:
-            raise ValueError('path_or_buf is invalid or was not found')
+            raise FileNotFoundError('path_or_buf is invalid or was not found')
 
     elif path_or_buf is None:
         buf = BytesIO()

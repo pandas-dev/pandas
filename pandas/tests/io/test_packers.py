@@ -159,7 +159,7 @@ class TestAPI(TestPackers):
             read_msgpack(path_or_buf={})
         with pytest.raises(ValueError, match=msg.format(r'.*\.A')):
             read_msgpack(path_or_buf=A())
-        with pytest.raises(ValueError):
+        with pytest.raises(FileNotFoundError):
             df = tm.makeDataFrame()
             df.to_msgpack(os.path.join('nonexistent_dir', 'df.msgpack'))
 
