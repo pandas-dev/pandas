@@ -107,6 +107,59 @@ cdef class IntervalMixin:
         """Return the length of the Interval"""
         return self.right - self.left
 
+    @property
+    def is_empty(self):
+        """
+        Indicates if an interval is empty, meaning it contains no points.
+
+        .. versionadded:: 0.25.0
+
+        Returns
+        -------
+        bool or ndarray
+            A boolean indicating if a scalar :class:`Interval` is empty, or a
+            boolean ``ndarray`` positionally indicating if an ``Interval`` in
+            an :class:`~arrays.IntervalArray` or :class:`IntervalIndex` is
+            empty.
+
+        Examples
+        --------
+        An :class:`Interval` that contains points is not empty:
+
+        >>> pd.Interval(0, 1, closed='right').is_empty
+        False
+
+        An ``Interval`` that does not contain any points is empty:
+
+        >>> pd.Interval(0, 0, closed='right').is_empty
+        True
+        >>> pd.Interval(0, 0, closed='left').is_empty
+        True
+        >>> pd.Interval(0, 0, closed='neither').is_empty
+        True
+
+        An ``Interval`` that contains a single point is not empty:
+
+        >>> pd.Interval(0, 0, closed='both').is_empty
+        False
+
+        An :class:`~arrays.IntervalArray` or :class:`IntervalIndex` returns a
+        boolean ``ndarray`` positionally indicating if an ``Interval`` is
+        empty:
+
+        >>> ivs = [pd.Interval(0, 0, closed='neither'),
+        ...        pd.Interval(1, 2, closed='neither')]
+        >>> pd.arrays.IntervalArray(ivs).is_empty
+        array([ True, False])
+
+        Missing values are not considered empty:
+
+        >>> ivs = [pd.Interval(0, 0, closed='neither'), np.nan]
+        >>> pd.IntervalIndex(ivs).is_empty
+        array([ True, False])
+        """
+        return (self.right == self.left) & (self.closed != 'both')
+
     def _check_closed_matches(self, other, name='other'):
         """Check if the closed attribute of `other` matches.
 

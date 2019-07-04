@@ -332,7 +332,7 @@ class Categorical(ExtensionArray, PandasObject):
         # sanitize input
         if is_categorical_dtype(values):
             if dtype.categories is None:
-                dtype = CategoricalDtype(values.categories, dtype.ordered)
+                dtype = CategoricalDtype(values.categories, dtype._ordered)
         elif not isinstance(values, (ABCIndexClass, ABCSeries)):
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
@@ -355,7 +355,7 @@ class Categorical(ExtensionArray, PandasObject):
                 codes, categories = factorize(values, sort=True)
             except TypeError:
                 codes, categories = factorize(values, sort=False)
-                if dtype.ordered:
+                if dtype._ordered:
                     # raise, as we don't have a sortable data structure and so
                     # the user should give us one by specifying categories
                     raise TypeError("'values' is not ordered, please "
@@ -368,7 +368,7 @@ class Categorical(ExtensionArray, PandasObject):
                                           "supported at this time")
 
             # we're inferring from values
-            dtype = CategoricalDtype(categories, dtype.ordered)
+            dtype = CategoricalDtype(categories, dtype._ordered)
 
         elif is_categorical_dtype(values):
             old_codes = (values._values.codes if isinstance(values, ABCSeries)
@@ -433,7 +433,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Whether the categories have an ordered relationship.
         """
-        return self.dtype.ordered
+        return self.dtype._ordered
 
     @property
     def dtype(self) -> CategoricalDtype:
@@ -847,7 +847,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if ordered is None:
-            ordered = self.dtype.ordered
+            ordered = self.dtype._ordered
         new_dtype = CategoricalDtype(new_categories, ordered=ordered)
 
         cat = self if inplace else self.copy()
@@ -1531,12 +1531,13 @@ class Categorical(ExtensionArray, PandasObject):
     def _values_for_argsort(self):
         return self._codes.copy()
 
-    def argsort(self, *args, **kwargs):
-        # TODO(PY2): use correct signature
-        # We have to do *args, **kwargs to avoid a a py2-only signature
-        # issue since np.argsort differs from argsort.
+    def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
         """
         Return the indices that would sort the Categorical.
+
+        .. versionchanged:: 0.25.0
+
+           Changed to sort missing values at the end.
 
         Parameters
         ----------
@@ -1574,9 +1575,14 @@ class Categorical(ExtensionArray, PandasObject):
         ...                      ordered=True)
         >>> cat.argsort()
         array([3, 0, 1, 2])
+
+        Missing values are placed at the end
+
+        >>> cat = pd.Categorical([2, None, 1])
+        >>> cat.argsort()
+        array([2, 0, 1])
         """
-        # Keep the implementation here just for the docstring.
-        return super().argsort(*args, **kwargs)
+        return super().argsort(ascending=ascending, kind=kind, *args, **kwargs)
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
         """
@@ -1707,6 +1713,9 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         numpy.array
         """
+        warn("Categorical.ravel will return a Categorical object instead "
+             "of an ndarray in a future version.",
+             FutureWarning, stacklevel=2)
         return np.array(self)
 
     def view(self):

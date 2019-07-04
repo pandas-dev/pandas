@@ -30,7 +30,7 @@ def df_ref():
     return df_ref
 
 
-@pytest.fixture(params=['.xls', '.xlsx', '.xlsm'])
+@pytest.fixture(params=['.xls', '.xlsx', '.xlsm', '.ods'])
 def read_ext(request):
     """
     Valid extensions for reading Excel files.

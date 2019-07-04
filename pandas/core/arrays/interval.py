@@ -41,11 +41,6 @@ _interval_shared_docs['class'] = """
 
 .. versionadded:: %(versionadded)s
 
-.. warning::
-
-   The indexing behaviors are provisional and may change in
-   a future version of pandas.
-
 Parameters
 ----------
 data : array-like (1-dimensional)
@@ -71,6 +66,7 @@ right
 closed
 mid
 length
+is_empty
 is_non_overlapping_monotonic
 %(extra_attributes)s\
 

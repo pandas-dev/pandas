@@ -65,8 +65,7 @@ from pandas.core.api import (
 
     # misc
     np, Grouper, factorize, unique, value_counts, NamedAgg,
-    array, Categorical, set_eng_float_format, Series, DataFrame,
-    Panel)
+    array, Categorical, set_eng_float_format, Series, DataFrame)
 
 from pandas.core.sparse.api import (
     SparseArray, SparseDataFrame, SparseSeries, SparseDtype)
@@ -117,6 +116,30 @@ v = get_versions()
 __version__ = v.get('closest-tag', v['version'])
 __git_version__ = v.get('full-revisionid')
 del get_versions, v
+
+
+# GH 27101
+# TODO: remove Panel compat in 1.0
+if pandas.compat.PY37:
+    def __getattr__(name):
+        if name == 'Panel':
+            import warnings
+            warnings.warn(
+                "The Panel class is removed from pandas. Accessing it "
+                "from the top-level namespace will also be removed in "
+                "the next version",
+                FutureWarning, stacklevel=2)
+
+            class Panel:
+                pass
+
+            return Panel
+        raise AttributeError(
+            "module 'pandas' has no attribute '{}'".format(name))
+else:
+    class Panel:
+        pass
+
 
 # module level doc-string
 __doc__ = """

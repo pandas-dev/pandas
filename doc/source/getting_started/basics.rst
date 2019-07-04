@@ -784,6 +784,7 @@ In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
 For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.ols, 'data')`` to ``pipe``:
 
 .. ipython:: python
+   :okwarning:
 
    import statsmodels.formula.api as sm
 
@@ -1968,11 +1969,11 @@ dtype of the column will be chosen to accommodate all of the data types
    pd.Series([1, 2, 3, 6., 'foo'])
 
 The number of columns of each type in a ``DataFrame`` can be found by calling
-:meth:`~DataFrame.get_dtype_counts`.
+``DataFrame.dtypes.value_counts()``.
 
 .. ipython:: python
 
-   dft.get_dtype_counts()
+   dft.dtypes.value_counts()
 
 Numeric dtypes will propagate and can coexist in DataFrames.
 If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``,

@@ -2225,7 +2225,7 @@ class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     def test_kind_both_ways(self):
         df = DataFrame({'x': [1, 2, 3]})
-        for kind in plotting._core._common_kinds:
+        for kind in plotting.PlotAccessor._common_kinds:
 
             df.plot(kind=kind)
             getattr(df.plot, kind)()
@@ -2235,7 +2235,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_all_invalid_plot_data(self):
         df = DataFrame(list('abcd'))
-        for kind in plotting._core._common_kinds:
+        for kind in plotting.PlotAccessor._common_kinds:
 
             msg = "no numeric data to plot"
             with pytest.raises(TypeError, match=msg):
@@ -2246,7 +2246,7 @@ class TestDataFramePlots(TestPlotBase):
         with tm.RNGContext(42):
             df = DataFrame(randn(10, 2), dtype=object)
             df[np.random.rand(df.shape[0]) > 0.5] = 'a'
-            for kind in plotting._core._common_kinds:
+            for kind in plotting.PlotAccessor._common_kinds:
 
                 msg = "no numeric data to plot"
                 with pytest.raises(TypeError, match=msg):
@@ -2738,7 +2738,7 @@ class TestDataFramePlots(TestPlotBase):
         import gc
 
         results = {}
-        for kind in plotting._core._plot_classes().keys():
+        for kind in plotting.PlotAccessor._all_kinds:
 
             args = {}
             if kind in ['hexbin', 'scatter', 'pie']:
@@ -2936,7 +2936,7 @@ class TestDataFramePlots(TestPlotBase):
         # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
         self._check_grid_settings(
             DataFrame({'a': [1, 2, 3], 'b': [2, 3, 4]}),
-            plotting._core._dataframe_kinds, kws={'x': 'a', 'y': 'b'})
+            plotting.PlotAccessor._dataframe_kinds, kws={'x': 'a', 'y': 'b'})
 
     def test_invalid_colormap(self):
         df = DataFrame(randn(3, 2), columns=['A', 'B'])

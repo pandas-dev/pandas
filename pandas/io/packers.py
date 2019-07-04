@@ -57,7 +57,7 @@ from pandas.core.dtypes.common import (
 
 from pandas import (  # noqa:F401
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
-    Index, Int64Index, Interval, IntervalIndex, MultiIndex, NaT, Panel, Period,
+    Index, Int64Index, Interval, IntervalIndex, MultiIndex, NaT, Period,
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, Timestamp)
 from pandas.core import internals
 from pandas.core.arrays import DatetimeArray, IntervalArray, PeriodArray
@@ -618,14 +618,9 @@ def decode(obj):
         return Interval(obj['left'], obj['right'], obj['closed'])
     elif typ == 'series':
         dtype = dtype_for(obj['dtype'])
-        pd_dtype = pandas_dtype(dtype)
-
         index = obj['index']
-        result = Series(unconvert(obj['data'], dtype, obj['compress']),
-                        index=index,
-                        dtype=pd_dtype,
-                        name=obj['name'])
-        return result
+        data = unconvert(obj['data'], dtype, obj['compress'])
+        return Series(data, index=index, dtype=dtype, name=obj['name'])
 
     elif typ == 'block_manager':
         axes = obj['axes']
@@ -676,11 +671,6 @@ def decode(obj):
     #        default_fill_value=obj['default_fill_value'],
     #        default_kind=obj['default_kind']
     #    )
-    # elif typ == 'sparse_panel':
-    #    return SparsePanel(
-    #        obj['data'], items=obj['items'],
-    #        default_fill_value=obj['default_fill_value'],
-    #        default_kind=obj['default_kind'])
     elif typ == 'block_index':
         return globals()[obj['klass']](obj['length'], obj['blocs'],
                                        obj['blengths'])

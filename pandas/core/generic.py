@@ -3365,7 +3365,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return result
 
-    def take(self, indices, axis=0, convert=None, is_copy=True, **kwargs):
+    def take(self, indices, axis=0, is_copy=True, **kwargs):
         """
         Return the elements in the given *positional* indices along an axis.
 
@@ -3380,15 +3380,6 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
-        convert : bool, default True
-            Whether to convert negative indices into positive ones.
-            For example, ``-1`` would map to the ``len(axis) - 1``.
-            The conversions are similar to the behavior of indexing a
-            regular Python list.
-
-            .. deprecated:: 0.21.0
-               In the future, negative indices will always be converted.
-
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
         **kwargs
@@ -3449,11 +3440,6 @@ class NDFrame(PandasObject, SelectionMixin):
         1  monkey  mammal        NaN
         3    lion  mammal       80.5
         """
-        if convert is not None:
-            msg = ("The 'convert' parameter is deprecated "
-                   "and will be removed in a future version.")
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-
         nv.validate_take(tuple(), kwargs)
         return self._take(indices, axis=axis, is_copy=is_copy)
 
@@ -5277,6 +5263,10 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return counts of unique dtypes in this object.
 
+        .. deprecated:: 0.25.0
+
+        Use `.dtypes.value_counts()` instead.
+
         Returns
         -------
         dtype : Series
@@ -5302,6 +5292,10 @@ class NDFrame(PandasObject, SelectionMixin):
         object     1
         dtype: int64
         """
+        warnings.warn("`get_dtype_counts` has been deprecated and will be "
+                      "removed in a future version. For DataFrames use "
+                      "`.dtypes.value_counts()", FutureWarning,
+                      stacklevel=2)
         from pandas import Series
         return Series(self._data.get_dtype_counts())
 
@@ -9658,6 +9652,7 @@ class NDFrame(PandasObject, SelectionMixin):
             objcounts = data.value_counts()
             count_unique = len(objcounts[objcounts != 0])
             result = [data.count(), count_unique]
+            dtype = None
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
 
@@ -9682,9 +9677,10 @@ class NDFrame(PandasObject, SelectionMixin):
             # to maintain output shape consistency
             else:
                 names += ['top', 'freq']
-                result += [None, None]
+                result += [np.nan, np.nan]
+                dtype = 'object'
 
-            return pd.Series(result, index=names, name=data.name)
+            return pd.Series(result, index=names, name=data.name, dtype=dtype)
 
         def describe_1d(data):
             if is_bool_dtype(data):
@@ -9720,7 +9716,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 if name not in names:
                     names.append(name)
 
-        d = pd.concat(ldesc, join_axes=pd.Index([names]), axis=1)
+        d = pd.concat([x.reindex(names, copy=False) for x in ldesc],
+                      axis=1, sort=False)
         d.columns = data.columns.copy()
         return d
 

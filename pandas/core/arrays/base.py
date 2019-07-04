@@ -23,6 +23,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas._typing import ArrayLike
 from pandas.core import ops
+from pandas.core.sorting import nargsort
 
 _not_implemented_message = "{} does not implement {}."
 
@@ -409,7 +410,8 @@ class ExtensionArray:
         Returns
         -------
         index_array : ndarray
-            Array of indices that sort ``self``.
+            Array of indices that sort ``self``. If NaN values are contained,
+            NaN values are placed at the end.
 
         See Also
         --------
@@ -420,10 +422,9 @@ class ExtensionArray:
         # 1. _values_for_argsort : construct the values passed to np.argsort
         # 2. argsort : total control over sorting.
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
-        values = self._values_for_argsort()
-        result = np.argsort(values, kind=kind, **kwargs)
-        if not ascending:
-            result = result[::-1]
+
+        result = nargsort(self, kind=kind, ascending=ascending,
+                          na_position='last')
         return result
 
     def fillna(self, value=None, method=None, limit=None):
@@ -907,6 +908,21 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Reshaping
     # ------------------------------------------------------------------------
+
+    def ravel(self, order="C") -> ABCExtensionArray:
+        """
+        Return a flattened view on this array.
+
+        Parameters
+        ----------
+        order : {None, 'C', 'F', 'A', 'K'}, default 'C'
+
+        Notes
+        -----
+        - Because ExtensionArrays are 1D-only, this is a no-op.
+        - The "order" argument is ignored, is for compatibility with NumPy.
+        """
+        return self
 
     @classmethod
     def _concat_same_type(
