@@ -7,13 +7,13 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 
 
-def is_list_like_indexer(key):
+def is_list_like_indexer(key) -> bool:
     # allow a list_like, but exclude NamedTuples which can be indexers
     return is_list_like(key) and not (isinstance(key, tuple) and
                                       type(key) is not tuple)
 
 
-def length_of_indexer(indexer, target=None):
+def length_of_indexer(indexer, target=None) -> int:
     """
     return the length of a single non-tuple indexer which could be a slice
     """
@@ -86,7 +86,7 @@ def check_setitem_lengths(indexer, value, values):
                                  "different length than the value")
 
 
-def is_scalar_indexer(indexer, arr_value):
+def is_scalar_indexer(indexer, arr_value) -> bool:
     # return True if we are all scalar indexers
 
     if arr_value.ndim == 1:
@@ -97,7 +97,7 @@ def is_scalar_indexer(indexer, arr_value):
     return False
 
 
-def is_empty_indexer(indexer, arr_value):
+def is_empty_indexer(indexer, arr_value) -> bool:
     # return a boolean if we have an empty indexer
 
     if is_list_like(indexer) and not len(indexer):
@@ -110,7 +110,7 @@ def is_empty_indexer(indexer, arr_value):
     return False
 
 
-def validate_indices(indices, n):
+def validate_indices(indices: np.ndarray, n: int):
     """
     Perform bounds-checking for an indexer.
 
