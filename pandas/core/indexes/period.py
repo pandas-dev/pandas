@@ -114,6 +114,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     tz : object, default None
         Timezone for converting datetime64 data to Periods
     dtype : str or PeriodDtype, default None
+    name : object, default None
+        Name to be stored in the index
 
     Attributes
     ----------

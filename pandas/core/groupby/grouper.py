@@ -225,7 +225,8 @@ class Grouping:
     index : Index
     grouper :
     obj :
-    name :
+    name : object, default None
+        Name to be stored in the Grouping
     level :
     observed : boolean, default False
         If we are a Categorical, use the observed values

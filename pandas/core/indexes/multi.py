@@ -157,6 +157,8 @@ class MultiIndex(Index):
         Names for each of the index levels. (name is accepted for compat).
     copy : bool, default False
         Copy the meta-data.
+    name : object
+        Name to be stored in the index
     verify_integrity : bool, default True
         Check that the levels/codes are consistent and valid.
 

@@ -267,6 +267,8 @@ class Categorical(ExtensionArray, PandasObject):
         An instance of ``CategoricalDtype`` to use for this categorical
 
         .. versionadded:: 0.21.0
+    fastpath : bool, default False
+        Internal use only
 
     Attributes
     ----------
@@ -282,9 +284,6 @@ class Categorical(ExtensionArray, PandasObject):
         and ``ordered``.
 
         .. versionadded:: 0.21.0
-
-    fastpath : bool, default False
-        Internal use only
 
     Methods
     -------
