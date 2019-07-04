@@ -8,40 +8,38 @@ import pandas.util.testing as tm
 
 
 class TestMisc:
-
     def test_max_len_string_array(self):
 
-        arr = a = np.array(['foo', 'b', np.nan], dtype='object')
+        arr = a = np.array(["foo", "b", np.nan], dtype="object")
         assert libwriters.max_len_string_array(arr) == 3
 
         # unicode
-        arr = a.astype('U').astype(object)
+        arr = a.astype("U").astype(object)
         assert libwriters.max_len_string_array(arr) == 3
 
         # bytes for python3
-        arr = a.astype('S').astype(object)
+        arr = a.astype("S").astype(object)
         assert libwriters.max_len_string_array(arr) == 3
 
         # raises
         with pytest.raises(TypeError):
-            libwriters.max_len_string_array(arr.astype('U'))
+            libwriters.max_len_string_array(arr.astype("U"))
 
     def test_fast_unique_multiple_list_gen_sort(self):
-        keys = [['p', 'a'], ['n', 'd'], ['a', 's']]
+        keys = [["p", "a"], ["n", "d"], ["a", "s"]]
 
         gen = (key for key in keys)
-        expected = np.array(['a', 'd', 'n', 'p', 's'])
+        expected = np.array(["a", "d", "n", "p", "s"])
         out = lib.fast_unique_multiple_list_gen(gen, sort=True)
         tm.assert_numpy_array_equal(np.array(out), expected)
 
         gen = (key for key in keys)
-        expected = np.array(['p', 'a', 'n', 'd', 's'])
+        expected = np.array(["p", "a", "n", "d", "s"])
         out = lib.fast_unique_multiple_list_gen(gen, sort=False)
         tm.assert_numpy_array_equal(np.array(out), expected)
 
 
 class TestIndexing:
-
     def test_maybe_indices_to_slice_left_edge(self):
         target = np.arange(100)
 
@@ -58,20 +56,17 @@ class TestIndexing:
                 maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
                 assert isinstance(maybe_slice, slice)
-                tm.assert_numpy_array_equal(target[indices],
-                                            target[maybe_slice])
+                tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
                 # reverse
                 indices = indices[::-1]
                 maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
                 assert isinstance(maybe_slice, slice)
-                tm.assert_numpy_array_equal(target[indices],
-                                            target[maybe_slice])
+                tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
         # not slice
-        for case in [[2, 1, 2, 0], [2, 2, 1, 0], [0, 1, 2, 1], [-2, 0, 2],
-                     [2, 0, -2]]:
+        for case in [[2, 1, 2, 0], [2, 2, 1, 0], [0, 1, 2, 1], [-2, 0, 2], [2, 0, -2]]:
             indices = np.array(case, dtype=np.int64)
             maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
@@ -89,16 +84,14 @@ class TestIndexing:
                 maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
                 assert isinstance(maybe_slice, slice)
-                tm.assert_numpy_array_equal(target[indices],
-                                            target[maybe_slice])
+                tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
                 # reverse
                 indices = indices[::-1]
                 maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
                 assert isinstance(maybe_slice, slice)
-                tm.assert_numpy_array_equal(target[indices],
-                                            target[maybe_slice])
+                tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
         # not slice
         indices = np.array([97, 98, 99, 100], dtype=np.int64)
@@ -165,16 +158,14 @@ class TestIndexing:
                 maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
                 assert isinstance(maybe_slice, slice)
-                tm.assert_numpy_array_equal(target[indices],
-                                            target[maybe_slice])
+                tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
                 # reverse
                 indices = indices[::-1]
                 maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
                 assert isinstance(maybe_slice, slice)
-                tm.assert_numpy_array_equal(target[indices],
-                                            target[maybe_slice])
+                tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
         # not slice
         for case in [[14, 12, 10, 12], [12, 12, 11, 10], [10, 11, 12, 11]]:

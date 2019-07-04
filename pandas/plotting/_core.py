@@ -19,9 +19,19 @@ except ImportError:
     pass
 
 
-def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
-                xrot=None, ylabelsize=None, yrot=None, figsize=None,
-                bins=10, **kwds):
+def hist_series(
+    self,
+    by=None,
+    ax=None,
+    grid=True,
+    xlabelsize=None,
+    xrot=None,
+    ylabelsize=None,
+    yrot=None,
+    figsize=None,
+    bins=10,
+    **kwds
+):
     """
     Draw histogram of the input series using matplotlib.
 
@@ -61,15 +71,38 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
     """
     plot_backend = _get_plot_backend()
-    return plot_backend.hist_series(self, by=by, ax=ax, grid=grid,
-                                    xlabelsize=xlabelsize, xrot=xrot,
-                                    ylabelsize=ylabelsize, yrot=yrot,
-                                    figsize=figsize, bins=bins, **kwds)
+    return plot_backend.hist_series(
+        self,
+        by=by,
+        ax=ax,
+        grid=grid,
+        xlabelsize=xlabelsize,
+        xrot=xrot,
+        ylabelsize=ylabelsize,
+        yrot=yrot,
+        figsize=figsize,
+        bins=bins,
+        **kwds
+    )
 
 
-def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
-               xrot=None, ylabelsize=None, yrot=None, ax=None, sharex=False,
-               sharey=False, figsize=None, layout=None, bins=10, **kwds):
+def hist_frame(
+    data,
+    column=None,
+    by=None,
+    grid=True,
+    xlabelsize=None,
+    xrot=None,
+    ylabelsize=None,
+    yrot=None,
+    ax=None,
+    sharex=False,
+    sharey=False,
+    figsize=None,
+    layout=None,
+    bins=10,
+    **kwds
+):
     """
     Make a histogram of the DataFrame's.
 
@@ -148,17 +181,38 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         >>> hist = df.hist(bins=3)
     """
     plot_backend = _get_plot_backend()
-    return plot_backend.hist_frame(data, column=column, by=by, grid=grid,
-                                   xlabelsize=xlabelsize, xrot=xrot,
-                                   ylabelsize=ylabelsize, yrot=yrot,
-                                   ax=ax, sharex=sharex, sharey=sharey,
-                                   figsize=figsize, layout=layout, bins=bins,
-                                   **kwds)
+    return plot_backend.hist_frame(
+        data,
+        column=column,
+        by=by,
+        grid=grid,
+        xlabelsize=xlabelsize,
+        xrot=xrot,
+        ylabelsize=ylabelsize,
+        yrot=yrot,
+        ax=ax,
+        sharex=sharex,
+        sharey=sharey,
+        figsize=figsize,
+        layout=layout,
+        bins=bins,
+        **kwds
+    )
 
 
-def boxplot(data, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True, figsize=None, layout=None, return_type=None,
-            **kwds):
+def boxplot(
+    data,
+    column=None,
+    by=None,
+    ax=None,
+    fontsize=None,
+    rot=0,
+    grid=True,
+    figsize=None,
+    layout=None,
+    return_type=None,
+    **kwds
+):
     """
     Make a box plot from DataFrame columns.
 
@@ -322,26 +376,65 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         <class 'numpy.ndarray'>
     """
     plot_backend = _get_plot_backend()
-    return plot_backend.boxplot(data, column=column, by=by, ax=ax,
-                                fontsize=fontsize, rot=rot, grid=grid,
-                                figsize=figsize, layout=layout,
-                                return_type=return_type, **kwds)
+    return plot_backend.boxplot(
+        data,
+        column=column,
+        by=by,
+        ax=ax,
+        fontsize=fontsize,
+        rot=rot,
+        grid=grid,
+        figsize=figsize,
+        layout=layout,
+        return_type=return_type,
+        **kwds
+    )
 
 
 @Appender(boxplot.__doc__)
-def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
-                  grid=True, figsize=None, layout=None,
-                  return_type=None, **kwds):
+def boxplot_frame(
+    self,
+    column=None,
+    by=None,
+    ax=None,
+    fontsize=None,
+    rot=0,
+    grid=True,
+    figsize=None,
+    layout=None,
+    return_type=None,
+    **kwds
+):
     plot_backend = _get_plot_backend()
-    return plot_backend.boxplot_frame(self, column=column, by=by, ax=ax,
-                                      fontsize=fontsize, rot=rot, grid=grid,
-                                      figsize=figsize, layout=layout,
-                                      return_type=return_type, **kwds)
+    return plot_backend.boxplot_frame(
+        self,
+        column=column,
+        by=by,
+        ax=ax,
+        fontsize=fontsize,
+        rot=rot,
+        grid=grid,
+        figsize=figsize,
+        layout=layout,
+        return_type=return_type,
+        **kwds
+    )
 
 
-def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
-                          rot=0, grid=True, ax=None, figsize=None,
-                          layout=None, sharex=False, sharey=True, **kwds):
+def boxplot_frame_groupby(
+    grouped,
+    subplots=True,
+    column=None,
+    fontsize=None,
+    rot=0,
+    grid=True,
+    ax=None,
+    figsize=None,
+    layout=None,
+    sharex=False,
+    sharey=True,
+    **kwds
+):
     """
     Make box plots from DataFrameGroupBy data.
 
@@ -393,9 +486,19 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     """
     plot_backend = _get_plot_backend()
     return plot_backend.boxplot_frame_groupby(
-        grouped, subplots=subplots, column=column, fontsize=fontsize, rot=rot,
-        grid=grid, ax=ax, figsize=figsize, layout=layout, sharex=sharex,
-        sharey=sharey, **kwds)
+        grouped,
+        subplots=subplots,
+        column=column,
+        fontsize=fontsize,
+        rot=rot,
+        grid=grid,
+        ax=ax,
+        figsize=figsize,
+        layout=layout,
+        sharex=sharex,
+        sharey=sharey,
+        **kwds
+    )
 
 
 class PlotAccessor(PandasObject):
@@ -500,11 +603,11 @@ class PlotAccessor(PandasObject):
       From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
       (center)
     """
-    _common_kinds = ('line', 'bar', 'barh', 'kde', 'density', 'area', 'hist',
-                     'box')
-    _series_kinds = ('pie',)
-    _dataframe_kinds = ('scatter', 'hexbin')
-    _kind_aliases = {'density': 'kde'}
+
+    _common_kinds = ("line", "bar", "barh", "kde", "density", "area", "hist", "box")
+    _series_kinds = ("pie",)
+    _dataframe_kinds = ("scatter", "hexbin")
+    _kind_aliases = {"density": "kde"}
     _all_kinds = _common_kinds + _series_kinds + _dataframe_kinds
 
     def __init__(self, data):
@@ -521,63 +624,106 @@ class PlotAccessor(PandasObject):
         """
         if isinstance(data, ABCSeries):
             arg_def = [
-                ('kind', 'line'), ('ax', None), ('figsize', None),
-                ('use_index', True), ('title', None), ('grid', None),
-                ('legend', False), ('style', None), ('logx', False),
-                ('logy', False), ('loglog', False), ('xticks', None),
-                ('yticks', None), ('xlim', None), ('ylim', None),
-                ('rot', None), ('fontsize', None), ('colormap', None),
-                ('table', False), ('yerr', None), ('xerr', None),
-                ('label', None), ('secondary_y', False)]
+                ("kind", "line"),
+                ("ax", None),
+                ("figsize", None),
+                ("use_index", True),
+                ("title", None),
+                ("grid", None),
+                ("legend", False),
+                ("style", None),
+                ("logx", False),
+                ("logy", False),
+                ("loglog", False),
+                ("xticks", None),
+                ("yticks", None),
+                ("xlim", None),
+                ("ylim", None),
+                ("rot", None),
+                ("fontsize", None),
+                ("colormap", None),
+                ("table", False),
+                ("yerr", None),
+                ("xerr", None),
+                ("label", None),
+                ("secondary_y", False),
+            ]
         elif isinstance(data, ABCDataFrame):
             arg_def = [
-                ('x', None), ('y', None), ('kind', 'line'), ('ax', None),
-                ('subplots', False), ('sharex', None), ('sharey', False),
-                ('layout', None), ('figsize', None), ('use_index', True),
-                ('title', None), ('grid', None), ('legend', True),
-                ('style', None), ('logx', False), ('logy', False),
-                ('loglog', False), ('xticks', None), ('yticks', None),
-                ('xlim', None), ('ylim', None), ('rot', None),
-                ('fontsize', None), ('colormap', None), ('table', False),
-                ('yerr', None), ('xerr', None), ('secondary_y', False),
-                ('sort_columns', False)]
+                ("x", None),
+                ("y", None),
+                ("kind", "line"),
+                ("ax", None),
+                ("subplots", False),
+                ("sharex", None),
+                ("sharey", False),
+                ("layout", None),
+                ("figsize", None),
+                ("use_index", True),
+                ("title", None),
+                ("grid", None),
+                ("legend", True),
+                ("style", None),
+                ("logx", False),
+                ("logy", False),
+                ("loglog", False),
+                ("xticks", None),
+                ("yticks", None),
+                ("xlim", None),
+                ("ylim", None),
+                ("rot", None),
+                ("fontsize", None),
+                ("colormap", None),
+                ("table", False),
+                ("yerr", None),
+                ("xerr", None),
+                ("secondary_y", False),
+                ("sort_columns", False),
+            ]
         else:
-            raise TypeError(('Called plot accessor for type {}, expected '
-                             'Series or DataFrame').format(
-                                 type(data).__name__))
+            raise TypeError(
+                (
+                    "Called plot accessor for type {}, expected " "Series or DataFrame"
+                ).format(type(data).__name__)
+            )
 
         if args and isinstance(data, ABCSeries):
-            msg = ('`Series.plot()` should not be called with positional '
-                   'arguments, only keyword arguments. The order of '
-                   'positional arguments will change in the future. '
-                   'Use `Series.plot({})` instead of `Series.plot({})`.')
+            msg = (
+                "`Series.plot()` should not be called with positional "
+                "arguments, only keyword arguments. The order of "
+                "positional arguments will change in the future. "
+                "Use `Series.plot({})` instead of `Series.plot({})`."
+            )
             positional_args = str(args)[1:-1]
-            keyword_args = ', '.join('{}={!r}'.format(name, value)
-                                     for (name, default), value
-                                     in zip(arg_def, args))
-            warnings.warn(msg.format(keyword_args, positional_args),
-                          FutureWarning, stacklevel=3)
+            keyword_args = ", ".join(
+                "{}={!r}".format(name, value)
+                for (name, default), value in zip(arg_def, args)
+            )
+            warnings.warn(
+                msg.format(keyword_args, positional_args), FutureWarning, stacklevel=3
+            )
 
         pos_args = {name: value for value, (name, _) in zip(args, arg_def)}
-        if backend_name == 'pandas.plotting._matplotlib':
+        if backend_name == "pandas.plotting._matplotlib":
             kwargs = dict(arg_def, **pos_args, **kwargs)
         else:
             kwargs = dict(pos_args, **kwargs)
 
-        x = kwargs.pop('x', None)
-        y = kwargs.pop('y', None)
-        kind = kwargs.pop('kind', 'line')
+        x = kwargs.pop("x", None)
+        y = kwargs.pop("y", None)
+        kind = kwargs.pop("kind", "line")
         return x, y, kind, kwargs
 
     def __call__(self, *args, **kwargs):
         plot_backend = _get_plot_backend()
 
-        x, y, kind, kwargs = self._get_call_args(plot_backend.__name__,
-                                                 self._parent, args, kwargs)
+        x, y, kind, kwargs = self._get_call_args(
+            plot_backend.__name__, self._parent, args, kwargs
+        )
 
         kind = self._kind_aliases.get(kind, kind)
         if kind not in self._all_kinds:
-            raise ValueError('{} is not a valid plot kind'.format(kind))
+            raise ValueError("{} is not a valid plot kind".format(kind))
 
         # The original data structured can be transformed before passed to the
         # backend. For example, for DataFrame is common to set the index as the
@@ -585,22 +731,22 @@ class PlotAccessor(PandasObject):
         data = self._parent.copy()
 
         if isinstance(data, pandas.core.dtypes.generic.ABCSeries):
-            kwargs['reuse_plot'] = True
+            kwargs["reuse_plot"] = True
 
         if kind in self._dataframe_kinds:
             if isinstance(data, ABCDataFrame):
                 return plot_backend.plot(data, x=x, y=y, kind=kind, **kwargs)
             else:
-                raise ValueError(("plot kind {} can only be used for "
-                                  "data frames").format(kind))
+                raise ValueError(
+                    ("plot kind {} can only be used for " "data frames").format(kind)
+                )
         elif kind in self._series_kinds:
             if isinstance(data, ABCDataFrame):
-                if y is None and kwargs.get('subplots') is False:
+                if y is None and kwargs.get("subplots") is False:
                     msg = "{} requires either y column or 'subplots=True'"
                     raise ValueError(msg.format(kind))
                 elif y is not None:
-                    if (is_integer(y)
-                            and not data.columns.holds_integer()):
+                    if is_integer(y) and not data.columns.holds_integer():
                         y = data.columns[y]
                     # converted to series actually. copy to not modify
                     data = data[y].copy()
@@ -620,11 +766,11 @@ class PlotAccessor(PandasObject):
                 if int_y_arg and not data.columns.holds_integer():
                     y = data_cols[y]
 
-                label_kw = kwargs['label'] if 'label' in kwargs else False
-                for kw in ['xerr', 'yerr']:
-                    if (kw in kwargs and
-                            (isinstance(kwargs[kw], str)
-                             or is_integer(kwargs[kw]))):
+                label_kw = kwargs["label"] if "label" in kwargs else False
+                for kw in ["xerr", "yerr"]:
+                    if kw in kwargs and (
+                        isinstance(kwargs[kw], str) or is_integer(kwargs[kw])
+                    ):
                         try:
                             kwargs[kw] = data[kwargs[kw]]
                         except (IndexError, KeyError, TypeError):
@@ -640,7 +786,8 @@ class PlotAccessor(PandasObject):
                     match = is_list_like(label_kw) and len(label_kw) == len(y)
                     if label_kw and not match:
                         raise ValueError(
-                            "label should be list-like and same length as y")
+                            "label should be list-like and same length as y"
+                        )
                     label_name = label_kw or data.columns
                     data.columns = label_name
 
@@ -713,7 +860,7 @@ class PlotAccessor(PandasObject):
 
             >>> lines = df.plot.line(x='pig', y='horse')
         """
-        return self(kind='line', x=x, y=y, **kwargs)
+        return self(kind="line", x=x, y=y, **kwargs)
 
     def bar(self, x=None, y=None, **kwargs):
         """
@@ -798,7 +945,7 @@ class PlotAccessor(PandasObject):
 
             >>> ax = df.plot.bar(x='lifespan', rot=0)
         """
-        return self(kind='bar', x=x, y=y, **kwargs)
+        return self(kind="bar", x=x, y=y, **kwargs)
 
     def barh(self, x=None, y=None, **kwargs):
         """
@@ -878,7 +1025,7 @@ class PlotAccessor(PandasObject):
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.barh(x='lifespan')
         """
-        return self(kind='barh', x=x, y=y, **kwargs)
+        return self(kind="barh", x=x, y=y, **kwargs)
 
     def box(self, by=None, **kwargs):
         r"""
@@ -928,7 +1075,7 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame(data, columns=list('ABCD'))
             >>> ax = df.plot.box()
         """
-        return self(kind='box', by=by, **kwargs)
+        return self(kind="box", by=by, **kwargs)
 
     def hist(self, by=None, bins=10, **kwargs):
         """
@@ -975,7 +1122,7 @@ class PlotAccessor(PandasObject):
             >>> df['two'] = df['one'] + np.random.randint(1, 7, 6000)
             >>> ax = df.plot.hist(bins=12, alpha=0.5)
         """
-        return self(kind='hist', by=by, bins=bins, **kwargs)
+        return self(kind="hist", by=by, bins=bins, **kwargs)
 
     def kde(self, bw_method=None, ind=None, **kwargs):
         """
@@ -1083,7 +1230,7 @@ class PlotAccessor(PandasObject):
 
             >>> ax = df.plot.kde(ind=[1, 2, 3, 4, 5, 6])
         """
-        return self(kind='kde', bw_method=bw_method, ind=ind, **kwargs)
+        return self(kind="kde", bw_method=bw_method, ind=ind, **kwargs)
 
     density = kde
 
@@ -1158,7 +1305,7 @@ class PlotAccessor(PandasObject):
             ... })
             >>> ax = df.plot.area(x='day')
         """
-        return self(kind='area', x=x, y=y, **kwargs)
+        return self(kind="area", x=x, y=y, **kwargs)
 
     def pie(self, **kwargs):
         """
@@ -1207,11 +1354,13 @@ class PlotAccessor(PandasObject):
 
             >>> plot = df.plot.pie(subplots=True, figsize=(6, 3))
         """
-        if (isinstance(self._parent, ABCDataFrame)
-                and kwargs.get('y', None) is None
-                and not kwargs.get('subplots', False)):
+        if (
+            isinstance(self._parent, ABCDataFrame)
+            and kwargs.get("y", None) is None
+            and not kwargs.get("subplots", False)
+        ):
             raise ValueError("pie requires either y column or 'subplots=True'")
-        return self(kind='pie', **kwargs)
+        return self(kind="pie", **kwargs)
 
     def scatter(self, x, y, s=None, c=None, **kwargs):
         """
@@ -1292,10 +1441,9 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        return self(kind='scatter', x=x, y=y, s=s, c=c, **kwargs)
+        return self(kind="scatter", x=x, y=y, s=s, c=c, **kwargs)
 
-    def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None,
-               **kwargs):
+    def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs):
         """
         Generate a hexagonal binning plot.
 
@@ -1378,11 +1526,11 @@ class PlotAccessor(PandasObject):
             ...                     cmap="viridis")
         """
         if reduce_C_function is not None:
-            kwargs['reduce_C_function'] = reduce_C_function
+            kwargs["reduce_C_function"] = reduce_C_function
         if gridsize is not None:
-            kwargs['gridsize'] = gridsize
+            kwargs["gridsize"] = gridsize
 
-        return self(kind='hexbin', x=x, y=y, C=C, **kwargs)
+        return self(kind="hexbin", x=x, y=y, C=C, **kwargs)
 
 
 def _get_plot_backend():
@@ -1398,7 +1546,7 @@ def _get_plot_backend():
     The backend is imported lazily, as matplotlib is a soft dependency, and
     pandas can be used without it being installed.
     """
-    backend_str = pandas.get_option('plotting.backend')
-    if backend_str == 'matplotlib':
-        backend_str = 'pandas.plotting._matplotlib'
+    backend_str = pandas.get_option("plotting.backend")
+    if backend_str == "matplotlib":
+        backend_str = "pandas.plotting._matplotlib"
     return importlib.import_module(backend_str)

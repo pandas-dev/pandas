@@ -2,7 +2,10 @@ import numpy as np
 
 from pandas.core.algorithms import unique1d
 from pandas.core.arrays.categorical import (
-    Categorical, CategoricalDtype, _recode_for_categories)
+    Categorical,
+    CategoricalDtype,
+    _recode_for_categories,
+)
 
 
 def recode_for_groupby(c, sort, observed):
@@ -49,9 +52,7 @@ def recode_for_groupby(c, sort, observed):
 
         # we recode according to the uniques
         categories = c.categories.take(take_codes)
-        codes = _recode_for_categories(c.codes,
-                                       c.categories,
-                                       categories)
+        codes = _recode_for_categories(c.codes, c.categories, categories)
 
         # return a new categorical that maps our new codes
         # and categories
@@ -68,8 +69,7 @@ def recode_for_groupby(c, sort, observed):
     # But for groupby to work, all categories should be present,
     # including those missing from the data (GH-13179), which .unique()
     # above dropped
-    cat = cat.add_categories(
-        c.categories[~c.categories.isin(cat.categories)])
+    cat = cat.add_categories(c.categories[~c.categories.isin(cat.categories)])
 
     return c.reorder_categories(cat.categories), None
 
@@ -96,5 +96,4 @@ def recode_from_groupby(c, sort, ci):
         return ci.set_categories(c.categories)
 
     # we are not sorting, so add unobserved to the end
-    return ci.add_categories(
-        c.categories[~c.categories.isin(ci.categories)])
+    return ci.add_categories(c.categories[~c.categories.isin(ci.categories)])

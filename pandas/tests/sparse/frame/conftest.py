@@ -3,15 +3,18 @@ import pytest
 
 from pandas import DataFrame, SparseArray, SparseDataFrame, bdate_range
 
-data = {'A': [np.nan, np.nan, np.nan, 0, 1, 2, 3, 4, 5, 6],
-        'B': [0, 1, 2, np.nan, np.nan, np.nan, 3, 4, 5, 6],
-        'C': np.arange(10, dtype=np.float64),
-        'D': [0, 1, 2, 3, 4, 5, np.nan, np.nan, np.nan, np.nan]}
-dates = bdate_range('1/1/2011', periods=10)
+data = {
+    "A": [np.nan, np.nan, np.nan, 0, 1, 2, 3, 4, 5, 6],
+    "B": [0, 1, 2, np.nan, np.nan, np.nan, 3, 4, 5, 6],
+    "C": np.arange(10, dtype=np.float64),
+    "D": [0, 1, 2, 3, 4, 5, np.nan, np.nan, np.nan, np.nan],
+}
+dates = bdate_range("1/1/2011", periods=10)
 
 
 # fixture names must be compatible with the tests in
 # tests/frame/test_api.SharedWithSparse
+
 
 @pytest.fixture
 def float_frame_dense():
@@ -31,7 +34,7 @@ def float_frame():
     Columns are ['A', 'B', 'C', 'D']; some entries are missing
     """
     # default_kind='block' is the default
-    return SparseDataFrame(data, index=dates, default_kind='block')
+    return SparseDataFrame(data, index=dates, default_kind="block")
 
 
 @pytest.fixture
@@ -42,7 +45,7 @@ def float_frame_int_kind():
     Columns are ['A', 'B', 'C', 'D'] and default_kind='integer'.
     Some entries are missing.
     """
-    return SparseDataFrame(data, index=dates, default_kind='integer')
+    return SparseDataFrame(data, index=dates, default_kind="integer")
 
 
 @pytest.fixture
@@ -53,7 +56,7 @@ def float_string_frame():
     Columns are ['A', 'B', 'C', 'D', 'foo']; some entries are missing
     """
     sdf = SparseDataFrame(data, index=dates)
-    sdf['foo'] = SparseArray(['bar'] * len(dates))
+    sdf["foo"] = SparseArray(["bar"] * len(dates))
     return sdf
 
 
@@ -66,7 +69,7 @@ def float_frame_fill0_dense():
     """
     values = SparseDataFrame(data).values
     values[np.isnan(values)] = 0
-    return DataFrame(values, columns=['A', 'B', 'C', 'D'], index=dates)
+    return DataFrame(values, columns=["A", "B", "C", "D"], index=dates)
 
 
 @pytest.fixture
@@ -78,8 +81,9 @@ def float_frame_fill0():
     """
     values = SparseDataFrame(data).values
     values[np.isnan(values)] = 0
-    return SparseDataFrame(values, columns=['A', 'B', 'C', 'D'],
-                           default_fill_value=0, index=dates)
+    return SparseDataFrame(
+        values, columns=["A", "B", "C", "D"], default_fill_value=0, index=dates
+    )
 
 
 @pytest.fixture
@@ -91,7 +95,7 @@ def float_frame_fill2_dense():
     """
     values = SparseDataFrame(data).values
     values[np.isnan(values)] = 2
-    return DataFrame(values, columns=['A', 'B', 'C', 'D'], index=dates)
+    return DataFrame(values, columns=["A", "B", "C", "D"], index=dates)
 
 
 @pytest.fixture
@@ -103,8 +107,9 @@ def float_frame_fill2():
     """
     values = SparseDataFrame(data).values
     values[np.isnan(values)] = 2
-    return SparseDataFrame(values, columns=['A', 'B', 'C', 'D'],
-                           default_fill_value=2, index=dates)
+    return SparseDataFrame(
+        values, columns=["A", "B", "C", "D"], default_fill_value=2, index=dates
+    )
 
 
 @pytest.fixture

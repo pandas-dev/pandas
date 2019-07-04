@@ -23,11 +23,20 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.arrays import Categorical, array
 from pandas.core.groupby import Grouper, NamedAgg
 from pandas.io.formats.format import set_eng_float_format
-from pandas.core.index import (Index, CategoricalIndex, Int64Index,
-                               UInt64Index, RangeIndex, Float64Index,
-                               MultiIndex, IntervalIndex,
-                               TimedeltaIndex, DatetimeIndex,
-                               PeriodIndex, NaT)
+from pandas.core.index import (
+    Index,
+    CategoricalIndex,
+    Int64Index,
+    UInt64Index,
+    RangeIndex,
+    Float64Index,
+    MultiIndex,
+    IntervalIndex,
+    TimedeltaIndex,
+    DatetimeIndex,
+    PeriodIndex,
+    NaT,
+)
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import Timedelta, timedelta_range
 from pandas.core.indexes.datetimes import Timestamp, date_range, bdate_range

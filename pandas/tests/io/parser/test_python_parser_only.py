@@ -49,10 +49,7 @@ def test_invalid_skipfooter_negative(python_parser_only):
         parser.read_csv(StringIO(data), skipfooter=-1)
 
 
-@pytest.mark.parametrize("kwargs", [
-    dict(sep=None),
-    dict(delimiter="|")
-])
+@pytest.mark.parametrize("kwargs", [dict(sep=None), dict(delimiter="|")])
 def test_sniff_delimiter(python_parser_only, kwargs):
     data = """index|A|B|C
 foo|1|2|3
@@ -61,9 +58,11 @@ baz|7|8|9
 """
     parser = python_parser_only
     result = parser.read_csv(StringIO(data), index_col=0, **kwargs)
-    expected = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                         columns=["A", "B", "C"],
-                         index=Index(["foo", "bar", "baz"], name="index"))
+    expected = DataFrame(
+        [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+        columns=["A", "B", "C"],
+        index=Index(["foo", "bar", "baz"], name="index"),
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -80,25 +79,26 @@ baz|7|8|9
 
     if encoding is not None:
         from io import TextIOWrapper
+
         data = data.encode(encoding)
         data = BytesIO(data)
         data = TextIOWrapper(data, encoding=encoding)
     else:
         data = StringIO(data)
 
-    result = parser.read_csv(data, index_col=0, sep=None,
-                             skiprows=2, encoding=encoding)
-    expected = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                         columns=["A", "B", "C"],
-                         index=Index(["foo", "bar", "baz"], name="index"))
+    result = parser.read_csv(data, index_col=0, sep=None, skiprows=2, encoding=encoding)
+    expected = DataFrame(
+        [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+        columns=["A", "B", "C"],
+        index=Index(["foo", "bar", "baz"], name="index"),
+    )
     tm.assert_frame_equal(result, expected)
 
 
 def test_single_line(python_parser_only):
     # see gh-6607: sniff separator
     parser = python_parser_only
-    result = parser.read_csv(StringIO("1,2"), names=["a", "b"],
-                             header=None, sep=None)
+    result = parser.read_csv(StringIO("1,2"), names=["a", "b"], header=None, sep=None)
 
     expected = DataFrame({"a": [1], "b": [2]})
     tm.assert_frame_equal(result, expected)
@@ -117,15 +117,13 @@ also also skip this
     parser = python_parser_only
     result = parser.read_csv(StringIO(data), **kwargs)
 
-    expected = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                         columns=["A", "B", "C"])
+    expected = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["A", "B", "C"])
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("compression,klass", [
-    ("gzip", "GzipFile"),
-    ("bz2", "BZ2File"),
-])
+@pytest.mark.parametrize(
+    "compression,klass", [("gzip", "GzipFile"), ("bz2", "BZ2File")]
+)
 def test_decompression_regex_sep(python_parser_only, csv1, compression, klass):
     # see gh-6607
     parser = python_parser_only
@@ -144,8 +142,7 @@ def test_decompression_regex_sep(python_parser_only, csv1, compression, klass):
         tmp.write(data)
         tmp.close()
 
-        result = parser.read_csv(path, sep="::",
-                                 compression=compression)
+        result = parser.read_csv(path, sep="::", compression=compression)
         tm.assert_frame_equal(result, expected)
 
 
@@ -158,15 +155,18 @@ a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
     parser = python_parser_only
 
-    expected = DataFrame([[-0.5109, -2.3358, -0.4645, 0.05076, 0.3640],
-                          [0.4473, 1.4152, 0.2834, 1.00661, 0.1744],
-                          [-0.6662, -0.5243, -0.3580, 0.89145, 2.5838]],
-                         columns=["A", "B", "C", "D", "E"],
-                         index=MultiIndex.from_tuples([
-                             ("a", "b", 10.0032, 5),
-                             ("a", "q", 20, 4),
-                             ("x", "q", 30, 3),
-                         ], names=["one", "two", "three", "four"]))
+    expected = DataFrame(
+        [
+            [-0.5109, -2.3358, -0.4645, 0.05076, 0.3640],
+            [0.4473, 1.4152, 0.2834, 1.00661, 0.1744],
+            [-0.6662, -0.5243, -0.3580, 0.89145, 2.5838],
+        ],
+        columns=["A", "B", "C", "D", "E"],
+        index=MultiIndex.from_tuples(
+            [("a", "b", 10.0032, 5), ("a", "q", 20, 4), ("x", "q", 30, 3)],
+            names=["one", "two", "three", "four"],
+        ),
+    )
     result = parser.read_csv(StringIO(data), sep=r"\s+")
     tm.assert_frame_equal(result, expected)
 
@@ -178,7 +178,9 @@ def test_read_csv_buglet_4x_multi_index2(python_parser_only):
 
     expected = DataFrame.from_records(
         [(1, 3, 7, 0, 3, 6), (3, 1, 4, 1, 5, 9)],
-        columns=list("abcABC"), index=list("abc"))
+        columns=list("abcABC"),
+        index=list("abc"),
+    )
     result = parser.read_csv(StringIO(data), sep=r"\s+")
     tm.assert_frame_equal(result, expected)
 
@@ -198,15 +200,16 @@ def test_skipfooter_with_decimal(python_parser_only, add_footer):
     else:
         kwargs = dict()
 
-    result = parser.read_csv(StringIO(data), names=["a"],
-                             decimal="#", **kwargs)
+    result = parser.read_csv(StringIO(data), names=["a"], decimal="#", **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("sep", ["::", "#####", "!!!", "123", "#1!c5",
-                                 "%!c!d", "@@#4:2", "_!pd#_"])
-@pytest.mark.parametrize("encoding", ["utf-16", "utf-16-be", "utf-16-le",
-                                      "utf-32", "cp037"])
+@pytest.mark.parametrize(
+    "sep", ["::", "#####", "!!!", "123", "#1!c5", "%!c!d", "@@#4:2", "_!pd#_"]
+)
+@pytest.mark.parametrize(
+    "encoding", ["utf-16", "utf-16-be", "utf-16-le", "utf-32", "cp037"]
+)
 def test_encoding_non_utf8_multichar_sep(python_parser_only, sep, encoding):
     # see gh-3404
     expected = DataFrame({"a": [1], "b": [2]})
@@ -215,8 +218,9 @@ def test_encoding_non_utf8_multichar_sep(python_parser_only, sep, encoding):
     data = "1" + sep + "2"
     encoded_data = data.encode(encoding)
 
-    result = parser.read_csv(BytesIO(encoded_data), sep=sep,
-                             names=["a", "b"], encoding=encoding)
+    result = parser.read_csv(
+        BytesIO(encoded_data), sep=sep, names=["a", "b"], encoding=encoding
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -251,17 +255,16 @@ def test_none_delimiter(python_parser_only, capsys):
     # We expect the third line in the data to be
     # skipped because it is malformed, but we do
     # not expect any errors to occur.
-    result = parser.read_csv(StringIO(data), header=0,
-                             sep=None, warn_bad_lines=True,
-                             error_bad_lines=False)
+    result = parser.read_csv(
+        StringIO(data), header=0, sep=None, warn_bad_lines=True, error_bad_lines=False
+    )
     tm.assert_frame_equal(result, expected)
 
     captured = capsys.readouterr()
     assert "Skipping line 3" in captured.err
 
 
-@pytest.mark.parametrize("data", [
-    'a\n1\n"b"a', 'a,b,c\ncat,foo,bar\ndog,foo,"baz'])
+@pytest.mark.parametrize("data", ['a\n1\n"b"a', 'a,b,c\ncat,foo,bar\ndog,foo,"baz'])
 @pytest.mark.parametrize("skipfooter", [0, 1])
 def test_skipfooter_bad_row(python_parser_only, data, skipfooter):
     # see gh-13879 and gh-15910
@@ -292,5 +295,4 @@ footer
 """
     msg = "Expected 3 fields in line 4, saw 5"
     with pytest.raises(ParserError, match=msg):
-        parser.read_csv(StringIO(data), header=1,
-                        comment="#", skipfooter=1)
+        parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)

@@ -18,18 +18,16 @@ def test_comment(all_parsers, na_values):
 1,2.,4.#hello world
 5.,NaN,10.0
 """
-    expected = DataFrame([[1., 2., 4.], [5., np.nan, 10.]],
-                         columns=["A", "B", "C"])
-    result = parser.read_csv(StringIO(data), comment="#",
-                             na_values=na_values)
+    expected = DataFrame(
+        [[1.0, 2.0, 4.0], [5.0, np.nan, 10.0]], columns=["A", "B", "C"]
+    )
+    result = parser.read_csv(StringIO(data), comment="#", na_values=na_values)
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("read_kwargs", [
-    dict(),
-    dict(lineterminator="*"),
-    dict(delim_whitespace=True),
-])
+@pytest.mark.parametrize(
+    "read_kwargs", [dict(), dict(lineterminator="*"), dict(delim_whitespace=True)]
+)
 def test_line_comment(all_parsers, read_kwargs):
     parser = all_parsers
     data = """# empty
@@ -49,8 +47,9 @@ A,B,C
     read_kwargs["comment"] = "#"
     result = parser.read_csv(StringIO(data), **read_kwargs)
 
-    expected = DataFrame([[1., 2., 4.], [5., np.nan, 10.]],
-                         columns=["A", "B", "C"])
+    expected = DataFrame(
+        [[1.0, 2.0, 4.0], [5.0, np.nan, 10.0]], columns=["A", "B", "C"]
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -65,8 +64,9 @@ A,B,C
 5.,NaN,10.0
 """
     # This should ignore the first four lines (including comments).
-    expected = DataFrame([[1., 2., 4.], [5., np.nan, 10.]],
-                         columns=["A", "B", "C"])
+    expected = DataFrame(
+        [[1.0, 2.0, 4.0], [5.0, np.nan, 10.0]], columns=["A", "B", "C"]
+    )
     result = parser.read_csv(StringIO(data), comment="#", skiprows=4)
     tm.assert_frame_equal(result, expected)
 
@@ -81,8 +81,9 @@ A,B,C
 5.,NaN,10.0
 """
     # Header should begin at the second non-comment line.
-    expected = DataFrame([[1., 2., 4.], [5., np.nan, 10.]],
-                         columns=["A", "B", "C"])
+    expected = DataFrame(
+        [[1.0, 2.0, 4.0], [5.0, np.nan, 10.0]], columns=["A", "B", "C"]
+    )
     result = parser.read_csv(StringIO(data), comment="#", header=1)
     tm.assert_frame_equal(result, expected)
 
@@ -101,8 +102,9 @@ A,B,C
     # Skiprows should skip the first 4 lines (including comments),
     # while header should start from the second non-commented line,
     # starting with line 5.
-    expected = DataFrame([[1., 2., 4.], [5., np.nan, 10.]],
-                         columns=["A", "B", "C"])
+    expected = DataFrame(
+        [[1.0, 2.0, 4.0], [5.0, np.nan, 10.0]], columns=["A", "B", "C"]
+    )
     result = parser.read_csv(StringIO(data), comment="#", skiprows=4, header=1)
     tm.assert_frame_equal(result, expected)
 
@@ -111,8 +113,9 @@ A,B,C
 def test_custom_comment_char(all_parsers, comment_char):
     parser = all_parsers
     data = "a,b,c\n1,2,3#ignore this!\n4,5,6#ignorethistoo"
-    result = parser.read_csv(StringIO(data.replace("#", comment_char)),
-                             comment=comment_char)
+    result = parser.read_csv(
+        StringIO(data.replace("#", comment_char)), comment=comment_char
+    )
 
     expected = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "b", "c"])
     tm.assert_frame_equal(result, expected)

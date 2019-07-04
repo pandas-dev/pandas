@@ -5,15 +5,19 @@ import numpy as np
 from pandas._libs import lib, tslibs
 
 from pandas.core.dtypes.common import (
-    is_datetime64_ns_dtype, is_extension_array_dtype, is_timedelta64_ns_dtype)
+    is_datetime64_ns_dtype,
+    is_extension_array_dtype,
+    is_timedelta64_ns_dtype,
+)
 from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 from pandas.core.dtypes.generic import ABCExtensionArray
 
 
-def array(data: Sequence[object],
-          dtype: Optional[Union[str, np.dtype, ExtensionDtype]] = None,
-          copy: bool = True,
-          ) -> ABCExtensionArray:
+def array(
+    data: Sequence[object],
+    dtype: Optional[Union[str, np.dtype, ExtensionDtype]] = None,
+    copy: bool = True,
+) -> ABCExtensionArray:
     """
     Create an array.
 
@@ -207,16 +211,17 @@ def array(data: Sequence[object],
     ValueError: Cannot pass scalar '1' to 'pandas.array'.
     """
     from pandas.core.arrays import (
-        period_array, ExtensionArray, IntervalArray, PandasArray,
+        period_array,
+        ExtensionArray,
+        IntervalArray,
+        PandasArray,
         DatetimeArray,
         TimedeltaArray,
     )
     from pandas.core.internals.arrays import extract_array
 
     if lib.is_scalar(data):
-        msg = (
-            "Cannot pass scalar '{}' to 'pandas.array'."
-        )
+        msg = "Cannot pass scalar '{}' to 'pandas.array'."
         raise ValueError(msg.format(data))
 
     data = extract_array(data, extract_numpy=True)
@@ -234,14 +239,14 @@ def array(data: Sequence[object],
 
     if dtype is None:
         inferred_dtype = lib.infer_dtype(data, skipna=False)
-        if inferred_dtype == 'period':
+        if inferred_dtype == "period":
             try:
                 return period_array(data, copy=copy)
             except tslibs.IncompatibleFrequency:
                 # We may have a mixture of frequencies.
                 # We choose to return an ndarray, rather than raising.
                 pass
-        elif inferred_dtype == 'interval':
+        elif inferred_dtype == "interval":
             try:
                 return IntervalArray(data, copy=copy)
             except ValueError:
@@ -249,7 +254,7 @@ def array(data: Sequence[object],
                 # We choose to return an ndarray, rather than raising.
                 pass
 
-        elif inferred_dtype.startswith('datetime'):
+        elif inferred_dtype.startswith("datetime"):
             # datetime, datetime64
             try:
                 return DatetimeArray._from_sequence(data, copy=copy)
@@ -257,7 +262,7 @@ def array(data: Sequence[object],
                 # Mixture of timezones, fall back to PandasArray
                 pass
 
-        elif inferred_dtype.startswith('timedelta'):
+        elif inferred_dtype.startswith("timedelta"):
             # timedelta, timedelta64
             return TimedeltaArray._from_sequence(data, copy=copy)
 

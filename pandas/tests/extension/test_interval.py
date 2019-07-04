@@ -103,8 +103,7 @@ class TestReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(BaseInterval, base.BaseMethodsTests):
-
-    @pytest.mark.skip(reason='addition is not defined for intervals')
+    @pytest.mark.skip(reason="addition is not defined for intervals")
     def test_combine_add(self, data_repeated):
         pass
 
@@ -155,8 +154,8 @@ class TestPrinting(BaseInterval, base.BasePrintingTests):
 
 
 class TestParsing(BaseInterval, base.BaseParsingTests):
-    @pytest.mark.parametrize('engine', ['c', 'python'])
+    @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data):
-        expected_msg = r'.*must implement _from_sequence_of_strings.*'
+        expected_msg = r".*must implement _from_sequence_of_strings.*"
         with pytest.raises(NotImplementedError, match=expected_msg):
             super().test_EA_types(engine, data)

@@ -5,7 +5,7 @@ import pandas as pd
 from pandas.tests.extension import base
 import pandas.util.testing as tm
 
-pytest.importorskip('pyarrow', minversion="0.10.0")
+pytest.importorskip("pyarrow", minversion="0.10.0")
 
 from .bool import ArrowBoolArray, ArrowBoolDtype  # isort:skip
 
@@ -47,7 +47,7 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
         pytest.skip("GH-22666")
 
     # seems like some bug in isna on empty BoolArray returning floats.
-    @pytest.mark.xfail(reason='bad is-na for empty data')
+    @pytest.mark.xfail(reason="bad is-na for empty data")
     def test_from_sequence_from_cls(self, data):
         super().test_from_sequence_from_cls(data)
 

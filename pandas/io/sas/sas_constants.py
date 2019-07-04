@@ -1,13 +1,15 @@
-magic = (b"\x00\x00\x00\x00\x00\x00\x00\x00" +
-         b"\x00\x00\x00\x00\xc2\xea\x81\x60" +
-         b"\xb3\x14\x11\xcf\xbd\x92\x08\x00" +
-         b"\x09\xc7\x31\x8c\x18\x1f\x10\x11")
+magic = (
+    b"\x00\x00\x00\x00\x00\x00\x00\x00"
+    + b"\x00\x00\x00\x00\xc2\xea\x81\x60"
+    + b"\xb3\x14\x11\xcf\xbd\x92\x08\x00"
+    + b"\x09\xc7\x31\x8c\x18\x1f\x10\x11"
+)
 
-align_1_checker_value = b'3'
+align_1_checker_value = b"3"
 align_1_offset = 32
 align_1_length = 1
 align_1_value = 4
-u64_byte_checker_value = b'3'
+u64_byte_checker_value = b"3"
 align_2_offset = 35
 align_2_length = 1
 align_2_value = 4
@@ -91,15 +93,22 @@ column_label_offset_offset = 30
 column_label_offset_length = 2
 column_label_length_offset = 32
 column_label_length_length = 2
-rle_compression = b'SASYZCRL'
-rdc_compression = b'SASYZCR2'
+rle_compression = b"SASYZCRL"
+rdc_compression = b"SASYZCR2"
 
 compression_literals = [rle_compression, rdc_compression]
 
 # Incomplete list of encodings, using SAS nomenclature:
 # http://support.sas.com/documentation/cdl/en/nlsref/61893/HTML/default/viewer.htm#a002607278.htm
-encoding_names = {29: "latin1", 20: "utf-8", 33: "cyrillic", 60: "wlatin2",
-                  61: "wcyrillic", 62: "wlatin1", 90: "ebcdic870"}
+encoding_names = {
+    29: "latin1",
+    20: "utf-8",
+    33: "cyrillic",
+    60: "wlatin2",
+    61: "wcyrillic",
+    62: "wlatin1",
+    90: "ebcdic870",
+}
 
 
 class SASIndex:
@@ -144,28 +153,101 @@ subheader_signature_to_index = {
     b"\xFE\xFF\xFF\xFF": SASIndex.column_list_index,
     b"\xFF\xFF\xFF\xFE": SASIndex.column_list_index,
     b"\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF": SASIndex.column_list_index,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFE": SASIndex.column_list_index}
+    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFE": SASIndex.column_list_index,
+}
 
 
 # List of frequently used SAS date and datetime formats
 # http://support.sas.com/documentation/cdl/en/etsug/60372/HTML/default/viewer.htm#etsug_intervals_sect009.htm
 # https://github.com/epam/parso/blob/master/src/main/java/com/epam/parso/impl/SasFileConstants.java
-sas_date_formats = ("DATE", "DAY", "DDMMYY", "DOWNAME", "JULDAY", "JULIAN",
-                    "MMDDYY", "MMYY", "MMYYC", "MMYYD", "MMYYP", "MMYYS",
-                    "MMYYN", "MONNAME", "MONTH", "MONYY", "QTR", "QTRR",
-                    "NENGO", "WEEKDATE", "WEEKDATX", "WEEKDAY", "WEEKV",
-                    "WORDDATE", "WORDDATX", "YEAR", "YYMM", "YYMMC", "YYMMD",
-                    "YYMMP", "YYMMS", "YYMMN", "YYMON", "YYMMDD", "YYQ",
-                    "YYQC", "YYQD", "YYQP", "YYQS", "YYQN", "YYQR", "YYQRC",
-                    "YYQRD", "YYQRP", "YYQRS", "YYQRN",
-                    "YYMMDDP", "YYMMDDC", "E8601DA", "YYMMDDN", "MMDDYYC",
-                    "MMDDYYS", "MMDDYYD", "YYMMDDS", "B8601DA", "DDMMYYN",
-                    "YYMMDDD", "DDMMYYB", "DDMMYYP", "MMDDYYP", "YYMMDDB",
-                    "MMDDYYN", "DDMMYYC", "DDMMYYD", "DDMMYYS",
-                    "MINGUO")
+sas_date_formats = (
+    "DATE",
+    "DAY",
+    "DDMMYY",
+    "DOWNAME",
+    "JULDAY",
+    "JULIAN",
+    "MMDDYY",
+    "MMYY",
+    "MMYYC",
+    "MMYYD",
+    "MMYYP",
+    "MMYYS",
+    "MMYYN",
+    "MONNAME",
+    "MONTH",
+    "MONYY",
+    "QTR",
+    "QTRR",
+    "NENGO",
+    "WEEKDATE",
+    "WEEKDATX",
+    "WEEKDAY",
+    "WEEKV",
+    "WORDDATE",
+    "WORDDATX",
+    "YEAR",
+    "YYMM",
+    "YYMMC",
+    "YYMMD",
+    "YYMMP",
+    "YYMMS",
+    "YYMMN",
+    "YYMON",
+    "YYMMDD",
+    "YYQ",
+    "YYQC",
+    "YYQD",
+    "YYQP",
+    "YYQS",
+    "YYQN",
+    "YYQR",
+    "YYQRC",
+    "YYQRD",
+    "YYQRP",
+    "YYQRS",
+    "YYQRN",
+    "YYMMDDP",
+    "YYMMDDC",
+    "E8601DA",
+    "YYMMDDN",
+    "MMDDYYC",
+    "MMDDYYS",
+    "MMDDYYD",
+    "YYMMDDS",
+    "B8601DA",
+    "DDMMYYN",
+    "YYMMDDD",
+    "DDMMYYB",
+    "DDMMYYP",
+    "MMDDYYP",
+    "YYMMDDB",
+    "MMDDYYN",
+    "DDMMYYC",
+    "DDMMYYD",
+    "DDMMYYS",
+    "MINGUO",
+)
 
-sas_datetime_formats = ("DATETIME", "DTWKDATX",
-                        "B8601DN", "B8601DT", "B8601DX", "B8601DZ", "B8601LX",
-                        "E8601DN", "E8601DT", "E8601DX", "E8601DZ", "E8601LX",
-                        "DATEAMPM", "DTDATE", "DTMONYY", "DTMONYY", "DTWKDATX",
-                        "DTYEAR", "TOD", "MDYAMPM")
+sas_datetime_formats = (
+    "DATETIME",
+    "DTWKDATX",
+    "B8601DN",
+    "B8601DT",
+    "B8601DX",
+    "B8601DZ",
+    "B8601LX",
+    "E8601DN",
+    "E8601DT",
+    "E8601DX",
+    "E8601DZ",
+    "E8601LX",
+    "DATEAMPM",
+    "DTDATE",
+    "DTMONYY",
+    "DTMONYY",
+    "DTWKDATX",
+    "DTYEAR",
+    "TOD",
+    "MDYAMPM",
+)

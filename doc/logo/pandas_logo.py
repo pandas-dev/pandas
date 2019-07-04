@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from matplotlib import rcParams
 import numpy as np
 
-rcParams['mathtext.fontset'] = 'cm'
+rcParams["mathtext.fontset"] = "cm"
 
 
 def fnx():
@@ -37,8 +37,12 @@ ax.set_yticks([])
 plt.figtext(0.05, 0.5, "pandas", size=40)
 
 plt.figtext(
-    0.05, 0.2, r"$y_{it} = \beta^{\prime} x_{it} + \mu_{i} + \epsilon_{it}$",
-    size=16, color="#5a89a4")
+    0.05,
+    0.2,
+    r"$y_{it} = \beta^{\prime} x_{it} + \mu_{i} + \epsilon_{it}$",
+    size=16,
+    color="#5a89a4",
+)
 
-fig.savefig('pandas_logo.svg')
-fig.savefig('pandas_logo.png')
+fig.savefig("pandas_logo.svg")
+fig.savefig("pandas_logo.png")

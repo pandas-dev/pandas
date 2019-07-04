@@ -54,10 +54,9 @@ def test_spss_umlauts(datapath):
     fname = datapath("io", "data", "umlauts.sav")
 
     df = pd.read_spss(fname, convert_categoricals=True)
-    expected = pd.DataFrame({"var1": ["the ä umlaut",
-                                      "the ü umlaut",
-                                      "the ä umlaut",
-                                      "the ö umlaut"]})
+    expected = pd.DataFrame(
+        {"var1": ["the ä umlaut", "the ü umlaut", "the ä umlaut", "the ö umlaut"]}
+    )
     expected["var1"] = pd.Categorical(expected["var1"])
     tm.assert_frame_equal(df, expected)
 

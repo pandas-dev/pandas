@@ -42,13 +42,12 @@ class BaseMissingTests(BaseExtensionTests):
         self.assert_frame_equal(result, expected)
 
         # axis = 1
-        result = df.dropna(axis='columns')
+        result = df.dropna(axis="columns")
         expected = pd.DataFrame(index=[0, 1])
         self.assert_frame_equal(result, expected)
 
         # multiple
-        df = pd.DataFrame({"A": data_missing,
-                           "B": [1, np.nan]})
+        df = pd.DataFrame({"A": data_missing, "B": [1, np.nan]})
         result = df.dropna()
         expected = df.iloc[:0]
         self.assert_frame_equal(result, expected)
@@ -61,13 +60,13 @@ class BaseMissingTests(BaseExtensionTests):
 
     def test_fillna_limit_pad(self, data_missing):
         arr = data_missing.take([1, 0, 0, 0, 1])
-        result = pd.Series(arr).fillna(method='ffill', limit=2)
+        result = pd.Series(arr).fillna(method="ffill", limit=2)
         expected = pd.Series(data_missing.take([1, 1, 1, 0, 1]))
         self.assert_series_equal(result, expected)
 
     def test_fillna_limit_backfill(self, data_missing):
         arr = data_missing.take([1, 0, 0, 0, 1])
-        result = pd.Series(arr).fillna(method='backfill', limit=2)
+        result = pd.Series(arr).fillna(method="backfill", limit=2)
         expected = pd.Series(data_missing.take([1, 0, 1, 1, 1]))
         self.assert_series_equal(result, expected)
 
@@ -76,8 +75,11 @@ class BaseMissingTests(BaseExtensionTests):
         ser = pd.Series(data_missing)
 
         result = ser.fillna(fill_value)
-        expected = pd.Series(data_missing._from_sequence(
-            [fill_value, fill_value], dtype=data_missing.dtype))
+        expected = pd.Series(
+            data_missing._from_sequence(
+                [fill_value, fill_value], dtype=data_missing.dtype
+            )
+        )
         self.assert_series_equal(result, expected)
 
         # Fill with a series
@@ -91,40 +93,37 @@ class BaseMissingTests(BaseExtensionTests):
     def test_fillna_series_method(self, data_missing, fillna_method):
         fill_value = data_missing[1]
 
-        if fillna_method == 'ffill':
+        if fillna_method == "ffill":
             data_missing = data_missing[::-1]
 
         result = pd.Series(data_missing).fillna(method=fillna_method)
-        expected = pd.Series(data_missing._from_sequence(
-            [fill_value, fill_value], dtype=data_missing.dtype))
+        expected = pd.Series(
+            data_missing._from_sequence(
+                [fill_value, fill_value], dtype=data_missing.dtype
+            )
+        )
 
         self.assert_series_equal(result, expected)
 
     def test_fillna_frame(self, data_missing):
         fill_value = data_missing[1]
 
-        result = pd.DataFrame({
-            "A": data_missing,
-            "B": [1, 2]
-        }).fillna(fill_value)
+        result = pd.DataFrame({"A": data_missing, "B": [1, 2]}).fillna(fill_value)
 
-        expected = pd.DataFrame({
-            "A": data_missing._from_sequence([fill_value, fill_value],
-                                             dtype=data_missing.dtype),
-            "B": [1, 2],
-        })
+        expected = pd.DataFrame(
+            {
+                "A": data_missing._from_sequence(
+                    [fill_value, fill_value], dtype=data_missing.dtype
+                ),
+                "B": [1, 2],
+            }
+        )
 
         self.assert_frame_equal(result, expected)
 
     def test_fillna_fill_other(self, data):
-        result = pd.DataFrame({
-            "A": data,
-            "B": [np.nan] * len(data)
-        }).fillna({"B": 0.0})
+        result = pd.DataFrame({"A": data, "B": [np.nan] * len(data)}).fillna({"B": 0.0})
 
-        expected = pd.DataFrame({
-            "A": data,
-            "B": [0.0] * len(result),
-        })
+        expected = pd.DataFrame({"A": data, "B": [0.0] * len(result)})
 
         self.assert_frame_equal(result, expected)

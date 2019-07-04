@@ -18,16 +18,16 @@ def test_import_optional():
 
 
 def test_xlrd_version_fallback():
-    pytest.importorskip('xlrd')
+    pytest.importorskip("xlrd")
     import_optional_dependency("xlrd")
 
 
 def test_bad_version():
-    name = 'fakemodule'
+    name = "fakemodule"
     module = types.ModuleType(name)
     module.__version__ = "0.9.0"
     sys.modules[name] = module
-    VERSIONS[name] = '1.0.0'
+    VERSIONS[name] = "1.0.0"
 
     match = "Pandas requires .*1.0.0.* of .fakemodule.*'0.9.0'"
     with pytest.raises(ImportError, match=match):
@@ -43,10 +43,10 @@ def test_bad_version():
 
 
 def test_no_version_raises():
-    name = 'fakemodule'
+    name = "fakemodule"
     module = types.ModuleType(name)
     sys.modules[name] = module
-    VERSIONS[name] = '1.0.0'
+    VERSIONS[name] = "1.0.0"
 
     with pytest.raises(ImportError, match="Can't determine .* fakemodule"):
         import_optional_dependency(name)

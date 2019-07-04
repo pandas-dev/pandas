@@ -9,15 +9,13 @@ EXCEPT_MSG = """
 
 def init_osx_clipboard():
     def copy_osx(text):
-        p = subprocess.Popen(['pbcopy', 'w'],
-                             stdin=subprocess.PIPE, close_fds=True)
-        p.communicate(input=text.encode('utf-8'))
+        p = subprocess.Popen(["pbcopy", "w"], stdin=subprocess.PIPE, close_fds=True)
+        p.communicate(input=text.encode("utf-8"))
 
     def paste_osx():
-        p = subprocess.Popen(['pbpaste', 'r'],
-                             stdout=subprocess.PIPE, close_fds=True)
+        p = subprocess.Popen(["pbpaste", "r"], stdout=subprocess.PIPE, close_fds=True)
         stdout, stderr = p.communicate()
-        return stdout.decode('utf-8')
+        return stdout.decode("utf-8")
 
     return copy_osx, paste_osx
 
@@ -51,30 +49,34 @@ def init_qt_clipboard():
 
 def init_xclip_clipboard():
     def copy_xclip(text):
-        p = subprocess.Popen(['xclip', '-selection', 'c'],
-                             stdin=subprocess.PIPE, close_fds=True)
-        p.communicate(input=text.encode('utf-8'))
+        p = subprocess.Popen(
+            ["xclip", "-selection", "c"], stdin=subprocess.PIPE, close_fds=True
+        )
+        p.communicate(input=text.encode("utf-8"))
 
     def paste_xclip():
-        p = subprocess.Popen(['xclip', '-selection', 'c', '-o'],
-                             stdout=subprocess.PIPE, close_fds=True)
+        p = subprocess.Popen(
+            ["xclip", "-selection", "c", "-o"], stdout=subprocess.PIPE, close_fds=True
+        )
         stdout, stderr = p.communicate()
-        return stdout.decode('utf-8')
+        return stdout.decode("utf-8")
 
     return copy_xclip, paste_xclip
 
 
 def init_xsel_clipboard():
     def copy_xsel(text):
-        p = subprocess.Popen(['xsel', '-b', '-i'],
-                             stdin=subprocess.PIPE, close_fds=True)
-        p.communicate(input=text.encode('utf-8'))
+        p = subprocess.Popen(
+            ["xsel", "-b", "-i"], stdin=subprocess.PIPE, close_fds=True
+        )
+        p.communicate(input=text.encode("utf-8"))
 
     def paste_xsel():
-        p = subprocess.Popen(['xsel', '-b', '-o'],
-                             stdout=subprocess.PIPE, close_fds=True)
+        p = subprocess.Popen(
+            ["xsel", "-b", "-o"], stdout=subprocess.PIPE, close_fds=True
+        )
         stdout, stderr = p.communicate()
-        return stdout.decode('utf-8')
+        return stdout.decode("utf-8")
 
     return copy_xsel, paste_xsel
 
@@ -82,25 +84,34 @@ def init_xsel_clipboard():
 def init_klipper_clipboard():
     def copy_klipper(text):
         p = subprocess.Popen(
-            ['qdbus', 'org.kde.klipper', '/klipper', 'setClipboardContents',
-             text.encode('utf-8')],
-            stdin=subprocess.PIPE, close_fds=True)
+            [
+                "qdbus",
+                "org.kde.klipper",
+                "/klipper",
+                "setClipboardContents",
+                text.encode("utf-8"),
+            ],
+            stdin=subprocess.PIPE,
+            close_fds=True,
+        )
         p.communicate(input=None)
 
     def paste_klipper():
         p = subprocess.Popen(
-            ['qdbus', 'org.kde.klipper', '/klipper', 'getClipboardContents'],
-            stdout=subprocess.PIPE, close_fds=True)
+            ["qdbus", "org.kde.klipper", "/klipper", "getClipboardContents"],
+            stdout=subprocess.PIPE,
+            close_fds=True,
+        )
         stdout, stderr = p.communicate()
 
         # Workaround for https://bugs.kde.org/show_bug.cgi?id=342874
         # TODO: https://github.com/asweigart/pyperclip/issues/43
-        clipboardContents = stdout.decode('utf-8')
+        clipboardContents = stdout.decode("utf-8")
         # even if blank, Klipper will append a newline at the end
         assert len(clipboardContents) > 0
         # make sure that newline is there
-        assert clipboardContents.endswith('\n')
-        if clipboardContents.endswith('\n'):
+        assert clipboardContents.endswith("\n")
+        if clipboardContents.endswith("\n"):
             clipboardContents = clipboardContents[:-1]
         return clipboardContents
 
@@ -109,7 +120,6 @@ def init_klipper_clipboard():
 
 def init_no_clipboard():
     class ClipboardUnavailable:
-
         def __call__(self, *args, **kwargs):
             raise PyperclipException(EXCEPT_MSG)
 

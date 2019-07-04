@@ -6,15 +6,16 @@ from ..pandas_vb_common import BaseIO
 
 
 class MSGPack(BaseIO):
-
     def setup(self):
-        self.fname = '__test__.msg'
+        self.fname = "__test__.msg"
         N = 100000
         C = 5
-        self.df = DataFrame(np.random.randn(N, C),
-                            columns=['float{}'.format(i) for i in range(C)],
-                            index=date_range('20000101', periods=N, freq='H'))
-        self.df['object'] = tm.makeStringIndex(N)
+        self.df = DataFrame(
+            np.random.randn(N, C),
+            columns=["float{}".format(i) for i in range(C)],
+            index=date_range("20000101", periods=N, freq="H"),
+        )
+        self.df["object"] = tm.makeStringIndex(N)
         self.df.to_msgpack(self.fname)
 
     def time_read_msgpack(self):

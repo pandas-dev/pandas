@@ -16,6 +16,7 @@ class _ODFReader(_BaseExcelReader):
     filepath_or_buffer: string, path to be parsed or
         an open readable stream.
     """
+
     def __init__(self, filepath_or_buffer: FilePathOrBuffer):
         import_optional_dependency("odf")
         super().__init__(filepath_or_buffer)
@@ -23,16 +24,18 @@ class _ODFReader(_BaseExcelReader):
     @property
     def _workbook_class(self):
         from odf.opendocument import OpenDocument
+
         return OpenDocument
 
     def load_workbook(self, filepath_or_buffer: FilePathOrBuffer):
         from odf.opendocument import load
+
         return load(filepath_or_buffer)
 
     @property
     def empty_value(self) -> str:
         """Property for compat with other readers."""
-        return ''
+        return ""
 
     @property
     def sheet_names(self) -> List[str]:
@@ -44,6 +47,7 @@ class _ODFReader(_BaseExcelReader):
 
     def get_sheet_by_index(self, index: int):
         from odf.table import Table
+
         tables = self.book.getElementsByType(Table)
         return tables[index]
 
@@ -74,8 +78,7 @@ class _ODFReader(_BaseExcelReader):
         table = []  # type: List[List[Scalar]]
 
         for i, sheet_row in enumerate(sheet_rows):
-            sheet_cells = [x for x in sheet_row.childNodes
-                           if x.qname in cell_names]
+            sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0
             table_row = []  # type: List[Scalar]
 
@@ -122,12 +125,12 @@ class _ODFReader(_BaseExcelReader):
         """
         from odf.namespaces import TABLENS
 
-        return int(row.attributes.get((TABLENS, 'number-rows-repeated'), 1))
+        return int(row.attributes.get((TABLENS, "number-rows-repeated"), 1))
 
     def _get_column_repeat(self, cell) -> int:
         from odf.namespaces import TABLENS
-        return int(cell.attributes.get(
-            (TABLENS, 'number-columns-repeated'), 1))
+
+        return int(cell.attributes.get((TABLENS, "number-columns-repeated"), 1))
 
     def _is_empty_row(self, row) -> bool:
         """Helper function to find empty rows
@@ -140,18 +143,19 @@ class _ODFReader(_BaseExcelReader):
 
     def _get_cell_value(self, cell, convert_float: bool) -> Scalar:
         from odf.namespaces import OFFICENS
-        cell_type = cell.attributes.get((OFFICENS, 'value-type'))
-        if cell_type == 'boolean':
+
+        cell_type = cell.attributes.get((OFFICENS, "value-type"))
+        if cell_type == "boolean":
             if str(cell) == "TRUE":
                 return True
             return False
         if cell_type is None:
             return self.empty_value
-        elif cell_type == 'float':
+        elif cell_type == "float":
             # GH5394
-            cell_value = float(cell.attributes.get((OFFICENS, 'value')))
+            cell_value = float(cell.attributes.get((OFFICENS, "value")))
 
-            if cell_value == 0. and str(cell) != cell_value:  # NA handling
+            if cell_value == 0.0 and str(cell) != cell_value:  # NA handling
                 return str(cell)
 
             if convert_float:
@@ -159,18 +163,18 @@ class _ODFReader(_BaseExcelReader):
                 if val == cell_value:
                     return val
             return cell_value
-        elif cell_type == 'percentage':
-            cell_value = cell.attributes.get((OFFICENS, 'value'))
+        elif cell_type == "percentage":
+            cell_value = cell.attributes.get((OFFICENS, "value"))
             return float(cell_value)
-        elif cell_type == 'string':
+        elif cell_type == "string":
             return str(cell)
-        elif cell_type == 'currency':
-            cell_value = cell.attributes.get((OFFICENS, 'value'))
+        elif cell_type == "currency":
+            cell_value = cell.attributes.get((OFFICENS, "value"))
             return float(cell_value)
-        elif cell_type == 'date':
-            cell_value = cell.attributes.get((OFFICENS, 'date-value'))
+        elif cell_type == "date":
+            cell_value = cell.attributes.get((OFFICENS, "date-value"))
             return pd.to_datetime(cell_value)
-        elif cell_type == 'time':
+        elif cell_type == "time":
             return pd.to_datetime(str(cell)).time()
         else:
-            raise ValueError('Unrecognized type {}'.format(cell_type))
+            raise ValueError("Unrecognized type {}".format(cell_type))

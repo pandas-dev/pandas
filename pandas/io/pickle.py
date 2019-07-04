@@ -10,8 +10,7 @@ from pandas.compat import pickle_compat as pc
 from pandas.io.common import _get_handle, _stringify_path
 
 
-def to_pickle(obj, path, compression='infer',
-              protocol=pickle.HIGHEST_PROTOCOL):
+def to_pickle(obj, path, compression="infer", protocol=pickle.HIGHEST_PROTOCOL):
     """
     Pickle (serialize) object to file.
 
@@ -70,9 +69,7 @@ def to_pickle(obj, path, compression='infer',
     >>> os.remove("./dummy.pkl")
     """
     path = _stringify_path(path)
-    f, fh = _get_handle(path, 'wb',
-                        compression=compression,
-                        is_text=False)
+    f, fh = _get_handle(path, "wb", compression=compression, is_text=False)
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
     try:
@@ -83,7 +80,7 @@ def to_pickle(obj, path, compression='infer',
             _f.close()
 
 
-def read_pickle(path, compression='infer'):
+def read_pickle(path, compression="infer"):
     """
     Load pickled pandas object (or any object) from file.
 
@@ -145,7 +142,7 @@ def read_pickle(path, compression='infer'):
     >>> os.remove("./dummy.pkl")
     """
     path = _stringify_path(path)
-    f, fh = _get_handle(path, 'rb', compression=compression, is_text=False)
+    f, fh = _get_handle(path, "rb", compression=compression, is_text=False)
 
     # 1) try standard libary Pickle
     # 2) try pickle_compat (older pandas version) to handle subclass changes
@@ -160,11 +157,12 @@ def read_pickle(path, compression='infer'):
         try:
             return pc.load(f, encoding=None)
         except Exception:  # noqa: E722
-            return pc.load(f, encoding='latin1')
+            return pc.load(f, encoding="latin1")
     finally:
         f.close()
         for _f in fh:
             _f.close()
+
 
 # compat with sparse pickle / unpickle
 

@@ -6,15 +6,18 @@ from pandas import DatetimeIndex
 import pandas.util.testing as tm
 
 from pandas.tseries.holiday import (
-    AbstractHolidayCalendar, Holiday, Timestamp, USFederalHolidayCalendar,
-    USThanksgivingDay, get_calendar)
+    AbstractHolidayCalendar,
+    Holiday,
+    Timestamp,
+    USFederalHolidayCalendar,
+    USThanksgivingDay,
+    get_calendar,
+)
 
 
-@pytest.mark.parametrize("transform", [
-    lambda x: x,
-    lambda x: x.strftime("%Y-%m-%d"),
-    lambda x: Timestamp(x)
-])
+@pytest.mark.parametrize(
+    "transform", [lambda x: x, lambda x: x.strftime("%Y-%m-%d"), lambda x: Timestamp(x)]
+)
 def test_calendar(transform):
     start_date = datetime(2012, 1, 1)
     end_date = datetime(2012, 12, 31)
@@ -32,7 +35,7 @@ def test_calendar(transform):
         datetime(2012, 10, 8),
         datetime(2012, 11, 12),
         datetime(2012, 11, 22),
-        datetime(2012, 12, 25)
+        datetime(2012, 12, 25),
     ]
 
     assert list(holidays.to_pydatetime()) == expected
@@ -56,12 +59,15 @@ def test_calendar_caching():
 def test_calendar_observance_dates():
     # see gh-11477
     us_fed_cal = get_calendar("USFederalHolidayCalendar")
-    holidays0 = us_fed_cal.holidays(datetime(2015, 7, 3), datetime(
-        2015, 7, 3))  # <-- same start and end dates
-    holidays1 = us_fed_cal.holidays(datetime(2015, 7, 3), datetime(
-        2015, 7, 6))  # <-- different start and end dates
-    holidays2 = us_fed_cal.holidays(datetime(2015, 7, 3), datetime(
-        2015, 7, 3))  # <-- same start and end dates
+    holidays0 = us_fed_cal.holidays(
+        datetime(2015, 7, 3), datetime(2015, 7, 3)
+    )  # <-- same start and end dates
+    holidays1 = us_fed_cal.holidays(
+        datetime(2015, 7, 3), datetime(2015, 7, 6)
+    )  # <-- different start and end dates
+    holidays2 = us_fed_cal.holidays(
+        datetime(2015, 7, 3), datetime(2015, 7, 3)
+    )  # <-- same start and end dates
 
     # These should all produce the same result.
     #

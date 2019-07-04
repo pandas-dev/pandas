@@ -23,15 +23,20 @@ qtpy also requires a python-qt-bindings module: PyQt4, PyQt5, PySide, PySide2
 
 This module does not work with PyGObject yet.
 """
-__version__ = '1.5.27'
+__version__ = "1.5.27"
 
 import os
 import platform
 import subprocess
 
 from .clipboards import (
-    init_klipper_clipboard, init_no_clipboard, init_osx_clipboard,
-    init_qt_clipboard, init_xclip_clipboard, init_xsel_clipboard)
+    init_klipper_clipboard,
+    init_no_clipboard,
+    init_osx_clipboard,
+    init_qt_clipboard,
+    init_xclip_clipboard,
+    init_xsel_clipboard,
+)
 from .windows import init_windows_clipboard
 
 # `import qtpy` sys.exit()s if DISPLAY is not in the environment.
@@ -42,20 +47,24 @@ CHECK_CMD = "where" if platform.system() == "Windows" else "which"
 
 
 def _executable_exists(name):
-    return subprocess.call([CHECK_CMD, name],
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
+    return (
+        subprocess.call(
+            [CHECK_CMD, name], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        == 0
+    )
 
 
 def determine_clipboard():
     # Determine the OS/platform and set
     # the copy() and paste() functions accordingly.
-    if 'cygwin' in platform.system().lower():
+    if "cygwin" in platform.system().lower():
         # FIXME: pyperclip currently does not support Cygwin,
         # see https://github.com/asweigart/pyperclip/issues/55
         pass
-    elif os.name == 'nt' or platform.system() == 'Windows':
+    elif os.name == "nt" or platform.system() == "Windows":
         return init_windows_clipboard()
-    if os.name == 'mac' or platform.system() == 'Darwin':
+    if os.name == "mac" or platform.system() == "Darwin":
         return init_osx_clipboard()
     if HAS_DISPLAY:
         # Determine which command/module is installed, if any.
@@ -94,13 +103,15 @@ def determine_clipboard():
 def set_clipboard(clipboard):
     global copy, paste
 
-    clipboard_types = {'osx': init_osx_clipboard,
-                       'qt': init_qt_clipboard,
-                       'xclip': init_xclip_clipboard,
-                       'xsel': init_xsel_clipboard,
-                       'klipper': init_klipper_clipboard,
-                       'windows': init_windows_clipboard,
-                       'no': init_no_clipboard}
+    clipboard_types = {
+        "osx": init_osx_clipboard,
+        "qt": init_qt_clipboard,
+        "xclip": init_xclip_clipboard,
+        "xsel": init_xsel_clipboard,
+        "klipper": init_klipper_clipboard,
+        "windows": init_windows_clipboard,
+        "no": init_no_clipboard,
+    }
 
     copy, paste = clipboard_types[clipboard]()
 

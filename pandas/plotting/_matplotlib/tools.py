@@ -14,7 +14,7 @@ def format_date_labels(ax, rot):
     # mini version of autofmt_xdate
     try:
         for label in ax.get_xticklabels():
-            label.set_ha('right')
+            label.set_ha("right")
             label.set_rotation(rot)
         fig = ax.get_figure()
         fig.subplots_adjust(bottom=0.2)
@@ -28,7 +28,7 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     elif isinstance(data, ABCDataFrame):
         pass
     else:
-        raise ValueError('Input data must be DataFrame or Series')
+        raise ValueError("Input data must be DataFrame or Series")
 
     if rowLabels is None:
         rowLabels = data.index
@@ -38,16 +38,16 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
 
     cellText = data.values
 
-    table = matplotlib.table.table(ax, cellText=cellText,
-                                   rowLabels=rowLabels,
-                                   colLabels=colLabels, **kwargs)
+    table = matplotlib.table.table(
+        ax, cellText=cellText, rowLabels=rowLabels, colLabels=colLabels, **kwargs
+    )
     return table
 
 
-def _get_layout(nplots, layout=None, layout_type='box'):
+def _get_layout(nplots, layout=None, layout_type="box"):
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
-            raise ValueError('Layout must be a tuple of (rows, columns)')
+            raise ValueError("Layout must be a tuple of (rows, columns)")
 
         nrows, ncols = layout
 
@@ -62,17 +62,20 @@ def _get_layout(nplots, layout=None, layout_type='box'):
             raise ValueError(msg)
 
         if nrows * ncols < nplots:
-            raise ValueError('Layout of {nrows}x{ncols} must be larger '
-                             'than required size {nplots}'.format(
-                                 nrows=nrows, ncols=ncols, nplots=nplots))
+            raise ValueError(
+                "Layout of {nrows}x{ncols} must be larger "
+                "than required size {nplots}".format(
+                    nrows=nrows, ncols=ncols, nplots=nplots
+                )
+            )
 
         return layout
 
-    if layout_type == 'single':
+    if layout_type == "single":
         return (1, 1)
-    elif layout_type == 'horizontal':
+    elif layout_type == "horizontal":
         return (1, nplots)
-    elif layout_type == 'vertical':
+    elif layout_type == "vertical":
         return (nplots, 1)
 
     layouts = {1: (1, 1), 2: (1, 2), 3: (2, 2), 4: (2, 2)}
@@ -88,12 +91,21 @@ def _get_layout(nplots, layout=None, layout_type='box'):
         else:
             return k, k
 
+
 # copied from matplotlib/pyplot.py and modified for pandas.plotting
 
 
-def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
-              subplot_kw=None, ax=None, layout=None, layout_type='box',
-              **fig_kw):
+def _subplots(
+    naxes=None,
+    sharex=False,
+    sharey=False,
+    squeeze=True,
+    subplot_kw=None,
+    ax=None,
+    layout=None,
+    layout_type="box",
+    **fig_kw
+):
     """Create a figure with a set of subplots already made.
 
     This utility wrapper makes it convenient to create common layouts of
@@ -168,6 +180,7 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
     plt.subplots(2, 2, subplot_kw=dict(polar=True))
     """
     import matplotlib.pyplot as plt
+
     if subplot_kw is None:
         subplot_kw = {}
 
@@ -177,19 +190,26 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
         if is_list_like(ax):
             ax = _flatten(ax)
             if layout is not None:
-                warnings.warn("When passing multiple axes, layout keyword is "
-                              "ignored", UserWarning)
+                warnings.warn(
+                    "When passing multiple axes, layout keyword is " "ignored",
+                    UserWarning,
+                )
             if sharex or sharey:
-                warnings.warn("When passing multiple axes, sharex and sharey "
-                              "are ignored. These settings must be specified "
-                              "when creating axes", UserWarning,
-                              stacklevel=4)
+                warnings.warn(
+                    "When passing multiple axes, sharex and sharey "
+                    "are ignored. These settings must be specified "
+                    "when creating axes",
+                    UserWarning,
+                    stacklevel=4,
+                )
             if len(ax) == naxes:
                 fig = ax[0].get_figure()
                 return fig, ax
             else:
-                raise ValueError("The number of passed axes must be {0}, the "
-                                 "same as the output plot".format(naxes))
+                raise ValueError(
+                    "The number of passed axes must be {0}, the "
+                    "same as the output plot".format(naxes)
+                )
 
         fig = ax.get_figure()
         # if ax is passed and a number of subplots is 1, return ax as it is
@@ -199,9 +219,12 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
             else:
                 return fig, _flatten(ax)
         else:
-            warnings.warn("To output multiple subplots, the figure containing "
-                          "the passed axes is being cleared", UserWarning,
-                          stacklevel=4)
+            warnings.warn(
+                "To output multiple subplots, the figure containing "
+                "the passed axes is being cleared",
+                UserWarning,
+                stacklevel=4,
+            )
             fig.clear()
 
     nrows, ncols = _get_layout(naxes, layout=layout, layout_type=layout_type)
@@ -215,9 +238,9 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
     ax0 = fig.add_subplot(nrows, ncols, 1, **subplot_kw)
 
     if sharex:
-        subplot_kw['sharex'] = ax0
+        subplot_kw["sharex"] = ax0
     if sharey:
-        subplot_kw['sharey'] = ax0
+        subplot_kw["sharey"] = ax0
     axarr[0] = ax0
 
     # Note off-by-one counting because add_subplot uses the MATLAB 1-based
@@ -228,8 +251,8 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
         # interfere with proper axis limits on the visible axes if
         # they share axes e.g. issue #7528
         if i >= naxes:
-            kwds['sharex'] = None
-            kwds['sharey'] = None
+            kwds["sharex"] = None
+            kwds["sharey"] = None
         ax = fig.add_subplot(nrows, ncols, i + 1, **kwds)
         axarr[i] = ax
 
@@ -264,10 +287,10 @@ def _remove_labels_from_axis(axis):
         if isinstance(axis.get_minor_locator(), ticker.NullLocator):
             axis.set_minor_locator(ticker.AutoLocator())
         if isinstance(axis.get_minor_formatter(), ticker.NullFormatter):
-            axis.set_minor_formatter(ticker.FormatStrFormatter(''))
+            axis.set_minor_formatter(ticker.FormatStrFormatter(""))
         for t in axis.get_minorticklabels():
             t.set_visible(False)
-    except Exception:   # pragma no cover
+    except Exception:  # pragma no cover
         raise
     axis.get_label().set_visible(False)
 
@@ -289,8 +312,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                     # the last in the column, because below is no subplot/gap.
                     if not layout[ax.rowNum + 1, ax.colNum]:
                         continue
-                    if sharex or len(ax.get_shared_x_axes()
-                                     .get_siblings(ax)) > 1:
+                    if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
                         _remove_labels_from_axis(ax.xaxis)
 
             except IndexError:
@@ -299,8 +321,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                 for ax in axarr:
                     if ax.is_last_row():
                         continue
-                    if sharex or len(ax.get_shared_x_axes()
-                                     .get_siblings(ax)) > 1:
+                    if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
                         _remove_labels_from_axis(ax.xaxis)
 
         if ncols > 1:
@@ -325,10 +346,10 @@ def _flatten(axes):
 def _get_all_lines(ax):
     lines = ax.get_lines()
 
-    if hasattr(ax, 'right_ax'):
+    if hasattr(ax, "right_ax"):
         lines += ax.right_ax.get_lines()
 
-    if hasattr(ax, 'left_ax'):
+    if hasattr(ax, "left_ax"):
         lines += ax.left_ax.get_lines()
 
     return lines
@@ -343,9 +364,9 @@ def _get_xlim(lines):
     return left, right
 
 
-def _set_ticks_props(axes, xlabelsize=None, xrot=None,
-                     ylabelsize=None, yrot=None):
+def _set_ticks_props(axes, xlabelsize=None, xrot=None, ylabelsize=None, yrot=None):
     import matplotlib.pyplot as plt
+
     for ax in _flatten(axes):
         if xlabelsize is not None:
             plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)

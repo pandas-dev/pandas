@@ -6,8 +6,7 @@ import struct
 import subprocess
 import sys
 
-from pandas.compat._optional import (
-    VERSIONS, _get_version, import_optional_dependency)
+from pandas.compat._optional import VERSIONS, _get_version, import_optional_dependency
 
 
 def get_sys_info():
@@ -19,9 +18,11 @@ def get_sys_info():
     commit = None
     if os.path.isdir(".git") and os.path.isdir("pandas"):
         try:
-            pipe = subprocess.Popen('git log --format="%H" -n 1'.split(" "),
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE)
+            pipe = subprocess.Popen(
+                'git log --format="%H" -n 1'.split(" "),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
             so, serr = pipe.communicate()
         except (OSError, ValueError):
             pass
@@ -29,29 +30,30 @@ def get_sys_info():
             if pipe.returncode == 0:
                 commit = so
                 try:
-                    commit = so.decode('utf-8')
+                    commit = so.decode("utf-8")
                 except ValueError:
                     pass
                 commit = commit.strip().strip('"')
 
-    blob.append(('commit', commit))
+    blob.append(("commit", commit))
 
     try:
-        (sysname, nodename, release,
-         version, machine, processor) = platform.uname()
-        blob.extend([
-            ("python", '.'.join(map(str, sys.version_info))),
-            ("python-bits", struct.calcsize("P") * 8),
-            ("OS", "{sysname}".format(sysname=sysname)),
-            ("OS-release", "{release}".format(release=release)),
-            # ("Version", "{version}".format(version=version)),
-            ("machine", "{machine}".format(machine=machine)),
-            ("processor", "{processor}".format(processor=processor)),
-            ("byteorder", "{byteorder}".format(byteorder=sys.byteorder)),
-            ("LC_ALL", "{lc}".format(lc=os.environ.get('LC_ALL', "None"))),
-            ("LANG", "{lang}".format(lang=os.environ.get('LANG', "None"))),
-            ("LOCALE", '.'.join(map(str, locale.getlocale()))),
-        ])
+        (sysname, nodename, release, version, machine, processor) = platform.uname()
+        blob.extend(
+            [
+                ("python", ".".join(map(str, sys.version_info))),
+                ("python-bits", struct.calcsize("P") * 8),
+                ("OS", "{sysname}".format(sysname=sysname)),
+                ("OS-release", "{release}".format(release=release)),
+                # ("Version", "{version}".format(version=version)),
+                ("machine", "{machine}".format(machine=machine)),
+                ("processor", "{processor}".format(processor=processor)),
+                ("byteorder", "{byteorder}".format(byteorder=sys.byteorder)),
+                ("LC_ALL", "{lc}".format(lc=os.environ.get("LC_ALL", "None"))),
+                ("LANG", "{lang}".format(lang=os.environ.get("LANG", "None"))),
+                ("LOCALE", ".".join(map(str, locale.getlocale()))),
+            ]
+        )
     except (KeyError, ValueError):
         pass
 
@@ -61,18 +63,18 @@ def get_sys_info():
 def show_versions(as_json=False):
     sys_info = get_sys_info()
     deps = [
-        'pandas',
+        "pandas",
         # required
-        'numpy',
-        'pytz',
-        'dateutil',
+        "numpy",
+        "pytz",
+        "dateutil",
         # install / build,
-        'pip',
-        'setuptools',
-        'Cython',
+        "pip",
+        "setuptools",
+        "Cython",
         # test
-        'pytest',
-        'hypothesis',
+        "pytest",
+        "hypothesis",
         # docs
         "sphinx",
         # Other, need a min version
@@ -93,9 +95,9 @@ def show_versions(as_json=False):
     deps_blob = []
 
     for modname in deps:
-        mod = import_optional_dependency(modname,
-                                         raise_on_missing=False,
-                                         on_version="ignore")
+        mod = import_optional_dependency(
+            modname, raise_on_missing=False, on_version="ignore"
+        )
         if mod:
             ver = _get_version(mod)
         else:
@@ -113,12 +115,12 @@ def show_versions(as_json=False):
         if as_json is True:
             print(j)
         else:
-            with codecs.open(as_json, "wb", encoding='utf8') as f:
+            with codecs.open(as_json, "wb", encoding="utf8") as f:
                 json.dump(j, f, indent=2)
 
     else:
         maxlen = max(len(x) for x in deps)
-        tpl = '{{k:<{maxlen}}}: {{stat}}'.format(maxlen=maxlen)
+        tpl = "{{k:<{maxlen}}}: {{stat}}".format(maxlen=maxlen)
         print("\nINSTALLED VERSIONS")
         print("------------------")
         for k, stat in sys_info:
@@ -130,10 +132,15 @@ def show_versions(as_json=False):
 
 def main():
     from optparse import OptionParser
+
     parser = OptionParser()
-    parser.add_option("-j", "--json", metavar="FILE", nargs=1,
-                      help="Save output as JSON into file, pass in "
-                      "'-' to output to stdout")
+    parser.add_option(
+        "-j",
+        "--json",
+        metavar="FILE",
+        nargs=1,
+        help="Save output as JSON into file, pass in " "'-' to output to stdout",
+    )
 
     (options, args) = parser.parse_args()
 

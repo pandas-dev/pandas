@@ -15,12 +15,18 @@ from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
 
 
-@Appender(_shared_docs['melt'] %
-          dict(caller='pd.melt(df, ',
-               versionadded="",
-               other='DataFrame.melt'))
-def melt(frame, id_vars=None, value_vars=None, var_name=None,
-         value_name='value', col_level=None):
+@Appender(
+    _shared_docs["melt"]
+    % dict(caller="pd.melt(df, ", versionadded="", other="DataFrame.melt")
+)
+def melt(
+    frame,
+    id_vars=None,
+    value_vars=None,
+    var_name=None,
+    value_name="value",
+    col_level=None,
+):
     # TODO: what about the existing index?
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
@@ -31,36 +37,42 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
     if id_vars is not None:
         if not is_list_like(id_vars):
             id_vars = [id_vars]
-        elif (isinstance(frame.columns, ABCMultiIndex) and
-              not isinstance(id_vars, list)):
-            raise ValueError('id_vars must be a list of tuples when columns'
-                             ' are a MultiIndex')
+        elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(id_vars, list):
+            raise ValueError(
+                "id_vars must be a list of tuples when columns" " are a MultiIndex"
+            )
         else:
             # Check that `id_vars` are in frame
             id_vars = list(id_vars)
             missing = Index(np.ravel(id_vars)).difference(cols)
             if not missing.empty:
-                raise KeyError("The following 'id_vars' are not present"
-                               " in the DataFrame: {missing}"
-                               "".format(missing=list(missing)))
+                raise KeyError(
+                    "The following 'id_vars' are not present"
+                    " in the DataFrame: {missing}"
+                    "".format(missing=list(missing))
+                )
     else:
         id_vars = []
 
     if value_vars is not None:
         if not is_list_like(value_vars):
             value_vars = [value_vars]
-        elif (isinstance(frame.columns, ABCMultiIndex) and
-              not isinstance(value_vars, list)):
-            raise ValueError('value_vars must be a list of tuples when'
-                             ' columns are a MultiIndex')
+        elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(
+            value_vars, list
+        ):
+            raise ValueError(
+                "value_vars must be a list of tuples when" " columns are a MultiIndex"
+            )
         else:
             value_vars = list(value_vars)
             # Check that `value_vars` are in frame
             missing = Index(np.ravel(value_vars)).difference(cols)
             if not missing.empty:
-                raise KeyError("The following 'value_vars' are not present in"
-                               " the DataFrame: {missing}"
-                               "".format(missing=list(missing)))
+                raise KeyError(
+                    "The following 'value_vars' are not present in"
+                    " the DataFrame: {missing}"
+                    "".format(missing=list(missing))
+                )
         frame = frame.loc[:, id_vars + value_vars]
     else:
         frame = frame.copy()
@@ -74,11 +86,13 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
             if len(frame.columns.names) == len(set(frame.columns.names)):
                 var_name = frame.columns.names
             else:
-                var_name = ['variable_{i}'.format(i=i)
-                            for i in range(len(frame.columns.names))]
+                var_name = [
+                    "variable_{i}".format(i=i) for i in range(len(frame.columns.names))
+                ]
         else:
-            var_name = [frame.columns.name if frame.columns.name is not None
-                        else 'variable']
+            var_name = [
+                frame.columns.name if frame.columns.name is not None else "variable"
+            ]
     if isinstance(var_name, str):
         var_name = [var_name]
 
@@ -96,11 +110,10 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
 
     mcolumns = id_vars + var_name + [value_name]
 
-    mdata[value_name] = frame.values.ravel('F')
+    mdata[value_name] = frame.values.ravel("F")
     for i, col in enumerate(var_name):
         # asanyarray will keep the columns as an Index
-        mdata[col] = np.asanyarray(frame.columns
-                                   ._get_level_values(i)).repeat(N)
+        mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
 
     return frame._constructor(mdata, columns=mcolumns)
 
@@ -150,7 +163,7 @@ def lreshape(data, groups, dropna=True, label=None):
 
     for seq in values:
         if len(seq) != K:
-            raise ValueError('All column lists must be same length')
+            raise ValueError("All column lists must be same length")
 
     mdata = {}
     pivot_cols = []
@@ -159,6 +172,7 @@ def lreshape(data, groups, dropna=True, label=None):
         to_concat = [data[col].values for col in names]
 
         import pandas.core.dtypes.concat as _concat
+
         mdata[target] = _concat._concat_compat(to_concat)
         pivot_cols.append(target)
 
@@ -175,7 +189,7 @@ def lreshape(data, groups, dropna=True, label=None):
     return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
-def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
+def wide_to_long(df, stubnames, i, j, sep="", suffix=r"\d+"):
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
@@ -403,20 +417,27 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
           3     one  2.1
                 two  2.9
     """
+
     def get_var_names(df, stub, sep, suffix):
-        regex = r'^{stub}{sep}{suffix}$'.format(
-            stub=re.escape(stub), sep=re.escape(sep), suffix=suffix)
+        regex = r"^{stub}{sep}{suffix}$".format(
+            stub=re.escape(stub), sep=re.escape(sep), suffix=suffix
+        )
         pattern = re.compile(regex)
         return [col for col in df.columns if pattern.match(col)]
 
     def melt_stub(df, stub, i, j, value_vars, sep):
-        newdf = melt(df, id_vars=i, value_vars=value_vars,
-                     value_name=stub.rstrip(sep), var_name=j)
+        newdf = melt(
+            df,
+            id_vars=i,
+            value_vars=value_vars,
+            value_name=stub.rstrip(sep),
+            var_name=j,
+        )
         newdf[j] = Categorical(newdf[j])
         newdf[j] = newdf[j].str.replace(re.escape(stub + sep), "")
 
         # GH17627 Cast numerics suffixes to int/float
-        newdf[j] = to_numeric(newdf[j], errors='ignore')
+        newdf[j] = to_numeric(newdf[j], errors="ignore")
 
         return newdf.set_index(i + [j])
 
@@ -441,9 +462,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     value_vars_flattened = [e for sublist in value_vars for e in sublist]
     id_vars = list(set(df.columns.tolist()).difference(value_vars_flattened))
 
-    melted = [melt_stub(df, s, i, j, v, sep)
-              for s, v in zip(stubnames, value_vars)]
-    melted = melted[0].join(melted[1:], how='outer')
+    melted = [melt_stub(df, s, i, j, v, sep) for s, v in zip(stubnames, value_vars)]
+    melted = melted[0].join(melted[1:], how="outer")
 
     if len(i) == 1:
         new = df[id_vars].set_index(i).join(melted)

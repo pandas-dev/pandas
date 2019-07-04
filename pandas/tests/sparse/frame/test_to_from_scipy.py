@@ -8,16 +8,16 @@ from pandas import SparseDataFrame, SparseSeries
 from pandas.core.sparse.api import SparseDtype
 from pandas.util import testing as tm
 
-scipy = pytest.importorskip('scipy')
+scipy = pytest.importorskip("scipy")
 ignore_matrix_warning = pytest.mark.filterwarnings(
     "ignore:the matrix subclass:PendingDeprecationWarning"
 )
 
 
-@pytest.mark.parametrize('index', [None, list('abc')])  # noqa: F811
-@pytest.mark.parametrize('columns', [None, list('def')])
-@pytest.mark.parametrize('fill_value', [None, 0, np.nan])
-@pytest.mark.parametrize('dtype', [bool, int, float, np.uint16])
+@pytest.mark.parametrize("index", [None, list("abc")])  # noqa: F811
+@pytest.mark.parametrize("columns", [None, list("def")])
+@pytest.mark.parametrize("fill_value", [None, 0, np.nan])
+@pytest.mark.parametrize("dtype", [bool, int, float, np.uint16])
 @ignore_matrix_warning
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
@@ -36,8 +36,9 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
         # can just skip testing it thoroughly
         return
 
-    sdf = SparseDataFrame(spm, index=index, columns=columns,
-                          default_fill_value=fill_value)
+    sdf = SparseDataFrame(
+        spm, index=index, columns=columns, default_fill_value=fill_value
+    )
 
     # Expected result construction is kind of tricky for all
     # dtype-fill_value combinations; easiest to cast to something generic
@@ -45,7 +46,8 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     rarr = arr.astype(object)
     rarr[arr == 0] = np.nan
     expected = SparseDataFrame(rarr, index=index, columns=columns).fillna(
-        fill_value if fill_value is not None else np.nan)
+        fill_value if fill_value is not None else np.nan
+    )
 
     # Assert frame is as expected
     sdf_obj = sdf.astype(object)
@@ -58,24 +60,25 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     # Ensure dtype is preserved if possible
     # XXX: verify this
     res_dtype = bool if is_bool_dtype(dtype) else dtype
-    tm.assert_contains_all(sdf.dtypes.apply(lambda dtype: dtype.subtype),
-                           {np.dtype(res_dtype)})
+    tm.assert_contains_all(
+        sdf.dtypes.apply(lambda dtype: dtype.subtype), {np.dtype(res_dtype)}
+    )
     assert sdf.to_coo().dtype == res_dtype
 
     # However, adding a str column results in an upcast to object
-    sdf['strings'] = np.arange(len(sdf)).astype(str)
+    sdf["strings"] = np.arange(len(sdf)).astype(str)
     assert sdf.to_coo().dtype == np.object_
 
 
-@pytest.mark.parametrize('fill_value', [None, 0, np.nan])  # noqa: F811
+@pytest.mark.parametrize("fill_value", [None, 0, np.nan])  # noqa: F811
 @ignore_matrix_warning
 @pytest.mark.filterwarnings("ignore:object dtype is not supp:UserWarning")
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_from_to_scipy_object(spmatrix, fill_value):
     # GH 4343
     dtype = object
-    columns = list('cd')
-    index = list('ab')
+    columns = list("cd")
+    index = list("ab")
 
     if spmatrix is scipy.sparse.dok_matrix:
         pytest.skip("dok_matrix from object does not work in SciPy")
@@ -92,8 +95,9 @@ def test_from_to_scipy_object(spmatrix, fill_value):
         # can just skip testing it thoroughly
         return
 
-    sdf = SparseDataFrame(spm, index=index, columns=columns,
-                          default_fill_value=fill_value)
+    sdf = SparseDataFrame(
+        spm, index=index, columns=columns, default_fill_value=fill_value
+    )
 
     # Expected result construction is kind of tricky for all
     # dtype-fill_value combinations; easiest to cast to something generic
@@ -101,7 +105,8 @@ def test_from_to_scipy_object(spmatrix, fill_value):
     rarr = arr.astype(object)
     rarr[arr == 0] = np.nan
     expected = SparseDataFrame(rarr, index=index, columns=columns).fillna(
-        fill_value if fill_value is not None else np.nan)
+        fill_value if fill_value is not None else np.nan
+    )
 
     # Assert frame is as expected
     sdf_obj = sdf.astype(SparseDtype(object, fill_value))
@@ -113,8 +118,9 @@ def test_from_to_scipy_object(spmatrix, fill_value):
 
     # Ensure dtype is preserved if possible
     res_dtype = object
-    tm.assert_contains_all(sdf.dtypes.apply(lambda dtype: dtype.subtype),
-                           {np.dtype(res_dtype)})
+    tm.assert_contains_all(
+        sdf.dtypes.apply(lambda dtype: dtype.subtype), {np.dtype(res_dtype)}
+    )
     assert sdf.to_coo().dtype == res_dtype
 
 
@@ -157,11 +163,14 @@ def test_from_scipy_fillna(spmatrix):
     sdf = SparseDataFrame(spm).fillna(-1.0)
 
     # Returning frame should fill all nan values with -1.0
-    expected = SparseDataFrame({
-        0: SparseSeries([1., -1, -1]),
-        1: SparseSeries([np.nan, 1, np.nan]),
-        2: SparseSeries([np.nan, np.nan, 1]),
-    }, default_fill_value=-1)
+    expected = SparseDataFrame(
+        {
+            0: SparseSeries([1.0, -1, -1]),
+            1: SparseSeries([np.nan, 1, np.nan]),
+            2: SparseSeries([np.nan, np.nan, 1]),
+        },
+        default_fill_value=-1,
+    )
 
     # fill_value is expected to be what .fillna() above was called with
     # We don't use -1 as initial fill_value in expected SparseSeries
@@ -179,8 +188,7 @@ def test_index_names_multiple_nones():
     # https://github.com/pandas-dev/pandas/pull/24092
     sparse = pytest.importorskip("scipy.sparse")
 
-    s = (pd.Series(1, index=pd.MultiIndex.from_product([['A', 'B'], [0, 1]]))
-           .to_sparse())
+    s = pd.Series(1, index=pd.MultiIndex.from_product([["A", "B"], [0, 1]])).to_sparse()
     result, _, _ = s.to_coo()
     assert isinstance(result, sparse.coo_matrix)
     result = result.toarray()

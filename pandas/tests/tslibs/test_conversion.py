@@ -50,13 +50,17 @@ def test_tz_convert_single_matches_tz_convert(tz_aware_fixture, freq):
     _compare_local_to_utc(tz_didx, utc_didx)
 
 
-@pytest.mark.parametrize("arr", [
-    pytest.param(np.array([], dtype=np.int64), id="empty"),
-    pytest.param(np.array([iNaT], dtype=np.int64), id="all_nat")])
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pytest.param(np.array([], dtype=np.int64), id="empty"),
+        pytest.param(np.array([iNaT], dtype=np.int64), id="all_nat"),
+    ],
+)
 def test_tz_convert_corner(arr):
-    result = tzconversion.tz_convert(arr,
-                                     timezones.maybe_get_tz("US/Eastern"),
-                                     timezones.maybe_get_tz("Asia/Tokyo"))
+    result = tzconversion.tz_convert(
+        arr, timezones.maybe_get_tz("US/Eastern"), timezones.maybe_get_tz("Asia/Tokyo")
+    )
     tm.assert_numpy_array_equal(result, arr)
 
 
@@ -72,15 +76,22 @@ class SubDatetime(datetime):
     pass
 
 
-@pytest.mark.parametrize("dt, expected", [
-    pytest.param(Timestamp("2000-01-01"),
-                 Timestamp("2000-01-01", tz=UTC), id="timestamp"),
-    pytest.param(datetime(2000, 1, 1),
-                 datetime(2000, 1, 1, tzinfo=UTC),
-                 id="datetime"),
-    pytest.param(SubDatetime(2000, 1, 1),
-                 SubDatetime(2000, 1, 1, tzinfo=UTC),
-                 id="subclassed_datetime")])
+@pytest.mark.parametrize(
+    "dt, expected",
+    [
+        pytest.param(
+            Timestamp("2000-01-01"), Timestamp("2000-01-01", tz=UTC), id="timestamp"
+        ),
+        pytest.param(
+            datetime(2000, 1, 1), datetime(2000, 1, 1, tzinfo=UTC), id="datetime"
+        ),
+        pytest.param(
+            SubDatetime(2000, 1, 1),
+            SubDatetime(2000, 1, 1, tzinfo=UTC),
+            id="subclassed_datetime",
+        ),
+    ],
+)
 def test_localize_pydatetime_dt_types(dt, expected):
     # GH 25851
     # ensure that subclassed datetime works with

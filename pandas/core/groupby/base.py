@@ -21,7 +21,9 @@ class GroupByMixin:
             def f(x):
                 x = self._shallow_copy(x, groupby=self._groupby)
                 return getattr(x, name)(*args, **kwargs)
+
             return self._groupby.apply(f)
+
         outer.__name__ = name
         return outer
 
@@ -51,10 +53,7 @@ class GroupByMixin:
         except IndexError:
             groupby = self._groupby
 
-        self = self.__class__(subset,
-                              groupby=groupby,
-                              parent=self,
-                              **kwargs)
+        self = self.__class__(subset, groupby=groupby, parent=self, **kwargs)
         self._reset_cache()
         if subset.ndim == 2:
             if is_scalar(key) and key in subset or is_list_like(key):
@@ -64,25 +63,41 @@ class GroupByMixin:
 
 # special case to prevent duplicate plots when catching exceptions when
 # forwarding methods from NDFrames
-plotting_methods = frozenset(['plot', 'hist'])
+plotting_methods = frozenset(["plot", "hist"])
 
-common_apply_whitelist = frozenset([
-    'quantile', 'fillna', 'mad', 'take',
-    'idxmax', 'idxmin', 'tshift',
-    'skew', 'corr', 'cov', 'diff'
-]) | plotting_methods
+common_apply_whitelist = (
+    frozenset(
+        [
+            "quantile",
+            "fillna",
+            "mad",
+            "take",
+            "idxmax",
+            "idxmin",
+            "tshift",
+            "skew",
+            "corr",
+            "cov",
+            "diff",
+        ]
+    )
+    | plotting_methods
+)
 
-series_apply_whitelist = ((common_apply_whitelist |
-                           {'nlargest', 'nsmallest',
-                            'is_monotonic_increasing',
-                            'is_monotonic_decreasing'})
-                          ) | frozenset(['dtype', 'unique'])
+series_apply_whitelist = (
+    (
+        common_apply_whitelist
+        | {
+            "nlargest",
+            "nsmallest",
+            "is_monotonic_increasing",
+            "is_monotonic_decreasing",
+        }
+    )
+) | frozenset(["dtype", "unique"])
 
-dataframe_apply_whitelist = ((common_apply_whitelist |
-                              frozenset(['dtypes', 'corrwith'])))
+dataframe_apply_whitelist = common_apply_whitelist | frozenset(["dtypes", "corrwith"])
 
-cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
-                               'cummin', 'cummax'])
+cython_transforms = frozenset(["cumprod", "cumsum", "shift", "cummin", "cummax"])
 
-cython_cast_blacklist = frozenset(['rank', 'count', 'size', 'idxmin',
-                                   'idxmax'])
+cython_cast_blacklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
