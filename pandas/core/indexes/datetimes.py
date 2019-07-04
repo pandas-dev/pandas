@@ -1112,15 +1112,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == "left" else lower
             if side == "left":
-                if closed in ["right", "neither"]:
-                    return upper
-                else:
-                    return lower
+                return lower if closed not in ["right", "neither"] else upper
             else:
-                if closed in ["left", "neither"]:
-                    return lower
-                else:
-                    return upper
+                return upper if closed not in ["left", "neither"] else lower
         else:
             return label
 

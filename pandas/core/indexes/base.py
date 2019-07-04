@@ -5189,15 +5189,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return slc.stop
         else:
             if side == "right":
-                if closed in ["left", "neither"]:
-                    return slc
-                else:
-                    return slc + 1
+                return slc + 1 if closed not in ["left", "neither"] else slc
             else:
-                if closed in ["right", "neither"]:
-                    return slc + 1
-                else:
-                    return slc
+                return slc if closed not in ["right", "neither"] else slc + 1
 
     def slice_locs(self, start=None, end=None, step=None, kind=None, closed=None):
         """
