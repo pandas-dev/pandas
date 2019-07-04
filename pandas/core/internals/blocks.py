@@ -859,7 +859,7 @@ class Block(PandasObject):
             # GH#8669 empty indexers
             pass
 
-        elif is_scalar_indexer(indexer):
+        elif is_scalar_indexer(indexer, arr_value):
             # setting a single element for each dim and with a rhs that could
             #  be e.g. a list; see GH#6043
             values[indexer] = value
