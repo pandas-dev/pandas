@@ -9,7 +9,7 @@ def datetime_series():
     Fixture for Series of floats with DatetimeIndex
     """
     s = tm.makeTimeSeries()
-    s.name = 'ts'
+    s.name = "ts"
     return s
 
 
@@ -19,7 +19,7 @@ def string_series():
     Fixture for Series of floats with Index of unique strings
     """
     s = tm.makeStringSeries()
-    s.name = 'series'
+    s.name = "series"
     return s
 
 
@@ -29,5 +29,5 @@ def object_series():
     Fixture for Series of dtype datetime64[ns] with Index of unique strings
     """
     s = tm.makeObjectSeries()
-    s.name = 'objects'
+    s.name = "objects"
     return s
