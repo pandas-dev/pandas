@@ -54,7 +54,7 @@ class RangeIndex(Int64Index):
         Name to be stored in the index
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
-    fastpath : bool, default None 
+    fastpath : bool, default None
         Internal use only
 
     Attributes
