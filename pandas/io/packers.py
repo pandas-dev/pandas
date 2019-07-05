@@ -143,7 +143,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
             with open(path_or_buf, mode) as fh:
                 writer(fh)
         except FileNotFoundError as error:
-            error.strerror = "path_or_buf is invalid or was not found"
+            error.strerror = "File b'{}' does not exist".format(path_or_buf)
             raise error
     elif path_or_buf is None:
         buf = BytesIO()
@@ -208,15 +208,11 @@ def read_msgpack(path_or_buf, encoding="utf-8", iterator=False, **kwargs):
     # see if we have an actual file
     if isinstance(path_or_buf, str):
         try:
-            exists = os.path.exists(path_or_buf)
-        except (TypeError, ValueError):
-            exists = False
-
-        if exists:
             with open(path_or_buf, "rb") as fh:
                 return read(fh)
-        else:
-            raise FileNotFoundError("path_or_buf is invalid or was not found")
+        except FileNotFoundError as error:
+            error.strerror = "File b'{}' does not exist".format(path_or_buf)
+            raise error
 
     if isinstance(path_or_buf, bytes):
         # treat as a binary-like
