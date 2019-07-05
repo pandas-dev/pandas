@@ -360,8 +360,7 @@ def extract_index(data):
         if have_series:
             index = _union_indexes(indexes)
         elif have_dicts:
-            index = _union_indexes(indexes,
-                                   sort=not (compat.PY36 or have_ordered))
+            index = _union_indexes(indexes, sort=not (compat.PY36 or have_ordered))
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
