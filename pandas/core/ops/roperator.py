@@ -2,6 +2,8 @@
 Reversed Operations not available in the stdlib operator module.
 Defining these instead of using lambdas allows us to reference them by name.
 """
+import operator
+
 
 def radd(left, right):
     return right + left
