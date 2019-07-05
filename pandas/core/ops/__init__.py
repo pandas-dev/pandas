@@ -2154,8 +2154,7 @@ def _arith_method_FRAME(cls, op, special):
         except TypeError:
             result = masked_arith_op(x, y, op)
 
-        result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-        return result
+        return missing.dispatch_fill_zeros(op, x, y, result, fill_zeros)
 
     if op_name in _op_descriptions:
         # i.e. include "add" but not "__add__"
