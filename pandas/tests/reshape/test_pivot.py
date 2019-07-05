@@ -286,6 +286,25 @@ class TestPivotTable:
         expected = DataFrame({"B": 1}, index=Index(interval_values.unique(), name="A"))
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_with_interval_index_margins(self, dropna):
+        # GH 25815
+        ordered_cat = pd.IntervalIndex.from_arrays(
+            [0, 0, 1, 1], [1, 1, 2, 2])
+        df = pd.DataFrame({
+            'A': np.arange(4, 0, -1),
+            'B': ['a', 'b', 'a', 'b'],
+            'C': pd.Categorical(ordered_cat,
+                                ordered=True).sort_values(ascending=False)
+        })
+
+        pivot_tab = pd.pivot_table(data=df, index='C', columns='B', values='A',
+                                   aggfunc='sum', margins=True)
+
+        result = pivot_tab['All']
+        expected = pivot_tab.iloc[:, :-1].sum(axis=1)
+        tm.assert_series_equal(result, expected, check_dtype=False,
+                               check_names=False)
+
     def test_pass_array(self):
         result = self.data.pivot_table("D", index=self.data.A, columns=self.data.C)
         expected = self.data.pivot_table("D", index="A", columns="C")
