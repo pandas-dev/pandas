@@ -1766,9 +1766,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         if dtype is not None:
             return NotImplementedError(dtype)
-        return self._constructor(values=self._codes,
-                                 dtype=self.dtype,
-                                 fastpath=True)
+        return self._constructor(values=self._codes, dtype=self.dtype, fastpath=True)
 
     def to_dense(self):
         """

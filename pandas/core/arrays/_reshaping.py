@@ -27,6 +27,7 @@ def implement_2d(cls):
         cls.__len__ = ExtensionArray.__len__
 
     elif not has_size and has_shape:
+
         @property
         def size(self) -> int:
             return np.prod(self.shape)
@@ -87,8 +88,7 @@ def tuplify_shape(size: int, shape, restrict=True) -> Tuple[int, ...]:
     tuple[int, ...]
     """
     if len(shape) == 0:
-        raise ValueError("shape must be a non-empty tuple of integers",
-                         shape)
+        raise ValueError("shape must be a non-empty tuple of integers", shape)
 
     if len(shape) == 1:
         if is_integer(shape[0]):
@@ -96,8 +96,7 @@ def tuplify_shape(size: int, shape, restrict=True) -> Tuple[int, ...]:
         else:
             shape = shape[0]
             if not isinstance(shape, tuple):
-                raise ValueError("shape must be a non-empty tuple of integers",
-                                 shape)
+                raise ValueError("shape must be a non-empty tuple of integers", shape)
 
     if not all(is_integer(x) for x in shape):
         raise ValueError("shape must be a non-empty tuple of integers", shape)
@@ -112,16 +111,18 @@ def tuplify_shape(size: int, shape, restrict=True) -> Tuple[int, ...]:
         others = [n for n in shape if n != -1]
         prod = np.prod(others)
         dim = size // prod
-        shape = shape[:idx] + (dim,) + shape[idx + 1:]
+        shape = shape[:idx] + (dim,) + shape[idx + 1 :]
 
     if np.prod(shape) != size:
-        raise ValueError("Product of shape ({shape}) must match "
-                         "size ({size})".format(shape=shape,
-                                                size=size))
+        raise ValueError(
+            "Product of shape ({shape}) must match "
+            "size ({size})".format(shape=shape, size=size)
+        )
 
     num_gt1 = len([x for x in shape if x > 1])
     if num_gt1 > 1 and restrict:
-        raise ValueError("The default `reshape` implementation is limited to "
-                         "shapes (N,), (N,1), and (1,N), not {shape}"
-                         .format(shape=shape))
+        raise ValueError(
+            "The default `reshape` implementation is limited to "
+            "shapes (N,), (N,1), and (1,N), not {shape}".format(shape=shape)
+        )
     return shape
