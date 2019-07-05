@@ -51,6 +51,21 @@ from pandas._typing import ArrayLike
 import pandas.core.common as com
 import pandas.core.missing as missing
 
+from .roperator import (  # noqa:F401
+    radd,
+    rand_,
+    rdiv,
+    rdivmod,
+    rfloordiv,
+    rmod,
+    rmul,
+    ror_,
+    rpow,
+    rsub,
+    rtruediv,
+    rxor,
+)
+
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities
 
