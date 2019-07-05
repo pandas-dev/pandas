@@ -3151,7 +3151,7 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     @Appender(_index_shared_docs["_convert_slice_indexer"])
-    def _convert_slice_indexer(self, key, kind=None):
+    def _convert_slice_indexer(self, key, kind=None, closed=None):
         assert kind in ["ix", "loc", "getitem", "iloc", None]
 
         # if we are not a slice, then we are done
@@ -3161,8 +3161,6 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(key, ABCIndexSlice):
             closed = key.closed
             key = key.arg
-        else:
-            closed = None
 
         # validate iloc
         if kind == "iloc":

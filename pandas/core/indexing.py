@@ -1496,15 +1496,13 @@ class _LocationIndexer(_NDFrameIndexer):
         except Exception as detail:
             raise self._exception(detail)
 
-    def _get_slice_axis(self, slice_obj, axis=None):
+    def _get_slice_axis(self, slice_obj, axis=None, closed=None):
         """ this is pretty simple as we just have to deal with labels """
         if axis is None:
             axis = self.axis or 0
         if isinstance(slice_obj, ABCIndexSlice):
             closed = slice_obj.closed
             slice_obj = slice_obj.arg
-        else:
-            closed = None
 
         obj = self.obj
         if not need_slice(slice_obj):
