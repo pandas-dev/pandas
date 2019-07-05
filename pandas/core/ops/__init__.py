@@ -51,6 +51,21 @@ from pandas._typing import ArrayLike
 import pandas.core.common as com
 import pandas.core.missing as missing
 
+from .roperator import (  # noqa:F401
+    radd,
+    rand_,
+    rdiv,
+    rdivmod,
+    rfloordiv,
+    rmod,
+    rmul,
+    ror_,
+    rpow,
+    rsub,
+    rtruediv,
+    rxor,
+)
+
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities
 
@@ -149,67 +164,6 @@ def maybe_upcast_for_op(obj):
         # timedelta64 when operating with timedelta64
         return pd.TimedeltaIndex(obj)
     return obj
-
-
-# -----------------------------------------------------------------------------
-# Reversed Operations not available in the stdlib operator module.
-# Defining these instead of using lambdas allows us to reference them by name.
-
-
-def radd(left, right):
-    return right + left
-
-
-def rsub(left, right):
-    return right - left
-
-
-def rmul(left, right):
-    return right * left
-
-
-def rdiv(left, right):
-    return right / left
-
-
-def rtruediv(left, right):
-    return right / left
-
-
-def rfloordiv(left, right):
-    return right // left
-
-
-def rmod(left, right):
-    # check if right is a string as % is the string
-    # formatting operation; this is a TypeError
-    # otherwise perform the op
-    if isinstance(right, str):
-        raise TypeError(
-            "{typ} cannot perform the operation mod".format(typ=type(left).__name__)
-        )
-
-    return right % left
-
-
-def rdivmod(left, right):
-    return divmod(right, left)
-
-
-def rpow(left, right):
-    return right ** left
-
-
-def rand_(left, right):
-    return operator.and_(right, left)
-
-
-def ror_(left, right):
-    return operator.or_(right, left)
-
-
-def rxor(left, right):
-    return operator.xor(right, left)
 
 
 # -----------------------------------------------------------------------------

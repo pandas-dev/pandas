@@ -190,9 +190,9 @@ class TestAsOfMerge:
         result = merge_asof(
             trades, quotes, left_index=True, right_on="time", by="ticker"
         )
-        # left-only index uses right's index, oddly
+        # left-only index uses right"s index, oddly
         expected.index = result.index
-        # time column appears after left's columns
+        # time column appears after left"s columns
         expected = expected[result.columns]
         assert_frame_equal(result, expected)
 
@@ -233,7 +233,7 @@ class TestAsOfMerge:
 
     def test_on_and_index(self):
 
-        # 'on' parameter and index together is prohibited
+        # "on" parameter and index together is prohibited
         trades = self.trades.set_index("time")
         quotes = self.quotes.set_index("time")
         with pytest.raises(MergeError):
@@ -1219,4 +1219,30 @@ class TestAsOfMerge:
             [[pd.Timestamp("2018-01-01", tz="UTC"), 2, "a", "b"]],
             columns=["by_col", "on_col", "values_x", "values_y"],
         )
+        assert_frame_equal(result, expected)
+
+    def test_by_mixed_tz_aware(self):
+        # GH 26649
+        left = pd.DataFrame(
+            {
+                "by_col1": pd.DatetimeIndex(["2018-01-01"]).tz_localize("UTC"),
+                "by_col2": ["HELLO"],
+                "on_col": [2],
+                "value": ["a"],
+            }
+        )
+        right = pd.DataFrame(
+            {
+                "by_col1": pd.DatetimeIndex(["2018-01-01"]).tz_localize("UTC"),
+                "by_col2": ["WORLD"],
+                "on_col": [1],
+                "value": ["b"],
+            }
+        )
+        result = pd.merge_asof(left, right, by=["by_col1", "by_col2"], on="on_col")
+        expected = pd.DataFrame(
+            [[pd.Timestamp("2018-01-01", tz="UTC"), "HELLO", 2, "a"]],
+            columns=["by_col1", "by_col2", "on_col", "value_x"],
+        )
+        expected["value_y"] = np.array([np.nan], dtype=object)
         assert_frame_equal(result, expected)
