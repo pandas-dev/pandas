@@ -1151,6 +1151,7 @@ Reshaping
 - Bug in :func:`DataFrame.pivot_table` with a :class:`IntervalIndex` as pivot index would raise ``TypeError`` (:issue:`25814`)
 - Bug in :meth:`DataFrame.transpose` where transposing a DataFrame with a timezone-aware datetime column would incorrectly raise ``ValueError`` (:issue:`26825`)
 - Bug in :func:`pivot_table` when pivoting a timezone aware column as the ``values`` would remove timezone information (:issue:`14948`)
+- Bug in :func:`merge_asof` when specifying multiple ``by`` columns where one is ``datetime64[ns, tz]`` dtype (:issue:`26649`)
 
 Sparse
 ^^^^^^
