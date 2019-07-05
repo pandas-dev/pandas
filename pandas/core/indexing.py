@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
     is_sparse,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexSlice, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
@@ -86,6 +86,8 @@ class _IndexSlice:
         A1 B0    8    9
            B1   10   11
     """
+
+    _typ = "indexslice"
 
     def __init__(self, closed=None):
         if closed is not None and closed not in _VALID_CLOSED:
@@ -1470,7 +1472,7 @@ class _LocationIndexer(_NDFrameIndexer):
             # we by definition only have the 0th axis
             axis = self.axis or 0
 
-            if not isinstance(key, _IndexSlice):
+            if not isinstance(key, ABCIndexSlice):
                 key = com.apply_if_callable(key, self.obj)
             return self._getitem_axis(key, axis=axis)
 
@@ -1498,7 +1500,7 @@ class _LocationIndexer(_NDFrameIndexer):
         """ this is pretty simple as we just have to deal with labels """
         if axis is None:
             axis = self.axis or 0
-        if isinstance(slice_obj, _IndexSlice):
+        if isinstance(slice_obj, ABCIndexSlice):
             closed = slice_obj.closed
             slice_obj = slice_obj.arg
         else:
@@ -1776,7 +1778,7 @@ class _LocIndexer(_LocationIndexer):
         # slice of integers (only if in the labels)
         # boolean
 
-        if isinstance(key, (slice, _IndexSlice)):
+        if isinstance(key, (slice, ABCIndexSlice)):
             return
 
         if com.is_bool_indexer(key):
@@ -1848,7 +1850,7 @@ class _LocIndexer(_LocationIndexer):
         labels = self.obj._get_axis(axis)
         key = self._get_partial_string_timestamp_match_key(key, labels)
 
-        if isinstance(key, (slice, _IndexSlice)):
+        if isinstance(key, (slice, ABCIndexSlice)):
             self._validate_key(key, axis)
             return self._get_slice_axis(key, axis=axis)
         elif com.is_bool_indexer(key):

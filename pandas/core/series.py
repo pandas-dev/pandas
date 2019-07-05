@@ -41,6 +41,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeArray,
     ABCDatetimeIndex,
+    ABCIndexSlice,
     ABCSeries,
     ABCSparseArray,
     ABCSparseSeries,
@@ -1069,7 +1070,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._get_values(slobj)
 
     def __getitem__(self, key):
-        key = com.apply_if_callable(key, self)
+        if not isinstance(key, ABCIndexSlice):
+            key = com.apply_if_callable(key, self)
         try:
             result = self.index.get_value(self, key)
 
@@ -1117,7 +1119,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_with(self, key):
         # other: fancy integer or otherwise
-        if isinstance(key, slice):
+        if isinstance(key, (slice, ABCIndexSlice)):
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
             return self._get_values(indexer)
         elif isinstance(key, ABCDataFrame):

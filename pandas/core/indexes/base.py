@@ -51,6 +51,7 @@ from pandas.core.dtypes.generic import (
     ABCDateOffset,
     ABCDatetimeArray,
     ABCIndexClass,
+    ABCIndexSlice,
     ABCMultiIndex,
     ABCPandasArray,
     ABCPeriodIndex,
@@ -3154,8 +3155,14 @@ class Index(IndexOpsMixin, PandasObject):
         assert kind in ["ix", "loc", "getitem", "iloc", None]
 
         # if we are not a slice, then we are done
-        if not isinstance(key, slice):
+        if not isinstance(key, (slice, ABCIndexSlice)):
             return key
+
+        if isinstance(key, ABCIndexSlice):
+            closed = key.closed
+            key = key.arg
+        else:
+            closed = None
 
         # validate iloc
         if kind == "iloc":
@@ -3209,7 +3216,9 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = key
         else:
             try:
-                indexer = self.slice_indexer(start, stop, step, kind=kind)
+                indexer = self.slice_indexer(
+                    start, stop, step, kind=kind, closed=closed
+                )
             except Exception:
                 if is_index_slice:
                     if self.is_integer():
@@ -4718,6 +4727,8 @@ class Index(IndexOpsMixin, PandasObject):
                     raise
                 elif is_integer(key):
                     return s[key]
+        elif isinstance(key, ABCIndexSlice):
+            raise InvalidIndexError(key)
 
         s = com.values_from_object(series)
         k = com.values_from_object(key)
