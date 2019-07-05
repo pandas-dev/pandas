@@ -413,12 +413,6 @@ class Block(PandasObject):
         try:
             # Note: we only call try_coerce_args to let it raise
             self._try_coerce_args(value)
-
-            blocks = self.putmask(mask, value, inplace=inplace)
-            blocks = [
-                b.make_block(values=self._try_coerce_result(b.values)) for b in blocks
-            ]
-            return self._maybe_downcast(blocks, downcast)
         except (TypeError, ValueError):
 
             # we can't process the value, but nothing to do
@@ -435,6 +429,12 @@ class Block(PandasObject):
                 return block.fillna(value, limit=limit, inplace=inplace, downcast=None)
 
             return self.split_and_operate(mask, f, inplace)
+        else:
+            blocks = self.putmask(mask, value, inplace=inplace)
+            blocks = [
+                b.make_block(values=self._try_coerce_result(b.values)) for b in blocks
+            ]
+            return self._maybe_downcast(blocks, downcast)
 
     def split_and_operate(self, mask, f, inplace):
         """
@@ -615,10 +615,9 @@ class Block(PandasObject):
                 return self.copy()
             return self
 
-        try:
-            # force the copy here
-            if values is None:
-
+        if values is None:
+            try:
+                # force the copy here
                 if self.is_extension:
                     values = self.values.astype(dtype)
                 else:
@@ -644,10 +643,12 @@ class Block(PandasObject):
                 if isinstance(values, np.ndarray):
                     values = values.reshape(self.shape)
 
-        except Exception:  # noqa: E722
-            if errors == "raise":
-                raise
-            newb = self.copy() if copy else self
+            except Exception:  # noqa: E722
+                if errors == "raise":
+                    raise
+                newb = self.copy() if copy else self
+            else:
+                newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
         else:
             newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
 
@@ -861,13 +862,6 @@ class Block(PandasObject):
         values = self.values
         try:
             value = self._try_coerce_args(value)
-            values = self._coerce_values(values)
-            # can keep its own dtype
-            if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
-                dtype = self.dtype
-            else:
-                dtype = "infer"
-
         except (TypeError, ValueError):
             # current dtype cannot store value, coerce to common dtype
             find_dtype = False
@@ -891,6 +885,13 @@ class Block(PandasObject):
                 if not is_dtype_equal(self.dtype, dtype):
                     b = self.astype(dtype)
                     return b.setitem(indexer, value)
+        else:
+            values = self._coerce_values(values)
+            # can keep its own dtype
+            if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
+                dtype = self.dtype
+            else:
+                dtype = "infer"
 
         # value must be storeable at this moment
         arr_value = np.array(value)
@@ -2041,13 +2042,14 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         else:
             dtype = self.dtype
 
+        result = self.values.copy()
+        icond = ~cond
+        if lib.is_scalar(other):
+            set_other = other
+        else:
+            set_other = other[icond]
         try:
-            result = self.values.copy()
-            icond = ~cond
-            if lib.is_scalar(other):
-                result[icond] = other
-            else:
-                result[icond] = other[icond]
+            result[icond] = set_other
         except (NotImplementedError, TypeError):
             # NotImplementedError for class not implementing `__setitem__`
             # TypeError for SparseArray, which implements just to raise
@@ -2314,10 +2316,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         -------
         base-type other
         """
-
-        if isinstance(other, bool):
-            raise TypeError
-        elif is_null_datetimelike(other):
+        if is_null_datetimelike(other):
             other = tslibs.iNaT
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
@@ -2689,9 +2688,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         base-type other
         """
 
-        if isinstance(other, bool):
-            raise TypeError
-        elif is_null_datetimelike(other):
+        if is_null_datetimelike(other):
             other = tslibs.iNaT
         elif isinstance(other, (timedelta, np.timedelta64)):
             other = Timedelta(other).value
