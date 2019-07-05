@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos as libalgos, lib, ops as libops
+from pandas._libs import lib, ops as libops
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -1667,10 +1667,6 @@ def _arith_method_SERIES(cls, op, special):
             result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
             result = masked_arith_op(x, y, op)
-        except Exception:  # TODO: more specific?
-            if is_object_dtype(x):
-                return libalgos.arrmap_object(x, lambda val: op(val, y))
-            raise
 
         if isinstance(result, tuple):
             # e.g. divmod
