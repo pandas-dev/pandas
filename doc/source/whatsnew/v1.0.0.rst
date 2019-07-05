@@ -70,7 +70,8 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Performance improvement in indexing with a non-unique :class:`IntervalIndex` (:issue:`27489`)
--
+- Performance improvement in `MultiIndex.is_monotonic` (:issue:`27495`)
+
 
 .. _whatsnew_1000.bug_fixes:
 
