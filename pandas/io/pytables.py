@@ -1229,6 +1229,7 @@ class HDFStore:
     def get_node(self, key):
         """ return the node with the key or None if it does not exist """
         self._check_if_open()
+        _tables()
         try:
             if not key.startswith("/"):
                 key = "/" + key
