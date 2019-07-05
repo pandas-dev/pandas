@@ -1196,9 +1196,7 @@ class NDFrame(PandasObject, SelectionMixin):
                     ]
                     raise KeyError("{} not found in axis".format(missing_labels))
 
-            result._mgr = result._mgr.rename_axis(
-                f, axis=baxis, copy=copy, level=level
-            )
+            result._mgr = result._mgr.rename_axis(f, axis=baxis, copy=copy, level=level)
             result._clear_item_cache()
 
         if inplace:
@@ -5941,9 +5939,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         else:
             # else, only a single dtype is given
-            new_data = self._mgr.astype(
-                dtype=dtype, copy=copy, errors=errors, **kwargs
-            )
+            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors, **kwargs)
             return self._constructor(new_data).__finalize__(self)
 
         # GH 19920: retain column metadata after concat
