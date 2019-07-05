@@ -73,7 +73,6 @@ from pandas import (  # noqa:F401
     IntervalIndex,
     MultiIndex,
     NaT,
-    Panel,
     Period,
     PeriodIndex,
     RangeIndex,
@@ -254,11 +253,7 @@ def dtype_for(t):
     return np.typeDict.get(t, t)
 
 
-c2f_dict = {
-    "complex": np.float64,
-    "complex128": np.float64,
-    "complex64": np.float32,
-}
+c2f_dict = {"complex": np.float64, "complex128": np.float64, "complex64": np.float32}
 
 # windows (32 bit) compat
 if hasattr(np, "float128"):
@@ -467,9 +462,7 @@ def encode(obj):
 
     elif isinstance(obj, Series):
         if isinstance(obj, SparseSeries):
-            raise NotImplementedError(
-                "msgpack sparse series is not implemented"
-            )
+            raise NotImplementedError("msgpack sparse series is not implemented")
             # d = {'typ': 'sparse_series',
             #     'klass': obj.__class__.__name__,
             #     'dtype': obj.dtype.name,
@@ -492,9 +485,7 @@ def encode(obj):
             }
     elif issubclass(tobj, NDFrame):
         if isinstance(obj, SparseDataFrame):
-            raise NotImplementedError(
-                "msgpack sparse frame is not implemented"
-            )
+            raise NotImplementedError("msgpack sparse frame is not implemented")
             # d = {'typ': 'sparse_dataframe',
             #     'klass': obj.__class__.__name__,
             #     'columns': obj.columns}
@@ -528,9 +519,7 @@ def encode(obj):
             }
 
     elif (
-        isinstance(
-            obj, (datetime, date, np.datetime64, timedelta, np.timedelta64)
-        )
+        isinstance(obj, (datetime, date, np.datetime64, timedelta, np.timedelta64))
         or obj is NaT
     ):
         if isinstance(obj, Timestamp):
@@ -540,12 +529,7 @@ def encode(obj):
             freq = obj.freq
             if freq is not None:
                 freq = freq.freqstr
-            return {
-                "typ": "timestamp",
-                "value": obj.value,
-                "freq": freq,
-                "tz": tz,
-            }
+            return {"typ": "timestamp", "value": obj.value, "freq": freq, "tz": tz}
         if obj is NaT:
             return {"typ": "nat"}
         elif isinstance(obj, np.timedelta64):
@@ -561,9 +545,7 @@ def encode(obj):
             return {"typ": "datetime", "data": obj.isoformat()}
         elif isinstance(obj, date):
             return {"typ": "date", "data": obj.isoformat()}
-        raise Exception(
-            "cannot encode this datetimelike object: {obj}".format(obj=obj)
-        )
+        raise Exception("cannot encode this datetimelike object: {obj}".format(obj=obj))
     elif isinstance(obj, Period):
         return {"typ": "period", "ordinal": obj.ordinal, "freq": obj.freqstr}
     elif isinstance(obj, Interval):
@@ -607,11 +589,7 @@ def encode(obj):
                 "imag": np.imag(obj).__repr__(),
             }
         else:
-            return {
-                "typ": "np_scalar",
-                "dtype": obj.dtype.name,
-                "data": obj.__repr__(),
-            }
+            return {"typ": "np_scalar", "dtype": obj.dtype.name, "data": obj.__repr__()}
     elif isinstance(obj, complex):
         return {
             "typ": "np_complex",
@@ -642,9 +620,7 @@ def decode(obj):
         data = unconvert(obj["data"], dtype, obj.get("compress"))
         return Index(data, dtype=dtype, name=obj["name"])
     elif typ == "range_index":
-        return RangeIndex(
-            obj["start"], obj["stop"], obj["step"], name=obj["name"]
-        )
+        return RangeIndex(obj["start"], obj["stop"], obj["step"], name=obj["name"])
     elif typ == "multi_index":
         dtype = dtype_for(obj["dtype"])
         data = unconvert(obj["data"], dtype, obj.get("compress"))
@@ -674,33 +650,23 @@ def decode(obj):
     elif typ == "category":
         from_codes = globals()[obj["klass"]].from_codes
         return from_codes(
-            codes=obj["codes"],
-            categories=obj["categories"],
-            ordered=obj["ordered"],
+            codes=obj["codes"], categories=obj["categories"], ordered=obj["ordered"]
         )
 
     elif typ == "interval":
         return Interval(obj["left"], obj["right"], obj["closed"])
     elif typ == "series":
         dtype = dtype_for(obj["dtype"])
-        pd_dtype = pandas_dtype(dtype)
-
         index = obj["index"]
-        result = Series(
-            unconvert(obj["data"], dtype, obj["compress"]),
-            index=index,
-            dtype=pd_dtype,
-            name=obj["name"],
-        )
-        return result
+        data = unconvert(obj["data"], dtype, obj["compress"])
+        return Series(data, index=index, dtype=dtype, name=obj["name"])
 
     elif typ == "block_manager":
         axes = obj["axes"]
 
         def create_block(b):
             values = _safe_reshape(
-                unconvert(b["values"], dtype_for(b["dtype"]), b["compress"]),
-                b["shape"],
+                unconvert(b["values"], dtype_for(b["dtype"]), b["compress"]), b["shape"]
             )
 
             # locs handles duplicate column names, and should be used instead
@@ -746,15 +712,8 @@ def decode(obj):
     #        default_fill_value=obj['default_fill_value'],
     #        default_kind=obj['default_kind']
     #    )
-    # elif typ == 'sparse_panel':
-    #    return SparsePanel(
-    #        obj['data'], items=obj['items'],
-    #        default_fill_value=obj['default_fill_value'],
-    #        default_kind=obj['default_kind'])
     elif typ == "block_index":
-        return globals()[obj["klass"]](
-            obj["length"], obj["blocs"], obj["blengths"]
-        )
+        return globals()[obj["klass"]](obj["length"], obj["blocs"], obj["blengths"])
     elif typ == "int_index":
         return globals()[obj["klass"]](obj["length"], obj["indices"])
     elif typ == "ndarray":

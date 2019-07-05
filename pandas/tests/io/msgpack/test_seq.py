@@ -8,7 +8,7 @@ binarydata = bytes(bytearray(range(256)))
 
 
 def gen_binary_data(idx):
-    return binarydata[:idx % 300]
+    return binarydata[: idx % 300]
 
 
 def test_exceeding_unpacker_read_size():

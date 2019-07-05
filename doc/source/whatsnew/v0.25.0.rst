@@ -134,6 +134,53 @@ than :attr:`options.display.max_seq_items` (default: 100 items). Horizontally,
 the output will truncate, if it's wider than :attr:`options.display.width`
 (default: 80 characters).
 
+.. _whatsnew_0250.enhancements.shorter_truncated_repr:
+
+Shorter truncated repr for Series and DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Currently, the default display options of pandas ensure that when a Series
+or DataFrame has more than 60 rows, its repr gets truncated to this maximum
+of 60 rows (the ``display.max_rows`` option). However, this still gives
+a repr that takes up a large part of the vertical screen estate. Therefore,
+a new option ``display.min_rows`` is introduced with a default of 10 which
+determines the number of rows showed in the truncated repr:
+
+- For small Series or DataFrames, up to ``max_rows`` number of rows is shown
+  (default: 60).
+- For larger Series of DataFrame with a length above ``max_rows``, only
+  ``min_rows`` number of rows is shown (default: 10, i.e. the first and last
+  5 rows).
+
+This dual option allows to still see the full content of relatively small
+objects (e.g. ``df.head(20)`` shows all 20 rows), while giving a brief repr
+for large objects.
+
+To restore the previous behaviour of a single threshold, set
+``pd.options.display.min_rows = None``.
+
+.. _whatsnew_0250.enhancements.json_normalize_with_max_level:
+
+Json normalize with max_level param support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`json_normalize` normalizes the provided input dict to all
+nested levels. The new max_level parameter provides more control over
+which level to end normalization (:issue:`23843`):
+
+The repr now looks like this:
+
+.. ipython:: python
+
+    from pandas.io.json import json_normalize
+    data = [{
+        'CreatedBy': {'Name': 'User001'},
+        'Lookup': {'TextField': 'Some text',
+                   'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+        'Image': {'a': 'b'}
+    }]
+    json_normalize(data, max_level=1)
+
 
 .. _whatsnew_0250.enhancements.other:
 
@@ -164,6 +211,8 @@ Other enhancements
 - Added new option ``plotting.backend`` to be able to select a plotting backend different than the existing ``matplotlib`` one. Use ``pandas.set_option('plotting.backend', '<backend-module>')`` where ``<backend-module`` is a library implementing the pandas plotting API (:issue:`14130`)
 - :class:`pandas.offsets.BusinessHour` supports multiple opening hours intervals (:issue:`15481`)
 - :func:`read_excel` can now use ``openpyxl`` to read Excel files via the ``engine='openpyxl'`` argument. This will become the default in a future release (:issue:`11499`)
+- :func:`pandas.io.excel.read_excel` supports reading OpenDocument tables. Specify ``engine='odf'`` to enable. Consult the :ref:`IO User Guide <io.ods>` for more details (:issue:`9070`)
+- :class:`Interval`, :class:`IntervalIndex`, and :class:`~arrays.IntervalArray` have gained an :attr:`~Interval.is_empty` attribute denoting if the given interval(s) are empty (:issue:`27219`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -620,6 +669,78 @@ previous behavior of returning overlapping matches.
    s[idxr]
    s.loc[idxr]
 
+
+.. _whatsnew_0250.api_breaking.ufunc:
+
+Binary ufuncs on Series now align
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Applying a binary ufunc like :func:`numpy.power` now aligns the inputs
+when both are :class:`Series` (:issue:`23293`).
+
+.. ipython:: python
+
+   s1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+   s2 = pd.Series([3, 4, 5], index=['d', 'c', 'b'])
+   s1
+   s2
+
+*Previous behavior*
+
+.. code-block:: ipython
+
+   In [5]: np.power(s1, s2)
+   Out[5]:
+   a      1
+   b     16
+   c    243
+   dtype: int64
+
+*New behavior*
+
+.. ipython:: python
+
+   np.power(s1, s2)
+
+This matches the behavior of other binary operations in pandas, like :meth:`Series.add`.
+To retain the previous behavior, convert the other ``Series`` to an array before
+applying the ufunc.
+
+.. ipython:: python
+
+   np.power(s1, s2.array)
+
+Categorical.argsort now places missing values at the end
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`Categorical.argsort` now places missing values at the end of the array, making it
+consistent with NumPy and the rest of pandas (:issue:`21801`).
+
+.. ipython:: python
+
+   cat = pd.Categorical(['b', None, 'a'], categories=['a', 'b'], ordered=True)
+
+*Previous behavior*
+
+.. code-block:: ipython
+
+   In [2]: cat = pd.Categorical(['b', None, 'a'], categories=['a', 'b'], ordered=True)
+
+   In [3]: cat.argsort()
+   Out[3]: array([1, 2, 0])
+
+   In [4]: cat[cat.argsort()]
+   Out[4]:
+   [NaN, a, b]
+   categories (2, object): [a < b]
+
+*New behavior*
+
+.. ipython:: python
+
+   cat.argsort()
+   cat[cat.argsort()]
+
 .. _whatsnew_0250.api_breaking.deps:
 
 Increased minimum versions for dependencies
@@ -702,6 +823,7 @@ Other API changes
 - Removed support of gtk package for clipboards (:issue:`26563`)
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
 - :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` will now raise a ``ValueError`` when saving timezone aware data. (:issue:`27008`, :issue:`7056`)
+- :meth:`ExtensionArray.argsort` places NA values at the end of the sorted array. (:issue:`21801`)
 - :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` will now raise a ``NotImplementedError`` when saving a :class:`MultiIndex` with extention data types for a ``fixed`` format. (:issue:`7775`)
 - Passing duplicate ``names`` in :meth:`read_csv` will now raise a ``ValueError`` (:issue:`17346`)
 
@@ -744,6 +866,7 @@ Other deprecations
 
 - The deprecated ``.ix[]`` indexer now raises a more visible ``FutureWarning`` instead of ``DeprecationWarning`` (:issue:`26438`).
 - Deprecated the ``units=M`` (months) and ``units=Y`` (year) parameters for ``units`` of :func:`pandas.to_timedelta`, :func:`pandas.Timedelta` and :func:`pandas.TimedeltaIndex` (:issue:`16344`)
+- :meth:`pandas.concat` has deprecated the ``join_axes``-keyword. Instead, use :meth:`DataFrame.reindex` or :meth:`DataFrame.reindex_like` on the result or on the inputs (:issue:`21951`)
 - The :attr:`SparseArray.values` attribute is deprecated. You can use ``np.asarray(...)`` or
   the :meth:`SparseArray.to_dense` method instead (:issue:`26421`).
 - The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64` or :meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
@@ -755,13 +878,17 @@ Other deprecations
 - The :meth:`Series.get_values`, :meth:`DataFrame.get_values`, :meth:`Index.get_values`,
   :meth:`SparseArray.get_values` and :meth:`Categorical.get_values` methods are deprecated.
   One of ``np.asarray(..)`` or :meth:`~Series.to_numpy` can be used instead (:issue:`19617`).
+- The 'outer' method on NumPy ufuncs, e.g. ``np.subtract.outer`` has been deprecated on :class:`Series` objects. Convert the input to an array with :attr:`Series.array` first (:issue:`27186`)
 - :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
 - :func:`read_table` has been undeprecated. (:issue:`25220`)
 - :attr:`Index.dtype_str` is deprecated. (:issue:`18262`)
 - :attr:`Series.imag` and :attr:`Series.real` are deprecated. (:issue:`18262`)
 - :meth:`Series.put` is deprecated. (:issue:`18262`)
 - :meth:`Index.item` and :meth:`Series.item` is deprecated. (:issue:`18262`)
+- The default value ``ordered=None`` in :class:`~pandas.api.types.CategoricalDtype` has been deprecated in favor of ``ordered=False``. When converting between categorical types ``ordered=True`` must be explicitly passed in order to be preserved. (:issue:`26336`)
 - :meth:`Index.contains` is deprecated. Use ``key in index`` (``__contains__``) instead (:issue:`17753`).
+- :meth:`DataFrame.get_dtype_counts` is deprecated. (:issue:`18262`)
+- :meth:`Categorical.ravel` will return a :class:`Categorical` instead of a ``np.ndarray`` (:issue:`27199`)
 
 .. _whatsnew_0250.prior_deprecations:
 
@@ -810,6 +937,7 @@ Performance improvements
 - Restored performance of :meth:`DatetimeIndex.__iter__` by re-enabling specialized code path (:issue:`26702`)
 - Improved performance when building :class:`MultiIndex` with at least one :class:`CategoricalIndex` level (:issue:`22044`)
 - Improved performance by removing the need for a garbage collect when checking for ``SettingWithCopyWarning`` (:issue:`27031`)
+- For :meth:`to_datetime` changed default value of cache parameter to ``True`` (:issue:`26043`)
 
 .. _whatsnew_0250.bug_fixes:
 
@@ -842,6 +970,8 @@ Datetimelike
 - Bug in :func:`date_range` with unnecessary ``OverflowError`` being raised for very large or very small dates (:issue:`26651`)
 - Bug where adding :class:`Timestamp` to a ``np.timedelta64`` object would raise instead of returning a :class:`Timestamp` (:issue:`24775`)
 - Bug where comparing a zero-dimensional numpy array containing a ``np.datetime64`` object to a :class:`Timestamp` would incorrect raise ``TypeError`` (:issue:`26916`)
+- Bug in :func:`to_datetime` which would raise ``ValueError: Tz-aware datetime.datetime cannot be converted to datetime64 unless utc=True`` when called with ``cache=True``, with ``arg`` including datetime strings with different offset (:issue:`26097`)
+-
 
 Timedelta
 ^^^^^^^^^
