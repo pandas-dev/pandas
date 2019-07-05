@@ -215,6 +215,8 @@ def read_msgpack(path_or_buf, encoding="utf-8", iterator=False, **kwargs):
         if exists:
             with open(path_or_buf, "rb") as fh:
                 return read(fh)
+        else:
+            raise FileNotFoundError("path_or_buf is invalid or was not found")
 
     if isinstance(path_or_buf, bytes):
         # treat as a binary-like

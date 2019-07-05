@@ -165,6 +165,7 @@ class TestAPI(TestPackers):
                 self.read = 0
 
         msg = "Invalid file path or buffer object type: <class '{}'>"
+        invalid_path = os.path.join("nonexistent_dir", "df.msgpack")
         with pytest.raises(ValueError, match=msg.format("NoneType")):
             read_msgpack(path_or_buf=None)
         with pytest.raises(ValueError, match=msg.format("dict")):
@@ -172,8 +173,9 @@ class TestAPI(TestPackers):
         with pytest.raises(ValueError, match=msg.format(r".*\.A")):
             read_msgpack(path_or_buf=A())
         with pytest.raises(FileNotFoundError):
+            read_msgpack(path_or_buf=invalid_path)
+        with pytest.raises(FileNotFoundError):
             df = tm.makeDataFrame()
-            invalid_path = os.path.join("nonexistent_dir", "df.msgpack")
             df.to_msgpack(path_or_buf=invalid_path)
 
 
