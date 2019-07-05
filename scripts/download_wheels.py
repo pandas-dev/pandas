@@ -16,16 +16,18 @@ def parse_args(args=None):
 
 
 def fetch(version):
-    base = 'http://wheels.scipy.org'
+    base = "http://wheels.scipy.org"
     tree = html.parse(base)
     root = tree.getroot()
 
-    dest = pathlib.Path('dist')
+    dest = pathlib.Path("dist")
     dest.mkdir(exist_ok=True)
 
-    files = [x for x in root.xpath("//a/text()")
-             if x.startswith('pandas-{}'.format(version))
-             and not dest.joinpath(x).exists()]
+    files = [
+        x
+        for x in root.xpath("//a/text()")
+        if x.startswith("pandas-{}".format(version)) and not dest.joinpath(x).exists()
+    ]
 
     N = len(files)
 
@@ -33,9 +35,9 @@ def fetch(version):
         out = str(dest.joinpath(filename))
         link = urllib.request.urljoin(base, filename)
         urllib.request.urlretrieve(link, out)
-        print("Downloaded {link} to {out} [{i}/{N}]".format(
-            link=link, out=out, i=i, N=N
-        ))
+        print(
+            "Downloaded {link} to {out} [{i}/{N}]".format(link=link, out=out, i=i, N=N)
+        )
 
 
 def main(args=None):
@@ -43,5 +45,5 @@ def main(args=None):
     fetch(args.version)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
