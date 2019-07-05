@@ -56,7 +56,6 @@ Timezones
 
 Numeric
 ^^^^^^^
-- Bug in ``divmod`` with a :class:`Series` object containing zeros incorrectly raising ``AttributeError`` (:issue:`26987`)
 -
 -
 -
