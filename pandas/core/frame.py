@@ -395,7 +395,7 @@ class DataFrame(NDFrame):
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
-            data = data._data
+            data = data._mgr
 
         if isinstance(data, BlockManager):
             mgr = self._init_mgr(
@@ -545,10 +545,10 @@ class DataFrame(NDFrame):
         ...    "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous_type
         False
         """
-        if self._data.any_extension_types:
-            return len({block.dtype for block in self._data.blocks}) == 1
+        if self._mgr.any_extension_types:
+            return len({block.dtype for block in self._mgr.blocks}) == 1
         else:
-            return not self._data.is_mixed_type
+            return not self._mgr.is_mixed_type
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -2521,7 +2521,7 @@ class DataFrame(NDFrame):
             else:
                 _verbose_repr()
 
-        counts = self._data.get_dtype_counts()
+        counts = self._mgr.get_dtype_counts()
         dtypes = ["{k}({kk:d})".format(k=k[0], kk=k[1]) for k in sorted(counts.items())]
         lines.append("dtypes: {types}".format(types=", ".join(dtypes)))
 
@@ -2755,7 +2755,7 @@ class DataFrame(NDFrame):
             columns = com._unpickle_array(cols)
 
         index = com._unpickle_array(idx)
-        self._data = self._init_dict(series, index, columns, None)
+        self._mgr = self._init_dict(series, index, columns, None)
 
     def _unpickle_matrix_compat(self, state):  # pragma: no cover
         # old unpickling
@@ -2772,7 +2772,7 @@ class DataFrame(NDFrame):
 
             dm = dm.join(objects)
 
-        self._data = dm._data
+        self._mgr = dm._mgr
 
     # ----------------------------------------------------------------------
     # Getting and setting elements
@@ -2905,7 +2905,7 @@ class DataFrame(NDFrame):
                     result = self.take(i, axis=axis)
                     copy = True
                 else:
-                    new_values = self._data.fast_xs(i)
+                    new_values = self._mgr.fast_xs(i)
                     if is_scalar(new_values):
                         return new_values
 
@@ -2939,7 +2939,7 @@ class DataFrame(NDFrame):
                 # as the index (iow a not found value), iget returns
                 # a 0-len ndarray. This is effectively catching
                 # a numpy error (as numpy should really raise)
-                values = self._data.iget(i)
+                values = self._mgr.iget(i)
 
                 if index_len and not len(values):
                     values = np.array([np.nan] * index_len, dtype=object)
@@ -3538,7 +3538,7 @@ class DataFrame(NDFrame):
                     "Series"
                 )
 
-            self._data = self._data.reindex_axis(
+            self._mgr = self._mgr.reindex_axis(
                 value.index.copy(), axis=1, fill_value=np.nan
             )
 
@@ -3581,7 +3581,7 @@ class DataFrame(NDFrame):
         """
         self._ensure_valid_index(value)
         value = self._sanitize_column(column, value, broadcast=False)
-        self._data.insert(loc, column, value, allow_duplicates=allow_duplicates)
+        self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs):
         r"""
@@ -3780,7 +3780,7 @@ class DataFrame(NDFrame):
     @property
     def _series(self):
         return {
-            item: Series(self._data.iget(idx), index=self.index, name=item)
+            item: Series(self._mgr.iget(idx), index=self.index, name=item)
             for idx, item in enumerate(self.columns)
         }
 
@@ -4903,7 +4903,7 @@ class DataFrame(NDFrame):
 
         if inplace:
             inds, = (-duplicated)._ndarray_values.nonzero()
-            new_data = self._data.take(inds)
+            new_data = self._mgr.take(inds)
             self._update_inplace(new_data)
         else:
             return self[-duplicated]
@@ -5007,7 +5007,7 @@ class DataFrame(NDFrame):
                 k, kind=kind, ascending=ascending, na_position=na_position
             )
 
-        new_data = self._data.take(
+        new_data = self._mgr.take(
             indexer, axis=self._get_block_manager_axis(axis), verify=False
         )
 
@@ -5084,7 +5084,7 @@ class DataFrame(NDFrame):
             )
 
         baxis = self._get_block_manager_axis(axis)
-        new_data = self._data.take(indexer, axis=baxis, verify=False)
+        new_data = self._mgr.take(indexer, axis=baxis, verify=False)
 
         # reconstruct axis if needed
         new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
@@ -6527,7 +6527,7 @@ class DataFrame(NDFrame):
         5  NaN  NaN   NaN
         """
         bm_axis = self._get_block_manager_axis(axis)
-        new_data = self._data.diff(n=periods, axis=bm_axis)
+        new_data = self._mgr.diff(n=periods, axis=bm_axis)
         return self._constructor(new_data)
 
     # ----------------------------------------------------------------------
@@ -7754,7 +7754,7 @@ class DataFrame(NDFrame):
         if len(frame._get_axis(axis)) == 0:
             result = Series(0, index=frame._get_agg_axis(axis))
         else:
-            if frame._is_mixed_type or frame._data.any_extension_types:
+            if frame._is_mixed_type or frame._mgr.any_extension_types:
                 # the or any_extension_types is really only hit for single-
                 # column frames with an extension array
                 result = notna(frame).sum(axis=axis)
@@ -8209,7 +8209,7 @@ class DataFrame(NDFrame):
         if is_transposed:
             data = data.T
 
-        result = data._data.quantile(
+        result = data._mgr.quantile(
             qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
         )
 
@@ -8243,7 +8243,7 @@ class DataFrame(NDFrame):
         -------
         DataFrame with DatetimeIndex
         """
-        new_data = self._data
+        new_data = self._mgr
         if copy:
             new_data = new_data.copy()
 
@@ -8275,7 +8275,7 @@ class DataFrame(NDFrame):
         -------
         TimeSeries with PeriodIndex
         """
-        new_data = self._data
+        new_data = self._mgr
         if copy:
             new_data = new_data.copy()
 

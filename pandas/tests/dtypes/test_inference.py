@@ -1363,7 +1363,7 @@ def test_nan_to_nat_conversions():
     assert result == iNaT
 
     s = df["B"].copy()
-    s._data = s._data.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)
+    s._mgr = s._mgr.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)
     assert isna(s[8])
 
     assert s[8].value == np.datetime64("NaT").astype(np.int64)

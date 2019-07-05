@@ -631,7 +631,7 @@ class TestSeriesConstructors:
         s = pd.Series(index)
 
         # we make 1 copy; this is just a smoke test here
-        assert s._data.blocks[0].values is not index
+        assert s._mgr.blocks[0].values is not index
 
     def test_constructor_pass_none(self):
         s = Series(None, index=range(5))

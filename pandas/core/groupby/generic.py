@@ -252,7 +252,7 @@ class NDFrameGroupBy(GroupBy):
                         # Backwards compat for groupby.agg() with sparse
                         # values. concat no longer converts DataFrame[Sparse]
                         # to SparseDataFrame, so we do it here.
-                        result = SparseDataFrame(result._data)
+                        result = SparseDataFrame(result._mgr)
                 except Exception:
                     result = self._aggregate_generic(func, *args, **kwargs)
 
@@ -1502,9 +1502,9 @@ class DataFrameGroupBy(NDFrameGroupBy):
     def _get_data_to_aggregate(self):
         obj = self._obj_with_exclusions
         if self.axis == 1:
-            return obj.T._data, 1
+            return obj.T._mgr, 1
         else:
-            return obj._data, 1
+            return obj._mgr, 1
 
     def _insert_inaxis_grouper_inplace(self, result):
         # zip in reverse so we can always insert at loc 0

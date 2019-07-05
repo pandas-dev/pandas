@@ -251,7 +251,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     index = data.index
                 else:
                     data = data.reindex(index, copy=copy)
-                data = data._data
+                data = data._mgr
             elif isinstance(data, dict):
                 data, index = self._init_dict(data, index, dtype)
                 dtype = None
@@ -359,7 +359,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 s = s.sort_index()
             except TypeError:
                 pass
-        return s._data, s.index
+        return s._mgr, s.index
 
     @classmethod
     def from_array(
@@ -406,7 +406,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # types
     @property
     def _can_hold_na(self):
-        return self._data._can_hold_na
+        return self._mgr._can_hold_na
 
     _index = None
 
@@ -425,7 +425,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     labels = DatetimeIndex(labels)
                     # need to set here because we changed the index
                     if fastpath:
-                        self._data.set_axis(axis, labels)
+                        self._mgr.set_axis(axis, labels)
                 except (tslibs.OutOfBoundsDatetime, ValueError):
                     # labels may exceeds datetime bounds,
                     # or not be a DatetimeIndex
@@ -435,7 +435,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         object.__setattr__(self, "_index", labels)
         if not fastpath:
-            self._data.set_axis(axis, labels)
+            self._mgr.set_axis(axis, labels)
 
     def _set_subtyp(self, is_all_dates):
         if is_all_dates:
@@ -466,14 +466,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the dtype object of the underlying data.
         """
-        return self._data.dtype
+        return self._mgr.dtype
 
     @property
     def dtypes(self):
         """
         Return the dtype object of the underlying data.
         """
-        return self._data.dtype
+        return self._mgr.dtype
 
     @property
     def ftype(self):
@@ -491,7 +491,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             stacklevel=2,
         )
 
-        return self._data.ftype
+        return self._mgr.ftype
 
     @property
     def ftypes(self):
@@ -509,7 +509,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             stacklevel=2,
         )
 
-        return self._data.ftype
+        return self._mgr.ftype
 
     @property
     def values(self):
@@ -551,21 +551,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                '2013-01-02T05:00:00.000000000',
                '2013-01-03T05:00:00.000000000'], dtype='datetime64[ns]')
         """
-        return self._data.external_values()
+        return self._mgr.external_values()
 
     @property
     def _values(self):
         """
         Return the internal repr of this data.
         """
-        return self._data.internal_values()
+        return self._mgr.internal_values()
 
     def _formatting_values(self):
         """
         Return the values that can be formatted (used by SeriesFormatter
         and DataFrameFormatter).
         """
-        return self._data.formatting_values()
+        return self._mgr.formatting_values()
 
     def get_values(self):
         """
@@ -588,7 +588,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._internal_get_values()
 
     def _internal_get_values(self):
-        return self._data.get_values()
+        return self._mgr.get_values()
 
     @property
     def asobject(self):
@@ -718,7 +718,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the length of the Series.
         """
-        return len(self._data)
+        return len(self._mgr)
 
     def view(self, dtype=None):
         """
@@ -992,9 +992,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _unpickle_series_compat(self, state):
         if isinstance(state, dict):
-            self._data = state["_data"]
+            self._mgr = state["_data"]
             self.name = state["name"]
-            self.index = self._data.index
+            self.index = self._mgr.index
 
         elif isinstance(state, tuple):
 
@@ -1012,7 +1012,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 name = own_state[1]
 
             # recreate
-            self._data = SingleBlockManager(data, index, fastpath=True)
+            self._mgr = SingleBlockManager(data, index, fastpath=True)
             self._index = index
             self.name = name
 
@@ -1183,7 +1183,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_values(self, indexer):
         try:
             return self._constructor(
-                self._data.get_slice(indexer), fastpath=True
+                self._mgr.get_slice(indexer), fastpath=True
             ).__finalize__(self)
         except Exception:
             return self._values[indexer]
@@ -1304,7 +1304,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_values(self, key, value):
         if isinstance(key, Series):
             key = key._values
-        self._data = self._data.setitem(indexer=key, value=value)
+        self._mgr = self._mgr.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
     def repeat(self, repeats, axis=None):
@@ -3006,7 +3006,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         other = other.reindex_like(self)
         mask = notna(other)
 
-        self._data = self._data.putmask(mask=mask, new=other, inplace=True)
+        self._mgr = self._mgr.putmask(mask=mask, new=other, inplace=True)
         self._maybe_update_cacher()
 
     # ----------------------------------------------------------------------

@@ -407,7 +407,7 @@ class TestMultiIndexSetItem:
         s = dft["foo", "two"]
         dft["foo", "two"] = s > s.median()
         tm.assert_series_equal(dft["foo", "two"], s > s.median())
-        # assert isinstance(dft._data.blocks[1].items, MultiIndex)
+        # assert isinstance(dft._mgr.blocks[1].items, MultiIndex)
 
         reindexed = dft.reindex(columns=[("foo", "two")])
         tm.assert_series_equal(reindexed["foo", "two"], s > s.median())

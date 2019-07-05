@@ -323,8 +323,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
-        if not take_split_path and self.obj._data.blocks:
-            blk, = self.obj._data.blocks
+        if not take_split_path and self.obj._mgr.blocks:
+            blk, = self.obj._mgr.blocks
             if 1 < blk.ndim:  # in case of dict, keys are indices
                 val = list(value.values()) if isinstance(value, dict) else value
                 take_split_path = not blk._can_hold_element(val)
@@ -390,7 +390,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     # so the object is the same
                     index = self.obj._get_axis(i)
                     labels = index.insert(len(index), key)
-                    self.obj._data = self.obj.reindex(labels, axis=i)._data
+                    self.obj._mgr = self.obj.reindex(labels, axis=i)._mgr
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj._is_copy = None
 
@@ -431,9 +431,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         except TypeError:
                             as_obj = self.obj.astype(object)
                             new_values = np.concatenate([as_obj, new_values])
-                    self.obj._data = self.obj._constructor(
+                    self.obj._mgr = self.obj._constructor(
                         new_values, index=new_index, name=self.obj.name
-                    )._data
+                    )._mgr
                     self.obj._maybe_update_cacher(clear=True)
                     return self.obj
 
@@ -463,7 +463,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
                         value = Series(value, index=self.obj.columns, name=indexer)
 
-                    self.obj._data = self.obj.append(value)._data
+                    self.obj._mgr = self.obj.append(value)._mgr
                     self.obj._maybe_update_cacher(clear=True)
                     return self.obj
 
@@ -518,7 +518,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     idx = index._convert_slice_indexer(idx)
                     obj._consolidate_inplace()
                     obj = obj.copy()
-                    obj._data = obj._data.setitem(indexer=tuple([idx]), value=value)
+                    obj._mgr = obj._mgr.setitem(indexer=tuple([idx]), value=value)
                     self.obj[item] = obj
                     return
 
@@ -549,7 +549,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     # set the item, possibly having a dtype change
                     s._consolidate_inplace()
                     s = s.copy()
-                    s._data = s._data.setitem(indexer=pi, value=v)
+                    s._mgr = s._mgr.setitem(indexer=pi, value=v)
                     s._maybe_update_cacher(clear=True)
 
                 # reset the sliced object if unique
@@ -673,7 +673,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             # actually do the set
             self.obj._consolidate_inplace()
-            self.obj._data = self.obj._data.setitem(indexer=indexer, value=value)
+            self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
             self.obj._maybe_update_cacher(clear=True)
 
     def _align_series(self, indexer, ser, multiindex_indexer=False):
@@ -2450,7 +2450,7 @@ def convert_to_index_sliceable(obj, key):
     elif isinstance(key, str):
 
         # we are an actual column
-        if key in obj._data.items:
+        if key in obj._mgr.items:
             return None
 
         # We might have a datetimelike string that we can translate to a

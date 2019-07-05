@@ -666,7 +666,7 @@ class TestCompression(TestPackers):
             expected = self.frame[k]
             assert_frame_equal(value, expected)
             # make sure that we can write to the new frames
-            for block in value._data.blocks:
+            for block in value._mgr.blocks:
                 assert block.values.flags.writeable
 
     def test_compression_zlib(self):
@@ -719,7 +719,7 @@ class TestCompression(TestPackers):
                     assert_frame_equal(value, expected)
                     # make sure that we can write to the new frames even though
                     # we needed to copy the data
-                    for block in value._data.blocks:
+                    for block in value._mgr.blocks:
                         assert block.values.flags.writeable
                         # mutate the data in some way
                         block.values[0] += rhs[block.dtype]

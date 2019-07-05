@@ -115,7 +115,7 @@ class SparseDataFrame(DataFrame):
             mgr = self._init_matrix(data, index, columns, dtype=dtype)
         elif isinstance(data, SparseDataFrame):
             mgr = self._init_mgr(
-                data._data, dict(index=index, columns=columns), dtype=dtype, copy=copy
+                data._mgr, dict(index=index, columns=columns), dtype=dtype, copy=copy
             )
         elif isinstance(data, DataFrame):
             mgr = self._init_dict(data, data.index, data.columns, dtype=dtype)
@@ -283,7 +283,7 @@ class SparseDataFrame(DataFrame):
         return dict(
             _typ=self._typ,
             _subtyp=self._subtyp,
-            _data=self._data,
+            _mgr=self._mgr,
             _default_fill_value=self._default_fill_value,
             _default_kind=self._default_kind,
         )
@@ -314,7 +314,7 @@ class SparseDataFrame(DataFrame):
                 sp_values, sparse_index=sp_index, fill_value=fv
             )
 
-        self._data = to_manager(series_dict, columns, index)
+        self._mgr = to_manager(series_dict, columns, index)
         self._default_fill_value = fv
         self._default_kind = kind
 

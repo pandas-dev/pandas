@@ -558,10 +558,10 @@ class TestDataFrameSelectReindex:
 
     def test_align_float(self, float_frame):
         af, bf = float_frame.align(float_frame)
-        assert af._data is not float_frame._data
+        assert af._mgr is not float_frame._mgr
 
         af, bf = float_frame.align(float_frame, copy=False)
-        assert af._data is float_frame._data
+        assert af._mgr is float_frame._mgr
 
         # axis = 0
         other = float_frame.iloc[:-5, :3]

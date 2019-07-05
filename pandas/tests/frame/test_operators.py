@@ -699,7 +699,7 @@ class TestDataFrameOperators:
         assert_series_equal(s, s2)
         assert_series_equal(s_orig + 1, s)
         assert s is s2
-        assert s._data is s2._data
+        assert s._mgr is s2._mgr
 
         df = df_orig.copy()
         df2 = df
@@ -707,7 +707,7 @@ class TestDataFrameOperators:
         assert_frame_equal(df, df2)
         assert_frame_equal(df_orig + 1, df)
         assert df is df2
-        assert df._data is df2._data
+        assert df._mgr is df2._mgr
 
         # dtype change
         s = s_orig.copy()
@@ -722,7 +722,7 @@ class TestDataFrameOperators:
         assert_frame_equal(df, df2)
         assert_frame_equal(df_orig + 1.5, df)
         assert df is df2
-        assert df._data is df2._data
+        assert df._mgr is df2._mgr
 
         # mixed dtype
         arr = np.random.randint(0, 10, size=5)
@@ -733,7 +733,7 @@ class TestDataFrameOperators:
         expected = DataFrame({"A": arr.copy() + 1, "B": "foo"})
         assert_frame_equal(df, expected)
         assert_frame_equal(df2, expected)
-        assert df._data is df2._data
+        assert df._mgr is df2._mgr
 
         df = df_orig.copy()
         df2 = df
@@ -741,7 +741,7 @@ class TestDataFrameOperators:
         expected = DataFrame({"A": arr.copy() + 1.5, "B": "foo"})
         assert_frame_equal(df, expected)
         assert_frame_equal(df2, expected)
-        assert df._data is df2._data
+        assert df._mgr is df2._mgr
 
     @pytest.mark.parametrize(
         "op",

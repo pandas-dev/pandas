@@ -176,7 +176,7 @@ class SparseSeries(Series):
     @property
     def block(self):
         warnings.warn("SparseSeries.block is deprecated.", FutureWarning, stacklevel=2)
-        return self._data._block
+        return self._mgr._block
 
     @property
     def fill_value(self):
@@ -273,7 +273,7 @@ class SparseSeries(Series):
         return dict(
             _typ=self._typ,
             _subtyp=self._subtyp,
-            _data=self._data,
+            _mgr=self._mgr,
             fill_value=self.fill_value,
             name=self.name,
         )
@@ -343,7 +343,7 @@ class SparseSeries(Series):
     def _get_values(self, indexer):
         try:
             return self._constructor(
-                self._data.get_slice(indexer), fastpath=True
+                self._mgr.get_slice(indexer), fastpath=True
             ).__finalize__(self)
         except Exception:
             return self[indexer]
@@ -465,7 +465,7 @@ class SparseSeries(Series):
             values = new_values
         new_index = values.index
         values = SparseArray(values, fill_value=self.fill_value, kind=self.kind)
-        self._data = SingleBlockManager(values, new_index)
+        self._mgr = SingleBlockManager(values, new_index)
         self._index = new_index
 
     _set_value.__doc__ = set_value.__doc__
@@ -482,7 +482,7 @@ class SparseSeries(Series):
         values = self.values.to_dense()
         values[key] = libindex.convert_scalar(values, value)
         values = SparseArray(values, fill_value=self.fill_value, kind=self.kind)
-        self._data = SingleBlockManager(values, self.index)
+        self._mgr = SingleBlockManager(values, self.index)
 
     def to_dense(self):
         """

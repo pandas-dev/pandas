@@ -681,7 +681,7 @@ class TestSparseDataFrame(SharedWithSparse):
         sdf = pd.SparseDataFrame([[np.nan, 1], [2, np.nan]])
         with pd.option_context("mode.chained_assignment", None):
             sdf[0][1] = 2
-        assert len(sdf._data.blocks) == 2
+        assert len(sdf._mgr.blocks) == 2
 
     def test_delitem(self, float_frame):
         A = float_frame["A"]

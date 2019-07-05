@@ -175,24 +175,24 @@ class Generic:
 
         o = self._construct(shape=4, value=9, dtype=np.int64)
         result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
+        result._mgr = o._mgr.downcast(dtypes="infer")
         self._compare(result, o)
 
         o = self._construct(shape=4, value=9.0)
         expected = o.astype(np.int64)
         result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
+        result._mgr = o._mgr.downcast(dtypes="infer")
         self._compare(result, expected)
 
         o = self._construct(shape=4, value=9.5)
         result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
+        result._mgr = o._mgr.downcast(dtypes="infer")
         self._compare(result, o)
 
         # are close
         o = self._construct(shape=4, value=9.000000000005)
         result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
+        result._mgr = o._mgr.downcast(dtypes="infer")
         expected = o.astype(np.int64)
         self._compare(result, expected)
 

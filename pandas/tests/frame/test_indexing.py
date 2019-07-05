@@ -3417,8 +3417,8 @@ class TestDataFrameIndexingDatetimeWithTZ(TestData):
 
         # assert that A & C are not sharing the same base (e.g. they
         # are copies)
-        b1 = df._data.blocks[1]
-        b2 = df._data.blocks[2]
+        b1 = df._mgr.blocks[1]
+        b2 = df._mgr.blocks[2]
         tm.assert_extension_array_equal(b1.values, b2.values)
         assert id(b1.values._data.base) != id(b2.values._data.base)
 
@@ -3548,7 +3548,7 @@ class TestDataFrameIndexingCategorical:
 
         result1 = df["D"]
         result2 = df["E"]
-        tm.assert_categorical_equal(result1._data._block.values, d)
+        tm.assert_categorical_equal(result1._mgr._block.values, d)
 
         # sorting
         s.name = "E"

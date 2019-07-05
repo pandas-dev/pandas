@@ -492,7 +492,7 @@ def encode(obj):
             # return d
         else:
 
-            data = obj._data
+            data = obj._mgr
             if not data.is_consolidated():
                 data = data.consolidate()
 

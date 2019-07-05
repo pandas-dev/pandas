@@ -115,7 +115,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
     result = pd.Series(values, index=self.index, dtype=self.dtype).__finalize__(self)
 
     if inplace:
-        self._update_inplace(result._data)
+        self._update_inplace(result._mgr)
         return
 
     return result
@@ -134,7 +134,7 @@ class NDFrame(PandasObject, SelectionMixin):
     """
 
     _internal_names = [
-        "_data",
+        "_mgr",
         "_cacher",
         "_item_cache",
         "_cache",
@@ -155,7 +155,13 @@ class NDFrame(PandasObject, SelectionMixin):
     )  # type: FrozenSet[str]
     _metadata = []  # type: List[str]
     _is_copy = None
-    _data = None  # type: BlockManager
+    _mgr = None  # type: BlockManager
+
+    @property
+    def _data(self):
+        # Retain alias for downstream compat
+        warnings.warn("'_data' attribute should not be accessed directly.")
+        return self._mgr
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -180,7 +186,7 @@ class NDFrame(PandasObject, SelectionMixin):
                     data = data.reindex_axis(ax, axis=i)
 
         object.__setattr__(self, "_is_copy", None)
-        object.__setattr__(self, "_data", data)
+        object.__setattr__(self, "_mgr", data)
         object.__setattr__(self, "_item_cache", {})
 
     def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
@@ -541,7 +547,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df.ndim
         2
         """
-        return self._data.ndim
+        return self._mgr.ndim
 
     @property
     def size(self):
@@ -712,7 +718,7 @@ class NDFrame(PandasObject, SelectionMixin):
             return obj
 
     def _set_axis(self, axis, labels):
-        self._data.set_axis(axis, labels)
+        self._mgr.set_axis(axis, labels)
         self._clear_item_cache()
 
     def transpose(self, *args, **kwargs):
@@ -1029,8 +1035,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         axis = self._get_axis_number(axis)
         result = self.copy()
-        labels = result._data.axes[axis]
-        result._data.set_axis(axis, labels.swaplevel(i, j))
+        labels = result._mgr.axes[axis]
+        result._mgr.set_axis(axis, labels.swaplevel(i, j))
         return result
 
     # ----------------------------------------------------------------------
@@ -1190,13 +1196,13 @@ class NDFrame(PandasObject, SelectionMixin):
                     ]
                     raise KeyError("{} not found in axis".format(missing_labels))
 
-            result._data = result._data.rename_axis(
+            result._mgr = result._mgr.rename_axis(
                 f, axis=baxis, copy=copy, level=level
             )
             result._clear_item_cache()
 
         if inplace:
-            self._update_inplace(result._data)
+            self._update_inplace(result._mgr)
         else:
             return result.__finalize__(self)
 
@@ -1524,7 +1530,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         if not isinstance(other, self._constructor):
             return False
-        return self._data.equals(other._data)
+        return self._mgr.equals(other._mgr)
 
     # -------------------------------------------------------------------------
     # Unary Methods
@@ -2049,15 +2055,19 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __getstate__(self):
         meta = {k: getattr(self, k, None) for k in self._metadata}
-        return dict(_data=self._data, _typ=self._typ, _metadata=self._metadata, **meta)
+        return dict(_mgr=self._mgr, _typ=self._typ, _metadata=self._metadata, **meta)
 
     def __setstate__(self, state):
 
         if isinstance(state, BlockManager):
-            self._data = state
+            self._mgr = state
         elif isinstance(state, dict):
             typ = state.get("_typ")
             if typ is not None:
+
+                if "_data" in state and "_mgr" not in state:
+                    # Backwards compat
+                    state["_mgr"] = state.pop("_data")
 
                 # set in the order of internal names
                 # to avoid definitional recursion
@@ -3285,7 +3295,7 @@ class NDFrame(PandasObject, SelectionMixin):
         cache = self._item_cache
         res = cache.get(item)
         if res is None:
-            values = self._data.get(item)
+            values = self._mgr.get(item)
             res = self._box_item_values(item, values)
             cache[item] = res
             res._set_as_cached(item, self)
@@ -3320,7 +3330,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def _maybe_cache_changed(self, item, value):
         """The object has called back to us saying maybe it has changed.
         """
-        self._data.set(item, value)
+        self._mgr.set(item, value)
 
     @property
     def _is_cached(self):
@@ -3337,7 +3347,7 @@ class NDFrame(PandasObject, SelectionMixin):
     @property
     def _is_view(self):
         """Return boolean indicating if self is view of another array """
-        return self._data.is_view
+        return self._mgr.is_view
 
     def _maybe_update_cacher(self, clear=False, verify_is_copy=True):
         """
@@ -3386,7 +3396,7 @@ class NDFrame(PandasObject, SelectionMixin):
         kind parameter is maintained for compatibility with Series slicing.
         """
         axis = self._get_block_manager_axis(axis)
-        result = self._constructor(self._data.get_slice(slobj, axis=axis))
+        result = self._constructor(self._mgr.get_slice(slobj, axis=axis))
         result = result.__finalize__(self)
 
         # this could be a view
@@ -3396,7 +3406,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return result
 
     def _set_item(self, key, value):
-        self._data.set(key, value)
+        self._mgr.set(key, value)
         self._clear_item_cache()
 
     def _set_is_copy(self, ref=None, copy=True):
@@ -3531,7 +3541,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # If the above loop ran and didn't delete anything because
             # there was no match, this call should raise the appropriate
             # exception:
-            self._data.delete(key)
+            self._mgr.delete(key)
 
         # delete from the caches
         try:
@@ -3573,7 +3583,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         self._consolidate_inplace()
 
-        new_data = self._data.take(
+        new_data = self._mgr.take(
             indices, axis=self._get_block_manager_axis(axis), verify=True
         )
         result = self._constructor(new_data).__finalize__(self)
@@ -3798,7 +3808,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_index = self.index[loc]
 
         if is_scalar(loc):
-            new_values = self._data.fast_xs(loc)
+            new_values = self._mgr.fast_xs(loc)
 
             # may need to box a datelike-scalar
             #
@@ -4037,7 +4047,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         self._reset_cache()
         self._clear_item_cache()
-        self._data = getattr(result, "_data", result)
+        self._mgr = getattr(result, "_mgr", result)
         self._maybe_update_cacher(verify_is_copy=verify_is_copy)
 
     def add_prefix(self, prefix):
@@ -4606,7 +4616,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """allow_dups indicates an internal call here """
 
         # reindex doing multiple operations on different axes if indicated
-        new_data = self._data
+        new_data = self._mgr
         for axis in sorted(reindexers.keys()):
             index, indexer = reindexers[axis]
             baxis = self._get_block_manager_axis(axis)
@@ -4628,7 +4638,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 copy=copy,
             )
 
-        if copy and new_data is self._data:
+        if copy and new_data is self._mgr:
             new_data = new_data.copy()
 
         return self._constructor(new_data).__finalize__(self)
@@ -5291,9 +5301,9 @@ class NDFrame(PandasObject, SelectionMixin):
         """Consolidate _data -- if the blocks have changed, then clear the
         cache
         """
-        blocks_before = len(self._data.blocks)
+        blocks_before = len(self._mgr.blocks)
         result = f()
-        if len(self._data.blocks) != blocks_before:
+        if len(self._mgr.blocks) != blocks_before:
             self._clear_item_cache()
         return result
 
@@ -5301,7 +5311,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """Consolidate data in place and return None"""
 
         def f():
-            self._data = self._data.consolidate()
+            self._mgr = self._mgr.consolidate()
 
         self._protect_consolidate(f)
 
@@ -5323,23 +5333,23 @@ class NDFrame(PandasObject, SelectionMixin):
         if inplace:
             self._consolidate_inplace()
         else:
-            f = lambda: self._data.consolidate()
+            f = lambda: self._mgr.consolidate()
             cons_data = self._protect_consolidate(f)
             return self._constructor(cons_data).__finalize__(self)
 
     @property
     def _is_mixed_type(self):
-        f = lambda: self._data.is_mixed_type
+        f = lambda: self._mgr.is_mixed_type
         return self._protect_consolidate(f)
 
     @property
     def _is_numeric_mixed_type(self):
-        f = lambda: self._data.is_numeric_mixed_type
+        f = lambda: self._mgr.is_numeric_mixed_type
         return self._protect_consolidate(f)
 
     @property
     def _is_datelike_mixed_type(self):
-        f = lambda: self._data.is_datelike_mixed_type
+        f = lambda: self._mgr.is_datelike_mixed_type
         return self._protect_consolidate(f)
 
     def _check_inplace_setting(self, value):
@@ -5363,10 +5373,10 @@ class NDFrame(PandasObject, SelectionMixin):
         return True
 
     def _get_numeric_data(self):
-        return self._constructor(self._data.get_numeric_data()).__finalize__(self)
+        return self._constructor(self._mgr.get_numeric_data()).__finalize__(self)
 
     def _get_bool_data(self):
-        return self._constructor(self._data.get_bool_data()).__finalize__(self)
+        return self._constructor(self._mgr.get_bool_data()).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods
@@ -5417,7 +5427,7 @@ class NDFrame(PandasObject, SelectionMixin):
             stacklevel=2,
         )
         self._consolidate_inplace()
-        return self._data.as_array(transpose=self._AXIS_REVERSED, items=columns)
+        return self._mgr.as_array(transpose=self._AXIS_REVERSED, items=columns)
 
     @property
     def values(self):
@@ -5494,7 +5504,7 @@ class NDFrame(PandasObject, SelectionMixin):
                ['monkey', nan, None]], dtype=object)
         """
         self._consolidate_inplace()
-        return self._data.as_array(transpose=self._AXIS_REVERSED)
+        return self._mgr.as_array(transpose=self._AXIS_REVERSED)
 
     @property
     def _values(self):
@@ -5605,7 +5615,7 @@ class NDFrame(PandasObject, SelectionMixin):
         )
         from pandas import Series
 
-        return Series(self._data.get_dtype_counts())
+        return Series(self._mgr.get_dtype_counts())
 
     def get_ftype_counts(self):
         """
@@ -5651,7 +5661,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         from pandas import Series
 
-        return Series(self._data.get_ftype_counts())
+        return Series(self._mgr.get_ftype_counts())
 
     @property
     def dtypes(self):
@@ -5687,7 +5697,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         from pandas import Series
 
-        return Series(self._data.get_dtypes(), index=self._info_axis, dtype=np.object_)
+        return Series(self._mgr.get_dtypes(), index=self._info_axis, dtype=np.object_)
 
     @property
     def ftypes(self):
@@ -5744,7 +5754,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         from pandas import Series
 
-        return Series(self._data.get_ftypes(), index=self._info_axis, dtype=np.object_)
+        return Series(self._mgr.get_ftypes(), index=self._info_axis, dtype=np.object_)
 
     def as_blocks(self, copy=True):
         """
@@ -5789,7 +5799,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         return {
             k: self._constructor(v).__finalize__(self)
-            for k, v, in self._data.to_dict(copy=copy).items()
+            for k, v, in self._mgr.to_dict(copy=copy).items()
         }
 
     def astype(self, dtype, copy=True, errors="raise", **kwargs):
@@ -5931,7 +5941,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         else:
             # else, only a single dtype is given
-            new_data = self._data.astype(
+            new_data = self._mgr.astype(
                 dtype=dtype, copy=copy, errors=errors, **kwargs
             )
             return self._constructor(new_data).__finalize__(self)
@@ -6046,7 +6056,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1     [3, 4]
         dtype: object
         """
-        data = self._data.copy(deep=deep)
+        data = self._mgr.copy(deep=deep)
         return self._constructor(data).__finalize__(self)
 
     def __copy__(self, deep=True):
@@ -6091,7 +6101,7 @@ class NDFrame(PandasObject, SelectionMixin):
         converted : same as input object
         """
         return self._constructor(
-            self._data.convert(
+            self._mgr.convert(
                 datetime=datetime,
                 numeric=numeric,
                 timedelta=timedelta,
@@ -6143,7 +6153,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # python objects will still be converted to
         # native numpy numeric types
         return self._constructor(
-            self._data.convert(
+            self._mgr.convert(
                 datetime=True, numeric=False, timedelta=True, coerce=False, copy=True
             )
         ).__finalize__(self)
@@ -6277,11 +6287,11 @@ class NDFrame(PandasObject, SelectionMixin):
                 result = self.T.fillna(method=method, limit=limit).T
 
                 # need to downcast here because of all of the transposes
-                result._data = result._data.downcast()
+                result._mgr = result._mgr.downcast()
 
                 return result
 
-            new_data = self._data.interpolate(
+            new_data = self._mgr.interpolate(
                 method=method,
                 axis=axis,
                 limit=limit,
@@ -6307,7 +6317,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         '"{0}"'.format(type(value).__name__)
                     )
 
-                new_data = self._data.fillna(
+                new_data = self._mgr.fillna(
                     value=value, limit=limit, inplace=inplace, downcast=downcast
                 )
 
@@ -6328,7 +6338,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 return result if not inplace else None
 
             elif not is_list_like(value):
-                new_data = self._data.fillna(
+                new_data = self._mgr.fillna(
                     value=value, limit=limit, inplace=inplace, downcast=downcast
                 )
             elif isinstance(value, DataFrame) and self.ndim == 2:
@@ -6741,7 +6751,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if not len(self._get_axis(a)):
                     return self
 
-            new_data = self._data
+            new_data = self._mgr
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
                     res = self if inplace else self.copy()
@@ -6783,7 +6793,7 @@ class NDFrame(PandasObject, SelectionMixin):
                             % (len(to_replace), len(value))
                         )
 
-                    new_data = self._data.replace_list(
+                    new_data = self._mgr.replace_list(
                         src_list=to_replace,
                         dest_list=value,
                         inplace=inplace,
@@ -6791,7 +6801,7 @@ class NDFrame(PandasObject, SelectionMixin):
                     )
 
                 else:  # [NA, ''] -> 0
-                    new_data = self._data.replace(
+                    new_data = self._mgr.replace(
                         to_replace=to_replace, value=value, inplace=inplace, regex=regex
                     )
             elif to_replace is None:
@@ -6814,7 +6824,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 # dest iterable dict-like
                 if is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
-                    new_data = self._data
+                    new_data = self._mgr
 
                     for k, v in value.items():
                         if k in self:
@@ -6827,7 +6837,7 @@ class NDFrame(PandasObject, SelectionMixin):
                             )
 
                 elif not is_list_like(value):  # NA -> 0
-                    new_data = self._data.replace(
+                    new_data = self._mgr.replace(
                         to_replace=to_replace, value=value, inplace=inplace, regex=regex
                     )
                 else:
@@ -7069,7 +7079,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 "Only `method=linear` interpolation is supported " "on MultiIndexes."
             )
 
-        if _maybe_transposed_self._data.get_dtype_counts().get("object") == len(
+        if _maybe_transposed_self._mgr.get_dtype_counts().get("object") == len(
             _maybe_transposed_self.T
         ):
             raise TypeError(
@@ -7104,7 +7114,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 "has not been implemented. Try filling "
                 "those NaNs before interpolating."
             )
-        data = _maybe_transposed_self._data
+        data = _maybe_transposed_self._mgr
         new_data = data.interpolate(
             method=method,
             axis=ax,
@@ -7120,7 +7130,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if inplace:
             if axis == 1:
-                new_data = self._constructor(new_data).T._data
+                new_data = self._constructor(new_data).T._mgr
             self._update_inplace(new_data)
         else:
             res = self._constructor(new_data).__finalize__(self)
@@ -8972,7 +8982,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         else:
             # one has > 1 ndim
-            fdata = self._data
+            fdata = self._mgr
             if axis == 0:
                 join_index = self.index
                 lidx, ridx = None, None
@@ -8997,7 +9007,7 @@ class NDFrame(PandasObject, SelectionMixin):
             else:
                 raise ValueError("Must specify axis=0 or 1")
 
-            if copy and fdata is self._data:
+            if copy and fdata is self._mgr:
                 fdata = fdata.copy()
 
             left = self._constructor(fdata)
@@ -9157,7 +9167,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # reconstruct the block manager
 
             self._check_inplace_setting(other)
-            new_data = self._data.putmask(
+            new_data = self._mgr.putmask(
                 mask=cond,
                 new=other,
                 align=align,
@@ -9168,7 +9178,7 @@ class NDFrame(PandasObject, SelectionMixin):
             self._update_inplace(new_data)
 
         else:
-            new_data = self._data.where(
+            new_data = self._mgr.where(
                 other=other,
                 cond=cond,
                 align=align,
@@ -9450,7 +9460,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         block_axis = self._get_block_manager_axis(axis)
         if freq is None:
-            new_data = self._data.shift(
+            new_data = self._mgr.shift(
                 periods=periods, axis=block_axis, fill_value=fill_value
             )
         else:
@@ -9539,7 +9549,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if isinstance(index, PeriodIndex):
             orig_freq = to_offset(index.freq)
             if freq == orig_freq:
-                new_data = self._data.copy()
+                new_data = self._mgr.copy()
                 new_data.axes[block_axis] = index.shift(periods)
             else:
                 msg = "Given freq %s does not match PeriodIndex freq %s" % (
@@ -9548,7 +9558,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 )
                 raise ValueError(msg)
         else:
-            new_data = self._data.copy()
+            new_data = self._mgr.copy()
             new_data.axes[block_axis] = index.shift(periods, freq)
 
         return self._constructor(new_data).__finalize__(self)
@@ -9757,7 +9767,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 raise ValueError("The level {0} is not valid".format(level))
             ax = _tz_convert(ax, tz)
 
-        result = self._constructor(self._data, copy=copy)
+        result = self._constructor(self._mgr, copy=copy)
         result = result.set_axis(ax, axis=axis, inplace=False)
         return result.__finalize__(self)
 
@@ -9921,7 +9931,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 raise ValueError("The level {0} is not valid".format(level))
             ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
-        result = self._constructor(self._data, copy=copy)
+        result = self._constructor(self._mgr, copy=copy)
         result = result.set_axis(ax, axis=axis, inplace=False)
         return result.__finalize__(self)
 

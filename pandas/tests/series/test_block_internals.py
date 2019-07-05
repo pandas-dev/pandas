@@ -31,8 +31,8 @@ class TestSeriesBlockInternals:
         ser = pd.Series(dti)
         assert ser._values is not dti
         assert ser._values._data.base is not dti._data._data.base
-        assert ser._data.blocks[0].values is not dti
-        assert ser._data.blocks[0].values._data.base is not dti._data._data.base
+        assert ser._mgr.blocks[0].values is not dti
+        assert ser._mgr.blocks[0].values._data.base is not dti._data._data.base
 
         ser[::3] = pd.NaT
         assert ser[0] is pd.NaT

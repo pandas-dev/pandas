@@ -1332,7 +1332,7 @@ def test_block_shape():
     a = pd.Series([1, 2, 3]).reindex(idx)
     b = pd.Series(pd.Categorical([1, 2, 3])).reindex(idx)
 
-    assert a._data.blocks[0].mgr_locs.indexer == b._data.blocks[0].mgr_locs.indexer
+    assert a._mgr.blocks[0].mgr_locs.indexer == b._mgr.blocks[0].mgr_locs.indexer
 
 
 def test_make_block_no_pandas_array():
