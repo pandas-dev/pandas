@@ -295,7 +295,7 @@ def _gen_fill_zeros(name):
     """
     name = name.strip("__")
     if "div" in name:
-        # truediv, floordiv, div, and reversed variants
+        # truediv, floordiv, and reversed variants
         fill_value = np.inf
     elif "mod" in name:
         # mod, rmod
@@ -1718,14 +1718,7 @@ def _arith_method_SERIES(cls, op, special):
                 return libalgos.arrmap_object(x, lambda val: op(val, y))
             raise
 
-        if isinstance(result, tuple):
-            # e.g. divmod
-            result = tuple(
-                missing.fill_zeros(r, x, y, op_name, fill_zeros) for r in result
-            )
-        else:
-            result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-        return result
+        return missing.dispatch_fill_zeros(op, x, y, result, fill_zeros)
 
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):

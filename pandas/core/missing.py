@@ -702,7 +702,7 @@ def dispatch_missing(op, left, right, result):
     result : ndarray
     """
     opstr = "__{opname}__".format(opname=op.__name__).replace("____", "__")
-    if op in [operator.truediv, operator.floordiv, getattr(operator, "div", None)]:
+    if op in [operator.truediv, operator.floordiv]:
         result = mask_zero_div_zero(left, right, result)
     elif op is operator.mod:
         result = fill_zeros(result, left, right, opstr, np.nan)
@@ -710,6 +710,29 @@ def dispatch_missing(op, left, right, result):
         res0 = mask_zero_div_zero(left, right, result[0])
         res1 = fill_zeros(result[1], left, right, opstr, np.nan)
         result = (res0, res1)
+    return result
+
+
+# FIXME: de-duplicate with dispatch_missing
+def dispatch_fill_zeros(op, left, right, result, fill_value):
+    """
+    Call fill_zeros with the appropriate fill value depending on the operation,
+    with special logic for divmod and rdivmod.
+    """
+    from pandas.core.ops import rdivmod
+
+    if op is divmod:
+        result = (
+            fill_zeros(result[0], left, right, "__floordiv__", np.inf),
+            fill_zeros(result[1], left, right, "__mod__", np.nan),
+        )
+    elif op is rdivmod:
+        result = (
+            fill_zeros(result[0], left, right, "__rfloordiv__", np.inf),
+            fill_zeros(result[1], left, right, "__rmod__", np.nan),
+        )
+    else:
+        result = fill_zeros(result, left, right, op.__name__, fill_value)
     return result
 
 
