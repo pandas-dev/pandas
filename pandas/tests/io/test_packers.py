@@ -166,17 +166,15 @@ class TestAPI(TestPackers):
 
         msg = "Invalid file path or buffer object type: <class '{}'>"
         invalid_path = os.path.join("nonexistent_dir", "df.msgpack")
+        path_msg = "File b'{}' does not exist".format(invalid_path)
         with pytest.raises(ValueError, match=msg.format("NoneType")):
             read_msgpack(path_or_buf=None)
         with pytest.raises(ValueError, match=msg.format("dict")):
             read_msgpack(path_or_buf={})
         with pytest.raises(ValueError, match=msg.format(r".*\.A")):
             read_msgpack(path_or_buf=A())
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(FileNotFoundError, match=path_msg):
             read_msgpack(path_or_buf=invalid_path)
-        with pytest.raises(FileNotFoundError):
-            df = tm.makeDataFrame()
-            df.to_msgpack(path_or_buf=invalid_path)
 
 
 @pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
