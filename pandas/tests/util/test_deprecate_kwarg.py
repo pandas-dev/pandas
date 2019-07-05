@@ -27,10 +27,7 @@ def _f3(new=0):
     return new
 
 
-@pytest.mark.parametrize("key,klass", [
-    ("old", FutureWarning),
-    ("new", None)
-])
+@pytest.mark.parametrize("key,klass", [("old", FutureWarning), ("new", None)])
 def test_deprecate_kwarg(key, klass):
     x = 78
 
@@ -67,6 +64,7 @@ def test_bad_deprecate_kwarg():
     msg = "mapping from old to new argument values must be dict or callable!"
 
     with pytest.raises(TypeError, match=msg):
+
         @deprecate_kwarg("old", "new", 0)
         def f4(new=None):
             return new
