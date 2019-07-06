@@ -2300,9 +2300,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
             if getattr(other, "tz") is not None:
-                raise TypeError(
-                    "cannot coerce a Timestamp with a tz on a naive Block"
-                )
+                raise TypeError("cannot coerce a Timestamp with a tz on a naive Block")
             other = other.asm8.view("i8")
         elif hasattr(other, "dtype") and is_datetime64_dtype(other):
             other = other.astype("i8", copy=False).view("i8")
