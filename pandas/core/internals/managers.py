@@ -936,7 +936,7 @@ class BlockManager(PandasObject):
             self._known_consolidated = True
             self._rebuild_blknos_and_blklocs()
 
-    def get(self, item, fastpath=True):
+    def get(self, item):
         """
         Return values for selected item (ndarray or BlockManager).
         """
@@ -954,7 +954,7 @@ class BlockManager(PandasObject):
                     else:
                         raise ValueError("cannot label index with a null key")
 
-            return self.iget(loc, fastpath=fastpath)
+            return self.iget(loc)
         else:
 
             if isna(item):
@@ -965,18 +965,18 @@ class BlockManager(PandasObject):
                 new_axis=self.items[indexer], indexer=indexer, axis=0, allow_dups=True
             )
 
-    def iget(self, i, fastpath=True):
+    def iget(self, i):
         """
-        Return the data as a SingleBlockManager if fastpath=True and possible
+        Return the data as a SingleBlockManager if possible
 
         Otherwise return as a ndarray
         """
         block = self.blocks[self._blknos[i]]
         values = block.iget(self._blklocs[i])
-        if not fastpath or values.ndim != 1:
+        if values.ndim != 1:
             return values
 
-        # fastpath shortcut for select a single-dim from a 2-dim BM
+        # shortcut for select a single-dim from a 2-dim BM
         return SingleBlockManager(
             [
                 block.make_block_same_class(
