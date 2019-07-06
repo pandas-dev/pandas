@@ -807,6 +807,8 @@ Note to subdivide over multiple columns we can pass in a list to the
 Exploding a List-like Column
 ----------------------------
 
+.. versionadded:: 0.25.0
+
 Sometimes the value column is list-like:
 
 .. ipython:: python
@@ -817,18 +819,14 @@ Sometimes the value column is list-like:
    df
 
 But we actually want to put each value onto its own row.
-For this purpose we can use ``DataFrame.explode``:
+For this purpose we can use ``~Series.explode``. This will replicate the index values:
 
 .. ipython:: python
 
-   df.explode('values')
+   df['values'].explode()
 
-For convenience, we can use the optional keyword ``sep`` to automatically
-split a string column before exploding:
+You can merge this back into the original to expand the dataframe.
 
 .. ipython:: python
 
-   values = ['eats,shoots', 'shoots,leaves', 'eats,shoots,leaves']
-   df2 = pd.DataFrame({'keys': keys, 'values': values})
-   df2
-   df2.explode('values', sep=',')
+   pd.merge(df, df['values'].explode(), left_index=True, right_index=True)

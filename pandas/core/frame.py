@@ -6423,57 +6423,6 @@ class DataFrame(NDFrame):
             col_level=col_level,
         )
 
-    def explode(self, col_name, sep=None, dtype=None):
-        """
-        Create new DataFrame expanding a list-like column.
-
-        .. versionadded:: 0.24.0
-
-        Parameters
-        ----------
-        col_name : str
-            Name of the column to be exploded.
-        sep : str, default None
-            Convenience to split a string `col_name` before exploding.
-        dtype : str or dtype, default None
-            Optionally coerce the dtype of exploded column.
-
-        Returns
-        -------
-        exploded: DataFrame
-
-        See Also
-        --------
-        Series.str.split: Split string values on specified separator.
-        Series.str.extract: Extract groups from the first regex match.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({'k': ['a,b', 'c,d'], 'v': [0, 1]})
-        >>> df.explode('k', sep=',')
-           k  v
-        0  a  0
-        0  b  0
-        1  c  1
-        1  d  1
-        """
-        col = self[col_name]
-        if len(self) == 0:
-            return self.copy()
-        if sep:
-            col_expanded = col.str.split(sep, expand=True)
-        else:
-            col_expanded = col.apply(Series)
-        col_stacked = (col_expanded
-                       .stack()
-                       .reset_index(level=-1, drop=True)
-                       .rename(col_name))
-        if dtype:
-            col_stacked = col_stacked.astype(dtype)
-        return (col_stacked.to_frame()
-                .join(self.drop(col_name, axis=1))
-                .reindex(self.columns, axis=1))
-
     # ----------------------------------------------------------------------
     # Time series-related
 

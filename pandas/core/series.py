@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import iNaT, index as libindex, lib, tslibs
+from pandas._libs import iNaT, index as libindex, lib, tslibs, reshape
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
@@ -3633,6 +3633,52 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         result = self.copy()
         result.index = result.index.reorder_levels(order)
+        return result
+
+    def explode(self):
+        """
+        Create new Series expanding a list-like column.
+
+        .. versionadded:: 0.25.0
+
+        Returns
+        -------
+        exploded: Series
+
+        See Also
+        --------
+        Series.str.split: Split string values on specified separator.
+        Series.unstakc: Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
+
+        Examples
+        --------
+        In [1]: s = pd.Series([[1, 2, 3], np.nan, [], [3, 4]])
+
+        In [2]: s
+        Out[2]:
+        0    [1, 2, 3]
+        1          NaN
+        2           []
+        3       [3, 4]
+        dtype: object
+
+        In [3]: s.explode()
+        Out[3]:
+        0      1
+        0      2
+        0      3
+        1    NaN
+        2    NaN
+        3      3
+        3      4
+        dtype: object
+        """
+        if not len(self):
+            return self.copy()
+
+        values, counts = reshape.explode(np.asarray(self.array))
+
+        result = Series(values, index=self.index.repeat(counts), name=self.name)
         return result
 
     def unstack(self, level=-1, fill_value=None):

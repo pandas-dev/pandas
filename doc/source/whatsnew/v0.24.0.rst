@@ -15,37 +15,7 @@ This is a major release from 0.23.4 and includes a number of API changes, new
 features, enhancements, and performance improvements along with a large number
 of bug fixes.
 
-<<<<<<< HEAD
 Highlights include:
-=======
-These are the changes in pandas 0.24.0. See :ref:`release` for a full changelog
-including other versions of pandas.
-
-.. _whatsnew_0240.enhancements:
-
-New features
-~~~~~~~~~~~~
-- :func:`merge` now directly allows merge between objects of type ``DataFrame`` and named ``Series``, without the need to convert the ``Series`` object into a ``DataFrame`` beforehand (:issue:`21220`)
-- ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
-- ``FrozenList`` has gained the ``.union()`` and ``.difference()`` methods. This functionality greatly simplifies groupby's that rely on explicitly excluding certain columns. See :ref:`Splitting an object into groups <groupby.split>` for more information (:issue:`15475`, :issue:`15506`).
-- :func:`DataFrame.to_parquet` now accepts ``index`` as an argument, allowing
-  the user to override the engine's default behavior to include or omit the
-  dataframe's indexes from the resulting Parquet file. (:issue:`20768`)
-- :meth:`DataFrame.corr` and :meth:`Series.corr` now accept a callable for generic calculation methods of correlation, e.g. histogram intersection (:issue:`22684`)
-- :func:`DataFrame.to_string` now accepts ``decimal`` as an argument, allowing the user to specify which decimal separator should be used in the output. (:issue:`23614`)
-- :func:`read_feather` now accepts ``columns`` as an argument, allowing the user to specify which columns should be read. (:issue:`24025`)
-- :func:`DataFrame.to_html` now accepts ``render_links`` as an argument, allowing the user to generate HTML with links to any URLs that appear in the DataFrame.
-  See the :ref:`section on writing HTML <io.html>` in the IO docs for example usage. (:issue:`2679`)
-- :func:`DataFrame.explode` to split list-like values onto individual rows. See :ref:`section on Exploding list-like column <reshaping.html>` in docs for more information (:issue:`16538`)
-
-.. _whatsnew_0240.values_api:
-
-Accessing the values in a Series or Index
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-:attr:`Series.array` and :attr:`Index.array` have been added for extracting the array backing a
-``Series`` or ``Index``. (:issue:`19954`, :issue:`23623`)
->>>>>>> 2138ef063... [ENH] Add DataFrame method to explode a list-like column (GH #16538)
 
 * :ref:`Optional Integer NA Support <whatsnew_0240.enhancements.intna>`
 * :ref:`New APIs for accessing the array backing a Series or Index <whatsnew_0240.values_api>`

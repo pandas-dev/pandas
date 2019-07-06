@@ -182,6 +182,20 @@ The repr now looks like this:
     json_normalize(data, max_level=1)
 
 
+.. _whatsnew_0250.enhancements.explode:
+
+Series.explode to split list-like values to rows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Series` has gained the :meth:`Series.explode` method to tranform list-likes to onto individual rows. See :ref:`section on Exploding list-like column <reshaping.html>` in docs for more information (:issue:`16538`)
+
+
+.. ipython:: python
+
+    s = pd.Series([[1, 2, 3], np.nan, [], [3, 4]])
+    s
+    s.explode()
+
 .. _whatsnew_0250.enhancements.other:
 
 Other enhancements
