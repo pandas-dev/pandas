@@ -3,7 +3,23 @@ Missing data handling for arithmetic operations.
 
 In particular, pandas conventions regarding divison by zero differ
 from numpy in the following ways:
-    - FIXME: fill this in
+    1) np.array([-1, 0, 1], dtype=dtype1) // np.array([0, 0, 0], dtype=dtype2)
+       gives [nan, nan, nan] for most dtype combinations, and [0, 0, 0] for
+       the remaining pairs
+       (the remaining being dtype1==dtype2==intN and dtype==dtype2==uintN).
+
+       pandas convention is to return [-inf, nan, inf] for all dtype
+       combinations.
+
+       Note: the numpy behavior described here is py3-specific.
+
+    2) np.array([-1, 0, 1], dtype=dtype1) % np.array([0, 0, 0], dtype=dtype2)
+       gives precisely the same results as the // operation.
+
+       pandas convention is to return [nan, nan, nan] for all dtype
+       combinations.
+
+    3) divmod behavior consistent with 1) and 2).
 """
 import operator
 
@@ -41,7 +57,7 @@ def fill_zeros(result, x, y, name, fill):
 
         if (y == 0).any():
 
-            # GH 7325, mask and nans must be broadcastable (also: PR 9308)
+            # GH#7325, mask and nans must be broadcastable (also: GH#9308)
             # Raveling and then reshaping makes np.putmask faster
             mask = ((y == 0) & ~np.isnan(result)).ravel()
 
@@ -51,14 +67,14 @@ def fill_zeros(result, x, y, name, fill):
             np.putmask(result, mask, fill)
 
             # if we have a fill of inf, then sign it correctly
-            # (GH 6178 and PR 9308)
+            # (GH#6178 and GH#9308)
             if np.isinf(fill):
                 signs = y if name.startswith(("r", "__r")) else x
                 signs = np.sign(signs.astype("float", copy=False))
                 negative_inf_mask = (signs.ravel() < 0) & mask
                 np.putmask(result, negative_inf_mask, -fill)
 
-            if "floordiv" in name:  # (PR 9308)
+            if "floordiv" in name:  # (GH#9308)
                 nan_mask = ((y == 0) & (x == 0)).ravel()
                 np.putmask(result, nan_mask, np.nan)
 
@@ -136,7 +152,9 @@ def dispatch_missing(op, left, right, result):
     result : ndarray
     """
     opstr = "__{opname}__".format(opname=op.__name__).replace("____", "__")
-    if op in [operator.truediv, operator.floordiv, getattr(operator, "div", None)]:
+    if op is operator.floordiv:
+        # Note: no need to do this for truediv; in py3 numpy behaves the way
+        #  we want.
         result = mask_zero_div_zero(left, right, result)
     elif op is operator.mod:
         result = fill_zeros(result, left, right, opstr, np.nan)
