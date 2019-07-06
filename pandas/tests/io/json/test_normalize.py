@@ -458,25 +458,25 @@ class TestJSONNormalize:
     def test_ignore_keys(self, nested_input_data):
         # GH 27241 ignore specific keys from normalization
         result = json_normalize(nested_input_data, ignore_keys=["Image"])
-        expected = [{'CreatedBy.Name': 'User001',
-                     'Lookup.TextField': 'Some text',
-                     'Lookup.UserField.Id': 'ID001',
-                     'Lookup.UserField.Name': 'Name001',
-                     'Image': {'a': 'b'}
-                     }]
+        expected = [
+            {
+                "CreatedBy.Name": "User001",
+                "Lookup.TextField": "Some text",
+                "Lookup.UserField.Id": "ID001",
+                "Lookup.UserField.Name": "Name001",
+                "Image": {"a": "b"},
+            }
+        ]
         expected_df = DataFrame(data=expected)
         tm.assert_equal(result, expected_df)
 
     def test_ignore_keys_with_meta(self, nested_input_data):
         # GH 27241 ignore specific keys from normalization
         nested_input_data[0]["Tags"] = ["a", "b", "c"]
-        ignored_df = json_normalize(nested_input_data,
-                                    record_path="Tags",
-                                    meta=["Image"],
-                                    ignore_keys=["Image"])
-        meta_df = json_normalize(nested_input_data,
-                                 record_path="Tags",
-                                 meta=["Image"])
+        ignored_df = json_normalize(
+            nested_input_data, record_path="Tags", meta=["Image"], ignore_keys=["Image"]
+        )
+        meta_df = json_normalize(nested_input_data, record_path="Tags", meta=["Image"])
         tm.assert_equal(ignored_df, meta_df)
 
 
@@ -717,10 +717,13 @@ class TestNestedToRecord:
     def test_ignore_keys(self, nested_input_data):
         # GH 27241 ignore specific keys from flattening
         output = nested_to_record(nested_input_data, ignore_keys=["Image"])
-        expected = [{'CreatedBy.Name': 'User001',
-                     'Lookup.TextField': 'Some text',
-                     'Lookup.UserField.Id': 'ID001',
-                     'Lookup.UserField.Name': 'Name001',
-                     'Image': {'a': 'b'}
-                     }]
+        expected = [
+            {
+                "CreatedBy.Name": "User001",
+                "Lookup.TextField": "Some text",
+                "Lookup.UserField.Id": "ID001",
+                "Lookup.UserField.Name": "Name001",
+                "Image": {"a": "b"},
+            }
+        ]
         assert output == expected
