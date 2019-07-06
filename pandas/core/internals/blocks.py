@@ -143,7 +143,7 @@ class Block(PandasObject):
             ndim = values.ndim
 
         if self._validate_ndim and values.ndim != ndim:
-            msg = "Wrong number of dimensions. values.ndim != ndim " "[{} != {}]"
+            msg = "Wrong number of dimensions. values.ndim != ndim [{} != {}]"
             raise ValueError(msg.format(values.ndim, ndim))
 
         return ndim
@@ -259,7 +259,7 @@ class Block(PandasObject):
         if dtype is not None:
             # issue 19431 fastparquet is passing this
             warnings.warn(
-                "dtype argument is deprecated, will be removed " "in a future release.",
+                "dtype argument is deprecated, will be removed in a future release.",
                 FutureWarning,
             )
         if placement is None:
@@ -399,7 +399,7 @@ class Block(PandasObject):
                 raise ValueError("Limit must be greater than 0")
             if self.ndim > 2:
                 raise NotImplementedError(
-                    "number of dimensions for 'fillna' " "is currently limited to 2"
+                    "number of dimensions for 'fillna' is currently limited to 2"
                 )
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
@@ -533,7 +533,7 @@ class Block(PandasObject):
 
         if not (dtypes == "infer" or isinstance(dtypes, dict)):
             raise ValueError(
-                "downcast must have a dictionary or 'infer' as " "its argument"
+                "downcast must have a dictionary or 'infer' as its argument"
             )
 
         # operate column-by-column
@@ -1025,7 +1025,7 @@ class Block(PandasObject):
                     or mask[mask].shape[-1] == len(new)
                     or len(new) == 1
                 ):
-                    raise ValueError("cannot assign mismatch " "length to masked array")
+                    raise ValueError("cannot assign mismatch length to masked array")
 
             np.putmask(new_values, mask, new)
 
@@ -1421,7 +1421,7 @@ class Block(PandasObject):
                 cond = cond.T
 
         if not hasattr(cond, "shape"):
-            raise ValueError("where must have a condition that is ndarray " "like")
+            raise ValueError("where must have a condition that is ndarray like")
 
         # our where function
         def func(cond, values, other):
@@ -2301,7 +2301,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             other = self._box_func(other)
             if getattr(other, "tz") is not None:
                 raise TypeError(
-                    "cannot coerce a Timestamp with a tz on a " "naive Block"
+                    "cannot coerce a Timestamp with a tz on a naive Block"
                 )
             other = other.asm8.view("i8")
         elif hasattr(other, "dtype") and is_datetime64_dtype(other):
@@ -2976,7 +2976,7 @@ class ObjectBlock(Block):
         # only one will survive
         if to_rep_re and regex_re:
             raise AssertionError(
-                "only one of to_replace and regex can be " "regex compilable"
+                "only one of to_replace and regex can be regex compilable"
             )
 
         # if regex was passed as something that can be a regex (rather than a
@@ -3248,7 +3248,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None, fastpath=No
     if fastpath is not None:
         # GH#19265 pyarrow is passing this
         warnings.warn(
-            "fastpath argument is deprecated, will be removed " "in a future release.",
+            "fastpath argument is deprecated, will be removed in a future release.",
             FutureWarning,
         )
     if klass is None:
