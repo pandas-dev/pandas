@@ -672,9 +672,9 @@ class TestNestedToRecord:
             ),
         ],
     )
-    def test_with_max_level(self, max_level, expected, max_level_test_input_data):
+    def test_with_max_level(self, max_level, expected, nested_input_data):
         # GH23843: Enhanced JSON normalize
-        output = nested_to_record(max_level_test_input_data, max_level=max_level)
+        output = nested_to_record(nested_input_data, max_level=max_level)
         assert output == expected
 
     def test_with_large_max_level(self):
