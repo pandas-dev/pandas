@@ -978,8 +978,7 @@ class TestDataFrameAlterAxes:
         ):
             values = lev.take(level_codes)
             name = names[i]
-            tm.assert_index_equal(values, Index(deleveled[name]), check_names=False)
-            assert values.name is None
+            tm.assert_index_equal(values, Index(deleveled[name].rename(name=None)))
 
         stacked.index.names = [None, None]
         deleveled2 = stacked.reset_index()

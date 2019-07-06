@@ -79,9 +79,8 @@ def test_copy_names():
 def test_names(idx, index_names):
 
     # names are assigned in setup
-    names = index_names
+    assert index_names == ["first", "second"]
     level_names = [level.name for level in idx.levels]
-    assert names == ["first", "second"]
     assert level_names == [None, None]
 
     # setting bad names on existing
@@ -107,7 +106,7 @@ def test_names(idx, index_names):
             names=["first", "second", "third"],
         )
 
-    # names are assigned
+    # names are assigned on index, but not transferred to the levels
     index.names = ["a", "b"]
     level_names = [level.name for level in index.levels]
     assert level_names == [None, None]
