@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 
 import pandas as pd
@@ -66,6 +67,14 @@ def test_invert_array():
     listify = df.apply(lambda x: x.array, axis=1)
     result = listify.explode()
     tm.assert_series_equal(result, df["a"].rename())
+
+
+@pytest.mark.parametrize(
+    "s", [pd.Series([1, 2, 3]), pd.Series(pd.date_range("2019", periods=3, tz="UTC"))]
+)
+def non_object_dtype(s):
+    result = s.explode()
+    tm.assert_series_equal(result, s)
 
 
 def test_typical_usecase():

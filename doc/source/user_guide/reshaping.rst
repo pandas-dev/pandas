@@ -828,7 +828,7 @@ You can join this with the original to get an expanded ``DataFrame``.
 
 .. ipython:: python
 
-   df[['keys']]join(df['values'].explode())
+   df[['keys']].join(df['values'].explode())
 
 
 This routine will replace empty lists with ``np.nan`` and preserve scalar entries. The dtype of the resulting ``Series`` is always ``object``.

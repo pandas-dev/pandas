@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetimelike,
     is_dict_like,
+    is_object_dtype,
     is_extension_array_dtype,
     is_extension_type,
     is_hashable,
@@ -3635,7 +3636,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result.index = result.index.reorder_levels(order)
         return result
 
-    def explode(self) -> 'Series':
+    def explode(self) -> "Series":
         """
         Create new Series expanding a list-like column.
 
@@ -3648,7 +3649,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.str.split: Split string values on specified separator.
-        Series.unstakc: Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
+        Series.unstack: Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
 
         Examples
         --------
@@ -3680,7 +3681,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Scalars will be returned unchanged.
         Empty list-likes will result in a np.nan for that row.
         """
-        if not len(self):
+        if not len(self) or not is_object_dtype(self):
             return self.copy()
 
         values, counts = reshape.explode(np.asarray(self.array))

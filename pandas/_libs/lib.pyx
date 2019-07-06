@@ -887,7 +887,7 @@ def is_period(val: object) -> bool:
     return util.is_period_object(val)
 
 
-cpdef is_list_like(obj: object, allow_sets: bool = True):
+def is_list_like(obj: object, allow_sets: bool = True):
     """
     Check if the object is list-like.
 
@@ -926,7 +926,11 @@ cpdef is_list_like(obj: object, allow_sets: bool = True):
     >>> is_list_like(np.array(2)))
     False
     """
+    return c_is_list_like(obj, allow_sets)
 
+
+
+cdef inline bint c_is_list_like(object obj, bint allow_sets):
     return (
         isinstance(obj, abc.Iterable)
         and
@@ -934,7 +938,7 @@ cpdef is_list_like(obj: object, allow_sets: bool = True):
         not isinstance(obj, (str, bytes))
         and
         # exclude zero-dimensional numpy arrays, effectively scalars
-        not (isinstance(obj, np.ndarray) and obj.ndim == 0)
+        not (util.is_array(obj) and obj.ndim == 0)
         and
         # exclude sets if allow_sets is False
         not (allow_sets is False and isinstance(obj, abc.Set))

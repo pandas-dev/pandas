@@ -4,7 +4,7 @@ from cython import Py_ssize_t
 from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t, ndarray)
 import numpy
-from pandas._libs.lib import is_list_like
+from pandas._libs.lib cimport c_is_list_like
 
 
 ctypedef fused reshape_t:
@@ -121,7 +121,7 @@ def explode(ndarray[object] values):
     counts = numpy.zeros(n, dtype='int64')
     for i in range(n):
         v = values[i]
-        if is_list_like(v):
+        if c_is_list_like(v, False):
             if len(v):
                 counts[i] += len(v)
             else:
@@ -135,7 +135,7 @@ def explode(ndarray[object] values):
     for i in range(n):
         v = values[i]
 
-        if is_list_like(v):
+        if c_is_list_like(v, False):
             if len(v):
                 for j in range(len(v)):
                     result[count] = v[j]
