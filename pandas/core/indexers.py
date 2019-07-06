@@ -9,6 +9,7 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 # -----------------------------------------------------------
 # Indexer Identification
 
+
 def is_list_like_indexer(key) -> bool:
     # allow a list_like, but exclude NamedTuples which can be indexers
     return is_list_like(key) and not (isinstance(key, tuple) and type(key) is not tuple)
