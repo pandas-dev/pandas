@@ -3651,6 +3651,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series.str.split: Split string values on specified separator.
         Series.unstack: Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
 
+        Notes
+        -----
+        This routine will explode list-likes including lists, tuples, Series, and np.ndarray.
+        The result dtype of the returned Series will always be object.
+        Scalars will be returned unchanged.
+        Empty list-likes will result in a np.nan for that row.
+
         Examples
         --------
         In [1]: s = pd.Series([[1, 2, 3], 'foo', [], [3, 4]])
@@ -3673,13 +3680,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3      3
         3      4
         dtype: object
-
-        Notes
-        -----
-        This routine will explode list-likes including lists, tuples, Series, and np.ndarray.
-        The result dtype of the returned Series will always be object.
-        Scalars will be returned unchanged.
-        Empty list-likes will result in a np.nan for that row.
         """
         if not len(self) or not is_object_dtype(self):
             return self.copy()
