@@ -2190,6 +2190,20 @@ With max_level=1 the following snippet normalizes until 1st nesting level of the
              }]
     json_normalize(data, max_level=1)
 
+
+The ignore_keys parameter allows you to ignore specific keys while normalizing.
+With ignore_keys=["Image"] the following snippet normalizes all keys except "Image".
+
+.. ipython:: python
+
+    data = [{'CreatedBy': {'Name': 'User001'},
+             'Lookup': {'TextField': 'Some text',
+                        'UserField': {'Id': 'ID001',
+                                      'Name': 'Name001'}},
+             'Image': {'a': 'b'}
+             }]
+    json_normalize(data, ignore_keys=["Image"])
+
 .. _io.jsonl:
 
 Line delimited json

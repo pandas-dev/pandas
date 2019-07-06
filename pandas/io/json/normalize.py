@@ -32,7 +32,7 @@ def nested_to_record(
     sep: str = ".",
     level: int = 0,
     max_level: Optional[int] = None,
-    ignore_keys: Optional[List] = None,
+    ignore_keys: Optional[List[str]] = None,
 ):
     """
     A simplified json_normalize
@@ -50,15 +50,15 @@ def nested_to_record(
 
         .. versionadded:: 0.20.0
 
-    level: int, optional, default: 0
+    level : int, optional, default: 0
         The number of levels in the json string.
 
-    max_level: int, optional, default: None
+    max_level : int, optional, default: None
         The max depth to normalize.
 
         .. versionadded:: 0.25.0
 
-    ignore_keys: list, optional, default: None
+    ignore_keys : list, optional, default: None
         Keys to be skipped while flattening the dict.
 
         .. versionadded:: 0.25.0
@@ -170,8 +170,9 @@ def json_normalize(
 
         .. versionadded:: 0.25.0
 
-    ignore_keys: list, optional, default: None
+    ignore_keys : list, optional, default None
         List of keys to be ignored while flattening.
+        if None, flatten all keys.
 
         .. versionadded:: 0.25.0
 
@@ -193,6 +194,8 @@ def json_normalize(
     1  NaN         NaN      Regner        NaN       Mose       NaN
     2  2.0  Faye Raker         NaN        NaN        NaN       NaN
 
+    Normalizes list of dict into a flattened data frame
+
     >>> data = [{'id': 1,
     ...          'name': "Cole Volk",
     ...          'fitness': {'height': 130, 'weight': 60}},
@@ -206,7 +209,7 @@ def json_normalize(
     1   {'height': 130, 'weight': 60}  NaN    Mose Reg
     2   {'height': 130, 'weight': 60}  2.0  Faye Raker
 
-    Normalizes nested data upto level 1.
+    Normalizes nested data up to level 0.
 
     >>> data = [{'id': 1,
     ...          'name': "Cole Volk",
@@ -220,6 +223,23 @@ def json_normalize(
     0   130              60          1.0    Cole Volk
     1   130              60          NaN    Mose Reg
     2   130              60          2.0    Faye Raker
+
+    Normalizes nested data up to level 1.
+
+    >>> data = [{'id': 1,
+    ...          'name': "Cole Volk",
+    ...          'fitness': {'height': 130, 'weight': 60}},
+    ...         {'name': "Mose Reg",
+    ...          'fitness': {'height': 130, 'weight': 60}},
+    ...         {'id': 2, 'name': 'Faye Raker',
+    ...          'fitness': {'height': 130, 'weight': 60}}]
+    >>> json_normalize(data, ignore_keys=["fitness"])
+                fitness                 id        name
+    0   {'height': 130, 'weight': 60}  1.0   Cole Volk
+    1   {'height': 130, 'weight': 60}  NaN    Mose Reg
+    2   {'height': 130, 'weight': 60}  2.0  Faye Raker
+
+    Ignores specific keys from being flattened
 
     >>> data = [{'state': 'Florida',
     ...          'shortname': 'FL',
