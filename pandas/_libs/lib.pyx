@@ -929,7 +929,6 @@ def is_list_like(obj: object, allow_sets: bool = True):
     return c_is_list_like(obj, allow_sets)
 
 
-
 cdef inline bint c_is_list_like(object obj, bint allow_sets):
     return (
         isinstance(obj, abc.Iterable)

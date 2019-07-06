@@ -818,20 +818,19 @@ Sometimes the value column is list-like.
    df = pd.DataFrame({'keys': keys, 'values': values})
    df
 
-We can 'explode' this transforming each element of a list-like to a row, by using ``~Series.explode``. This will replicate the index values:
+We can 'explode' this transforming each element of a list-like to a row, by using :meth:`~Series.explode`. This will replicate the index values:
 
 .. ipython:: python
 
    df['values'].explode()
 
-You can join this with the original to get an expanded ``DataFrame``.
+You can easily join this with the original to get an expanded ``DataFrame``.
 
 .. ipython:: python
 
    df[['keys']].join(df['values'].explode())
 
-
-This routine will replace empty lists with ``np.nan`` and preserve scalar entries. The dtype of the resulting ``Series`` is always ``object``.
+:meth:`Series.explode` will replace empty lists with ``np.nan`` and preserve scalar entries. The dtype of the resulting ``Series`` is always ``object``.
 
 .. ipython:: python
 
@@ -839,15 +838,15 @@ This routine will replace empty lists with ``np.nan`` and preserve scalar entrie
    s
    s.explode()
 
-Here is a typical usecase. You have comma separated string in a column.
+Here is a typical usecase. You have comma separated strings in a column and want to expand this.
 
 .. ipython:: python
 
-    df = DataFrame([{'var1': 'a,b,c', 'var2': 1},
-                    {'var1': 'd,e,f', 'var2': 2}])
+    df = pd.DataFrame([{'var1': 'a,b,c', 'var2': 1},
+                       {'var1': 'd,e,f', 'var2': 2}])
     df
 
-Creating a long form DataFrame is now straightforward using chained operations
+Creating a long form DataFrame is now straightforward using explode and chained operations
 
 .. ipython:: python
 

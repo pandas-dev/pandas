@@ -200,17 +200,17 @@ Here is a typical usecase. You have comma separated string in a column.
 
 .. ipython:: python
 
-    df = DataFrame([{'var1': 'a,b,c', 'var2': 1},
-                    {'var1': 'd,e,f', 'var2': 2}])
+    df = pd.DataFrame([{'var1': 'a,b,c', 'var2': 1},
+                       {'var1': 'd,e,f', 'var2': 2}])
     df
 
-Creating a long form DataFrame is now straightforward using chained operations
+Creating a long form ``DataFrame`` is now straightforward using chained operations
 
 .. ipython:: python
 
-   exploded = df.var1.str.split(',').explode()
-   exploded
-   df[['var2']].join(exploded)
+    exploded = df.var1.str.split(',').explode()
+    exploded
+    df[['var2']].join(exploded)
 
 .. _whatsnew_0250.enhancements.other:
 
