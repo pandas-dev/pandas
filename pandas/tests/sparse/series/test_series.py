@@ -578,6 +578,7 @@ class TestSparseSeries(SharedWithSparse):
             _check_op(a, b, lambda x, y: operator.floordiv(y, x))
             _check_op(a, b, lambda x, y: operator.mul(y, x))
 
+            # FIXME: don't leave commented-out
             # NaN ** 0 = 1 in C?
             # _check_op(a, b, operator.pow)
             # _check_op(a, b, lambda x, y: operator.pow(y, x))
