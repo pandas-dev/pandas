@@ -1,0 +1,22 @@
+name: pandas-dev
+channels:
+   - defaults
+   - conda-forge
+   - conda-forge/label/pre-3.8
+dependencies:
+  - python=3.8.*
+  - pip
+  - pip:
+    - "--pre"
+    - "--no-binary :all:"
+    - cython
+    - git+https://github.com/numpy/numpy
+    - python-dateutil
+    - pytz
+
+    # universal
+    - pytest
+    - pytest-xdist
+    - pytest-mock
+    #- moto
+    #- hypothesis

@@ -47,10 +47,18 @@ matrix:
       env:
         - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow"
 
+    - dist: trusty
+      env:
+        - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml"
+
     allow_failures:
       - dist: trusty
         env:
           - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow"
+
+      - dist: trusty
+        env:
+          - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml"
 
 before_install:
   - echo "before_install"
@@ -94,5 +102,5 @@ script:
 after_script:
   - echo "after_script start"
   - source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
-  - ci/print_skipped.py 
+  - ci/print_skipped.py
   - echo "after_script done"
