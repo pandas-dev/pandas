@@ -49,8 +49,8 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas as pd
 from pandas._typing import ArrayLike
 import pandas.core.common as com
-import pandas.core.missing as missing
 
+from . import missing
 from .roperator import (  # noqa:F401
     radd,
     rand_,
