@@ -246,8 +246,8 @@ class Explode(object):
 
     def setup(self, n_rows, max_list_length):
 
-        l = [[np.arange(np.random.randint(max_list_length)) for _ in range(n_rows)]]
-        self.series = pd.Series(l)
+        data = [[np.arange(np.random.randint(max_list_length)) for _ in range(n_rows)]]
+        self.series = pd.Series(data)
 
     def time_explode(self, n_rows, max_list_length):
         try:
