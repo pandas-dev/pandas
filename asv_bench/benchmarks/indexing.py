@@ -15,6 +15,7 @@ from pandas import (
     concat,
     date_range,
     option_context,
+    period_range,
 )
 
 
@@ -93,22 +94,30 @@ class NumericSeriesIndexing:
 class NonNumericSeriesIndexing:
 
     params = [
-        ("string", "datetime"),
-        ("unique_monotonic_inc", "nonunique_monotonic_inc"),
+        ("string", "datetime", "period"),
+        ("unique_monotonic_inc", "nonunique_monotonic_inc", "non_monotonic"),
     ]
     param_names = ["index_dtype", "index_structure"]
 
     def setup(self, index, index_structure):
         N = 10 ** 6
-        indexes = {
-            "string": tm.makeStringIndex(N),
-            "datetime": date_range("1900", periods=N, freq="s"),
-        }
-        index = indexes[index]
+        if index == "string":
+            index = tm.makeStringIndex(N)
+        elif index == "datetime":
+            index = date_range("1900", periods=N, freq="s")
+        elif index == "period":
+            index = period_range("1900", periods=N, freq="s")
+        index = index.sort_values()
+        assert index.is_unique and index.is_monotonic_increasing
         if index_structure == "nonunique_monotonic_inc":
             index = index.insert(item=index[2], loc=2)[:-1]
+        elif index_structure == "non_monotonic":
+            index = index[::2].append(index[1::2])
+            assert len(index) == N
         self.s = Series(np.random.rand(N), index=index)
         self.lbl = index[80000]
+        # warm up index mapping
+        self.s[self.lbl]
 
     def time_getitem_label_slice(self, index, index_structure):
         self.s[: self.lbl]

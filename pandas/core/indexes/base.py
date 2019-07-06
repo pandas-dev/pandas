@@ -4792,7 +4792,6 @@ class Index(IndexOpsMixin, PandasObject):
             return pself.get_indexer_non_unique(ptarget)
 
         if self.is_all_dates:
-            self = Index(self.asi8)
             tgt_values = target.asi8
         else:
             tgt_values = target._ndarray_values
