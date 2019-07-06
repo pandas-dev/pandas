@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import iNaT, index as libindex, lib, tslibs, reshape
+from pandas._libs import iNaT, index as libindex, lib, reshape, tslibs
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
@@ -27,13 +27,13 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetimelike,
     is_dict_like,
-    is_object_dtype,
     is_extension_array_dtype,
     is_extension_type,
     is_hashable,
     is_integer,
     is_iterator,
     is_list_like,
+    is_object_dtype,
     is_scalar,
     is_string_like,
     is_timedelta64_dtype,
