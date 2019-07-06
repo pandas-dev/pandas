@@ -513,8 +513,8 @@ class Window(_Window):
         Provide a window type. If ``None``, all points are evenly weighted.
         See the notes below for further information.
     on : str, optional
-        For a DataFrame, column on which to calculate
-        the rolling window, rather than the index.
+        For a DataFrame, a datetime-like column on which to calculate
+        the rolling window, rather than the DataFrame's index.
     axis : int or str, default 0
     closed : str, default None
         Make the interval closed on the 'right', 'left', 'both' or
