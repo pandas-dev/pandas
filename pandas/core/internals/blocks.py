@@ -1381,16 +1381,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def where(
-        self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast=False,
-        axis=0,
-        transpose=False,
-    ):
+    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
         """
         evaluate the block; return result block(s) from the result
 
@@ -1402,10 +1393,7 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
-
         axis : int
-        transpose : boolean
-            Set to True if self is stored with axes reversed
 
         Returns
         -------
@@ -1414,6 +1402,7 @@ class Block(PandasObject):
         import pandas.core.computation.expressions as expressions
 
         assert errors in ["raise", "ignore"]
+        transpose = self.ndim == 2
 
         values = self.values
         orig_other = other
@@ -1473,7 +1462,6 @@ class Block(PandasObject):
                     errors=errors,
                     try_cast=try_cast,
                     axis=axis,
-                    transpose=transpose,
                 )
                 return self._maybe_downcast(blocks, "infer")
 
@@ -1917,7 +1905,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         if isinstance(slicer, tuple) and len(slicer) == 2:
             if not com.is_null_slice(slicer[0]):
-                raise AssertionError("invalid slicing for a 1-ndim " "categorical")
+                raise AssertionError("invalid slicing for a 1-ndim categorical")
             slicer = slicer[1]
 
         return self.values[slicer]
@@ -2004,16 +1992,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             )
         ]
 
-    def where(
-        self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast=False,
-        axis=0,
-        transpose=False,
-    ):
+    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
         if isinstance(other, ABCDataFrame):
             # ExtensionArrays are 1-D, so if we get here then
             # `other` should be a DataFrame with a single column.
@@ -3181,16 +3160,7 @@ class CategoricalBlock(ExtensionBlock):
             values, placement=placement or slice(0, len(values), 1), ndim=self.ndim
         )
 
-    def where(
-        self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast=False,
-        axis=0,
-        transpose=False,
-    ):
+    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
         # TODO(CategoricalBlock.where):
         # This can all be deleted in favor of ExtensionBlock.where once
         # we enforce the deprecation.
@@ -3205,19 +3175,11 @@ class CategoricalBlock(ExtensionBlock):
         )
         try:
             # Attempt to do preserve categorical dtype.
-            result = super().where(
-                other, cond, align, errors, try_cast, axis, transpose
-            )
+            result = super().where(other, cond, align, errors, try_cast, axis)
         except (TypeError, ValueError):
             warnings.warn(object_msg, FutureWarning, stacklevel=6)
             result = self.astype(object).where(
-                other,
-                cond,
-                align=align,
-                errors=errors,
-                try_cast=try_cast,
-                axis=axis,
-                transpose=transpose,
+                other, cond, align=align, errors=errors, try_cast=try_cast, axis=axis
             )
         return result
 
