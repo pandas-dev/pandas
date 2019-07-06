@@ -24,7 +24,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
-from pandas.core.index import Index, MultiIndex, InvalidIndexError
+from pandas.core.index import Index, InvalidIndexError, MultiIndex
 
 
 # the supported indexers
