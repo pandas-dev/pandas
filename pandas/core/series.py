@@ -3652,12 +3652,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        In [1]: s = pd.Series([[1, 2, 3], np.nan, [], [3, 4]])
+        In [1]: s = pd.Series([[1, 2, 3], 'foo', [], [3, 4]])
 
         In [2]: s
         Out[2]:
         0    [1, 2, 3]
-        1          NaN
+        1          foo
         2           []
         3       [3, 4]
         dtype: object
@@ -3667,7 +3667,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0      1
         0      2
         0      3
-        1    NaN
+        1    foo
         2    NaN
         3      3
         3      4
