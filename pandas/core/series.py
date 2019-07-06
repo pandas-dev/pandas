@@ -3635,7 +3635,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result.index = result.index.reorder_levels(order)
         return result
 
-    def explode(self):
+    def explode(self) -> 'Series':
         """
         Create new Series expanding a list-like column.
 
@@ -3672,6 +3672,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3      3
         3      4
         dtype: object
+
+        Notes
+        -----
+        This routine will explode list-likes including lists, tuples, Series, and np.ndarray.
+        The result dtype of the returned Series will always be object.
+        Scalars will be returned unchanged.
+        Empty list-likes will result in a np.nan for that row.
         """
         if not len(self):
             return self.copy()

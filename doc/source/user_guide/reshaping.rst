@@ -809,7 +809,7 @@ Exploding a List-like Column
 
 .. versionadded:: 0.25.0
 
-Sometimes the value column is list-like:
+Sometimes the value column is list-like.
 
 .. ipython:: python
 
@@ -818,15 +818,23 @@ Sometimes the value column is list-like:
    df = pd.DataFrame({'keys': keys, 'values': values})
    df
 
-But we actually want to put each value onto its own row.
-For this purpose we can use ``~Series.explode``. This will replicate the index values:
+We can 'explode' this transforming each element of a list-like to a row, by using ``~Series.explode``. This will replicate the index values:
 
 .. ipython:: python
 
    df['values'].explode()
 
-You can merge this back into the original to expand the dataframe.
+You can join this with the original to get an expanded ``DataFrame``.
 
 .. ipython:: python
 
-   pd.merge(df, df['values'].explode(), left_index=True, right_index=True)
+   df[['keys']]join(df['values'].explode())
+
+
+This routine will preserve replace empty lists with ``np.nan`` and preserve scalar entries. The dtype of the resulting ``Series`` is always ``object``.
+
+.. ipython:: python
+
+   s = pd.Series([[1, 2, 3], np.nan, [], ['a', 'b']])
+   s
+   s.explode()

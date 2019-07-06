@@ -187,7 +187,7 @@ The repr now looks like this:
 Series.explode to split list-like values to rows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:class:`Series` has gained the :meth:`Series.explode` method to tranform list-likes to onto individual rows. See :ref:`section on Exploding list-like column <reshaping.html>` in docs for more information (:issue:`16538`)
+:class:`Series` has gained the :meth:`Series.explode` method to transform list-likes to individual rows. See :ref:`section on Exploding list-like column <reshaping.html>` in docs for more information (:issue:`16538`)
 
 
 .. ipython:: python
