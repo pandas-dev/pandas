@@ -1063,8 +1063,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
     # TODO(jreback) commented out to only have a single xfail printed
     @pytest.mark.xfail(
-        reason="different tz, " "currently mask_missing raises SystemError",
-        strict=False,
+        reason="different tz, currently mask_missing raises SystemError", strict=False
     )
     # @pytest.mark.parametrize('how', ['dict', 'series'])
     # @pytest.mark.parametrize('to_key', [

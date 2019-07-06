@@ -69,6 +69,7 @@ import pandas.core.common as com
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name, make_invalid_op
+from pandas.core.ops.missing import dispatch_missing
 import pandas.core.sorting as sorting
 from pandas.core.strings import StringMethods
 
@@ -154,7 +155,7 @@ def _make_arithmetic_op(op, cls):
         with np.errstate(all="ignore"):
             result = op(values, other)
 
-        result = missing.dispatch_missing(op, values, other, result)
+        result = dispatch_missing(op, values, other, result)
 
         attrs = self._get_attributes_dict()
         attrs = self._maybe_update_attributes(attrs)
