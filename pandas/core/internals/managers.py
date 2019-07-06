@@ -976,8 +976,6 @@ class BlockManager(PandasObject):
         if values.ndim != 1:
             return values
 
-        # Note: returning values here causes 6 test failures
-
         # shortcut for select a single-dim from a 2-dim BM
         return SingleBlockManager(
             [
