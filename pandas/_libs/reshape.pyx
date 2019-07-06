@@ -3,9 +3,10 @@ from cython import Py_ssize_t
 
 from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t, ndarray)
-import numpy
+cimport numpy as cnp
+import numpy as np
 from pandas._libs.lib cimport c_is_list_like
-
+cnp.import_array()
 
 ctypedef fused reshape_t:
     uint8_t
@@ -118,7 +119,7 @@ def explode(ndarray[object] values):
 
     # find the resulting len
     n = len(values)
-    counts = numpy.zeros(n, dtype='int64')
+    counts = np.zeros(n, dtype='int64')
     for i in range(n):
         v = values[i]
         if c_is_list_like(v, False):
@@ -130,7 +131,7 @@ def explode(ndarray[object] values):
         else:
             counts[i] += 1
 
-    result = numpy.empty(counts.sum(), dtype='object')
+    result = np.empty(counts.sum(), dtype='object')
     count = 0
     for i in range(n):
         v = values[i]
@@ -142,7 +143,7 @@ def explode(ndarray[object] values):
                     count += 1
             else:
                 # empty list-like, use a nan marker
-                result[count] = numpy.nan
+                result[count] = np.nan
                 count += 1
         else:
             # replace with the existing scalar
