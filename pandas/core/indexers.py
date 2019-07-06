@@ -6,7 +6,6 @@ import numpy as np
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
-
 # -----------------------------------------------------------
 # Indexer Identification
 
