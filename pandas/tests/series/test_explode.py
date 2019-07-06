@@ -52,3 +52,9 @@ def test_multi_index():
         [0, 1, 2, np.nan, np.nan, 3, 4], index=index, dtype=object, name="foo"
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_large():
+    s = pd.Series([range(256)]).explode()
+    result = s.explode()
+    tm.assert_series_equal(result, s)

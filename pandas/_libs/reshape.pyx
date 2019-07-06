@@ -114,11 +114,11 @@ def explode(ndarray[object] values):
         Py_ssize_t i, j, count, n
         object v
         ndarray[object] result
-        ndarray[uint8_t] counts
+        ndarray[int64_t] counts
 
     # find the resulting len
     n = len(values)
-    counts = numpy.zeros(n, dtype='uint8')
+    counts = numpy.zeros(n, dtype='int64')
     for i in range(n):
         v = values[i]
         if is_list_like(v):
