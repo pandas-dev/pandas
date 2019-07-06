@@ -274,7 +274,7 @@ class MultiIndex(Index):
         result._set_levels(levels, copy=copy, validate=False)
         result._set_codes(codes, copy=copy, validate=False)
 
-        result._names = [None for _ in levels]
+        result._names = [None] * len(levels)
         if names is not None:
             # handles name validation
             result._set_names(names)
