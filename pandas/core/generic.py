@@ -9175,7 +9175,6 @@ class NDFrame(PandasObject, SelectionMixin):
                 errors=errors,
                 try_cast=try_cast,
                 axis=block_axis,
-                transpose=self._AXIS_REVERSED,
             )
 
             return self._constructor(new_data).__finalize__(self)
