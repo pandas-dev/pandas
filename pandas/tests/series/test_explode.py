@@ -66,3 +66,15 @@ def test_invert_array():
     listify = df.apply(lambda x: x.array, axis=1)
     result = listify.explode()
     tm.assert_series_equal(result, df["a"].rename())
+
+
+def test_typical_usecase():
+
+    df = pd.DataFrame([{"var1": "a,b,c", "var2": 1}, {"var1": "d,e,f", "var2": 2}])
+    exploded = df.var1.str.split(",").explode()
+    exploded
+    result = df[["var2"]].join(exploded)
+    expected = pd.DataFrame(
+        {"var2": [1, 1, 1, 2, 2, 2], "var1": list("abcdef")}, index=[0, 0, 0, 1, 1, 1]
+    )
+    tm.assert_frame_equal(result, expected, check_like=True)

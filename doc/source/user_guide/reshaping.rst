@@ -838,3 +838,19 @@ This routine will replace empty lists with ``np.nan`` and preserve scalar entrie
    s = pd.Series([[1, 2, 3], 'foo', [], ['a', 'b']])
    s
    s.explode()
+
+Here is a typical usecase. You have comma separated string in a column.
+
+.. ipython:: python
+
+    df = DataFrame([{'var1': 'a,b,c', 'var2': 1},
+                    {'var1': 'd,e,f', 'var2': 2}])
+    df
+
+Creating a long form DataFrame is now straightforward using chained operations
+
+.. ipython:: python
+
+   exploded = df.var1.str.split(',').explode()
+   exploded
+   df[['var2']].join(exploded)
