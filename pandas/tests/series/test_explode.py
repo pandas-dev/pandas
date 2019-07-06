@@ -17,7 +17,9 @@ def test_basic():
 
 
 def test_mixed_type():
-    s = pd.Series([[0, 1, 2], np.nan, None, [], ("a", "b")], name="foo")
+    s = pd.Series(
+        [[0, 1, 2], np.nan, None, np.array([]), pd.Series(["a", "b"])], name="foo"
+    )
     result = s.explode()
     expected = pd.Series(
         [0, 1, 2, np.nan, None, np.nan, "a", "b"],

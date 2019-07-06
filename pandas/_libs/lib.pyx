@@ -886,6 +886,22 @@ def is_period(val: object) -> bool:
     return util.is_period_object(val)
 
 
+cpdef inline bint is_list_like(object obj):
+    """
+    Parameters
+    ----------
+    obj : object
+
+    Returns
+    -------
+    bool : if this is a list-like object
+    """
+    return (hasattr(obj, '__iter__') and
+            not isinstance(obj, (str, bytes))
+            # exclude zero-dimensional numpy arrays, effectively scalars
+            and not (isinstance(obj, ndarray) and obj.ndim == 0))
+
+
 _TYPE_MAP = {
     'categorical': 'categorical',
     'category': 'categorical',
