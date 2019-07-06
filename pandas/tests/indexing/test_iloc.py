@@ -462,6 +462,17 @@ class TestiLoc(Base):
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_change_dtype_dups(self):
+        # GH 22035 and GH 24798
+
+        df = DataFrame([['0', 1, '2']], columns=['A', 'B', 'B'])
+        df.iloc[:, 0] = df.iloc[:, 0].astype(int)
+        assert df.dtypes.tolist() == ['int', 'int', 'O']
+
+        df = DataFrame([['0', '1', '2']], columns=['A', 'B', 'B'])
+        df.iloc[:, 0] = df.iloc[:, 0].astype(int)
+        assert df.dtypes.tolist() == ['int', 'O', 'O']
+
     def test_iloc_getitem_frame(self):
         df = DataFrame(
             np.random.randn(10, 4), index=range(0, 20, 2), columns=range(0, 8, 2)

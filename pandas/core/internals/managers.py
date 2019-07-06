@@ -1075,6 +1075,12 @@ class BlockManager(PandasObject):
         blknos = self._blknos[loc]
         blklocs = self._blklocs[loc].copy()
 
+        if not self.axes[0].is_unique:
+            if not isinstance(blknos, np.ndarray):
+                blknos = [blknos]
+            if not isinstance(blklocs, np.ndarray):
+                blklocs = [blklocs]
+
         unfit_mgr_locs = []
         unfit_val_locs = []
         removed_blknos = []
