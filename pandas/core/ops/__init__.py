@@ -49,8 +49,8 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas as pd
 from pandas._typing import ArrayLike
 import pandas.core.common as com
-import pandas.core.missing as missing
 
+from . import missing
 from .roperator import (  # noqa:F401
     radd,
     rand_,
@@ -249,7 +249,7 @@ def _gen_fill_zeros(name):
     """
     name = name.strip("__")
     if "div" in name:
-        # truediv, floordiv, div, and reversed variants
+        # truediv, floordiv, and reversed variants
         fill_value = np.inf
     elif "mod" in name:
         # mod, rmod
@@ -1401,12 +1401,6 @@ def _get_method_wrappers(cls):
         arith_special = _arith_method_SERIES
         comp_special = _comp_method_SERIES
         bool_special = _bool_method_SERIES
-    elif issubclass(cls, ABCSparseArray):
-        arith_flex = None
-        comp_flex = None
-        arith_special = _arith_method_SPARSE_ARRAY
-        comp_special = _arith_method_SPARSE_ARRAY
-        bool_special = _arith_method_SPARSE_ARRAY
     elif issubclass(cls, ABCDataFrame):
         # Same for DataFrame and SparseDataFrame
         arith_flex = _arith_method_FRAME
@@ -1668,14 +1662,7 @@ def _arith_method_SERIES(cls, op, special):
         except TypeError:
             result = masked_arith_op(x, y, op)
 
-        if isinstance(result, tuple):
-            # e.g. divmod
-            result = tuple(
-                missing.fill_zeros(r, x, y, op_name, fill_zeros) for r in result
-            )
-        else:
-            result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-        return result
+        return missing.dispatch_fill_zeros(op, x, y, result, fill_zeros)
 
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
@@ -2157,8 +2144,7 @@ def _arith_method_FRAME(cls, op, special):
         except TypeError:
             result = masked_arith_op(x, y, op)
 
-        result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-        return result
+        return missing.dispatch_fill_zeros(op, x, y, result, fill_zeros)
 
     if op_name in _op_descriptions:
         # i.e. include "add" but not "__add__"
@@ -2342,47 +2328,6 @@ def _sparse_series_op(left, right, op, name):
     lvalues, rvalues = _cast_sparse_series_op(left.values, right.values, name)
     result = _sparse_array_op(lvalues, rvalues, op, name)
     return left._constructor(result, index=new_index, name=new_name)
-
-
-def _arith_method_SPARSE_ARRAY(cls, op, special):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-    op_name = _get_op_name(op, special)
-
-    def wrapper(self, other):
-        from pandas.core.arrays.sparse.array import (
-            SparseArray,
-            _sparse_array_op,
-            _wrap_result,
-            _get_fill,
-        )
-
-        if isinstance(other, np.ndarray):
-            if len(self) != len(other):
-                raise AssertionError(
-                    "length mismatch: {self} vs. {other}".format(
-                        self=len(self), other=len(other)
-                    )
-                )
-            if not isinstance(other, SparseArray):
-                dtype = getattr(other, "dtype", None)
-                other = SparseArray(other, fill_value=self.fill_value, dtype=dtype)
-            return _sparse_array_op(self, other, op, op_name)
-        elif is_scalar(other):
-            with np.errstate(all="ignore"):
-                fill = op(_get_fill(self), np.asarray(other))
-                result = op(self.sp_values, other)
-
-            return _wrap_result(op_name, result, self.sp_index, fill)
-        else:  # pragma: no cover
-            raise TypeError(
-                "operation with {other} not supported".format(other=type(other))
-            )
-
-    wrapper.__name__ = op_name
-    return wrapper
 
 
 def maybe_dispatch_ufunc_to_dunder_op(

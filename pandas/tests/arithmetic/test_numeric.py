@@ -265,25 +265,11 @@ class TestDivisionByZero:
 
     # ------------------------------------------------------------------
 
-    @pytest.mark.parametrize(
-        "dtype2",
-        [
-            np.int64,
-            np.int32,
-            np.int16,
-            np.int8,
-            np.float64,
-            np.float32,
-            np.float16,
-            np.uint64,
-            np.uint32,
-            np.uint16,
-            np.uint8,
-        ],
-    )
     @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
-    def test_ser_div_ser(self, dtype1, dtype2):
+    def test_ser_div_ser(self, dtype1, any_real_dtype):
         # no longer do integer div for any ops, but deal with the 0's
+        dtype2 = any_real_dtype
+
         first = Series([3, 4, 5, 8], name="first").astype(dtype1)
         second = Series([0, 0, 0, 3], name="second").astype(dtype2)
 
@@ -298,6 +284,39 @@ class TestDivisionByZero:
         result = first / second
         tm.assert_series_equal(result, expected)
         assert not result.equals(second / first)
+
+    @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
+    def test_ser_divmod_zero(self, dtype1, any_real_dtype):
+        # GH#26987
+        dtype2 = any_real_dtype
+        left = pd.Series([1, 1]).astype(dtype1)
+        right = pd.Series([0, 2]).astype(dtype2)
+
+        expected = left // right, left % right
+        result = divmod(left, right)
+
+        tm.assert_series_equal(result[0], expected[0])
+        tm.assert_series_equal(result[1], expected[1])
+
+        # rdivmod case
+        result = divmod(left.values, right)
+        tm.assert_series_equal(result[0], expected[0])
+        tm.assert_series_equal(result[1], expected[1])
+
+    def test_ser_divmod_inf(self):
+        left = pd.Series([np.inf, 1.0])
+        right = pd.Series([np.inf, 2.0])
+
+        expected = left // right, left % right
+        result = divmod(left, right)
+
+        tm.assert_series_equal(result[0], expected[0])
+        tm.assert_series_equal(result[1], expected[1])
+
+        # rdivmod case
+        result = divmod(left.values, right)
+        tm.assert_series_equal(result[0], expected[0])
+        tm.assert_series_equal(result[1], expected[1])
 
     def test_rdiv_zero_compat(self):
         # GH#8674
@@ -662,7 +681,9 @@ class TestMultiplicationDivision:
             result2 = p["second"] % p["first"]
             assert not result.equals(result2)
 
-            # GH#9144
+    def test_modulo_zero_int(self):
+        # GH#9144
+        with np.errstate(all="ignore"):
             s = Series([0, 1])
 
             result = s % 0

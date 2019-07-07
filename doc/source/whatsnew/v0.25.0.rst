@@ -938,6 +938,8 @@ Performance improvements
 - Improved performance when building :class:`MultiIndex` with at least one :class:`CategoricalIndex` level (:issue:`22044`)
 - Improved performance by removing the need for a garbage collect when checking for ``SettingWithCopyWarning`` (:issue:`27031`)
 - For :meth:`to_datetime` changed default value of cache parameter to ``True`` (:issue:`26043`)
+- Improved performance of :class:`DatetimeIndex` and :class:`PeriodIndex` slicing given non-unique, monotonic data (:issue:`27136`).
+
 
 .. _whatsnew_0250.bug_fixes:
 
@@ -1007,7 +1009,7 @@ Numeric
 - Raises a helpful exception when a non-numeric index is sent to :meth:`interpolate` with methods which require numeric index. (:issue:`21662`)
 - Bug in :meth:`~pandas.eval` when comparing floats with scalar operators, for example: ``x < -0.1`` (:issue:`25928`)
 - Fixed bug where casting all-boolean array to integer extension array failed (:issue:`25211`)
--
+- Bug in ``divmod`` with a :class:`Series` object containing zeros incorrectly raising ``AttributeError`` (:issue:`26987`)
 -
 
 Conversion
@@ -1094,6 +1096,7 @@ I/O
 - Bug while selecting from :class:`HDFStore` with ``where=''`` specified (:issue:`26610`).
 - Fixed bug in :func:`DataFrame.to_excel()` where custom objects (i.e. `PeriodIndex`) inside merged cells were not being converted into types safe for the Excel writer (:issue:`27006`)
 - Bug in :meth:`read_hdf` where reading a timezone aware :class:`DatetimeIndex` would raise a ``TypeError`` (:issue:`11926`)
+- Bug in :meth:`to_msgpack` and :meth:`read_msgpack` which would raise a ``ValueError`` rather than a ``FileNotFoundError`` for an invalid path (:issue:`27160`)
 
 Plotting
 ^^^^^^^^
