@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
+import warnings
 
 try:
     from pandas.api.types import union_categoricals
@@ -122,11 +123,16 @@ class Rank:
         ncats = 100
 
         self.s_str = pd.Series(tm.makeCategoricalIndex(N, ncats)).astype(str)
-        self.s_str_cat = self.s_str.astype("category")
-        self.s_str_cat_ordered = self.s_str_cat.cat.as_ordered()
+        self.s_str_cat = pd.Series(self.s_str, dtype="category")
+        with warnings.catch_warnings(record=True):
+            str_cat_type = pd.CategoricalDtype(set(self.s_str), ordered=True)
+            self.s_str_cat_ordered = self.s_str.astype(str_cat_type)
+
         self.s_int = pd.Series(np.random.randint(0, ncats, size=N))
-        self.s_int_cat = self.s_int.astype("category")
-        self.s_int_cat_ordered = self.s_int_cat.cat.as_ordered()
+        self.s_int_cat = pd.Series(self.s_int, dtype="category")
+        with warnings.catch_warnings(record=True):
+            int_cat_type = pd.CategoricalDtype(set(self.s_int), ordered=True)
+            self.s_int_cat_ordered = self.s_int.astype(int_cat_type)
 
     def time_rank_string(self):
         self.s_str.rank()
