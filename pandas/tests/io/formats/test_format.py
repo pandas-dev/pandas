@@ -1769,6 +1769,16 @@ c  10  11  12  13  14\
 
         tm.reset_display_options()
 
+    def test_series(series):
+        df = DataFrame({"abc": range(1000)})
+
+        a = df._repr_html_()
+        b = df.abc._repr_html_()
+
+        assert a != b
+        assert 0.5 * len(b) < len(a) < 2 * len(b)
+        assert "abc" in b
+
     def test_repr_html_mathjax(self):
         df = DataFrame([[1, 2], [3, 4]])
         assert "tex2jax_ignore" not in df._repr_html_()

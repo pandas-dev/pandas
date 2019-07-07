@@ -1611,8 +1611,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return result
 
-    def to_html(self):
-        text = self.to_frame().to_html()
+    def _repr_html_(self):
+        text = self.to_frame()._repr_html_()
 
         lines = text.split("\n")
         head_start = [
@@ -1637,9 +1637,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         lines[body_end:body_end] = tail.split("\n")
 
         return "\n".join(lines)
-
-    def _repr_html_(self):
-        return self.to_html()
 
     def to_string(
         self,
