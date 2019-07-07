@@ -14,6 +14,12 @@ def kind(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def mix(request):
+    # whether to operate op(sparse, dense) instead of op(sparse, sparse)
+    return request.param
+
+
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSparseArrayArithmetics:
@@ -24,41 +30,37 @@ class TestSparseArrayArithmetics:
     def _assert(self, a, b):
         tm.assert_numpy_array_equal(a, b)
 
-    def _check_numeric_ops(self, a, b, a_dense, b_dense):
+    def _check_numeric_ops(self, a, b, a_dense, b_dense, mix):
         with np.errstate(invalid="ignore", divide="ignore"):
             # Unfortunately, trying to wrap the computation of each expected
             # value is with np.errstate() is too tedious.
 
-            for mix in [True, False]:
-                # True --> sparse & dense
-                # False --> sparse & sparse
+            # sparse & sparse
+            for op in [operator.add, ops.radd,
+                       operator.sub, ops.rsub,
+                       operator.mul, ops.rmul,
+                       operator.truediv, ops.rtruediv,
+                       operator.floordiv, ops.rfloordiv,
+                       operator.mod, ops.rmod,
+                       operator.pow, ops.rpow]:
 
-                # sparse & sparse
-                for op in [operator.add, ops.radd,
-                           operator.sub, ops.rsub,
-                           operator.mul, ops.rmul,
-                           operator.truediv, ops.rtruediv,
-                           operator.floordiv, ops.rfloordiv,
-                           operator.mod, ops.rmod,
-                           operator.pow, ops.rpow]:
+                if op in [operator.floordiv, ops.rfloordiv]:
+                    # FIXME: GH#13843
+                    if (self._base == pd.Series and a.dtype.subtype == np.dtype("int64")):
+                        continue
 
-                    if op in [operator.floordiv, ops.rfloordiv]:
-                        # FIXME: GH#13843
-                        if (self._base == pd.Series and a.dtype.subtype == np.dtype("int64")):
-                            continue
+                if mix:
+                    result = op(a, b_dense).to_dense()
+                else:
+                    result = op(a, b).to_dense()
 
-                    if mix:
-                        result = op(a, b_dense).to_dense()
-                    else:
-                        result = op(a, b).to_dense()
+                if op in [operator.truediv, ops.rtruediv]:
+                    # pandas uses future division
+                    expected = op(a_dense * 1.0, b_dense)
+                else:
+                    expected = op(a_dense, b_dense)
 
-                    if op in [operator.truediv, ops.rtruediv]:
-                        # pandas uses future division
-                        expected = op(a_dense * 1.0, b_dense)
-                    else:
-                        expected = op(a_dense, b_dense)
-
-                    self._assert(result, expected)
+                self._assert(result, expected)
 
     def _check_bool_result(self, res):
         assert isinstance(res, self._klass)
@@ -123,23 +125,23 @@ class TestSparseArrayArithmetics:
         self._check_bool_result(a | b_dense)
         self._assert((a | b_dense).to_dense(), a_dense | b_dense)
 
-    def test_float_scalar(self, kind):
+    def test_float_scalar(self, kind, mix):
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
 
         a = self._klass(values, kind=kind)
-        self._check_numeric_ops(a, 1, values, 1)
-        self._check_numeric_ops(a, 0, values, 0)
-        self._check_numeric_ops(a, 3, values, 3)
+        self._check_numeric_ops(a, 1, values, 1, mix)
+        self._check_numeric_ops(a, 0, values, 0, mix)
+        self._check_numeric_ops(a, 3, values, 3, mix)
 
         a = self._klass(values, kind=kind, fill_value=0)
-        self._check_numeric_ops(a, 1, values, 1)
-        self._check_numeric_ops(a, 0, values, 0)
-        self._check_numeric_ops(a, 3, values, 3)
+        self._check_numeric_ops(a, 1, values, 1, mix)
+        self._check_numeric_ops(a, 0, values, 0, mix)
+        self._check_numeric_ops(a, 3, values, 3, mix)
 
         a = self._klass(values, kind=kind, fill_value=2)
-        self._check_numeric_ops(a, 1, values, 1)
-        self._check_numeric_ops(a, 0, values, 0)
-        self._check_numeric_ops(a, 3, values, 3)
+        self._check_numeric_ops(a, 1, values, 1, mix)
+        self._check_numeric_ops(a, 0, values, 0, mix)
+        self._check_numeric_ops(a, 3, values, 3, mix)
 
     def test_float_scalar_comparison(self, kind):
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
@@ -159,21 +161,21 @@ class TestSparseArrayArithmetics:
         self._check_comparison_ops(a, 0, values, 0)
         self._check_comparison_ops(a, 3, values, 3)
 
-    def test_float_same_index(self, kind):
+    def test_float_same_index(self, kind, mix):
         # when sp_index are the same
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
         rvalues = self._base([np.nan, 2, 3, 4, np.nan, 0, 1, 3, 2, np.nan])
 
         a = self._klass(values, kind=kind)
         b = self._klass(rvalues, kind=kind)
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
         values = self._base([0.0, 1.0, 2.0, 6.0, 0.0, 0.0, 1.0, 2.0, 1.0, 0.0])
         rvalues = self._base([0.0, 2.0, 3.0, 4.0, 0.0, 0.0, 1.0, 3.0, 2.0, 0.0])
 
         a = self._klass(values, kind=kind, fill_value=0)
         b = self._klass(rvalues, kind=kind, fill_value=0)
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
     def test_float_same_index_comparison(self, kind):
         # when sp_index are the same
@@ -191,47 +193,47 @@ class TestSparseArrayArithmetics:
         b = self._klass(rvalues, kind=kind, fill_value=0)
         self._check_comparison_ops(a, b, values, rvalues)
 
-    def test_float_array(self, kind):
+    def test_float_array(self, kind, mix):
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
         rvalues = self._base([2, np.nan, 2, 3, np.nan, 0, 1, 5, 2, np.nan])
 
         a = self._klass(values, kind=kind)
         b = self._klass(rvalues, kind=kind)
-        self._check_numeric_ops(a, b, values, rvalues)
-        self._check_numeric_ops(a, b * 0, values, rvalues * 0)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
+        self._check_numeric_ops(a, b * 0, values, rvalues * 0, mix)
 
         a = self._klass(values, kind=kind, fill_value=0)
         b = self._klass(rvalues, kind=kind)
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
         a = self._klass(values, kind=kind, fill_value=0)
         b = self._klass(rvalues, kind=kind, fill_value=0)
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
         a = self._klass(values, kind=kind, fill_value=1)
         b = self._klass(rvalues, kind=kind, fill_value=2)
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
-    def test_float_array_different_kind(self):
+    def test_float_array_different_kind(self, mix):
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
         rvalues = self._base([2, np.nan, 2, 3, np.nan, 0, 1, 5, 2, np.nan])
 
         a = self._klass(values, kind="integer")
         b = self._klass(rvalues, kind="block")
-        self._check_numeric_ops(a, b, values, rvalues)
-        self._check_numeric_ops(a, b * 0, values, rvalues * 0)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
+        self._check_numeric_ops(a, b * 0, values, rvalues * 0, mix)
 
         a = self._klass(values, kind="integer", fill_value=0)
         b = self._klass(rvalues, kind="block")
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
         a = self._klass(values, kind="integer", fill_value=0)
         b = self._klass(rvalues, kind="block", fill_value=0)
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
         a = self._klass(values, kind="integer", fill_value=1)
         b = self._klass(rvalues, kind="block", fill_value=2)
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
     def test_float_array_comparison(self, kind):
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
@@ -254,7 +256,7 @@ class TestSparseArrayArithmetics:
         b = self._klass(rvalues, kind=kind, fill_value=2)
         self._check_comparison_ops(a, b, values, rvalues)
 
-    def test_int_array(self, kind):
+    def test_int_array(self, kind, mix):
         # have to specify dtype explicitly until fixing GH 667
         dtype = np.int64
 
@@ -266,27 +268,27 @@ class TestSparseArrayArithmetics:
         b = self._klass(rvalues, dtype=dtype, kind=kind)
         assert b.dtype == SparseDtype(dtype)
 
-        self._check_numeric_ops(a, b, values, rvalues)
-        self._check_numeric_ops(a, b * 0, values, rvalues * 0)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
+        self._check_numeric_ops(a, b * 0, values, rvalues * 0, mix)
 
         a = self._klass(values, fill_value=0, dtype=dtype, kind=kind)
         assert a.dtype == SparseDtype(dtype)
         b = self._klass(rvalues, dtype=dtype, kind=kind)
         assert b.dtype == SparseDtype(dtype)
 
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
         a = self._klass(values, fill_value=0, dtype=dtype, kind=kind)
         assert a.dtype == SparseDtype(dtype)
         b = self._klass(rvalues, fill_value=0, dtype=dtype, kind=kind)
         assert b.dtype == SparseDtype(dtype)
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
         a = self._klass(values, fill_value=1, dtype=dtype, kind=kind)
         assert a.dtype == SparseDtype(dtype, fill_value=1)
         b = self._klass(rvalues, fill_value=2, dtype=dtype, kind=kind)
         assert b.dtype == SparseDtype(dtype, fill_value=2)
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
     def test_int_array_comparison(self, kind):
         dtype = "int64"
@@ -334,7 +336,7 @@ class TestSparseArrayArithmetics:
         b = self._klass(rvalues, kind=kind, dtype=np.bool, fill_value=fill_value)
         self._check_logical_ops(a, b, values, rvalues)
 
-    def test_mixed_array_float_int(self, kind):
+    def test_mixed_array_float_int(self, kind, mix):
         rdtype = "int64"
 
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
@@ -344,23 +346,23 @@ class TestSparseArrayArithmetics:
         b = self._klass(rvalues, kind=kind)
         assert b.dtype == SparseDtype(rdtype)
 
-        self._check_numeric_ops(a, b, values, rvalues)
-        self._check_numeric_ops(a, b * 0, values, rvalues * 0)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
+        self._check_numeric_ops(a, b * 0, values, rvalues * 0, mix)
 
         a = self._klass(values, kind=kind, fill_value=0)
         b = self._klass(rvalues, kind=kind)
         assert b.dtype == SparseDtype(rdtype)
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
         a = self._klass(values, kind=kind, fill_value=0)
         b = self._klass(rvalues, kind=kind, fill_value=0)
         assert b.dtype == SparseDtype(rdtype)
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
         a = self._klass(values, kind=kind, fill_value=1)
         b = self._klass(rvalues, kind=kind, fill_value=2)
         assert b.dtype == SparseDtype(rdtype, fill_value=2)
-        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues, mix)
 
     def test_mixed_array_comparison(self, kind):
         rdtype = "int64"
@@ -400,7 +402,7 @@ class TestSparseSeriesArithmetic(TestSparseArrayArithmetics):
     def _assert(self, a, b):
         tm.assert_series_equal(a, b)
 
-    def test_alignment(self):
+    def test_alignment(self, mix):
         da = pd.Series(np.arange(4))
         db = pd.Series(np.arange(4), index=[1, 2, 3, 4])
 
@@ -408,13 +410,13 @@ class TestSparseSeriesArithmetic(TestSparseArrayArithmetics):
         sb = pd.SparseSeries(
             np.arange(4), index=[1, 2, 3, 4], dtype=np.int64, fill_value=0
         )
-        self._check_numeric_ops(sa, sb, da, db)
+        self._check_numeric_ops(sa, sb, da, db, mix)
 
         sa = pd.SparseSeries(np.arange(4), dtype=np.int64, fill_value=np.nan)
         sb = pd.SparseSeries(
             np.arange(4), index=[1, 2, 3, 4], dtype=np.int64, fill_value=np.nan
         )
-        self._check_numeric_ops(sa, sb, da, db)
+        self._check_numeric_ops(sa, sb, da, db, mix)
 
         da = pd.Series(np.arange(4))
         db = pd.Series(np.arange(4), index=[10, 11, 12, 13])
@@ -423,13 +425,13 @@ class TestSparseSeriesArithmetic(TestSparseArrayArithmetics):
         sb = pd.SparseSeries(
             np.arange(4), index=[10, 11, 12, 13], dtype=np.int64, fill_value=0
         )
-        self._check_numeric_ops(sa, sb, da, db)
+        self._check_numeric_ops(sa, sb, da, db, mix)
 
         sa = pd.SparseSeries(np.arange(4), dtype=np.int64, fill_value=np.nan)
         sb = pd.SparseSeries(
             np.arange(4), index=[10, 11, 12, 13], dtype=np.int64, fill_value=np.nan
         )
-        self._check_numeric_ops(sa, sb, da, db)
+        self._check_numeric_ops(sa, sb, da, db, mix)
 
 
 @pytest.mark.parametrize("op", [operator.eq, operator.add])
