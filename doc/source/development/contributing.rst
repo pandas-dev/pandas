@@ -490,6 +490,9 @@ being rendered properly) and it also validates the doctests. It is possible to
 run the checks independently by using the parameters ``lint``, ``patterns`` and
 ``doctests`` (e.g. ``./ci/code_checks.sh lint``).
 
+We recommend using :ref:`contributing.pre_commit`. These will run a few fast
+checks each time you make a commit.
+
 In addition, because a lot of people use our library, it is important that we
 do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
@@ -649,6 +652,19 @@ to automatically format imports correctly. This will modify your local copy of t
 The `--recursive` flag can be passed to sort all files in a directory.
 
 You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
+
+.. _contributing.pre_commit:
+
+Pre-Commit Hooks
+~~~~~~~~~~~~~~~~
+
+Install the `pre commit <https://github.com/pre-commit/pre-commit>`_ tool. Then, from the
+root of the ``pandas`` repository, run ``pre-commit install`` to install a few plugins
+like black, isort, and flake8. These tools will automatically be run on each commit. If the
+tool reformats automatically (black, isort) then you can preview the changes before before
+staging and committing with ``git diff``.
+
+You can skip the checks with ``git commit --no-verify``.
 
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
