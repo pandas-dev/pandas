@@ -8,6 +8,11 @@ from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
+@pytest.fixture(params=["integer", "block"])
+def kind(request):
+    return request.param
+
+
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSparseArrayArithmetics:
@@ -136,99 +141,94 @@ class TestSparseArrayArithmetics:
         self._check_bool_result(a | b_dense)
         self._assert((a | b_dense).to_dense(), a_dense | b_dense)
 
-    def test_float_scalar(self):
+    def test_float_scalar(self, kind):
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
 
-        for kind in ["integer", "block"]:
-            a = self._klass(values, kind=kind)
-            self._check_numeric_ops(a, 1, values, 1)
-            self._check_numeric_ops(a, 0, values, 0)
-            self._check_numeric_ops(a, 3, values, 3)
+        a = self._klass(values, kind=kind)
+        self._check_numeric_ops(a, 1, values, 1)
+        self._check_numeric_ops(a, 0, values, 0)
+        self._check_numeric_ops(a, 3, values, 3)
 
-            a = self._klass(values, kind=kind, fill_value=0)
-            self._check_numeric_ops(a, 1, values, 1)
-            self._check_numeric_ops(a, 0, values, 0)
-            self._check_numeric_ops(a, 3, values, 3)
+        a = self._klass(values, kind=kind, fill_value=0)
+        self._check_numeric_ops(a, 1, values, 1)
+        self._check_numeric_ops(a, 0, values, 0)
+        self._check_numeric_ops(a, 3, values, 3)
 
-            a = self._klass(values, kind=kind, fill_value=2)
-            self._check_numeric_ops(a, 1, values, 1)
-            self._check_numeric_ops(a, 0, values, 0)
-            self._check_numeric_ops(a, 3, values, 3)
+        a = self._klass(values, kind=kind, fill_value=2)
+        self._check_numeric_ops(a, 1, values, 1)
+        self._check_numeric_ops(a, 0, values, 0)
+        self._check_numeric_ops(a, 3, values, 3)
 
-    def test_float_scalar_comparison(self):
+    def test_float_scalar_comparison(self, kind):
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
 
-        for kind in ["integer", "block"]:
-            a = self._klass(values, kind=kind)
-            self._check_comparison_ops(a, 1, values, 1)
-            self._check_comparison_ops(a, 0, values, 0)
-            self._check_comparison_ops(a, 3, values, 3)
+        a = self._klass(values, kind=kind)
+        self._check_comparison_ops(a, 1, values, 1)
+        self._check_comparison_ops(a, 0, values, 0)
+        self._check_comparison_ops(a, 3, values, 3)
 
-            a = self._klass(values, kind=kind, fill_value=0)
-            self._check_comparison_ops(a, 1, values, 1)
-            self._check_comparison_ops(a, 0, values, 0)
-            self._check_comparison_ops(a, 3, values, 3)
+        a = self._klass(values, kind=kind, fill_value=0)
+        self._check_comparison_ops(a, 1, values, 1)
+        self._check_comparison_ops(a, 0, values, 0)
+        self._check_comparison_ops(a, 3, values, 3)
 
-            a = self._klass(values, kind=kind, fill_value=2)
-            self._check_comparison_ops(a, 1, values, 1)
-            self._check_comparison_ops(a, 0, values, 0)
-            self._check_comparison_ops(a, 3, values, 3)
+        a = self._klass(values, kind=kind, fill_value=2)
+        self._check_comparison_ops(a, 1, values, 1)
+        self._check_comparison_ops(a, 0, values, 0)
+        self._check_comparison_ops(a, 3, values, 3)
 
-    def test_float_same_index(self):
+    def test_float_same_index(self, kind):
         # when sp_index are the same
-        for kind in ["integer", "block"]:
-            values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
-            rvalues = self._base([np.nan, 2, 3, 4, np.nan, 0, 1, 3, 2, np.nan])
+        values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+        rvalues = self._base([np.nan, 2, 3, 4, np.nan, 0, 1, 3, 2, np.nan])
 
-            a = self._klass(values, kind=kind)
-            b = self._klass(rvalues, kind=kind)
-            self._check_numeric_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind)
+        b = self._klass(rvalues, kind=kind)
+        self._check_numeric_ops(a, b, values, rvalues)
 
-            values = self._base([0.0, 1.0, 2.0, 6.0, 0.0, 0.0, 1.0, 2.0, 1.0, 0.0])
-            rvalues = self._base([0.0, 2.0, 3.0, 4.0, 0.0, 0.0, 1.0, 3.0, 2.0, 0.0])
+        values = self._base([0.0, 1.0, 2.0, 6.0, 0.0, 0.0, 1.0, 2.0, 1.0, 0.0])
+        rvalues = self._base([0.0, 2.0, 3.0, 4.0, 0.0, 0.0, 1.0, 3.0, 2.0, 0.0])
 
-            a = self._klass(values, kind=kind, fill_value=0)
-            b = self._klass(rvalues, kind=kind, fill_value=0)
-            self._check_numeric_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, fill_value=0)
+        b = self._klass(rvalues, kind=kind, fill_value=0)
+        self._check_numeric_ops(a, b, values, rvalues)
 
-    def test_float_same_index_comparison(self):
+    def test_float_same_index_comparison(self, kind):
         # when sp_index are the same
-        for kind in ["integer", "block"]:
-            values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
-            rvalues = self._base([np.nan, 2, 3, 4, np.nan, 0, 1, 3, 2, np.nan])
+        values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+        rvalues = self._base([np.nan, 2, 3, 4, np.nan, 0, 1, 3, 2, np.nan])
 
-            a = self._klass(values, kind=kind)
-            b = self._klass(rvalues, kind=kind)
-            self._check_comparison_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind)
+        b = self._klass(rvalues, kind=kind)
+        self._check_comparison_ops(a, b, values, rvalues)
 
-            values = self._base([0.0, 1.0, 2.0, 6.0, 0.0, 0.0, 1.0, 2.0, 1.0, 0.0])
-            rvalues = self._base([0.0, 2.0, 3.0, 4.0, 0.0, 0.0, 1.0, 3.0, 2.0, 0.0])
+        values = self._base([0.0, 1.0, 2.0, 6.0, 0.0, 0.0, 1.0, 2.0, 1.0, 0.0])
+        rvalues = self._base([0.0, 2.0, 3.0, 4.0, 0.0, 0.0, 1.0, 3.0, 2.0, 0.0])
 
-            a = self._klass(values, kind=kind, fill_value=0)
-            b = self._klass(rvalues, kind=kind, fill_value=0)
-            self._check_comparison_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, fill_value=0)
+        b = self._klass(rvalues, kind=kind, fill_value=0)
+        self._check_comparison_ops(a, b, values, rvalues)
 
-    def test_float_array(self):
+    def test_float_array(self, kind):
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
         rvalues = self._base([2, np.nan, 2, 3, np.nan, 0, 1, 5, 2, np.nan])
 
-        for kind in ["integer", "block"]:
-            a = self._klass(values, kind=kind)
-            b = self._klass(rvalues, kind=kind)
-            self._check_numeric_ops(a, b, values, rvalues)
-            self._check_numeric_ops(a, b * 0, values, rvalues * 0)
+        a = self._klass(values, kind=kind)
+        b = self._klass(rvalues, kind=kind)
+        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b * 0, values, rvalues * 0)
 
-            a = self._klass(values, kind=kind, fill_value=0)
-            b = self._klass(rvalues, kind=kind)
-            self._check_numeric_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, fill_value=0)
+        b = self._klass(rvalues, kind=kind)
+        self._check_numeric_ops(a, b, values, rvalues)
 
-            a = self._klass(values, kind=kind, fill_value=0)
-            b = self._klass(rvalues, kind=kind, fill_value=0)
-            self._check_numeric_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, fill_value=0)
+        b = self._klass(rvalues, kind=kind, fill_value=0)
+        self._check_numeric_ops(a, b, values, rvalues)
 
-            a = self._klass(values, kind=kind, fill_value=1)
-            b = self._klass(rvalues, kind=kind, fill_value=2)
-            self._check_numeric_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, fill_value=1)
+        b = self._klass(rvalues, kind=kind, fill_value=2)
+        self._check_numeric_ops(a, b, values, rvalues)
 
     def test_float_array_different_kind(self):
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
@@ -251,174 +251,163 @@ class TestSparseArrayArithmetics:
         b = self._klass(rvalues, kind="block", fill_value=2)
         self._check_numeric_ops(a, b, values, rvalues)
 
-    def test_float_array_comparison(self):
+    def test_float_array_comparison(self, kind):
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
         rvalues = self._base([2, np.nan, 2, 3, np.nan, 0, 1, 5, 2, np.nan])
 
-        for kind in ["integer", "block"]:
-            a = self._klass(values, kind=kind)
-            b = self._klass(rvalues, kind=kind)
-            self._check_comparison_ops(a, b, values, rvalues)
-            self._check_comparison_ops(a, b * 0, values, rvalues * 0)
+        a = self._klass(values, kind=kind)
+        b = self._klass(rvalues, kind=kind)
+        self._check_comparison_ops(a, b, values, rvalues)
+        self._check_comparison_ops(a, b * 0, values, rvalues * 0)
 
-            a = self._klass(values, kind=kind, fill_value=0)
-            b = self._klass(rvalues, kind=kind)
-            self._check_comparison_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, fill_value=0)
+        b = self._klass(rvalues, kind=kind)
+        self._check_comparison_ops(a, b, values, rvalues)
 
-            a = self._klass(values, kind=kind, fill_value=0)
-            b = self._klass(rvalues, kind=kind, fill_value=0)
-            self._check_comparison_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, fill_value=0)
+        b = self._klass(rvalues, kind=kind, fill_value=0)
+        self._check_comparison_ops(a, b, values, rvalues)
 
-            a = self._klass(values, kind=kind, fill_value=1)
-            b = self._klass(rvalues, kind=kind, fill_value=2)
-            self._check_comparison_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, fill_value=1)
+        b = self._klass(rvalues, kind=kind, fill_value=2)
+        self._check_comparison_ops(a, b, values, rvalues)
 
-    def test_int_array(self):
+    def test_int_array(self, kind):
         # have to specify dtype explicitly until fixing GH 667
         dtype = np.int64
 
         values = self._base([0, 1, 2, 0, 0, 0, 1, 2, 1, 0], dtype=dtype)
         rvalues = self._base([2, 0, 2, 3, 0, 0, 1, 5, 2, 0], dtype=dtype)
 
-        for kind in ["integer", "block"]:
-            a = self._klass(values, dtype=dtype, kind=kind)
-            assert a.dtype == SparseDtype(dtype)
-            b = self._klass(rvalues, dtype=dtype, kind=kind)
-            assert b.dtype == SparseDtype(dtype)
+        a = self._klass(values, dtype=dtype, kind=kind)
+        assert a.dtype == SparseDtype(dtype)
+        b = self._klass(rvalues, dtype=dtype, kind=kind)
+        assert b.dtype == SparseDtype(dtype)
 
-            self._check_numeric_ops(a, b, values, rvalues)
-            self._check_numeric_ops(a, b * 0, values, rvalues * 0)
+        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b * 0, values, rvalues * 0)
 
-            a = self._klass(values, fill_value=0, dtype=dtype, kind=kind)
-            assert a.dtype == SparseDtype(dtype)
-            b = self._klass(rvalues, dtype=dtype, kind=kind)
-            assert b.dtype == SparseDtype(dtype)
+        a = self._klass(values, fill_value=0, dtype=dtype, kind=kind)
+        assert a.dtype == SparseDtype(dtype)
+        b = self._klass(rvalues, dtype=dtype, kind=kind)
+        assert b.dtype == SparseDtype(dtype)
 
-            self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b, values, rvalues)
 
-            a = self._klass(values, fill_value=0, dtype=dtype, kind=kind)
-            assert a.dtype == SparseDtype(dtype)
-            b = self._klass(rvalues, fill_value=0, dtype=dtype, kind=kind)
-            assert b.dtype == SparseDtype(dtype)
-            self._check_numeric_ops(a, b, values, rvalues)
+        a = self._klass(values, fill_value=0, dtype=dtype, kind=kind)
+        assert a.dtype == SparseDtype(dtype)
+        b = self._klass(rvalues, fill_value=0, dtype=dtype, kind=kind)
+        assert b.dtype == SparseDtype(dtype)
+        self._check_numeric_ops(a, b, values, rvalues)
 
-            a = self._klass(values, fill_value=1, dtype=dtype, kind=kind)
-            assert a.dtype == SparseDtype(dtype, fill_value=1)
-            b = self._klass(rvalues, fill_value=2, dtype=dtype, kind=kind)
-            assert b.dtype == SparseDtype(dtype, fill_value=2)
-            self._check_numeric_ops(a, b, values, rvalues)
+        a = self._klass(values, fill_value=1, dtype=dtype, kind=kind)
+        assert a.dtype == SparseDtype(dtype, fill_value=1)
+        b = self._klass(rvalues, fill_value=2, dtype=dtype, kind=kind)
+        assert b.dtype == SparseDtype(dtype, fill_value=2)
+        self._check_numeric_ops(a, b, values, rvalues)
 
-    def test_int_array_comparison(self):
-
+    def test_int_array_comparison(self, kind):
+        dtype = "int64"
         # int32 NI ATM
-        for dtype in ["int64"]:
-            values = self._base([0, 1, 2, 0, 0, 0, 1, 2, 1, 0], dtype=dtype)
-            rvalues = self._base([2, 0, 2, 3, 0, 0, 1, 5, 2, 0], dtype=dtype)
 
-            for kind in ["integer", "block"]:
-                a = self._klass(values, dtype=dtype, kind=kind)
-                b = self._klass(rvalues, dtype=dtype, kind=kind)
-                self._check_comparison_ops(a, b, values, rvalues)
-                self._check_comparison_ops(a, b * 0, values, rvalues * 0)
+        values = self._base([0, 1, 2, 0, 0, 0, 1, 2, 1, 0], dtype=dtype)
+        rvalues = self._base([2, 0, 2, 3, 0, 0, 1, 5, 2, 0], dtype=dtype)
 
-                a = self._klass(values, dtype=dtype, kind=kind, fill_value=0)
-                b = self._klass(rvalues, dtype=dtype, kind=kind)
-                self._check_comparison_ops(a, b, values, rvalues)
+        a = self._klass(values, dtype=dtype, kind=kind)
+        b = self._klass(rvalues, dtype=dtype, kind=kind)
+        self._check_comparison_ops(a, b, values, rvalues)
+        self._check_comparison_ops(a, b * 0, values, rvalues * 0)
 
-                a = self._klass(values, dtype=dtype, kind=kind, fill_value=0)
-                b = self._klass(rvalues, dtype=dtype, kind=kind, fill_value=0)
-                self._check_comparison_ops(a, b, values, rvalues)
+        a = self._klass(values, dtype=dtype, kind=kind, fill_value=0)
+        b = self._klass(rvalues, dtype=dtype, kind=kind)
+        self._check_comparison_ops(a, b, values, rvalues)
 
-                a = self._klass(values, dtype=dtype, kind=kind, fill_value=1)
-                b = self._klass(rvalues, dtype=dtype, kind=kind, fill_value=2)
-                self._check_comparison_ops(a, b, values, rvalues)
+        a = self._klass(values, dtype=dtype, kind=kind, fill_value=0)
+        b = self._klass(rvalues, dtype=dtype, kind=kind, fill_value=0)
+        self._check_comparison_ops(a, b, values, rvalues)
 
-    def test_bool_same_index(self):
+        a = self._klass(values, dtype=dtype, kind=kind, fill_value=1)
+        b = self._klass(rvalues, dtype=dtype, kind=kind, fill_value=2)
+        self._check_comparison_ops(a, b, values, rvalues)
+
+    @pytest.mark.parametrize("fill_value", [True, False, np.nan])
+    def test_bool_same_index(self, kind, fill_value):
         # GH 14000
         # when sp_index are the same
-        for kind in ["integer", "block"]:
-            values = self._base([True, False, True, True], dtype=np.bool)
-            rvalues = self._base([True, False, True, True], dtype=np.bool)
+        values = self._base([True, False, True, True], dtype=np.bool)
+        rvalues = self._base([True, False, True, True], dtype=np.bool)
 
-            for fill_value in [True, False, np.nan]:
-                a = self._klass(values, kind=kind, dtype=np.bool, fill_value=fill_value)
-                b = self._klass(
-                    rvalues, kind=kind, dtype=np.bool, fill_value=fill_value
-                )
-                self._check_logical_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, dtype=np.bool, fill_value=fill_value)
+        b = self._klass(rvalues, kind=kind, dtype=np.bool, fill_value=fill_value)
+        self._check_logical_ops(a, b, values, rvalues)
 
-    def test_bool_array_logical(self):
+    @pytest.mark.parametrize("fill_value", [True, False, np.nan])
+    def test_bool_array_logical(self, kind, fill_value):
         # GH 14000
         # when sp_index are the same
-        for kind in ["integer", "block"]:
-            values = self._base([True, False, True, False, True, True], dtype=np.bool)
-            rvalues = self._base([True, False, False, True, False, True], dtype=np.bool)
+        values = self._base([True, False, True, False, True, True], dtype=np.bool)
+        rvalues = self._base([True, False, False, True, False, True], dtype=np.bool)
 
-            for fill_value in [True, False, np.nan]:
-                a = self._klass(values, kind=kind, dtype=np.bool, fill_value=fill_value)
-                b = self._klass(
-                    rvalues, kind=kind, dtype=np.bool, fill_value=fill_value
-                )
-                self._check_logical_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, dtype=np.bool, fill_value=fill_value)
+        b = self._klass(rvalues, kind=kind, dtype=np.bool, fill_value=fill_value)
+        self._check_logical_ops(a, b, values, rvalues)
 
-    def test_mixed_array_float_int(self):
+    def test_mixed_array_float_int(self, kind):
+        rdtype = "int64"
 
-        for rdtype in ["int64"]:
-            values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
-            rvalues = self._base([2, 0, 2, 3, 0, 0, 1, 5, 2, 0], dtype=rdtype)
+        values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+        rvalues = self._base([2, 0, 2, 3, 0, 0, 1, 5, 2, 0], dtype=rdtype)
 
-            for kind in ["integer", "block"]:
-                a = self._klass(values, kind=kind)
-                b = self._klass(rvalues, kind=kind)
-                assert b.dtype == SparseDtype(rdtype)
+        a = self._klass(values, kind=kind)
+        b = self._klass(rvalues, kind=kind)
+        assert b.dtype == SparseDtype(rdtype)
 
-                self._check_numeric_ops(a, b, values, rvalues)
-                self._check_numeric_ops(a, b * 0, values, rvalues * 0)
+        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b * 0, values, rvalues * 0)
 
-                a = self._klass(values, kind=kind, fill_value=0)
-                b = self._klass(rvalues, kind=kind)
-                assert b.dtype == SparseDtype(rdtype)
-                self._check_numeric_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, fill_value=0)
+        b = self._klass(rvalues, kind=kind)
+        assert b.dtype == SparseDtype(rdtype)
+        self._check_numeric_ops(a, b, values, rvalues)
 
-                a = self._klass(values, kind=kind, fill_value=0)
-                b = self._klass(rvalues, kind=kind, fill_value=0)
-                assert b.dtype == SparseDtype(rdtype)
-                self._check_numeric_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, fill_value=0)
+        b = self._klass(rvalues, kind=kind, fill_value=0)
+        assert b.dtype == SparseDtype(rdtype)
+        self._check_numeric_ops(a, b, values, rvalues)
 
-                a = self._klass(values, kind=kind, fill_value=1)
-                b = self._klass(rvalues, kind=kind, fill_value=2)
-                assert b.dtype == SparseDtype(rdtype, fill_value=2)
-                self._check_numeric_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, fill_value=1)
+        b = self._klass(rvalues, kind=kind, fill_value=2)
+        assert b.dtype == SparseDtype(rdtype, fill_value=2)
+        self._check_numeric_ops(a, b, values, rvalues)
 
-    def test_mixed_array_comparison(self):
-
+    def test_mixed_array_comparison(self, kind):
+        rdtype = "int64"
         # int32 NI ATM
-        for rdtype in ["int64"]:
-            values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
-            rvalues = self._base([2, 0, 2, 3, 0, 0, 1, 5, 2, 0], dtype=rdtype)
 
-            for kind in ["integer", "block"]:
-                a = self._klass(values, kind=kind)
-                b = self._klass(rvalues, kind=kind)
-                assert b.dtype == SparseDtype(rdtype)
+        values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+        rvalues = self._base([2, 0, 2, 3, 0, 0, 1, 5, 2, 0], dtype=rdtype)
 
-                self._check_comparison_ops(a, b, values, rvalues)
-                self._check_comparison_ops(a, b * 0, values, rvalues * 0)
+        a = self._klass(values, kind=kind)
+        b = self._klass(rvalues, kind=kind)
+        assert b.dtype == SparseDtype(rdtype)
 
-                a = self._klass(values, kind=kind, fill_value=0)
-                b = self._klass(rvalues, kind=kind)
-                assert b.dtype == SparseDtype(rdtype)
-                self._check_comparison_ops(a, b, values, rvalues)
+        self._check_comparison_ops(a, b, values, rvalues)
+        self._check_comparison_ops(a, b * 0, values, rvalues * 0)
 
-                a = self._klass(values, kind=kind, fill_value=0)
-                b = self._klass(rvalues, kind=kind, fill_value=0)
-                assert b.dtype == SparseDtype(rdtype)
-                self._check_comparison_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, fill_value=0)
+        b = self._klass(rvalues, kind=kind)
+        assert b.dtype == SparseDtype(rdtype)
+        self._check_comparison_ops(a, b, values, rvalues)
 
-                a = self._klass(values, kind=kind, fill_value=1)
-                b = self._klass(rvalues, kind=kind, fill_value=2)
-                assert b.dtype == SparseDtype(rdtype, fill_value=2)
-                self._check_comparison_ops(a, b, values, rvalues)
+        a = self._klass(values, kind=kind, fill_value=0)
+        b = self._klass(rvalues, kind=kind, fill_value=0)
+        assert b.dtype == SparseDtype(rdtype)
+        self._check_comparison_ops(a, b, values, rvalues)
+
+        a = self._klass(values, kind=kind, fill_value=1)
+        b = self._klass(rvalues, kind=kind, fill_value=2)
+        assert b.dtype == SparseDtype(rdtype, fill_value=2)
+        self._check_comparison_ops(a, b, values, rvalues)
 
 
 class TestSparseSeriesArithmetic(TestSparseArrayArithmetics):
