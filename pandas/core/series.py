@@ -3644,12 +3644,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        exploded: Series
+        Series
+            exploded lists to rows; index will be duplicated for these rows
 
         See Also
         --------
-        Series.str.split: Split string values on specified separator.
-        Series.unstack: Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
+        Series.str.split : Split string values on specified separator.
+        Series.unstack : Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format
 
         Notes
         -----

@@ -6339,6 +6339,7 @@ class DataFrame(NDFrame):
     %(other)s
     pivot_table
     DataFrame.pivot
+    Series.explode
 
     Examples
     --------
