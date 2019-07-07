@@ -318,19 +318,19 @@ class TestTimedelta64ArithmeticUnsorted:
         _check(result, expected)
 
         # tz mismatches
-        msg = "Timestamp subtraction must have the same timezones or no" " timezones"
+        msg = "Timestamp subtraction must have the same timezones or no timezones"
         with pytest.raises(TypeError, match=msg):
             dt_tz - ts
         msg = "can't subtract offset-naive and offset-aware datetimes"
         with pytest.raises(TypeError, match=msg):
             dt_tz - dt
-        msg = "Timestamp subtraction must have the same timezones or no" " timezones"
+        msg = "Timestamp subtraction must have the same timezones or no timezones"
         with pytest.raises(TypeError, match=msg):
             dt_tz - ts_tz2
         msg = "can't subtract offset-naive and offset-aware datetimes"
         with pytest.raises(TypeError, match=msg):
             dt - dt_tz
-        msg = "Timestamp subtraction must have the same timezones or no" " timezones"
+        msg = "Timestamp subtraction must have the same timezones or no timezones"
         with pytest.raises(TypeError, match=msg):
             ts - dt_tz
         with pytest.raises(TypeError, match=msg):
@@ -1771,7 +1771,7 @@ class TestTimedeltaArraylikeMulDivOps:
         result = idx // 1
         tm.assert_equal(result, idx)
 
-        pattern = "floor_divide cannot use operands|" "Cannot divide int by Timedelta*"
+        pattern = "floor_divide cannot use operands|Cannot divide int by Timedelta*"
         with pytest.raises(TypeError, match=pattern):
             1 // idx
 

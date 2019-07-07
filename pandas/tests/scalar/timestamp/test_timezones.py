@@ -63,11 +63,11 @@ class TestTimestampTZOperations:
             ts.tz_localize("US/Eastern", ambiguous="infer")
 
         # GH#8025
-        msg = "Cannot localize tz-aware Timestamp, " "use tz_convert for conversions"
+        msg = "Cannot localize tz-aware Timestamp, use tz_convert for conversions"
         with pytest.raises(TypeError, match=msg):
             Timestamp("2011-01-01", tz="US/Eastern").tz_localize("Asia/Tokyo")
 
-        msg = "Cannot convert tz-naive Timestamp, " "use tz_localize to localize"
+        msg = "Cannot convert tz-naive Timestamp, use tz_localize to localize"
         with pytest.raises(TypeError, match=msg):
             Timestamp("2011-01-01").tz_convert("Asia/Tokyo")
 

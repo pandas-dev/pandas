@@ -270,7 +270,7 @@ class TestPeriodIndexConversion:
         tm.assert_index_equal(result3, exp)
         assert result3.freqstr == "3M"
 
-        msg = "Frequency must be positive, because it" " represents span: -2A"
+        msg = "Frequency must be positive, because it represents span: -2A"
         with pytest.raises(ValueError, match=msg):
             result.to_period(freq="-2A")
 
