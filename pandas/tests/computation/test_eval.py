@@ -411,7 +411,7 @@ class TestEvalNumexprPandas:
                 )
 
     def check_compound_invert_op(self, lhs, cmp1, rhs):
-        skip_these = "in", "not in"
+        skip_these = ["in", "not in"]
         ex = "~(lhs {0} rhs)".format(cmp1)
 
         msg = (
