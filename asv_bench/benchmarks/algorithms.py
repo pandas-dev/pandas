@@ -4,6 +4,7 @@ import numpy as np
 
 import pandas as pd
 from pandas.util import testing as tm
+from pandas._libs import lib
 
 for imp in ["pandas.util", "pandas.tools.hashing"]:
     try:
@@ -11,6 +12,19 @@ for imp in ["pandas.util", "pandas.tools.hashing"]:
         break
     except (ImportError, TypeError, ValueError):
         pass
+
+
+class MaybeConvertObjects:
+    def setup(self):
+        N = 10 ** 5
+
+        data = list(range(N))
+        data[0] = pd.NaT
+        data = np.array(data)
+        self.data = data
+
+    def time_maybe_convert_objects(self):
+        lib.maybe_convert_objects(self.data)
 
 
 class Factorize:
