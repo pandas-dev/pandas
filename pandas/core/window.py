@@ -511,6 +511,7 @@ class Window(_Window):
         Set the labels at the center of the window.
     win_type : str, default None
         Provide a window type. If ``None``, all points are evenly weighted.
+        Other types are only applicable for `mean` and `sum` functions.
         See the notes below for further information.
     on : str, optional
         For a DataFrame, column on which to calculate
