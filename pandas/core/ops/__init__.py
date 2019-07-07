@@ -1713,8 +1713,6 @@ def _arith_method_SERIES(cls, op, special):
             orig_right = right
             if is_scalar(right):
                 # broadcast and wrap in a TimedeltaIndex
-                # TODO: possible perf improvement by using NaTD scalar
-                #  here (GH#24983)
                 assert np.isnat(right)
                 right = np.broadcast_to(right, left.shape)
                 right = pd.TimedeltaIndex(right)
