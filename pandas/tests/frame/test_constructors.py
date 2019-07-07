@@ -517,7 +517,8 @@ class TestDataFrameConstructors:
             dct.update(v.to_dict())
             data[k] = dct
         frame = DataFrame(data)
-        tm.assert_frame_equal(float_frame, frame.reindex(float_frame.index))
+        expected = frame.reindex(index=float_frame.index)
+        tm.assert_frame_equal(float_frame, expected)
 
     def test_constructor_dict_block(self):
         expected = np.array([[4.0, 3.0, 2.0, 1.0]])
@@ -1342,8 +1343,8 @@ class TestDataFrameConstructors:
     def test_constructor_orient(self, float_string_frame):
         data_dict = float_string_frame.T._series
         recons = DataFrame.from_dict(data_dict, orient="index")
-        expected = float_string_frame
-        tm.assert_frame_equal(recons, expected.reindex(recons.index))
+        expected = float_string_frame.reindex(index=recons.index)
+        tm.assert_frame_equal(recons, expected)
 
         # dict of sequence
         a = {"hi": [32, 3, 3], "there": [3, 5, 3]}
