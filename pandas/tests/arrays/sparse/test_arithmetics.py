@@ -138,20 +138,11 @@ class TestSparseArrayArithmetics:
         self._check_bool_result(a | b_dense)
         self._assert((a | b_dense).to_dense(), a_dense | b_dense)
 
-    def test_float_scalar(self, kind, mix, op):
+    @pytest.mark.parametrize("fill_value", [None, 0, 2])
+    def test_float_scalar(self, kind, mix, op, fill_value):
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
 
-        a = self._klass(values, kind=kind)
-        self._check_numeric_ops(a, 1, values, 1, mix, op)
-        self._check_numeric_ops(a, 0, values, 0, mix, op)
-        self._check_numeric_ops(a, 3, values, 3, mix, op)
-
-        a = self._klass(values, kind=kind, fill_value=0)
-        self._check_numeric_ops(a, 1, values, 1, mix, op)
-        self._check_numeric_ops(a, 0, values, 0, mix, op)
-        self._check_numeric_ops(a, 3, values, 3, mix, op)
-
-        a = self._klass(values, kind=kind, fill_value=2)
+        a = self._klass(values, kind=kind, fill_value=fill_value)
         self._check_numeric_ops(a, 1, values, 1, mix, op)
         self._check_numeric_ops(a, 0, values, 0, mix, op)
         self._check_numeric_ops(a, 3, values, 3, mix, op)
