@@ -1624,13 +1624,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         del lines[head_start:head_stop]
 
         tail = """
-        <tr>
-          <td> name: </td>
-          <th> %s </th>
-        </tr>
-        """ % (
-            self.name or "--"
-        )
+    <tr>
+      <td> name: </td>
+      <th> %s </th>
+    </tr>
+        """ % str(self.name) or "--"
+
         body_end = [
             i for i, line in enumerate(lines) if line.strip().startswith("</tbody>")
         ][0]

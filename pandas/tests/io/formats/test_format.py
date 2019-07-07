@@ -1779,6 +1779,14 @@ c  10  11  12  13  14\
         assert 0.5 * len(b) < len(a) < 2 * len(b)
         assert "abc" in b
 
+        s = Series([123, 456], name=(1, 2))
+        assert "123" in s._repr_html_()
+        assert "(1, 2)" in s._repr_html_()
+
+        lines = s._repr_html_().split('\n')
+        indents = [line.index("<tr>") for line in lines if "<tr>" in line]
+        assert len(set(indents)) == 1  # cleanly indented HTML
+
     def test_repr_html_mathjax(self):
         df = DataFrame([[1, 2], [3, 4]])
         assert "tex2jax_ignore" not in df._repr_html_()
