@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas.core import ops
 from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
@@ -28,55 +29,36 @@ class TestSparseArrayArithmetics:
             # Unfortunately, trying to wrap the computation of each expected
             # value is with np.errstate() is too tedious.
 
-            # sparse & sparse
-            self._assert((a + b).to_dense(), a_dense + b_dense)
-            self._assert((b + a).to_dense(), b_dense + a_dense)
+            for mix in [True, False]:
+                # True --> sparse & dense
+                # False --> sparse & sparse
 
-            self._assert((a - b).to_dense(), a_dense - b_dense)
-            self._assert((b - a).to_dense(), b_dense - a_dense)
+                # sparse & sparse
+                for op in [operator.add, ops.radd,
+                           operator.sub, ops.rsub,
+                           operator.mul, ops.rmul,
+                           operator.truediv, ops.rtruediv,
+                           operator.floordiv, ops.rfloordiv,
+                           operator.mod, ops.rmod,
+                           operator.pow, ops.rpow]:
 
-            self._assert((a * b).to_dense(), a_dense * b_dense)
-            self._assert((b * a).to_dense(), b_dense * a_dense)
+                    if op in [operator.floordiv, ops.rfloordiv]:
+                        # FIXME: GH#13843
+                        if (self._base == pd.Series and a.dtype.subtype == np.dtype("int64")):
+                            continue
 
-            # pandas uses future division
-            self._assert((a / b).to_dense(), a_dense * 1.0 / b_dense)
-            self._assert((b / a).to_dense(), b_dense * 1.0 / a_dense)
+                    if mix:
+                        result = op(a, b_dense).to_dense()
+                    else:
+                        result = op(a, b).to_dense()
 
-            # ToDo: FIXME in GH 13843
-            if not (self._base == pd.Series and a.dtype.subtype == np.dtype("int64")):
-                self._assert((a // b).to_dense(), a_dense // b_dense)
-                self._assert((b // a).to_dense(), b_dense // a_dense)
+                    if op in [operator.truediv, ops.rtruediv]:
+                        # pandas uses future division
+                        expected = op(a_dense * 1.0, b_dense)
+                    else:
+                        expected = op(a_dense, b_dense)
 
-            self._assert((a % b).to_dense(), a_dense % b_dense)
-            self._assert((b % a).to_dense(), b_dense % a_dense)
-
-            self._assert((a ** b).to_dense(), a_dense ** b_dense)
-            self._assert((b ** a).to_dense(), b_dense ** a_dense)
-
-            # sparse & dense
-            self._assert((a + b_dense).to_dense(), a_dense + b_dense)
-            self._assert((b_dense + a).to_dense(), b_dense + a_dense)
-
-            self._assert((a - b_dense).to_dense(), a_dense - b_dense)
-            self._assert((b_dense - a).to_dense(), b_dense - a_dense)
-
-            self._assert((a * b_dense).to_dense(), a_dense * b_dense)
-            self._assert((b_dense * a).to_dense(), b_dense * a_dense)
-
-            # pandas uses future division
-            self._assert((a / b_dense).to_dense(), a_dense * 1.0 / b_dense)
-            self._assert((b_dense / a).to_dense(), b_dense * 1.0 / a_dense)
-
-            # ToDo: FIXME in GH 13843
-            if not (self._base == pd.Series and a.dtype.subtype == np.dtype("int64")):
-                self._assert((a // b_dense).to_dense(), a_dense // b_dense)
-                self._assert((b_dense // a).to_dense(), b_dense // a_dense)
-
-            self._assert((a % b_dense).to_dense(), a_dense % b_dense)
-            self._assert((b_dense % a).to_dense(), b_dense % a_dense)
-
-            self._assert((a ** b_dense).to_dense(), a_dense ** b_dense)
-            self._assert((b_dense ** a).to_dense(), b_dense ** a_dense)
+                    self._assert(result, expected)
 
     def _check_bool_result(self, res):
         assert isinstance(res, self._klass)
