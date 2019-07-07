@@ -9163,6 +9163,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 align=align,
                 inplace=True,
                 axis=block_axis,
+                transpose=self._AXIS_REVERSED,
             )
             self._update_inplace(new_data)
 
