@@ -397,10 +397,6 @@ class Block(PandasObject):
                 raise ValueError("Limit must be an integer")
             if limit < 1:
                 raise ValueError("Limit must be greater than 0")
-            if self.ndim > 2:
-                raise NotImplementedError(
-                    "number of dimensions for 'fillna' is currently limited to 2"
-                )
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if not self._can_hold_na:
@@ -430,7 +426,9 @@ class Block(PandasObject):
 
             return self.split_and_operate(mask, f, inplace)
         else:
-            blocks = self.putmask(mask, value, inplace=inplace)
+            # transpose of value is irrelevant
+            assert np.ndim(value) <= 1, value
+            blocks = self.putmask(mask.T, value, inplace=inplace)
             blocks = [
                 b.make_block(values=self._try_coerce_result(b.values)) for b in blocks
             ]
@@ -806,8 +804,9 @@ class Block(PandasObject):
             filtered_out = ~self.mgr_locs.isin(filter)
             mask[filtered_out.nonzero()[0]] = False
 
+        assert np.ndim(value) == 0, value
         try:
-            blocks = self.putmask(mask, value, inplace=inplace)
+            blocks = self.putmask(mask.T, value, inplace=inplace)
         except (TypeError, ValueError):
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
@@ -853,6 +852,8 @@ class Block(PandasObject):
         `indexer` is a direct slice/positional indexer. `value` must
         be a compatible shape.
         """
+        transpose = self.ndim == 2
+
         # coerce None values, if appropriate
         if value is None:
             if self.is_numeric:
@@ -901,8 +902,8 @@ class Block(PandasObject):
             dtype, _ = maybe_promote(arr_value.dtype)
             values = values.astype(dtype)
 
-        transf = (lambda x: x.T) if self.ndim == 2 else (lambda x: x)
-        values = transf(values)
+        if transpose:
+            values = values.T
 
         # length checking
         check_setitem_lengths(indexer, value, values)
@@ -961,10 +962,12 @@ class Block(PandasObject):
 
         # coerce and try to infer the dtypes of the result
         values = self._try_coerce_and_cast_result(values, dtype)
-        block = self.make_block(transf(values))
+        if transpose:
+            values = values.T
+        block = self.make_block(values)
         return block
 
-    def putmask(self, mask, new, align=True, inplace=False, axis=0, transpose=False):
+    def putmask(self, mask, new, align=True, inplace=False, axis=0):
         """ putmask the data to the block; it is possible that we may create a
         new dtype of block
 
@@ -977,13 +980,12 @@ class Block(PandasObject):
         align : boolean, perform alignment on other/cond, default is True
         inplace : perform inplace modification, default is False
         axis : int
-        transpose : boolean
-            Set to True if self is stored with axes reversed
 
         Returns
         -------
         a list of new blocks, the result of the putmask
         """
+        transpose = self.ndim == 2
 
         new_values = self.values if inplace else self.values.copy()
 
@@ -1630,7 +1632,8 @@ class Block(PandasObject):
         if mask.any():
             if not regex:
                 self = self.coerce_to_target_dtype(value)
-                return self.putmask(mask, value, inplace=inplace)
+                assert np.ndim(value) == 0 or is_object_dtype(self), (value, self.dtype)
+                return self.putmask(mask.T, value, inplace=inplace)
             else:
                 return self._replace_single(
                     to_replace,

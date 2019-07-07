@@ -584,6 +584,7 @@ class BlockManager(PandasObject):
         return self.apply("convert", **kwargs)
 
     def replace(self, **kwargs):
+        assert 'value' in kwargs and np.ndim(kwargs['value']) == 0
         return self.apply("replace", **kwargs)
 
     def replace_list(self, src_list, dest_list, inplace=False, regex=False):
@@ -617,6 +618,7 @@ class BlockManager(PandasObject):
             # replace ALWAYS will return a list
             rb = [blk if inplace else blk.copy()]
             for i, (s, d) in enumerate(zip(src_list, dest_list)):
+                # TODO: assert/validate that `d` is always a scalar?
                 new_rb = []
                 for b in rb:
                     m = masks[i][b.mgr_locs.indexer]
