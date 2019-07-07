@@ -20,15 +20,24 @@ def mix(request):
     return request.param
 
 
-@pytest.fixture(params=[
-    operator.add, ops.radd,
-    operator.sub, ops.rsub,
-    operator.mul, ops.rmul,
-    operator.truediv, ops.rtruediv,
-    operator.floordiv, ops.rfloordiv,
-    operator.mod, ops.rmod,
-    operator.pow, ops.rpow
-])
+@pytest.fixture(
+    params=[
+        operator.add,
+        ops.radd,
+        operator.sub,
+        ops.rsub,
+        operator.mul,
+        ops.rmul,
+        operator.truediv,
+        ops.rtruediv,
+        operator.floordiv,
+        ops.rfloordiv,
+        operator.mod,
+        ops.rmod,
+        operator.pow,
+        ops.rpow,
+    ]
+)
 def op(request):
     return request.param
 
@@ -50,7 +59,7 @@ class TestSparseArrayArithmetics:
 
             if op in [operator.floordiv, ops.rfloordiv]:
                 # FIXME: GH#13843
-                if (self._base == pd.Series and a.dtype.subtype == np.dtype("int64")):
+                if self._base == pd.Series and a.dtype.subtype == np.dtype("int64"):
                     return  # TODO: pytest.skip?  xfail?
 
             if mix:
