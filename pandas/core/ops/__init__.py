@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos as libalgos, lib, ops as libops
+from pandas._libs import lib, ops as libops
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -49,8 +49,8 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas as pd
 from pandas._typing import ArrayLike
 import pandas.core.common as com
-import pandas.core.missing as missing
 
+from . import missing
 from .roperator import (  # noqa:F401
     radd,
     rand_,
@@ -249,7 +249,7 @@ def _gen_fill_zeros(name):
     """
     name = name.strip("__")
     if "div" in name:
-        # truediv, floordiv, div, and reversed variants
+        # truediv, floordiv, and reversed variants
         fill_value = np.inf
     elif "mod" in name:
         # mod, rmod
@@ -1667,19 +1667,8 @@ def _arith_method_SERIES(cls, op, special):
             result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
             result = masked_arith_op(x, y, op)
-        except Exception:  # TODO: more specific?
-            if is_object_dtype(x):
-                return libalgos.arrmap_object(x, lambda val: op(val, y))
-            raise
 
-        if isinstance(result, tuple):
-            # e.g. divmod
-            result = tuple(
-                missing.fill_zeros(r, x, y, op_name, fill_zeros) for r in result
-            )
-        else:
-            result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-        return result
+        return missing.dispatch_fill_zeros(op, x, y, result, fill_zeros)
 
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
@@ -2161,8 +2150,7 @@ def _arith_method_FRAME(cls, op, special):
         except TypeError:
             result = masked_arith_op(x, y, op)
 
-        result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-        return result
+        return missing.dispatch_fill_zeros(op, x, y, result, fill_zeros)
 
     if op_name in _op_descriptions:
         # i.e. include "add" but not "__add__"
