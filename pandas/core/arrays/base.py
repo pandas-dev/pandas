@@ -39,6 +39,30 @@ class ExtensionArray:
 
     .. versionadded:: 0.23.0
 
+    Attributes
+    ----------
+    dtype
+    nbytes
+    ndim
+    shape
+
+    Methods
+    -------
+    argsort
+    astype
+    copy
+    dropna
+    factorize
+    fillna
+    isna
+    ravel
+    repeat
+    searchsorted
+    shift
+    take
+    unique
+    _values_for_factorize
+
     Notes
     -----
     The interface includes the following abstract methods that must be
