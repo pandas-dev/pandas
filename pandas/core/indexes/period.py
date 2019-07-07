@@ -9,6 +9,7 @@ from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Pe
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
+    ensure_platform_int,
     is_bool_dtype,
     is_datetime64_any_dtype,
     is_float,
@@ -618,7 +619,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 elif grp == freqn:
                     key = Period(asdt, freq=self.freq).ordinal
                     return com.maybe_box(
-                        self, self._engine.get_value(s, key), series, key
+                        self, self._int64index.get_value(s, key), series, key
                     )
                 else:
                     raise KeyError(key)
@@ -627,7 +628,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
             period = Period(key, self.freq)
             key = period.value if isna(period) else period.ordinal
-            return com.maybe_box(self, self._engine.get_value(s, key), series, key)
+            return com.maybe_box(self, self._int64index.get_value(s, key), series, key)
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
@@ -647,6 +648,23 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
         return Index.get_indexer(self._int64index, target, method, limit, tolerance)
+
+    @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
+    def get_indexer_non_unique(self, target):
+        target = ensure_index(target)
+
+        if isinstance(target, PeriodIndex):
+            target = target.asi8
+            if hasattr(target, "freq") and target.freq != self.freq:
+                msg = DIFFERENT_FREQ.format(
+                    cls=type(self).__name__,
+                    own_freq=self.freqstr,
+                    other_freq=target.freqstr,
+                )
+                raise IncompatibleFrequency(msg)
+
+        indexer, missing = self._int64index.get_indexer_non_unique(target)
+        return ensure_platform_int(indexer), missing
 
     def _get_unique_index(self, dropna=False):
         """
@@ -953,6 +971,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             stacklevel=2,
         )
         return np.asarray(self._data)
+
+    def memory_usage(self, deep=False):
+        result = super().memory_usage(deep=deep)
+        if hasattr(self, "_cache") and "_int64index" in self._cache:
+            result += self._int64index.memory_usage(deep=deep)
+        return result
 
 
 PeriodIndex._add_comparison_ops()

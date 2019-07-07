@@ -1774,7 +1774,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             else:
                 other = np.asarray(other)
                 with np.errstate(all="ignore"):
-                    # TODO: delete sparse stuff in core/ops.py
                     # TODO: look into _wrap_result
                     if len(self) != len(other):
                         raise AssertionError(
