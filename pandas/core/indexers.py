@@ -40,6 +40,7 @@ def is_empty_indexer(indexer, arr_value) -> bool:
 # -----------------------------------------------------------
 # Indexer Validation
 
+
 def check_setitem_lengths(indexer, value, values) -> None:
     """
     Validate that value and indexer are the same length.
@@ -135,6 +136,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
 # -----------------------------------------------------------
 # Indexer Conversion
 
+
 def maybe_convert_indices(indices, n: int):
     """
     Attempt to convert indices into valid, positive indices.
@@ -181,6 +183,7 @@ def maybe_convert_indices(indices, n: int):
 
 # -----------------------------------------------------------
 # Unsorted
+
 
 def length_of_indexer(indexer, target=None) -> int:
     """
