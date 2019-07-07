@@ -660,26 +660,6 @@ class Window(_Window):
         else:
             raise ValueError("Invalid window {0}".format(window))
 
-    def _validate_aggregate(self, arg, *args, **kwargs):
-        # supported weighted window functions
-        valid_ops = ["mean", "sum"]
-
-        def validate_str(op):
-            if op not in valid_ops:
-                raise ValueError(
-                    "{op} function is not supported "
-                    "for weighted windows.".format(op=op)
-                )
-
-        if isinstance(arg, str):
-            validate_str(arg)
-        elif isinstance(arg, (list, tuple, dict)):
-            ops = arg.values() if isinstance(arg, dict) else arg
-
-            for op in ops:
-                if isinstance(op, str):
-                    validate_str(op)
-
     def _prep_window(self, **kwargs):
         """
         Provide validation for our window type, return the window
@@ -836,8 +816,6 @@ class Window(_Window):
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, arg, *args, **kwargs):
-        self._validate_aggregate(arg)
-
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
 

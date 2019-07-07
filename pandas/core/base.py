@@ -314,7 +314,13 @@ class SelectionMixin:
 
         f = getattr(np, arg, None)
         if f is not None:
-            return f(self, *args, **kwargs)
+            try:
+                return f(self, *args, **kwargs)
+            except AttributeError:
+                raise ValueError(
+                    "'{arg}' is not a valid function for "
+                    "'{cls}' object".format(arg=arg, cls=type(self).__name__)
+                )
 
         raise ValueError("{arg} is an unknown string function".format(arg=arg))
 
@@ -603,9 +609,6 @@ class SelectionMixin:
                     keys.append(col)
                 except (TypeError, DataError):
                     pass
-                except ValueError:
-                    # cannot aggregate
-                    continue
                 except SpecificationError:
                     raise
 

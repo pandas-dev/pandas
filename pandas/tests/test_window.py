@@ -487,7 +487,7 @@ class TestWindow(Base):
         ser = pd.DataFrame({"A": np.arange(5), "B": np.arange(5)})
         roll = ser.rolling(2, win_type="triang")
 
-        msg = "std function is not supported for weighted windows."
+        msg = "'std' is not a valid function for 'Window' object"
         with pytest.raises(ValueError, match=msg):
             roll.agg(arg)
 
