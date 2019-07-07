@@ -480,6 +480,17 @@ class TestWindow(Base):
         with pytest.raises(UnsupportedFunctionCall, match=msg):
             getattr(w, method)(dtype=np.float64)
 
+    @pytest.mark.parametrize(
+        "arg", ["std", ["mean", "std"], ("mean", "std"), {"A": "mean", "B": "std"}]
+    )
+    def test_agg_function_support(self, arg):
+        ser = pd.DataFrame({"A": np.arange(5), "B": np.arange(5)})
+        roll = ser.rolling(2, win_type="triang")
+
+        msg = "std function is not supported for weighted windows."
+        with pytest.raises(ValueError, match=msg):
+            roll.agg(arg)
+
 
 class TestRolling(Base):
     def setup_method(self, method):
