@@ -2,8 +2,9 @@ from importlib import import_module
 
 import numpy as np
 
-import pandas as pd
 from pandas._libs import lib
+
+import pandas as pd
 from pandas.util import testing as tm
 
 for imp in ["pandas.util", "pandas.tools.hashing"]:
