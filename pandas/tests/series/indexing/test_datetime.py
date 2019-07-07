@@ -607,7 +607,7 @@ def test_indexing_over_size_cutoff():
 def test_indexing_over_size_cutoff_period_index(monkeypatch):
     # GH 27136
 
-    monkeypatch.setattr(_index, '_SIZE_CUTOFF', 1000)
+    monkeypatch.setattr(_index, "_SIZE_CUTOFF", 1000)
 
     n = 1100
     idx = pd.period_range("1/1/2000", freq="T", periods=n)
