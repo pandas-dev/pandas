@@ -5639,6 +5639,13 @@ class Index(IndexOpsMixin, PandasObject):
         cls.all = make_invalid_op("all")
         cls.any = make_invalid_op("any")
 
+    @property
+    def shape(self):
+        """
+        Return a tuple of the shape of the underlying data.
+        """
+        return (len(self),)
+
 
 Index._add_numeric_methods_disabled()
 Index._add_logical_methods()
