@@ -185,7 +185,7 @@ The repr now looks like this:
 .. _whatsnew_0250.enhancements.json_normalize_with_ignore_keys:
 
 Json normalize with ignore_keys param support
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`json_normalize` normalizes all keys of a given nested dictionary.
  The new ignore_key parameter provides more control over
@@ -203,6 +203,7 @@ The repr now looks like this:
         'Image': {'a': 'b'}
     }]
     json_normalize(data, ignore_keys=["Image"])
+
 
 .. _whatsnew_0250.enhancements.other:
 
