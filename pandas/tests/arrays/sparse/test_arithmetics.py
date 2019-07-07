@@ -11,6 +11,7 @@ import pandas.util.testing as tm
 
 @pytest.fixture(params=["integer", "block"])
 def kind(request):
+    """kind kwarg to pass to SparseArray/SparseSeries"""
     return request.param
 
 
@@ -60,7 +61,7 @@ class TestSparseArrayArithmetics:
             if op in [operator.floordiv, ops.rfloordiv]:
                 # FIXME: GH#13843
                 if self._base == pd.Series and a.dtype.subtype == np.dtype("int64"):
-                    return  # TODO: pytest.skip?  xfail?
+                    pytest.xfail("Not defined/working.  See GH#13843")
 
             if mix:
                 result = op(a, b_dense).to_dense()
