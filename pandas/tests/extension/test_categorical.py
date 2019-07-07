@@ -41,14 +41,19 @@ def dtype():
     return CategoricalDtype()
 
 
-@pytest.fixture
 def data():
-    """Length-100 array for this type.
+    return Categorical(make_data())
+
+
+@pytest.fixture(name="data")
+def data_fixture():
+    """
+    Length-100 array for this type.
 
     * data[0] and data[1] should both be non missing
     * data[0] and data[1] should not gbe equal
     """
-    return Categorical(make_data())
+    return data()
 
 
 @pytest.fixture
