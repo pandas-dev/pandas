@@ -746,7 +746,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         Value of `side` parameter should be validated in caller.
 
         """
-        assert kind in ["ix", "loc", "getitem"]
+        assert kind in ["ix", "loc", "loc_left", "getitem"]
 
         if isinstance(label, datetime):
             return Period(label, freq=self.freq)
@@ -754,7 +754,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             try:
                 _, parsed, reso = parse_time_string(label, self.freq)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
-                return bounds[0 if side == "left" else 1]
+                if kind == "loc_left":
+                    return bounds[0]
+                else:
+                    return bounds[0 if side == "left" else 1]
             except Exception:
                 raise KeyError(label)
         elif is_integer(label) or is_float(label):

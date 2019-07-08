@@ -3101,7 +3101,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["ix", "loc", "loc_left", "getitem", "iloc", None]
 
         if kind == "iloc":
             return self._validate_indexer("positional", key, kind)
@@ -3131,7 +3131,7 @@ class Index(IndexOpsMixin, PandasObject):
                 ]:
                     return self._invalid_indexer("label", key)
 
-            elif kind in ["loc"] and is_integer(key):
+            elif kind in ["loc", "loc_left"] and is_integer(key):
                 if not self.holds_integer():
                     return self._invalid_indexer("label", key)
 
@@ -3153,7 +3153,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs["_convert_slice_indexer"])
     def _convert_slice_indexer(self, key, kind=None):
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["ix", "loc", "loc_left", "getitem", "iloc", None]
 
         # if we are not a slice, then we are done
         if not isinstance(key, slice):
@@ -5094,7 +5094,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
-        assert kind in ["ix", "loc", "getitem", None]
+        assert kind in ["ix", "loc", "loc_left", "getitem", None]
 
         # We are a plain index here (sub-class override this method if they
         # wish to have special treatment for floats/ints, e.g. Float64Index and
@@ -5143,7 +5143,7 @@ class Index(IndexOpsMixin, PandasObject):
         int
             Index of label.
         """
-        assert kind in ["ix", "loc", "getitem", None]
+        assert kind in ["ix", "loc", "loc_left", "getitem", None]
 
         if side not in ("left", "right"):
             raise ValueError(
@@ -5184,10 +5184,16 @@ class Index(IndexOpsMixin, PandasObject):
             if side == "left":
                 return slc.start
             else:
-                return slc.stop
+                if kind == "loc_left":
+                    return slc.start
+                else:
+                    return slc.stop
         else:
             if side == "right":
-                return slc + 1
+                if kind == "loc_left":
+                    return slc
+                else:
+                    return slc + 1
             else:
                 return slc
 

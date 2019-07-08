@@ -38,6 +38,7 @@ def get_indexers_list():
         ("loc", _LocIndexer),
         ("at", _AtIndexer),
         ("iat", _iAtIndexer),
+        ("loc_left", _LocIndexer),
     ]
 
 
@@ -1190,7 +1191,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             # We (temporarily) allow for some missing keys with .loc, except in
             # some cases (e.g. setting) in which "raise_missing" will be False
-            if not (self.name == "loc" and not raise_missing):
+            if not (self.name in ("loc", "loc_left") and not raise_missing):
                 not_found = list(set(key) - set(ax))
                 raise KeyError("{} not in index".format(not_found))
 
@@ -1269,7 +1270,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if is_setter:
 
                 # always valid
-                if self.name == "loc":
+                if self.name in ("loc", "loc_left"):
                     return {"key": obj}
 
                 # a positional

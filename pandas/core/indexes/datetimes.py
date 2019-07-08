@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, index as libindex, lib, tslib as libts
 import pandas._libs.join as libjoin
-from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
+from pandas._libs.tslibs import Timedelta, ccalendar, fields, parsing, timezones
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -1094,7 +1094,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         Value of `side` parameter should be validated in caller.
 
         """
-        assert kind in ["ix", "loc", "getitem", None]
+        assert kind in ["ix", "loc", "loc_left", "getitem", None]
 
         if is_float(label) or isinstance(label, time) or is_integer(label):
             self._invalid_indexer("slice", label)
@@ -1111,7 +1111,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             # and length 1 index)
             if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == "left" else lower
-            return lower if side == "left" else upper
+            if side == "left":
+                return lower
+            if kind == "loc_left":
+                return lower - Timedelta(1, "ns")
+            else:
+                return upper
         else:
             return label
 

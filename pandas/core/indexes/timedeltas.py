@@ -584,7 +584,7 @@ class TimedeltaIndex(
         label :  object
 
         """
-        assert kind in ["ix", "loc", "getitem", None]
+        assert kind in ["ix", "loc", "loc_left", "getitem", None]
 
         if isinstance(label, str):
             parsed = Timedelta(label)

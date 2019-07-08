@@ -484,7 +484,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         kind : {'ix', 'loc', 'getitem', 'iloc'} or None
         """
 
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["ix", "loc", "loc_left", "getitem", "iloc", None]
 
         # we don't allow integer/float indexing for loc
         # we don't allow float indexing for ix/getitem
