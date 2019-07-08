@@ -150,3 +150,11 @@ def test_missing_required_dependency():
     output = exc.value.stdout.decode()
     for name in ["numpy", "pytz", "dateutil"]:
         assert name in output
+
+
+def test_old_python_raises():
+    code = "import sys; sys.version_info = (3, 5, 2); import pandas"
+    # match = 'pandas requires Python >=3.5.3 but 3.5.2 is installed'
+    out = subprocess.run(["python", "-c", code], check=False, capture_output=True)
+    stderr = out.stderr.decode()
+    assert "pandas requires Python >=3.5.3 but 3.5.2 is installed." in stderr

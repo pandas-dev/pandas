@@ -1,4 +1,13 @@
 # flake8: noqa
+import sys
+
+if sys.version_info[:3] <= (3, 5, 2):
+    msg = "pandas requires Python >=3.5.3 but {}.{}.{} is installed.".format(
+        *sys.version_info[:3]
+    )
+    raise ImportError(msg)
+
+del sys
 
 __docformat__ = "restructuredtext"
 
