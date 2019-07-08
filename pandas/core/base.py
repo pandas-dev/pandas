@@ -561,7 +561,10 @@ class SelectionMixin:
         elif is_list_like(arg):
             # we require a list, but not an 'str'
             try:
-                return self._aggregate_multiple_funcs(arg, _level=_level, _axis=_axis), None
+                return (
+                    self._aggregate_multiple_funcs(arg, _level=_level, _axis=_axis),
+                    None,
+                )
 
             # if no results
             except ValueError:

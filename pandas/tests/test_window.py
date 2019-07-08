@@ -489,8 +489,10 @@ class TestWindow(Base):
         roll = ser.rolling(2, win_type="triang")
 
         if isinstance(arg, (list, tuple)):
-            msg = ("'{arg}' is not a valid set of functions for "
-                   "'Window' object".format(arg=", ".join(arg)))
+            msg = (
+                "'{arg}' is not a valid set of functions for "
+                "'Window' object".format(arg=", ".join(arg))
+            )
         else:
             msg = "'std' is not a valid function for 'Window' object"
 
