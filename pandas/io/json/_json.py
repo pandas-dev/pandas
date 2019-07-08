@@ -352,12 +352,12 @@ def read_json(
 
     Parameters
     ----------
-    path_or_buf : a valid JSON string or file-like, default: None
+    path_or_buf : a valid JSON string or file-like, default None
         The string could be a URL. Valid URL schemes include http, ftp, s3,
         gcs, and file. For file URLs, a host is expected. For instance, a local
         file could be ``file://localhost/path/to/table.json``.
 
-    orient : str,
+    orient : str, default None
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
         corresponding orient value.
@@ -393,7 +393,8 @@ def read_json(
         .. versionadded:: 0.23.0
            'table' as an allowed value for the ``orient`` argument
 
-    typ : type of object to recover (series or frame), default 'frame'
+    typ : {'frame', 'series'}, default 'frame'
+        The type of object to recover.
 
     dtype : bool or dict, default None
         If True, infer dtypes; if a dict of column to dtype, then use those;
@@ -478,11 +479,13 @@ def read_json(
 
     Returns
     -------
-    Series or DataFrame, depending on the value of `typ`.
+    Series or DataFrame
+        The type returned depends on the value of `typ`.
 
     See Also
     --------
-    DataFrame.to_json
+    DataFrame.to_json : Convert a DataFrame to a JSON string.
+    Series.to_json : Convert a Series to a JSON string.
 
     Notes
     -----
