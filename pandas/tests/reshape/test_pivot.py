@@ -291,7 +291,7 @@ class TestPivotTable:
         ordered_cat = pd.IntervalIndex.from_arrays([0, 0, 1, 1], [1, 1, 2, 2])
         df = pd.DataFrame(
             {
-                "A": np.arange(4, 0, -1),
+                "A": np.arange(4, 0, -1).astype('int32'),
                 "B": ["a", "b", "a", "b"],
                 "C": pd.Categorical(ordered_cat, ordered=True).sort_values(
                     ascending=False
