@@ -409,34 +409,28 @@ class Block(PandasObject):
             else:
                 return self.copy()
 
-        # fillna, but if we cannot coerce, then try again as an ObjectBlock
-        try:
-            # Note: we only call try_coerce_args to let it raise
-            self._try_coerce_args(value)
-            assert self._can_hold_element(value), value
-        except (TypeError, ValueError):
-            assert not self._can_hold_element(value), value
-
-            # we can't process the value, but nothing to do
-            if not mask.any():
-                return self if inplace else self.copy()
-
-            # operate column-by-column
-            def f(m, v, i):
-                block = self.coerce_to_target_dtype(value)
-
-                # slice out our block
-                if i is not None:
-                    block = block.getitem_block(slice(i, i + 1))
-                return block.fillna(value, limit=limit, inplace=inplace, downcast=None)
-
-            return self.split_and_operate(mask, f, inplace)
-        else:
+        if self._can_hold_element(value):
+            # equivalent: self._try_coerce_args(value) would not raise
             blocks = self.putmask(mask, value, inplace=inplace)
             blocks = [
                 b.make_block(values=self._try_coerce_result(b.values)) for b in blocks
             ]
             return self._maybe_downcast(blocks, downcast)
+
+        # we can't process the value, but nothing to do
+        if not mask.any():
+            return self if inplace else self.copy()
+
+        # operate column-by-column
+        def f(m, v, i):
+            block = self.coerce_to_target_dtype(value)
+
+            # slice out our block
+            if i is not None:
+                block = block.getitem_block(slice(i, i + 1))
+            return block.fillna(value, limit=limit, inplace=inplace, downcast=None)
+
+        return self.split_and_operate(mask, f, inplace)
 
     def split_and_operate(self, mask, f, inplace):
         """
