@@ -12,7 +12,7 @@ from pandas.util import testing as tm
 class TestToCSV:
     @pytest.mark.xfail(
         (3, 6, 5) > sys.version_info >= (3, 5),
-        reason=("Python csv library bug " "(see https://bugs.python.org/issue32255)"),
+        reason=("Python csv library bug (see https://bugs.python.org/issue32255)"),
     )
     def test_to_csv_with_single_column(self):
         # see gh-18676, https://bugs.python.org/issue32255
