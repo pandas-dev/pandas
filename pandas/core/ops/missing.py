@@ -154,16 +154,15 @@ def dispatch_missing(op, left, right, result):
     -------
     result : ndarray
     """
-    opstr = "__{opname}__".format(opname=op.__name__).replace("____", "__")
     if op is operator.floordiv:
         # Note: no need to do this for truediv; in py3 numpy behaves the way
         #  we want.
         result = mask_zero_div_zero(left, right, result)
     elif op is operator.mod:
-        result = fill_zeros(result, left, right, opstr, np.nan)
+        result = fill_zeros(result, left, right, "__mod__", np.nan)
     elif op is divmod:
         res0 = mask_zero_div_zero(left, right, result[0])
-        res1 = fill_zeros(result[1], left, right, opstr, np.nan)
+        res1 = fill_zeros(result[1], left, right, "__divmod__", np.nan)
         result = (res0, res1)
     return result
 
@@ -185,8 +184,12 @@ def dispatch_fill_zeros(op, left, right, result):
             fill_zeros(result[1], left, right, "__rmod__", np.nan),
         )
     elif op is operator.floordiv:
+        # Note: no need to do this for truediv; in py3 numpy behaves the way
+        #  we want.
         result = fill_zeros(result, left, right, "__floordiv__", np.inf)
     elif op is op is rfloordiv:
+        # Note: no need to do this for rtruediv; in py3 numpy behaves the way
+        #  we want.
         result = fill_zeros(result, left, right, "__rfloordiv__", np.inf)
     elif op is operator.mod:
         result = fill_zeros(result, left, right, "__mod__", np.nan)
