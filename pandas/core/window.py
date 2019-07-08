@@ -514,9 +514,9 @@ class Window(_Window):
         See the notes below for further information.
     on : str, optional
         For a DataFrame, a datetime-like column on which to calculate the rolling
-        window, rather than the DataFrame's index. Provided integer column will
-        be excluded from result since integer indexes are not used to calculate
-        the rolling window.
+        window, rather than the DataFrame's index. Provided integer column is
+        ignored and excluded from result since an integer index is not used to
+        calculate the rolling window.
     axis : int or str, default 0
     closed : str, default None
         Make the interval closed on the 'right', 'left', 'both' or
