@@ -22,7 +22,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas._typing import ArrayLike
 from pandas.core import ops
-from pandas.core.arrays._reshaping import tuplify_shape, can_safe_ravel
+from pandas.core.arrays._reshaping import can_safe_ravel, tuplify_shape
 from pandas.core.sorting import nargsort
 
 _not_implemented_message = "{} does not implement {}."
