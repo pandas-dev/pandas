@@ -94,13 +94,14 @@ def test_equals_multi(idx):
     assert not idx.equals(idx[-1])
 
     # different number of levels
-    index = MultiIndex(levels=[Index(list(range(4))),
-                               Index(list(range(4))),
-                               Index(list(range(4)))],
-                       codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
-                              np.array([0, 1, 0, 0, 0, 1, 0, 1]),
-                              np.array([1, 0, 1, 1, 0, 0, 1, 0])],
-                       )
+    index = MultiIndex(
+        levels=[Index(list(range(4))), Index(list(range(4))), Index(list(range(4)))],
+        codes=[
+            np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+            np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+            np.array([1, 0, 1, 1, 0, 0, 1, 0]),
+        ],
+    )
 
     index2 = MultiIndex(levels=index.levels[:-1], codes=index.codes[:-1])
     assert not index.equals(index2)
@@ -113,20 +114,22 @@ def test_equals_multi(idx):
     major_codes = np.array([0, 0, 1, 2, 2, 3])
     minor_codes = np.array([0, 1, 0, 0, 1, 0])
 
-    index = MultiIndex(levels=[major_axis, minor_axis],
-                       codes=[major_codes, minor_codes])
+    index = MultiIndex(
+        levels=[major_axis, minor_axis], codes=[major_codes, minor_codes]
+    )
     assert not idx.equals(index)
     assert not idx.equal_levels(index)
 
     # some of the labels are different
-    major_axis = Index(['foo', 'bar', 'baz', 'qux'])
-    minor_axis = Index(['one', 'two'])
+    major_axis = Index(["foo", "bar", "baz", "qux"])
+    minor_axis = Index(["one", "two"])
 
     major_codes = np.array([0, 0, 2, 2, 3, 3])
     minor_codes = np.array([0, 1, 0, 1, 0, 1])
 
-    index = MultiIndex(levels=[major_axis, minor_axis],
-                       codes=[major_codes, minor_codes])
+    index = MultiIndex(
+        levels=[major_axis, minor_axis], codes=[major_codes, minor_codes]
+    )
     assert not idx.equals(index)
 
 
@@ -135,11 +138,11 @@ def test_identical(idx):
     mi2 = idx.copy()
     assert mi.identical(mi2)
 
-    mi = mi.set_names(['new1', 'new2'])
+    mi = mi.set_names(["new1", "new2"])
     assert mi.equals(mi2)
     assert not mi.identical(mi2)
 
-    mi2 = mi2.set_names(['new1', 'new2'])
+    mi2 = mi2.set_names(["new1", "new2"])
     assert mi.identical(mi2)
 
     mi3 = Index(mi.tolist(), names=mi.names)
@@ -156,8 +159,7 @@ def test_equals_operator(idx):
 
 def test_equals_missing_values():
     # make sure take is not using -1
-    i = pd.MultiIndex.from_tuples([(0, pd.NaT),
-                                   (0, pd.Timestamp('20130101'))])
+    i = pd.MultiIndex.from_tuples([(0, pd.NaT), (0, pd.Timestamp("20130101"))])
     result = i[0:1].equals(i[0])
     assert not result
     result = i[1:2].equals(i[1])
@@ -175,7 +177,7 @@ def test_is_():
     assert mi2.is_(mi)
     assert mi.is_(mi2)
 
-    assert mi.is_(mi.set_names(["C", "D"]))
+    assert not mi.is_(mi.set_names(["C", "D"]))
     mi2 = mi.view()
     mi2.set_names(["E", "F"], inplace=True)
     assert mi.is_(mi2)

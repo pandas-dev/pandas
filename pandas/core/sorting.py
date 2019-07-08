@@ -6,8 +6,12 @@ from pandas._libs.hashtable import unique_label_indices
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
-    ensure_int64, ensure_platform_int, is_categorical_dtype,
-    is_extension_array_dtype, is_list_like)
+    ensure_int64,
+    ensure_platform_int,
+    is_categorical_dtype,
+    is_extension_array_dtype,
+    is_list_like,
+)
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algorithms
@@ -42,6 +46,7 @@ def get_group_index(labels, shape, sort, xnull):
     An array of type int64 where two elements are equal if their corresponding
     labels are equal at all location.
     """
+
     def _int64_cut_off(shape):
         acc = 1
         for i, mul in enumerate(shape):
@@ -69,8 +74,8 @@ def get_group_index(labels, shape, sort, xnull):
         nlev = _int64_cut_off(shape)
 
         # compute flat ids for the first `nlev` levels
-        stride = np.prod(shape[1:nlev], dtype='i8')
-        out = stride * labels[0].astype('i8', subok=False, copy=False)
+        stride = np.prod(shape[1:nlev], dtype="i8")
+        out = stride * labels[0].astype("i8", subok=False, copy=False)
 
         for i in range(1, nlev):
             if shape[i] == 0:
@@ -132,7 +137,7 @@ def decons_group_index(comp_labels, shape):
     if is_int64_overflow_possible(shape):
         # at some point group indices are factorized,
         # and may not be deconstructed here! wrong path!
-        raise ValueError('cannot deconstruct factorized group indices!')
+        raise ValueError("cannot deconstruct factorized group indices!")
 
     label_list = []
     factor = 1
@@ -158,17 +163,16 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull):
     """
 
     if not xnull:
-        lift = np.fromiter(((a == -1).any() for a in labels), dtype='i8')
-        shape = np.asarray(shape, dtype='i8') + lift
+        lift = np.fromiter(((a == -1).any() for a in labels), dtype="i8")
+        shape = np.asarray(shape, dtype="i8") + lift
 
     if not is_int64_overflow_possible(shape):
         # obs ids are deconstructable! take the fast route!
         out = decons_group_index(obs_ids, shape)
-        return out if xnull or not lift.any() \
-            else [x - y for x, y in zip(out, lift)]
+        return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
 
     i = unique_label_indices(comp_ids)
-    i8copy = lambda a: a.astype('i8', subok=False, copy=True)
+    i8copy = lambda a: a.astype("i8", subok=False, copy=True)
     return [i8copy(lab[i]) for lab in labels]
 
 
@@ -184,7 +188,7 @@ def indexer_from_factorized(labels, shape, compress=True):
     return get_group_index_sorter(ids, ngroups)
 
 
-def lexsort_indexer(keys, orders=None, na_position='last'):
+def lexsort_indexer(keys, orders=None, na_position="last"):
     from pandas.core.arrays import Categorical
 
     labels = []
@@ -204,22 +208,22 @@ def lexsort_indexer(keys, orders=None, na_position='last'):
         else:
             c = Categorical(key, ordered=True)
 
-        if na_position not in ['last', 'first']:
-            raise ValueError('invalid na_position: {!r}'.format(na_position))
+        if na_position not in ["last", "first"]:
+            raise ValueError("invalid na_position: {!r}".format(na_position))
 
         n = len(c.categories)
         codes = c.codes.copy()
 
-        mask = (c.codes == -1)
+        mask = c.codes == -1
         if order:  # ascending
-            if na_position == 'last':
+            if na_position == "last":
                 codes = np.where(mask, n, codes)
-            elif na_position == 'first':
+            elif na_position == "first":
                 codes += 1
         else:  # not order means descending
-            if na_position == 'last':
+            if na_position == "last":
                 codes = np.where(mask, n, n - codes - 1)
-            elif na_position == 'first':
+            elif na_position == "first":
                 codes = np.where(mask, 0, n - codes)
         if mask.any():
             n += 1
@@ -230,7 +234,7 @@ def lexsort_indexer(keys, orders=None, na_position='last'):
     return indexer_from_factorized(labels, shape)
 
 
-def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
+def nargsort(items, kind="quicksort", ascending=True, na_position="last"):
     """
     This is intended to be a drop-in replacement for np.argsort which
     handles NaNs. It adds ascending and na_position parameters.
@@ -240,20 +244,6 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
 
     items = extract_array(items)
     mask = np.asarray(isna(items))
-    # specially handle Categorical
-    if is_categorical_dtype(items):
-        if na_position not in {'first', 'last'}:
-            raise ValueError('invalid na_position: {!r}'.format(na_position))
-
-        cnt_null = mask.sum()
-        sorted_idx = items.argsort(ascending=ascending, kind=kind)
-        if ascending and na_position == 'last':
-            # NaN is coded as -1 and is listed in front after sorting
-            sorted_idx = np.roll(sorted_idx, -cnt_null)
-        elif not ascending and na_position == 'first':
-            # NaN is coded as -1 and is listed in the end after sorting
-            sorted_idx = np.roll(sorted_idx, cnt_null)
-        return sorted_idx
 
     if is_extension_array_dtype(items):
         items = items._values_for_argsort()
@@ -272,12 +262,12 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
         indexer = indexer[::-1]
     # Finally, place the NaNs at the end or the beginning according to
     # na_position
-    if na_position == 'last':
+    if na_position == "last":
         indexer = np.concatenate([indexer, nan_idx])
-    elif na_position == 'first':
+    elif na_position == "first":
         indexer = np.concatenate([nan_idx, indexer])
     else:
-        raise ValueError('invalid na_position: {!r}'.format(na_position))
+        raise ValueError("invalid na_position: {!r}".format(na_position))
     return indexer
 
 
@@ -293,8 +283,7 @@ class _KeyMapper:
         self.comp_ids = comp_ids.astype(np.int64)
 
         self.k = len(labels)
-        self.tables = [hashtable.Int64HashTable(ngroups)
-                       for _ in range(self.k)]
+        self.tables = [hashtable.Int64HashTable(ngroups) for _ in range(self.k)]
 
         self._populate_tables()
 
@@ -303,8 +292,10 @@ class _KeyMapper:
             table.map(self.comp_ids, labs.astype(np.int64))
 
     def get_key(self, comp_id):
-        return tuple(level[table.get_item(comp_id)]
-                     for table, level in zip(self.tables, self.levels))
+        return tuple(
+            level[table.get_item(comp_id)]
+            for table, level in zip(self.tables, self.levels)
+        )
 
 
 def get_flattened_iterator(comp_ids, ngroups, levels, labels):
@@ -318,9 +309,11 @@ def get_indexer_dict(label_list, keys):
     shape = list(map(len, keys))
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
-    ngroups = ((group_index.size and group_index.max()) + 1) \
-        if is_int64_overflow_possible(shape) \
-        else np.prod(shape, dtype='i8')
+    ngroups = (
+        ((group_index.size and group_index.max()) + 1)
+        if is_int64_overflow_possible(shape)
+        else np.prod(shape, dtype="i8")
+    )
 
     sorter = get_group_index_sorter(group_index, ngroups)
 
@@ -332,6 +325,7 @@ def get_indexer_dict(label_list, keys):
 
 # ----------------------------------------------------------------------
 # sorting levels...cleverly?
+
 
 def get_group_index_sorter(group_index, ngroups):
     """
@@ -350,14 +344,12 @@ def get_group_index_sorter(group_index, ngroups):
     count = len(group_index)
     alpha = 0.0  # taking complexities literally; there may be
     beta = 1.0  # some room for fine-tuning these parameters
-    do_groupsort = (count > 0 and ((alpha + beta * ngroups) <
-                                   (count * np.log(count))))
+    do_groupsort = count > 0 and ((alpha + beta * ngroups) < (count * np.log(count)))
     if do_groupsort:
-        sorter, _ = algos.groupsort_indexer(ensure_int64(group_index),
-                                            ngroups)
+        sorter, _ = algos.groupsort_indexer(ensure_int64(group_index), ngroups)
         return ensure_platform_int(sorter)
     else:
-        return group_index.argsort(kind='mergesort')
+        return group_index.argsort(kind="mergesort")
 
 
 def compress_group_index(group_index, sort=True):
@@ -401,8 +393,7 @@ def _reorder_by_uniques(uniques, labels):
     return uniques, labels
 
 
-def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False,
-              verify=True):
+def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False, verify=True):
     """
     Sort ``values`` and reorder corresponding ``labels``.
     ``values`` should be unique if ``labels`` is not None.
@@ -447,26 +438,27 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False,
         * If ``labels`` is not None and ``values`` contain duplicates.
     """
     if not is_list_like(values):
-        raise TypeError("Only list-like objects are allowed to be passed to"
-                        "safe_sort as values")
+        raise TypeError(
+            "Only list-like objects are allowed to be passed to" "safe_sort as values"
+        )
 
-    if (not isinstance(values, np.ndarray)
-            and not is_extension_array_dtype(values)):
+    if not isinstance(values, np.ndarray) and not is_extension_array_dtype(values):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
         values = np.asarray(values, dtype=dtype)
 
     def sort_mixed(values):
         # order ints before strings, safe in py3
-        str_pos = np.array([isinstance(x, str) for x in values],
-                           dtype=bool)
+        str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
         nums = np.sort(values[~str_pos])
         strs = np.sort(values[str_pos])
         return np.concatenate([nums, np.asarray(strs, dtype=object)])
 
     sorter = None
-    if (not is_extension_array_dtype(values)
-            and lib.infer_dtype(values, skipna=False) == 'mixed-integer'):
+    if (
+        not is_extension_array_dtype(values)
+        and lib.infer_dtype(values, skipna=False) == "mixed-integer"
+    ):
         # unorderable in py3 if mixed str/int
         ordered = sort_mixed(values)
     else:
@@ -483,18 +475,22 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False,
         return ordered
 
     if not is_list_like(labels):
-        raise TypeError("Only list-like objects or None are allowed to be"
-                        "passed to safe_sort as labels")
+        raise TypeError(
+            "Only list-like objects or None are allowed to be"
+            "passed to safe_sort as labels"
+        )
     labels = ensure_platform_int(np.asarray(labels))
 
     from pandas import Index
+
     if not assume_unique and not Index(values).is_unique:
         raise ValueError("values should be unique if labels is not None")
 
     if sorter is None:
         # mixed types
         (hash_klass, _), values = algorithms._get_data_algo(
-            values, algorithms._hashtables)
+            values, algorithms._hashtables
+        )
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))
@@ -512,7 +508,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False,
         reverse_indexer.put(sorter, np.arange(len(sorter)))
         # Out of bound indices will be masked with `na_sentinel` next, so we
         # may deal with them here without performance loss using `mode='wrap'`
-        new_labels = reverse_indexer.take(labels, mode='wrap')
+        new_labels = reverse_indexer.take(labels, mode="wrap")
 
         mask = labels == na_sentinel
         if verify:
