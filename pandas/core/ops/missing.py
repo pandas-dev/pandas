@@ -27,7 +27,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype, is_scalar
 
-from .roperator import rdivmod
+from .roperator import rdivmod, rfloordiv, rmod
 
 
 def fill_zeros(result, x, y, name, fill):
@@ -85,7 +85,7 @@ def fill_zeros(result, x, y, name, fill):
     return result
 
 
-def mask_zero_div_zero(x, y, result, copy=False):
+def mask_zero_div_zero(x, y, result):
     """
     Set results of 0 / 0 or 0 // 0 to np.nan, regardless of the dtypes
     of the numerator or the denominator.
@@ -95,9 +95,6 @@ def mask_zero_div_zero(x, y, result, copy=False):
     x : ndarray
     y : ndarray
     result : ndarray
-    copy : bool (default False)
-        Whether to always create a new array or try to fill in the existing
-        array if possible.
 
     Returns
     -------
@@ -130,7 +127,7 @@ def mask_zero_div_zero(x, y, result, copy=False):
 
         if nan_mask.any() or neginf_mask.any() or posinf_mask.any():
             # Fill negative/0 with -inf, positive/0 with +inf, 0/0 with NaN
-            result = result.astype("float64", copy=copy).ravel()
+            result = result.astype("float64", copy=False).ravel()
 
             np.putmask(result, nan_mask, np.nan)
             np.putmask(result, posinf_mask, np.inf)
@@ -172,7 +169,7 @@ def dispatch_missing(op, left, right, result):
 
 
 # FIXME: de-duplicate with dispatch_missing
-def dispatch_fill_zeros(op, left, right, result, fill_value):
+def dispatch_fill_zeros(op, left, right, result):
     """
     Call fill_zeros with the appropriate fill value depending on the operation,
     with special logic for divmod and rdivmod.
@@ -187,6 +184,12 @@ def dispatch_fill_zeros(op, left, right, result, fill_value):
             fill_zeros(result[0], left, right, "__rfloordiv__", np.inf),
             fill_zeros(result[1], left, right, "__rmod__", np.nan),
         )
-    else:
-        result = fill_zeros(result, left, right, op.__name__, fill_value)
+    elif op is operator.floordiv:
+        result = fill_zeros(result, left, right, "__floordiv__", np.inf)
+    elif op is op is rfloordiv:
+        result = fill_zeros(result, left, right, "__rfloordiv__", np.inf)
+    elif op is operator.mod:
+        result = fill_zeros(result, left, right, "__mod__", np.nan)
+    elif op is rmod:
+        result = fill_zeros(result, left, right, "__rmod__", np.nan)
     return result
