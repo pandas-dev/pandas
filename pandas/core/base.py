@@ -560,7 +560,16 @@ class SelectionMixin:
             return result, True
         elif is_list_like(arg):
             # we require a list, but not an 'str'
-            return self._aggregate_multiple_funcs(arg, _level=_level, _axis=_axis), None
+            try:
+                return self._aggregate_multiple_funcs(arg, _level=_level, _axis=_axis), None
+
+            # if no results
+            except ValueError:
+                raise ValueError(
+                    "'{arg}' is not a valid set of functions for "
+                    "'{cls}' object".format(arg=", ".join(arg), cls=type(self).__name__)
+                )
+
         else:
             result = None
 
@@ -609,6 +618,9 @@ class SelectionMixin:
                     keys.append(col)
                 except (TypeError, DataError):
                     pass
+                except ValueError:
+                    # cannot aggregate
+                    continue
                 except SpecificationError:
                     raise
 
