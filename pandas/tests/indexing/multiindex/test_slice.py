@@ -117,11 +117,11 @@ class TestMultiIndexSlicers:
         with pytest.raises(ValueError):
             df.loc[(slice(None), np.array([True, False])), :]
 
-        # ambiguous cases
-        # these can be multiply interpreted (e.g. in this case
-        # as df.loc[slice(None),[1]] as well
-        with pytest.raises(KeyError, match=r"'\[1\] not in index'"):
-            df.loc[slice(None), [1]]
+        # ambiguous notation
+        # this is interpreted as slicing on both axes (GH #16396)
+        result = df.loc[slice(None), [1]]
+        expected = df.iloc[:, []]
+        tm.assert_frame_equal(result, expected)
 
         result = df.loc[(slice(None), [1]), :]
         expected = df.iloc[[0, 3]]
