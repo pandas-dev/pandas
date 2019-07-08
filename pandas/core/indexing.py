@@ -115,7 +115,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         raise NotImplementedError("ix is not iterable")
 
     def __getitem__(self, key):
-        if type(key) is tuple:
+        if isinstance(key, tuple):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             try:
                 values = self.obj._get_value(*key)
@@ -124,6 +124,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 #  generally slice or list.
                 # TODO(ix): most/all of the TypeError cases here are for ix,
                 #  so this check can be removed once ix is removed.
+                # Note: InvalidIndexError is here for geopandas compat,
+                #  see GH#27259
                 pass
             else:
                 if is_scalar(values):
@@ -1422,7 +1424,7 @@ class _LocationIndexer(_NDFrameIndexer):
     _exception = Exception
 
     def __getitem__(self, key):
-        if type(key) is tuple:
+        if isinstance(key, tuple):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
                 try:
