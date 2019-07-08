@@ -3645,7 +3645,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         Series
-            exploded lists to rows; index will be duplicated for these rows
+            Exploded lists to rows; index will be duplicated for these rows.
 
         See Also
         --------

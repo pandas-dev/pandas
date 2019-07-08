@@ -240,7 +240,7 @@ class Cut:
         pd.qcut(self.datetime_series, bins)
 
 
-class Explode
+class Explode:
     param_names = ["n_rows", "max_list_length"]
     params = [[100, 1000, 10000], [3, 5, 10]]
 
