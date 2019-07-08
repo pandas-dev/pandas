@@ -115,7 +115,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         raise NotImplementedError("ix is not iterable")
 
     def __getitem__(self, key):
-        if isinstance(key, tuple):
+        if type(key) is tuple:
+            # Note: we check the type exactly instead of with isinstance
+            #  because NamedTuple is checked separately.
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             try:
                 values = self.obj._get_value(*key)
@@ -1425,7 +1427,7 @@ class _LocationIndexer(_NDFrameIndexer):
     _exception = Exception
 
     def __getitem__(self, key):
-        if isinstance(key, tuple):
+        if type(key) is tuple:
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
                 try:
