@@ -1081,3 +1081,119 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         s = Series([1, 2])
         result = s.loc_left[np.array(0)]
         assert result == 1
+
+
+class Test_slice(Base):
+    def test_slice_both(self):
+        dti = pd.date_range(start="2017-01-01", end="2018-02", freq="M")
+        ser = pd.Series(range(len(dti)), index=dti)
+
+        start = "2017-02"
+
+        result = ser.slice("2018", closed="both")
+        expected = ser.loc[:"2018"]
+        tm.assert_series_equal(result, expected)
+
+        result = ser.slice(start, "2018", closed="both")
+        expected = ser.loc[start:"2018"]
+        tm.assert_series_equal(result, expected)
+
+        df = ser.to_frame()
+        result = df.slice("2018", closed="both")
+        expected = df.loc[:"2018"]
+        tm.assert_frame_equal(result, expected)
+        result = df.slice(start, "2018", closed="both")
+        expected = df.loc[start:"2018"]
+        tm.assert_frame_equal(result, expected)
+
+        # duplicates
+        rdti = np.repeat(dti, 2)
+        ser = rdti.to_series()
+        result = ser.slice("2018", closed="both")
+        expected = ser.loc[:"2018"]
+        tm.assert_series_equal(result, expected)
+
+        result = ser.slice(start, "2018", closed="both")
+        expected = ser.loc[start:"2018"]
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame(
+            dict(a=range(len(rdti)), b=range(100, 100 + len(rdti))), index=rdti
+        )
+        result = df.slice("2018", closed="both")
+        expected = df.loc[:"2018"]
+        tm.assert_frame_equal(result, expected)
+        result = df.slice(start, "2018", closed="both")
+        expected = df.loc[start:"2018"]
+        tm.assert_frame_equal(result, expected)
+
+        # axis
+        result = df.slice("2018", closed="both", axis=1)
+        expected = df.T.loc[:"2018"].T
+        tm.assert_frame_equal(result, expected)
+
+        result = df.slice(start, "2018", closed="both", axis=1)
+        expected = df.T.loc[start:"2018"].T
+        tm.assert_frame_equal(result, expected)
+
+    def test_slice_left(self):
+        dti = pd.date_range(start="2017-01-01", end="2018-02", freq="M")
+        ser = pd.Series(range(len(dti)), index=dti)
+        result1 = ser.slice("2018")
+        result2 = ser.slice("2018", closed="left")
+
+        expected = ser.loc_left[:"2018"]
+        tm.assert_series_equal(result1, expected)
+        tm.assert_series_equal(result2, expected)
+
+        start = "2017-02"
+
+        result = ser.slice("2018", closed="left")
+        expected = ser.loc_left[:"2018"]
+        tm.assert_series_equal(result, expected)
+
+        result = ser.slice(start, "2018", closed="left")
+        expected = ser.loc_left[start:"2018"]
+        tm.assert_series_equal(result, expected)
+
+        df = ser.to_frame()
+        result = df.slice("2018", closed="left")
+        expected = df.loc_left[:"2018"]
+        tm.assert_frame_equal(result, expected)
+        result = df.slice(start, "2018", closed="left")
+        expected = df.loc_left[start:"2018"]
+        tm.assert_frame_equal(result, expected)
+
+        # duplicates
+        rdti = np.repeat(dti, 2)
+        ser = pd.Series(range(len(rdti)), index=rdti)
+        result = ser.slice("2018", closed="left")
+        expected = ser.loc_left[:"2018"]
+        tm.assert_series_equal(result, expected)
+
+        result = ser.slice(start, "2018", closed="left")
+        expected = ser.loc_left[start:"2018"]
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame(
+            dict(a=range(len(rdti)), b=range(100, 100 + len(rdti))), index=rdti
+        )
+        result = df.slice("2018", closed="left")
+        expected = df.loc_left[:"2018"]
+        tm.assert_frame_equal(result, expected)
+        result = df.slice(start, "2018", closed="left")
+        expected = df.loc_left[start:"2018"]
+        tm.assert_frame_equal(result, expected)
+
+        # axis
+        df = pd.DataFrame(
+            dict(a=range(len(rdti)), b=range(100, 100 + len(rdti))), index=rdti
+        )
+        df = df.T
+        result = df.slice("2018", closed="left", axis=1)
+        expected = df.T.loc_left[:"2018"].T
+        tm.assert_frame_equal(result, expected)
+
+        result = df.slice(start, "2018", closed="left", axis=1)
+        expected = df.T.loc_left[start:"2018"].T
+        tm.assert_frame_equal(result, expected)

@@ -2073,6 +2073,67 @@ class NDFrame(PandasObject, SelectionMixin):
 
         self._item_cache = {}
 
+    def slice(self, *args, closed="left", axis=0, **kwds):
+        """A minimalist, pythonic, function for slicing a Pandas-Object
+
+        slice(stop)
+        slice(start, stop[, step]
+        slice(start, stop[, step], closed="left")
+        slice(start, stop[, step], axis=1)
+
+        Parameters
+        ----------
+        start : optional, default None
+        stop : optional, default None
+        step : integer, optional, default 1
+        closed : str, default 'left'
+            'left'/'right'/'both'/'neither'
+        axis : int, default 0
+
+        Returns
+        -------
+        Series or DataFrame
+        """
+        assert axis in (0, 1)
+        step = None
+        if len(args) < 1:
+            raise TypeError("TypeError: slice expected at least 1 arguments, got 0")
+        elif len(args) == 1:
+            start = None
+            stop = args[0]
+        elif len(args) < 4:
+            values = [None] * 3
+            values[: len(args)] = args
+            start, stop, step = values
+        else:
+            msg = "TypeError: slice expected 3 arguments, got %d"
+            raise TypeError(msg % len(args))
+
+        obj = self
+        if axis == 1:
+            obj = obj.T
+
+        if closed == "both":
+            obj = obj.loc[slice(start, stop, step)]
+        elif closed == "left":
+            obj = obj.loc_left[slice(start, stop, step)]
+        elif closed == "right":
+            raise NotImplementedError
+        elif closed == "neither":
+            raise NotImplementedError
+        else:
+            raise ValueError(
+                (
+                    "closed='%s' is Invalid. "
+                    " Valid values for 'closed' are 'left', "
+                    "'right', 'both', or 'neither'"
+                )
+                % closed
+            )
+        if axis == 1:
+            obj = obj.T
+        return obj
+
     # ----------------------------------------------------------------------
     # Rendering Methods
 
