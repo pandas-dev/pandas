@@ -1861,7 +1861,7 @@ class _LocIndexer(_LocationIndexer):
 
                 if (
                     not isinstance(key, tuple)
-                    and len(key) > 1
+                    and len(key)
                     and not isinstance(key[0], tuple)
                 ):
                     key = tuple([key])
