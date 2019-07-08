@@ -124,11 +124,11 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
         ),
         (
             dict(index_col=[0, 1], names=["foo", "bar"]),
-            ("cannot specify names " "when specifying a " "multi-index header"),
+            ("cannot specify names when specifying a multi-index header"),
         ),
         (
             dict(index_col=[0, 1], usecols=["foo", "bar"]),
-            ("cannot specify " "usecols when " "specifying a " "multi-index header"),
+            ("cannot specify usecols when specifying a multi-index header"),
         ),
     ],
 )

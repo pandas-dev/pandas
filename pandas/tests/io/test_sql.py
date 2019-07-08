@@ -824,7 +824,7 @@ class _TestSQLApi(PandasSQLTest):
         frame = sql.read_sql_query("SELECT * FROM test_index_label", self.conn)
         assert frame.columns[:2].tolist() == ["C", "D"]
 
-        msg = "Length of 'index_label' should match number of levels, which" " is 2"
+        msg = "Length of 'index_label' should match number of levels, which is 2"
         with pytest.raises(ValueError, match=msg):
             sql.to_sql(
                 temp_frame,
@@ -1408,7 +1408,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
             else:
                 raise AssertionError(
-                    "DateCol loaded with incorrect type " "-> {0}".format(col.dtype)
+                    "DateCol loaded with incorrect type -> {0}".format(col.dtype)
                 )
 
         # GH11216
@@ -2566,7 +2566,7 @@ class TestXSQLite(SQLiteMixIn):
 @pytest.mark.single
 @pytest.mark.db
 @pytest.mark.skip(
-    reason="gh-13611: there is no support for MySQL " "if SQLAlchemy is not installed"
+    reason="gh-13611: there is no support for MySQL if SQLAlchemy is not installed"
 )
 class TestXMySQL(MySQLMixIn):
     @pytest.fixture(autouse=True, scope="class")

@@ -915,7 +915,7 @@ class TestStata:
             columns = ["byte_", "byte_"]
             read_stata(self.dta15_117, convert_dates=True, columns=columns)
 
-        msg = "The following columns were not found in the Stata data set:" " not_found"
+        msg = "The following columns were not found in the Stata data set: not_found"
         with pytest.raises(ValueError, match=msg):
             columns = ["byte_", "int_", "long_", "not_found"]
             read_stata(self.dta15_117, convert_dates=True, columns=columns)

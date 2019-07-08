@@ -172,7 +172,7 @@ class TestRoundTrip:
         with ensure_clean(ext) as pth:
             if c_idx_levels == 1 and c_idx_names:
                 pytest.skip(
-                    "Column index name cannot be " "serialized unless it's a MultiIndex"
+                    "Column index name cannot be serialized unless it's a MultiIndex"
                 )
 
             # Empty name case current read in as

@@ -56,7 +56,7 @@ class TestTextReader:
         assert len(set(map(id, result[0]))) == 2
 
     def test_skipinitialspace(self):
-        data = "a,   b\n" "a,   b\n" "a,   b\n" "a,   b"
+        data = "a,   b\na,   b\na,   b\na,   b"
 
         reader = TextReader(StringIO(data), skipinitialspace=True, header=None)
         result = reader.read()
@@ -129,10 +129,10 @@ class TestTextReader:
 
     def test_skip_bad_lines(self, capsys):
         # too many lines, see #2430 for why
-        data = "a:b:c\n" "d:e:f\n" "g:h:i\n" "j:k:l:m\n" "l:m:n\n" "o:p:q:r"
+        data = "a:b:c\nd:e:f\ng:h:i\nj:k:l:m\nl:m:n\no:p:q:r"
 
         reader = TextReader(StringIO(data), delimiter=":", header=None)
-        msg = r"Error tokenizing data\. C error: Expected 3 fields in" " line 4, saw 4"
+        msg = r"Error tokenizing data\. C error: Expected 3 fields in line 4, saw 4"
         with pytest.raises(parser.ParserError, match=msg):
             reader.read()
 
@@ -165,7 +165,7 @@ class TestTextReader:
         assert "Skipping line 6" in captured.err
 
     def test_header_not_enough_lines(self):
-        data = "skip this\n" "skip this\n" "a,b,c\n" "1,2,3\n" "4,5,6"
+        data = "skip this\nskip this\na,b,c\n1,2,3\n4,5,6"
 
         reader = TextReader(StringIO(data), delimiter=",", header=2)
         header = reader.header

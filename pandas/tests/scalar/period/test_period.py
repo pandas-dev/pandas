@@ -390,11 +390,11 @@ class TestPeriodConstruction:
         assert result.freq == p1.freq
         assert result.freqstr == "3M"
 
-        msg = "Frequency must be positive, because it" " represents span: -3M"
+        msg = "Frequency must be positive, because it represents span: -3M"
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="-3M")
 
-        msg = "Frequency must be positive, because it" " represents span: 0M"
+        msg = "Frequency must be positive, because it represents span: 0M"
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="0M")
 
@@ -445,7 +445,7 @@ class TestPeriodConstruction:
             assert result.freq == p2.freq
             assert result.freqstr == "25H"
 
-        msg = "Frequency must be positive, because it" " represents span: -25H"
+        msg = "Frequency must be positive, because it represents span: -25H"
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="-1D1H")
         with pytest.raises(ValueError, match=msg):
@@ -455,7 +455,7 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period(ordinal=1, freq="-1H1D")
 
-        msg = "Frequency must be positive, because it" " represents span: 0D"
+        msg = "Frequency must be positive, because it represents span: 0D"
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="0D0H")
         with pytest.raises(ValueError, match=msg):

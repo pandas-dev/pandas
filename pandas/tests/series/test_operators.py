@@ -194,7 +194,7 @@ class TestSeriesLogicalOps:
             pytest.param(
                 ops.rand_,
                 marks=pytest.mark.xfail(
-                    reason="GH#22092 Index " "implementation returns " "Index",
+                    reason="GH#22092 Index implementation returns Index",
                     raises=AssertionError,
                     strict=True,
                 ),
@@ -202,7 +202,7 @@ class TestSeriesLogicalOps:
             pytest.param(
                 ops.ror_,
                 marks=pytest.mark.xfail(
-                    reason="Index.get_indexer " "with non unique index",
+                    reason="Index.get_indexer with non unique index",
                     raises=InvalidIndexError,
                     strict=True,
                 ),

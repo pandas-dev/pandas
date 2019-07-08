@@ -215,9 +215,7 @@ class TestTimedeltaIndexArithmetic:
         msg = r"unsupported operand type\(s\) for \+: 'Timedelta' and 'int'"
         with pytest.raises(TypeError, match=msg):
             td + np.array([1])
-        msg = (
-            r"unsupported operand type\(s\) for \+: 'numpy.ndarray' and" " 'Timedelta'"
-        )
+        msg = r"unsupported operand type\(s\) for \+: 'numpy.ndarray' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
             np.array([1]) + td
 
@@ -227,7 +225,7 @@ class TestTimedeltaIndexArithmetic:
         msg = r"unsupported operand type\(s\) for -: 'Timedelta' and 'int'"
         with pytest.raises(TypeError, match=msg):
             td - np.array([1])
-        msg = r"unsupported operand type\(s\) for -: 'numpy.ndarray' and" " 'Timedelta'"
+        msg = r"unsupported operand type\(s\) for -: 'numpy.ndarray' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
             np.array([1]) - td
 

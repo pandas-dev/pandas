@@ -48,7 +48,7 @@ class TestPeriodIndexRendering:
     def test_frame_repr(self):
         df = pd.DataFrame({"A": [1, 2, 3]}, index=pd.date_range("2000", periods=3))
         result = repr(df)
-        expected = "            A\n" "2000-01-01  1\n" "2000-01-02  2\n" "2000-01-03  3"
+        expected = "            A\n2000-01-01  1\n2000-01-02  2\n2000-01-03  3"
         assert result == expected
 
     @pytest.mark.parametrize("method", ["__repr__", "__str__"])
@@ -65,13 +65,11 @@ class TestPeriodIndexRendering:
         idx9 = pd.period_range("2013Q1", periods=3, freq="Q")
         idx10 = PeriodIndex(["2011-01-01", "2011-02-01"], freq="3D")
 
-        exp1 = """PeriodIndex([], dtype='period[D]', freq='D')"""
+        exp1 = "PeriodIndex([], dtype='period[D]', freq='D')"
 
-        exp2 = """PeriodIndex(['2011-01-01'], dtype='period[D]', freq='D')"""
+        exp2 = "PeriodIndex(['2011-01-01'], dtype='period[D]', freq='D')"
 
-        exp3 = (
-            "PeriodIndex(['2011-01-01', '2011-01-02'], dtype='period[D]', " "freq='D')"
-        )
+        exp3 = "PeriodIndex(['2011-01-01', '2011-01-02'], dtype='period[D]', freq='D')"
 
         exp4 = (
             "PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03'], "
@@ -88,11 +86,9 @@ class TestPeriodIndexRendering:
             "dtype='period[H]', freq='H')"
         )
 
-        exp7 = "PeriodIndex(['2013Q1'], dtype='period[Q-DEC]', " "freq='Q-DEC')"
+        exp7 = "PeriodIndex(['2013Q1'], dtype='period[Q-DEC]', freq='Q-DEC')"
 
-        exp8 = (
-            "PeriodIndex(['2013Q1', '2013Q2'], dtype='period[Q-DEC]', " "freq='Q-DEC')"
-        )
+        exp8 = "PeriodIndex(['2013Q1', '2013Q2'], dtype='period[Q-DEC]', freq='Q-DEC')"
 
         exp9 = (
             "PeriodIndex(['2013Q1', '2013Q2', '2013Q3'], "

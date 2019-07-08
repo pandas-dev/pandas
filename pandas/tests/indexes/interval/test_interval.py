@@ -389,7 +389,7 @@ class TestIntervalIndex(Base):
             {"A": [1, 2, 3, 4]}, index=pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4])
         )
         result = repr(df)
-        expected = "        A\n" "(0, 1]  1\n" "(1, 2]  2\n" "(2, 3]  3\n" "(3, 4]  4"
+        expected = "        A\n(0, 1]  1\n(1, 2]  2\n(2, 3]  3\n(3, 4]  4"
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -406,7 +406,7 @@ class TestIntervalIndex(Base):
             ),
             (
                 pd.DataFrame,
-                ("            0\n" "(0.0, 1.0]  a\n" "NaN         b\n" "(2.0, 3.0]  c"),
+                ("            0\n(0.0, 1.0]  a\nNaN         b\n(2.0, 3.0]  c"),
             ),
         ],
     )

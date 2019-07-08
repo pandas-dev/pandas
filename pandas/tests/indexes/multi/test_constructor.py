@@ -454,7 +454,7 @@ def test_from_product_empty_three_levels(N):
     "invalid_input", [1, [1], [1, 2], [[1], 2], "a", ["a"], ["a", "b"], [["a"], "b"]]
 )
 def test_from_product_invalid_input(invalid_input):
-    msg = r"Input must be a list / sequence of iterables|" "Input must be list-like"
+    msg = r"Input must be a list / sequence of iterables|Input must be list-like"
     with pytest.raises(TypeError, match=msg):
         MultiIndex.from_product(iterables=invalid_input)
 

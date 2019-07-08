@@ -474,7 +474,7 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame((range(10), range(10, 20)), columns=("ones", "twos"))
 
-        msg = "If using all scalar " "values, you must pass " "an index"
+        msg = "If using all scalar values, you must pass an index"
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": False, "b": True})
 

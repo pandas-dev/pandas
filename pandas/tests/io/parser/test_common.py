@@ -1243,7 +1243,7 @@ def test_catch_too_many_names(all_parsers):
 10,11,12\n"""
     parser = all_parsers
     msg = (
-        "Too many columns specified: " "expected 4 and found 3"
+        "Too many columns specified: expected 4 and found 3"
         if parser.engine == "c"
         else "Number of passed names did not match "
         "number of header fields in the file"

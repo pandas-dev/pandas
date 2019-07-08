@@ -394,15 +394,15 @@ class TestPeriodIndex:
         )
         tm.assert_index_equal(pidx, expected)
 
-        msg = "Frequency must be positive, because it" " represents span: -1M"
+        msg = "Frequency must be positive, because it represents span: -1M"
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2011-01"], freq="-1M")
 
-        msg = "Frequency must be positive, because it" " represents span: 0M"
+        msg = "Frequency must be positive, because it represents span: 0M"
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2011-01"], freq="0M")
 
-        msg = "Frequency must be positive, because it" " represents span: 0M"
+        msg = "Frequency must be positive, because it represents span: 0M"
         with pytest.raises(ValueError, match=msg):
             period_range("2011-01", periods=3, freq="0M")
 

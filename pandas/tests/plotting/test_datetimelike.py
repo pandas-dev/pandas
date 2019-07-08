@@ -179,7 +179,7 @@ class TestTSPlot(TestPlotBase):
                 assert expected_string == ax.format_coord(first_x, first_y)
             except (ValueError):
                 pytest.skip(
-                    "skipping test because issue forming " "test comparison GH7664"
+                    "skipping test because issue forming test comparison GH7664"
                 )
 
         annual = Series(1, index=date_range("2014-01-01", periods=3, freq="A-DEC"))
@@ -1501,7 +1501,7 @@ class TestTSPlot(TestPlotBase):
         s2.plot(ax=ax)
         s1.plot(ax=ax)
 
-    @pytest.mark.xfail(reason="GH9053 matplotlib does not use" " ax.xaxis.converter")
+    @pytest.mark.xfail(reason="GH9053 matplotlib does not use ax.xaxis.converter")
     def test_add_matplotlib_datetime64(self):
         # GH9053 - ensure that a plot with PeriodConverter still understands
         # datetime64 data. This still fails because matplotlib overrides the

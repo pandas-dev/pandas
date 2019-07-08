@@ -109,7 +109,7 @@ class TestFeather:
     def test_rw_nthreads(self):
         df = pd.DataFrame({"A": np.arange(100000)})
         expected_warning = (
-            "the 'nthreads' keyword is deprecated, " "use 'use_threads' instead"
+            "the 'nthreads' keyword is deprecated, use 'use_threads' instead"
         )
         # TODO: make the warning work with check_stacklevel=True
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:

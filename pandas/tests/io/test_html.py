@@ -220,9 +220,7 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_invalid(self):
-        with pytest.raises(
-            TypeError, match=("is not a valid type " "for skipping rows")
-        ):
+        with pytest.raises(TypeError, match=("is not a valid type for skipping rows")):
             self.read_html(self.spam_data, ".*Water.*", skiprows="asdf")
 
     def test_index(self):

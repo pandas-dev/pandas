@@ -844,7 +844,7 @@ class TestExpanding(Base):
             pytest.param(
                 "ls",
                 marks=pytest.mark.xfail(
-                    reason="GH#16425 expanding with " "offset not supported"
+                    reason="GH#16425 expanding with offset not supported"
                 ),
             ),
         ],
@@ -1775,9 +1775,8 @@ class TestMoments(Base):
         data = np.arange(5)
         s = Series(data)
 
-        with pytest.raises(
-            ValueError, match="Interpolation 'invalid'" " is not supported"
-        ):
+        msg = "Interpolation 'invalid' is not supported"
+        with pytest.raises(ValueError, match=msg):
             s.rolling(len(data), min_periods=1).quantile(0.5, interpolation="invalid")
 
     def test_rolling_quantile_param(self):

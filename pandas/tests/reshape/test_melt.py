@@ -121,9 +121,7 @@ class TestMelt:
         tuple_b = ("B", "b")
         list_b = [tuple_b]
 
-        msg = (
-            r"(id|value)_vars must be a list of tuples when columns are" " a MultiIndex"
-        )
+        msg = r"(id|value)_vars must be a list of tuples when columns are a MultiIndex"
         for id_vars, value_vars in (
             (tuple_a, list_b),
             (list_a, tuple_b),

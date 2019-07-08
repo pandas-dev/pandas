@@ -126,7 +126,7 @@ class TestDataFrameMissingData:
         assert_frame_equal(dropped, expected)
 
         # bad input
-        msg = "No axis named 3 for object type" " <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 3 for object type <class 'pandas.core.frame.DataFrame'>"
         with pytest.raises(ValueError, match=msg):
             df.dropna(axis=3)
 
@@ -362,7 +362,7 @@ class TestDataFrameMissingData:
         res = df.fillna(value={"cats": 3, "vals": "b"})
         tm.assert_frame_equal(res, df_exp_fill)
 
-        with pytest.raises(ValueError, match=("fill value must " "be in categories")):
+        with pytest.raises(ValueError, match=("fill value must be in categories")):
             df.fillna(value={"cats": 4, "vals": "c"})
 
         res = df.fillna(method="pad")

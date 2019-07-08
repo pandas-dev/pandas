@@ -62,7 +62,7 @@ def test_where_with_numeric_data(data):
     ],
 )
 @pytest.mark.parametrize("other", [True, -100, 0.1, 100.0 + 100.0j])
-@pytest.mark.skip(reason="Wrong SparseBlock initialization " "(Segfault) " "(GH 17386)")
+@pytest.mark.skip(reason="Wrong SparseBlock initialization (Segfault) (GH 17386)")
 def test_where_with_numeric_data_and_other(data, other):
     # GH 17386
     lower_bound = 1.5
@@ -96,7 +96,7 @@ def test_where_with_bool_data():
 
 
 @pytest.mark.parametrize("other", [True, 0, 0.1, 100.0 + 100.0j])
-@pytest.mark.skip(reason="Wrong SparseBlock initialization " "(Segfault) " "(GH 17386)")
+@pytest.mark.skip(reason="Wrong SparseBlock initialization (Segfault) (GH 17386)")
 def test_where_with_bool_data_and_other(other):
     # GH 17386
     data = [False, False, True, True, False, False]

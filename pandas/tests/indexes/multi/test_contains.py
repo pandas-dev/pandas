@@ -81,7 +81,7 @@ def test_isin_level_kwarg():
     msg = "Too many levels: Index has only 2 levels, not 6"
     with pytest.raises(IndexError, match=msg):
         idx.isin(vals_0, level=5)
-    msg = "Too many levels: Index has only 2 levels, -5 is not a valid level" " number"
+    msg = "Too many levels: Index has only 2 levels, -5 is not a valid level number"
     with pytest.raises(IndexError, match=msg):
         idx.isin(vals_0, level=-5)
 

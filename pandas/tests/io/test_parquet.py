@@ -40,13 +40,13 @@ except ImportError:
         pytest.param(
             "fastparquet",
             marks=pytest.mark.skipif(
-                not _HAVE_FASTPARQUET, reason="fastparquet is " "not installed"
+                not _HAVE_FASTPARQUET, reason="fastparquet is not installed"
             ),
         ),
         pytest.param(
             "pyarrow",
             marks=pytest.mark.skipif(
-                not _HAVE_PYARROW, reason="pyarrow is " "not installed"
+                not _HAVE_PYARROW, reason="pyarrow is not installed"
             ),
         ),
     ]

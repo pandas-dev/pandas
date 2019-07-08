@@ -88,7 +88,7 @@ def test_repr_dtype(dtype, expected):
 
 def test_repr_array():
     result = repr(integer_array([1, None, 3]))
-    expected = "<IntegerArray>\n" "[1, NaN, 3]\n" "Length: 3, dtype: Int64"
+    expected = "<IntegerArray>\n[1, NaN, 3]\nLength: 3, dtype: Int64"
     assert result == expected
 
 
