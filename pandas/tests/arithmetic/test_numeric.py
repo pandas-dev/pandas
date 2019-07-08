@@ -469,7 +469,7 @@ class TestMultiplicationDivision:
             pytest.param(
                 pd.Index,
                 marks=pytest.mark.xfail(
-                    reason="Index.__div__ always " "raises", raises=TypeError
+                    reason="Index.__div__ always raises", raises=TypeError
                 ),
             ),
             pd.Series,

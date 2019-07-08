@@ -663,7 +663,7 @@ class TestDatetimeIndex:
             DatetimeIndex(idx, dtype="datetime64[ns]")
 
         # this is effectively trying to convert tz's
-        msg = "data is already tz-aware US/Eastern, unable to set specified" " tz: CET"
+        msg = "data is already tz-aware US/Eastern, unable to set specified tz: CET"
         with pytest.raises(TypeError, match=msg):
             DatetimeIndex(idx, dtype="datetime64[ns, CET]")
         msg = "cannot supply both a tz and a dtype with a tz"

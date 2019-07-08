@@ -196,10 +196,8 @@ class TestStringMethods:
     def test_api_mi_raises(self):
         # GH 23679
         mi = MultiIndex.from_arrays([["a", "b", "c"]])
-        with pytest.raises(
-            AttributeError,
-            match="Can only use .str accessor " "with Index, not MultiIndex",
-        ):
+        msg = "Can only use .str accessor with Index, not MultiIndex"
+        with pytest.raises(AttributeError, match=msg):
             mi.str
         assert not hasattr(mi, "str")
 
@@ -232,10 +230,8 @@ class TestStringMethods:
             assert isinstance(t.str, strings.StringMethods)
         else:
             # GH 9184, GH 23011, GH 23163
-            with pytest.raises(
-                AttributeError,
-                match="Can only use .str " "accessor with string values.*",
-            ):
+            msg = "Can only use .str accessor with string values.*"
+            with pytest.raises(AttributeError, match=msg):
                 t.str
             assert not hasattr(t, "str")
 
@@ -1101,7 +1097,7 @@ class TestStringMethods:
         with pytest.raises(ValueError, match=msg):
             values.str.replace("abc", callable_repl, regex=False)
 
-        msg = "Cannot use a compiled regex as replacement pattern with" " regex=False"
+        msg = "Cannot use a compiled regex as replacement pattern with regex=False"
         with pytest.raises(ValueError, match=msg):
             values.str.replace(compiled_pat, "", regex=False)
 

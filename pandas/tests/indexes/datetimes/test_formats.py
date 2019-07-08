@@ -83,8 +83,8 @@ class TestDatetimeIndexRendering:
         )
 
         exp = []
-        exp.append("""DatetimeIndex([], dtype='datetime64[ns]', freq='D')""")
-        exp.append("DatetimeIndex(['2011-01-01'], dtype='datetime64[ns]', " "freq='D')")
+        exp.append("DatetimeIndex([], dtype='datetime64[ns]', freq='D')")
+        exp.append("DatetimeIndex(['2011-01-01'], dtype='datetime64[ns]', freq='D')")
         exp.append(
             "DatetimeIndex(['2011-01-01', '2011-01-02'], "
             "dtype='datetime64[ns]', freq='D')"
@@ -132,9 +132,9 @@ class TestDatetimeIndexRendering:
 
         exp1 = """Series([], dtype: datetime64[ns])"""
 
-        exp2 = "0   2011-01-01\n" "dtype: datetime64[ns]"
+        exp2 = "0   2011-01-01\ndtype: datetime64[ns]"
 
-        exp3 = "0   2011-01-01\n" "1   2011-01-02\n" "dtype: datetime64[ns]"
+        exp3 = "0   2011-01-01\n1   2011-01-02\ndtype: datetime64[ns]"
 
         exp4 = (
             "0   2011-01-01\n"
@@ -186,13 +186,13 @@ class TestDatetimeIndexRendering:
             ["2011-01-01 09:00", "2011-01-01 10:00", pd.NaT], tz="US/Eastern"
         )
 
-        exp1 = "DatetimeIndex: 0 entries\n" "Freq: D"
+        exp1 = "DatetimeIndex: 0 entries\nFreq: D"
 
-        exp2 = "DatetimeIndex: 1 entries, 2011-01-01 to 2011-01-01\n" "Freq: D"
+        exp2 = "DatetimeIndex: 1 entries, 2011-01-01 to 2011-01-01\nFreq: D"
 
-        exp3 = "DatetimeIndex: 2 entries, 2011-01-01 to 2011-01-02\n" "Freq: D"
+        exp3 = "DatetimeIndex: 2 entries, 2011-01-01 to 2011-01-02\nFreq: D"
 
-        exp4 = "DatetimeIndex: 3 entries, 2011-01-01 to 2011-01-03\n" "Freq: D"
+        exp4 = "DatetimeIndex: 3 entries, 2011-01-01 to 2011-01-03\nFreq: D"
 
         exp5 = (
             "DatetimeIndex: 3 entries, 2011-01-01 09:00:00+09:00 "

@@ -508,7 +508,7 @@ class TestTableOrient:
     def test_convert_json_field_to_pandas_type_raises(self, inp):
         field = {"type": inp}
         with pytest.raises(
-            ValueError, match=("Unsupported or invalid field " "type: {}".format(inp))
+            ValueError, match=("Unsupported or invalid field type: {}".format(inp))
         ):
             convert_json_field_to_pandas_type(field)
 

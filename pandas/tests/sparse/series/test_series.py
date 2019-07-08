@@ -1194,7 +1194,7 @@ class TestSparseSeriesScipyInteraction:
 
     def test_to_coo_duplicate_index_entries(self):
         ss = pd.concat([self.sparse_series[0], self.sparse_series[0]]).to_sparse()
-        msg = "Duplicate index entries are not allowed in to_coo" " transformation"
+        msg = "Duplicate index entries are not allowed in to_coo transformation"
         with pytest.raises(ValueError, match=msg):
             ss.to_coo(["A", "B"], ["C", "D"])
 

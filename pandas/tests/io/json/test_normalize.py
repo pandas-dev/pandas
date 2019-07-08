@@ -297,7 +297,7 @@ class TestJSONNormalize:
             }
         ]
 
-        msg = r"Conflicting metadata name (foo|bar)," " need distinguishing prefix"
+        msg = r"Conflicting metadata name (foo|bar), need distinguishing prefix"
         with pytest.raises(ValueError, match=msg):
             json_normalize(data, "data", meta=["foo", "bar"])
 
@@ -491,7 +491,7 @@ class TestNestedToRecord:
         # If meta keys are not always present a new option to set
         # errors='ignore' has been implemented
 
-        msg = "Try running with errors='ignore' as key 'name'" " is not always present"
+        msg = "Try running with errors='ignore' as key 'name' is not always present"
         with pytest.raises(KeyError, match=msg):
             json_normalize(
                 data=missing_metadata,

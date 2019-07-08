@@ -1819,9 +1819,8 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result, df)
 
         # gh-16120: already existing column
-        with pytest.raises(
-            ValueError, match=(r"cannot insert \('A', ''\), " "already exists")
-        ):
+        msg = r"cannot insert \('A', ''\), already exists"
+        with pytest.raises(ValueError, match=msg):
             df.rename_axis("A").reset_index()
 
         # gh-16164: multiindex (tuple) full key
@@ -1837,9 +1836,8 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result, expected)
 
         # with index name which is a too long tuple...
-        with pytest.raises(
-            ValueError, match=("Item must have length equal " "to number of levels.")
-        ):
+        msg = "Item must have length equal to number of levels."
+        with pytest.raises(ValueError, match=msg):
             df.rename_axis([("C", "c", "i")]).reset_index()
 
         # or too short...
