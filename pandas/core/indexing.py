@@ -24,7 +24,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index, InvalidIndexError, MultiIndex
 
 
 # the supported indexers
@@ -118,7 +118,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             try:
                 values = self.obj._get_value(*key)
-            except (KeyError, TypeError):
+            except (KeyError, TypeError, InvalidIndexError):
                 # TypeError occurs here if the key has non-hashable entries,
                 #  generally slice or list.
                 # TODO(ix): most/all of the TypeError cases here are for ix,
