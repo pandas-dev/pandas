@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib, tslib, tslibs
+from pandas._libs import NaT, lib, tslib, tslibs
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
 from pandas.util._validators import validate_bool_kwarg
@@ -413,7 +413,9 @@ class Block(PandasObject):
         try:
             # Note: we only call try_coerce_args to let it raise
             self._try_coerce_args(value)
+            assert self._can_hold_element(value), value
         except (TypeError, ValueError):
+            assert not self._can_hold_element(value), value
 
             # we can't process the value, but nothing to do
             if not mask.any():
@@ -2275,7 +2277,13 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return tipo == _NS_DTYPE or tipo == np.int64
-        return is_integer(element) or isinstance(element, datetime) or isna(element)
+        if isinstance(element, datetime):
+            return element.tzinfo is None
+        if is_integer(element):
+            return element == tslibs.iNaT
+
+        # TODO: shouldnt we exclude timedelta64("NaT")?  See GH#27297
+        return isna(element)
 
     def _coerce_values(self, values):
         return values.view("i8")
@@ -2627,6 +2635,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, (np.timedelta64, np.int64))
+        if element is NaT:
+            return True
         return is_integer(element) or isinstance(
             element, (timedelta, np.timedelta64, np.int64)
         )
