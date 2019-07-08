@@ -14,6 +14,22 @@ from pandas import Index, Series, Timedelta, TimedeltaIndex
 from pandas.core import ops
 import pandas.util.testing as tm
 
+
+def adjust_negative_zero(zero, expected):
+    """
+    Helper to adjust the expected result if we are dividing by -0.0
+    as opposed to 0.0
+    """
+    if np.signbit(np.array(zero)).any():
+        # All entries in the `zero` fixture should be either
+        #  all-negative or no-negative.
+        assert np.signbit(np.array(zero)).all()
+
+        expected *= -1
+
+    return expected
+
+
 # ------------------------------------------------------------------
 # Comparisons
 
@@ -229,20 +245,27 @@ class TestDivisionByZero:
         idx = numeric_idx
 
         expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
+        # We only adjust for Index, because Series does not yet apply
+        #  the adjustment correctly.
+        expected2 = adjust_negative_zero(zero, expected)
+
         result = idx / zero
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected2)
         ser_compat = Series(idx).astype("i8") / np.array(zero).astype("i8")
-        tm.assert_series_equal(ser_compat, Series(result))
+        tm.assert_series_equal(ser_compat, Series(expected))
 
     def test_floordiv_zero(self, zero, numeric_idx):
         idx = numeric_idx
 
         expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
+        # We only adjust for Index, because Series does not yet apply
+        #  the adjustment correctly.
+        expected2 = adjust_negative_zero(zero, expected)
 
         result = idx // zero
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected2)
         ser_compat = Series(idx).astype("i8") // np.array(zero).astype("i8")
-        tm.assert_series_equal(ser_compat, Series(result))
+        tm.assert_series_equal(ser_compat, Series(expected))
 
     def test_mod_zero(self, zero, numeric_idx):
         idx = numeric_idx
@@ -258,10 +281,26 @@ class TestDivisionByZero:
 
         exleft = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
         exright = pd.Index([np.nan, np.nan, np.nan, np.nan, np.nan], dtype=np.float64)
+        exleft = adjust_negative_zero(zero, exleft)
 
         result = divmod(idx, zero)
         tm.assert_index_equal(result[0], exleft)
         tm.assert_index_equal(result[1], exright)
+
+    @pytest.mark.parametrize("op", [operator.truediv, operator.floordiv])
+    def test_div_negative_zero(self, zero, numeric_idx, op):
+        # Check that -1 / -0.0 returns np.inf, not -np.inf
+        if isinstance(numeric_idx, pd.UInt64Index):
+            return
+        idx = numeric_idx - 3
+
+        expected = pd.Index(
+            [-np.inf, -np.inf, -np.inf, np.nan, np.inf], dtype=np.float64
+        )
+        expected = adjust_negative_zero(zero, expected)
+
+        result = op(idx, zero)
+        tm.assert_index_equal(result, expected)
 
     # ------------------------------------------------------------------
 
@@ -895,6 +934,26 @@ class TestAdditionSubtraction:
         check(tser, tser * 0)
         check(tser, tser[::2])
         check(tser, 5)
+
+    @pytest.mark.xfail(
+        reason="Series division does not yet fill 1/0 consistently; Index does."
+    )
+    def test_series_divmod_zero(self):
+        # Check that divmod uses pandas convention for division by zero,
+        #  which does not match numpy.
+        # pandas convention has
+        #  1/0 == np.inf
+        #  -1/0 == -np.inf
+        #  1/-0.0 == -np.inf
+        #  -1/-0.0 == np.inf
+        tser = tm.makeTimeSeries().rename("ts")
+        other = tser * 0
+
+        result = divmod(tser, other)
+        exp1 = pd.Series([np.inf] * len(tser), index=tser.index)
+        exp2 = pd.Series([np.nan] * len(tser), index=tser.index)
+        tm.assert_series_equal(result[0], exp1)
+        tm.assert_series_equal(result[1], exp2)
 
 
 class TestUFuncCompat:

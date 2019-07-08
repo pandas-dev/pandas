@@ -30,8 +30,12 @@ zeros = [
     for box_cls in [pd.Index, np.array]
     for dtype in [np.int64, np.uint64, np.float64]
 ]
+zeros.extend(
+    [box_cls([-0.0] * 5, dtype=np.float64) for box_cls in [pd.Index, np.array]]
+)
 zeros.extend([np.array(0, dtype=dtype) for dtype in [np.int64, np.uint64, np.float64]])
-zeros.extend([0, 0.0])
+zeros.extend([np.array(-0.0, dtype=np.float64)])
+zeros.extend([0, 0.0, -0.0])
 
 
 @pytest.fixture(params=zeros)
