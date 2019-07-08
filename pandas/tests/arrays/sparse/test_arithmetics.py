@@ -21,28 +21,6 @@ def mix(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[
-        operator.add,
-        ops.radd,
-        operator.sub,
-        ops.rsub,
-        operator.mul,
-        ops.rmul,
-        operator.truediv,
-        ops.rtruediv,
-        operator.floordiv,
-        ops.rfloordiv,
-        operator.mod,
-        ops.rmod,
-        operator.pow,
-        ops.rpow,
-    ]
-)
-def op(request):
-    return request.param
-
-
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSparseArrayArithmetics:
@@ -138,7 +116,10 @@ class TestSparseArrayArithmetics:
 
     @pytest.mark.parametrize("scalar", [0, 1, 3])
     @pytest.mark.parametrize("fill_value", [None, 0, 2])
-    def test_float_scalar(self, kind, mix, op, fill_value, scalar):
+    def test_float_scalar(
+        self, kind, mix, all_arithmetic_functions, fill_value, scalar
+    ):
+        op = all_arithmetic_functions
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
 
         a = self._klass(values, kind=kind, fill_value=fill_value)
@@ -162,8 +143,9 @@ class TestSparseArrayArithmetics:
         self._check_comparison_ops(a, 0, values, 0)
         self._check_comparison_ops(a, 3, values, 3)
 
-    def test_float_same_index(self, kind, mix, op):
+    def test_float_same_index(self, kind, mix, all_arithmetic_functions):
         # when sp_index are the same
+        op = all_arithmetic_functions
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
         rvalues = self._base([np.nan, 2, 3, 4, np.nan, 0, 1, 3, 2, np.nan])
 
@@ -194,7 +176,9 @@ class TestSparseArrayArithmetics:
         b = self._klass(rvalues, kind=kind, fill_value=0)
         self._check_comparison_ops(a, b, values, rvalues)
 
-    def test_float_array(self, kind, mix, op):
+    def test_float_array(self, kind, mix, all_arithmetic_functions):
+        op = all_arithmetic_functions
+
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
         rvalues = self._base([2, np.nan, 2, 3, np.nan, 0, 1, 5, 2, np.nan])
 
@@ -215,7 +199,9 @@ class TestSparseArrayArithmetics:
         b = self._klass(rvalues, kind=kind, fill_value=2)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
-    def test_float_array_different_kind(self, mix, op):
+    def test_float_array_different_kind(self, mix, all_arithmetic_functions):
+        op = all_arithmetic_functions
+
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
         rvalues = self._base([2, np.nan, 2, 3, np.nan, 0, 1, 5, 2, np.nan])
 
@@ -257,7 +243,9 @@ class TestSparseArrayArithmetics:
         b = self._klass(rvalues, kind=kind, fill_value=2)
         self._check_comparison_ops(a, b, values, rvalues)
 
-    def test_int_array(self, kind, mix, op):
+    def test_int_array(self, kind, mix, all_arithmetic_functions):
+        op = all_arithmetic_functions
+
         # have to specify dtype explicitly until fixing GH 667
         dtype = np.int64
 
@@ -337,7 +325,9 @@ class TestSparseArrayArithmetics:
         b = self._klass(rvalues, kind=kind, dtype=np.bool, fill_value=fill_value)
         self._check_logical_ops(a, b, values, rvalues)
 
-    def test_mixed_array_float_int(self, kind, mix, op):
+    def test_mixed_array_float_int(self, kind, mix, all_arithmetic_functions):
+        op = all_arithmetic_functions
+
         rdtype = "int64"
 
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
@@ -403,7 +393,9 @@ class TestSparseSeriesArithmetic(TestSparseArrayArithmetics):
     def _assert(self, a, b):
         tm.assert_series_equal(a, b)
 
-    def test_alignment(self, mix, op):
+    def test_alignment(self, mix, all_arithmetic_functions):
+        op = all_arithmetic_functions
+
         da = pd.Series(np.arange(4))
         db = pd.Series(np.arange(4), index=[1, 2, 3, 4])
 
