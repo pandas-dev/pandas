@@ -378,7 +378,7 @@ class TestCategoricalIndex:
         exp = DataFrame({"A": [1, 1, 2], "B": [4, 4, 5]}, index=exp_index)
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        msg = "a list-indexer must only include " "values that are in the categories"
+        msg = "a list-indexer must only include values that are in the categories"
         with pytest.raises(KeyError, match=msg):
             df.loc[["a", "x"]]
 
@@ -401,7 +401,7 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        msg = "a list-indexer must only include values " "that are in the categories"
+        msg = "a list-indexer must only include values that are in the categories"
         with pytest.raises(KeyError, match=msg):
             df.loc[["a", "x"]]
 
@@ -431,7 +431,7 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        msg = "a list-indexer must only include values " "that are in the categories"
+        msg = "a list-indexer must only include values that are in the categories"
         with pytest.raises(KeyError, match=msg):
             df.loc[["a", "x"]]
 

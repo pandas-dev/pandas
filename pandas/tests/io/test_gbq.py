@@ -33,9 +33,7 @@ def _skip_if_no_project_id():
 
 def _skip_if_no_private_key_path():
     if not _get_private_key_path():
-        pytest.skip(
-            "Cannot run integration tests without a " "private key json file path"
-        )
+        pytest.skip("Cannot run integration tests without a private key json file path")
 
 
 def _in_travis_environment():

@@ -1141,7 +1141,7 @@ class TestMerge:
             validate="one_to_many",
         )
 
-        msg = "Merge keys are not unique in right dataset; not a one-to-one" " merge"
+        msg = "Merge keys are not unique in right dataset; not a one-to-one merge"
         with pytest.raises(MergeError, match=msg):
             merge(
                 left,
@@ -1166,7 +1166,7 @@ class TestMerge:
             validate="many_to_one",
         )
 
-        msg = "Merge keys are not unique in left dataset; not a one-to-one" " merge"
+        msg = "Merge keys are not unique in left dataset; not a one-to-one merge"
         with pytest.raises(MergeError, match=msg):
             merge(
                 left_w_dups,
@@ -1182,7 +1182,7 @@ class TestMerge:
         # Dups on both
         merge(left_w_dups, right_w_dups, on="a", validate="many_to_many")
 
-        msg = "Merge keys are not unique in right dataset; not a many-to-one" " merge"
+        msg = "Merge keys are not unique in right dataset; not a many-to-one merge"
         with pytest.raises(MergeError, match=msg):
             merge(
                 left_w_dups,
@@ -1192,7 +1192,7 @@ class TestMerge:
                 validate="many_to_one",
             )
 
-        msg = "Merge keys are not unique in left dataset; not a one-to-many" " merge"
+        msg = "Merge keys are not unique in left dataset; not a one-to-many merge"
         with pytest.raises(MergeError, match=msg):
             merge(left_w_dups, right_w_dups, on="a", validate="one_to_many")
 

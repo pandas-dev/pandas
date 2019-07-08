@@ -374,7 +374,7 @@ class TestDataFrameFormatting:
         term_width, term_height = get_terminal_size()
         if term_width < 10 or term_height < 10:
             pytest.skip(
-                "terminal size too small, " "{0} x {1}".format(term_width, term_height)
+                "terminal size too small, {0} x {1}".format(term_width, term_height)
             )
 
         def mkframe(n):
@@ -1409,11 +1409,11 @@ class TestDataFrameFormatting:
 
         df_s = df.to_string(index=False)
         # Leading space is expected for positive numbers.
-        expected = "  x   y    z\n" " 11  33  AAA\n" " 22 -44     "
+        expected = "  x   y    z\n 11  33  AAA\n 22 -44     "
         assert df_s == expected
 
         df_s = df[["y", "x", "z"]].to_string(index=False)
-        expected = "  y   x    z\n" " 33  11  AAA\n" "-44  22     "
+        expected = "  y   x    z\n 33  11  AAA\n-44  22     "
         assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
@@ -1475,7 +1475,7 @@ class TestDataFrameFormatting:
         df = DataFrame({"x": [3234, 0.253]})
         df_s = df.to_string()
 
-        expected = "          x\n" "0  3234.000\n" "1     0.253"
+        expected = "          x\n0  3234.000\n1     0.253"
         assert df_s == expected
 
         tm.reset_display_options()
@@ -1485,9 +1485,9 @@ class TestDataFrameFormatting:
         df_s = df.to_string()
 
         if _three_digit_exp():
-            expected = "               x\n" "0  1.000000e+009\n" "1  2.512000e-001"
+            expected = "               x\n0  1.000000e+009\n1  2.512000e-001"
         else:
-            expected = "              x\n" "0  1.000000e+09\n" "1  2.512000e-01"
+            expected = "              x\n0  1.000000e+09\n1  2.512000e-01"
         assert df_s == expected
 
     def test_to_string_float_format_no_fixed_width(self):
@@ -1526,14 +1526,14 @@ class TestDataFrameFormatting:
         # but not all exactly zero
         df = df * 0
         result = df.to_string()
-        expected = "   0\n" "0  0\n" "1  0\n" "2 -0"
+        expected = "   0\n0  0\n1  0\n2 -0"
 
     def test_to_string_float_index(self):
         index = Index([1.5, 2, 3, 4, 5])
         df = DataFrame(np.arange(5), index=index)
 
         result = df.to_string()
-        expected = "     0\n" "1.5  0\n" "2.0  1\n" "3.0  2\n" "4.0  3\n" "5.0  4"
+        expected = "     0\n1.5  0\n2.0  1\n3.0  2\n4.0  3\n5.0  4"
         assert result == expected
 
     def test_to_string_complex_float_formatting(self):
@@ -1562,7 +1562,7 @@ class TestDataFrameFormatting:
                 "0  ",
                 "                        .gitignore ",
                 "     5 ",
-                " \xe2\x80\xa2\xe2\x80\xa2\xe2\x80" "\xa2\xe2\x80\xa2\xe2\x80\xa2",
+                " \xe2\x80\xa2\xe2\x80\xa2\xe2\x80\xa2\xe2\x80\xa2\xe2\x80\xa2",
             )
         ]
         df = DataFrame(data)
@@ -1575,7 +1575,7 @@ class TestDataFrameFormatting:
         assert issubclass(df["x"].dtype.type, np.integer)
 
         output = df.to_string()
-        expected = "    x\n" "0 -15\n" "1  20\n" "2  25\n" "3 -35"
+        expected = "    x\n0 -15\n1  20\n2  25\n3 -35"
         assert output == expected
 
     def test_to_string_index_formatter(self):
@@ -1596,7 +1596,7 @@ c  10  11  12  13  14\
         tm.reset_display_options()
         df = DataFrame({"x": [3234, 0.253]})
         df_s = df.to_string(justify="left")
-        expected = "   x       \n" "0  3234.000\n" "1     0.253"
+        expected = "   x       \n0  3234.000\n1     0.253"
         assert df_s == expected
 
     def test_to_string_format_na(self):
@@ -2077,7 +2077,7 @@ class TestSeriesFormatting:
         result = cp.to_string(length=True, name=True, dtype=True)
         last_line = result.split("\n")[-1].strip()
         assert last_line == (
-            "Freq: B, Name: foo, " "Length: {cp}, dtype: float64".format(cp=len(cp))
+            "Freq: B, Name: foo, Length: {cp}, dtype: float64".format(cp=len(cp))
         )
 
     def test_freq_name_separation(self):
@@ -2136,22 +2136,18 @@ class TestSeriesFormatting:
 
         # unicode index
         s = Series(["a", "bb", "CCC", "D"], index=["あ", "いい", "ううう", "ええええ"])
-        expected = (
-            "あ         a\nいい       bb\nううう     CCC\n" "ええええ      D\ndtype: object"
-        )
+        expected = "あ         a\nいい       bb\nううう     CCC\nええええ      D\ndtype: object"
         assert repr(s) == expected
 
         # unicode values
         s = Series(["あ", "いい", "ううう", "ええええ"], index=["a", "bb", "c", "ddd"])
-        expected = (
-            "a         あ\nbb       いい\nc       ううう\n" "ddd    ええええ\ndtype: object"
-        )
+        expected = "a         あ\nbb       いい\nc       ううう\nddd    ええええ\ndtype: object"
         assert repr(s) == expected
 
         # both
         s = Series(["あ", "いい", "ううう", "ええええ"], index=["ああ", "いいいい", "う", "えええ"])
         expected = (
-            "ああ         あ\nいいいい      いい\nう        ううう\n" "えええ     ええええ\ndtype: object"
+            "ああ         あ\nいいいい      いい\nう        ううう\nえええ     ええええ\ndtype: object"
         )
         assert repr(s) == expected
 
@@ -2181,7 +2177,7 @@ class TestSeriesFormatting:
         # object dtype, shorter than unicode repr
         s = Series([1, 22, 3333, 44444], index=[1, "AB", np.nan, "あああ"])
         expected = (
-            "1          1\nAB        22\nNaN     3333\n" "あああ    44444\ndtype: int64"
+            "1          1\nAB        22\nNaN     3333\nあああ    44444\ndtype: int64"
         )
         assert repr(s) == expected
 
@@ -2559,7 +2555,7 @@ class TestSeriesFormatting:
             exp = "0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object"
             assert exp == res
             res = repr(test_sers["twol"])
-            exp = "0     ab\n1     ab\n      ..\n98    ab\n99    ab\ndtype:" " object"
+            exp = "0     ab\n1     ab\n      ..\n98    ab\n99    ab\ndtype: object"
             assert exp == res
             res = repr(test_sers["asc"])
             exp = (
