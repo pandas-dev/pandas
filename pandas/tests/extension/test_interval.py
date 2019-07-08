@@ -143,7 +143,10 @@ class TestMissing(BaseInterval, base.BaseMissingTests):
 
 
 class TestReshaping(BaseInterval, base.BaseReshapingTests):
-    pass
+
+    @pytest.mark.xfail(reason="setitem incorrectly makes copy, see GH#27147")
+    def test_ravel(self, data):
+        super().test_ravel(data)
 
 
 class TestSetitem(BaseInterval, base.BaseSetitemTests):

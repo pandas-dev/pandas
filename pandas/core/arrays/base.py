@@ -944,7 +944,7 @@ class ExtensionArray:
         # numpy accepts either a single tuple or an expanded tuple
         shape = tuplify_shape(self.size, shape)
         result = self.view()
-        result.shape = shape
+        result._shape = shape
         return result
 
     @property

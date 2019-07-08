@@ -758,6 +758,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @property
     def shape(self):
+        if self._shape is not None:
+            return self._shape
         return self.left.shape
 
     def take(self, indices, allow_fill=False, fill_value=None, axis=None, **kwargs):
