@@ -89,7 +89,7 @@ You can now store ``datetime64`` in data columns
     store.append('df_mixed', df_mixed)
     df_mixed1 = store.select('df_mixed')
     df_mixed1
-    df_mixed1.get_dtype_counts()
+    df_mixed1.dtypes.value_counts()
 
 You can pass ``columns`` keyword to select to filter a list of the return
 columns, this is equivalent to passing a

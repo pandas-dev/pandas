@@ -20,9 +20,10 @@ dependencies:
   - xlsxwriter=0.9.8
   - xlwt=1.2.0
   # universal
-  - pytest>=4.0.2
+  - pytest>=4.0.2,<5.0.0
   - pytest-xdist
   - pytest-mock
+  - pytest-azurepipelines
   - hypothesis>=3.58.0
   - pip
   - pip:

@@ -20,8 +20,7 @@ def test_basic(all_parsers, kwargs):
     data = "a,a,b,b,b\n1,2,3,4,5"
     result = parser.read_csv(StringIO(data), sep=",", **kwargs)
 
-    expected = DataFrame([[1, 2, 3, 4, 5]],
-                         columns=["a", "a.1", "b", "b.1", "b.2"])
+    expected = DataFrame([[1, 2, 3, 4, 5]], columns=["a", "a.1", "b", "b.1", "b.2"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -30,36 +29,41 @@ def test_basic_names(all_parsers):
     parser = all_parsers
 
     data = "a,b,a\n0,1,2\n3,4,5"
-    expected = DataFrame([[0, 1, 2], [3, 4, 5]],
-                         columns=["a", "b", "a.1"])
+    expected = DataFrame([[0, 1, 2], [3, 4, 5]], columns=["a", "b", "a.1"])
 
     result = parser.read_csv(StringIO(data))
     tm.assert_frame_equal(result, expected)
 
 
-def test_basic_names_warn(all_parsers):
+def test_basic_names_raise(all_parsers):
     # See gh-7160
     parser = all_parsers
 
     data = "0,1,2\n3,4,5"
-    expected = DataFrame([[0, 1, 2], [3, 4, 5]],
-                         columns=["a", "b", "a.1"])
-
-    with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), names=["a", "b", "a"])
-        tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match="Duplicate names"):
+        parser.read_csv(StringIO(data), names=["a", "b", "a"])
 
 
-@pytest.mark.parametrize("data,expected", [
-    ("a,a,a.1\n1,2,3",
-     DataFrame([[1, 2, 3]], columns=["a", "a.1", "a.1.1"])),
-    ("a,a,a.1,a.1.1,a.1.1.1,a.1.1.1.1\n1,2,3,4,5,6",
-     DataFrame([[1, 2, 3, 4, 5, 6]], columns=["a", "a.1", "a.1.1", "a.1.1.1",
-                                              "a.1.1.1.1", "a.1.1.1.1.1"])),
-    ("a,a,a.3,a.1,a.2,a,a\n1,2,3,4,5,6,7",
-     DataFrame([[1, 2, 3, 4, 5, 6, 7]], columns=["a", "a.1", "a.3", "a.1.1",
-                                                 "a.2", "a.2.1", "a.3.1"]))
-])
+@pytest.mark.parametrize(
+    "data,expected",
+    [
+        ("a,a,a.1\n1,2,3", DataFrame([[1, 2, 3]], columns=["a", "a.1", "a.1.1"])),
+        (
+            "a,a,a.1,a.1.1,a.1.1.1,a.1.1.1.1\n1,2,3,4,5,6",
+            DataFrame(
+                [[1, 2, 3, 4, 5, 6]],
+                columns=["a", "a.1", "a.1.1", "a.1.1.1", "a.1.1.1.1", "a.1.1.1.1.1"],
+            ),
+        ),
+        (
+            "a,a,a.3,a.1,a.2,a,a\n1,2,3,4,5,6,7",
+            DataFrame(
+                [[1, 2, 3, 4, 5, 6, 7]],
+                columns=["a", "a.1", "a.3", "a.1.1", "a.2", "a.2.1", "a.3.1"],
+            ),
+        ),
+    ],
+)
 def test_thorough_mangle_columns(all_parsers, data, expected):
     # see gh-17060
     parser = all_parsers
@@ -68,31 +72,43 @@ def test_thorough_mangle_columns(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("data,names,expected", [
-    ("a,b,b\n1,2,3",
-     ["a.1", "a.1", "a.1.1"],
-     DataFrame([["a", "b", "b"], ["1", "2", "3"]],
-               columns=["a.1", "a.1.1", "a.1.1.1"])),
-    ("a,b,c,d,e,f\n1,2,3,4,5,6",
-     ["a", "a", "a.1", "a.1.1", "a.1.1.1", "a.1.1.1.1"],
-     DataFrame([["a", "b", "c", "d", "e", "f"],
-                ["1", "2", "3", "4", "5", "6"]],
-               columns=["a", "a.1", "a.1.1", "a.1.1.1",
-                        "a.1.1.1.1", "a.1.1.1.1.1"])),
-    ("a,b,c,d,e,f,g\n1,2,3,4,5,6,7",
-     ["a", "a", "a.3", "a.1", "a.2", "a", "a"],
-     DataFrame([["a", "b", "c", "d", "e", "f", "g"],
-                ["1", "2", "3", "4", "5", "6", "7"]],
-               columns=["a", "a.1", "a.3", "a.1.1",
-                        "a.2", "a.2.1", "a.3.1"])),
-])
+@pytest.mark.parametrize(
+    "data,names,expected",
+    [
+        (
+            "a,b,b\n1,2,3",
+            ["a.1", "a.1", "a.1.1"],
+            DataFrame(
+                [["a", "b", "b"], ["1", "2", "3"]], columns=["a.1", "a.1.1", "a.1.1.1"]
+            ),
+        ),
+        (
+            "a,b,c,d,e,f\n1,2,3,4,5,6",
+            ["a", "a", "a.1", "a.1.1", "a.1.1.1", "a.1.1.1.1"],
+            DataFrame(
+                [["a", "b", "c", "d", "e", "f"], ["1", "2", "3", "4", "5", "6"]],
+                columns=["a", "a.1", "a.1.1", "a.1.1.1", "a.1.1.1.1", "a.1.1.1.1.1"],
+            ),
+        ),
+        (
+            "a,b,c,d,e,f,g\n1,2,3,4,5,6,7",
+            ["a", "a", "a.3", "a.1", "a.2", "a", "a"],
+            DataFrame(
+                [
+                    ["a", "b", "c", "d", "e", "f", "g"],
+                    ["1", "2", "3", "4", "5", "6", "7"],
+                ],
+                columns=["a", "a.1", "a.3", "a.1.1", "a.2", "a.2.1", "a.3.1"],
+            ),
+        ),
+    ],
+)
 def test_thorough_mangle_names(all_parsers, data, names, expected):
     # see gh-17095
     parser = all_parsers
 
-    with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), names=names)
-        tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match="Duplicate names"):
+        parser.read_csv(StringIO(data), names=names)
 
 
 def test_mangled_unnamed_placeholders(all_parsers):

@@ -218,7 +218,7 @@ contained the values ``[0, 3]``.
 **New behavior**:
 
 .. ipython:: python
-   :okwarning:
+   :okexcept:
 
    pd.read_csv(StringIO(data), names=names)
 
@@ -264,7 +264,7 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
 
 .. _whatsnew_0190.enhancements.union_categoricals:
 
-Categorical Concatenation
+Categorical concatenation
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - A function :func:`union_categoricals` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`13763`, :issue:`13846`, :issue:`14173`)
@@ -298,7 +298,7 @@ Categorical Concatenation
 
 .. _whatsnew_0190.enhancements.semi_month_offsets:
 
-Semi-Month Offsets
+Semi-month offsets
 ^^^^^^^^^^^^^^^^^^
 
 Pandas has gained new frequency offsets, ``SemiMonthEnd`` ('SM') and ``SemiMonthBegin`` ('SMS').
@@ -596,7 +596,7 @@ Comparison operators
 
 Comparison operators raise ``ValueError`` when ``.index`` are different.
 
-**Previous Behavior** (``Series``):
+**Previous behavior** (``Series``):
 
 ``Series`` compared values ignoring the ``.index`` as long as both had the same length:
 
@@ -631,7 +631,7 @@ Comparison operators raise ``ValueError`` when ``.index`` are different.
 
       s1.eq(s2)
 
-**Current Behavior** (``DataFrame``, no change):
+**Current behavior** (``DataFrame``, no change):
 
 .. code-block:: ipython
 
@@ -675,7 +675,7 @@ Logical operators align both ``.index`` of left and right hand side.
 
       s1 & s2.reindex_like(s1)
 
-**Current Behavior** (``DataFrame``, no change):
+**Current behavior** (``DataFrame``, no change):
 
 .. ipython:: python
 
@@ -1324,7 +1324,7 @@ operations on that platform.
 
 .. _whatsnew_0190.api.other:
 
-Other API Changes
+Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - ``Timestamp.to_pydatetime`` will issue a ``UserWarning`` when ``warn=True``, and the instance has a non-zero number of nanoseconds, previously this would print a message to stdout (:issue:`14101`).
@@ -1406,7 +1406,7 @@ Removal of prior version deprecations/changes
 
 .. _whatsnew_0190.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of sparse ``IntIndex.intersect`` (:issue:`13082`)
@@ -1426,7 +1426,7 @@ Performance Improvements
 
 .. _whatsnew_0190.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in ``groupby().shift()``, which could cause a segfault or corruption in rare circumstances when grouping by columns with missing values (:issue:`13813`)

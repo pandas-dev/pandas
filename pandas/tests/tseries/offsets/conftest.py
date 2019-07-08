@@ -11,9 +11,13 @@ def offset_types(request):
     return request.param
 
 
-@pytest.fixture(params=[getattr(offsets, o) for o in offsets.__all__ if
-                        issubclass(getattr(offsets, o), offsets.MonthOffset)
-                        and o != 'MonthOffset'])
+@pytest.fixture(
+    params=[
+        getattr(offsets, o)
+        for o in offsets.__all__
+        if issubclass(getattr(offsets, o), offsets.MonthOffset) and o != "MonthOffset"
+    ]
+)
 def month_classes(request):
     """
     Fixture for month based datetime offsets available for a time series.
