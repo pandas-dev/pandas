@@ -27,3 +27,6 @@ FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 FrameOrSeries = TypeVar("FrameOrSeries", "Series", "DataFrame")
 Scalar = Union[str, int, float]
 Axis = Union[str, int]
+
+# TODO(GH26403): Replace with Optional[bool] or bool
+OrderedType = Union[None, bool, object]

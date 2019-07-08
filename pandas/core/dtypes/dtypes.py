@@ -1,6 +1,6 @@
 """ define extension dtypes """
 import re
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
 import warnings
 
 import numpy as np
@@ -11,6 +11,8 @@ from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
 
+from pandas._typing import OrderedType
+
 from .base import ExtensionDtype
 from .inference import is_bool, is_list_like
 
@@ -19,9 +21,6 @@ str_type = str
 # GH26403: sentinel value used for the default value of ordered in the
 # CategoricalDtype constructor to detect when ordered=None is explicitly passed
 ordered_sentinel = object()  # type: object
-
-# TODO(GH26403): Replace with Optional[bool] or bool
-OrderedType = Union[None, bool, object]
 
 
 def register_extension_dtype(cls: Type[ExtensionDtype],) -> Type[ExtensionDtype]:
@@ -529,7 +528,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return categories
 
-    def update_dtype(self, dtype: "CategoricalDtype") -> "CategoricalDtype":
+    def update_dtype(
+        self, dtype: Union[str_type, "CategoricalDtype"]
+    ) -> "CategoricalDtype":
         """
         Returns a CategoricalDtype with categories and ordered taken from dtype
         if specified, otherwise falling back to self if unspecified
@@ -551,6 +552,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 "got {dtype!r}"
             ).format(dtype=dtype)
             raise ValueError(msg)
+
+        dtype = cast(CategoricalDtype, dtype)
 
         # dtype is CDT: keep current categories/ordered if None
         new_categories = dtype.categories
