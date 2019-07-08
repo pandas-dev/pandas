@@ -3376,36 +3376,44 @@ def _putmask_smart(v, m, n):
     # will work in the current dtype
     try:
         nn = n[m]
-
+    except TypeError:
+        # TypeError: only integer scalar arrays can be converted to a scalar index
+        pass
+    else:
         # make sure that we have a nullable type
         # if we have nulls
         if not _isna_compat(v, nn[0]):
-            raise ValueError
+            pass
+        else:
 
-        # we ignore ComplexWarning here
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", np.ComplexWarning)
-            nn_at = nn.astype(v.dtype)
+            try:
+                # we ignore ComplexWarning here
+                with warnings.catch_warnings(record=True):
+                    warnings.simplefilter("ignore", np.ComplexWarning)
+                    nn_at = nn.astype(v.dtype)
+            except (ValueError, TypeError):
+                # ValueError: could not convert string to float: 'foo'
+                # TypeError: int() argument must be a string, a bytes-like
+                #  object or a number, not 'function'
+                pass
+            else:
+                # avoid invalid dtype comparisons
+                # between numbers & strings
 
-        # avoid invalid dtype comparisons
-        # between numbers & strings
+                # only compare integers/floats
+                # don't compare integers to datetimelikes
+                if not is_numeric_v_string_like(nn, nn_at) and (
+                    is_float_dtype(nn.dtype)
+                    or is_integer_dtype(nn.dtype)
+                    and is_float_dtype(nn_at.dtype)
+                    or is_integer_dtype(nn_at.dtype)
+                ):
 
-        # only compare integers/floats
-        # don't compare integers to datetimelikes
-        if not is_numeric_v_string_like(nn, nn_at) and (
-            is_float_dtype(nn.dtype)
-            or is_integer_dtype(nn.dtype)
-            and is_float_dtype(nn_at.dtype)
-            or is_integer_dtype(nn_at.dtype)
-        ):
-
-            comp = nn == nn_at
-            if is_list_like(comp) and comp.all():
-                nv = v.copy()
-                nv[m] = nn_at
-                return nv
-    except (ValueError, IndexError, TypeError, OverflowError):
-        pass
+                    comp = nn == nn_at
+                    if is_list_like(comp) and comp.all():
+                        nv = v.copy()
+                        nv[m] = nn_at
+                        return nv
 
     n = np.asarray(n)
 
