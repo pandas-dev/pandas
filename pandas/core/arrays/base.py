@@ -678,7 +678,7 @@ class ExtensionArray:
 
         See Also
         --------
-        pandas.factorize : Top-level factorize method that dispatches here.
+        factorize : Top-level factorize method that dispatches here.
 
         Notes
         -----
@@ -802,17 +802,17 @@ class ExtensionArray:
             When `indices` contains negative values other than ``-1``
             and `allow_fill` is True.
 
+        See Also
+        --------
+        numpy.take
+        api.extensions.take
+
         Notes
         -----
         ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
         ``iloc``, when `indices` is a sequence of values. Additionally,
         it's called by :meth:`Series.reindex`, or any other method
         that causes realignment, with a `fill_value`.
-
-        See Also
-        --------
-        numpy.take
-        pandas.api.extensions.take
 
         Examples
         --------
@@ -927,6 +927,10 @@ class ExtensionArray:
         Parameters
         ----------
         order : {None, 'C', 'F', 'A', 'K'}, default 'C'
+
+        Returns
+        -------
+        ExtensionArray
 
         Notes
         -----
