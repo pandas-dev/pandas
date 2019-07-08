@@ -11,7 +11,7 @@ import pandas as pd
 from pandas import DataFrame
 import pandas.util.testing as tm
 
-from pandas.io.json.table_schema import (
+from pandas.io.json._table_schema import (
     as_json_table_type,
     build_table_schema,
     convert_json_field_to_pandas_type,

@@ -7,7 +7,7 @@ from pandas import DataFrame, read_json
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal, ensure_clean
 
-from pandas.io.json.json import JsonReader
+from pandas.io.json._json import JsonReader
 
 
 @pytest.fixture
