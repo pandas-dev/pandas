@@ -1046,6 +1046,7 @@ Indexing
 - Bug in which :meth:`DataFrame.to_csv` caused a segfault for a reindexed data frame, when the indices were single-level :class:`MultiIndex` (:issue:`26303`).
 - Fixed bug where assigning a :class:`arrays.PandasArray` to a :class:`pandas.core.frame.DataFrame` would raise error (:issue:`26390`)
 - Allow keyword arguments for callable local reference used in the :meth:`DataFrame.query` string (:issue:`26426`)
+- Fixed a ``KeyError`` when indexing a :class:`MultiIndex`` level with a list containing exactly one label, which is missing (:issue:`27148`)
 - Bug which produced ``AttributeError`` on partial matching :class:`Timestamp` in a :class:`MultiIndex`  (:issue:`26944`)
 - Bug in :class:`Categorical` and  :class:`CategoricalIndex` with :class:`Interval` values when using the ``in`` operator (``__contains``) with objects that are not comparable to the values in the ``Interval`` (:issue:`23705`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` on a :class:`DataFrame` with a single timezone-aware datetime64[ns] column incorrectly returning a scalar instead of a :class:`Series` (:issue:`27110`)
@@ -1152,6 +1153,7 @@ Reshaping
 - Bug in :func:`DataFrame.sort_index` where an error is thrown when a multi-indexed ``DataFrame`` is sorted on all levels with the initial level sorted last (:issue:`26053`)
 - Bug in :meth:`Series.nlargest` treats ``True`` as smaller than ``False`` (:issue:`26154`)
 - Bug in :func:`DataFrame.pivot_table` with a :class:`IntervalIndex` as pivot index would raise ``TypeError`` (:issue:`25814`)
+- Bug in which :meth:`DataFrame.from_dict` ignored order of ``OrderedDict`` when ``orient='index'`` (:issue:`8425`).
 - Bug in :meth:`DataFrame.transpose` where transposing a DataFrame with a timezone-aware datetime column would incorrectly raise ``ValueError`` (:issue:`26825`)
 - Bug in :func:`pivot_table` when pivoting a timezone aware column as the ``values`` would remove timezone information (:issue:`14948`)
 - Bug in :func:`merge_asof` when specifying multiple ``by`` columns where one is ``datetime64[ns, tz]`` dtype (:issue:`26649`)

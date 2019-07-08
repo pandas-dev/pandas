@@ -187,9 +187,7 @@ def test_get_indexer():
 
 def test_get_indexer_nearest():
     midx = MultiIndex.from_tuples([("a", 1), ("b", 2)])
-    msg = (
-        "method='nearest' not implemented yet for MultiIndex; see GitHub" " issue 9365"
-    )
+    msg = "method='nearest' not implemented yet for MultiIndex; see GitHub issue 9365"
     with pytest.raises(NotImplementedError, match=msg):
         midx.get_indexer(["a"], method="nearest")
     msg = "tolerance not implemented yet for MultiIndex"
@@ -275,7 +273,7 @@ def test_get_loc(idx):
     with pytest.raises(KeyError, match=r"^'quux'$"):
         idx.get_loc("quux")
 
-    msg = "only the default get_loc method is currently supported for" " MultiIndex"
+    msg = "only the default get_loc method is currently supported for MultiIndex"
     with pytest.raises(NotImplementedError, match=msg):
         idx.get_loc("foo", method="nearest")
 

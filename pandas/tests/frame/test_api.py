@@ -149,7 +149,7 @@ class SharedWithSparse:
         empty_frame = DataFrame()
 
         df = self.klass([1])
-        msg = "'(Sparse)?DataFrame' objects are mutable, thus they cannot be" " hashed"
+        msg = "'(Sparse)?DataFrame' objects are mutable, thus they cannot be hashed"
         with pytest.raises(TypeError, match=msg):
             hash(df)
         with pytest.raises(TypeError, match=msg):

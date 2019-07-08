@@ -560,7 +560,7 @@ date_NominalTime,date,NominalTime
 KORD1,19990127, 19:00:00
 KORD2,19990127, 20:00:00""",
             [[1, 2]],
-            ("New date column already " "in dict date_NominalTime"),
+            ("New date column already in dict date_NominalTime"),
         ),
         (
             """\
@@ -1272,7 +1272,7 @@ def test_parse_date_time(all_parsers, data, kwargs, expected):
 
 def test_parse_date_fields(all_parsers):
     parser = all_parsers
-    data = "year,month,day,a\n2001,01,10,10.\n" "2001,02,1,11."
+    data = "year,month,day,a\n2001,01,10,10.\n2001,02,1,11."
     result = parser.read_csv(
         StringIO(data),
         header=0,

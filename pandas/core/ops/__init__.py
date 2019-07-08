@@ -43,6 +43,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCSparseArray,
     ABCSparseSeries,
+    ABCTimedeltaArray,
 )
 from pandas.core.dtypes.missing import isna, notna
 
@@ -1703,10 +1704,30 @@ def _arith_method_SERIES(cls, op, special):
             # Note: we cannot use dispatch_to_index_op because
             #  that may incorrectly raise TypeError when we
             #  should get NullFrequencyError
-            result = op(pd.Index(left), right)
-            return construct_result(
-                left, result, index=left.index, name=res_name, dtype=result.dtype
-            )
+            orig_right = right
+            if is_scalar(right):
+                # broadcast and wrap in a TimedeltaIndex
+                assert np.isnat(right)
+                right = np.broadcast_to(right, left.shape)
+                right = pd.TimedeltaIndex(right)
+
+            assert isinstance(right, (pd.TimedeltaIndex, ABCTimedeltaArray, ABCSeries))
+            try:
+                result = op(left._values, right)
+            except NullFrequencyError:
+                if orig_right is not right:
+                    # i.e. scalar timedelta64('NaT')
+                    #  We get a NullFrequencyError because we broadcast to
+                    #  TimedeltaIndex, but this should be TypeError.
+                    raise TypeError(
+                        "incompatible type for a datetime/timedelta "
+                        "operation [{name}]".format(name=op.__name__)
+                    )
+                raise
+
+            # We do not pass dtype to ensure that the Series constructor
+            #  does inference in the case where `result` has object-dtype.
+            return construct_result(left, result, index=left.index, name=res_name)
 
         lvalues = left.values
         rvalues = right
