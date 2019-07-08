@@ -1,5 +1,4 @@
 import numbers
-import sys
 from typing import Type
 import warnings
 
@@ -682,7 +681,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         # a float result
         # or our op is a divide
         if (is_float_dtype(other) or is_float(other)) or (
-            op_name in ["rtruediv", "truediv", "rdiv", "div"]
+            op_name in ["rtruediv", "truediv"]
         ):
             result[mask] = np.nan
             return result
@@ -753,8 +752,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 IntegerArray._add_arithmetic_ops()
 IntegerArray._add_comparison_ops()
 
-
-module = sys.modules[__name__]
 
 _dtype_docstring = """
 An ExtensionDtype for {dtype} integer data.

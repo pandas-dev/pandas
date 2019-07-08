@@ -147,7 +147,7 @@ class TestScalar(Base):
         s = Series([1, 2, 3], index=[3, 2, 1])
         result = s.at[1]
         assert result == 3
-        msg = "At based indexing on an integer index can only have integer" " indexers"
+        msg = "At based indexing on an integer index can only have integer indexers"
         with pytest.raises(ValueError, match=msg):
             s.at["a"]
 

@@ -604,6 +604,26 @@ def test_indexing_over_size_cutoff():
         _index._SIZE_CUTOFF = old_cutoff
 
 
+def test_indexing_over_size_cutoff_period_index(monkeypatch):
+    # GH 27136
+
+    monkeypatch.setattr(_index, "_SIZE_CUTOFF", 1000)
+
+    n = 1100
+    idx = pd.period_range("1/1/2000", freq="T", periods=n)
+    assert idx._engine.over_size_threshold
+
+    s = pd.Series(np.random.randn(len(idx)), index=idx)
+
+    pos = n - 1
+    timestamp = idx[pos]
+    assert timestamp in s.index
+
+    # it works!
+    s[timestamp]
+    assert len(s.loc[[timestamp]]) > 0
+
+
 def test_indexing_unordered():
     # GH 2437
     rng = date_range(start="2011-01-01", end="2011-01-15")

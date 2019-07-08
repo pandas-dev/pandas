@@ -18,7 +18,7 @@ _msg_validate_usecols_arg = (
     "integers or a callable."
 )
 _msg_validate_usecols_names = (
-    "Usecols do not match columns, columns " "expected but not found: {0}"
+    "Usecols do not match columns, columns expected but not found: {0}"
 )
 
 
@@ -124,7 +124,7 @@ def test_usecols_name_length_conflict(all_parsers):
 10,11,12"""
     parser = all_parsers
     msg = (
-        "Number of passed names did not " "match number of header fields in the file"
+        "Number of passed names did not match number of header fields in the file"
         if parser.engine == "python"
         else "Passed header names mismatches usecols"
     )
@@ -501,7 +501,7 @@ def test_incomplete_first_row(all_parsers, usecols):
         ),
         # see gh-9549
         (
-            ("A,B,C\n1,2,3\n3,4,5\n1,2,4,5,1,6\n" "1,2,3,,,1,\n1,2,3\n5,6,7"),
+            ("A,B,C\n1,2,3\n3,4,5\n1,2,4,5,1,6\n1,2,3,,,1,\n1,2,3\n5,6,7"),
             ["A", "B", "C"],
             dict(),
             DataFrame(

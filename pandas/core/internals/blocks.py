@@ -143,7 +143,7 @@ class Block(PandasObject):
             ndim = values.ndim
 
         if self._validate_ndim and values.ndim != ndim:
-            msg = "Wrong number of dimensions. values.ndim != ndim " "[{} != {}]"
+            msg = "Wrong number of dimensions. values.ndim != ndim [{} != {}]"
             raise ValueError(msg.format(values.ndim, ndim))
 
         return ndim
@@ -259,7 +259,7 @@ class Block(PandasObject):
         if dtype is not None:
             # issue 19431 fastparquet is passing this
             warnings.warn(
-                "dtype argument is deprecated, will be removed " "in a future release.",
+                "dtype argument is deprecated, will be removed in a future release.",
                 FutureWarning,
             )
         if placement is None:
@@ -399,7 +399,7 @@ class Block(PandasObject):
                 raise ValueError("Limit must be greater than 0")
             if self.ndim > 2:
                 raise NotImplementedError(
-                    "number of dimensions for 'fillna' " "is currently limited to 2"
+                    "number of dimensions for 'fillna' is currently limited to 2"
                 )
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
@@ -413,12 +413,6 @@ class Block(PandasObject):
         try:
             # Note: we only call try_coerce_args to let it raise
             self._try_coerce_args(value)
-
-            blocks = self.putmask(mask, value, inplace=inplace)
-            blocks = [
-                b.make_block(values=self._try_coerce_result(b.values)) for b in blocks
-            ]
-            return self._maybe_downcast(blocks, downcast)
         except (TypeError, ValueError):
 
             # we can't process the value, but nothing to do
@@ -435,6 +429,12 @@ class Block(PandasObject):
                 return block.fillna(value, limit=limit, inplace=inplace, downcast=None)
 
             return self.split_and_operate(mask, f, inplace)
+        else:
+            blocks = self.putmask(mask, value, inplace=inplace)
+            blocks = [
+                b.make_block(values=self._try_coerce_result(b.values)) for b in blocks
+            ]
+            return self._maybe_downcast(blocks, downcast)
 
     def split_and_operate(self, mask, f, inplace):
         """
@@ -533,7 +533,7 @@ class Block(PandasObject):
 
         if not (dtypes == "infer" or isinstance(dtypes, dict)):
             raise ValueError(
-                "downcast must have a dictionary or 'infer' as " "its argument"
+                "downcast must have a dictionary or 'infer' as its argument"
             )
 
         # operate column-by-column
@@ -615,10 +615,9 @@ class Block(PandasObject):
                 return self.copy()
             return self
 
-        try:
-            # force the copy here
-            if values is None:
-
+        if values is None:
+            try:
+                # force the copy here
                 if self.is_extension:
                     values = self.values.astype(dtype)
                 else:
@@ -644,10 +643,12 @@ class Block(PandasObject):
                 if isinstance(values, np.ndarray):
                     values = values.reshape(self.shape)
 
-        except Exception:  # noqa: E722
-            if errors == "raise":
-                raise
-            newb = self.copy() if copy else self
+            except Exception:  # noqa: E722
+                if errors == "raise":
+                    raise
+                newb = self.copy() if copy else self
+            else:
+                newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
         else:
             newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
 
@@ -861,13 +862,6 @@ class Block(PandasObject):
         values = self.values
         try:
             value = self._try_coerce_args(value)
-            values = self._coerce_values(values)
-            # can keep its own dtype
-            if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
-                dtype = self.dtype
-            else:
-                dtype = "infer"
-
         except (TypeError, ValueError):
             # current dtype cannot store value, coerce to common dtype
             find_dtype = False
@@ -891,6 +885,13 @@ class Block(PandasObject):
                 if not is_dtype_equal(self.dtype, dtype):
                     b = self.astype(dtype)
                     return b.setitem(indexer, value)
+        else:
+            values = self._coerce_values(values)
+            # can keep its own dtype
+            if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
+                dtype = self.dtype
+            else:
+                dtype = "infer"
 
         # value must be storeable at this moment
         arr_value = np.array(value)
@@ -1024,7 +1025,7 @@ class Block(PandasObject):
                     or mask[mask].shape[-1] == len(new)
                     or len(new) == 1
                 ):
-                    raise ValueError("cannot assign mismatch " "length to masked array")
+                    raise ValueError("cannot assign mismatch length to masked array")
 
             np.putmask(new_values, mask, new)
 
@@ -1380,16 +1381,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def where(
-        self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast=False,
-        axis=0,
-        transpose=False,
-    ):
+    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
         """
         evaluate the block; return result block(s) from the result
 
@@ -1401,10 +1393,7 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
-
         axis : int
-        transpose : boolean
-            Set to True if self is stored with axes reversed
 
         Returns
         -------
@@ -1413,6 +1402,7 @@ class Block(PandasObject):
         import pandas.core.computation.expressions as expressions
 
         assert errors in ["raise", "ignore"]
+        transpose = self.ndim == 2
 
         values = self.values
         orig_other = other
@@ -1431,7 +1421,7 @@ class Block(PandasObject):
                 cond = cond.T
 
         if not hasattr(cond, "shape"):
-            raise ValueError("where must have a condition that is ndarray " "like")
+            raise ValueError("where must have a condition that is ndarray like")
 
         # our where function
         def func(cond, values, other):
@@ -1472,7 +1462,6 @@ class Block(PandasObject):
                     errors=errors,
                     try_cast=try_cast,
                     axis=axis,
-                    transpose=transpose,
                 )
                 return self._maybe_downcast(blocks, "infer")
 
@@ -1916,7 +1905,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         if isinstance(slicer, tuple) and len(slicer) == 2:
             if not com.is_null_slice(slicer[0]):
-                raise AssertionError("invalid slicing for a 1-ndim " "categorical")
+                raise AssertionError("invalid slicing for a 1-ndim categorical")
             slicer = slicer[1]
 
         return self.values[slicer]
@@ -2003,16 +1992,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             )
         ]
 
-    def where(
-        self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast=False,
-        axis=0,
-        transpose=False,
-    ):
+    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
         if isinstance(other, ABCDataFrame):
             # ExtensionArrays are 1-D, so if we get here then
             # `other` should be a DataFrame with a single column.
@@ -2041,13 +2021,14 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         else:
             dtype = self.dtype
 
+        result = self.values.copy()
+        icond = ~cond
+        if lib.is_scalar(other):
+            set_other = other
+        else:
+            set_other = other[icond]
         try:
-            result = self.values.copy()
-            icond = ~cond
-            if lib.is_scalar(other):
-                result[icond] = other
-            else:
-                result[icond] = other[icond]
+            result[icond] = set_other
         except (NotImplementedError, TypeError):
             # NotImplementedError for class not implementing `__setitem__`
             # TypeError for SparseArray, which implements just to raise
@@ -2314,17 +2295,12 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         -------
         base-type other
         """
-
-        if isinstance(other, bool):
-            raise TypeError
-        elif is_null_datetimelike(other):
+        if is_null_datetimelike(other):
             other = tslibs.iNaT
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
             if getattr(other, "tz") is not None:
-                raise TypeError(
-                    "cannot coerce a Timestamp with a tz on a " "naive Block"
-                )
+                raise TypeError("cannot coerce a Timestamp with a tz on a naive Block")
             other = other.asm8.view("i8")
         elif hasattr(other, "dtype") and is_datetime64_dtype(other):
             other = other.astype("i8", copy=False).view("i8")
@@ -2689,9 +2665,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         base-type other
         """
 
-        if isinstance(other, bool):
-            raise TypeError
-        elif is_null_datetimelike(other):
+        if is_null_datetimelike(other):
             other = tslibs.iNaT
         elif isinstance(other, (timedelta, np.timedelta64)):
             other = Timedelta(other).value
@@ -3000,7 +2974,7 @@ class ObjectBlock(Block):
         # only one will survive
         if to_rep_re and regex_re:
             raise AssertionError(
-                "only one of to_replace and regex can be " "regex compilable"
+                "only one of to_replace and regex can be regex compilable"
             )
 
         # if regex was passed as something that can be a regex (rather than a
@@ -3184,16 +3158,7 @@ class CategoricalBlock(ExtensionBlock):
             values, placement=placement or slice(0, len(values), 1), ndim=self.ndim
         )
 
-    def where(
-        self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast=False,
-        axis=0,
-        transpose=False,
-    ):
+    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
         # TODO(CategoricalBlock.where):
         # This can all be deleted in favor of ExtensionBlock.where once
         # we enforce the deprecation.
@@ -3208,19 +3173,11 @@ class CategoricalBlock(ExtensionBlock):
         )
         try:
             # Attempt to do preserve categorical dtype.
-            result = super().where(
-                other, cond, align, errors, try_cast, axis, transpose
-            )
+            result = super().where(other, cond, align, errors, try_cast, axis)
         except (TypeError, ValueError):
             warnings.warn(object_msg, FutureWarning, stacklevel=6)
             result = self.astype(object).where(
-                other,
-                cond,
-                align=align,
-                errors=errors,
-                try_cast=try_cast,
-                axis=axis,
-                transpose=transpose,
+                other, cond, align=align, errors=errors, try_cast=try_cast, axis=axis
             )
         return result
 
@@ -3289,7 +3246,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None, fastpath=No
     if fastpath is not None:
         # GH#19265 pyarrow is passing this
         warnings.warn(
-            "fastpath argument is deprecated, will be removed " "in a future release.",
+            "fastpath argument is deprecated, will be removed in a future release.",
             FutureWarning,
         )
     if klass is None:
