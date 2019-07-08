@@ -212,9 +212,7 @@ def test_take_fill_value():
     expected = pd.MultiIndex.from_tuples(exp_vals, names=["str", "dt"])
     tm.assert_index_equal(result, expected)
 
-    msg = (
-        "When allow_fill=True and fill_value is not None, " "all indices must be >= -1"
-    )
+    msg = "When allow_fill=True and fill_value is not None, all indices must be >= -1"
     with pytest.raises(ValueError, match=msg):
         idx.take(np.array([1, 0, -2]), fill_value=True)
     with pytest.raises(ValueError, match=msg):

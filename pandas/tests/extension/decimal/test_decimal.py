@@ -207,7 +207,7 @@ class TestPrinting(BaseDecimal, base.BasePrintingTests):
 # TODO(extension)
 @pytest.mark.xfail(
     reason=(
-        "raising AssertionError as this is not implemented, " "though easy enough to do"
+        "raising AssertionError as this is not implemented, though easy enough to do"
     )
 )
 def test_series_constructor_coerce_data_to_extension_dtype_raises():

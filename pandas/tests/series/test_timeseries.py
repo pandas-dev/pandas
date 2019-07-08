@@ -120,9 +120,7 @@ class TestTimeSeries(TestData):
 
         # incompat tz
         s2 = Series(date_range("2000-01-01 09:00:00", periods=5, tz="CET"), name="foo")
-        msg = (
-            "DatetimeArray subtraction must have the same timezones or no" " timezones"
-        )
+        msg = "DatetimeArray subtraction must have the same timezones or no timezones"
         with pytest.raises(TypeError, match=msg):
             s - s2
 
@@ -915,7 +913,7 @@ class TestTimeSeries(TestData):
 
         assert len(ts.between_time(stime, etime)) == expected_length
         assert len(ts.between_time(stime, etime, axis=0)) == expected_length
-        msg = "No axis named 1 for object type" " <class 'pandas.core.series.Series'>"
+        msg = "No axis named 1 for object type <class 'pandas.core.series.Series'>"
         with pytest.raises(ValueError, match=msg):
             ts.between_time(stime, etime, axis=1)
 
