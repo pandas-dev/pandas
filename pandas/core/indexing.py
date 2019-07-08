@@ -1316,7 +1316,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             return obj.copy(deep=False)
 
         indexer = self._convert_slice_indexer(slice_obj, axis)
-        assert isinstance(indexer, slice), type(indexer)
         return self._slice(indexer, axis=axis, kind="iloc")
 
 
