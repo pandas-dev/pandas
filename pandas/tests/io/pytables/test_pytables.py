@@ -4337,6 +4337,7 @@ class TestHDFStore(Base):
         df["d"] = ts.index[:3]
         self._check_roundtrip(df, tm.assert_frame_equal)
 
+    # FIXME: don't leave commented-out code
     # def test_cant_write_multiindex_table(self):
     #     # for now, #1848
     #     df = DataFrame(np.random.randn(10, 4),

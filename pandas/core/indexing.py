@@ -124,8 +124,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 #  generally slice or list.
                 # TODO(ix): most/all of the TypeError cases here are for ix,
                 #  so this check can be removed once ix is removed.
-                # Note: InvalidIndexError is here for geopandas compat,
-                #  see GH#27259
+                # The InvalidIndexError is only catched for compatibility
+                #  with geopandas, see
+                #  https://github.com/pandas-dev/pandas/issues/27258
                 pass
             else:
                 if is_scalar(values):
@@ -1836,7 +1837,7 @@ class _LocIndexer(_LocationIndexer):
 
                 if (
                     not isinstance(key, tuple)
-                    and len(key) > 1
+                    and len(key)
                     and not isinstance(key[0], tuple)
                 ):
                     key = tuple([key])

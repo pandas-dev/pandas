@@ -120,9 +120,13 @@ def mask_zero_div_zero(x, y, result, copy=False):
     if zmask.any():
         shape = result.shape
 
+        # Flip sign if necessary for -0.0
+        zneg_mask = zmask & np.signbit(y)
+        zpos_mask = zmask & ~zneg_mask
+
         nan_mask = (zmask & (x == 0)).ravel()
-        neginf_mask = (zmask & (x < 0)).ravel()
-        posinf_mask = (zmask & (x > 0)).ravel()
+        neginf_mask = ((zpos_mask & (x < 0)) | (zneg_mask & (x > 0))).ravel()
+        posinf_mask = ((zpos_mask & (x > 0)) | (zneg_mask & (x < 0))).ravel()
 
         if nan_mask.any() or neginf_mask.any() or posinf_mask.any():
             # Fill negative/0 with -inf, positive/0 with +inf, 0/0 with NaN
