@@ -668,11 +668,11 @@ class TestiLoc(Base):
         # GH 3631, iloc with a mask (of a series) should raise
         df = DataFrame(list(range(5)), index=list("ABCDE"), columns=["a"])
         mask = df.a % 2 == 0
-        msg = "iLocation based boolean indexing cannot use an indexable as" " a mask"
+        msg = "iLocation based boolean indexing cannot use an indexable as a mask"
         with pytest.raises(ValueError, match=msg):
             df.iloc[mask]
         mask.index = range(len(mask))
-        msg = "iLocation based boolean indexing on an integer type is not" " available"
+        msg = "iLocation based boolean indexing on an integer type is not available"
         with pytest.raises(NotImplementedError, match=msg):
             df.iloc[mask]
 
@@ -693,7 +693,7 @@ class TestiLoc(Base):
             ("index", ""): "0b11",
             ("index", ".loc"): "0b11",
             ("index", ".iloc"): (
-                "iLocation based boolean indexing " "cannot use an indexable as a mask"
+                "iLocation based boolean indexing cannot use an indexable as a mask"
             ),
             ("locs", ""): "Unalignable boolean Series provided as indexer "
             "(index of the boolean Series and of the indexed "

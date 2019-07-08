@@ -89,7 +89,7 @@ def test_compression(parser_and_data, compression_only, buffer, filename):
     filename = filename if filename is None else filename.format(ext=ext)
 
     if filename and buffer:
-        pytest.skip("Cannot deduce compression from " "buffer of compressed data.")
+        pytest.skip("Cannot deduce compression from buffer of compressed data.")
 
     with tm.ensure_clean(filename=filename) as path:
         tm.write_to_compressed(compress_type, path, data)
@@ -144,7 +144,7 @@ def test_invalid_compression(all_parsers, invalid_compression):
     parser = all_parsers
     compress_kwargs = dict(compression=invalid_compression)
 
-    msg = "Unrecognized compression " "type: {compression}".format(**compress_kwargs)
+    msg = "Unrecognized compression type: {compression}".format(**compress_kwargs)
 
     with pytest.raises(ValueError, match=msg):
         parser.read_csv("test_file.zip", **compress_kwargs)

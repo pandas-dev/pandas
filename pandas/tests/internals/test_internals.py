@@ -537,7 +537,7 @@ class TestBlockManager:
             assert tmgr.get("e").dtype.type == t
 
         # mixed
-        mgr = create_mgr("a,b: object; c: bool; d: datetime;" "e: f4; f: f2; g: f8")
+        mgr = create_mgr("a,b: object; c: bool; d: datetime; e: f4; f: f2; g: f8")
         for t in ["float16", "float32", "float64", "int32", "int64"]:
             t = np.dtype(t)
             tmgr = mgr.astype(t, errors="ignore")
@@ -599,7 +599,7 @@ class TestBlockManager:
         assert new_mgr.get("g").dtype == np.float64
 
         mgr = create_mgr(
-            "a,b,foo: object; f: i4; bool: bool; dt: datetime;" "i: i8; g: f8; h: f2"
+            "a,b,foo: object; f: i4; bool: bool; dt: datetime; i: i8; g: f8; h: f2"
         )
         mgr.set("a", np.array(["1"] * N, dtype=np.object_))
         mgr.set("b", np.array(["2."] * N, dtype=np.object_))
@@ -703,7 +703,7 @@ class TestBlockManager:
 
     def test_reindex_items(self):
         # mgr is not consolidated, f8 & f8-2 blocks
-        mgr = create_mgr("a: f8; b: i8; c: f8; d: i8; e: f8;" "f: bool; g: f8-2")
+        mgr = create_mgr("a: f8; b: i8; c: f8; d: i8; e: f8; f: bool; g: f8-2")
 
         reindexed = mgr.reindex_axis(["g", "c", "a", "d"], axis=0)
         assert reindexed.nblocks == 2

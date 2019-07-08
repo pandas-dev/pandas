@@ -14,7 +14,7 @@ from pandas.io.formats.excel import ExcelFormatter
         pytest.param(
             "xlwt",
             marks=pytest.mark.xfail(
-                reason="xlwt does not support " "openpyxl-compatible " "style dicts"
+                reason="xlwt does not support openpyxl-compatible style dicts"
             ),
         ),
         "xlsxwriter",

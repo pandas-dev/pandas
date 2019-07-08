@@ -564,7 +564,7 @@ class TestIndex(Base):
         with pytest.raises(OverflowError, match=msg):
             Index([np.iinfo(np.uint64).max - 1], dtype="int64")
 
-    @pytest.mark.xfail(reason="see GH#21311: Index " "doesn't enforce dtype argument")
+    @pytest.mark.xfail(reason="see GH#21311: Index doesn't enforce dtype argument")
     def test_constructor_cast(self):
         msg = "could not convert string to float"
         with pytest.raises(ValueError, match=msg):
@@ -728,9 +728,7 @@ class TestIndex(Base):
         # this does not yet work, as parsing strings is done via dateutil
         # assert first_value == x['2013-01-01 00:00:00.000000050+0000']
 
-        expected_ts = np_datetime64_compat(
-            "2013-01-01 00:00:00.000000050+" "0000", "ns"
-        )
+        expected_ts = np_datetime64_compat("2013-01-01 00:00:00.000000050+0000", "ns")
         assert first_value == x[Timestamp(expected_ts)]
 
     def test_booleanindex(self):
@@ -2361,7 +2359,7 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             # short
             (
                 pd.Index(["あ", "いい", "ううう"]),
-                ("Index(['あ', 'いい', 'ううう'], " "dtype='object')"),
+                ("Index(['あ', 'いい', 'ううう'], dtype='object')"),
             ),
             # multiple lines
             (
