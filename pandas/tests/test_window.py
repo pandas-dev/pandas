@@ -480,6 +480,7 @@ class TestWindow(Base):
         with pytest.raises(UnsupportedFunctionCall, match=msg):
             getattr(w, method)(dtype=np.float64)
 
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         "arg", ["std", ["mean", "std"], ("mean", "std"), {"A": "mean", "B": "std"}]
     )
