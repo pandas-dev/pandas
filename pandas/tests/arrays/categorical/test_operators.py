@@ -417,3 +417,15 @@ class TestCategoricalOps:
         cat = Categorical(pd.IntervalIndex.from_breaks(range(3)))
         result = item in cat
         assert result is expected
+
+    def test_contains_list(self):
+        # GH#21729
+        cat = Categorical([1, 2, 3])
+
+        assert "a" not in cat
+
+        with pytest.raises(TypeError, match="unhashable type"):
+            ["a"] in cat
+
+        with pytest.raises(TypeError, match="unhashable type"):
+            ["a", "b"] in cat
