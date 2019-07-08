@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_extension_type,
     is_float_dtype,
+    is_hashable,
     is_integer,
     is_integer_dtype,
     is_iterator,
@@ -77,7 +78,6 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
