@@ -348,7 +348,7 @@ class TestCommon:
             # MultiIndex tested separately in:
             #   tests/indexes/multi/test_unique_and_duplicates.
             # RangeIndex is unique by definition.
-            pytest.skip("Skip check for empty Index, MultiIndex, " "and RangeIndex")
+            pytest.skip("Skip check for empty Index, MultiIndex, and RangeIndex")
 
         idx = holder([indices[0]] * 5)
         assert idx.is_unique is False
