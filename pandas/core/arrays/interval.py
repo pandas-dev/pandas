@@ -762,6 +762,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             return self._shape
         return self.left.shape
 
+    @shape.setter
+    def shape(self, value):
+        self._shape = value
+
     def take(self, indices, allow_fill=False, fill_value=None, axis=None, **kwargs):
         """
         Take elements from the IntervalArray.
