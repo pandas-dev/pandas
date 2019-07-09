@@ -2665,7 +2665,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         base-type other
         """
 
-        if is_null_datetimelike(other):
+        if is_null_datetimelike(other) and not isinstance(other, np.datetime64):
+            # exclude np.datetime64("NaT")
             other = tslibs.iNaT
         elif isinstance(other, (timedelta, np.timedelta64)):
             other = Timedelta(other).value
