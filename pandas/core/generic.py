@@ -5596,15 +5596,13 @@ class NDFrame(PandasObject, SelectionMixin):
         object     1
         dtype: int64
         """
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", FutureWarning)
-            warnings.warn(
-                "`get_dtype_counts` has been deprecated and will be "
-                "removed in a future version. For DataFrames use "
-                "`.dtypes.value_counts()",
-                FutureWarning,
-                stacklevel=2,
-            )
+        warnings.warn(
+            "`get_dtype_counts` has been deprecated and will be "
+            "removed in a future version. For DataFrames use "
+            "`.dtypes.value_counts()",
+            FutureWarning,
+            stacklevel=2,
+        )
 
         from pandas import Series
 

@@ -1375,10 +1375,7 @@ class _IXIndexer(_NDFrameIndexer):
     )  # noqa
 
     def __init__(self, name, obj):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", FutureWarning)
-            warnings.warn(self._ix_deprecation_warning, FutureWarning, stacklevel=2)
-
+        warnings.warn(self._ix_deprecation_warning, FutureWarning, stacklevel=2)
         super().__init__(name, obj)
 
     @Appender(_NDFrameIndexer._validate_key.__doc__)
