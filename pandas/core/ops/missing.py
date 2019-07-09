@@ -181,7 +181,6 @@ def dispatch_fill_zeros(op, left, right, result):
         )
     elif op is rdivmod:
         result = (
-            # TODO: do we need to switch left/right?
             mask_zero_div_zero(right, left, result[0]),
             fill_zeros(result[1], left, right, "__rmod__", np.nan),
         )
