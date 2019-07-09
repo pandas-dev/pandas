@@ -122,8 +122,9 @@ def mask_zero_div_zero(x, y, result):
         zpos_mask = zmask & ~zneg_mask
 
         nan_mask = (zmask & (x == 0)).ravel()
-        neginf_mask = ((zpos_mask & (x < 0)) | (zneg_mask & (x > 0))).ravel()
-        posinf_mask = ((zpos_mask & (x > 0)) | (zneg_mask & (x < 0))).ravel()
+        with np.errstate(invalid="ignore"):
+            neginf_mask = ((zpos_mask & (x < 0)) | (zneg_mask & (x > 0))).ravel()
+            posinf_mask = ((zpos_mask & (x > 0)) | (zneg_mask & (x < 0))).ravel()
 
         if nan_mask.any() or neginf_mask.any() or posinf_mask.any():
             # Fill negative/0 with -inf, positive/0 with +inf, 0/0 with NaN
@@ -175,12 +176,13 @@ def dispatch_fill_zeros(op, left, right, result):
     """
     if op is divmod:
         result = (
-            fill_zeros(result[0], left, right, "__floordiv__", np.inf),
+            mask_zero_div_zero(left, right, result[0]),
             fill_zeros(result[1], left, right, "__mod__", np.nan),
         )
     elif op is rdivmod:
         result = (
-            fill_zeros(result[0], left, right, "__rfloordiv__", np.inf),
+            # TODO: do we need to switch left/right?
+            mask_zero_div_zero(right, left, result[0]),
             fill_zeros(result[1], left, right, "__rmod__", np.nan),
         )
     elif op is operator.floordiv:

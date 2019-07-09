@@ -332,6 +332,9 @@ class TestDivisionByZero:
         right = pd.Series([0, 2]).astype(dtype2)
 
         expected = left // right, left % right
+        expected = list(expected)
+        expected[0] = expected[0].astype(np.float64)
+        expected[0][0] = np.inf
         result = divmod(left, right)
 
         tm.assert_series_equal(result[0], expected[0])
@@ -931,13 +934,9 @@ class TestAdditionSubtraction:
 
         tser = tm.makeTimeSeries().rename("ts")
         check(tser, tser * 2)
-        check(tser, tser * 0)
         check(tser, tser[::2])
         check(tser, 5)
 
-    @pytest.mark.xfail(
-        reason="Series division does not yet fill 1/0 consistently; Index does."
-    )
     def test_series_divmod_zero(self):
         # Check that divmod uses pandas convention for division by zero,
         #  which does not match numpy.
@@ -950,8 +949,8 @@ class TestAdditionSubtraction:
         other = tser * 0
 
         result = divmod(tser, other)
-        exp1 = pd.Series([np.inf] * len(tser), index=tser.index)
-        exp2 = pd.Series([np.nan] * len(tser), index=tser.index)
+        exp1 = pd.Series([np.inf] * len(tser), index=tser.index, name="ts")
+        exp2 = pd.Series([np.nan] * len(tser), index=tser.index, name="ts")
         tm.assert_series_equal(result[0], exp1)
         tm.assert_series_equal(result[1], exp2)
 
