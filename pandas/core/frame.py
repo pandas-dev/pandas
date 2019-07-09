@@ -439,9 +439,19 @@ class DataFrame(NDFrame):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
-                    if is_named_tuple(data[0]) and columns is None:
+                    infer_columns = columns is None
+                    if is_named_tuple(data[0]) and infer_columns:
                         columns = data[0]._fields
-                    arrays, columns = to_arrays(data, columns, dtype=dtype)
+                    arrays, arr_names = to_arrays(data, columns, dtype=dtype)
+                    arr_names = ensure_index(arr_names)
+
+                    columns = arr_names
+                    if is_dict_like(data[0]) and infer_columns:
+                        _columns = list(columns)
+                        if set(_columns[: len(data[0])]) == set(data[0]):
+                            _columns[: len(data[0])] = list(data[0])
+                            columns = _columns
+
                     columns = ensure_index(columns)
 
                     # set the index
@@ -453,7 +463,7 @@ class DataFrame(NDFrame):
                         else:
                             index = ibase.default_index(len(data))
 
-                    mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
+                    mgr = arrays_to_mgr(arrays, arr_names, index, columns, dtype=dtype)
                 else:
                     mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
             else:
