@@ -653,6 +653,15 @@ def test_timedelta_assignment():
     expected.loc[[1, 2, 3]] = pd.Timedelta(np.timedelta64(20, "m"))
     tm.assert_series_equal(s, expected)
 
+    # GH#22717 inserting a Timedelta should _not_ cast to int64
+    ser = pd.Series(["x"])
+    ser["td"] = pd.Timedelta("9 days")
+    assert isinstance(ser["td"], pd.Timedelta)
+
+    ser = pd.Series(["x"])
+    ser.loc["td"] = pd.Timedelta("9 days")
+    assert isinstance(ser["td"], pd.Timedelta)
+
 
 def test_underlying_data_conversion():
     # GH 4080
