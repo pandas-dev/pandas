@@ -397,10 +397,6 @@ class Block(PandasObject):
                 raise ValueError("Limit must be an integer")
             if limit < 1:
                 raise ValueError("Limit must be greater than 0")
-            if self.ndim > 2:
-                raise NotImplementedError(
-                    "number of dimensions for 'fillna' is currently limited to 2"
-                )
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if not self._can_hold_na:
@@ -853,6 +849,8 @@ class Block(PandasObject):
         `indexer` is a direct slice/positional indexer. `value` must
         be a compatible shape.
         """
+        transpose = self.ndim == 2
+
         # coerce None values, if appropriate
         if value is None:
             if self.is_numeric:
@@ -901,8 +899,8 @@ class Block(PandasObject):
             dtype, _ = maybe_promote(arr_value.dtype)
             values = values.astype(dtype)
 
-        transf = (lambda x: x.T) if self.ndim == 2 else (lambda x: x)
-        values = transf(values)
+        if transpose:
+            values = values.T
 
         # length checking
         check_setitem_lengths(indexer, value, values)
@@ -961,7 +959,9 @@ class Block(PandasObject):
 
         # coerce and try to infer the dtypes of the result
         values = self._try_coerce_and_cast_result(values, dtype)
-        block = self.make_block(transf(values))
+        if transpose:
+            values = values.T
+        block = self.make_block(values)
         return block
 
     def putmask(self, mask, new, align=True, inplace=False, axis=0, transpose=False):

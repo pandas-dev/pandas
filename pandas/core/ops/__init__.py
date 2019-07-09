@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib, ops as libops
+from pandas._libs import Timedelta, Timestamp, lib, ops as libops
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -87,7 +87,7 @@ def get_op_result_name(left, right):
         Usually a string
     """
     # `left` is always a pd.Series when called from within ops
-    if isinstance(right, (ABCSeries, pd.Index)):
+    if isinstance(right, (ABCSeries, ABCIndexClass)):
         name = _maybe_match_name(left, right)
     else:
         name = left.name
@@ -151,14 +151,14 @@ def maybe_upcast_for_op(obj):
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
-        return pd.Timedelta(obj)
+        return Timedelta(obj)
     elif isinstance(obj, np.timedelta64) and not isna(obj):
         # In particular non-nanosecond timedelta64 needs to be cast to
         #  nanoseconds, or else we get undesired behavior like
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         # The isna check is to avoid casting timedelta64("NaT"), which would
         #  return NaT and incorrectly be treated as a datetime-NaT.
-        return pd.Timedelta(obj)
+        return Timedelta(obj)
     elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
         # GH#22390 Unfortunately we need to special-case right-hand
         # timedelta64 dtypes because numpy casts integer dtypes to
@@ -1864,7 +1864,7 @@ def _comp_method_SERIES(cls, op, special):
                     )
                 msg = "\n".join(textwrap.wrap(msg.format(future=future)))
                 warnings.warn(msg, FutureWarning, stacklevel=2)
-                other = pd.Timestamp(other)
+                other = Timestamp(other)
 
             res_values = dispatch_to_index_op(op, self, other, pd.DatetimeIndex)
 
@@ -1890,7 +1890,7 @@ def _comp_method_SERIES(cls, op, special):
                 res_values, index=self.index, name=res_name
             ).rename(res_name)
 
-        elif isinstance(other, (np.ndarray, pd.Index)):
+        elif isinstance(other, (np.ndarray, ABCIndexClass)):
             # do not check length of zerodim array
             # as it will broadcast
             if other.ndim != 0 and len(self) != len(other):

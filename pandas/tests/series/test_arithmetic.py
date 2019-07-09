@@ -24,7 +24,7 @@ class TestSeriesFlexArithmetic:
         ],
     )
     @pytest.mark.parametrize(
-        "opname", ["add", "sub", "mul", "floordiv", "truediv", "div", "pow"]
+        "opname", ["add", "sub", "mul", "floordiv", "truediv", "pow"]
     )
     def test_flex_method_equivalence(self, opname, ts):
         # check that Series.{opname} behaves like Series.__{opname}__,
@@ -34,15 +34,8 @@ class TestSeriesFlexArithmetic:
         other = ts[1](tser)
         check_reverse = ts[2]
 
-        if opname == "div":
-            pytest.skip("div test only for Py3")
-
         op = getattr(Series, opname)
-
-        if op == "div":
-            alt = operator.truediv
-        else:
-            alt = getattr(operator, opname)
+        alt = getattr(operator, opname)
 
         result = op(series, other)
         expected = alt(series, other)

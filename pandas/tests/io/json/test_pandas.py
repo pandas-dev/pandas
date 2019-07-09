@@ -1432,6 +1432,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert result == expected
         assert_frame_equal(pd.read_json(result, lines=True), df)
 
+    # TODO: there is a near-identical test for pytables; can we share?
     def test_latin_encoding(self):
         # GH 13774
         pytest.skip("encoding not implemented in .to_json(), xref #13774")

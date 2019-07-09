@@ -12,9 +12,10 @@ import numpy as np
 
 from pandas._config import get_option
 
+from pandas._libs.lib import values_from_object
+
 from pandas.core.dtypes.generic import ABCDataFrame
 
-import pandas.core.common as com
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
 
 if _NUMEXPR_INSTALLED:
@@ -129,9 +130,7 @@ def _evaluate_numexpr(op, op_str, a, b, truediv=True, reversed=False, **eval_kwa
 
 def _where_standard(cond, a, b):
     return np.where(
-        com.values_from_object(cond),
-        com.values_from_object(a),
-        com.values_from_object(b),
+        values_from_object(cond), values_from_object(a), values_from_object(b)
     )
 
 
