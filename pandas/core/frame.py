@@ -446,7 +446,8 @@ class DataFrame(NDFrame):
                     arr_names = ensure_index(arr_names)
 
                     columns = arr_names
-                    if is_dict_like(data[0]) and infer_columns:
+                    # GH#10056
+                    if is_dict_like(data[0]) and infer_columns and (type(columns) is Index):
                         _columns = list(columns)
                         known_columns = set(data[0])
                         extra_columns = [_ for _ in _columns if _ not in known_columns]
