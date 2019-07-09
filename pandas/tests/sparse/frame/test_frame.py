@@ -136,7 +136,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
         repr(float_frame)
 
-    def test_constructor_fill_value_scalar(self):
+    def test_constructor_fill_value_not_scalar_raises(self):
         d = {"b": [2, 3], "a": [0, 1]}
         fill_value = np.array(np.nan)
         with pytest.raises(ValueError, match="must be a scalar"):
