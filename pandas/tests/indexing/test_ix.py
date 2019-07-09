@@ -16,7 +16,7 @@ def test_ix_deprecation():
     # GH 15114
 
     df = DataFrame({"A": [1, 2, 3]})
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=True):
+    with catch_warnings(record=True):
         df.ix[1, "A"]
 
 
