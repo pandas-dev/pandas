@@ -1050,6 +1050,7 @@ Indexing
 - Bug which produced ``AttributeError`` on partial matching :class:`Timestamp` in a :class:`MultiIndex`  (:issue:`26944`)
 - Bug in :class:`Categorical` and  :class:`CategoricalIndex` with :class:`Interval` values when using the ``in`` operator (``__contains``) with objects that are not comparable to the values in the ``Interval`` (:issue:`23705`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` on a :class:`DataFrame` with a single timezone-aware datetime64[ns] column incorrectly returning a scalar instead of a :class:`Series` (:issue:`27110`)
+- Bug in :class:`CategoricalIndex` and :class:`Categorical` incorrectly raising ``ValueError`` instead of ``TypeError`` when a list is passed using the ``in`` operator (``__contains__``) (:issue:`21729`)
 -
 
 Missing
