@@ -289,9 +289,9 @@ class TestPivotTable:
     def test_pivot_with_interval_index_margins(self):
         # GH 25815
         ordered_cat = pd.IntervalIndex.from_arrays([0, 0, 1, 1], [1, 1, 2, 2])
-        df = pd.DataFrame(
+        df = DataFrame(
             {
-                "A": np.arange(4, 0, -1).astype('int32'),
+                "A": np.arange(4, 0, -1, dtype=np.intp),
                 "B": ["a", "b", "a", "b"],
                 "C": pd.Categorical(ordered_cat, ordered=True).sort_values(
                     ascending=False
@@ -304,7 +304,12 @@ class TestPivotTable:
         )
 
         result = pivot_tab["All"]
-        expected = pd.Series([3, 7, 10], index=result.index, name="All", dtype="int32")
+        expected = Series(
+            [3, 7, 10],
+            index=Index([pd.Interval(0, 1), pd.Interval(1, 2), "All"], name="C"),
+            name="All",
+            dtype=np.intp,
+        )
         tm.assert_series_equal(result, expected)
 
     def test_pass_array(self):
