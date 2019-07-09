@@ -13,8 +13,8 @@ from pytz import FixedOffset, utc
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas.core import ops
 from pandas import DataFrame
+from pandas.core import ops
 import pandas.util.testing as tm
 
 hypothesis.settings.register_profile(
