@@ -38,6 +38,14 @@ def test_empty():
     tm.assert_series_equal(result, expected)
 
 
+def test_nested_lists():
+    s = pd.Series([[[1, 2, 3]], [1, 2], 1])
+    result = s.explode()
+    expected = pd.Series([[1, 2, 3], 1, 2, 1],
+                         index=[0, 1, 1, 2])
+    tm.assert_series_equal(result, expected)
+
+
 def test_multi_index():
     s = pd.Series(
         [[0, 1, 2], np.nan, [], (3, 4)],
