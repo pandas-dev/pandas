@@ -6,11 +6,13 @@ from pandas.util import testing as tm
 
 
 def test_basic():
-    s = pd.Series([[0, 1, 2], np.nan, [], (3, 4)], name="foo")
+    s = pd.Series([[0, 1, 2], np.nan, [], (3, 4)],
+                  index=list('abcd'),
+                  name="foo")
     result = s.explode()
     expected = pd.Series(
         [0, 1, 2, np.nan, np.nan, 3, 4],
-        index=[0, 0, 0, 1, 2, 3, 3],
+        index=list('aaabcdd'),
         dtype=object,
         name="foo",
     )
