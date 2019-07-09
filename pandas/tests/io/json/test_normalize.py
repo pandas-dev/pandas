@@ -351,9 +351,9 @@ class TestJSONNormalize:
         ).decode("utf8")
 
         testdata = {
+            b"\xc3\x9cnic\xc3\xb8de".decode("utf8"): [0, 1],
             "sub.A": [1, 3],
             "sub.B": [2, 4],
-            b"\xc3\x9cnic\xc3\xb8de".decode("utf8"): [0, 1],
         }
         expected = DataFrame(testdata)
 
