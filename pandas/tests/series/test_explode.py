@@ -6,15 +6,10 @@ from pandas.util import testing as tm
 
 
 def test_basic():
-    s = pd.Series([[0, 1, 2], np.nan, [], (3, 4)],
-                  index=list('abcd'),
-                  name="foo")
+    s = pd.Series([[0, 1, 2], np.nan, [], (3, 4)], index=list("abcd"), name="foo")
     result = s.explode()
     expected = pd.Series(
-        [0, 1, 2, np.nan, np.nan, 3, 4],
-        index=list('aaabcdd'),
-        dtype=object,
-        name="foo",
+        [0, 1, 2, np.nan, np.nan, 3, 4], index=list("aaabcdd"), dtype=object, name="foo"
     )
     tm.assert_series_equal(result, expected)
 
@@ -43,8 +38,7 @@ def test_empty():
 def test_nested_lists():
     s = pd.Series([[[1, 2, 3]], [1, 2], 1])
     result = s.explode()
-    expected = pd.Series([[1, 2, 3], 1, 2, 1],
-                         index=[0, 1, 1, 2])
+    expected = pd.Series([[1, 2, 3], 1, 2, 1], index=[0, 1, 1, 2])
     tm.assert_series_equal(result, expected)
 
 

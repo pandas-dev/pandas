@@ -15,7 +15,7 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Set, Type, Union
+from typing import FrozenSet, Iterable, List, Optional, Set, Type, Union
 import warnings
 
 import numpy as np
@@ -6236,6 +6236,78 @@ class DataFrame(NDFrame):
             return stack_multiple(self, level, dropna=dropna)
         else:
             return stack(self, level, dropna=dropna)
+
+    def explode(self, subset: Iterable) -> "DataFrame":
+        """
+        Create new DataFrame expanding a list-like columns.
+
+        .. versionadded:: 0.25.0
+
+        Parameters
+        ----------
+        subset : list-like
+
+        Returns
+        -------
+        DataFrame
+            Exploded lists to rows of the subset columns; index will be duplicated for these rows.
+
+        Raises
+        ------
+        ValueError :
+            if columns & subset are not unique.
+        ValueError :
+            subset must be list-like
+
+        See Also
+        --------
+        Series.str.split : Split string values on specified separator.
+        Series.unstack : Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format
+        Series.explode : Explode a DataFrame from list-like columns to long format.
+
+        Notes
+        -----
+        This routine will explode list-likes including lists, tuples, Series, and np.ndarray.
+        The result dtype of the subset rows will be object.
+        Scalars will be returned unchanged.
+        Empty list-likes will result in a np.nan for that row.
+
+        Examples
+        --------
+        In [1]: df = pd.DataFrame({'A': [[1, 2, 3], 'foo', [], [3, 4]], 'B': 1})
+
+        In [3]: df.explode()
+        Out[3]:
+        0      1
+        0      2
+        0      3
+        1    foo
+        2    NaN
+        3      3
+        3      4
+        dtype: object
+        """
+
+        if not is_list_like(subset):
+            raise ValueError("subset must be a list-like")
+        if not Index(subset).is_unique:
+            raise ValueError("subset must be unique")
+        if not self.columns.is_unique:
+            raise ValueError("columns must be unique")
+
+        results = [self[s].explode() for s in subset]
+        result = self.drop(subset, axis=1)
+
+        # recursive merge
+        from pandas.core.reshape.merge import merge
+
+        def merger(left, right):
+            return merge(left, right, left_index=True, right_index=True)
+
+        return functools.reduce(merger, [result] + results).reindex(
+            columns=self.columns, copy=False
+        )
 
     def unstack(self, level=-1, fill_value=None):
         """
