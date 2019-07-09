@@ -1913,7 +1913,7 @@ class CParserWrapper(ParserBase):
         else:
             if len(self._reader.header) > 1:
                 # we have a multi index in the columns
-                self.names, self.index_names, self.col_names, passed_names = self._extract_multi_indexer_columns(
+                self.names, self.index_names, self.col_names, passed_names = self._extract_multi_indexer_columns(  # noqa: E501
                     self._reader.header, self.index_names, self.col_names, passed_names
                 )
             else:
@@ -2308,7 +2308,7 @@ class PythonParser(ParserBase):
         # The original set is stored in self.original_columns.
         if len(self.columns) > 1:
             # we are processing a multi index column
-            self.columns, self.index_names, self.col_names, _ = self._extract_multi_indexer_columns(
+            self.columns, self.index_names, self.col_names, _ = self._extract_multi_indexer_columns(  # noqa: E501
                 self.columns, self.index_names, self.col_names
             )
             # Update list of original names to include all indices.
