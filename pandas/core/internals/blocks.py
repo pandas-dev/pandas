@@ -2295,7 +2295,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         -------
         base-type other
         """
-        if is_null_datetimelike(other):
+        if is_null_datetimelike(other) and not isinstance(other, np.timedelta64):
+            # exclude np.timedelta64("NaT")
             other = tslibs.iNaT
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
@@ -2485,7 +2486,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # add the tz back
             other = self._holder(other, dtype=self.dtype)
 
-        elif is_null_datetimelike(other):
+        if is_null_datetimelike(other) and not isinstance(other, np.timedelta64):
+            # exclude np.timedelta64("NaT")
             other = tslibs.iNaT
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:

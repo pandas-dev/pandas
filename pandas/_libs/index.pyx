@@ -534,7 +534,9 @@ cpdef convert_scalar(ndarray arr, object value):
         elif isinstance(value, (datetime, np.datetime64, date)):
             return Timestamp(value).value
         elif value is None or value != value:
-            return NPY_NAT
+            if not util.is_timedelta64_object(value):
+                # exclude np.timedelta64("NaT")
+                return NPY_NAT
         elif isinstance(value, str):
             return Timestamp(value).value
         raise ValueError("cannot set a Timestamp with a non-timestamp")
