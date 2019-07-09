@@ -682,8 +682,12 @@ class ExcelFormatter:
                     xlstyle = self.style_converter(";".join(styles[i, colidx]))
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val, xlstyle)
 
-    def get_formatted_cells(self):
-        for cell in itertools.chain(self._format_header(), self._format_body()):
+    def get_formatted_cells(self, include_header=True):
+        if include_header:
+            cells = itertools.chain(self._format_header(), self._format_body())
+        else:
+            cells = self._format_body()
+        for cell in cells:
             cell.val = self._format_value(cell.val)
             yield cell
 
@@ -695,6 +699,7 @@ class ExcelFormatter:
         startcol=0,
         freeze_panes=None,
         engine=None,
+        table=None,
     ):
         """
         writer : string or ExcelWriter object
@@ -712,6 +717,9 @@ class ExcelFormatter:
             write engine to use if writer is a path - you can also set this
             via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``,
             and ``io.excel.xlsm.writer``.
+        table : string, default None
+            Write the dataframe to a named and formatted excel table object
+
         """
         from pandas.io.excel import ExcelWriter
         from pandas.io.common import _stringify_path
@@ -731,12 +739,23 @@ class ExcelFormatter:
             need_save = True
 
         formatted_cells = self.get_formatted_cells()
-        writer.write_cells(
-            formatted_cells,
-            sheet_name,
-            startrow=startrow,
-            startcol=startcol,
-            freeze_panes=freeze_panes,
-        )
+        if table is not None:
+            writer.write_table(
+                formatted_cells,
+                sheet_name,
+                table,
+                startrow=startrow,
+                startcol=startcol,
+                freeze_panes=freeze_panes,
+                header=self.header,
+            )
+        else:
+            writer.write_cells(
+                formatted_cells,
+                sheet_name,
+                startrow=startrow,
+                startcol=startcol,
+                freeze_panes=freeze_panes,
+            )
         if need_save:
             writer.save()

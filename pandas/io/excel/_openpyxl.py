@@ -467,11 +467,20 @@ class _OpenpyxlWriter(ExcelWriter):
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
 
-    def write_table(self, cells, sheet_name=None, startrow=0, startcol=0,
-                    freeze_panes=None, header=True):
+    def write_table(
+        self,
+        cells,
+        table,
+        sheet_name=None,
+        startrow=0,
+        startcol=0,
+        freeze_panes=None,
+        header=True,
+    ):
         # Write the frame to an excel table using openpyxl.
 
         from openpyxl.worksheet.table import Table, TableStyleInfo
+
         sheet_name = self._get_sheet_name(sheet_name)
 
         if sheet_name in self.sheets:
@@ -482,8 +491,9 @@ class _OpenpyxlWriter(ExcelWriter):
             self.sheets[sheet_name] = wks
 
         if _validate_freeze_panes(freeze_panes):
-            wks.freeze_panes = wks.cell(row=freeze_panes[0] + 1,
-                                        column=freeze_panes[1] + 1)
+            wks.freeze_panes = wks.cell(
+                row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
+            )
 
         header_rows = 1 if header > 0 else 0
 
@@ -496,9 +506,7 @@ class _OpenpyxlWriter(ExcelWriter):
                 header_cells[cell.col] = cell.val
                 continue
             wks.cell(
-                row=startrow + cell.row + 1,
-                column=startcol + cell.col + 1,
-                value=val,
+                row=startrow + cell.row + 1, column=startcol + cell.col + 1, value=val
             )
             n_cols = max(n_cols, cell.col)
             n_rows = max(n_rows, cell.row)
@@ -508,24 +516,26 @@ class _OpenpyxlWriter(ExcelWriter):
             if col in header_cells:
                 val = str(header_cells[col])
             else:
-                val = 'Column%d' % (col + 1)
-            wks.cell(
-                row=startrow + 1,
-                column=startcol + col + 1,
-                value=val,
-            )
+                val = "Column%d" % (col + 1)
+            wks.cell(row=startrow + 1, column=startcol + col + 1, value=val)
 
-        ref = self._to_excel_range(startrow, startcol, startrow + n_rows,
-                                   startcol + n_cols)
-        tab = Table(displayName="Table1", ref=ref, headerRowCount=header_rows)
+        ref = self._to_excel_range(
+            startrow, startcol, startrow + n_rows, startcol + n_cols
+        )
+        tab = Table(displayName=table, ref=ref, headerRowCount=header_rows)
 
         # Add a default style with striped rows
         style = TableStyleInfo(
-            name="TableStyleMedium9", showFirstColumn=False,
-            showLastColumn=False, showRowStripes=True, showColumnStripes=False)
+            name="TableStyleMedium9",
+            showFirstColumn=False,
+            showLastColumn=False,
+            showRowStripes=True,
+            showColumnStripes=False,
+        )
         tab.tableStyleInfo = style
 
         wks.add_table(tab)
+
 
 class _OpenpyxlReader(_BaseExcelReader):
     def __init__(self, filepath_or_buffer: FilePathOrBuffer) -> None:

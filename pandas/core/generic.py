@@ -2182,8 +2182,8 @@ class NDFrame(PandasObject, SelectionMixin):
     freeze_panes : tuple of int (length 2), optional
         Specifies the one-based bottommost row and rightmost column that
         is to be frozen.
-    as_table : boolean, default False
-        Write the dataframe as a formatted excel table object
+    table : string, default None
+        Write the dataframe to a named and formatted excel table object
 
     See Also
     --------
@@ -2249,7 +2249,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inf_rep="inf",
         verbose=True,
         freeze_panes=None,
-        as_table=False
+        table=None
     ):
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
@@ -2273,7 +2273,7 @@ class NDFrame(PandasObject, SelectionMixin):
             startcol=startcol,
             freeze_panes=freeze_panes,
             engine=engine,
-            as_table=as_table
+            table=None
         )
 
     def to_json(

@@ -236,8 +236,16 @@ class _XlsxWriter(ExcelWriter):
             else:
                 wks.write(startrow + cell.row, startcol + cell.col, val, style)
 
-    def write_table(self, cells, sheet_name=None, startrow=0, startcol=0,
-                    freeze_panes=None, header=True):
+    def write_table(
+        self,
+        cells,
+        table,
+        sheet_name=None,
+        startrow=0,
+        startcol=0,
+        freeze_panes=None,
+        header=True,
+    ):
         # Write the frame to an excel table using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
 
@@ -258,18 +266,21 @@ class _XlsxWriter(ExcelWriter):
             if header and cell.row == 0:
                 header_cells[cell.col] = cell.val
                 continue
-            wks.write(startrow + cell.row,
-                      startcol + cell.col,
-                      val)
+            wks.write(startrow + cell.row, startcol + cell.col, val)
             n_cols = max(n_cols, cell.col)
             n_rows = max(n_rows, cell.row)
 
         # add generic name for every unnamed (index) column that is included
-        columns = [{'header': str(header_cells[col])
-                    if col in header_cells else 'Column%d' % (col + 1)}
-                   for col in range(n_cols + 1)]
+        columns = [
+            {
+                "header": str(header_cells[col])
+                if col in header_cells
+                else "Column%d" % (col + 1)
+            }
+            for col in range(n_cols + 1)
+        ]
 
-        options = {'columns': columns}
+        options = {"columns": columns, "name": table}
 
-        wks.add_table(startrow, startcol, startrow + n_rows,
-                      startcol + n_cols, options)
+        wks.add_table(startrow, startcol, startrow + n_rows, startcol + n_cols, options)
+

@@ -233,22 +233,23 @@ class TestRoundTrip:
             )
             tm.assert_frame_equal(df, res)
 
-    def test_excel_as_table_roundtrip_indexname(self, engine, ext):
-        if ext == '.xls':
+    def test_excel_table_roundtrip_indexname(self, ext):
+        if ext == ".xls":
             pytest.skip()
         df = DataFrame(np.random.randn(10, 4))
 
         df.columns = df.columns.map(str)
-        df.index.name = 'foo'
+        df.index.name = "foo"
 
-        df.to_excel(self.path, header=True, as_table=True)
+        with ensure_clean(ext) as pth:
+            df.to_excel(pth, header=True, table='Table1')
 
-        xf = ExcelFile(self.path)
-        result = pd.read_excel(xf, xf.sheet_names[0],
-                            index_col=0)
+            xf = ExcelFile(pth)
+            result = pd.read_excel(xf, xf.sheet_names[0], index_col=0)
 
-        tm.assert_frame_equal(result, df)
-        assert result.index.name == 'foo'
+            tm.assert_frame_equal(result, df)
+            assert result.index.name == "foo"
+
 
 class _WriterBase:
     @pytest.fixture(autouse=True)
@@ -1227,22 +1228,6 @@ class TestExcelWriter(_WriterBase):
         with pytest.raises(ValueError, match="Excel does not support"):
             df.to_excel(self.path)
 
-    def test_excel_as_table_roundtrip_indexname(self, engine, ext):
-        if ext == '.xls':
-            pytest.skip()
-        df = DataFrame(np.random.randn(10, 4))
-
-        df.columns = df.columns.map(str)
-        df.index.name = 'foo'
-
-        df.to_excel(self.path, header=True, as_table=True)
-
-        xf = ExcelFile(self.path)
-        result = read_excel(xf, xf.sheet_names[0],
-                            index_col=0)
-
-        tm.assert_frame_equal(result, df)
-        assert result.index.name == 'foo'
 
 class TestExcelWriterEngineTests:
     @pytest.mark.parametrize(
