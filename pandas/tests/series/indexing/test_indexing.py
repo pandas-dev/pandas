@@ -655,10 +655,10 @@ def test_timedelta_assignment():
 
 
 def test_timedelta_nat_assignment_series():
-    base = pd.Series([0, 1, 2], dtype='m8[ns]')
-    expected = pd.Series([pd.NaT, 1, 2], dtype='m8[ns]')
+    base = pd.Series([0, 1, 2], dtype="m8[ns]")
+    expected = pd.Series([pd.NaT, 1, 2], dtype="m8[ns]")
 
-    casting_nas = [pd.NaT, np.timedelta64('NaT', 'ns')]
+    casting_nas = [pd.NaT, np.timedelta64("NaT", "ns")]
     for nat in casting_nas:
         ser = base.copy(deep=True)
         ser[0] = nat
@@ -669,12 +669,11 @@ def test_timedelta_nat_assignment_series():
         tm.assert_series_equal(ser, expected)
 
     # a specifically-datetime NaT should not be coerced to timedelta
-    expected = pd.Series([
-        pd.NaT, pd.Timedelta(nanoseconds=1), pd.Timedelta(nanoseconds=2)],
-        dtype=object
+    expected = pd.Series(
+        [pd.NaT, pd.Timedelta(nanoseconds=1), pd.Timedelta(nanoseconds=2)], dtype=object
     )
 
-    non_casting_nas = [np.datetime64('NaT', 'ns')]
+    non_casting_nas = [np.datetime64("NaT", "ns")]
     for nat in non_casting_nas:
         ser = base.copy(deep=True)
         ser[0] = nat
@@ -687,6 +686,25 @@ def test_timedelta_nat_assignment_series():
         ser = base.copy(deep=True)
         ser.iloc[0] = nat
         tm.assert_series_equal(ser, expected)
+
+
+def test_timedelta_nat_assignment_array():
+    tdi = pd.timedelta_range("1s", periods=3, freq="s")
+    tda = tdi._data
+    expected = pd.TimedeltaIndex([pd.NaT, tdi[1], tdi[2]])._data
+
+    casting_nas = [pd.NaT, np.timedelta64("NaT", "ns")]
+    for nat in casting_nas:
+        arr = tda.copy()
+        arr[0] = nat
+
+        tm.assert_equal(arr, expected)
+
+    non_casting_nas = [np.datetime64("NaT", "ns")]
+    for nat in non_casting_nas:
+        arr = tda.copy()
+        with pytest.raises(TypeError):
+            arr[0] = nat
 
 
 def test_underlying_data_conversion():
