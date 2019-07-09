@@ -1,5 +1,6 @@
 from datetime import date, time, timedelta, timezone
 from decimal import Decimal
+import operator
 import os
 
 from dateutil.tz import tzlocal, tzutc
@@ -13,6 +14,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame
+from pandas.core import ops
 import pandas.util.testing as tm
 
 hypothesis.settings.register_profile(
@@ -159,6 +161,34 @@ _all_arithmetic_operators = [
 def all_arithmetic_operators(request):
     """
     Fixture for dunder names for common arithmetic operations
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        operator.add,
+        ops.radd,
+        operator.sub,
+        ops.rsub,
+        operator.mul,
+        ops.rmul,
+        operator.truediv,
+        ops.rtruediv,
+        operator.floordiv,
+        ops.rfloordiv,
+        operator.mod,
+        ops.rmod,
+        operator.pow,
+        ops.rpow,
+    ]
+)
+def all_arithmetic_functions(request):
+    """
+    Fixture for operator and roperator arithmetic functions.
+
+    Note: This includes divmod and rdivmod, whereas all_arithmetic_operators
+    does not.
     """
     return request.param
 
