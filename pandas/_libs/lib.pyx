@@ -1955,6 +1955,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                 seen.timedelta_ = 1
             if not (convert_datetime or convert_timedelta):
                 seen.object_ = 1
+                break
         elif util.is_bool_object(val):
             seen.bool_ = 1
             bools[i] = val
