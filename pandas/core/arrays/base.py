@@ -941,6 +941,9 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     def reshape(self, *shape):
+        """
+        Return a view on this array with the given shape.
+        """
         # numpy accepts either a single tuple or an expanded tuple
         shape = tuplify_shape(self.size, shape)
         result = self.view()
