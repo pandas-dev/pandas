@@ -447,13 +447,17 @@ class DataFrame(NDFrame):
 
                     columns = arr_names
                     # GH#10056
-                    if is_dict_like(data[0]) and infer_columns and (type(columns) is Index):
+                    if (
+                        is_dict_like(data[0])
+                        and infer_columns
+                        and (type(columns) is Index)
+                    ):
                         _columns = list(columns)
                         known_columns = set(data[0])
                         extra_columns = [_ for _ in _columns if _ not in known_columns]
                         if set(_columns[: len(data[0])]) == known_columns:
                             _columns[: len(known_columns)] = list(data[0])
-                            _columns[len(known_columns):] = extra_columns
+                            _columns[len(known_columns) :] = extra_columns
                             columns = _columns
 
                     columns = ensure_index(columns)
