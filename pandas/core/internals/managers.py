@@ -583,9 +583,9 @@ class BlockManager(PandasObject):
     def convert(self, **kwargs):
         return self.apply("convert", **kwargs)
 
-    def replace(self, **kwargs):
-        assert "value" in kwargs and np.ndim(kwargs["value"]) == 0
-        return self.apply("replace", **kwargs)
+    def replace(self, value, **kwargs):
+        assert np.ndim(value) == 0, value
+        return self.apply("replace", value=value, **kwargs)
 
     def replace_list(self, src_list, dest_list, inplace=False, regex=False):
         """ do a list replace """
