@@ -1230,7 +1230,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             KeyError in the future, you can use .reindex() as an alternative.
 
             See the documentation here:
-            https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"""  # noqa
+            https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"""  # noqa: E501
             )
 
             if not (ax.is_categorical() or ax.is_interval()):
@@ -1379,7 +1379,7 @@ class _IXIndexer(_NDFrameIndexer):
         .iloc for positional indexing
 
         See the documentation here:
-        http://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#ix-indexer-is-deprecated"""  # noqa
+        http://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#ix-indexer-is-deprecated"""  # noqa: E501
     )
 
     def __init__(self, name, obj):
