@@ -50,7 +50,6 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas as pd
 from pandas._typing import ArrayLike
 import pandas.core.common as com
-from pandas.core.computation import expressions
 
 from . import missing
 from .roperator import (  # noqa:F401
@@ -1255,6 +1254,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     """
     # Note: we use iloc to access columns for compat with cases
     #       with non-unique columns.
+    import pandas.core.computation.expressions as expressions
 
     right = lib.item_from_zerodim(right)
     if lib.is_scalar(right) or np.ndim(right) == 0:
@@ -1656,6 +1656,8 @@ def _arith_method_SERIES(cls, op, special):
         ------
         TypeError : invalid operation
         """
+        import pandas.core.computation.expressions as expressions
+
         try:
             result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
@@ -2156,6 +2158,8 @@ def _arith_method_FRAME(cls, op, special):
     default_axis = _get_frame_op_default_axis(op_name)
 
     def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
         try:
             result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
