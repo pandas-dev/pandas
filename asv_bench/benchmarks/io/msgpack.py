@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from pandas import DataFrame, date_range, read_msgpack
 import pandas.util.testing as tm
@@ -16,7 +17,8 @@ class MSGPack(BaseIO):
             index=date_range("20000101", periods=N, freq="H"),
         )
         self.df["object"] = tm.makeStringIndex(N)
-        self.df.to_msgpack(self.fname)
+        with warnings.catch_warnings(record=True):
+            self.df.to_msgpack(self.fname)
 
     def time_read_msgpack(self):
         read_msgpack(self.fname)

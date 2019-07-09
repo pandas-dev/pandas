@@ -5603,6 +5603,7 @@ class NDFrame(PandasObject, SelectionMixin):
             FutureWarning,
             stacklevel=2,
         )
+
         from pandas import Series
 
         return Series(self._data.get_dtype_counts())

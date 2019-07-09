@@ -1,3 +1,4 @@
+import warnings
 import string
 
 import numpy as np
@@ -320,9 +321,10 @@ class Dropna:
 
     def setup(self, how, axis):
         self.df = DataFrame(np.random.randn(10000, 1000))
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
+        with warnings.catch_warnings(record=True):
+            self.df.ix[50:1000, 20:50] = np.nan
+            self.df.ix[2000:3000] = np.nan
+            self.df.ix[:, 60:70] = np.nan
         self.df_mixed = self.df.copy()
         self.df_mixed["foo"] = "bar"
 
@@ -340,9 +342,10 @@ class Count:
 
     def setup(self, axis):
         self.df = DataFrame(np.random.randn(10000, 1000))
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
+        with warnings.catch_warnings(record=True):
+            self.df.ix[50:1000, 20:50] = np.nan
+            self.df.ix[2000:3000] = np.nan
+            self.df.ix[:, 60:70] = np.nan
         self.df_mixed = self.df.copy()
         self.df_mixed["foo"] = "bar"
 
@@ -561,7 +564,8 @@ class GetDtypeCounts:
         self.df = DataFrame(np.random.randn(10, 10000))
 
     def time_frame_get_dtype_counts(self):
-        self.df.get_dtype_counts()
+        with warnings.catch_warnings(record=True):
+            self.df.get_dtype_counts()
 
     def time_info(self):
         self.df.info()
