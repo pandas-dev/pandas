@@ -5604,7 +5604,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 "`.dtypes.value_counts()",
                 FutureWarning,
                 stacklevel=2,
-        )
+            )
 
         from pandas import Series
 
