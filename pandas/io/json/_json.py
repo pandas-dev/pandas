@@ -357,7 +357,7 @@ def read_json(
         gcs, and file. For file URLs, a host is expected. For instance, a local
         file could be ``file://localhost/path/to/table.json``.
 
-    orient : str, default None
+    orient : str, optional
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
         corresponding orient value.
