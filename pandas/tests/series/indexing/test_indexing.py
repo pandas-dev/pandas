@@ -655,8 +655,9 @@ def test_timedelta_assignment():
 
 
 def test_timedelta_nat_assignment_series():
-    base = pd.Series([0, 1, 2], dtype="m8[ns]")
-    expected = pd.Series([pd.NaT, 1, 2], dtype="m8[ns]")
+    tdi = pd.timedelta_range("1s", periods=3, freq="s")
+    base = pd.Series(tdi)
+    expected = pd.Series([pd.NaT, tdi[1], tdi[2]], dtype="m8[ns]")
 
     casting_nas = [pd.NaT, np.timedelta64("NaT", "ns")]
     for nat in casting_nas:
@@ -669,10 +670,7 @@ def test_timedelta_nat_assignment_series():
         tm.assert_series_equal(ser, expected)
 
     # a specifically-datetime NaT should not be coerced to timedelta
-    expected = pd.Series(
-        [pd.NaT, pd.Timedelta(nanoseconds=1), pd.Timedelta(nanoseconds=2)], dtype=object
-    )
-
+    expected = expected.astype(object)
     non_casting_nas = [np.datetime64("NaT", "ns")]
     for nat in non_casting_nas:
         ser = base.copy(deep=True)
@@ -703,6 +701,26 @@ def test_timedelta_nat_assignment_array():
     non_casting_nas = [np.datetime64("NaT", "ns")]
     for nat in non_casting_nas:
         arr = tda.copy()
+        with pytest.raises(TypeError):
+            arr[0] = nat
+
+
+@pytest.mark.parametrize("tz", [None, "US/Pacific"])
+def test_datetime_nat_assignment_array(tz):
+    dti = pd.date_range("2016-01-01", periods=3, tz=tz)
+    dta = dti._data
+    expected = pd.DatetimeIndex([pd.NaT, dti[1], dti[2]])._data
+
+    casting_nas = [pd.NaT, np.datetime64("NaT", "ns")]
+    for nat in casting_nas:
+        arr = dta.copy()
+        arr[0] = nat
+
+        tm.assert_equal(arr, expected)
+
+    non_casting_nas = [np.timedelta64("NaT", "ns")]
+    for nat in non_casting_nas:
+        arr = dta.copy()
         with pytest.raises(TypeError):
             arr[0] = nat
 
