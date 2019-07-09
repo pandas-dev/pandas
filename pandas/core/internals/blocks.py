@@ -900,7 +900,7 @@ class Block(PandasObject):
             values = values.astype(dtype)
 
         if transpose:
-            value = values.T
+            values = values.T
 
         # length checking
         check_setitem_lengths(indexer, value, values)
@@ -960,7 +960,7 @@ class Block(PandasObject):
         # coerce and try to infer the dtypes of the result
         values = self._try_coerce_and_cast_result(values, dtype)
         if transpose:
-            value = values.T
+            values = values.T
         block = self.make_block(values)
         return block
 
