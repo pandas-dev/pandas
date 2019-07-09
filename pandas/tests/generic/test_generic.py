@@ -1,5 +1,4 @@
 from copy import copy, deepcopy
-from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -945,5 +944,5 @@ class TestNDFrame:
     def test_deprecated_get_dtype_counts(self):
         # GH 18262
         df = DataFrame([1])
-        with catch_warnings(record=True):
+        with tm.assert_produces_warning(FutureWarning):
             df.get_dtype_counts()
