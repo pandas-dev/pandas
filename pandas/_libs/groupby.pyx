@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
+from cython cimport floating
 
 from libc.stdlib cimport malloc, free
 
@@ -56,10 +55,10 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
         n -= na_count
 
     if n % 2:
-        result = kth_smallest_c( a, n / 2, n)
+        result = kth_smallest_c( a, n // 2, n)
     else:
-        result = (kth_smallest_c(a, n / 2, n) +
-                  kth_smallest_c(a, n / 2 - 1, n)) / 2
+        result = (kth_smallest_c(a, n // 2, n) +
+                  kth_smallest_c(a, n // 2 - 1, n)) / 2
 
     if na_count:
         free(a)
@@ -141,11 +140,31 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
 def group_cumprod_float64(float64_t[:, :] out,
                           const float64_t[:, :] values,
                           const int64_t[:] labels,
+                          int ngroups,
                           bint is_datetimelike,
                           bint skipna=True):
+    """Cumulative product of columns of `values`, in row groups `labels`.
+
+    Parameters
+    ----------
+    out : float64 array
+        Array to store cumprod in.
+    values : float64 array
+        Values to take cumprod of.
+    labels : int64 array
+        Labels to group by.
+    ngroups : int
+        Number of groups, larger than all entries of `labels`.
+    is_datetimelike : bool
+        Always false, `values` is never datetime-like.
+    skipna : bool
+        If true, ignore nans in `values`.
+
+    Notes
+    -----
+    This method modifies the `out` parameter, rather than returning an object.
     """
-    Only transforms on axis=0
-    """
+
     cdef:
         Py_ssize_t i, j, N, K, size
         float64_t val
@@ -153,7 +172,7 @@ def group_cumprod_float64(float64_t[:, :] out,
         int64_t lab
 
     N, K = (<object>values).shape
-    accum = np.ones_like(values)
+    accum = np.ones((ngroups, K), dtype=np.float64)
 
     with nogil:
         for i in range(N):
@@ -178,11 +197,31 @@ def group_cumprod_float64(float64_t[:, :] out,
 def group_cumsum(numeric[:, :] out,
                  numeric[:, :] values,
                  const int64_t[:] labels,
+                 int ngroups,
                  is_datetimelike,
                  bint skipna=True):
+    """Cumulative sum of columns of `values`, in row groups `labels`.
+
+    Parameters
+    ----------
+    out : array
+        Array to store cumsum in.
+    values : array
+        Values to take cumsum of.
+    labels : int64 array
+        Labels to group by.
+    ngroups : int
+        Number of groups, larger than all entries of `labels`.
+    is_datetimelike : bool
+        True if `values` contains datetime-like entries.
+    skipna : bool
+        If true, ignore nans in `values`.
+
+    Notes
+    -----
+    This method modifies the `out` parameter, rather than returning an object.
     """
-    Only transforms on axis=0
-    """
+
     cdef:
         Py_ssize_t i, j, N, K, size
         numeric val
@@ -190,7 +229,7 @@ def group_cumsum(numeric[:, :] out,
         int64_t lab
 
     N, K = (<object>values).shape
-    accum = np.zeros_like(values)
+    accum = np.zeros((ngroups, K), dtype=np.asarray(values).dtype)
 
     with nogil:
         for i in range(N):
@@ -221,7 +260,7 @@ def group_shift_indexer(int64_t[:] out, const int64_t[:] labels,
                         int ngroups, int periods):
     cdef:
         Py_ssize_t N, i, j, ii
-        int offset, sign
+        int offset = 0, sign
         int64_t lab, idxer, idxer_slot
         int64_t[:] label_seen = np.zeros(ngroups, dtype=np.int64)
         int64_t[:, :] label_indexer
@@ -380,6 +419,368 @@ def group_any_all(uint8_t[:] out,
 
             if values[i] == flag_val:
                 out[lab] = flag_val
+
+# ----------------------------------------------------------------------
+# group_add, group_prod, group_var, group_mean, group_ohlc
+# ----------------------------------------------------------------------
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _group_add(floating[:, :] out,
+               int64_t[:] counts,
+               floating[:, :] values,
+               const int64_t[:] labels,
+               Py_ssize_t min_count=0):
+    """
+    Only aggregates on axis=0
+    """
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
+        floating val, count
+        floating[:, :] sumx, nobs
+
+    if len(values) != len(labels):
+        raise AssertionError("len(index) != len(labels)")
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+
+    N, K = (<object>values).shape
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
+
+        for i in range(ncounts):
+            for j in range(K):
+                if nobs[i, j] < min_count:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = sumx[i, j]
+
+
+group_add_float32 = _group_add['float']
+group_add_float64 = _group_add['double']
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _group_prod(floating[:, :] out,
+                int64_t[:] counts,
+                floating[:, :] values,
+                const int64_t[:] labels,
+                Py_ssize_t min_count=0):
+    """
+    Only aggregates on axis=0
+    """
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
+        floating val, count
+        floating[:, :] prodx, nobs
+
+    if not len(values) == len(labels):
+        raise AssertionError("len(index) != len(labels)")
+
+    nobs = np.zeros_like(out)
+    prodx = np.ones_like(out)
+
+    N, K = (<object>values).shape
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    prodx[lab, j] *= val
+
+        for i in range(ncounts):
+            for j in range(K):
+                if nobs[i, j] < min_count:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = prodx[i, j]
+
+
+group_prod_float32 = _group_prod['float']
+group_prod_float64 = _group_prod['double']
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+def _group_var(floating[:, :] out,
+               int64_t[:] counts,
+               floating[:, :] values,
+               const int64_t[:] labels,
+               Py_ssize_t min_count=-1):
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
+        floating val, ct, oldmean
+        floating[:, :] nobs, mean
+
+    assert min_count == -1, "'min_count' only used in add and prod"
+
+    if not len(values) == len(labels):
+        raise AssertionError("len(index) != len(labels)")
+
+    nobs = np.zeros_like(out)
+    mean = np.zeros_like(out)
+
+    N, K = (<object>values).shape
+
+    out[:, :] = 0.0
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    oldmean = mean[lab, j]
+                    mean[lab, j] += (val - oldmean) / nobs[lab, j]
+                    out[lab, j] += (val - mean[lab, j]) * (val - oldmean)
+
+        for i in range(ncounts):
+            for j in range(K):
+                ct = nobs[i, j]
+                if ct < 2:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] /= (ct - 1)
+
+
+group_var_float32 = _group_var['float']
+group_var_float64 = _group_var['double']
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _group_mean(floating[:, :] out,
+                int64_t[:] counts,
+                floating[:, :] values,
+                const int64_t[:] labels,
+                Py_ssize_t min_count=-1):
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
+        floating val, count
+        floating[:, :] sumx, nobs
+
+    assert min_count == -1, "'min_count' only used in add and prod"
+
+    if not len(values) == len(labels):
+        raise AssertionError("len(index) != len(labels)")
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+
+    N, K = (<object>values).shape
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
+
+        for i in range(ncounts):
+            for j in range(K):
+                count = nobs[i, j]
+                if nobs[i, j] == 0:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = sumx[i, j] / count
+
+
+group_mean_float32 = _group_mean['float']
+group_mean_float64 = _group_mean['double']
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _group_ohlc(floating[:, :] out,
+                int64_t[:] counts,
+                floating[:, :] values,
+                const int64_t[:] labels,
+                Py_ssize_t min_count=-1):
+    """
+    Only aggregates on axis=0
+    """
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        floating val, count
+        Py_ssize_t ngroups = len(counts)
+
+    assert min_count == -1, "'min_count' only used in add and prod"
+
+    if len(labels) == 0:
+        return
+
+    N, K = (<object>values).shape
+
+    if out.shape[1] != 4:
+        raise ValueError('Output array must have 4 columns')
+
+    if K > 1:
+        raise NotImplementedError("Argument 'values' must have only "
+                                  "one dimension")
+    out[:] = np.nan
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab == -1:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+            if val != val:
+                continue
+
+            if out[lab, 0] != out[lab, 0]:
+                out[lab, 0] = out[lab, 1] = out[lab, 2] = out[lab, 3] = val
+            else:
+                out[lab, 1] = max(out[lab, 1], val)
+                out[lab, 2] = min(out[lab, 2], val)
+                out[lab, 3] = val
+
+
+group_ohlc_float32 = _group_ohlc['float']
+group_ohlc_float64 = _group_ohlc['double']
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_quantile(ndarray[float64_t] out,
+                   ndarray[int64_t] labels,
+                   numeric[:] values,
+                   ndarray[uint8_t] mask,
+                   float64_t q,
+                   object interpolation):
+    """
+    Calculate the quantile per group.
+
+    Parameters
+    ----------
+    out : ndarray
+        Array of aggregated values that will be written to.
+    labels : ndarray
+        Array containing the unique group labels.
+    values : ndarray
+        Array containing the values to apply the function against.
+    q : float
+        The quantile value to search for.
+
+    Notes
+    -----
+    Rather than explicitly returning a value, this function modifies the
+    provided `out` parameter.
+    """
+    cdef:
+        Py_ssize_t i, N=len(labels), ngroups, grp_sz, non_na_sz
+        Py_ssize_t grp_start=0, idx=0
+        int64_t lab
+        uint8_t interp
+        float64_t q_idx, frac, val, next_val
+        ndarray[int64_t] counts, non_na_counts, sort_arr
+
+    assert values.shape[0] == N
+    inter_methods = {
+        'linear': INTERPOLATION_LINEAR,
+        'lower': INTERPOLATION_LOWER,
+        'higher': INTERPOLATION_HIGHER,
+        'nearest': INTERPOLATION_NEAREST,
+        'midpoint': INTERPOLATION_MIDPOINT,
+    }
+    interp = inter_methods[interpolation]
+
+    counts = np.zeros_like(out, dtype=np.int64)
+    non_na_counts = np.zeros_like(out, dtype=np.int64)
+    ngroups = len(counts)
+
+    # First figure out the size of every group
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            counts[lab] += 1
+            if not mask[i]:
+                non_na_counts[lab] += 1
+
+    # Get an index of values sorted by labels and then values
+    order = (values, labels)
+    sort_arr = np.lexsort(order).astype(np.int64, copy=False)
+
+    with nogil:
+        for i in range(ngroups):
+            # Figure out how many group elements there are
+            grp_sz = counts[i]
+            non_na_sz = non_na_counts[i]
+
+            if non_na_sz == 0:
+                out[i] = NaN
+            else:
+                # Calculate where to retrieve the desired value
+                # Casting to int will intentionaly truncate result
+                idx = grp_start + <int64_t>(q * <float64_t>(non_na_sz - 1))
+
+                val = values[sort_arr[idx]]
+                # If requested quantile falls evenly on a particular index
+                # then write that index's value out. Otherwise interpolate
+                q_idx = q * (non_na_sz - 1)
+                frac = q_idx % 1
+
+                if frac == 0.0 or interp == INTERPOLATION_LOWER:
+                    out[i] = val
+                else:
+                    next_val = values[sort_arr[idx + 1]]
+                    if interp == INTERPOLATION_LINEAR:
+                        out[i] = val + (next_val - val) * frac
+                    elif interp == INTERPOLATION_HIGHER:
+                        out[i] = next_val
+                    elif interp == INTERPOLATION_MIDPOINT:
+                        out[i] = (val + next_val) / 2.0
+                    elif interp == INTERPOLATION_NEAREST:
+                        if frac > .5 or (frac == .5 and q > .5):  # Always OK?
+                            out[i] = next_val
+                        else:
+                            out[i] = val
+
+            # Increment the index reference in sorted_arr for the next group
+            grp_start += grp_sz
 
 
 # generated from template

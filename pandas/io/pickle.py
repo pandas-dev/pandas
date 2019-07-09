@@ -1,15 +1,16 @@
 """ pickle compat """
+from io import BytesIO
+import pickle
 import warnings
 
-import numpy as np
-from numpy.lib.format import read_array, write_array
+from numpy.lib.format import read_array
 
-from pandas.compat import PY3, BytesIO, cPickle as pkl, pickle_compat as pc
+from pandas.compat import pickle_compat as pc
 
 from pandas.io.common import _get_handle, _stringify_path
 
 
-def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
+def to_pickle(obj, path, compression="infer", protocol=pickle.HIGHEST_PROTOCOL):
     """
     Pickle (serialize) object to file.
 
@@ -68,19 +69,18 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     >>> os.remove("./dummy.pkl")
     """
     path = _stringify_path(path)
-    f, fh = _get_handle(path, 'wb',
-                        compression=compression,
-                        is_text=False)
+    f, fh = _get_handle(path, "wb", compression=compression, is_text=False)
     if protocol < 0:
-        protocol = pkl.HIGHEST_PROTOCOL
+        protocol = pickle.HIGHEST_PROTOCOL
     try:
-        f.write(pkl.dumps(obj, protocol=protocol))
+        f.write(pickle.dumps(obj, protocol=protocol))
     finally:
+        f.close()
         for _f in fh:
             _f.close()
 
 
-def read_pickle(path, compression='infer'):
+def read_pickle(path, compression="infer"):
     """
     Load pickled pandas object (or any object) from file.
 
@@ -113,6 +113,10 @@ def read_pickle(path, compression='infer'):
     read_sql : Read SQL query or database table into a DataFrame.
     read_parquet : Load a parquet object, returning a DataFrame.
 
+    Notes
+    -----
+    read_pickle is only guaranteed to be backwards compatible to pandas 0.20.3.
+
     Examples
     --------
     >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
@@ -138,61 +142,29 @@ def read_pickle(path, compression='infer'):
     >>> os.remove("./dummy.pkl")
     """
     path = _stringify_path(path)
+    f, fh = _get_handle(path, "rb", compression=compression, is_text=False)
 
-    def read_wrapper(func):
-        # wrapper file handle open/close operation
-        f, fh = _get_handle(path, 'rb',
-                            compression=compression,
-                            is_text=False)
-        try:
-            return func(f)
-        finally:
-            for _f in fh:
-                _f.close()
+    # 1) try standard libary Pickle
+    # 2) try pickle_compat (older pandas version) to handle subclass changes
+    # 3) try pickle_compat with latin1 encoding
 
-    def try_read(path, encoding=None):
-        # try with cPickle
-        # try with current pickle, if we have a Type Error then
-        # try with the compat pickle to handle subclass changes
-        # pass encoding only if its not None as py2 doesn't handle
-        # the param
-
-        # cpickle
-        # GH 6899
-        try:
-            with warnings.catch_warnings(record=True):
-                # We want to silence any warnings about, e.g. moved modules.
-                warnings.simplefilter("ignore", Warning)
-                return read_wrapper(lambda f: pkl.load(f))
-        except Exception:  # noqa: E722
-            # reg/patched pickle
-            # compat not used in pandas/compat/pickle_compat.py::load
-            # TODO: remove except block OR modify pc.load to use compat
-            try:
-                return read_wrapper(
-                    lambda f: pc.load(f, encoding=encoding, compat=False))
-            # compat pickle
-            except Exception:  # noqa: E722
-                return read_wrapper(
-                    lambda f: pc.load(f, encoding=encoding, compat=True))
     try:
-        return try_read(path)
+        with warnings.catch_warnings(record=True):
+            # We want to silence any warnings about, e.g. moved modules.
+            warnings.simplefilter("ignore", Warning)
+            return pickle.load(f)
     except Exception:  # noqa: E722
-        if PY3:
-            return try_read(path, encoding='latin1')
-        raise
+        try:
+            return pc.load(f, encoding=None)
+        except Exception:  # noqa: E722
+            return pc.load(f, encoding="latin1")
+    finally:
+        f.close()
+        for _f in fh:
+            _f.close()
 
 
 # compat with sparse pickle / unpickle
-
-
-def _pickle_array(arr):
-    arr = arr.view(np.ndarray)
-
-    buf = BytesIO()
-    write_array(buf, arr)
-
-    return buf.getvalue()
 
 
 def _unpickle_array(bytes):

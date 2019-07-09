@@ -1,16 +1,17 @@
-# -*- coding: utf-8 -*-
-
 import pytest
 
 from pandas import interval_range
 from pandas.util.testing import assert_interval_array_equal
 
 
-@pytest.mark.parametrize("kwargs", [
-    dict(start=0, periods=4),
-    dict(start=1, periods=5),
-    dict(start=5, end=10, closed="left"),
-])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        dict(start=0, periods=4),
+        dict(start=1, periods=5),
+        dict(start=5, end=10, closed="left"),
+    ],
+)
 def test_interval_array_equal(kwargs):
     arr = interval_range(**kwargs).values
     assert_interval_array_equal(arr, arr)

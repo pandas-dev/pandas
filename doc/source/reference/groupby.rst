@@ -40,7 +40,7 @@ Function application
    GroupBy.transform
    GroupBy.pipe
 
-Computations / Descriptive Stats
+Computations / descriptive stats
 --------------------------------
 .. autosummary::
    :toctree: api/
@@ -50,6 +50,10 @@ Computations / Descriptive Stats
    GroupBy.bfill
    GroupBy.count
    GroupBy.cumcount
+   GroupBy.cummax
+   GroupBy.cummin
+   GroupBy.cumprod
+   GroupBy.cumsum
    GroupBy.ffill
    GroupBy.first
    GroupBy.head
@@ -99,6 +103,7 @@ application to columns of a specific data type.
    DataFrameGroupBy.idxmax
    DataFrameGroupBy.idxmin
    DataFrameGroupBy.mad
+   DataFrameGroupBy.nunique
    DataFrameGroupBy.pct_change
    DataFrameGroupBy.plot
    DataFrameGroupBy.quantile

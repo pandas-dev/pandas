@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import cython
 
 import numpy as np
@@ -72,9 +71,6 @@ cdef class IntIndex(SparseIndex):
         A ValueError is raised if any of these conditions is violated.
         """
 
-        cdef:
-            int32_t index, prev = -1
-
         if self.npoints > self.length:
             msg = ("Too many indices. Expected "
                    "{exp} but found {act}").format(
@@ -86,17 +82,15 @@ cdef class IntIndex(SparseIndex):
         if self.npoints == 0:
             return
 
-        if min(self.indices) < 0:
+        if self.indices.min() < 0:
             raise ValueError("No index can be less than zero")
 
-        if max(self.indices) >= self.length:
+        if self.indices.max() >= self.length:
             raise ValueError("All indices must be less than the length")
 
-        for index in self.indices:
-            if prev != -1 and index <= prev:
-                raise ValueError("Indices must be strictly increasing")
-
-            prev = index
+        monotonic = np.all(self.indices[:-1] < self.indices[1:])
+        if not monotonic:
+            raise ValueError("Indices must be strictly increasing")
 
     def equals(self, other):
         if not isinstance(other, IntIndex):
@@ -619,7 +613,7 @@ cdef class BlockIndex(SparseIndex):
         pass
 
 
-cdef class BlockMerge(object):
+cdef class BlockMerge:
     """
     Object-oriented approach makes sharing state between recursive functions a
     lot easier and reduces code duplication

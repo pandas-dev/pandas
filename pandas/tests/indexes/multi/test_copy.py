@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from copy import copy, deepcopy
 
 import pytest
@@ -48,46 +46,49 @@ def test_view(idx):
     assert_multiindex_copied(i_view, idx)
 
 
-@pytest.mark.parametrize('func', [copy, deepcopy])
+@pytest.mark.parametrize("func", [copy, deepcopy])
 def test_copy_and_deepcopy(func):
 
     idx = MultiIndex(
-        levels=[['foo', 'bar'], ['fizz', 'buzz']],
+        levels=[["foo", "bar"], ["fizz", "buzz"]],
         codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
-        names=['first', 'second']
+        names=["first", "second"],
     )
     idx_copy = func(idx)
     assert idx_copy is not idx
     assert idx_copy.equals(idx)
 
 
-@pytest.mark.parametrize('deep', [True, False])
+@pytest.mark.parametrize("deep", [True, False])
 def test_copy_method(deep):
     idx = MultiIndex(
-        levels=[['foo', 'bar'], ['fizz', 'buzz']],
+        levels=[["foo", "bar"], ["fizz", "buzz"]],
         codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
-        names=['first', 'second']
+        names=["first", "second"],
     )
     idx_copy = idx.copy(deep=deep)
     assert idx_copy.equals(idx)
 
 
-@pytest.mark.parametrize('deep', [True, False])
-@pytest.mark.parametrize('kwarg, value', [
-    ('names', ['thrid', 'fourth']),
-    ('levels', [['foo2', 'bar2'], ['fizz2', 'buzz2']]),
-    ('codes', [[1, 0, 0, 0], [1, 1, 0, 0]])
-])
+@pytest.mark.parametrize("deep", [True, False])
+@pytest.mark.parametrize(
+    "kwarg, value",
+    [
+        ("names", ["thrid", "fourth"]),
+        ("levels", [["foo2", "bar2"], ["fizz2", "buzz2"]]),
+        ("codes", [[1, 0, 0, 0], [1, 1, 0, 0]]),
+    ],
+)
 def test_copy_method_kwargs(deep, kwarg, value):
     # gh-12309: Check that the "name" argument as well other kwargs are honored
     idx = MultiIndex(
-        levels=[['foo', 'bar'], ['fizz', 'buzz']],
+        levels=[["foo", "bar"], ["fizz", "buzz"]],
         codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
-        names=['first', 'second']
+        names=["first", "second"],
     )
     return
-    idx_copy = idx.copy(**{kwarg: value, 'deep': deep})
-    if kwarg == 'names':
+    idx_copy = idx.copy(**{kwarg: value, "deep": deep})
+    if kwarg == "names":
         assert getattr(idx_copy, kwarg) == value
     else:
         assert [list(i) for i in getattr(idx_copy, kwarg)] == value

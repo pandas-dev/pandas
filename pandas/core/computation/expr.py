@@ -2,21 +2,40 @@
 """
 
 import ast
-from functools import partial
+from functools import partial, reduce
+from io import StringIO
+import itertools as it
+import operator
 import tokenize
+from typing import Type
 
 import numpy as np
 
-from pandas.compat import StringIO, lmap, reduce, string_types, zip
-
 import pandas as pd
-from pandas import compat
 from pandas.core import common as com
 from pandas.core.base import StringMixin
+from pandas.core.computation.common import (
+    _BACKTICK_QUOTED_STRING,
+    _remove_spaces_column_name,
+)
 from pandas.core.computation.ops import (
-    _LOCAL_TAG, BinOp, Constant, Div, FuncNode, Op, Term, UnaryOp,
-    UndefinedVariableError, _arith_ops_syms, _bool_ops_syms, _cmp_ops_syms,
-    _mathops, _reductions, _unary_ops_syms, is_term)
+    _LOCAL_TAG,
+    BinOp,
+    Constant,
+    Div,
+    FuncNode,
+    Op,
+    Term,
+    UnaryOp,
+    UndefinedVariableError,
+    _arith_ops_syms,
+    _bool_ops_syms,
+    _cmp_ops_syms,
+    _mathops,
+    _reductions,
+    _unary_ops_syms,
+    is_term,
+)
 from pandas.core.computation.scope import Scope
 
 import pandas.io.formats.printing as printing
@@ -31,7 +50,20 @@ def tokenize_string(source):
         A Python source code string
     """
     line_reader = StringIO(source).readline
-    for toknum, tokval, _, _, _ in tokenize.generate_tokens(line_reader):
+    token_generator = tokenize.generate_tokens(line_reader)
+
+    # Loop over all tokens till a backtick (`) is found.
+    # Then, take all tokens till the next backtick to form a backtick quoted
+    # string.
+    for toknum, tokval, _, _, _ in token_generator:
+        if tokval == "`":
+            tokval = " ".join(
+                it.takewhile(
+                    lambda tokval: tokval != "`",
+                    map(operator.itemgetter(1), token_generator),
+                )
+            )
+            toknum = _BACKTICK_QUOTED_STRING
         yield toknum, tokval
 
 
@@ -50,7 +82,7 @@ def _rewrite_assign(tok):
         Either the input or token or the replacement values
     """
     toknum, tokval = tok
-    return toknum, '==' if tokval == '=' else tokval
+    return toknum, "==" if tokval == "=" else tokval
 
 
 def _replace_booleans(tok):
@@ -69,10 +101,10 @@ def _replace_booleans(tok):
     """
     toknum, tokval = tok
     if toknum == tokenize.OP:
-        if tokval == '&':
-            return tokenize.NAME, 'and'
-        elif tokval == '|':
-            return tokenize.NAME, 'or'
+        if tokval == "&":
+            return tokenize.NAME, "and"
+        elif tokval == "|":
+            return tokenize.NAME, "or"
         return toknum, tokval
     return toknum, tokval
 
@@ -97,8 +129,33 @@ def _replace_locals(tok):
     is a ``tokenize.OP`` and to replace the ``'@'`` symbol with it.
     """
     toknum, tokval = tok
-    if toknum == tokenize.OP and tokval == '@':
+    if toknum == tokenize.OP and tokval == "@":
         return tokenize.OP, _LOCAL_TAG
+    return toknum, tokval
+
+
+def _clean_spaces_backtick_quoted_names(tok):
+    """Clean up a column name if surrounded by backticks.
+
+    Backtick quoted string are indicated by a certain tokval value. If a string
+    is a backtick quoted token it will processed by
+    :func:`_remove_spaces_column_name` so that the parser can find this
+    string when the query is executed.
+    See also :meth:`NDFrame._get_space_character_free_column_resolver`.
+
+    Parameters
+    ----------
+    tok : tuple of int, str
+        ints correspond to the all caps constants in the tokenize module
+
+    Returns
+    -------
+    t : tuple of int, str
+        Either the input or token or the replacement values
+    """
+    toknum, tokval = tok
+    if toknum == _BACKTICK_QUOTED_STRING:
+        return tokenize.NAME, _remove_spaces_column_name(tokval)
     return toknum, tokval
 
 
@@ -109,12 +166,19 @@ def _compose2(f, g):
 
 def _compose(*funcs):
     """Compose 2 or more callables"""
-    assert len(funcs) > 1, 'At least 2 callables must be passed to compose'
+    assert len(funcs) > 1, "At least 2 callables must be passed to compose"
     return reduce(_compose2, funcs)
 
 
-def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
-                                 _rewrite_assign)):
+def _preparse(
+    source,
+    f=_compose(
+        _replace_locals,
+        _replace_booleans,
+        _rewrite_assign,
+        _clean_spaces_backtick_quoted_names,
+    ),
+):
     """Compose a collection of tokenization functions
 
     Parameters
@@ -138,8 +202,8 @@ def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
     form ``(toknum, tokval)``, where ``toknum`` is one of the constants from
     the ``tokenize`` module and ``tokval`` is a string.
     """
-    assert callable(f), 'f must be callable'
-    return tokenize.untokenize(lmap(f, tokenize_string(source)))
+    assert callable(f), "f must be callable"
+    return tokenize.untokenize((f(x) for x in tokenize_string(source)))
 
 
 def _is_type(t):
@@ -148,19 +212,21 @@ def _is_type(t):
 
 
 _is_list = _is_type(list)
-_is_str = _is_type(string_types)
+_is_str = _is_type(str)
 
 
 # partition all AST nodes
-_all_nodes = frozenset(filter(lambda x: isinstance(x, type) and
-                              issubclass(x, ast.AST),
-                              (getattr(ast, node) for node in dir(ast))))
+_all_nodes = frozenset(
+    filter(
+        lambda x: isinstance(x, type) and issubclass(x, ast.AST),
+        (getattr(ast, node) for node in dir(ast)),
+    )
+)
 
 
 def _filter_nodes(superclass, all_nodes=_all_nodes):
     """Filter out AST nodes that are subclasses of ``superclass``."""
-    node_names = (node.__name__ for node in all_nodes
-                  if issubclass(node, superclass))
+    node_names = (node.__name__ for node in all_nodes if issubclass(node, superclass))
     return frozenset(node_names)
 
 
@@ -182,25 +248,44 @@ _alias_nodes = _filter_nodes(ast.alias)
 
 
 # nodes that we don't support directly but are needed for parsing
-_hacked_nodes = frozenset(['Assign', 'Module', 'Expr'])
+_hacked_nodes = frozenset(["Assign", "Module", "Expr"])
 
 
-_unsupported_expr_nodes = frozenset(['Yield', 'GeneratorExp', 'IfExp',
-                                     'DictComp', 'SetComp', 'Repr', 'Lambda',
-                                     'Set', 'AST', 'Is', 'IsNot'])
+_unsupported_expr_nodes = frozenset(
+    [
+        "Yield",
+        "GeneratorExp",
+        "IfExp",
+        "DictComp",
+        "SetComp",
+        "Repr",
+        "Lambda",
+        "Set",
+        "AST",
+        "Is",
+        "IsNot",
+    ]
+)
 
 # these nodes are low priority or won't ever be supported (e.g., AST)
-_unsupported_nodes = ((_stmt_nodes | _mod_nodes | _handler_nodes |
-                       _arguments_nodes | _keyword_nodes | _alias_nodes |
-                       _expr_context_nodes | _unsupported_expr_nodes) -
-                      _hacked_nodes)
+_unsupported_nodes = (
+    _stmt_nodes
+    | _mod_nodes
+    | _handler_nodes
+    | _arguments_nodes
+    | _keyword_nodes
+    | _alias_nodes
+    | _expr_context_nodes
+    | _unsupported_expr_nodes
+) - _hacked_nodes
 
 # we're adding a different assignment in some cases to be equality comparison
 # and we don't want `stmt` and friends in their so get only the class whose
 # names are capitalized
 _base_supported_nodes = (_all_node_names - _unsupported_nodes) | _hacked_nodes
-_msg = 'cannot both support and not support {intersection}'.format(
-    intersection=_unsupported_nodes & _base_supported_nodes)
+_msg = "cannot both support and not support {intersection}".format(
+    intersection=_unsupported_nodes & _base_supported_nodes
+)
 assert not _unsupported_nodes & _base_supported_nodes, _msg
 
 
@@ -210,8 +295,10 @@ def _node_not_implemented(node_name, cls):
     """
 
     def f(self, *args, **kwargs):
-        raise NotImplementedError("{name!r} nodes are not "
-                                  "implemented".format(name=node_name))
+        raise NotImplementedError(
+            "{name!r} nodes are not " "implemented".format(name=node_name)
+        )
+
     return f
 
 
@@ -223,14 +310,16 @@ def disallow(nodes):
     -------
     disallowed : callable
     """
+
     def disallowed(cls):
         cls.unsupported_nodes = ()
         for node in nodes:
             new_method = _node_not_implemented(node, cls)
-            name = 'visit_{node}'.format(node=node)
+            name = "visit_{node}".format(node=node)
             cls.unsupported_nodes += (name,)
             setattr(cls, name, new_method)
         return cls
+
     return disallowed
 
 
@@ -251,25 +340,27 @@ def _op_maker(op_class, op_symbol):
         f : callable
         """
         return partial(op_class, op_symbol, *args, **kwargs)
+
     return f
 
 
-_op_classes = {'binary': BinOp, 'unary': UnaryOp}
+_op_classes = {"binary": BinOp, "unary": UnaryOp}
 
 
 def add_ops(op_classes):
     """Decorator to add default implementation of ops."""
+
     def f(cls):
-        for op_attr_name, op_class in compat.iteritems(op_classes):
-            ops = getattr(cls, '{name}_ops'.format(name=op_attr_name))
-            ops_map = getattr(cls, '{name}_op_nodes_map'.format(
-                name=op_attr_name))
+        for op_attr_name, op_class in op_classes.items():
+            ops = getattr(cls, "{name}_ops".format(name=op_attr_name))
+            ops_map = getattr(cls, "{name}_op_nodes_map".format(name=op_attr_name))
             for op in ops:
                 op_node = ops_map[op]
                 if op_node is not None:
                     made_op = _op_maker(op_class, op)
-                    setattr(cls, 'visit_{node}'.format(node=op_node), made_op)
+                    setattr(cls, "visit_{node}".format(node=op_node), made_op)
         return cls
+
     return f
 
 
@@ -287,24 +378,43 @@ class BaseExprVisitor(ast.NodeVisitor):
     parser : str
     preparser : callable
     """
-    const_type = Constant
+
+    const_type = Constant  # type: Type[Term]
     term_type = Term
 
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
-    binary_op_nodes = ('Gt', 'Lt', 'GtE', 'LtE', 'Eq', 'NotEq', 'In', 'NotIn',
-                       'BitAnd', 'BitOr', 'And', 'Or', 'Add', 'Sub', 'Mult',
-                       None, 'Pow', 'FloorDiv', 'Mod')
+    binary_op_nodes = (
+        "Gt",
+        "Lt",
+        "GtE",
+        "LtE",
+        "Eq",
+        "NotEq",
+        "In",
+        "NotIn",
+        "BitAnd",
+        "BitOr",
+        "And",
+        "Or",
+        "Add",
+        "Sub",
+        "Mult",
+        None,
+        "Pow",
+        "FloorDiv",
+        "Mod",
+    )
     binary_op_nodes_map = dict(zip(binary_ops, binary_op_nodes))
 
     unary_ops = _unary_ops_syms
-    unary_op_nodes = 'UAdd', 'USub', 'Invert', 'Not'
+    unary_op_nodes = "UAdd", "USub", "Invert", "Not"
     unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
 
     rewrite_map = {
         ast.Eq: ast.In,
         ast.NotEq: ast.NotIn,
         ast.In: ast.In,
-        ast.NotIn: ast.NotIn
+        ast.NotIn: ast.NotIn,
     }
 
     def __init__(self, env, engine, parser, preparser=_preparse):
@@ -315,24 +425,24 @@ class BaseExprVisitor(ast.NodeVisitor):
         self.assigner = None
 
     def visit(self, node, **kwargs):
-        if isinstance(node, string_types):
+        if isinstance(node, str):
             clean = self.preparser(node)
             try:
                 node = ast.fix_missing_locations(ast.parse(clean))
             except SyntaxError as e:
                 from keyword import iskeyword
+
                 if any(iskeyword(x) for x in clean.split()):
-                    e.msg = ("Python keyword not valid identifier"
-                             " in numexpr query")
+                    e.msg = "Python keyword not valid identifier" " in numexpr query"
                 raise e
 
-        method = 'visit_' + node.__class__.__name__
+        method = "visit_" + node.__class__.__name__
         visitor = getattr(self, method)
         return visitor(node, **kwargs)
 
     def visit_Module(self, node, **kwargs):
         if len(node.body) != 1:
-            raise SyntaxError('only a single expression is allowed')
+            raise SyntaxError("only a single expression is allowed")
         expr = node.body[0]
         return self.visit(expr, **kwargs)
 
@@ -369,20 +479,29 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     def _maybe_transform_eq_ne(self, node, left=None, right=None):
         if left is None:
-            left = self.visit(node.left, side='left')
+            left = self.visit(node.left, side="left")
         if right is None:
-            right = self.visit(node.right, side='right')
-        op, op_class, left, right = self._rewrite_membership_op(node, left,
-                                                                right)
+            right = self.visit(node.right, side="right")
+        op, op_class, left, right = self._rewrite_membership_op(node, left, right)
         return op, op_class, left, right
 
     def _maybe_downcast_constants(self, left, right):
         f32 = np.dtype(np.float32)
-        if left.is_scalar and not right.is_scalar and right.return_type == f32:
+        if (
+            left.is_scalar
+            and hasattr(left, "value")
+            and not right.is_scalar
+            and right.return_type == f32
+        ):
             # right is a float32 array, left is a scalar
             name = self.env.add_tmp(np.float32(left.value))
             left = self.term_type(name, self.env)
-        if right.is_scalar and not left.is_scalar and left.return_type == f32:
+        if (
+            right.is_scalar
+            and hasattr(right, "value")
+            and not left.is_scalar
+            and left.return_type == f32
+        ):
             # left is a float32 array, right is a scalar
             name = self.env.add_tmp(np.float32(right.value))
             right = self.term_type(name, self.env)
@@ -396,25 +515,33 @@ class BaseExprVisitor(ast.NodeVisitor):
         # [1,2] in a + 2 * b
         # in that case a + 2 * b will be evaluated using numexpr, and the "in"
         # call will be evaluated using isin (in python space)
-        return binop.evaluate(self.env, self.engine, self.parser,
-                              self.term_type, eval_in_python)
+        return binop.evaluate(
+            self.env, self.engine, self.parser, self.term_type, eval_in_python
+        )
 
-    def _maybe_evaluate_binop(self, op, op_class, lhs, rhs,
-                              eval_in_python=('in', 'not in'),
-                              maybe_eval_in_python=('==', '!=', '<', '>',
-                                                    '<=', '>=')):
+    def _maybe_evaluate_binop(
+        self,
+        op,
+        op_class,
+        lhs,
+        rhs,
+        eval_in_python=("in", "not in"),
+        maybe_eval_in_python=("==", "!=", "<", ">", "<=", ">="),
+    ):
         res = op(lhs, rhs)
 
         if res.has_invalid_return_type:
-            raise TypeError("unsupported operand type(s) for {op}:"
-                            " '{lhs}' and '{rhs}'".format(op=res.op,
-                                                          lhs=lhs.type,
-                                                          rhs=rhs.type))
+            raise TypeError(
+                "unsupported operand type(s) for {op}:"
+                " '{lhs}' and '{rhs}'".format(op=res.op, lhs=lhs.type, rhs=rhs.type)
+            )
 
-        if self.engine != 'pytables':
-            if (res.op in _cmp_ops_syms and
-                    getattr(lhs, 'is_datetime', False) or
-                    getattr(rhs, 'is_datetime', False)):
+        if self.engine != "pytables":
+            if (
+                res.op in _cmp_ops_syms
+                and getattr(lhs, "is_datetime", False)
+                or getattr(rhs, "is_datetime", False)
+            ):
                 # all date ops must be done in python bc numexpr doesn't work
                 # well with NaT
                 return self._maybe_eval(res, self.binary_ops)
@@ -422,13 +549,14 @@ class BaseExprVisitor(ast.NodeVisitor):
         if res.op in eval_in_python:
             # "in"/"not in" ops are always evaluated in python
             return self._maybe_eval(res, eval_in_python)
-        elif self.engine != 'pytables':
-            if (getattr(lhs, 'return_type', None) == object or
-                    getattr(rhs, 'return_type', None) == object):
+        elif self.engine != "pytables":
+            if (
+                getattr(lhs, "return_type", None) == object
+                or getattr(rhs, "return_type", None) == object
+            ):
                 # evaluate "==" and "!=" in python if either of our operands
                 # has an object return type
-                return self._maybe_eval(res, eval_in_python +
-                                        maybe_eval_in_python)
+                return self._maybe_eval(res, eval_in_python + maybe_eval_in_python)
         return res
 
     def visit_BinOp(self, node, **kwargs):
@@ -437,7 +565,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self._maybe_evaluate_binop(op, op_class, left, right)
 
     def visit_Div(self, node, **kwargs):
-        truediv = self.env.scope['truediv']
+        truediv = self.env.scope["truediv"]
         return lambda lhs, rhs: Div(lhs, rhs, truediv)
 
     def visit_UnaryOp(self, node, **kwargs):
@@ -471,15 +599,17 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit_Subscript(self, node, **kwargs):
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
-        result = pd.eval(slobj, local_dict=self.env, engine=self.engine,
-                         parser=self.parser)
+        result = pd.eval(
+            slobj, local_dict=self.env, engine=self.engine, parser=self.parser
+        )
         try:
             # a Term instance
             v = value.value[result]
         except AttributeError:
             # an Op instance
-            lhs = pd.eval(value, local_dict=self.env, engine=self.engine,
-                          parser=self.parser)
+            lhs = pd.eval(
+                value, local_dict=self.env, engine=self.engine, parser=self.parser
+            )
             v = lhs[result]
         name = self.env.add_tmp(v)
         return self.term_type(name, env=self.env)
@@ -510,22 +640,24 @@ class BaseExprVisitor(ast.NodeVisitor):
         """
 
         if len(node.targets) != 1:
-            raise SyntaxError('can only assign a single expression')
+            raise SyntaxError("can only assign a single expression")
         if not isinstance(node.targets[0], ast.Name):
-            raise SyntaxError('left hand side of an assignment must be a '
-                              'single name')
+            raise SyntaxError(
+                "left hand side of an assignment must be a " "single name"
+            )
         if self.env.target is None:
-            raise ValueError('cannot assign without a target object')
+            raise ValueError("cannot assign without a target object")
 
         try:
             assigner = self.visit(node.targets[0], **kwargs)
         except UndefinedVariableError:
             assigner = node.targets[0].id
 
-        self.assigner = getattr(assigner, 'name', assigner)
+        self.assigner = getattr(assigner, "name", assigner)
         if self.assigner is None:
-            raise SyntaxError('left hand side of an assignment must be a '
-                              'single resolvable name')
+            raise SyntaxError(
+                "left hand side of an assignment must be a " "single resolvable name"
+            )
 
         return self.visit(node.value, **kwargs)
 
@@ -546,12 +678,9 @@ class BaseExprVisitor(ast.NodeVisitor):
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
 
-        raise ValueError("Invalid Attribute context {name}"
-                         .format(name=ctx.__name__))
+        raise ValueError("Invalid Attribute context {name}".format(name=ctx.__name__))
 
-    def visit_Call_35(self, node, side=None, **kwargs):
-        """ in 3.5 the starargs attribute was changed to be more flexible,
-        #11097 """
+    def visit_Call(self, node, side=None, **kwargs):
 
         if isinstance(node.func, ast.Attribute):
             res = self.visit_Attribute(node.func)
@@ -569,9 +698,8 @@ class BaseExprVisitor(ast.NodeVisitor):
                     raise
 
         if res is None:
-            raise ValueError("Invalid function call {func}"
-                             .format(func=node.func.id))
-        if hasattr(res, 'value'):
+            raise ValueError("Invalid function call {func}".format(func=node.func.id))
+        if hasattr(res, "value"):
             res = res.value
 
         if isinstance(res, FuncNode):
@@ -579,8 +707,10 @@ class BaseExprVisitor(ast.NodeVisitor):
             new_args = [self.visit(arg) for arg in node.args]
 
             if node.keywords:
-                raise TypeError("Function \"{name}\" does not support keyword "
-                                "arguments".format(name=res.name))
+                raise TypeError(
+                    'Function "{name}" does not support keyword '
+                    "arguments".format(name=res.name)
+                )
 
             return res(*new_args, **kwargs)
 
@@ -590,67 +720,15 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
-                    raise ValueError("keyword error in function call "
-                                     "'{func}'".format(func=node.func.id))
+                    raise ValueError(
+                        "keyword error in function call "
+                        "'{func}'".format(func=node.func.id)
+                    )
 
                 if key.arg:
-                    # TODO: bug?
-                    kwargs.append(ast.keyword(
-                        keyword.arg, self.visit(keyword.value)))  # noqa
+                    kwargs[key.arg] = self.visit(key.value).value
 
             return self.const_type(res(*new_args, **kwargs), self.env)
-
-    def visit_Call_legacy(self, node, side=None, **kwargs):
-
-        # this can happen with: datetime.datetime
-        if isinstance(node.func, ast.Attribute):
-            res = self.visit_Attribute(node.func)
-        elif not isinstance(node.func, ast.Name):
-            raise TypeError("Only named functions are supported")
-        else:
-            try:
-                res = self.visit(node.func)
-            except UndefinedVariableError:
-                # Check if this is a supported function name
-                try:
-                    res = FuncNode(node.func.id)
-                except ValueError:
-                    # Raise original error
-                    raise
-
-        if res is None:
-            raise ValueError("Invalid function call {func}"
-                             .format(func=node.func.id))
-        if hasattr(res, 'value'):
-            res = res.value
-
-        if isinstance(res, FuncNode):
-            args = [self.visit(targ) for targ in node.args]
-
-            if node.starargs is not None:
-                args += self.visit(node.starargs)
-
-            if node.keywords or node.kwargs:
-                raise TypeError("Function \"{name}\" does not support keyword "
-                                "arguments".format(name=res.name))
-
-            return res(*args, **kwargs)
-
-        else:
-            args = [self.visit(targ).value for targ in node.args]
-            if node.starargs is not None:
-                args += self.visit(node.starargs).value
-
-            keywords = {}
-            for key in node.keywords:
-                if not isinstance(key, ast.keyword):
-                    raise ValueError("keyword error in function call "
-                                     "'{func}'".format(func=node.func.id))
-                keywords[key.arg] = self.visit(key.value).value
-            if node.kwargs is not None:
-                keywords.update(self.visit(node.kwargs).value)
-
-            return self.const_type(res(*args, **keywords), self.env)
 
     def translate_In(self, op):
         return op
@@ -669,8 +747,9 @@ class BaseExprVisitor(ast.NodeVisitor):
         left = node.left
         values = []
         for op, comp in zip(ops, comps):
-            new_node = self.visit(ast.Compare(comparators=[comp], left=left,
-                                              ops=[self.translate_In(op)]))
+            new_node = self.visit(
+                ast.Compare(comparators=[comp], left=left, ops=[self.translate_In(op)])
+            )
             left = comp
             values.append(new_node)
         return self.visit(ast.BoolOp(op=ast.And(), values=values))
@@ -685,43 +764,41 @@ class BaseExprVisitor(ast.NodeVisitor):
             lhs = self._try_visit_binop(x)
             rhs = self._try_visit_binop(y)
 
-            op, op_class, lhs, rhs = self._maybe_transform_eq_ne(
-                node, lhs, rhs)
+            op, op_class, lhs, rhs = self._maybe_transform_eq_ne(node, lhs, rhs)
             return self._maybe_evaluate_binop(op, node.op, lhs, rhs)
 
         operands = node.values
         return reduce(visitor, operands)
 
 
-# ast.Call signature changed on 3.5,
-# conditionally change which methods is named
-# visit_Call depending on Python version, #11097
-if compat.PY35:
-    BaseExprVisitor.visit_Call = BaseExprVisitor.visit_Call_35
-else:
-    BaseExprVisitor.visit_Call = BaseExprVisitor.visit_Call_legacy
-
-_python_not_supported = frozenset(['Dict', 'BoolOp', 'In', 'NotIn'])
+_python_not_supported = frozenset(["Dict", "BoolOp", "In", "NotIn"])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
 
 
-@disallow((_unsupported_nodes | _python_not_supported) -
-          (_boolop_nodes | frozenset(['BoolOp', 'Attribute', 'In', 'NotIn',
-                                      'Tuple'])))
+@disallow(
+    (_unsupported_nodes | _python_not_supported)
+    - (_boolop_nodes | frozenset(["BoolOp", "Attribute", "In", "NotIn", "Tuple"]))
+)
 class PandasExprVisitor(BaseExprVisitor):
+    def __init__(
+        self,
+        env,
+        engine,
+        parser,
+        preparser=partial(
+            _preparse,
+            f=_compose(
+                _replace_locals, _replace_booleans, _clean_spaces_backtick_quoted_names
+            ),
+        ),
+    ):
+        super().__init__(env, engine, parser, preparser)
 
-    def __init__(self, env, engine, parser,
-                 preparser=partial(_preparse, f=_compose(_replace_locals,
-                                                         _replace_booleans))):
-        super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
 
-
-@disallow(_unsupported_nodes | _python_not_supported | frozenset(['Not']))
+@disallow(_unsupported_nodes | _python_not_supported | frozenset(["Not"]))
 class PythonExprVisitor(BaseExprVisitor):
-
     def __init__(self, env, engine, parser, preparser=lambda x: x):
-        super(PythonExprVisitor, self).__init__(env, engine, parser,
-                                                preparser=preparser)
+        super().__init__(env, engine, parser, preparser=preparser)
 
 
 class Expr(StringMixin):
@@ -738,24 +815,25 @@ class Expr(StringMixin):
     level : int, optional, default 2
     """
 
-    def __init__(self, expr, engine='numexpr', parser='pandas', env=None,
-                 truediv=True, level=0):
+    def __init__(
+        self, expr, engine="numexpr", parser="pandas", env=None, truediv=True, level=0
+    ):
         self.expr = expr
         self.env = env or Scope(level=level + 1)
         self.engine = engine
         self.parser = parser
-        self.env.scope['truediv'] = truediv
+        self.env.scope["truediv"] = truediv
         self._visitor = _parsers[parser](self.env, self.engine, self.parser)
         self.terms = self.parse()
 
     @property
     def assigner(self):
-        return getattr(self._visitor, 'assigner', None)
+        return getattr(self._visitor, "assigner", None)
 
     def __call__(self):
         return self.terms(self.env)
 
-    def __unicode__(self):
+    def __str__(self):
         return printing.pprint_thing(self.terms)
 
     def __len__(self):
@@ -773,4 +851,4 @@ class Expr(StringMixin):
         return frozenset(term.name for term in com.flatten(self.terms))
 
 
-_parsers = {'python': PythonExprVisitor, 'pandas': PandasExprVisitor}
+_parsers = {"python": PythonExprVisitor, "pandas": PandasExprVisitor}

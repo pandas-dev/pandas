@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from collections import OrderedDict
 
 import pytest
@@ -17,8 +16,9 @@ def test_bad_kwarg():
     compat_args[bad_arg + "o"] = "bar"
     kwargs = {good_arg: "foo", bad_arg: "bar"}
 
-    msg = (r"{fname}\(\) got an unexpected "
-           r"keyword argument '{arg}'".format(fname=_fname, arg=bad_arg))
+    msg = r"{fname}\(\) got an unexpected " r"keyword argument '{arg}'".format(
+        fname=_fname, arg=bad_arg
+    )
 
     with pytest.raises(TypeError, match=msg):
         validate_kwargs(_fname, kwargs, compat_args)
@@ -27,9 +27,10 @@ def test_bad_kwarg():
 @pytest.mark.parametrize("i", range(1, 3))
 def test_not_all_none(i):
     bad_arg = "foo"
-    msg = (r"the '{arg}' parameter is not supported "
-           r"in the pandas implementation of {func}\(\)".
-           format(arg=bad_arg, func=_fname))
+    msg = (
+        r"the '{arg}' parameter is not supported "
+        r"in the pandas implementation of {func}\(\)".format(arg=bad_arg, func=_fname)
+    )
 
     compat_args = OrderedDict()
     compat_args["foo"] = 1
@@ -59,8 +60,10 @@ def test_validation():
 @pytest.mark.parametrize("name", ["inplace", "copy"])
 @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
 def test_validate_bool_kwarg_fail(name, value):
-    msg = ("For argument \"%s\" expected type bool, received type %s" %
-           (name, type(value).__name__))
+    msg = 'For argument "%s" expected type bool, received type %s' % (
+        name,
+        type(value).__name__,
+    )
 
     with pytest.raises(ValueError, match=msg):
         validate_bool_kwarg(value, name)

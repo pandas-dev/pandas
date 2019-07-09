@@ -1,151 +1,14 @@
 """Extend pandas with custom array types"""
+from typing import List, Optional, Tuple, Type
+
 import numpy as np
 
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
-from pandas import compat
 
-
-class _DtypeOpsMixin(object):
-    # Not all of pandas' extension dtypes are compatibile with
-    # the new ExtensionArray interface. This means PandasExtensionDtype
-    # can't subclass ExtensionDtype yet, as is_extension_array_dtype would
-    # incorrectly say that these types are extension types.
-    #
-    # In the interim, we put methods that are shared between the two base
-    # classes ExtensionDtype and PandasExtensionDtype here. Both those base
-    # classes will inherit from this Mixin. Once everything is compatible, this
-    # class's methods can be moved to ExtensionDtype and removed.
-
-    # na_value is the default NA value to use for this type. This is used in
-    # e.g. ExtensionArray.take. This should be the user-facing "boxed" version
-    # of the NA value, not the physical NA vaalue for storage.
-    # e.g. for JSONArray, this is an empty dictionary.
-    na_value = np.nan
-    _metadata = ()
-
-    def __eq__(self, other):
-        """Check whether 'other' is equal to self.
-
-        By default, 'other' is considered equal if either
-
-        * it's a string matching 'self.name'.
-        * it's an instance of this type and all of the
-          the attributes in ``self._metadata`` are equal between
-          `self` and `other`.
-
-        Parameters
-        ----------
-        other : Any
-
-        Returns
-        -------
-        bool
-        """
-        if isinstance(other, compat.string_types):
-            try:
-                other = self.construct_from_string(other)
-            except TypeError:
-                return False
-        if isinstance(other, type(self)):
-            return all(
-                getattr(self, attr) == getattr(other, attr)
-                for attr in self._metadata
-            )
-        return False
-
-    def __hash__(self):
-        return hash(tuple(getattr(self, attr) for attr in self._metadata))
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    @property
-    def names(self):
-        # type: () -> Optional[List[str]]
-        """Ordered list of field names, or None if there are no fields.
-
-        This is for compatibility with NumPy arrays, and may be removed in the
-        future.
-        """
-        return None
-
-    @classmethod
-    def is_dtype(cls, dtype):
-        """Check if we match 'dtype'.
-
-        Parameters
-        ----------
-        dtype : object
-            The object to check.
-
-        Returns
-        -------
-        is_dtype : bool
-
-        Notes
-        -----
-        The default implementation is True if
-
-        1. ``cls.construct_from_string(dtype)`` is an instance
-           of ``cls``.
-        2. ``dtype`` is an object and is an instance of ``cls``
-        3. ``dtype`` has a ``dtype`` attribute, and any of the above
-           conditions is true for ``dtype.dtype``.
-        """
-        dtype = getattr(dtype, 'dtype', dtype)
-
-        if isinstance(dtype, (ABCSeries, ABCIndexClass,
-                              ABCDataFrame, np.dtype)):
-            # https://github.com/pandas-dev/pandas/issues/22960
-            # avoid passing data to `construct_from_string`. This could
-            # cause a FutureWarning from numpy about failing elementwise
-            # comparison from, e.g., comparing DataFrame == 'category'.
-            return False
-        elif dtype is None:
-            return False
-        elif isinstance(dtype, cls):
-            return True
-        try:
-            return cls.construct_from_string(dtype) is not None
-        except TypeError:
-            return False
-
-    @property
-    def _is_numeric(self):
-        # type: () -> bool
-        """
-        Whether columns with this dtype should be considered numeric.
-
-        By default ExtensionDtypes are assumed to be non-numeric.
-        They'll be excluded from operations that exclude non-numeric
-        columns, like (groupby) reductions, plotting, etc.
-        """
-        return False
-
-    @property
-    def _is_boolean(self):
-        # type: () -> bool
-        """
-        Whether this dtype should be considered boolean.
-
-        By default, ExtensionDtypes are assumed to be non-numeric.
-        Setting this to True will affect the behavior of several places,
-        e.g.
-
-        * is_bool
-        * boolean indexing
-
-        Returns
-        -------
-        bool
-        """
-        return False
-
-
-class ExtensionDtype(_DtypeOpsMixin):
+class ExtensionDtype:
     """
     A custom data type, to be paired with an ExtensionArray.
 
@@ -153,8 +16,8 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     See Also
     --------
-    pandas.api.extensions.register_extension_dtype
-    pandas.api.extensions.ExtensionArray
+    extensions.register_extension_dtype
+    extensions.ExtensionArray
 
     Notes
     -----
@@ -173,7 +36,7 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     Optionally one can override construct_array_type for construction
     with the name of this dtype via the Registry. See
-    :meth:`pandas.api.extensions.register_extension_dtype`.
+    :meth:`extensions.register_extension_dtype`.
 
     * construct_array_type
 
@@ -206,12 +69,59 @@ class ExtensionDtype(_DtypeOpsMixin):
     provided for registering virtual subclasses.
     """
 
+    _metadata = ()  # type: Tuple[str, ...]
+
     def __str__(self):
         return self.name
 
+    def __eq__(self, other):
+        """Check whether 'other' is equal to self.
+
+        By default, 'other' is considered equal if either
+
+        * it's a string matching 'self.name'.
+        * it's an instance of this type and all of the
+          the attributes in ``self._metadata`` are equal between
+          `self` and `other`.
+
+        Parameters
+        ----------
+        other : Any
+
+        Returns
+        -------
+        bool
+        """
+        if isinstance(other, str):
+            try:
+                other = self.construct_from_string(other)
+            except TypeError:
+                return False
+        if isinstance(other, type(self)):
+            return all(
+                getattr(self, attr) == getattr(other, attr) for attr in self._metadata
+            )
+        return False
+
+    def __hash__(self):
+        return hash(tuple(getattr(self, attr) for attr in self._metadata))
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     @property
-    def type(self):
-        # type: () -> type
+    def na_value(self):
+        """
+        Default NA value to use for this type.
+
+        This is used in e.g. ExtensionArray.take. This should be the
+        user-facing "boxed" version of the NA value, not the physical NA value
+        for storage.  e.g. for JSONArray, this is an empty dictionary.
+        """
+        return np.nan
+
+    @property
+    def type(self) -> Type:
         """
         The scalar type for the array, e.g. ``int``
 
@@ -223,8 +133,7 @@ class ExtensionDtype(_DtypeOpsMixin):
         raise AbstractMethodError(self)
 
     @property
-    def kind(self):
-        # type () -> str
+    def kind(self) -> str:
         """
         A character code (one of 'biufcmMOSUV'), default 'O'
 
@@ -237,17 +146,25 @@ class ExtensionDtype(_DtypeOpsMixin):
         --------
         numpy.dtype.kind
         """
-        return 'O'
+        return "O"
 
     @property
-    def name(self):
-        # type: () -> str
+    def name(self) -> str:
         """
         A string identifying the data type.
 
         Will be used for display in, e.g. ``Series.dtype``
         """
         raise AbstractMethodError(self)
+
+    @property
+    def names(self) -> Optional[List[str]]:
+        """Ordered list of field names, or None if there are no fields.
+
+        This is for compatibility with NumPy arrays, and may be removed in the
+        future.
+        """
+        return None
 
     @classmethod
     def construct_array_type(cls):
@@ -261,17 +178,27 @@ class ExtensionDtype(_DtypeOpsMixin):
         raise NotImplementedError
 
     @classmethod
-    def construct_from_string(cls, string):
-        """
-        Attempt to construct this type from a string.
+    def construct_from_string(cls, string: str):
+        r"""
+        Construct this type from a string.
+
+        This is useful mainly for data types that accept parameters.
+        For example, a period dtype accepts a frequency parameter that
+        can be set as ``period[H]`` (where H means hourly frequency).
+
+        By default, in the abstract class, just the name of the type is
+        expected. But subclasses can overwrite this method to accept
+        parameters.
 
         Parameters
         ----------
         string : str
+            The name of the type, for example ``category``.
 
         Returns
         -------
-        self : instance of 'cls'
+        ExtensionDtype
+            Instance of the dtype.
 
         Raises
         ------
@@ -280,15 +207,92 @@ class ExtensionDtype(_DtypeOpsMixin):
 
         Examples
         --------
-        If the extension dtype can be constructed without any arguments,
-        the following may be an adequate implementation.
+        For extension dtypes with arguments the following may be an
+        adequate implementation.
 
         >>> @classmethod
-        ... def construct_from_string(cls, string)
-        ...     if string == cls.name:
-        ...         return cls()
+        ... def construct_from_string(cls, string):
+        ...     pattern = re.compile(r"^my_type\[(?P<arg_name>.+)\]$")
+        ...     match = pattern.match(string)
+        ...     if match:
+        ...         return cls(**match.groupdict())
         ...     else:
         ...         raise TypeError("Cannot construct a '{}' from "
-        ...                         "'{}'".format(cls, string))
+        ...                         "'{}'".format(cls.__name__, string))
         """
-        raise AbstractMethodError(cls)
+        if not isinstance(string, str):
+            raise TypeError("Expects a string, got {}".format(type(string)))
+        if string != cls.name:
+            raise TypeError(
+                "Cannot construct a '{}' from '{}'".format(cls.__name__, string)
+            )
+        return cls()
+
+    @classmethod
+    def is_dtype(cls, dtype) -> bool:
+        """Check if we match 'dtype'.
+
+        Parameters
+        ----------
+        dtype : object
+            The object to check.
+
+        Returns
+        -------
+        is_dtype : bool
+
+        Notes
+        -----
+        The default implementation is True if
+
+        1. ``cls.construct_from_string(dtype)`` is an instance
+           of ``cls``.
+        2. ``dtype`` is an object and is an instance of ``cls``
+        3. ``dtype`` has a ``dtype`` attribute, and any of the above
+           conditions is true for ``dtype.dtype``.
+        """
+        dtype = getattr(dtype, "dtype", dtype)
+
+        if isinstance(dtype, (ABCSeries, ABCIndexClass, ABCDataFrame, np.dtype)):
+            # https://github.com/pandas-dev/pandas/issues/22960
+            # avoid passing data to `construct_from_string`. This could
+            # cause a FutureWarning from numpy about failing elementwise
+            # comparison from, e.g., comparing DataFrame == 'category'.
+            return False
+        elif dtype is None:
+            return False
+        elif isinstance(dtype, cls):
+            return True
+        try:
+            return cls.construct_from_string(dtype) is not None
+        except TypeError:
+            return False
+
+    @property
+    def _is_numeric(self) -> bool:
+        """
+        Whether columns with this dtype should be considered numeric.
+
+        By default ExtensionDtypes are assumed to be non-numeric.
+        They'll be excluded from operations that exclude non-numeric
+        columns, like (groupby) reductions, plotting, etc.
+        """
+        return False
+
+    @property
+    def _is_boolean(self) -> bool:
+        """
+        Whether this dtype should be considered boolean.
+
+        By default, ExtensionDtypes are assumed to be non-numeric.
+        Setting this to True will affect the behavior of several places,
+        e.g.
+
+        * is_bool
+        * boolean indexing
+
+        Returns
+        -------
+        bool
+        """
+        return False

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from decimal import Decimal
 from fractions import Fraction
 from numbers import Number
@@ -9,10 +8,9 @@ import warnings
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport (Py_INCREF, PyTuple_SET_ITEM,
-                      PyTuple_New,
-                      Py_EQ,
-                      PyObject_RichCompareBool)
+from cpython cimport (Py_INCREF, PyTuple_SET_ITEM, PyTuple_New, PyObject_Str,
+                      Py_EQ, Py_SIZE, PyObject_RichCompareBool,
+                      PyUnicode_Join, PyList_New)
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
@@ -24,10 +22,8 @@ cimport numpy as cnp
 from numpy cimport (ndarray, PyArray_GETITEM,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
                     flatiter, NPY_OBJECT,
-                    int64_t,
-                    float32_t, float64_t,
-                    uint8_t, uint64_t,
-                    complex128_t)
+                    int64_t, float32_t, float64_t,
+                    uint8_t, uint64_t, complex128_t)
 cnp.import_array()
 
 cdef extern from "numpy/arrayobject.h":
@@ -73,7 +69,6 @@ cdef:
     object oINT64_MIN = <int64_t>INT64_MIN
     object oUINT64_MAX = <uint64_t>UINT64_MAX
 
-    bint PY2 = sys.version_info[0] == 2
     float64_t NaN = <float64_t>np.NaN
 
 
@@ -81,7 +76,10 @@ def values_from_object(obj: object):
     """ return my values or the object if we are say an ndarray """
     func: object
 
-    func = getattr(obj, 'get_values', None)
+    if getattr(obj, '_typ', '') == 'dataframe':
+        return obj.values
+
+    func = getattr(obj, '_internal_get_values', None)
     if func is not None:
         obj = func()
 
@@ -233,10 +231,11 @@ def fast_unique_multiple(list arrays, sort: bool=True):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
-    if sort:
+    if sort is None:
         try:
             uniques.sort()
         except Exception:
+            # TODO: RuntimeWarning?
             pass
 
     return uniques
@@ -481,7 +480,7 @@ def maybe_indices_to_slice(ndarray[int64_t] indices, int max_len):
 def maybe_booleans_to_slice(ndarray[uint8_t] mask):
     cdef:
         Py_ssize_t i, n = len(mask)
-        Py_ssize_t start, end
+        Py_ssize_t start = 0, end = 0
         bint started = 0, finished = 0
 
     for i in range(n):
@@ -545,41 +544,6 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
             result[i] = NPY_NAT
         else:
             result[i] = val
-
-    return result
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def astype_unicode(arr: ndarray, skipna: bool=False) -> ndarray[object]:
-    """
-    Convert all elements in an array to unicode.
-
-    Parameters
-    ----------
-    arr : ndarray
-        The array whose elements we are casting.
-    skipna : bool, default False
-        Whether or not to coerce nulls to their stringified form
-        (e.g. NaN becomes 'nan').
-
-    Returns
-    -------
-    casted_arr : ndarray
-        A new array with the input array's elements casted.
-    """
-    cdef:
-        object arr_i
-        Py_ssize_t i, n = arr.size
-        ndarray[object] result = np.empty(n, dtype=object)
-
-    for i in range(n):
-        arr_i = arr[i]
-
-        if not (skipna and checknull(arr_i)):
-            arr_i = unicode(arr_i)
-
-        result[i] = arr_i
 
     return result
 
@@ -938,12 +902,12 @@ _TYPE_MAP = {
     'float32': 'floating',
     'float64': 'floating',
     'f': 'floating',
+    'complex64': 'complex',
     'complex128': 'complex',
     'c': 'complex',
-    'string': 'string' if PY2 else 'bytes',
-    'S': 'string' if PY2 else 'bytes',
-    'unicode': 'unicode' if PY2 else 'string',
-    'U': 'unicode' if PY2 else 'string',
+    'string': 'bytes',
+    'S': 'bytes',
+    'U': 'string',
     'bool': 'boolean',
     'b': 'boolean',
     'datetime64[ns]': 'datetime64',
@@ -970,7 +934,7 @@ except AttributeError:
     pass
 
 
-cdef class Seen(object):
+cdef class Seen:
     """
     Class for keeping track of the types of elements
     encountered when trying to perform type conversions.
@@ -1304,6 +1268,9 @@ def infer_dtype(value: object, skipna: object=None) -> str:
     elif is_decimal(val):
         return 'decimal'
 
+    elif is_complex(val):
+        return 'complex'
+
     elif util.is_float_object(val):
         if is_float_array(values):
             return 'floating'
@@ -1317,10 +1284,6 @@ def infer_dtype(value: object, skipna: object=None) -> str:
     elif isinstance(val, str):
         if is_string_array(values, skipna=skipna):
             return 'string'
-
-    elif isinstance(val, unicode):
-        if is_unicode_array(values, skipna=skipna):
-            return 'unicode'
 
     elif isinstance(val, bytes):
         if is_bytes_array(values, skipna=skipna):
@@ -1374,7 +1337,7 @@ def infer_datetimelike_array(arr: object) -> object:
 
     for i in range(n):
         v = arr[i]
-        if util.is_string_object(v):
+        if isinstance(v, str):
             objs.append(v)
 
             if len(objs) == 3:
@@ -1593,22 +1556,6 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
-cdef class UnicodeValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
-        return isinstance(value, unicode)
-
-    cdef inline bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.unicode_)
-
-
-cdef bint is_unicode_array(ndarray values, bint skipna=False):
-    cdef:
-        UnicodeValidator validator = UnicodeValidator(len(values),
-                                                      values.dtype,
-                                                      skipna=skipna)
-    return validator.validate(values)
-
-
 cdef class BytesValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return isinstance(value, bytes)
@@ -1687,7 +1634,7 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
     Doesn't check values are datetime-like types.
     """
     cdef:
-        Py_ssize_t i, j, n = len(values)
+        Py_ssize_t i = 0, j, n = len(values)
         object base_val, base_tz, val, tz
 
     if n == 0:
@@ -1828,7 +1775,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
         except (ValueError, OverflowError, TypeError):
             pass
 
-    # otherwise, iterate and do full infererence
+    # Otherwise, iterate and do full inference.
     cdef:
         int status, maybe_int
         Py_ssize_t i, n = values.size
@@ -1865,10 +1812,10 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                 else:
                     seen.float_ = True
 
-            if val <= oINT64_MAX:
+            if oINT64_MIN <= val <= oINT64_MAX:
                 ints[i] = val
 
-            if seen.sint_ and seen.uint_:
+            if val < oINT64_MIN or (seen.sint_ and seen.uint_):
                 seen.float_ = True
 
         elif util.is_bool_object(val):
@@ -1910,23 +1857,28 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                     else:
                         seen.saw_int(as_int)
 
-                    if not (seen.float_ or as_int in na_values):
+                    if as_int not in na_values:
                         if as_int < oINT64_MIN or as_int > oUINT64_MAX:
-                            raise ValueError('Integer out of range.')
+                            if seen.coerce_numeric:
+                                seen.float_ = True
+                            else:
+                                raise ValueError("Integer out of range.")
+                        else:
+                            if as_int >= 0:
+                                uints[i] = as_int
 
-                        if as_int >= 0:
-                            uints[i] = as_int
-                        if as_int <= oINT64_MAX:
-                            ints[i] = as_int
+                            if as_int <= oINT64_MAX:
+                                ints[i] = as_int
 
                     seen.float_ = seen.float_ or (seen.uint_ and seen.sint_)
                 else:
                     seen.float_ = True
             except (TypeError, ValueError) as e:
                 if not seen.coerce_numeric:
-                    raise type(e)(str(e) + ' at position {pos}'.format(pos=i))
+                    raise type(e)(str(e) + " at position {pos}".format(pos=i))
                 elif "uint64" in str(e):  # Exception from check functions.
                     raise
+
                 seen.saw_null()
                 floats[i] = NaN
 
@@ -1964,8 +1916,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         ndarray[int64_t] ints
         ndarray[uint64_t] uints
         ndarray[uint8_t] bools
-        ndarray[int64_t] idatetimes
-        ndarray[int64_t] itimedeltas
+        int64_t[:]  idatetimes
+        int64_t[:] itimedeltas
         Seen seen = Seen()
         object val
         float64_t fval, fnan
@@ -2062,7 +2014,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             else:
                 seen.object_ = 1
                 break
-        elif try_float and not util.is_string_object(val):
+        elif try_float and not isinstance(val, str):
             # this will convert Decimal objects
             try:
                 floats[i] = float(val)
@@ -2256,22 +2208,21 @@ def to_object_array(rows: object, int min_width=0):
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
-        list input_rows
         list row
 
-    input_rows = <list>rows
-    n = len(input_rows)
+    rows = list(rows)
+    n = len(rows)
 
     k = min_width
     for i in range(n):
-        tmp = len(input_rows[i])
+        tmp = len(rows[i])
         if tmp > k:
             k = tmp
 
     result = np.empty((n, k), dtype=object)
 
     for i in range(n):
-        row = <list>input_rows[i]
+        row = list(rows[i])
 
         for j in range(len(row)):
             result[i, j] = row[j]
@@ -2296,12 +2247,26 @@ def tuples_to_object_array(ndarray[object] tuples):
     return result
 
 
-def to_object_array_tuples(rows: list):
+def to_object_array_tuples(rows: object):
+    """
+    Convert a list of tuples into an object array. Any subclass of
+    tuple in `rows` will be casted to tuple.
+
+    Parameters
+    ----------
+    rows : 2-d array (N, K)
+        A list of tuples to be converted into an array.
+
+    Returns
+    -------
+    obj_array : numpy array of the object dtype
+    """
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
         tuple row
 
+    rows = list(rows)
     n = len(rows)
 
     k = 0

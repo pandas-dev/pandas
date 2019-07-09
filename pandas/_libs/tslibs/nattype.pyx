@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from cpython cimport (
     PyObject_RichCompare,
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
@@ -183,8 +181,30 @@ cdef class _NaT(datetime):
         return np.datetime64(NPY_NAT, 'ns')
 
     def to_datetime64(self):
-        """ Returns a numpy.datetime64 object with 'ns' precision """
+        """
+        Return a numpy.datetime64 object with 'ns' precision.
+        """
         return np.datetime64('NaT', 'ns')
+
+    def to_numpy(self, dtype=None, copy=False):
+        """
+        Convert the Timestamp to a NumPy datetime64.
+
+        .. versionadded:: 0.25.0
+
+        This is an alias method for `Timestamp.to_datetime64()`. The dtype and
+        copy parameters are available here only for compatibility. Their values
+        will not affect the return value.
+
+        Returns
+        -------
+        numpy.datetime64
+
+        See Also
+        --------
+        DatetimeIndex.to_numpy : Similar method for DatetimeIndex.
+        """
+        return self.to_datetime64()
 
     def __repr__(self):
         return 'NaT'
@@ -207,7 +227,7 @@ cdef class _NaT(datetime):
 
     def total_seconds(self):
         """
-        Total duration of timedelta in seconds (to ns precision)
+        Total duration of timedelta in seconds (to ns precision).
         """
         # GH#10939
         return np.nan
@@ -331,7 +351,7 @@ class NaTType(_NaT):
 
         .. versionadded:: 0.23.0
         """)
-    day_name = _make_nan_func('day_name', # noqa:E128
+    day_name = _make_nan_func('day_name',  # noqa:E128
         """
         Return the day name of the Timestamp with specified locale.
 
@@ -352,7 +372,6 @@ class NaTType(_NaT):
     utctimetuple = _make_error_func('utctimetuple', datetime)
     timetz = _make_error_func('timetz', datetime)
     timetuple = _make_error_func('timetuple', datetime)
-    strptime = _make_error_func('strptime', datetime)
     strftime = _make_error_func('strftime', datetime)
     isocalendar = _make_error_func('isocalendar', datetime)
     dst = _make_error_func('dst', datetime)
@@ -365,6 +384,14 @@ class NaTType(_NaT):
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
+
+    strptime = _make_error_func('strptime',  # noqa:E128
+        """
+        Timestamp.strptime(string, format)
+
+        Function is not implemented. Use pd.to_datetime().
+        """
+    )
 
     utcfromtimestamp = _make_error_func('utcfromtimestamp',  # noqa:E128
         """
@@ -382,7 +409,7 @@ class NaTType(_NaT):
     )
     combine = _make_error_func('combine',  # noqa:E128
         """
-        Timsetamp.combine(date, time)
+        Timestamp.combine(date, time)
 
         date, time -> datetime with same date and time fields
         """
@@ -448,7 +475,7 @@ class NaTType(_NaT):
         """
         Timestamp.now(tz=None)
 
-        Returns new Timestamp object representing current time local to
+        Return new Timestamp object representing current time local to
         tz.
 
         Parameters
@@ -483,8 +510,8 @@ class NaTType(_NaT):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
@@ -521,8 +548,8 @@ class NaTType(_NaT):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
@@ -555,8 +582,8 @@ class NaTType(_NaT):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
@@ -619,8 +646,8 @@ class NaTType(_NaT):
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
@@ -669,7 +696,6 @@ class NaTType(_NaT):
         nanosecond : int, optional
         tzinfo : tz-convertible, optional
         fold : int, optional, default is 0
-            added in 3.6, NotImplemented
 
         Returns
         -------

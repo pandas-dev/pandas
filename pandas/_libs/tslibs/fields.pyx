@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
@@ -172,7 +171,7 @@ def get_start_end_field(int64_t[:] dtindex, object field,
 
         # YearBegin(), BYearBegin() use month = starting month of year.
         # QuarterBegin(), BQuarterBegin() use startingMonth = starting
-        # month of year. Other offests use month, startingMonth as ending
+        # month of year. Other offsets use month, startingMonth as ending
         # month of year.
 
         if (freqstr[0:2] in ['MS', 'QS', 'AS']) or (
@@ -478,7 +477,7 @@ def get_date_field(int64_t[:] dtindex, object field):
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                out[i] = dts.ps / 1000
+                out[i] = dts.ps // 1000
         return out
     elif field == 'doy':
         with nogil:
@@ -522,7 +521,7 @@ def get_date_field(int64_t[:] dtindex, object field):
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = dts.month
-                out[i] = ((out[i] - 1) / 3) + 1
+                out[i] = ((out[i] - 1) // 3) + 1
         return out
 
     elif field == 'dim':

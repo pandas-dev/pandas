@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
+from pandas.compat.numpy import _np_version_under1p17
 
 import pandas as pd
 from pandas import Index, MultiIndex, date_range, period_range
@@ -13,13 +11,16 @@ import pandas.util.testing as tm
 def test_shift(idx):
 
     # GH8083 test the base class for shift
-    pytest.raises(NotImplementedError, idx.shift, 1)
-    pytest.raises(NotImplementedError, idx.shift, 1, 2)
+    msg = "Not supported for type MultiIndex"
+    with pytest.raises(NotImplementedError, match=msg):
+        idx.shift(1)
+    with pytest.raises(NotImplementedError, match=msg):
+        idx.shift(1, 2)
 
 
 def test_groupby(idx):
     groups = idx.groupby(np.array([1, 1, 1, 2, 2, 2]))
-    labels = idx.get_values().tolist()
+    labels = idx.tolist()
     exp = {1: labels[:3], 2: labels[3:]}
     tm.assert_dict_equal(groups, exp)
 
@@ -30,17 +31,18 @@ def test_groupby(idx):
 
 
 def test_truncate():
-    major_axis = Index(lrange(4))
-    minor_axis = Index(lrange(2))
+    major_axis = Index(list(range(4)))
+    minor_axis = Index(list(range(2)))
 
     major_codes = np.array([0, 0, 1, 2, 3, 3])
     minor_codes = np.array([0, 1, 0, 1, 0, 1])
 
-    index = MultiIndex(levels=[major_axis, minor_axis],
-                       codes=[major_codes, minor_codes])
+    index = MultiIndex(
+        levels=[major_axis, minor_axis], codes=[major_codes, minor_codes]
+    )
 
     result = index.truncate(before=1)
-    assert 'foo' not in result.levels[0]
+    assert "foo" not in result.levels[0]
     assert 1 in result.levels[0]
 
     result = index.truncate(after=1)
@@ -50,25 +52,26 @@ def test_truncate():
     result = index.truncate(before=1, after=2)
     assert len(result.levels[0]) == 2
 
-    # after < before
-    pytest.raises(ValueError, index.truncate, 3, 1)
+    msg = "after < before"
+    with pytest.raises(ValueError, match=msg):
+        index.truncate(3, 1)
 
 
 def test_where():
-    i = MultiIndex.from_tuples([('A', 1), ('A', 2)])
+    i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
 
-    with pytest.raises(NotImplementedError):
+    msg = r"\.where is not supported for MultiIndex operations"
+    with pytest.raises(NotImplementedError, match=msg):
         i.where(True)
 
 
-def test_where_array_like():
-    i = MultiIndex.from_tuples([('A', 1), ('A', 2)])
-    klasses = [list, tuple, np.array, pd.Series]
+@pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
+def test_where_array_like(klass):
+    i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
     cond = [False, True]
-
-    for klass in klasses:
-        with pytest.raises(NotImplementedError):
-            i.where(klass(cond))
+    msg = r"\.where is not supported for MultiIndex operations"
+    with pytest.raises(NotImplementedError, match=msg):
+        i.where(klass(cond))
 
 
 # TODO: reshape
@@ -76,19 +79,17 @@ def test_where_array_like():
 
 def test_reorder_levels(idx):
     # this blows up
-    with pytest.raises(IndexError, match='^Too many levels'):
+    with pytest.raises(IndexError, match="^Too many levels"):
         idx.reorder_levels([2, 1, 0])
 
 
 def test_numpy_repeat():
     reps = 2
     numbers = [1, 2, 3]
-    names = np.array(['foo', 'bar'])
+    names = np.array(["foo", "bar"])
 
-    m = MultiIndex.from_product([
-        numbers, names], names=names)
-    expected = MultiIndex.from_product([
-        numbers, names.repeat(reps)], names=names)
+    m = MultiIndex.from_product([numbers, names], names=names)
+    expected = MultiIndex.from_product([numbers, names.repeat(reps)], names=names)
     tm.assert_index_equal(np.repeat(m, reps), expected)
 
     msg = "the 'axis' parameter is not supported"
@@ -98,36 +99,50 @@ def test_numpy_repeat():
 
 def test_append_mixed_dtypes():
     # GH 13660
-    dti = date_range('2011-01-01', freq='M', periods=3, )
-    dti_tz = date_range('2011-01-01', freq='M', periods=3, tz='US/Eastern')
-    pi = period_range('2011-01', freq='M', periods=3)
+    dti = date_range("2011-01-01", freq="M", periods=3)
+    dti_tz = date_range("2011-01-01", freq="M", periods=3, tz="US/Eastern")
+    pi = period_range("2011-01", freq="M", periods=3)
 
-    mi = MultiIndex.from_arrays([[1, 2, 3],
-                                 [1.1, np.nan, 3.3],
-                                 ['a', 'b', 'c'],
-                                 dti, dti_tz, pi])
+    mi = MultiIndex.from_arrays(
+        [[1, 2, 3], [1.1, np.nan, 3.3], ["a", "b", "c"], dti, dti_tz, pi]
+    )
     assert mi.nlevels == 6
 
     res = mi.append(mi)
-    exp = MultiIndex.from_arrays([[1, 2, 3, 1, 2, 3],
-                                  [1.1, np.nan, 3.3, 1.1, np.nan, 3.3],
-                                  ['a', 'b', 'c', 'a', 'b', 'c'],
-                                  dti.append(dti),
-                                  dti_tz.append(dti_tz),
-                                  pi.append(pi)])
+    exp = MultiIndex.from_arrays(
+        [
+            [1, 2, 3, 1, 2, 3],
+            [1.1, np.nan, 3.3, 1.1, np.nan, 3.3],
+            ["a", "b", "c", "a", "b", "c"],
+            dti.append(dti),
+            dti_tz.append(dti_tz),
+            pi.append(pi),
+        ]
+    )
     tm.assert_index_equal(res, exp)
 
-    other = MultiIndex.from_arrays([['x', 'y', 'z'], ['x', 'y', 'z'],
-                                    ['x', 'y', 'z'], ['x', 'y', 'z'],
-                                    ['x', 'y', 'z'], ['x', 'y', 'z']])
+    other = MultiIndex.from_arrays(
+        [
+            ["x", "y", "z"],
+            ["x", "y", "z"],
+            ["x", "y", "z"],
+            ["x", "y", "z"],
+            ["x", "y", "z"],
+            ["x", "y", "z"],
+        ]
+    )
 
     res = mi.append(other)
-    exp = MultiIndex.from_arrays([[1, 2, 3, 'x', 'y', 'z'],
-                                  [1.1, np.nan, 3.3, 'x', 'y', 'z'],
-                                  ['a', 'b', 'c', 'x', 'y', 'z'],
-                                  dti.append(pd.Index(['x', 'y', 'z'])),
-                                  dti_tz.append(pd.Index(['x', 'y', 'z'])),
-                                  pi.append(pd.Index(['x', 'y', 'z']))])
+    exp = MultiIndex.from_arrays(
+        [
+            [1, 2, 3, "x", "y", "z"],
+            [1.1, np.nan, 3.3, "x", "y", "z"],
+            ["a", "b", "c", "x", "y", "z"],
+            dti.append(pd.Index(["x", "y", "z"])),
+            dti_tz.append(pd.Index(["x", "y", "z"])),
+            pi.append(pd.Index(["x", "y", "z"])),
+        ]
+    )
     tm.assert_index_equal(res, exp)
 
 
@@ -141,7 +156,8 @@ def test_take(idx):
     # if not isinstance(idx,
     #                   (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
     # GH 10791
-    with pytest.raises(AttributeError):
+    msg = "'MultiIndex' object has no attribute 'freq'"
+    with pytest.raises(AttributeError, match=msg):
         idx.freq
 
 
@@ -159,54 +175,64 @@ def test_take_invalid_kwargs(idx):
 
     msg = "the 'mode' parameter is not supported"
     with pytest.raises(ValueError, match=msg):
-        idx.take(indices, mode='clip')
+        idx.take(indices, mode="clip")
 
 
 def test_take_fill_value():
     # GH 12631
-    vals = [['A', 'B'],
-            [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]]
-    idx = pd.MultiIndex.from_product(vals, names=['str', 'dt'])
+    vals = [["A", "B"], [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]]
+    idx = pd.MultiIndex.from_product(vals, names=["str", "dt"])
 
     result = idx.take(np.array([1, 0, -1]))
-    exp_vals = [('A', pd.Timestamp('2011-01-02')),
-                ('A', pd.Timestamp('2011-01-01')),
-                ('B', pd.Timestamp('2011-01-02'))]
-    expected = pd.MultiIndex.from_tuples(exp_vals, names=['str', 'dt'])
+    exp_vals = [
+        ("A", pd.Timestamp("2011-01-02")),
+        ("A", pd.Timestamp("2011-01-01")),
+        ("B", pd.Timestamp("2011-01-02")),
+    ]
+    expected = pd.MultiIndex.from_tuples(exp_vals, names=["str", "dt"])
     tm.assert_index_equal(result, expected)
 
     # fill_value
     result = idx.take(np.array([1, 0, -1]), fill_value=True)
-    exp_vals = [('A', pd.Timestamp('2011-01-02')),
-                ('A', pd.Timestamp('2011-01-01')),
-                (np.nan, pd.NaT)]
-    expected = pd.MultiIndex.from_tuples(exp_vals, names=['str', 'dt'])
+    exp_vals = [
+        ("A", pd.Timestamp("2011-01-02")),
+        ("A", pd.Timestamp("2011-01-01")),
+        (np.nan, pd.NaT),
+    ]
+    expected = pd.MultiIndex.from_tuples(exp_vals, names=["str", "dt"])
     tm.assert_index_equal(result, expected)
 
     # allow_fill=False
-    result = idx.take(np.array([1, 0, -1]), allow_fill=False,
-                      fill_value=True)
-    exp_vals = [('A', pd.Timestamp('2011-01-02')),
-                ('A', pd.Timestamp('2011-01-01')),
-                ('B', pd.Timestamp('2011-01-02'))]
-    expected = pd.MultiIndex.from_tuples(exp_vals, names=['str', 'dt'])
+    result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+    exp_vals = [
+        ("A", pd.Timestamp("2011-01-02")),
+        ("A", pd.Timestamp("2011-01-01")),
+        ("B", pd.Timestamp("2011-01-02")),
+    ]
+    expected = pd.MultiIndex.from_tuples(exp_vals, names=["str", "dt"])
     tm.assert_index_equal(result, expected)
 
-    msg = ('When allow_fill=True and fill_value is not None, '
-           'all indices must be >= -1')
+    msg = "When allow_fill=True and fill_value is not None, all indices must be >= -1"
     with pytest.raises(ValueError, match=msg):
         idx.take(np.array([1, 0, -2]), fill_value=True)
     with pytest.raises(ValueError, match=msg):
         idx.take(np.array([1, 0, -5]), fill_value=True)
 
-    with pytest.raises(IndexError):
+    msg = "index -5 is out of bounds for size 4"
+    with pytest.raises(IndexError, match=msg):
         idx.take(np.array([1, -5]))
 
 
 def test_iter(idx):
     result = list(idx)
-    expected = [('foo', 'one'), ('foo', 'two'), ('bar', 'one'),
-                ('baz', 'two'), ('qux', 'one'), ('qux', 'two')]
+    expected = [
+        ("foo", "one"),
+        ("foo", "two"),
+        ("bar", "one"),
+        ("baz", "two"),
+        ("qux", "one"),
+        ("qux", "two"),
+    ]
     assert result == expected
 
 
@@ -215,13 +241,15 @@ def test_sub(idx):
     first = idx
 
     # - now raises (previously was set op difference)
-    with pytest.raises(TypeError):
+    msg = "cannot perform __sub__ with this index type: MultiIndex"
+    with pytest.raises(TypeError, match=msg):
         first - idx[-3:]
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         idx[-3:] - first
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         idx[-3:] - first.tolist()
-    with pytest.raises(TypeError):
+    msg = "cannot perform __rsub__ with this index type: MultiIndex"
+    with pytest.raises(TypeError, match=msg):
         first.tolist() - idx[-3:]
 
 
@@ -231,7 +259,7 @@ def test_map(idx):
 
     # we don't infer UInt64
     if isinstance(index, pd.UInt64Index):
-        expected = index.astype('int64')
+        expected = index.astype("int64")
     else:
         expected = index
 
@@ -243,7 +271,9 @@ def test_map(idx):
     "mapper",
     [
         lambda values, idx: {i: e for e, i in zip(values, idx)},
-        lambda values, idx: pd.Series(values, idx)])
+        lambda values, idx: pd.Series(values, idx),
+    ],
+)
 def test_map_dictlike(idx, mapper):
 
     if isinstance(idx, (pd.CategoricalIndex, pd.IntervalIndex)):
@@ -253,7 +283,7 @@ def test_map_dictlike(idx, mapper):
 
     # we don't infer to UInt64 for a dict
     if isinstance(idx, pd.UInt64Index) and isinstance(identity, dict):
-        expected = idx.astype('int64')
+        expected = idx.astype("int64")
     else:
         expected = idx
 
@@ -266,56 +296,61 @@ def test_map_dictlike(idx, mapper):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize('func', [
-    np.exp, np.exp2, np.expm1, np.log, np.log2, np.log10,
-    np.log1p, np.sqrt, np.sin, np.cos, np.tan, np.arcsin,
-    np.arccos, np.arctan, np.sinh, np.cosh, np.tanh,
-    np.arcsinh, np.arccosh, np.arctanh, np.deg2rad,
-    np.rad2deg
-])
-def test_numpy_ufuncs(func):
+@pytest.mark.parametrize(
+    "func",
+    [
+        np.exp,
+        np.exp2,
+        np.expm1,
+        np.log,
+        np.log2,
+        np.log10,
+        np.log1p,
+        np.sqrt,
+        np.sin,
+        np.cos,
+        np.tan,
+        np.arcsin,
+        np.arccos,
+        np.arctan,
+        np.sinh,
+        np.cosh,
+        np.tanh,
+        np.arcsinh,
+        np.arccosh,
+        np.arctanh,
+        np.deg2rad,
+        np.rad2deg,
+    ],
+    ids=lambda func: func.__name__,
+)
+def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
     # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
-    # copy and paste from idx fixture as pytest doesn't support
-    # parameters and fixtures at the same time.
-    major_axis = Index(['foo', 'bar', 'baz', 'qux'])
-    minor_axis = Index(['one', 'two'])
-    major_codes = np.array([0, 0, 1, 2, 3, 3])
-    minor_codes = np.array([0, 1, 0, 1, 0, 1])
-    index_names = ['first', 'second']
-
-    idx = MultiIndex(
-        levels=[major_axis, minor_axis],
-        codes=[major_codes, minor_codes],
-        names=index_names,
-        verify_integrity=False
-    )
-
-    with pytest.raises(Exception):
-        with np.errstate(all='ignore'):
-            func(idx)
+    if _np_version_under1p17:
+        expected_exception = AttributeError
+        msg = "'tuple' object has no attribute '{}'".format(func.__name__)
+    else:
+        expected_exception = TypeError
+        msg = (
+            "loop of ufunc does not support argument 0 of type tuple which"
+            " has no callable {} method"
+        ).format(func.__name__)
+    with pytest.raises(expected_exception, match=msg):
+        func(idx)
 
 
-@pytest.mark.parametrize('func', [
-    np.isfinite, np.isinf, np.isnan, np.signbit
-])
-def test_numpy_type_funcs(func):
-    # for func in [np.isfinite, np.isinf, np.isnan, np.signbit]:
-    # copy and paste from idx fixture as pytest doesn't support
-    # parameters and fixtures at the same time.
-    major_axis = Index(['foo', 'bar', 'baz', 'qux'])
-    minor_axis = Index(['one', 'two'])
-    major_codes = np.array([0, 0, 1, 2, 3, 3])
-    minor_codes = np.array([0, 1, 0, 1, 0, 1])
-    index_names = ['first', 'second']
-
-    idx = MultiIndex(
-        levels=[major_axis, minor_axis],
-        codes=[major_codes, minor_codes],
-        names=index_names,
-        verify_integrity=False
-    )
-
-    with pytest.raises(Exception):
+@pytest.mark.parametrize(
+    "func",
+    [np.isfinite, np.isinf, np.isnan, np.signbit],
+    ids=lambda func: func.__name__,
+)
+def test_numpy_type_funcs(idx, func):
+    msg = (
+        "ufunc '{}' not supported for the input types, and the inputs"
+        " could not be safely coerced to any supported types according to"
+        " the casting rule ''safe''"
+    ).format(func.__name__)
+    with pytest.raises(TypeError, match=msg):
         func(idx)

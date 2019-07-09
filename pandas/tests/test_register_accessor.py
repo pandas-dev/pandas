@@ -20,11 +20,10 @@ def ensure_removed(obj, attr):
         obj._accessors.discard(attr)
 
 
-class MyAccessor(object):
-
+class MyAccessor:
     def __init__(self, obj):
         self.obj = obj
-        self.item = 'item'
+        self.item = "item"
 
     @property
     def prop(self):
@@ -34,30 +33,33 @@ class MyAccessor(object):
         return self.item
 
 
-@pytest.mark.parametrize('obj, registrar', [
-    (pd.Series, pd.api.extensions.register_series_accessor),
-    (pd.DataFrame, pd.api.extensions.register_dataframe_accessor),
-    (pd.Index, pd.api.extensions.register_index_accessor)
-])
+@pytest.mark.parametrize(
+    "obj, registrar",
+    [
+        (pd.Series, pd.api.extensions.register_series_accessor),
+        (pd.DataFrame, pd.api.extensions.register_dataframe_accessor),
+        (pd.Index, pd.api.extensions.register_index_accessor),
+    ],
+)
 def test_register(obj, registrar):
-    with ensure_removed(obj, 'mine'):
+    with ensure_removed(obj, "mine"):
         before = set(dir(obj))
-        registrar('mine')(MyAccessor)
-        assert obj([]).mine.prop == 'item'
+        registrar("mine")(MyAccessor)
+        assert obj([]).mine.prop == "item"
         after = set(dir(obj))
-        assert (before ^ after) == {'mine'}
-        assert 'mine' in obj._accessors
+        assert (before ^ after) == {"mine"}
+        assert "mine" in obj._accessors
 
 
 def test_accessor_works():
-    with ensure_removed(pd.Series, 'mine'):
-        pd.api.extensions.register_series_accessor('mine')(MyAccessor)
+    with ensure_removed(pd.Series, "mine"):
+        pd.api.extensions.register_series_accessor("mine")(MyAccessor)
 
         s = pd.Series([1, 2])
         assert s.mine.obj is s
 
-        assert s.mine.prop == 'item'
-        assert s.mine.method() == 'item'
+        assert s.mine.prop == "item"
+        assert s.mine.method() == "item"
 
 
 def test_overwrite_warns():
@@ -65,23 +67,23 @@ def test_overwrite_warns():
     mean = pd.Series.mean
     try:
         with tm.assert_produces_warning(UserWarning) as w:
-            pd.api.extensions.register_series_accessor('mean')(MyAccessor)
+            pd.api.extensions.register_series_accessor("mean")(MyAccessor)
             s = pd.Series([1, 2])
-            assert s.mean.prop == 'item'
+            assert s.mean.prop == "item"
         msg = str(w[0].message)
-        assert 'mean' in msg
-        assert 'MyAccessor' in msg
-        assert 'Series' in msg
+        assert "mean" in msg
+        assert "MyAccessor" in msg
+        assert "Series" in msg
     finally:
         pd.Series.mean = mean
 
 
 def test_raises_attribute_error():
 
-    with ensure_removed(pd.Series, 'bad'):
+    with ensure_removed(pd.Series, "bad"):
 
         @pd.api.extensions.register_series_accessor("bad")
-        class Bad(object):
+        class Bad:
             def __init__(self, data):
                 raise AttributeError("whoops")
 

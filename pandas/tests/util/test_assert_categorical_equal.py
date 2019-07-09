@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
-
 import pytest
 
 from pandas import Categorical
 from pandas.util.testing import assert_categorical_equal
 
 
-@pytest.mark.parametrize("c", [
-    Categorical([1, 2, 3, 4]),
-    Categorical([1, 2, 3, 4], categories=[1, 2, 3, 4, 5]),
-])
+@pytest.mark.parametrize(
+    "c",
+    [Categorical([1, 2, 3, 4]), Categorical([1, 2, 3, 4], categories=[1, 2, 3, 4, 5])],
+)
 def test_categorical_equal(c):
     assert_categorical_equal(c, c)
 
@@ -83,7 +81,9 @@ def test_categorical_equal_object_override(obj):
 
 Attribute "ordered" are different
 \\[left\\]:  False
-\\[right\\]: True""".format(obj=obj)
+\\[right\\]: True""".format(
+        obj=obj
+    )
 
     c1 = Categorical(data, ordered=False)
     c2 = Categorical(data, ordered=True)

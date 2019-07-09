@@ -6,24 +6,23 @@ import pandas.util.testing as tm
 _ts = tm.makeTimeSeries()
 
 
-class TestData(object):
-
+class TestData:
     @cache_readonly
     def ts(self):
         ts = _ts.copy()
-        ts.name = 'ts'
+        ts.name = "ts"
         return ts
 
     @cache_readonly
     def series(self):
         series = tm.makeStringSeries()
-        series.name = 'series'
+        series.name = "series"
         return series
 
     @cache_readonly
     def objSeries(self):
         objSeries = tm.makeObjectSeries()
-        objSeries.name = 'objects'
+        objSeries.name = "objects"
         return objSeries
 
     @cache_readonly

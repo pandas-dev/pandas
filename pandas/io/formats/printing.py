@@ -4,12 +4,9 @@ printing tools
 
 import sys
 
-from pandas.compat import u
+from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
-
-from pandas import compat
-from pandas.core.config import get_option
 
 
 def adjoin(space, *lists, **kwargs):
@@ -28,8 +25,8 @@ def adjoin(space, *lists, **kwargs):
     justfunc : callable
         function used to justify str. Needed for unicode handling.
     """
-    strlen = kwargs.pop('strlen', len)
-    justfunc = kwargs.pop('justfunc', justify)
+    strlen = kwargs.pop("strlen", len)
+    justfunc = kwargs.pop("justfunc", justify)
 
     out_lines = []
     newLists = []
@@ -38,34 +35,33 @@ def adjoin(space, *lists, **kwargs):
     lengths.append(max(map(len, lists[-1])))
     maxLen = max(map(len, lists))
     for i, lst in enumerate(lists):
-        nl = justfunc(lst, lengths[i], mode='left')
-        nl.extend([' ' * lengths[i]] * (maxLen - len(lst)))
+        nl = justfunc(lst, lengths[i], mode="left")
+        nl.extend([" " * lengths[i]] * (maxLen - len(lst)))
         newLists.append(nl)
     toJoin = zip(*newLists)
     for lines in toJoin:
         out_lines.append(_join_unicode(lines))
-    return _join_unicode(out_lines, sep='\n')
+    return _join_unicode(out_lines, sep="\n")
 
 
-def justify(texts, max_len, mode='right'):
+def justify(texts, max_len, mode="right"):
     """
     Perform ljust, center, rjust against string or list-like
     """
-    if mode == 'left':
+    if mode == "left":
         return [x.ljust(max_len) for x in texts]
-    elif mode == 'center':
+    elif mode == "center":
         return [x.center(max_len) for x in texts]
     else:
         return [x.rjust(max_len) for x in texts]
 
 
-def _join_unicode(lines, sep=''):
+def _join_unicode(lines, sep=""):
     try:
         return sep.join(lines)
     except UnicodeDecodeError:
-        sep = compat.text_type(sep)
-        return sep.join([x.decode('utf-8') if isinstance(x, str) else x
-                         for x in lines])
+        sep = str(sep)
+        return sep.join([x.decode("utf-8") if isinstance(x, str) else x for x in lines])
 
 
 # Unicode consolidation
@@ -100,9 +96,9 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     bounds length of printed sequence, depending on options
     """
     if isinstance(seq, set):
-        fmt = u("{{{body}}}")
+        fmt = "{{{body}}}"
     else:
-        fmt = u("[{body}]") if hasattr(seq, '__setitem__') else u("({body})")
+        fmt = "[{body}]" if hasattr(seq, "__setitem__") else "({body})"
 
     if max_seq_items is False:
         nitems = len(seq)
@@ -111,15 +107,16 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
 
     s = iter(seq)
     # handle sets, no slicing
-    r = [pprint_thing(next(s),
-                      _nest_lvl + 1, max_seq_items=max_seq_items, **kwds)
-         for i in range(min(nitems, len(seq)))]
+    r = [
+        pprint_thing(next(s), _nest_lvl + 1, max_seq_items=max_seq_items, **kwds)
+        for i in range(min(nitems, len(seq)))
+    ]
     body = ", ".join(r)
 
     if nitems < len(seq):
         body += ", ..."
     elif isinstance(seq, tuple) and len(seq) == 1:
-        body += ','
+        body += ","
 
     return fmt.format(body=body)
 
@@ -129,10 +126,10 @@ def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
     """
-    fmt = u("{{{things}}}")
+    fmt = "{{{things}}}"
     pairs = []
 
-    pfmt = u("{key}: {val}")
+    pfmt = "{key}: {val}"
 
     if max_seq_items is False:
         nitems = len(seq)
@@ -142,10 +139,10 @@ def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     for k, v in list(seq.items())[:nitems]:
         pairs.append(
             pfmt.format(
-                key=pprint_thing(k, _nest_lvl + 1,
-                                 max_seq_items=max_seq_items, **kwds),
-                val=pprint_thing(v, _nest_lvl + 1,
-                                 max_seq_items=max_seq_items, **kwds)))
+                key=pprint_thing(k, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds),
+                val=pprint_thing(v, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds),
+            )
+        )
 
     if nitems < len(seq):
         return fmt.format(things=", ".join(pairs) + ", ...")
@@ -153,8 +150,14 @@ def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
         return fmt.format(things=", ".join(pairs))
 
 
-def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
-                 quote_strings=False, max_seq_items=None):
+def pprint_thing(
+    thing,
+    _nest_lvl=0,
+    escape_chars=None,
+    default_escapes=False,
+    quote_strings=False,
+    max_seq_items=None,
+):
     """
     This function is the sanctioned way of converting objects
     to a unicode representation.
@@ -178,7 +181,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
 
     Returns
     -------
-    result - unicode object on py2, str on py3. Always Unicode.
+    result - unicode str
 
     """
 
@@ -188,12 +191,12 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         # should deal with it himself.
 
         try:
-            result = compat.text_type(thing)  # we should try this first
+            result = str(thing)  # we should try this first
         except UnicodeDecodeError:
             # either utf-8 or we replace errors
-            result = str(thing).decode('utf-8', "replace")
+            result = str(thing).decode("utf-8", "replace")
 
-        translate = {'\t': r'\t', '\n': r'\n', '\r': r'\r', }
+        translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r"}
         if isinstance(escape_chars, dict):
             if default_escapes:
                 translate.update(escape_chars)
@@ -205,41 +208,43 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         for c in escape_chars:
             result = result.replace(c, translate[c])
 
-        return compat.text_type(result)
+        return str(result)
 
-    if (compat.PY3 and hasattr(thing, '__next__')) or hasattr(thing, 'next'):
-        return compat.text_type(thing)
-    elif (isinstance(thing, dict) and
-          _nest_lvl < get_option("display.pprint_nest_depth")):
-        result = _pprint_dict(thing, _nest_lvl, quote_strings=True,
-                              max_seq_items=max_seq_items)
-    elif (is_sequence(thing) and
-          _nest_lvl < get_option("display.pprint_nest_depth")):
-        result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,
-                             quote_strings=quote_strings,
-                             max_seq_items=max_seq_items)
-    elif isinstance(thing, compat.string_types) and quote_strings:
-        if compat.PY3:
-            fmt = u("'{thing}'")
-        else:
-            fmt = u("u'{thing}'")
-        result = fmt.format(thing=as_escaped_unicode(thing))
+    if hasattr(thing, "__next__"):
+        return str(thing)
+    elif isinstance(thing, dict) and _nest_lvl < get_option(
+        "display.pprint_nest_depth"
+    ):
+        result = _pprint_dict(
+            thing, _nest_lvl, quote_strings=True, max_seq_items=max_seq_items
+        )
+    elif is_sequence(thing) and _nest_lvl < get_option("display.pprint_nest_depth"):
+        result = _pprint_seq(
+            thing,
+            _nest_lvl,
+            escape_chars=escape_chars,
+            quote_strings=quote_strings,
+            max_seq_items=max_seq_items,
+        )
+    elif isinstance(thing, str) and quote_strings:
+        result = "'{thing}'".format(thing=as_escaped_unicode(thing))
     else:
         result = as_escaped_unicode(thing)
 
-    return compat.text_type(result)  # always unicode
+    return str(result)  # always unicode
 
 
-def pprint_thing_encoded(object, encoding='utf-8', errors='replace', **kwds):
+def pprint_thing_encoded(object, encoding="utf-8", errors="replace", **kwds):
     value = pprint_thing(object)  # get unicode representation of object
     return value.encode(encoding, errors, **kwds)
 
 
 def _enable_data_resource_formatter(enable):
-    if 'IPython' not in sys.modules:
+    if "IPython" not in sys.modules:
         # definitely not in IPython
         return
     from IPython import get_ipython
+
     ip = get_ipython()
     if ip is None:
         # still not in IPython
@@ -254,8 +259,9 @@ def _enable_data_resource_formatter(enable):
             from IPython.core.formatters import BaseFormatter
 
             class TableSchemaFormatter(BaseFormatter):
-                print_method = '_repr_data_resource_'
+                print_method = "_repr_data_resource_"
                 _return_type = (dict,)
+
             # register it:
             formatters[mimetype] = TableSchemaFormatter()
         # enable it if it's been disabled:
@@ -266,13 +272,19 @@ def _enable_data_resource_formatter(enable):
             formatters[mimetype].enabled = False
 
 
-default_pprint = lambda x, max_seq_items=None: \
-    pprint_thing(x, escape_chars=('\t', '\r', '\n'), quote_strings=True,
-                 max_seq_items=max_seq_items)
+default_pprint = lambda x, max_seq_items=None: pprint_thing(
+    x, escape_chars=("\t", "\r", "\n"), quote_strings=True, max_seq_items=max_seq_items
+)
 
 
-def format_object_summary(obj, formatter, is_justify=True, name=None,
-                          indent_for_name=True):
+def format_object_summary(
+    obj,
+    formatter,
+    is_justify=True,
+    name=None,
+    indent_for_name=True,
+    line_break_each_value=False,
+):
     """
     Return the formatted obj as a unicode string
 
@@ -289,6 +301,12 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
     indent_for_name : bool, default True
         Whether subsequent lines should be be indented to
         align with the name.
+    line_break_each_value : bool, default False
+        If True, inserts a line break for each value of ``obj``.
+        If False, only break lines when the a line of values gets wider
+        than the display width.
+
+        .. versionadded:: 0.25.0
 
     Returns
     -------
@@ -300,21 +318,26 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
 
     display_width, _ = get_console_size()
     if display_width is None:
-        display_width = get_option('display.width') or 80
+        display_width = get_option("display.width") or 80
     if name is None:
         name = obj.__class__.__name__
 
     if indent_for_name:
         name_len = len(name)
-        space1 = "\n%s" % (' ' * (name_len + 1))
-        space2 = "\n%s" % (' ' * (name_len + 2))
+        space1 = "\n%s" % (" " * (name_len + 1))
+        space2 = "\n%s" % (" " * (name_len + 2))
     else:
         space1 = "\n"
         space2 = "\n "  # space for the opening '['
 
     n = len(obj)
-    sep = ','
-    max_seq_items = get_option('display.max_seq_items') or n
+    if line_break_each_value:
+        # If we want to vertically align on each value of obj, we need to
+        # separate values by a line break and indent the values
+        sep = ",\n " + " " * len(name)
+    else:
+        sep = ","
+    max_seq_items = get_option("display.max_seq_items") or n
 
     # are we a truncated display
     is_truncated = n > max_seq_items
@@ -324,8 +347,7 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
 
     def _extend_line(s, line, value, display_width, next_line_prefix):
 
-        if (adj.len(line.rstrip()) + adj.len(value.rstrip()) >=
-                display_width):
+        if adj.len(line.rstrip()) + adj.len(value.rstrip()) >= display_width:
             s += line.rstrip()
             line = next_line_prefix
         line += value
@@ -337,17 +359,17 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
         else:
             return 0
 
-    close = u', '
+    close = ", "
 
     if n == 0:
-        summary = u'[]{}'.format(close)
-    elif n == 1:
+        summary = "[]{}".format(close)
+    elif n == 1 and not line_break_each_value:
         first = formatter(obj[0])
-        summary = u'[{}]{}'.format(first, close)
-    elif n == 2:
+        summary = "[{}]{}".format(first, close)
+    elif n == 2 and not line_break_each_value:
         first = formatter(obj[0])
         last = formatter(obj[-1])
-        summary = u'[{}, {}]{}'.format(first, last, close)
+        summary = "[{}, {}]{}".format(first, last, close)
     else:
 
         if n > max_seq_items:
@@ -360,56 +382,112 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
 
         # adjust all values to max length if needed
         if is_justify:
-
-            # however, if we are not truncated and we are only a single
+            if line_break_each_value:
+                # Justify each string in the values of head and tail, so the
+                # strings will right align when head and tail are stacked
+                # vertically.
+                head, tail = _justify(head, tail)
+            elif is_truncated or not (
+                len(", ".join(head)) < display_width
+                and len(", ".join(tail)) < display_width
+            ):
+                # Each string in head and tail should align with each other
+                max_length = max(best_len(head), best_len(tail))
+                head = [x.rjust(max_length) for x in head]
+                tail = [x.rjust(max_length) for x in tail]
+            # If we are not truncated and we are only a single
             # line, then don't justify
-            if (is_truncated or
-                    not (len(', '.join(head)) < display_width and
-                         len(', '.join(tail)) < display_width)):
-                max_len = max(best_len(head), best_len(tail))
-                head = [x.rjust(max_len) for x in head]
-                tail = [x.rjust(max_len) for x in tail]
+
+        if line_break_each_value:
+            # Now head and tail are of type List[Tuple[str]]. Below we
+            # convert them into List[str], so there will be one string per
+            # value. Also truncate items horizontally if wider than
+            # max_space
+            max_space = display_width - len(space2)
+            value = tail[0]
+            for max_items in reversed(range(1, len(value) + 1)):
+                pprinted_seq = _pprint_seq(value, max_seq_items=max_items)
+                if len(pprinted_seq) < max_space:
+                    break
+            head = [_pprint_seq(x, max_seq_items=max_items) for x in head]
+            tail = [_pprint_seq(x, max_seq_items=max_items) for x in tail]
 
         summary = ""
         line = space2
 
-        for i in range(len(head)):
-            word = head[i] + sep + ' '
-            summary, line = _extend_line(summary, line, word,
-                                         display_width, space2)
+        for max_items in range(len(head)):
+            word = head[max_items] + sep + " "
+            summary, line = _extend_line(summary, line, word, display_width, space2)
 
         if is_truncated:
             # remove trailing space of last line
-            summary += line.rstrip() + space2 + '...'
+            summary += line.rstrip() + space2 + "..."
             line = space2
 
-        for i in range(len(tail) - 1):
-            word = tail[i] + sep + ' '
-            summary, line = _extend_line(summary, line, word,
-                                         display_width, space2)
+        for max_items in range(len(tail) - 1):
+            word = tail[max_items] + sep + " "
+            summary, line = _extend_line(summary, line, word, display_width, space2)
 
         # last value: no sep added + 1 space of width used for trailing ','
-        summary, line = _extend_line(summary, line, tail[-1],
-                                     display_width - 2, space2)
+        summary, line = _extend_line(summary, line, tail[-1], display_width - 2, space2)
         summary += line
 
         # right now close is either '' or ', '
         # Now we want to include the ']', but not the maybe space.
-        close = ']' + close.rstrip(' ')
+        close = "]" + close.rstrip(" ")
         summary += close
 
-        if len(summary) > (display_width):
+        if len(summary) > (display_width) or line_break_each_value:
             summary += space1
         else:  # one row
-            summary += ' '
+            summary += " "
 
         # remove initial space
-        summary = '[' + summary[len(space2):]
+        summary = "[" + summary[len(space2) :]
 
     return summary
 
 
-def format_object_attrs(obj):
+def _justify(head, tail):
+    """
+    Justify items in head and tail, so they are right-aligned when stacked.
+
+    Parameters
+    ----------
+    head : list-like of list-likes of strings
+    tail : list-like of list-likes of strings
+
+    Returns
+    -------
+    tuple of list of tuples of strings
+        Same as head and tail, but items are right aligned when stacked
+        vertically.
+
+    Examples
+    --------
+    >>> _justify([['a', 'b']], [['abc', 'abcd']])
+    ([('  a', '   b')], [('abc', 'abcd')])
+    """
+    combined = head + tail
+
+    # For each position for the sequences in ``combined``,
+    # find the length of the largest string.
+    max_length = [0] * len(combined[0])
+    for inner_seq in combined:
+        length = [len(item) for item in inner_seq]
+        max_length = [max(x, y) for x, y in zip(max_length, length)]
+
+    # justify each item in each list-like in head and tail using max_length
+    head = [
+        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in head
+    ]
+    tail = [
+        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in tail
+    ]
+    return head, tail
+
+
+def format_object_attrs(obj, include_dtype=True):
     """
     Return a list of tuples of the (attr, formatted_value)
     for common attrs, including dtype, name, length
@@ -418,6 +496,8 @@ def format_object_attrs(obj):
     ----------
     obj : object
         must be iterable
+    include_dtype : bool
+        If False, dtype won't be in the returned list
 
     Returns
     -------
@@ -425,11 +505,13 @@ def format_object_attrs(obj):
 
     """
     attrs = []
-    if hasattr(obj, 'dtype'):
-        attrs.append(('dtype', "'{}'".format(obj.dtype)))
-    if getattr(obj, 'name', None) is not None:
-        attrs.append(('name', default_pprint(obj.name)))
-    max_seq_items = get_option('display.max_seq_items') or len(obj)
+    if hasattr(obj, "dtype") and include_dtype:
+        attrs.append(("dtype", "'{}'".format(obj.dtype)))
+    if getattr(obj, "name", None) is not None:
+        attrs.append(("name", default_pprint(obj.name)))
+    elif getattr(obj, "names", None) is not None and any(obj.names):
+        attrs.append(("names", default_pprint(obj.names)))
+    max_seq_items = get_option("display.max_seq_items") or len(obj)
     if len(obj) > max_seq_items:
-        attrs.append(('length', len(obj)))
+        attrs.append(("length", len(obj)))
     return attrs

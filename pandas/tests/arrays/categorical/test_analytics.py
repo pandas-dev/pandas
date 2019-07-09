@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import sys
 
 import numpy as np
@@ -12,14 +10,16 @@ from pandas.api.types import is_scalar
 import pandas.util.testing as tm
 
 
-class TestCategoricalAnalytics(object):
-
+class TestCategoricalAnalytics:
     def test_min_max(self):
 
         # unordered cats have no min/max
         cat = Categorical(["a", "b", "c", "d"], ordered=False)
-        pytest.raises(TypeError, lambda: cat.min())
-        pytest.raises(TypeError, lambda: cat.max())
+        msg = "Categorical is not ordered for operation {}"
+        with pytest.raises(TypeError, match=msg.format("min")):
+            cat.min()
+        with pytest.raises(TypeError, match=msg.format("max")):
+            cat.max()
 
         cat = Categorical(["a", "b", "c", "d"], ordered=True)
         _min = cat.min()
@@ -27,15 +27,17 @@ class TestCategoricalAnalytics(object):
         assert _min == "a"
         assert _max == "d"
 
-        cat = Categorical(["a", "b", "c", "d"],
-                          categories=['d', 'c', 'b', 'a'], ordered=True)
+        cat = Categorical(
+            ["a", "b", "c", "d"], categories=["d", "c", "b", "a"], ordered=True
+        )
         _min = cat.min()
         _max = cat.max()
         assert _min == "d"
         assert _max == "a"
 
-        cat = Categorical([np.nan, "b", "c", np.nan],
-                          categories=['d', 'c', 'b', 'a'], ordered=True)
+        cat = Categorical(
+            [np.nan, "b", "c", np.nan], categories=["d", "c", "b", "a"], ordered=True
+        )
         _min = cat.min()
         _max = cat.max()
         assert np.isnan(_min)
@@ -46,8 +48,9 @@ class TestCategoricalAnalytics(object):
         _max = cat.max(numeric_only=True)
         assert _max == "b"
 
-        cat = Categorical([np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1],
-                          ordered=True)
+        cat = Categorical(
+            [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True
+        )
         _min = cat.min()
         _max = cat.max()
         assert np.isnan(_min)
@@ -58,13 +61,17 @@ class TestCategoricalAnalytics(object):
         _max = cat.max(numeric_only=True)
         assert _max == 1
 
-    @pytest.mark.parametrize("values,categories,exp_mode", [
-        ([1, 1, 2, 4, 5, 5, 5], [5, 4, 3, 2, 1], [5]),
-        ([1, 1, 1, 4, 5, 5, 5], [5, 4, 3, 2, 1], [5, 1]),
-        ([1, 2, 3, 4, 5], [5, 4, 3, 2, 1], [5, 4, 3, 2, 1]),
-        ([np.nan, np.nan, np.nan, 4, 5], [5, 4, 3, 2, 1], [5, 4]),
-        ([np.nan, np.nan, np.nan, 4, 5, 4], [5, 4, 3, 2, 1], [4]),
-        ([np.nan, np.nan, 4, 5, 4], [5, 4, 3, 2, 1], [4])])
+    @pytest.mark.parametrize(
+        "values,categories,exp_mode",
+        [
+            ([1, 1, 2, 4, 5, 5, 5], [5, 4, 3, 2, 1], [5]),
+            ([1, 1, 1, 4, 5, 5, 5], [5, 4, 3, 2, 1], [5, 1]),
+            ([1, 2, 3, 4, 5], [5, 4, 3, 2, 1], [5, 4, 3, 2, 1]),
+            ([np.nan, np.nan, np.nan, 4, 5], [5, 4, 3, 2, 1], [5, 4]),
+            ([np.nan, np.nan, np.nan, 4, 5, 4], [5, 4, 3, 2, 1], [4]),
+            ([np.nan, np.nan, 4, 5, 4], [5, 4, 3, 2, 1], [4]),
+        ],
+    )
     def test_mode(self, values, categories, exp_mode):
         s = Categorical(values, categories=categories, ordered=True)
         res = s.mode()
@@ -75,51 +82,61 @@ class TestCategoricalAnalytics(object):
         # https://github.com/pandas-dev/pandas/issues/8420
         # https://github.com/pandas-dev/pandas/issues/14522
 
-        c1 = Categorical(['cheese', 'milk', 'apple', 'bread', 'bread'],
-                         categories=['cheese', 'milk', 'apple', 'bread'],
-                         ordered=True)
+        c1 = Categorical(
+            ["cheese", "milk", "apple", "bread", "bread"],
+            categories=["cheese", "milk", "apple", "bread"],
+            ordered=True,
+        )
         s1 = Series(c1)
-        c2 = Categorical(['cheese', 'milk', 'apple', 'bread', 'bread'],
-                         categories=['cheese', 'milk', 'apple', 'bread'],
-                         ordered=False)
+        c2 = Categorical(
+            ["cheese", "milk", "apple", "bread", "bread"],
+            categories=["cheese", "milk", "apple", "bread"],
+            ordered=False,
+        )
         s2 = Series(c2)
 
         # Searching for single item argument, side='left' (default)
-        res_cat = c1.searchsorted('apple')
+        res_cat = c1.searchsorted("apple")
         assert res_cat == 2
         assert is_scalar(res_cat)
 
-        res_ser = s1.searchsorted('apple')
+        res_ser = s1.searchsorted("apple")
         assert res_ser == 2
         assert is_scalar(res_ser)
 
         # Searching for single item array, side='left' (default)
-        res_cat = c1.searchsorted(['bread'])
-        res_ser = s1.searchsorted(['bread'])
+        res_cat = c1.searchsorted(["bread"])
+        res_ser = s1.searchsorted(["bread"])
         exp = np.array([3], dtype=np.intp)
         tm.assert_numpy_array_equal(res_cat, exp)
         tm.assert_numpy_array_equal(res_ser, exp)
 
         # Searching for several items array, side='right'
-        res_cat = c1.searchsorted(['apple', 'bread'], side='right')
-        res_ser = s1.searchsorted(['apple', 'bread'], side='right')
+        res_cat = c1.searchsorted(["apple", "bread"], side="right")
+        res_ser = s1.searchsorted(["apple", "bread"], side="right")
         exp = np.array([3, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(res_cat, exp)
         tm.assert_numpy_array_equal(res_ser, exp)
 
         # Searching for a single value that is not from the Categorical
-        pytest.raises(KeyError, lambda: c1.searchsorted('cucumber'))
-        pytest.raises(KeyError, lambda: s1.searchsorted('cucumber'))
+        msg = r"Value\(s\) to be inserted must be in categories"
+        with pytest.raises(KeyError, match=msg):
+            c1.searchsorted("cucumber")
+        with pytest.raises(KeyError, match=msg):
+            s1.searchsorted("cucumber")
 
         # Searching for multiple values one of each is not from the Categorical
-        pytest.raises(KeyError,
-                      lambda: c1.searchsorted(['bread', 'cucumber']))
-        pytest.raises(KeyError,
-                      lambda: s1.searchsorted(['bread', 'cucumber']))
+        with pytest.raises(KeyError, match=msg):
+            c1.searchsorted(["bread", "cucumber"])
+        with pytest.raises(KeyError, match=msg):
+            s1.searchsorted(["bread", "cucumber"])
 
         # searchsorted call for unordered Categorical
-        pytest.raises(ValueError, lambda: c2.searchsorted('apple'))
-        pytest.raises(ValueError, lambda: s2.searchsorted('apple'))
+        msg = "Categorical not ordered"
+        with pytest.raises(ValueError, match=msg):
+            c2.searchsorted("apple")
+        with pytest.raises(ValueError, match=msg):
+            s2.searchsorted("apple")
 
     def test_unique(self):
         # categories are reordered based on value when ordered=False
@@ -134,17 +151,15 @@ class TestCategoricalAnalytics(object):
         tm.assert_index_equal(res.categories, exp)
         tm.assert_categorical_equal(res, Categorical(exp))
 
-        cat = Categorical(["c", "a", "b", "a", "a"],
-                          categories=["a", "b", "c"])
+        cat = Categorical(["c", "a", "b", "a", "a"], categories=["a", "b", "c"])
         exp = Index(["c", "a", "b"])
         res = cat.unique()
         tm.assert_index_equal(res.categories, exp)
-        exp_cat = Categorical(exp, categories=['c', 'a', 'b'])
+        exp_cat = Categorical(exp, categories=["c", "a", "b"])
         tm.assert_categorical_equal(res, exp_cat)
 
         # nan must be removed
-        cat = Categorical(["b", np.nan, "b", np.nan, "a"],
-                          categories=["a", "b", "c"])
+        cat = Categorical(["b", np.nan, "b", np.nan, "a"], categories=["a", "b", "c"])
         res = cat.unique()
         exp = Index(["b", "a"])
         tm.assert_index_equal(res.categories, exp)
@@ -153,29 +168,28 @@ class TestCategoricalAnalytics(object):
 
     def test_unique_ordered(self):
         # keep categories order when ordered=True
-        cat = Categorical(['b', 'a', 'b'], categories=['a', 'b'], ordered=True)
+        cat = Categorical(["b", "a", "b"], categories=["a", "b"], ordered=True)
         res = cat.unique()
-        exp_cat = Categorical(['b', 'a'], categories=['a', 'b'], ordered=True)
+        exp_cat = Categorical(["b", "a"], categories=["a", "b"], ordered=True)
         tm.assert_categorical_equal(res, exp_cat)
 
-        cat = Categorical(['c', 'b', 'a', 'a'], categories=['a', 'b', 'c'],
-                          ordered=True)
+        cat = Categorical(
+            ["c", "b", "a", "a"], categories=["a", "b", "c"], ordered=True
+        )
         res = cat.unique()
-        exp_cat = Categorical(['c', 'b', 'a'], categories=['a', 'b', 'c'],
-                              ordered=True)
+        exp_cat = Categorical(["c", "b", "a"], categories=["a", "b", "c"], ordered=True)
         tm.assert_categorical_equal(res, exp_cat)
 
-        cat = Categorical(['b', 'a', 'a'], categories=['a', 'b', 'c'],
-                          ordered=True)
+        cat = Categorical(["b", "a", "a"], categories=["a", "b", "c"], ordered=True)
         res = cat.unique()
-        exp_cat = Categorical(['b', 'a'], categories=['a', 'b'], ordered=True)
+        exp_cat = Categorical(["b", "a"], categories=["a", "b"], ordered=True)
         tm.assert_categorical_equal(res, exp_cat)
 
-        cat = Categorical(['b', 'b', np.nan, 'a'], categories=['a', 'b', 'c'],
-                          ordered=True)
+        cat = Categorical(
+            ["b", "b", np.nan, "a"], categories=["a", "b", "c"], ordered=True
+        )
         res = cat.unique()
-        exp_cat = Categorical(['b', np.nan, 'a'], categories=['a', 'b'],
-                              ordered=True)
+        exp_cat = Categorical(["b", np.nan, "a"], categories=["a", "b"], ordered=True)
         tm.assert_categorical_equal(res, exp_cat)
 
     def test_unique_index_series(self):
@@ -204,18 +218,19 @@ class TestCategoricalAnalytics(object):
 
     def test_shift(self):
         # GH 9416
-        cat = Categorical(['a', 'b', 'c', 'd', 'a'])
+        cat = Categorical(["a", "b", "c", "d", "a"])
 
         # shift forward
         sp1 = cat.shift(1)
-        xp1 = Categorical([np.nan, 'a', 'b', 'c', 'd'])
+        xp1 = Categorical([np.nan, "a", "b", "c", "d"])
         tm.assert_categorical_equal(sp1, xp1)
         tm.assert_categorical_equal(cat[:-1], sp1[1:])
 
         # shift back
         sn2 = cat.shift(-2)
-        xp2 = Categorical(['c', 'd', 'a', np.nan, np.nan],
-                          categories=['a', 'b', 'c', 'd'])
+        xp2 = Categorical(
+            ["c", "d", "a", np.nan, np.nan], categories=["a", "b", "c", "d"]
+        )
         tm.assert_categorical_equal(sn2, xp2)
         tm.assert_categorical_equal(cat[2:], sn2[:-2])
 
@@ -234,7 +249,7 @@ class TestCategoricalAnalytics(object):
         assert 0 < cat.nbytes <= cat.memory_usage()
         assert 0 < cat.nbytes <= cat.memory_usage(deep=True)
 
-        cat = Categorical(['foo', 'foo', 'bar'])
+        cat = Categorical(["foo", "foo", "bar"])
         assert cat.memory_usage(deep=True) > cat.nbytes
 
         if not PYPY:
@@ -244,14 +259,14 @@ class TestCategoricalAnalytics(object):
             assert abs(diff) < 100
 
     def test_map(self):
-        c = Categorical(list('ABABC'), categories=list('CBA'), ordered=True)
+        c = Categorical(list("ABABC"), categories=list("CBA"), ordered=True)
         result = c.map(lambda x: x.lower())
-        exp = Categorical(list('ababc'), categories=list('cba'), ordered=True)
+        exp = Categorical(list("ababc"), categories=list("cba"), ordered=True)
         tm.assert_categorical_equal(result, exp)
 
-        c = Categorical(list('ABABC'), categories=list('ABC'), ordered=False)
+        c = Categorical(list("ABABC"), categories=list("ABC"), ordered=False)
         result = c.map(lambda x: x.lower())
-        exp = Categorical(list('ababc'), categories=list('abc'), ordered=False)
+        exp = Categorical(list("ababc"), categories=list("abc"), ordered=False)
         tm.assert_categorical_equal(result, exp)
 
         result = c.map(lambda x: 1)
@@ -259,7 +274,7 @@ class TestCategoricalAnalytics(object):
         tm.assert_index_equal(result, Index(np.array([1] * 5, dtype=np.int64)))
 
     def test_validate_inplace(self):
-        cat = Categorical(['A', 'B', 'B', 'C', 'A'])
+        cat = Categorical(["A", "B", "B", "C", "A"])
         invalid_values = [1, "True", [1, 2, 3], 5.0]
 
         for value in invalid_values:
@@ -273,21 +288,19 @@ class TestCategoricalAnalytics(object):
                 cat.as_unordered(inplace=value)
 
             with pytest.raises(ValueError):
-                cat.set_categories(['X', 'Y', 'Z'], rename=True, inplace=value)
+                cat.set_categories(["X", "Y", "Z"], rename=True, inplace=value)
 
             with pytest.raises(ValueError):
-                cat.rename_categories(['X', 'Y', 'Z'], inplace=value)
+                cat.rename_categories(["X", "Y", "Z"], inplace=value)
 
             with pytest.raises(ValueError):
-                cat.reorder_categories(
-                    ['X', 'Y', 'Z'], ordered=True, inplace=value)
+                cat.reorder_categories(["X", "Y", "Z"], ordered=True, inplace=value)
 
             with pytest.raises(ValueError):
-                cat.add_categories(
-                    new_categories=['D', 'E', 'F'], inplace=value)
+                cat.add_categories(new_categories=["D", "E", "F"], inplace=value)
 
             with pytest.raises(ValueError):
-                cat.remove_categories(removals=['D', 'E', 'F'], inplace=value)
+                cat.remove_categories(removals=["D", "E", "F"], inplace=value)
 
             with pytest.raises(ValueError):
                 cat.remove_unused_categories(inplace=value)

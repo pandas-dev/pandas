@@ -10,13 +10,14 @@ dependencies:
   - jinja2
   - lxml
   - matplotlib
+  - moto
   - nomkl
   - numexpr
   - numpy
   - openpyxl
   - pytables
   - python-dateutil
-  - python=3.7*
+  - python=3.7.*
   - pytz
   - s3fs
   - scipy
@@ -25,8 +26,10 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest
+  - pytest>=4.0.2
   - pytest-xdist
+  - pytest-mock
+  - pytest-azurepipelines
+  - pip
   - pip:
     - hypothesis>=3.58.0
-    - moto  # latest moto in conda-forge fails with 3.7, move to conda dependencies when this is fixed

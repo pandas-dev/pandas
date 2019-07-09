@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from collections import OrderedDict
 
 import pytest
@@ -17,15 +16,15 @@ def test_invalid_total_length_max_length_one():
     max_length = len(compat_args) + min_fname_arg_count
     actual_length = len(kwargs) + len(args) + min_fname_arg_count
 
-    msg = (r"{fname}\(\) takes at most {max_length} "
-           r"argument \({actual_length} given\)"
-           .format(fname=_fname, max_length=max_length,
-                   actual_length=actual_length))
+    msg = (
+        r"{fname}\(\) takes at most {max_length} "
+        r"argument \({actual_length} given\)".format(
+            fname=_fname, max_length=max_length, actual_length=actual_length
+        )
+    )
 
     with pytest.raises(TypeError, match=msg):
-        validate_args_and_kwargs(_fname, args, kwargs,
-                                 min_fname_arg_count,
-                                 compat_args)
+        validate_args_and_kwargs(_fname, args, kwargs, min_fname_arg_count, compat_args)
 
 
 def test_invalid_total_length_max_length_multiple():
@@ -37,21 +36,18 @@ def test_invalid_total_length_max_length_multiple():
     max_length = len(compat_args) + min_fname_arg_count
     actual_length = len(kwargs) + len(args) + min_fname_arg_count
 
-    msg = (r"{fname}\(\) takes at most {max_length} "
-           r"arguments \({actual_length} given\)"
-           .format(fname=_fname, max_length=max_length,
-                   actual_length=actual_length))
+    msg = (
+        r"{fname}\(\) takes at most {max_length} "
+        r"arguments \({actual_length} given\)".format(
+            fname=_fname, max_length=max_length, actual_length=actual_length
+        )
+    )
 
     with pytest.raises(TypeError, match=msg):
-        validate_args_and_kwargs(_fname, args, kwargs,
-                                 min_fname_arg_count,
-                                 compat_args)
+        validate_args_and_kwargs(_fname, args, kwargs, min_fname_arg_count, compat_args)
 
 
-@pytest.mark.parametrize("args,kwargs", [
-    ((), {"foo": -5, "bar": 2}),
-    ((-5, 2), {})
-])
+@pytest.mark.parametrize("args,kwargs", [((), {"foo": -5, "bar": 2}), ((-5, 2), {})])
 def test_missing_args_or_kwargs(args, kwargs):
     bad_arg = "bar"
     min_fname_arg_count = 2
@@ -60,13 +56,13 @@ def test_missing_args_or_kwargs(args, kwargs):
     compat_args["foo"] = -5
     compat_args[bad_arg] = 1
 
-    msg = (r"the '{arg}' parameter is not supported "
-           r"in the pandas implementation of {func}\(\)".
-           format(arg=bad_arg, func=_fname))
+    msg = (
+        r"the '{arg}' parameter is not supported "
+        r"in the pandas implementation of {func}\(\)".format(arg=bad_arg, func=_fname)
+    )
 
     with pytest.raises(ValueError, match=msg):
-        validate_args_and_kwargs(_fname, args, kwargs,
-                                 min_fname_arg_count, compat_args)
+        validate_args_and_kwargs(_fname, args, kwargs, min_fname_arg_count, compat_args)
 
 
 def test_duplicate_argument():
@@ -80,13 +76,12 @@ def test_duplicate_argument():
     kwargs = {"foo": None, "bar": None}
     args = (None,)  # duplicate value for "foo"
 
-    msg = (r"{fname}\(\) got multiple values for keyword "
-           r"argument '{arg}'".format(fname=_fname, arg="foo"))
+    msg = r"{fname}\(\) got multiple values for keyword " r"argument '{arg}'".format(
+        fname=_fname, arg="foo"
+    )
 
     with pytest.raises(TypeError, match=msg):
-        validate_args_and_kwargs(_fname, args, kwargs,
-                                 min_fname_arg_count,
-                                 compat_args)
+        validate_args_and_kwargs(_fname, args, kwargs, min_fname_arg_count, compat_args)
 
 
 def test_validation():
@@ -100,6 +95,4 @@ def test_validation():
     args = (1, None)
     min_fname_arg_count = 2
 
-    validate_args_and_kwargs(_fname, args, kwargs,
-                             min_fname_arg_count,
-                             compat_args)
+    validate_args_and_kwargs(_fname, args, kwargs, min_fname_arg_count, compat_args)

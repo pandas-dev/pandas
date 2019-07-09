@@ -22,21 +22,16 @@
 #   usage: ./apache-pr-merge.py    (see config env vars below)
 #
 # Lightly modified from version of this script in incubator-parquet-format
-from __future__ import print_function
-
 from subprocess import check_output
 from requests.auth import HTTPBasicAuth
 import requests
 
 import os
-import six
 import sys
 import textwrap
 
-from six.moves import input
-
-PANDAS_HOME = '.'
-PROJECT_NAME = 'pandas'
+PANDAS_HOME = "."
+PROJECT_NAME = "pandas"
 print("PANDAS_HOME = " + PANDAS_HOME)
 
 # Remote name with the PR
@@ -56,10 +51,12 @@ os.chdir(PANDAS_HOME)
 auth_required = False
 
 if auth_required:
-    GITHUB_USERNAME = os.environ['GITHUB_USER']
+    GITHUB_USERNAME = os.environ["GITHUB_USER"]
     import getpass
-    GITHUB_PASSWORD = getpass.getpass('Enter github.com password for %s:'
-                                      % GITHUB_USERNAME)
+
+    GITHUB_PASSWORD = getpass.getpass(
+        "Enter github.com password for %s:" % GITHUB_USERNAME
+    )
 
     def get_json_auth(url):
         auth = HTTPBasicAuth(GITHUB_USERNAME, GITHUB_PASSWORD)
@@ -68,6 +65,7 @@ if auth_required:
 
     get_json = get_json_auth
 else:
+
     def get_json_no_auth(url):
         req = requests.get(url)
         return req.json()
@@ -82,13 +80,13 @@ def fail(msg):
 
 
 def run_cmd(cmd):
-    if isinstance(cmd, six.string_types):
-        cmd = cmd.split(' ')
+    if isinstance(cmd, str):
+        cmd = cmd.split(" ")
 
     output = check_output(cmd)
 
-    if isinstance(output, six.binary_type):
-        output = output.decode('utf-8')
+    if isinstance(output, bytes):
+        output = output.decode("utf-8")
     return output
 
 
@@ -124,40 +122,44 @@ def clean_up():
 def merge_pr(pr_num, target_ref):
 
     pr_branch_name = "%s_MERGE_PR_%s" % (BRANCH_PREFIX, pr_num)
-    target_branch_name = "%s_MERGE_PR_%s_%s" % (BRANCH_PREFIX, pr_num,
-                                                target_ref.upper())
-    run_cmd("git fetch %s pull/%s/head:%s" % (PR_REMOTE_NAME, pr_num,
-                                              pr_branch_name))
-    run_cmd("git fetch %s %s:%s" % (PUSH_REMOTE_NAME, target_ref,
-                                    target_branch_name))
+    target_branch_name = "%s_MERGE_PR_%s_%s" % (
+        BRANCH_PREFIX,
+        pr_num,
+        target_ref.upper(),
+    )
+    run_cmd("git fetch %s pull/%s/head:%s" % (PR_REMOTE_NAME, pr_num, pr_branch_name))
+    run_cmd("git fetch %s %s:%s" % (PUSH_REMOTE_NAME, target_ref, target_branch_name))
     run_cmd("git checkout %s" % target_branch_name)
 
     had_conflicts = False
     try:
-        run_cmd(['git', 'merge', pr_branch_name, '--squash'])
+        run_cmd(["git", "merge", pr_branch_name, "--squash"])
     except Exception as e:
-        msg = ("Error merging: %s\nWould you like to manually fix-up "
-               "this merge?" % e)
+        msg = "Error merging: %s\nWould you like to manually fix-up " "this merge?" % e
         continue_maybe(msg)
-        msg = ("Okay, please fix any conflicts and 'git add' "
-               "conflicting files... Finished?")
+        msg = (
+            "Okay, please fix any conflicts and 'git add' "
+            "conflicting files... Finished?"
+        )
         continue_maybe(msg)
         had_conflicts = True
 
-    commit_authors = run_cmd(['git', 'log', 'HEAD..%s' % pr_branch_name,
-                             '--pretty=format:%an <%ae>']).split("\n")
-    distinct_authors = sorted(set(commit_authors),
-                              key=lambda x: commit_authors.count(x),
-                              reverse=True)
+    commit_authors = run_cmd(
+        ["git", "log", "HEAD..%s" % pr_branch_name, "--pretty=format:%an <%ae>"]
+    ).split("\n")
+    distinct_authors = sorted(
+        set(commit_authors), key=lambda x: commit_authors.count(x), reverse=True
+    )
     primary_author = distinct_authors[0]
-    commits = run_cmd(['git', 'log', 'HEAD..%s' % pr_branch_name,
-                      '--pretty=format:%h [%an] %s']).split("\n\n")
+    commits = run_cmd(
+        ["git", "log", "HEAD..%s" % pr_branch_name, "--pretty=format:%h [%an] %s"]
+    ).split("\n\n")
 
     merge_message_flags = []
 
     merge_message_flags += ["-m", title]
     if body is not None:
-        merge_message_flags += ["-m", '\n'.join(textwrap.wrap(body))]
+        merge_message_flags += ["-m", "\n".join(textwrap.wrap(body))]
 
     authors = "\n".join("Author: %s" % a for a in distinct_authors)
 
@@ -166,9 +168,10 @@ def merge_pr(pr_num, target_ref):
     if had_conflicts:
         committer_name = run_cmd("git config --get user.name").strip()
         committer_email = run_cmd("git config --get user.email").strip()
-        message = ("This patch had conflicts when merged, "
-                   "resolved by\nCommitter: %s <%s>"
-                   % (committer_name, committer_email))
+        message = (
+            "This patch had conflicts when merged, "
+            "resolved by\nCommitter: %s <%s>" % (committer_name, committer_email)
+        )
         merge_message_flags += ["-m", message]
 
     # The string "Closes #%s" string is required for GitHub to correctly close
@@ -176,19 +179,22 @@ def merge_pr(pr_num, target_ref):
     merge_message_flags += [
         "-m",
         "Closes #%s from %s and squashes the following commits:"
-        % (pr_num, pr_repo_desc)]
+        % (pr_num, pr_repo_desc),
+    ]
     for c in commits:
         merge_message_flags += ["-m", c]
 
-    run_cmd(['git', 'commit', '--author="%s"' % primary_author] +
-            merge_message_flags)
+    run_cmd(["git", "commit", '--author="%s"' % primary_author] + merge_message_flags)
 
-    continue_maybe("Merge complete (local ref %s). Push to %s?" % (
-        target_branch_name, PUSH_REMOTE_NAME))
+    continue_maybe(
+        "Merge complete (local ref %s). Push to %s?"
+        % (target_branch_name, PUSH_REMOTE_NAME)
+    )
 
     try:
-        run_cmd('git push %s %s:%s' % (PUSH_REMOTE_NAME, target_branch_name,
-                                       target_ref))
+        run_cmd(
+            "git push %s %s:%s" % (PUSH_REMOTE_NAME, target_branch_name, target_ref)
+        )
     except Exception as e:
         clean_up()
         fail("Exception while pushing: %s" % e)
@@ -204,25 +210,26 @@ def update_pr(pr_num, user_login, base_ref):
 
     pr_branch_name = "%s_MERGE_PR_%s" % (BRANCH_PREFIX, pr_num)
 
-    run_cmd("git fetch %s pull/%s/head:%s" % (PR_REMOTE_NAME, pr_num,
-                                              pr_branch_name))
+    run_cmd("git fetch %s pull/%s/head:%s" % (PR_REMOTE_NAME, pr_num, pr_branch_name))
     run_cmd("git checkout %s" % pr_branch_name)
 
-    continue_maybe("Update ready (local ref %s)? Push to %s/%s?" % (
-        pr_branch_name, user_login, base_ref))
+    continue_maybe(
+        "Update ready (local ref %s)? Push to %s/%s?"
+        % (pr_branch_name, user_login, base_ref)
+    )
 
     push_user_remote = "https://github.com/%s/pandas.git" % user_login
 
     try:
-        run_cmd('git push %s %s:%s' % (push_user_remote, pr_branch_name,
-                                       base_ref))
+        run_cmd("git push %s %s:%s" % (push_user_remote, pr_branch_name, base_ref))
     except Exception as e:
 
         if continue_maybe2("Force push?"):
             try:
                 run_cmd(
-                    'git push -f %s %s:%s' % (push_user_remote, pr_branch_name,
-                                              base_ref))
+                    "git push -f %s %s:%s"
+                    % (push_user_remote, pr_branch_name, base_ref)
+                )
             except Exception as e:
                 fail("Exception while pushing: %s" % e)
                 clean_up()
@@ -239,20 +246,19 @@ def cherry_pick(pr_num, merge_hash, default_branch):
     if pick_ref == "":
         pick_ref = default_branch
 
-    pick_branch_name = "%s_PICK_PR_%s_%s" % (BRANCH_PREFIX, pr_num,
-                                             pick_ref.upper())
+    pick_branch_name = "%s_PICK_PR_%s_%s" % (BRANCH_PREFIX, pr_num, pick_ref.upper())
 
-    run_cmd("git fetch %s %s:%s" % (PUSH_REMOTE_NAME, pick_ref,
-                                    pick_branch_name))
+    run_cmd("git fetch %s %s:%s" % (PUSH_REMOTE_NAME, pick_ref, pick_branch_name))
     run_cmd("git checkout %s" % pick_branch_name)
     run_cmd("git cherry-pick -sx %s" % merge_hash)
 
-    continue_maybe("Pick complete (local ref %s). Push to %s?" % (
-        pick_branch_name, PUSH_REMOTE_NAME))
+    continue_maybe(
+        "Pick complete (local ref %s). Push to %s?"
+        % (pick_branch_name, PUSH_REMOTE_NAME)
+    )
 
     try:
-        run_cmd('git push %s %s:%s' % (PUSH_REMOTE_NAME, pick_branch_name,
-                                       pick_ref))
+        run_cmd("git push %s %s:%s" % (PUSH_REMOTE_NAME, pick_branch_name, pick_ref))
     except Exception as e:
         clean_up()
         fail("Exception while pushing: %s" % e)
@@ -287,35 +293,44 @@ base_ref = pr["head"]["ref"]
 pr_repo_desc = "%s/%s" % (user_login, base_ref)
 
 if pr["merged"] is True:
-    print("Pull request {0} has already been merged, please backport manually"
-          .format(pr_num))
+    print(
+        "Pull request {0} has already been merged, please backport manually".format(
+            pr_num
+        )
+    )
     sys.exit(0)
 
 if not bool(pr["mergeable"]):
-    msg = ("Pull request {0} is not mergeable in its current form.\n"
-           "Continue? (experts only!)".format(pr_num))
+    msg = (
+        "Pull request {0} is not mergeable in its current form.\n"
+        "Continue? (experts only!)".format(pr_num)
+    )
     continue_maybe(msg)
 
 print("\n=== Pull Request #%s ===" % pr_num)
 
 # we may have un-printable unicode in our title
 try:
-    title = title.encode('raw_unicode_escape')
+    title = title.encode("raw_unicode_escape")
 except Exception:
     pass
 
-print("title\t{title}\nsource\t{source}\ntarget\t{target}\nurl\t{url}".format(
-    title=title, source=pr_repo_desc, target=target_ref, url=url))
+print(
+    "title\t{title}\nsource\t{source}\ntarget\t{target}\nurl\t{url}".format(
+        title=title, source=pr_repo_desc, target=target_ref, url=url
+    )
+)
 
 
 merged_refs = [target_ref]
 
 print("\nProceed with updating or merging pull request #%s?" % pr_num)
-update = input("Update PR and push to remote (r), merge locally (l), "
-               "or do nothing (n) ?")
+update = input(
+    "Update PR and push to remote (r), merge locally (l), " "or do nothing (n) ?"
+)
 update = update.lower()
 
-if update == 'r':
+if update == "r":
     merge_hash = update_pr(pr_num, user_login, base_ref)
-elif update == 'l':
+elif update == "l":
     merge_hash = merge_pr(pr_num, target_ref)

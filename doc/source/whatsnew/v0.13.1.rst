@@ -43,7 +43,7 @@ Highlights include:
       df.loc[0, 'A'] = np.nan
       df
 
-Output Formatting Enhancements
+Output formatting enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - df.info() view now display dtype info per column (:issue:`5682`)
@@ -179,7 +179,7 @@ API changes
     [0 rows x 2 columns]
 
 
-Prior Version Deprecations/Changes
+Prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There are no announced changes in 0.13 or prior that are taking effect as of 0.13.1
@@ -222,60 +222,155 @@ Enhancements
 
 - Panel :meth:`~pandas.Panel.apply` will work on non-ufuncs. See :ref:`the docs<basics.apply>`.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     import pandas.util.testing as tm
-     panel = tm.makePanel(5)
-     panel
-     panel['ItemA']
+      In [28]: import pandas.util.testing as tm
+
+      In [29]: panel = tm.makePanel(5)
+
+      In [30]: panel
+      Out[30]:
+      <class 'pandas.core.panel.Panel'>
+      Dimensions: 3 (items) x 5 (major_axis) x 4 (minor_axis)
+      Items axis: ItemA to ItemC
+      Major_axis axis: 2000-01-03 00:00:00 to 2000-01-07 00:00:00
+      Minor_axis axis: A to D
+
+      In [31]: panel['ItemA']
+      Out[31]:
+                         A         B         C         D
+      2000-01-03 -0.673690  0.577046 -1.344312 -1.469388
+      2000-01-04  0.113648 -1.715002  0.844885  0.357021
+      2000-01-05 -1.478427 -1.039268  1.075770 -0.674600
+      2000-01-06  0.524988 -0.370647 -0.109050 -1.776904
+      2000-01-07  0.404705 -1.157892  1.643563 -0.968914
+
+      [5 rows x 4 columns]
 
   Specifying an ``apply`` that operates on a Series (to return a single element)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     panel.apply(lambda x: x.dtype, axis='items')
+      In [32]: panel.apply(lambda x: x.dtype, axis='items')
+      Out[32]:
+                        A        B        C        D
+      2000-01-03  float64  float64  float64  float64
+      2000-01-04  float64  float64  float64  float64
+      2000-01-05  float64  float64  float64  float64
+      2000-01-06  float64  float64  float64  float64
+      2000-01-07  float64  float64  float64  float64
+
+      [5 rows x 4 columns]
 
   A similar reduction type operation
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     panel.apply(lambda x: x.sum(), axis='major_axis')
+      In [33]: panel.apply(lambda x: x.sum(), axis='major_axis')
+      Out[33]:
+            ItemA     ItemB     ItemC
+      A -1.108775 -1.090118 -2.984435
+      B -3.705764  0.409204  1.866240
+      C  2.110856  2.960500 -0.974967
+      D -4.532785  0.303202 -3.685193
+
+      [4 rows x 3 columns]
 
   This is equivalent to
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     panel.sum('major_axis')
+      In [34]: panel.sum('major_axis')
+      Out[34]:
+            ItemA     ItemB     ItemC
+      A -1.108775 -1.090118 -2.984435
+      B -3.705764  0.409204  1.866240
+      C  2.110856  2.960500 -0.974967
+      D -4.532785  0.303202 -3.685193
+
+      [4 rows x 3 columns]
 
   A transformation operation that returns a Panel, but is computing
   the z-score across the major_axis
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     result = panel.apply(lambda x: (x - x.mean()) / x.std(),
-                          axis='major_axis')
-     result
-     result['ItemA']
+      In [35]: result = panel.apply(lambda x: (x - x.mean()) / x.std(),
+        ....:                      axis='major_axis')
+        ....:
+
+      In [36]: result
+      Out[36]:
+      <class 'pandas.core.panel.Panel'>
+      Dimensions: 3 (items) x 5 (major_axis) x 4 (minor_axis)
+      Items axis: ItemA to ItemC
+      Major_axis axis: 2000-01-03 00:00:00 to 2000-01-07 00:00:00
+      Minor_axis axis: A to D
+
+      In [37]: result['ItemA']                           # noqa E999
+      Out[37]:
+                        A         B         C         D
+      2000-01-03 -0.535778  1.500802 -1.506416 -0.681456
+      2000-01-04  0.397628 -1.108752  0.360481  1.529895
+      2000-01-05 -1.489811 -0.339412  0.557374  0.280845
+      2000-01-06  0.885279  0.421830 -0.453013 -1.053785
+      2000-01-07  0.742682 -0.474468  1.041575 -0.075499
+
+      [5 rows x 4 columns]
 
 - Panel :meth:`~pandas.Panel.apply` operating on cross-sectional slabs. (:issue:`1148`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     def f(x):
-         return ((x.T - x.mean(1)) / x.std(1)).T
+      In [38]: def f(x):
+         ....:     return ((x.T - x.mean(1)) / x.std(1)).T
+         ....:
 
-     result = panel.apply(f, axis=['items', 'major_axis'])
-     result
-     result.loc[:, :, 'ItemA']
+      In [39]: result = panel.apply(f, axis=['items', 'major_axis'])
+
+      In [40]: result
+      Out[40]:
+      <class 'pandas.core.panel.Panel'>
+      Dimensions: 4 (items) x 5 (major_axis) x 3 (minor_axis)
+      Items axis: A to D
+      Major_axis axis: 2000-01-03 00:00:00 to 2000-01-07 00:00:00
+      Minor_axis axis: ItemA to ItemC
+
+      In [41]: result.loc[:, :, 'ItemA']
+      Out[41]:
+                         A         B         C         D
+      2000-01-03  0.012922 -0.030874 -0.629546 -0.757034
+      2000-01-04  0.392053 -1.071665  0.163228  0.548188
+      2000-01-05 -1.093650 -0.640898  0.385734 -1.154310
+      2000-01-06  1.005446 -1.154593 -0.595615 -0.809185
+      2000-01-07  0.783051 -0.198053  0.919339 -1.052721
+
+      [5 rows x 4 columns]
 
   This is equivalent to the following
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     result = pd.Panel({ax: f(panel.loc[:, :, ax]) for ax in panel.minor_axis})
+      In [42]: result = pd.Panel({ax: f(panel.loc[:, :, ax]) for ax in panel.minor_axis})
 
-     result
-     result.loc[:, :, 'ItemA']
+      In [43]: result
+      Out[43]:
+      <class 'pandas.core.panel.Panel'>
+      Dimensions: 4 (items) x 5 (major_axis) x 3 (minor_axis)
+      Items axis: A to D
+      Major_axis axis: 2000-01-03 00:00:00 to 2000-01-07 00:00:00
+      Minor_axis axis: ItemA to ItemC
+
+      In [44]: result.loc[:, :, 'ItemA']
+      Out[44]:
+                         A         B         C         D
+      2000-01-03  0.012922 -0.030874 -0.629546 -0.757034
+      2000-01-04  0.392053 -1.071665  0.163228  0.548188
+      2000-01-05 -1.093650 -0.640898  0.385734 -1.154310
+      2000-01-06  1.005446 -1.154593 -0.595615 -0.809185
+      2000-01-07  0.783051 -0.198053  0.919339 -1.052721
+
+      [5 rows x 4 columns]
 
 Performance
 ~~~~~~~~~~~
@@ -299,7 +394,7 @@ There are no experimental changes in 0.13.1
 
 .. _release.bug_fixes-0.13.1:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in ``io.wb.get_countries`` not including all countries (:issue:`6008`)

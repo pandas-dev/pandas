@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta, date
 
 import cython
@@ -353,10 +352,10 @@ cdef class IndexEngine:
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     cdef:
-        Py_ssize_t mid, lo = 0, hi = len(values) - 1
+        Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
         object pval
 
-    if hi >= 0 and val > util.get_value_at(values, hi):
+    if hi == 0 or (hi > 0 and val > util.get_value_at(values, hi)):
         return len(values)
 
     while lo < hi:
@@ -536,7 +535,7 @@ cpdef convert_scalar(ndarray arr, object value):
             return Timestamp(value).value
         elif value is None or value != value:
             return NPY_NAT
-        elif util.is_string_object(value):
+        elif isinstance(value, str):
             return Timestamp(value).value
         raise ValueError("cannot set a Timestamp with a non-timestamp")
 
@@ -547,7 +546,7 @@ cpdef convert_scalar(ndarray arr, object value):
             return Timedelta(value).value
         elif value is None or value != value:
             return NPY_NAT
-        elif util.is_string_object(value):
+        elif isinstance(value, str):
             return Timedelta(value).value
         raise ValueError("cannot set a Timedelta with a non-timedelta")
 

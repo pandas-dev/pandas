@@ -13,15 +13,19 @@ import pyarrow as pa
 
 import pandas as pd
 from pandas.api.extensions import (
-    ExtensionArray, ExtensionDtype, register_extension_dtype, take)
+    ExtensionArray,
+    ExtensionDtype,
+    register_extension_dtype,
+    take,
+)
 
 
 @register_extension_dtype
 class ArrowBoolDtype(ExtensionDtype):
 
     type = np.bool_
-    kind = 'b'
-    name = 'arrow_bool'
+    kind = "b"
+    name = "arrow_bool"
     na_value = pa.NULL
 
     @classmethod
@@ -29,8 +33,7 @@ class ArrowBoolDtype(ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError("Cannot construct a '{}' from "
-                            "'{}'".format(cls, string))
+            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
 
     @classmethod
     def construct_array_type(cls):
@@ -82,7 +85,7 @@ class ArrowBoolArray(ExtensionArray):
             if copy:
                 return self.copy()
             return self
-        return super(ArrowBoolArray, self).astype(dtype, copy)
+        return super().astype(dtype, copy)
 
     @property
     def dtype(self):
@@ -90,9 +93,12 @@ class ArrowBoolArray(ExtensionArray):
 
     @property
     def nbytes(self):
-        return sum(x.size for chunk in self._data.chunks
-                   for x in chunk.buffers()
-                   if x is not None)
+        return sum(
+            x.size
+            for chunk in self._data.chunks
+            for x in chunk.buffers()
+            if x is not None
+        )
 
     def isna(self):
         nas = pd.isna(self._data.to_pandas())
@@ -104,26 +110,20 @@ class ArrowBoolArray(ExtensionArray):
         if allow_fill and fill_value is None:
             fill_value = self.dtype.na_value
 
-        result = take(data, indices, fill_value=fill_value,
-                      allow_fill=allow_fill)
+        result = take(data, indices, fill_value=fill_value, allow_fill=allow_fill)
         return self._from_sequence(result, dtype=self.dtype)
 
-    def copy(self, deep=False):
-        if deep:
-            return type(self)(copy.deepcopy(self._data))
-        else:
-            return type(self)(copy.copy(self._data))
+    def copy(self):
+        return type(self)(copy.copy(self._data))
 
+    @classmethod
     def _concat_same_type(cls, to_concat):
-        chunks = list(itertools.chain.from_iterable(x._data.chunks
-                                                    for x in to_concat))
+        chunks = list(itertools.chain.from_iterable(x._data.chunks for x in to_concat))
         arr = pa.chunked_array(chunks)
         return cls(arr)
 
     def __invert__(self):
-        return type(self).from_scalars(
-            ~self._data.to_pandas()
-        )
+        return type(self).from_scalars(~self._data.to_pandas())
 
     def _reduce(self, method, skipna=True, **kwargs):
         if skipna:

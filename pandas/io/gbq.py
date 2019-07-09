@@ -1,32 +1,33 @@
 """ Google BigQuery support """
-
-import warnings
+from pandas.compat._optional import import_optional_dependency
 
 
 def _try_import():
     # since pandas is a dependency of pandas-gbq
     # we need to import on first use
-    try:
-        import pandas_gbq
-    except ImportError:
-
-        # give a nice error message
-        raise ImportError("Load data from Google BigQuery\n"
-                          "\n"
-                          "the pandas-gbq package is not installed\n"
-                          "see the docs: https://pandas-gbq.readthedocs.io\n"
-                          "\n"
-                          "you can install via pip or conda:\n"
-                          "pip install pandas-gbq\n"
-                          "conda install pandas-gbq -c conda-forge\n")
-
+    msg = (
+        "pandas-gbq is required to load data from Google BigQuery. "
+        "See the docs: https://pandas-gbq.readthedocs.io."
+    )
+    pandas_gbq = import_optional_dependency("pandas_gbq", extra=msg)
     return pandas_gbq
 
 
-def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, auth_local_webserver=False, dialect=None,
-             location=None, configuration=None, credentials=None,
-             private_key=None, verbose=None):
+def read_gbq(
+    query,
+    project_id=None,
+    index_col=None,
+    col_order=None,
+    reauth=False,
+    auth_local_webserver=False,
+    dialect=None,
+    location=None,
+    configuration=None,
+    credentials=None,
+    use_bqstorage_api=None,
+    private_key=None,
+    verbose=None,
+):
     """
     Load data from Google BigQuery.
 
@@ -103,6 +104,21 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         *New in version 0.8.0 of pandas-gbq*.
 
         .. versionadded:: 0.24.0
+    use_bqstorage_api : bool, default False
+        Use the `BigQuery Storage API
+        <https://cloud.google.com/bigquery/docs/reference/storage/>`__ to
+        download query results quickly, but at an increased cost. To use this
+        API, first `enable it in the Cloud Console
+        <https://console.cloud.google.com/apis/library/bigquerystorage.googleapis.com>`__.
+        You must also have the `bigquery.readsessions.create
+        <https://cloud.google.com/bigquery/docs/access-control#roles>`__
+        permission on the project you are billing queries to.
+
+        This feature requires version 0.10.0 or later of the ``pandas-gbq``
+        package. It also requires the ``google-cloud-bigquery-storage`` and
+        ``fastavro`` packages.
+
+        .. versionadded:: 0.25.0
     private_key : str, deprecated
         Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
         parameter and
@@ -127,36 +143,68 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     See Also
     --------
     pandas_gbq.read_gbq : This function in the pandas-gbq library.
-    pandas.DataFrame.to_gbq : Write a DataFrame to Google BigQuery.
+    DataFrame.to_gbq : Write a DataFrame to Google BigQuery.
     """
     pandas_gbq = _try_import()
 
-    if dialect is None:
-        dialect = "legacy"
-        warnings.warn(
-            'The default value for dialect is changing to "standard" in a '
-            'future version of pandas-gbq. Pass in dialect="legacy" to '
-            "disable this warning.",
-            FutureWarning,
-            stacklevel=2,
-        )
+    kwargs = {}
+
+    # START: new kwargs.  Don't populate unless explicitly set.
+    if use_bqstorage_api is not None:
+        kwargs["use_bqstorage_api"] = use_bqstorage_api
+    # END: new kwargs
+
+    # START: deprecated kwargs.  Don't populate unless explicitly set.
+    if verbose is not None:
+        kwargs["verbose"] = verbose
+
+    if private_key is not None:
+        kwargs["private_key"] = private_key
+    # END: deprecated kwargs
 
     return pandas_gbq.read_gbq(
-        query, project_id=project_id, index_col=index_col,
-        col_order=col_order, reauth=reauth,
-        auth_local_webserver=auth_local_webserver, dialect=dialect,
-        location=location, configuration=configuration,
-        credentials=credentials, verbose=verbose, private_key=private_key)
+        query,
+        project_id=project_id,
+        index_col=index_col,
+        col_order=col_order,
+        reauth=reauth,
+        auth_local_webserver=auth_local_webserver,
+        dialect=dialect,
+        location=location,
+        configuration=configuration,
+        credentials=credentials,
+        **kwargs
+    )
 
 
-def to_gbq(dataframe, destination_table, project_id=None, chunksize=None,
-           reauth=False, if_exists='fail', auth_local_webserver=False,
-           table_schema=None, location=None, progress_bar=True,
-           credentials=None, verbose=None, private_key=None):
+def to_gbq(
+    dataframe,
+    destination_table,
+    project_id=None,
+    chunksize=None,
+    reauth=False,
+    if_exists="fail",
+    auth_local_webserver=False,
+    table_schema=None,
+    location=None,
+    progress_bar=True,
+    credentials=None,
+    verbose=None,
+    private_key=None,
+):
     pandas_gbq = _try_import()
-    return pandas_gbq.to_gbq(
-        dataframe, destination_table, project_id=project_id,
-        chunksize=chunksize, reauth=reauth, if_exists=if_exists,
-        auth_local_webserver=auth_local_webserver, table_schema=table_schema,
-        location=location, progress_bar=progress_bar,
-        credentials=credentials, verbose=verbose, private_key=private_key)
+    pandas_gbq.to_gbq(
+        dataframe,
+        destination_table,
+        project_id=project_id,
+        chunksize=chunksize,
+        reauth=reauth,
+        if_exists=if_exists,
+        auth_local_webserver=auth_local_webserver,
+        table_schema=table_schema,
+        location=location,
+        progress_bar=progress_bar,
+        credentials=credentials,
+        verbose=verbose,
+        private_key=private_key,
+    )

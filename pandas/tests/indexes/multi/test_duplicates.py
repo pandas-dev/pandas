@@ -1,18 +1,15 @@
-# -*- coding: utf-8 -*-
-
 from itertools import product
 
 import numpy as np
 import pytest
 
 from pandas._libs import hashtable
-from pandas.compat import range, u
 
 from pandas import DatetimeIndex, MultiIndex
 import pandas.util.testing as tm
 
 
-@pytest.mark.parametrize('names', [None, ['first', 'second']])
+@pytest.mark.parametrize("names", [None, ["first", "second"]])
 def test_unique(names):
     mi = MultiIndex.from_arrays([[1, 2, 1, 2], [1, 1, 1, 2]], names=names)
 
@@ -20,15 +17,14 @@ def test_unique(names):
     exp = MultiIndex.from_arrays([[1, 2, 2], [1, 1, 2]], names=mi.names)
     tm.assert_index_equal(res, exp)
 
-    mi = MultiIndex.from_arrays([list('aaaa'), list('abab')],
-                                names=names)
+    mi = MultiIndex.from_arrays([list("aaaa"), list("abab")], names=names)
     res = mi.unique()
-    exp = MultiIndex.from_arrays([list('aa'), list('ab')], names=mi.names)
+    exp = MultiIndex.from_arrays([list("aa"), list("ab")], names=mi.names)
     tm.assert_index_equal(res, exp)
 
-    mi = MultiIndex.from_arrays([list('aaaa'), list('aaaa')], names=names)
+    mi = MultiIndex.from_arrays([list("aaaa"), list("aaaa")], names=names)
     res = mi.unique()
-    exp = MultiIndex.from_arrays([['a'], ['a']], names=mi.names)
+    exp = MultiIndex.from_arrays([["a"], ["a"]], names=mi.names)
     tm.assert_index_equal(res, exp)
 
     # GH #20568 - empty MI
@@ -38,22 +34,24 @@ def test_unique(names):
 
 
 def test_unique_datetimelike():
-    idx1 = DatetimeIndex(['2015-01-01', '2015-01-01', '2015-01-01',
-                          '2015-01-01', 'NaT', 'NaT'])
-    idx2 = DatetimeIndex(['2015-01-01', '2015-01-01', '2015-01-02',
-                          '2015-01-02', 'NaT', '2015-01-01'],
-                         tz='Asia/Tokyo')
+    idx1 = DatetimeIndex(
+        ["2015-01-01", "2015-01-01", "2015-01-01", "2015-01-01", "NaT", "NaT"]
+    )
+    idx2 = DatetimeIndex(
+        ["2015-01-01", "2015-01-01", "2015-01-02", "2015-01-02", "NaT", "2015-01-01"],
+        tz="Asia/Tokyo",
+    )
     result = MultiIndex.from_arrays([idx1, idx2]).unique()
 
-    eidx1 = DatetimeIndex(['2015-01-01', '2015-01-01', 'NaT', 'NaT'])
-    eidx2 = DatetimeIndex(['2015-01-01', '2015-01-02',
-                           'NaT', '2015-01-01'],
-                          tz='Asia/Tokyo')
+    eidx1 = DatetimeIndex(["2015-01-01", "2015-01-01", "NaT", "NaT"])
+    eidx2 = DatetimeIndex(
+        ["2015-01-01", "2015-01-02", "NaT", "2015-01-01"], tz="Asia/Tokyo"
+    )
     exp = MultiIndex.from_arrays([eidx1, eidx2])
     tm.assert_index_equal(result, exp)
 
 
-@pytest.mark.parametrize('level', [0, 'first', 1, 'second'])
+@pytest.mark.parametrize("level", [0, "first", 1, "second"])
 def test_unique_level(idx, level):
     # GH #17896 - with level= argument
     result = idx.unique(level=level)
@@ -61,19 +59,18 @@ def test_unique_level(idx, level):
     tm.assert_index_equal(result, expected)
 
     # With already unique level
-    mi = MultiIndex.from_arrays([[1, 3, 2, 4], [1, 3, 2, 5]],
-                                names=['first', 'second'])
+    mi = MultiIndex.from_arrays([[1, 3, 2, 4], [1, 3, 2, 5]], names=["first", "second"])
     result = mi.unique(level=level)
     expected = mi.get_level_values(level)
     tm.assert_index_equal(result, expected)
 
     # With empty MI
-    mi = MultiIndex.from_arrays([[], []], names=['first', 'second'])
+    mi = MultiIndex.from_arrays([[], []], names=["first", "second"])
     result = mi.unique(level=level)
     expected = mi.get_level_values(level)
 
 
-@pytest.mark.parametrize('dropna', [True, False])
+@pytest.mark.parametrize("dropna", [True, False])
 def test_get_unique_index(idx, dropna):
     mi = idx[[0, 1, 0, 1, 1, 0, 0]]
     expected = mi._shallow_copy(mi[[0, 1]])
@@ -87,18 +84,15 @@ def test_duplicate_multiindex_codes():
     # GH 17464
     # Make sure that a MultiIndex with duplicate levels throws a ValueError
     with pytest.raises(ValueError):
-        mi = MultiIndex([['A'] * 10, range(10)], [[0] * 10, range(10)])
+        mi = MultiIndex([["A"] * 10, range(10)], [[0] * 10, range(10)])
 
     # And that using set_levels with duplicate levels fails
-    mi = MultiIndex.from_arrays([['A', 'A', 'B', 'B', 'B'],
-                                 [1, 2, 1, 2, 3]])
+    mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     with pytest.raises(ValueError):
-        mi.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
-                      inplace=True)
+        mi.set_levels([["A", "B", "A", "A", "B"], [2, 1, 3, -2, 5]], inplace=True)
 
 
-@pytest.mark.parametrize('names', [['a', 'b', 'a'], [1, 1, 2],
-                                   [1, 'a', 1]])
+@pytest.mark.parametrize("names", [["a", "b", "a"], [1, 1, 2], [1, "a", 1]])
 def test_duplicate_level_names(names):
     # GH18872, GH19029
     mi = MultiIndex.from_product([[0, 1]] * 3, names=names)
@@ -118,14 +112,15 @@ def test_duplicate_level_names(names):
 def test_duplicate_meta_data():
     # GH 10115
     mi = MultiIndex(
-        levels=[[0, 1], [0, 1, 2]],
-        codes=[[0, 0, 0, 0, 1, 1, 1],
-               [0, 1, 2, 0, 0, 1, 2]])
+        levels=[[0, 1], [0, 1, 2]], codes=[[0, 0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 0, 1, 2]]
+    )
 
-    for idx in [mi,
-                mi.set_names([None, None]),
-                mi.set_names([None, 'Num']),
-                mi.set_names(['Upper', 'Num']), ]:
+    for idx in [
+        mi,
+        mi.set_names([None, None]),
+        mi.set_names([None, "Num"]),
+        mi.set_names(["Upper", "Num"]),
+    ]:
         assert idx.has_duplicates
         assert idx.drop_duplicates().names == idx.names
 
@@ -137,33 +132,49 @@ def test_has_duplicates(idx, idx_dup):
     assert idx_dup.is_unique is False
     assert idx_dup.has_duplicates is True
 
-    mi = MultiIndex(levels=[[0, 1], [0, 1, 2]],
-                    codes=[[0, 0, 0, 0, 1, 1, 1],
-                           [0, 1, 2, 0, 0, 1, 2]])
+    mi = MultiIndex(
+        levels=[[0, 1], [0, 1, 2]], codes=[[0, 0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 0, 1, 2]]
+    )
     assert mi.is_unique is False
     assert mi.has_duplicates is True
+
+    # single instance of NaN
+    mi_nan = MultiIndex(
+        levels=[["a", "b"], [0, 1]], codes=[[-1, 0, 0, 1, 1], [-1, 0, 1, 0, 1]]
+    )
+    assert mi_nan.is_unique is True
+    assert mi_nan.has_duplicates is False
+
+    # multiple instances of NaN
+    mi_nan_dup = MultiIndex(
+        levels=[["a", "b"], [0, 1]], codes=[[-1, -1, 0, 0, 1, 1], [-1, -1, 0, 1, 0, 1]]
+    )
+    assert mi_nan_dup.is_unique is False
+    assert mi_nan_dup.has_duplicates is True
 
 
 def test_has_duplicates_from_tuples():
     # GH 9075
-    t = [(u('x'), u('out'), u('z'), 5, u('y'), u('in'), u('z'), 169),
-         (u('x'), u('out'), u('z'), 7, u('y'), u('in'), u('z'), 119),
-         (u('x'), u('out'), u('z'), 9, u('y'), u('in'), u('z'), 135),
-         (u('x'), u('out'), u('z'), 13, u('y'), u('in'), u('z'), 145),
-         (u('x'), u('out'), u('z'), 14, u('y'), u('in'), u('z'), 158),
-         (u('x'), u('out'), u('z'), 16, u('y'), u('in'), u('z'), 122),
-         (u('x'), u('out'), u('z'), 17, u('y'), u('in'), u('z'), 160),
-         (u('x'), u('out'), u('z'), 18, u('y'), u('in'), u('z'), 180),
-         (u('x'), u('out'), u('z'), 20, u('y'), u('in'), u('z'), 143),
-         (u('x'), u('out'), u('z'), 21, u('y'), u('in'), u('z'), 128),
-         (u('x'), u('out'), u('z'), 22, u('y'), u('in'), u('z'), 129),
-         (u('x'), u('out'), u('z'), 25, u('y'), u('in'), u('z'), 111),
-         (u('x'), u('out'), u('z'), 28, u('y'), u('in'), u('z'), 114),
-         (u('x'), u('out'), u('z'), 29, u('y'), u('in'), u('z'), 121),
-         (u('x'), u('out'), u('z'), 31, u('y'), u('in'), u('z'), 126),
-         (u('x'), u('out'), u('z'), 32, u('y'), u('in'), u('z'), 155),
-         (u('x'), u('out'), u('z'), 33, u('y'), u('in'), u('z'), 123),
-         (u('x'), u('out'), u('z'), 12, u('y'), u('in'), u('z'), 144)]
+    t = [
+        ("x", "out", "z", 5, "y", "in", "z", 169),
+        ("x", "out", "z", 7, "y", "in", "z", 119),
+        ("x", "out", "z", 9, "y", "in", "z", 135),
+        ("x", "out", "z", 13, "y", "in", "z", 145),
+        ("x", "out", "z", 14, "y", "in", "z", 158),
+        ("x", "out", "z", 16, "y", "in", "z", 122),
+        ("x", "out", "z", 17, "y", "in", "z", 160),
+        ("x", "out", "z", 18, "y", "in", "z", 180),
+        ("x", "out", "z", 20, "y", "in", "z", 143),
+        ("x", "out", "z", 21, "y", "in", "z", 128),
+        ("x", "out", "z", 22, "y", "in", "z", 129),
+        ("x", "out", "z", 25, "y", "in", "z", 111),
+        ("x", "out", "z", 28, "y", "in", "z", 114),
+        ("x", "out", "z", 29, "y", "in", "z", 121),
+        ("x", "out", "z", 31, "y", "in", "z", 126),
+        ("x", "out", "z", 32, "y", "in", "z", 155),
+        ("x", "out", "z", 33, "y", "in", "z", 123),
+        ("x", "out", "z", 12, "y", "in", "z", 144),
+    ]
 
     mi = MultiIndex.from_tuples(t)
     assert not mi.has_duplicates
@@ -193,8 +204,10 @@ def test_has_duplicates_overflow():
 
         # with a dup
         if with_nulls:
+
             def f(a):
                 return np.insert(a, 1000, a[0])
+
             codes = list(map(f, codes))
             mi = MultiIndex(levels=levels, codes=codes)
         else:
@@ -212,17 +225,20 @@ def test_has_duplicates_overflow():
     check(8, True)
 
 
-@pytest.mark.parametrize('keep, expected', [
-    ('first', np.array([False, False, False, True, True, False])),
-    ('last', np.array([False, True, True, False, False, False])),
-    (False, np.array([False, True, True, True, True, False]))
-])
+@pytest.mark.parametrize(
+    "keep, expected",
+    [
+        ("first", np.array([False, False, False, True, True, False])),
+        ("last", np.array([False, True, True, False, False, False])),
+        (False, np.array([False, True, True, True, True, False])),
+    ],
+)
 def test_duplicated(idx_dup, keep, expected):
     result = idx_dup.duplicated(keep=keep)
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize('keep', ['first', 'last', False])
+@pytest.mark.parametrize("keep", ["first", "last", False])
 def test_duplicated_large(keep):
     # GH 9125
     n, k = 200, 5000
@@ -245,22 +261,23 @@ def test_get_duplicates():
             # Deprecated - see GH20239
             assert mi.get_duplicates().equals(MultiIndex.from_arrays([[], []]))
 
-        tm.assert_numpy_array_equal(mi.duplicated(),
-                                    np.zeros(2, dtype='bool'))
+        tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(2, dtype="bool"))
 
     for n in range(1, 6):  # 1st level shape
         for m in range(1, 5):  # 2nd level shape
             # all possible unique combinations, including nan
             codes = product(range(-1, n), range(-1, m))
-            mi = MultiIndex(levels=[list('abcde')[:n], list('WXYZ')[:m]],
-                            codes=np.random.permutation(list(codes)).T)
+            mi = MultiIndex(
+                levels=[list("abcde")[:n], list("WXYZ")[:m]],
+                codes=np.random.permutation(list(codes)).T,
+            )
             assert len(mi) == (n + 1) * (m + 1)
             assert not mi.has_duplicates
 
             with tm.assert_produces_warning(FutureWarning):
                 # Deprecated - see GH20239
-                assert mi.get_duplicates().equals(MultiIndex.from_arrays(
-                    [[], []]))
+                assert mi.get_duplicates().equals(MultiIndex.from_arrays([[], []]))
 
-            tm.assert_numpy_array_equal(mi.duplicated(),
-                                        np.zeros(len(mi), dtype='bool'))
+            tm.assert_numpy_array_equal(
+                mi.duplicated(), np.zeros(len(mi), dtype="bool")
+            )

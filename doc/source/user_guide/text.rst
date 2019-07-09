@@ -3,7 +3,7 @@
 {{ header }}
 
 ======================
-Working with Text Data
+Working with text data
 ======================
 
 .. _text.string_methods:
@@ -46,8 +46,8 @@ Since ``df.columns`` is an Index object, we can use the ``.str`` accessor
    df.columns.str.lower()
 
 These string methods can then be used to clean up the columns as needed.
-Here we are removing leading and trailing white spaces, lower casing all names,
-and replacing any remaining white spaces with underscores:
+Here we are removing leading and trailing whitespaces, lower casing all names,
+and replacing any remaining whitespaces with underscores:
 
 .. ipython:: python
 
@@ -65,13 +65,23 @@ and replacing any remaining white spaces with underscores:
     ``Series``.
 
     Please note that a ``Series`` of type ``category`` with string ``.categories`` has
-    some limitations in comparison of ``Series`` of type string (e.g. you can't add strings to
+    some limitations in comparison to ``Series`` of type string (e.g. you can't add strings to
     each other: ``s + " " + s`` won't work if ``s`` is a ``Series`` of type ``category``). Also,
     ``.str`` methods which operate on elements of type ``list`` are not available on such a
     ``Series``.
 
+.. _text.warn_types:
 
-Splitting and Replacing Strings
+.. warning::
+
+    Before v.0.25.0, the ``.str``-accessor did only the most rudimentary type checks. Starting with
+    v.0.25.0, the type of the Series is inferred and the allowed types (i.e. strings) are enforced more rigorously.
+
+    Generally speaking, the ``.str`` accessor is intended to work only on strings. With very few
+    exceptions, other uses are not supported, and may be disabled at a later point.
+
+
+Splitting and replacing strings
 -------------------------------
 
 .. _text.split:
@@ -346,7 +356,7 @@ of the string, the result will be a ``NaN``.
    s.str[0]
    s.str[1]
 
-Extracting Substrings
+Extracting substrings
 ---------------------
 
 .. _text.extract:
@@ -508,7 +518,7 @@ same result as a ``Series.str.extractall`` with a default index (starts from 0).
    pd.Series(["a1a2", "b1", "c1"]).str.extractall(two_groups)
 
 
-Testing for Strings that Match or Contain a Pattern
+Testing for Strings that match or contain a pattern
 ---------------------------------------------------
 
 You can check whether elements contain a pattern:
@@ -537,7 +547,7 @@ an extra ``na`` argument so missing values can be considered True or False:
 
 .. _text.indicator:
 
-Creating Indicator Variables
+Creating indicator variables
 ----------------------------
 
 You can extract dummy variables from string columns.
@@ -559,7 +569,7 @@ String ``Index`` also supports ``get_dummies`` which returns a ``MultiIndex``.
 
 See also :func:`~pandas.get_dummies`.
 
-Method Summary
+Method summary
 --------------
 
 .. _text.summary:
@@ -600,6 +610,7 @@ Method Summary
     :meth:`~Series.str.partition`;Equivalent to ``str.partition``
     :meth:`~Series.str.rpartition`;Equivalent to ``str.rpartition``
     :meth:`~Series.str.lower`;Equivalent to ``str.lower``
+    :meth:`~Series.str.casefold`;Equivalent to ``str.casefold``
     :meth:`~Series.str.upper`;Equivalent to ``str.upper``
     :meth:`~Series.str.find`;Equivalent to ``str.find``
     :meth:`~Series.str.rfind`;Equivalent to ``str.rfind``

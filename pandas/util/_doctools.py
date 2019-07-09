@@ -1,11 +1,9 @@
 import numpy as np
 
-import pandas.compat as compat
-
 import pandas as pd
 
 
-class TablePlotter(object):
+class TablePlotter:
     """
     Layout some DataFrames in vertical/horizontal layout for explanation.
     Used in merging.rst
@@ -31,15 +29,11 @@ class TablePlotter(object):
 
         if vertical:
             # calculate required number of cells
-            vcells = max(sum(self._shape(l)[0] for l in left),
-                         self._shape(right)[0])
-            hcells = (max(self._shape(l)[1] for l in left) +
-                      self._shape(right)[1])
+            vcells = max(sum(self._shape(l)[0] for l in left), self._shape(right)[0])
+            hcells = max(self._shape(l)[1] for l in left) + self._shape(right)[1]
         else:
-            vcells = max([self._shape(l)[0] for l in left] +
-                         [self._shape(right)[0]])
-            hcells = sum([self._shape(l)[1] for l in left] +
-                         [self._shape(right)[1]])
+            vcells = max([self._shape(l)[0] for l in left] + [self._shape(right)[0]])
+            hcells = sum([self._shape(l)[1] for l in left] + [self._shape(right)[1]])
         return hcells, vcells
 
     def plot(self, left, right, labels=None, vertical=True):
@@ -78,11 +72,10 @@ class TablePlotter(object):
             max_left_rows = max(self._shape(l)[0] for l in left)
             for i, (l, label) in enumerate(zip(left, labels)):
                 ax = fig.add_subplot(gs[i, 0:max_left_cols])
-                self._make_table(ax, l, title=label,
-                                 height=1.0 / max_left_rows)
+                self._make_table(ax, l, title=label, height=1.0 / max_left_rows)
             # right
             ax = plt.subplot(gs[:, max_left_cols:])
-            self._make_table(ax, right, title='Result', height=1.05 / vcells)
+            self._make_table(ax, right, title="Result", height=1.05 / vcells)
             fig.subplots_adjust(top=0.9, bottom=0.05, left=0.05, right=0.95)
         else:
             max_rows = max(self._shape(df)[0] for df in left + [right])
@@ -92,12 +85,12 @@ class TablePlotter(object):
             i = 0
             for l, label in zip(left, labels):
                 sp = self._shape(l)
-                ax = fig.add_subplot(gs[0, i:i + sp[1]])
+                ax = fig.add_subplot(gs[0, i : i + sp[1]])
                 self._make_table(ax, l, title=label, height=height)
                 i += sp[1]
             # right
             ax = plt.subplot(gs[0, i:])
-            self._make_table(ax, right, title='Result', height=height)
+            self._make_table(ax, right, title="Result", height=height)
             fig.subplots_adjust(top=0.85, bottom=0.05, left=0.05, right=0.95)
 
         return fig
@@ -106,10 +99,10 @@ class TablePlotter(object):
         """Convert each input to appropriate for table outplot"""
         if isinstance(data, pd.Series):
             if data.name is None:
-                data = data.to_frame(name='')
+                data = data.to_frame(name="")
             else:
                 data = data.to_frame()
-        data = data.fillna('NaN')
+        data = data.fillna("NaN")
         return data
 
     def _insert_index(self, data):
@@ -117,17 +110,17 @@ class TablePlotter(object):
         data = data.copy()
         idx_nlevels = data.index.nlevels
         if idx_nlevels == 1:
-            data.insert(0, 'Index', data.index)
+            data.insert(0, "Index", data.index)
         else:
             for i in range(idx_nlevels):
-                data.insert(i, 'Index{0}'.format(i),
-                            data.index._get_level_values(i))
+                data.insert(i, "Index{0}".format(i), data.index._get_level_values(i))
 
         col_nlevels = data.columns.nlevels
         if col_nlevels > 1:
             col = data.columns._get_level_values(0)
-            values = [data.columns._get_level_values(i).values
-                      for i in range(1, col_nlevels)]
+            values = [
+                data.columns._get_level_values(i).values for i in range(1, col_nlevels)
+            ]
             col_df = pd.DataFrame(values)
             data.columns = col_df.columns
             data = pd.concat([col_df, data])
@@ -152,25 +145,17 @@ class TablePlotter(object):
             height = 1.0 / (len(df) + 1)
 
         props = tb.properties()
-        for (r, c), cell in compat.iteritems(props['celld']):
+        for (r, c), cell in props["celld"].items():
             if c == -1:
                 cell.set_visible(False)
             elif r < col_nlevels and c < idx_nlevels:
                 cell.set_visible(False)
             elif r < col_nlevels or c < idx_nlevels:
-                cell.set_facecolor('#AAAAAA')
+                cell.set_facecolor("#AAAAAA")
             cell.set_height(height)
 
         ax.set_title(title, size=self.font_size)
-        ax.axis('off')
-
-
-class _WritableDoc(type):
-    # Remove this when Python2 support is dropped
-    # __doc__ is not mutable for new-style classes in Python2, which means
-    # we can't use @Appender to share class docstrings. This can be used
-    # with `add_metaclass` to make cls.__doc__ mutable.
-    pass
+        ax.axis("off")
 
 
 if __name__ == "__main__":
@@ -178,29 +163,24 @@ if __name__ == "__main__":
 
     p = TablePlotter()
 
-    df1 = pd.DataFrame({'A': [10, 11, 12],
-                        'B': [20, 21, 22],
-                        'C': [30, 31, 32]})
-    df2 = pd.DataFrame({'A': [10, 12],
-                        'C': [30, 32]})
+    df1 = pd.DataFrame({"A": [10, 11, 12], "B": [20, 21, 22], "C": [30, 31, 32]})
+    df2 = pd.DataFrame({"A": [10, 12], "C": [30, 32]})
 
-    p.plot([df1, df2], pd.concat([df1, df2]),
-           labels=['df1', 'df2'], vertical=True)
+    p.plot([df1, df2], pd.concat([df1, df2]), labels=["df1", "df2"], vertical=True)
     plt.show()
 
-    df3 = pd.DataFrame({'X': [10, 12],
-                        'Z': [30, 32]})
+    df3 = pd.DataFrame({"X": [10, 12], "Z": [30, 32]})
 
-    p.plot([df1, df3], pd.concat([df1, df3], axis=1),
-           labels=['df1', 'df2'], vertical=False)
+    p.plot(
+        [df1, df3], pd.concat([df1, df3], axis=1), labels=["df1", "df2"], vertical=False
+    )
     plt.show()
 
-    idx = pd.MultiIndex.from_tuples([(1, 'A'), (1, 'B'), (1, 'C'),
-                                     (2, 'A'), (2, 'B'), (2, 'C')])
-    col = pd.MultiIndex.from_tuples([(1, 'A'), (1, 'B')])
-    df3 = pd.DataFrame({'v1': [1, 2, 3, 4, 5, 6],
-                        'v2': [5, 6, 7, 8, 9, 10]},
-                       index=idx)
+    idx = pd.MultiIndex.from_tuples(
+        [(1, "A"), (1, "B"), (1, "C"), (2, "A"), (2, "B"), (2, "C")]
+    )
+    col = pd.MultiIndex.from_tuples([(1, "A"), (1, "B")])
+    df3 = pd.DataFrame({"v1": [1, 2, 3, 4, 5, 6], "v2": [5, 6, 7, 8, 9, 10]}, index=idx)
     df3.columns = col
-    p.plot(df3, df3, labels=['df3'])
+    p.plot(df3, df3, labels=["df3"])
     plt.show()

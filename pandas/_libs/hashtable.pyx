@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 cimport cython
 
 from cpython cimport (PyObject, Py_INCREF,
@@ -46,7 +44,7 @@ cdef int64_t NPY_NAT = util.get_nat()
 _SIZE_HINT_LIMIT = (1 << 20) + 7
 
 
-cdef size_t _INIT_VEC_CAP = 128
+cdef Py_ssize_t _INIT_VEC_CAP = 128
 
 include "hashtable_class_helper.pxi"
 include "hashtable_func_helper.pxi"
