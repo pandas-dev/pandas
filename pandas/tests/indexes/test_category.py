@@ -276,6 +276,18 @@ class TestCategoricalIndex(Base):
         result = item in ci
         assert result is expected
 
+    def test_contains_list(self):
+        # GH#21729
+        idx = pd.CategoricalIndex([1, 2, 3])
+
+        assert "a" not in idx
+
+        with pytest.raises(TypeError, match="unhashable type"):
+            ["a"] in idx
+
+        with pytest.raises(TypeError, match="unhashable type"):
+            ["a", "b"] in idx
+
     def test_map(self):
         ci = pd.CategoricalIndex(list("ABABC"), categories=list("CBA"), ordered=True)
         result = ci.map(lambda x: x.lower())
