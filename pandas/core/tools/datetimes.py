@@ -1,4 +1,4 @@
-from collections import abc
+import collections.abc as abc
 from datetime import datetime, time
 from functools import partial
 from typing import Optional, TypeVar, Union

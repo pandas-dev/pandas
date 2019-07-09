@@ -1,7 +1,7 @@
 """
 SparseArray data structure
 """
-from collections import abc
+import collections.abc as abc
 import numbers
 import operator
 import re

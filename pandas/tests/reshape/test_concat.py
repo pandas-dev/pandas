@@ -1,4 +1,5 @@
-from collections import OrderedDict, abc, deque
+from collections import OrderedDict, deque
+import collections.abc as abc
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal

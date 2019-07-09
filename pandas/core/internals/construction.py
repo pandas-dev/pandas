@@ -2,7 +2,8 @@
 Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
-from collections import OrderedDict, abc
+from collections import OrderedDict
+import collections.abc as abc
 
 import numpy as np
 import numpy.ma as ma

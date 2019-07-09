@@ -1,4 +1,5 @@
-from collections import OrderedDict, abc
+from collections import OrderedDict
+import collections.abc as abc
 from datetime import datetime, timedelta
 import functools
 import itertools

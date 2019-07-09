@@ -1,6 +1,6 @@
 """ basic inference routines """
 
-from collections import abc
+import collections.abc as abc
 from numbers import Number
 import re
 from typing import Pattern

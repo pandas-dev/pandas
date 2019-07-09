@@ -1,4 +1,5 @@
-from collections import OrderedDict, abc, defaultdict
+from collections import OrderedDict, defaultdict
+import collections.abc as abc
 from datetime import datetime
 
 import numpy as np

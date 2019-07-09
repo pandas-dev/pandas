@@ -2,7 +2,7 @@
 Data structures for sparse float data. Life is made simpler by dealing only
 with float64 data
 """
-from collections import abc
+import collections.abc as abc
 import warnings
 
 import numpy as np

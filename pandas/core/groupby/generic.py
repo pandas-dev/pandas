@@ -5,7 +5,8 @@ classes that hold the groupby interfaces (and some implementations).
 These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
-from collections import OrderedDict, abc, namedtuple
+from collections import OrderedDict, namedtuple
+import collections.abc as abc
 import copy
 import functools
 from functools import partial
