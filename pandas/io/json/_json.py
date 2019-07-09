@@ -415,7 +415,7 @@ def read_json(
 
            Not applicable for ``orient='table'``.
 
-    convert_dates : bool or list, default True
+    convert_dates : bool or list of str, default True
         List of columns to parse for dates. If True, then try to parse
         datelike columns. A column label is datelike if
 
@@ -458,7 +458,7 @@ def read_json(
 
         .. versionadded:: 0.19.0
 
-    chunksize : int, default None
+    chunksize : int, optional
         Return JsonReader object for iteration.
         See the `line-delimited json docs
         <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_
