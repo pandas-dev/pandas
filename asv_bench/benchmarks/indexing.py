@@ -66,16 +66,20 @@ class NumericSeriesIndexing:
         self.data.iloc[:800000]
 
     def time_ix_array(self, index, index_structure):
-        self.data.ix[self.array]
+        with warnings.catch_warnings(record=True):
+            self.data.ix[self.array]
 
     def time_ix_list_like(self, index, index_structure):
-        self.data.ix[[800000]]
+        with warnings.catch_warnings(record=True):
+            self.data.ix[[800000]]
 
     def time_ix_scalar(self, index, index_structure):
-        self.data.ix[800000]
+        with warnings.catch_warnings(record=True):
+            self.data.ix[800000]
 
     def time_ix_slice(self, index, index_structure):
-        self.data.ix[:800000]
+        with warnings.catch_warnings(record=True):
+            self.data.ix[:800000]
 
     def time_loc_array(self, index, index_structure):
         self.data.loc[self.array]
