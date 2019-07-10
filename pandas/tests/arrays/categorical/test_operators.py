@@ -313,7 +313,7 @@ class TestCategoricalOps:
         c1 = Categorical(["a", "b"], categories=["a", "b"], ordered=False)
         c2 = Categorical(["a", "c"], categories=["c", "a"], ordered=False)
 
-        with pytest.raises(TypeError, match=("Categoricals can " "only be compared")):
+        with pytest.raises(TypeError, match=("Categoricals can only be compared")):
             c1 == c2
 
     def test_compare_different_lengths(self):
@@ -417,3 +417,15 @@ class TestCategoricalOps:
         cat = Categorical(pd.IntervalIndex.from_breaks(range(3)))
         result = item in cat
         assert result is expected
+
+    def test_contains_list(self):
+        # GH#21729
+        cat = Categorical([1, 2, 3])
+
+        assert "a" not in cat
+
+        with pytest.raises(TypeError, match="unhashable type"):
+            ["a"] in cat
+
+        with pytest.raises(TypeError, match="unhashable type"):
+            ["a", "b"] in cat

@@ -24,7 +24,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index, InvalidIndexError, MultiIndex
 
 
 # the supported indexers
@@ -118,11 +118,14 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             try:
                 values = self.obj._get_value(*key)
-            except (KeyError, TypeError):
+            except (KeyError, TypeError, InvalidIndexError):
                 # TypeError occurs here if the key has non-hashable entries,
                 #  generally slice or list.
                 # TODO(ix): most/all of the TypeError cases here are for ix,
                 #  so this check can be removed once ix is removed.
+                # The InvalidIndexError is only catched for compatibility
+                #  with geopandas, see
+                #  https://github.com/pandas-dev/pandas/issues/27258
                 pass
             else:
                 if is_scalar(values):
@@ -1227,8 +1230,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             KeyError in the future, you can use .reindex() as an alternative.
 
             See the documentation here:
-            https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"""
-            )  # noqa
+            https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"""  # noqa: E501
+            )
 
             if not (ax.is_categorical() or ax.is_interval()):
                 warnings.warn(_missing_key_warning, FutureWarning, stacklevel=6)
@@ -1376,8 +1379,8 @@ class _IXIndexer(_NDFrameIndexer):
         .iloc for positional indexing
 
         See the documentation here:
-        http://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#ix-indexer-is-deprecated"""
-    )  # noqa
+        http://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#ix-indexer-is-deprecated"""  # noqa: E501
+    )
 
     def __init__(self, name, obj):
         warnings.warn(self._ix_deprecation_warning, FutureWarning, stacklevel=2)
@@ -1861,7 +1864,7 @@ class _LocIndexer(_LocationIndexer):
 
                 if (
                     not isinstance(key, tuple)
-                    and len(key) > 1
+                    and len(key)
                     and not isinstance(key[0], tuple)
                 ):
                     key = tuple([key])

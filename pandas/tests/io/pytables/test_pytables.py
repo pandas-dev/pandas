@@ -1622,7 +1622,7 @@ class TestHDFStore(Base):
             _maybe_remove(store, "df")
             store.append("df", df_new, data_columns=["A", "B", "string", "string2"])
             result = store.select(
-                "df", "string='foo' and string2='foo'" " and A>0 and B<0"
+                "df", "string='foo' and string2='foo' and A>0 and B<0"
             )
             expected = df_new[
                 (df_new.string == "foo")
@@ -3726,7 +3726,7 @@ class TestHDFStore(Base):
             tm.assert_index_equal(store.select("df1").index, store.select("df2").index)
 
     @pytest.mark.xfail(
-        run=False, reason="append_to_multiple_dropna_false " "is not raising as failed"
+        run=False, reason="append_to_multiple_dropna_false is not raising as failed"
     )
     def test_append_to_multiple_dropna_false(self):
         df1 = tm.makeTimeDataFrame()
@@ -3817,9 +3817,7 @@ class TestHDFStore(Base):
 
     @pytest.mark.skipif(
         LooseVersion(tables.__version__) < LooseVersion("3.1.0"),
-        reason=(
-            "tables version does not support fix for nan selection " "bug: GH 4858"
-        ),
+        reason=("tables version does not support fix for nan selection bug: GH 4858"),
     )
     def test_nan_selection_bug_4858(self):
 
@@ -4339,6 +4337,7 @@ class TestHDFStore(Base):
         df["d"] = ts.index[:3]
         self._check_roundtrip(df, tm.assert_frame_equal)
 
+    # FIXME: don't leave commented-out code
     # def test_cant_write_multiindex_table(self):
     #     # for now, #1848
     #     df = DataFrame(np.random.randn(10, 4),
