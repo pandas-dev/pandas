@@ -967,7 +967,7 @@ class TestSparseDataFrame(SharedWithSparse):
         )
         tm.assert_sp_frame_equal(result, expected)
 
-        result = float_frame.rename(columns=lambda x: "%s%d" % (x, 1))
+        result = float_frame.rename(columns="{}1".format)
         data = {
             "A1": [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
             "B1": [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
