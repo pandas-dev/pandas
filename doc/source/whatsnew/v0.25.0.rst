@@ -406,9 +406,8 @@ Previously, columns that were categorical, but not the groupby key(s) would be c
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-       {'payload': [-1, -2, -1, -2],
-        'col': pd.Categorical(["foo", "bar", "bar", "qux"], ordered=True)})
+   cat = pd.Categorical(["foo", "bar", "bar", "qux"], ordered=True)
+   df = pd.DataFrame({'payload': [-1, -2, -1, -2], 'col': cat})
    df
    df.dtypes
 
