@@ -522,7 +522,7 @@ examples:
 * ``loc`` and ``iloc``, as they do the same, but in one case providing indices
   and in the other positions
 * ``max`` and ``min``, as they do the opposite
-* ``iterrows``, ``itertuples`` and ``iteritems``, as it is easy that a user
+* ``iterrows``, ``itertuples`` and ``items``, as it is easy that a user
   looking for the method to iterate over columns ends up in the method to
   iterate over rows, and vice-versa
 * ``fillna`` and ``dropna``, as both methods are used to handle missing values

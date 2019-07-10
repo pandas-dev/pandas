@@ -281,7 +281,7 @@ class TestDataFrameOperators:
             result = getattr(df, op)(x, level="third", axis=0)
 
             expected = pd.concat(
-                [opa(df.loc[idx[:, :, i], :], v) for i, v in x.iteritems()]
+                [opa(df.loc[idx[:, :, i], :], v) for i, v in x.items()]
             ).sort_index()
             assert_frame_equal(result, expected)
 
@@ -289,7 +289,7 @@ class TestDataFrameOperators:
             result = getattr(df, op)(x, level="second", axis=0)
 
             expected = (
-                pd.concat([opa(df.loc[idx[:, i], :], v) for i, v in x.iteritems()])
+                pd.concat([opa(df.loc[idx[:, i], :], v) for i, v in x.items()])
                 .reindex_like(df)
                 .sort_index()
             )

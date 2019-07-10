@@ -338,10 +338,10 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         tm.assert_almost_equal(self.ts.values, self.ts, check_dtype=False)
 
     def test_iteritems(self):
-        for idx, val in self.series.items():
+        for idx, val in self.series.iteritems():
             assert val == self.series[idx]
 
-        for idx, val in self.ts.items():
+        for idx, val in self.ts.iteritems():
             assert val == self.ts[idx]
 
         # assert is lazy (genrators don't define reverse, lists do)

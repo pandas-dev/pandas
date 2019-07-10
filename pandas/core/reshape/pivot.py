@@ -272,7 +272,7 @@ def _compute_grand_margin(data, values, aggfunc, margins_name="All"):
 
     if values:
         grand_margin = {}
-        for k, v in data[values].iteritems():
+        for k, v in data[values].items():
             try:
                 if isinstance(aggfunc, str):
                     grand_margin[k] = getattr(v, aggfunc)()
