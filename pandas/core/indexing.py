@@ -433,8 +433,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     # this preserves dtype of the value
                     new_values = Series([value])._values
                     if len(self.obj._values):
-                        # GH#22717 np.concatenate incorrect casts
-                        #  timedelta64 to integer
+                        # GH#22717 handle casting compatibility that np.concatenate
+                        #  does incorrectly
                         new_values = _concat_compat([self.obj._values, new_values])
                     self.obj._data = self.obj._constructor(
                         new_values, index=new_index, name=self.obj.name

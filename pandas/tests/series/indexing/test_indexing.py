@@ -666,8 +666,6 @@ def test_append_timedelta_does_not_cast(td):
     # GH#22717 inserting a Timedelta should _not_ cast to int64
     expected = pd.Series(["x", td], index=[0, "td"], dtype=object)
 
-    # FIXME: these should either _both_ cast the object to Timedelta
-    #  or both retain type(td)
     ser = pd.Series(["x"])
     ser["td"] = td
     tm.assert_series_equal(ser, expected)
