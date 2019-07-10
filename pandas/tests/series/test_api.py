@@ -155,7 +155,9 @@ class SharedWithSparse:
 
     def test_constructor_ordereddict(self):
         # GH3283
-        data = OrderedDict(("col%s" % i, np.random.random()) for i in range(12))
+        data = OrderedDict(
+            ("col{i}".format(i=i), np.random.random()) for i in range(12)
+        )
 
         series = self.series_klass(data)
         expected = self.series_klass(list(data.values()), list(data.keys()))

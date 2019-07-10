@@ -179,9 +179,9 @@ class TestnanopsDataFrame:
                         self.check_results(targ, res, axis, check_dtype=check_dtype)
                 except BaseException as exc:
                     exc.args += (
-                        "axis: %s of %s" % (axis, testarval.ndim - 1),
-                        "skipna: %s" % skipna,
-                        "kwargs: %s" % kwargs,
+                        "axis: {axis} of {of}".format(axis=axis, of=testarval.ndim - 1),
+                        "skipna: {skipna}".format(skipna=skipna),
+                        "kwargs: {kwargs}".format(kwargs=kwargs),
                     )
                     raise
 
@@ -234,9 +234,9 @@ class TestnanopsDataFrame:
             )
         except BaseException as exc:
             exc.args += (
-                "testar: %s" % testar,
-                "targar: %s" % targar,
-                "targarnan: %s" % targarnan,
+                "testar: {testar}".format(testar=testar),
+                "targar: {targar}".format(targar=targar),
+                "targarnan: {targarnan}".format(targarnan=targarnan),
             )
             raise
 
@@ -712,7 +712,7 @@ class TestnanopsDataFrame:
                 res2 = checkfun(arr_float_nan, arr_nan_float1)
                 tm.assert_numpy_array_equal(targ2, res2, check_dtype=False)
             except Exception as exc:
-                exc.args += ("ndim: %s" % arr_float.ndim,)
+                exc.args += ("ndim: {arr_float.ndim}".format(arr_float=arr_float),)
                 raise
 
             try:
@@ -760,7 +760,7 @@ class TestnanopsDataFrame:
                 else:
                     assert not res0
             except BaseException as exc:
-                exc.args += ("dim: %s" % getattr(value, "ndim", value),)
+                exc.args += ("dim: {}".format(getattr(value, "ndim", value)),)
                 raise
             if not hasattr(value, "ndim"):
                 break

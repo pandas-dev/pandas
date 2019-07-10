@@ -166,7 +166,8 @@ class TestGetDummies:
         s = [e, eacute, eacute]
         res = get_dummies(s, prefix="letter", sparse=sparse)
         exp = DataFrame(
-            {"letter_e": [1, 0, 0], "letter_%s" % eacute: [0, 1, 1]}, dtype=np.uint8
+            {"letter_e": [1, 0, 0], "letter_{eacute}".format(eacute=eacute): [0, 1, 1]},
+            dtype=np.uint8,
         )
         if sparse:
             exp = exp.apply(pd.SparseArray, fill_value=0)

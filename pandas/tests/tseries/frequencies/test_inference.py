@@ -178,7 +178,7 @@ def test_infer_freq_delta(base_delta_code_pair, count):
     inc = base_delta * count
     index = DatetimeIndex([b + inc * j for j in range(3)])
 
-    exp_freq = "%d%s" % (count, code) if count > 1 else code
+    exp_freq = "{count:d}{code}".format(count=count, code=code) if count > 1 else code
     assert frequencies.infer_freq(index) == exp_freq
 
 
