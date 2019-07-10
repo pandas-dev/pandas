@@ -998,7 +998,7 @@ def str_extractall(arr, pat, flags=0):
     index_list = []
     is_mi = arr.index.nlevels > 1
 
-    for subject_key, subject in arr.iteritems():
+    for subject_key, subject in arr.items():
         if isinstance(subject, str):
 
             if not is_mi:
