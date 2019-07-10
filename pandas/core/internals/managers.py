@@ -34,7 +34,7 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, ensure_index
-from pandas.core.indexing import maybe_convert_indices
+from pandas.core.indexers import maybe_convert_indices
 
 from pandas.io.formats.printing import pprint_thing
 
