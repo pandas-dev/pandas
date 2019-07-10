@@ -520,6 +520,7 @@ class TestNestedToRecord:
             # depends on implementation. Opt to test on PY36/37
             # and force column order on PY35.
             expected = expected[columns]
+            result = result[columns]
         tm.assert_frame_equal(result, expected)
 
     def test_donot_drop_nonevalues(self):
