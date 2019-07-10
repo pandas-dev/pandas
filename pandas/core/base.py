@@ -316,13 +316,14 @@ class SelectionMixin:
         if f is not None:
             try:
                 return f(self, *args, **kwargs)
-            except AttributeError:
+
+            except (AttributeError, TypeError):
                 raise AttributeError(
                     "'{arg}' is not a valid function for "
                     "'{cls}' object".format(arg=arg, cls=type(self).__name__)
                 )
 
-        raise ValueError("{arg} is an unknown string function".format(arg=arg))
+        raise AttributeError("'{arg}' is an unknown string function".format(arg=arg))
 
     def _aggregate(self, arg, *args, **kwargs):
         """
