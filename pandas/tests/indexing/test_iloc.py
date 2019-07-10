@@ -729,7 +729,9 @@ class TestiLoc(Base):
                     r = expected.get(key)
                     if r != ans:
                         raise AssertionError(
-                            "[%s] does not match [%s], received [%s]" % (key, ans, r)
+                            "[{key}] does not match [{ans}], received [{r}]".format(
+                                key=key, ans=ans, r=r
+                            )
                         )
 
     def test_iloc_non_unique_indexing(self):
