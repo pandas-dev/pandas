@@ -2249,7 +2249,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inf_rep="inf",
         verbose=True,
         freeze_panes=None,
-        table=None
+        table=None,
     ):
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
@@ -2273,7 +2273,7 @@ class NDFrame(PandasObject, SelectionMixin):
             startcol=startcol,
             freeze_panes=freeze_panes,
             engine=engine,
-            table=None
+            table=None,
         )
 
     def to_json(

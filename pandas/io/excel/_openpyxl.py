@@ -394,10 +394,11 @@ class _OpenpyxlWriter(ExcelWriter):
         """Convert (zero based) numeric coordinates to excel range."""
         from openpyxl.utils.cell import get_column_letter
 
-        return (
-            f"{get_column_letter(startcol+1)}{startrow+1}"
-            ":"
-            f"{get_column_letter(endcol+1)}{endrow+1}"
+        return "%s%d:%s%d" % (
+            get_column_letter(startcol + 1),
+            startrow + 1,
+            get_column_letter(endcol + 1),
+            endrow + 1,
         )
 
     def write_cells(

@@ -242,7 +242,7 @@ class TestRoundTrip:
         df.index.name = "foo"
 
         with ensure_clean(ext) as pth:
-            df.to_excel(pth, header=True, table='Table1')
+            df.to_excel(pth, header=True, table="Table1")
 
             xf = ExcelFile(pth)
             result = pd.read_excel(xf, xf.sheet_names[0], index_col=0)

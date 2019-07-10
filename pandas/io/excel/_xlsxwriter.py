@@ -283,4 +283,3 @@ class _XlsxWriter(ExcelWriter):
         options = {"columns": columns, "name": table}
 
         wks.add_table(startrow, startcol, startrow + n_rows, startcol + n_cols, options)
-
