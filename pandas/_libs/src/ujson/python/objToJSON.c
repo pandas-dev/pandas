@@ -79,8 +79,8 @@ typedef struct __NpyArrContext {
 } NpyArrContext;
 
 typedef struct __PdFrameContext {
-  PyObject *items;   // reference to appropriate iterator
-  Py_ssize_t index;  // current position of iteration in frame
+  PyObject *iterable;
+  PyObject *currItem;
 }  PdFrameContext;
 
 typedef struct __TypeContext {
@@ -104,6 +104,7 @@ typedef struct __TypeContext {
 
     char *cStr;
     NpyArrContext *npyarr;
+    PdFrameContext *frame;
     int transpose;
     char **rowLabels;
     char **columnLabels;
@@ -190,6 +191,7 @@ static TypeContext *createTypeContext(void) {
     pc->doubleValue = 0.0;
     pc->cStr = NULL;
     pc->npyarr = NULL;
+    pc->frame = NULL;
     pc->rowLabels = NULL;
     pc->columnLabels = NULL;
     pc->transpose = 0;
@@ -1130,16 +1132,23 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
         }
     } else {
       // Begin iteration over a dataframe's columns
-      PyObject *tmp = PyObject_CallMethod(obj, "items");
+      // TODO: need to free this
+      PyObject *tmp = PyObject_CallMethod(obj, "items", NULL);
       
       if (tmp == 0) {
 	return;
       }
 
-      PyObject *ctx = PyObject_Malloc(size(PdFrameContext));
-      ctx->index = 0;
-      ctx->items = tmp;
-      GET_TC(tc)->prv = ctx;
+      PyObject *frameCtxt = (PdFrameContext *)PyObject_Malloc(sizeof(PdFrameContext));
+      if (!frameCtxt) {
+	Py_DECREF(tmp);
+	PyErr_NoMemory();
+	GET_TC(tc)->iterNext = NpyArr_iterNextNone;
+	return;
+      }
+      
+      frameCtxt->iterable = tmp;
+      GET_TC(tc)->prv = frameCtxt;
     }      
 
     PRINTMARK();
@@ -1175,13 +1184,12 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
         return 0;
       }
     } else {
-      n_cols = get_attr_length(obj, "columns");
-      PdFrameContext *ctx = &(GET_TC(tc)->prv);
-      
-      if (ctx->index >= n_cols)
-	return 0;  // TODO: does n_cols own a reference here?
-      
-      ctx->index++;
+      // TODO: Need to free these
+      PyObject *tmp = PyIter_Next(GET_TC(tc)->frame->iterable);
+      if (tmp == 0)
+	return 0;
+
+      GET_TC(tc)->frame->currItem = tmp;
     }
 
     PRINTMARK();
@@ -1194,7 +1202,7 @@ void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
   if (enc->outputFormat == SPLIT) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   } else {
-    PyObject_Free(GET_TC(tc)->items);
+    Py_DECREF(GET_TC(tc)->frame->iterable);
   }
     enc->outputFormat = enc->originalOutputFormat;
   
@@ -1206,6 +1214,15 @@ JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
     return GET_TC(tc)->itemValue;
   } else {
     // get appropriate object from iterable
+    // Borrowed reference
+    PyObject *values = PyTuple_GetItem(GET_TC(tc)->frame->currItem, 1);
+
+
+    if (PyObject_HasAttrString(values, "to_numpy"))
+      // TODO: Need to free this
+      values = PyObject_CallMethod(values, "to_numpy", NULL);
+    
+    return values;
   }
 }
 
@@ -1216,6 +1233,7 @@ char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
     return GET_TC(tc)->cStr;
   } else {
     // Return label of array here...
+    return PyTuple_GetItem(GET_TC(tc)->frame->currItem, 0);
   }
 }
 
