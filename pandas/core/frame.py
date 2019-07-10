@@ -8,7 +8,6 @@ Similar to its R counterpart, data.frame, except providing automatic data
 alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
-from pandas.compat import PY37
 import collections
 from collections import OrderedDict, abc
 import functools
@@ -25,7 +24,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas.compat import PY36, raise_with_traceback
+from pandas.compat import PY36, PY37, raise_with_traceback
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
