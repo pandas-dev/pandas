@@ -653,13 +653,29 @@ def test_timedelta_assignment():
     expected.loc[[1, 2, 3]] = pd.Timedelta(np.timedelta64(20, "m"))
     tm.assert_series_equal(s, expected)
 
+
+@pytest.mark.parametrize(
+    "td",
+    [
+        pd.Timedelta("9 days"),
+        pd.Timedelta("9 days").to_timedelta64(),
+        pd.Timedelta("9 days").to_pytimedelta(),
+    ],
+)
+def test_append_timedelta_does_not_cast(td):
     # GH#22717 inserting a Timedelta should _not_ cast to int64
+    expected = pd.Series(["x", td], index=[0, "td"], dtype=object)
+
+    # FIXME: these should either _both_ cast the object to Timedelta
+    #  or both retain type(td)
     ser = pd.Series(["x"])
-    ser["td"] = pd.Timedelta("9 days")
-    assert isinstance(ser["td"], pd.Timedelta)
+    ser["td"] = td
+    tm.assert_series_equal(ser, expected)
+    assert isinstance(ser["td"], type(td))
 
     ser = pd.Series(["x"])
     ser.loc["td"] = pd.Timedelta("9 days")
+    tm.assert_series_equal(ser, expected)
     assert isinstance(ser["td"], pd.Timedelta)
 
 
