@@ -397,10 +397,6 @@ class Block(PandasObject):
                 raise ValueError("Limit must be an integer")
             if limit < 1:
                 raise ValueError("Limit must be greater than 0")
-            if self.ndim > 2:
-                raise NotImplementedError(
-                    "number of dimensions for 'fillna' is currently limited to 2"
-                )
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if not self._can_hold_na:
@@ -853,6 +849,8 @@ class Block(PandasObject):
         `indexer` is a direct slice/positional indexer. `value` must
         be a compatible shape.
         """
+        transpose = self.ndim == 2
+
         # coerce None values, if appropriate
         if value is None:
             if self.is_numeric:
@@ -901,8 +899,8 @@ class Block(PandasObject):
             dtype, _ = maybe_promote(arr_value.dtype)
             values = values.astype(dtype)
 
-        transf = (lambda x: x.T) if self.ndim == 2 else (lambda x: x)
-        values = transf(values)
+        if transpose:
+            values = values.T
 
         # length checking
         check_setitem_lengths(indexer, value, values)
@@ -961,7 +959,9 @@ class Block(PandasObject):
 
         # coerce and try to infer the dtypes of the result
         values = self._try_coerce_and_cast_result(values, dtype)
-        block = self.make_block(transf(values))
+        if transpose:
+            values = values.T
+        block = self.make_block(values)
         return block
 
     def putmask(self, mask, new, align=True, inplace=False, axis=0, transpose=False):
@@ -3376,36 +3376,36 @@ def _putmask_smart(v, m, n):
     # will work in the current dtype
     try:
         nn = n[m]
-
+    except TypeError:
+        # TypeError: only integer scalar arrays can be converted to a scalar index
+        pass
+    else:
         # make sure that we have a nullable type
         # if we have nulls
         if not _isna_compat(v, nn[0]):
-            raise ValueError
+            pass
+        elif is_numeric_v_string_like(nn, v):
+            # avoid invalid dtype comparisons
+            # between numbers & strings
+            pass
+        elif not (is_float_dtype(nn.dtype) or is_integer_dtype(nn.dtype)):
+            # only compare integers/floats
+            pass
+        elif not (is_float_dtype(v.dtype) or is_integer_dtype(v.dtype)):
+            # only compare integers/floats
+            pass
+        else:
 
-        # we ignore ComplexWarning here
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", np.ComplexWarning)
-            nn_at = nn.astype(v.dtype)
-
-        # avoid invalid dtype comparisons
-        # between numbers & strings
-
-        # only compare integers/floats
-        # don't compare integers to datetimelikes
-        if not is_numeric_v_string_like(nn, nn_at) and (
-            is_float_dtype(nn.dtype)
-            or is_integer_dtype(nn.dtype)
-            and is_float_dtype(nn_at.dtype)
-            or is_integer_dtype(nn_at.dtype)
-        ):
+            # we ignore ComplexWarning here
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter("ignore", np.ComplexWarning)
+                nn_at = nn.astype(v.dtype)
 
             comp = nn == nn_at
             if is_list_like(comp) and comp.all():
                 nv = v.copy()
                 nv[m] = nn_at
                 return nv
-    except (ValueError, IndexError, TypeError, OverflowError):
-        pass
 
     n = np.asarray(n)
 
