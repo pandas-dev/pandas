@@ -1232,7 +1232,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 if is_scalar(key) and not is_integer(key) and key not in self.index:
                     # GH#12862 adding an new key to the Series
-                    # Note: ave to exclude integers because that is ambiguously
+                    # Note: have to exclude integers because that is ambiguously
                     #  position-based
                     self.loc[key] = value
                     return
