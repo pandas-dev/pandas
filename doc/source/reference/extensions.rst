@@ -32,6 +32,15 @@ objects.
    .. autosummary::
       :toctree: api/
 
+      api.extensions.ExtensionArray._concat_same_type
+      api.extensions.ExtensionArray._formatter
+      api.extensions.ExtensionArray._formatting_values
+      api.extensions.ExtensionArray._from_factorized
+      api.extensions.ExtensionArray._from_sequence
+      api.extensions.ExtensionArray._from_sequence_of_strings
+      api.extensions.ExtensionArray._ndarray_values
+      api.extensions.ExtensionArray._reduce
+      api.extensions.ExtensionArray._values_for_argsort
       api.extensions.ExtensionArray._values_for_factorize
       api.extensions.ExtensionArray.argsort
       api.extensions.ExtensionArray.astype

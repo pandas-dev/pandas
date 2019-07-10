@@ -61,6 +61,15 @@ class ExtensionArray:
     shift
     take
     unique
+    _concat_same_type
+    _formatter
+    _formatting_values
+    _from_factorized
+    _from_sequence
+    _from_sequence_of_strings
+    _ndarray_values
+    _reduce
+    _values_for_argsort
     _values_for_factorize
 
     Notes
@@ -805,7 +814,7 @@ class ExtensionArray:
         See Also
         --------
         numpy.take
-        api.extensions.take
+        pandas.api.extensions.take
 
         Notes
         -----
@@ -972,6 +981,14 @@ class ExtensionArray:
 
         The expectation is that this is cheap to compute, and is primarily
         used for interacting with our indexers.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        array : ndarray
         """
         return np.array(self)
 
