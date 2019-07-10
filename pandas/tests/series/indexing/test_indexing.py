@@ -671,7 +671,7 @@ def test_append_timedelta_does_not_cast(td):
     ser = pd.Series(["x"])
     ser["td"] = td
     tm.assert_series_equal(ser, expected)
-    assert isinstance(ser["td"], type(td))
+    assert isinstance(ser["td"], pd.Timedelta)
 
     ser = pd.Series(["x"])
     ser.loc["td"] = pd.Timedelta("9 days")

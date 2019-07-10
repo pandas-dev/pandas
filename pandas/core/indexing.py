@@ -19,8 +19,8 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_sequence,
     is_sparse,
-    is_timedelta64_dtype,
 )
+from pandas.core.dtypes.concat import _concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
@@ -430,23 +430,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     # this preserves dtype of the value
                     new_values = Series([value])._values
                     if len(self.obj._values):
-                        if is_timedelta64_dtype(
-                            new_values
-                        ) and not is_timedelta64_dtype(self.obj):
-                            # GH#22717 np.concatenate incorrect casts
-                            #  timedelta64 to integer
-                            as_obj = self.obj.astype(object)
-                            new_values = np.concatenate(
-                                [as_obj, np.array([value], dtype=object)]
-                            )
-                        else:
-                            try:
-                                new_values = np.concatenate(
-                                    [self.obj._values, new_values]
-                                )
-                            except TypeError:
-                                as_obj = self.obj.astype(object)
-                                new_values = np.concatenate([as_obj, new_values])
+                        # GH#22717 np.concatenate incorrect casts
+                        #  timedelta64 to integer
+                        new_values = _concat_compat([self.obj._values, new_values])
                     self.obj._data = self.obj._constructor(
                         new_values, index=new_index, name=self.obj.name
                     )._data
