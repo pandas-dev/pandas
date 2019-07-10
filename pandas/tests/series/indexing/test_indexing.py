@@ -663,7 +663,7 @@ class TestNaTAssignment:
             (np.datetime64("NaT", "ns"), False),
         ],
     )
-    def test_series_assign_nat_valid(self, nat_val, should_cast):
+    def test_td64_series_assign_nat(self, nat_val, should_cast):
         # some nat-like values should be cast to timedelta64 when inserting
         #  into a timedelta64 series.  Others should coerce to object
         #  and retain their dtypes.
