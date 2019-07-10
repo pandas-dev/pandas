@@ -481,16 +481,21 @@ class TestWindow(Base):
             getattr(w, method)(dtype=np.float64)
 
     @td.skip_if_no_scipy
-    @pytest.mark.parametrize(
-        "arg", ["std", ["mean", "std"], ("mean", "std"), {"A": "mean", "B": "std"}]
-    )
+    @pytest.mark.parametrize("arg", ["median", "var", "std"])
     def test_agg_function_support(self, arg):
-        ser = pd.DataFrame({"A": np.arange(5), "B": np.arange(5)})
-        roll = ser.rolling(2, win_type="triang")
+        df = pd.DataFrame({"A": np.arange(5)})
+        roll = df.rolling(2, win_type="triang")
 
-        msg = "'std' is not a valid function for 'Window' object"
+        msg = ("'{arg}' is not a valid function for "
+               "'Window' object").format(arg=arg)
         with pytest.raises(AttributeError, match=msg):
             roll.agg(arg)
+
+        with pytest.raises(AttributeError, match=msg):
+            roll.agg([arg])
+
+        with pytest.raises(AttributeError, match=msg):
+            roll.agg({"A": arg})
 
 
 class TestRolling(Base):
