@@ -889,6 +889,7 @@ Other deprecations
 - :meth:`DataFrame.get_dtype_counts` is deprecated. (:issue:`18262`)
 - :meth:`Categorical.ravel` will return a :class:`Categorical` instead of a ``np.ndarray`` (:issue:`27199`)
 
+
 .. _whatsnew_0250.prior_deprecations:
 
 Removal of prior version deprecations/changes
