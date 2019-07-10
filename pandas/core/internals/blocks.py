@@ -72,7 +72,11 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.indexing import check_setitem_lengths
+from pandas.core.indexers import (
+    check_setitem_lengths,
+    is_empty_indexer,
+    is_scalar_indexer,
+)
 from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
@@ -901,39 +905,13 @@ class Block(PandasObject):
         # length checking
         check_setitem_lengths(indexer, value, values)
 
-        def _is_scalar_indexer(indexer):
-            # return True if we are all scalar indexers
-
-            if arr_value.ndim == 1:
-                if not isinstance(indexer, tuple):
-                    indexer = tuple([indexer])
-                    return any(
-                        isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer
-                    )
-            return False
-
-        def _is_empty_indexer(indexer):
-            # return a boolean if we have an empty indexer
-
-            if is_list_like(indexer) and not len(indexer):
-                return True
-            if arr_value.ndim == 1:
-                if not isinstance(indexer, tuple):
-                    indexer = tuple([indexer])
-                return any(
-                    isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer
-                )
-            return False
-
-        # empty indexers
-        # 8669 (empty)
-        if _is_empty_indexer(indexer):
+        if is_empty_indexer(indexer, arr_value):
+            # GH#8669 empty indexers
             pass
 
-        # setting a single element for each dim and with a rhs that could
-        # be say a list
-        # GH 6043
-        elif _is_scalar_indexer(indexer):
+        elif is_scalar_indexer(indexer, arr_value):
+            # setting a single element for each dim and with a rhs that could
+            #  be e.g. a list; see GH#6043
             values[indexer] = value
 
         # if we are an exact match (ex-broadcasting),
