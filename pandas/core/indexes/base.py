@@ -3019,7 +3019,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = method(target._ndarray_values, limit)
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
-        if tolerance is not None:
+        if tolerance is not None and len(self):
             indexer = self._filter_indexer_tolerance(
                 target._ndarray_values, indexer, tolerance
             )
@@ -3062,6 +3062,9 @@ class Index(IndexOpsMixin, PandasObject):
         values that can be subtracted from each other (e.g., not strings or
         tuples).
         """
+        if len(self) == 0:
+            return self._get_fill_indexer(target, None)
+
         left_indexer = self.get_indexer(target, "pad", limit=limit)
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
 
