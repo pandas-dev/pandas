@@ -190,7 +190,7 @@ Other enhancements
 - Added support for ISO week year format ('%G-%V-%u') when parsing datetimes using :meth:`to_datetime` (:issue:`16607`)
 - Indexing of ``DataFrame`` and ``Series`` now accepts zerodim ``np.ndarray`` (:issue:`24919`)
 - :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
-- :meth:`DataFrame.at_time` and :meth:`Series.at_time` now support :meth:`datetime.time` objects with timezones (:issue:`24043`)
+- :meth:`DataFrame.at_time` and :meth:`Series.at_time` now support :class:`datetime.time` objects with timezones (:issue:`24043`)
 - :meth:`DataFrame.pivot_table` now accepts an ``observed`` parameter which is passed to underlying calls to :meth:`DataFrame.groupby` to speed up grouping categorical data. (:issue:`24923`)
 - ``Series.str`` has gained :meth:`Series.str.casefold` method to removes all case distinctions present in a string (:issue:`25405`)
 - :meth:`DataFrame.set_index` now works for instances of ``abc.Iterator``, provided their output is of the same length as the calling frame (:issue:`22484`, :issue:`24984`)
@@ -406,9 +406,8 @@ Previously, columns that were categorical, but not the groupby key(s) would be c
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-       {'payload': [-1, -2, -1, -2],
-        'col': pd.Categorical(["foo", "bar", "bar", "qux"], ordered=True)})
+   cat = pd.Categorical(["foo", "bar", "bar", "qux"], ordered=True)
+   df = pd.DataFrame({'payload': [-1, -2, -1, -2], 'col': cat})
    df
    df.dtypes
 
@@ -879,7 +878,7 @@ Other deprecations
   :meth:`SparseArray.get_values` and :meth:`Categorical.get_values` methods are deprecated.
   One of ``np.asarray(..)`` or :meth:`~Series.to_numpy` can be used instead (:issue:`19617`).
 - The 'outer' method on NumPy ufuncs, e.g. ``np.subtract.outer`` has been deprecated on :class:`Series` objects. Convert the input to an array with :attr:`Series.array` first (:issue:`27186`)
-- :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`timedelta.resolution` (:issue:`21344`)
+- :meth:`Timedelta.resolution` is deprecated and replaced with :meth:`Timedelta.resolution_string`.  In a future version, :meth:`Timedelta.resolution` will be changed to behave like the standard library :attr:`datetime.timedelta.resolution` (:issue:`21344`)
 - :func:`read_table` has been undeprecated. (:issue:`25220`)
 - :attr:`Index.dtype_str` is deprecated. (:issue:`18262`)
 - :attr:`Series.imag` and :attr:`Series.real` are deprecated. (:issue:`18262`)
@@ -902,7 +901,7 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``convert_objects`` (:issue:`11221`)
 - Removed the previously deprecated ``select`` method of ``DataFrame`` and ``Series`` (:issue:`17633`)
 - Removed the previously deprecated behavior of :class:`Series` treated as list-like in :meth:`~Series.cat.rename_categories` (:issue:`17982`)
-- Removed the previously deprecated ``DataFrame.reindex_axis`` and ``Series.reindex_axis``` (:issue:`17842`)
+- Removed the previously deprecated ``DataFrame.reindex_axis`` and ``Series.reindex_axis`` (:issue:`17842`)
 - Removed the previously deprecated behavior of altering column or index labels with :meth:`Series.rename_axis` or :meth:`DataFrame.rename_axis` (:issue:`17842`)
 - Removed the previously deprecated ``tupleize_cols`` keyword argument in :meth:`read_html`, :meth:`read_csv`, and :meth:`DataFrame.to_csv` (:issue:`17877`, :issue:`17820`)
 - Removed the previously deprecated ``DataFrame.from.csv`` and ``Series.from_csv`` (:issue:`17812`)
@@ -910,7 +909,7 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``ordered`` and ``categories`` keyword arguments in ``astype`` (:issue:`17742`)
 - Removed the previously deprecated ``cdate_range`` (:issue:`17691`)
 - Removed the previously deprecated ``True`` option for the ``dropna`` keyword argument in :func:`SeriesGroupBy.nth` (:issue:`17493`)
-- Removed the previously deprecated ``convert`` keyword argument in :meth:`Series.take` and :meth:`DataFrame.take`(:issue:`17352`)
+- Removed the previously deprecated ``convert`` keyword argument in :meth:`Series.take` and :meth:`DataFrame.take` (:issue:`17352`)
 
 .. _whatsnew_0250.performance:
 
@@ -1134,7 +1133,7 @@ Groupby/resample/rolling
 - Bug in :meth:`pandas.core.window.Rolling.median` and :meth:`pandas.core.window.Rolling.quantile` where MemoryError is raised with empty window (:issue:`26005`)
 - Bug in :meth:`pandas.core.window.Rolling.median` and :meth:`pandas.core.window.Rolling.quantile` where incorrect results are returned with ``closed='left'`` and ``closed='neither'`` (:issue:`26005`)
 - Improved :class:`pandas.core.window.Rolling`, :class:`pandas.core.window.Window` and :class:`pandas.core.window.EWM` functions to exclude nuisance columns from results instead of raising errors and raise a ``DataError`` only if all columns are nuisance (:issue:`12537`)
-- Bug in :meth:`pandas.core.window.Rolling.max` and :meth:`pandas.core.window.Rolling.min` where incorrect results are returned with an empty variable window`` (:issue:`26005`)
+- Bug in :meth:`pandas.core.window.Rolling.max` and :meth:`pandas.core.window.Rolling.min` where incorrect results are returned with an empty variable window (:issue:`26005`)
 
 Reshaping
 ^^^^^^^^^
