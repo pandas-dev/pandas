@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_extension_type,
     is_float_dtype,
+    is_hashable,
     is_integer,
     is_integer_dtype,
     is_iterator,
@@ -2954,16 +2955,12 @@ class DataFrame(NDFrame):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        # shortcut if the key is in columns
-        try:
+        if is_hashable(key):
+            # shortcut if the key is in columns
             if self.columns.is_unique and key in self.columns:
                 if self.columns.nlevels > 1:
                     return self._getitem_multilevel(key)
                 return self._get_item_cache(key)
-        except (TypeError, ValueError):
-            # The TypeError correctly catches non hashable "key" (e.g. list)
-            # The ValueError can be removed once GH #21729 is fixed
-            pass
 
         # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
