@@ -1785,7 +1785,7 @@ class TestMoments(Base):
             tm.assert_series_equal(result, expected)
 
             # shifter index
-            s = ["x%d" % x for x in range(12)]
+            s = ["x{x:d}".format(x=x) for x in range(12)]
 
             if has_min_periods:
                 minp = 10
