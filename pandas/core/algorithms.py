@@ -50,6 +50,7 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
+from pandas.core.indexers import validate_indices
 
 _shared_docs = {}  # type: Dict[str, str]
 
@@ -1587,8 +1588,6 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
     ...      fill_value=-10)
     array([ 10,  10, -10])
     """
-    from pandas.core.indexing import validate_indices
-
     if not is_array_like(arr):
         arr = np.asarray(arr)
 
