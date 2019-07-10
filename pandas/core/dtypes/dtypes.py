@@ -219,7 +219,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     kind = "O"  # type: str_type
     str = "|O08"
     base = np.dtype("O")
-    _metadata = ("categories", "ordered")
+    _metadata = ("categories", "ordered", "_ordered_from_sentinel")
     _cache = {}  # type: Dict[str_type, PandasExtensionDtype]
 
     def __init__(self, categories=None, ordered: OrderedType = ordered_sentinel):
@@ -356,6 +356,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         # pickle -> need to set the settable private ones here (see GH26067)
         self._categories = state.pop("categories", None)
         self._ordered = state.pop("ordered", False)
+        self._ordered_from_sentinel = state.pop("_ordered_from_sentinel", False)
 
     def __hash__(self) -> int:
         # _hash_categories returns a uint64, so use the negative
