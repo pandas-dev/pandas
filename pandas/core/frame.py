@@ -8,6 +8,7 @@ Similar to its R counterpart, data.frame, except providing automatic data
 alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
+from pandas.compat import PY37
 import collections
 from collections import OrderedDict, abc
 import functools
@@ -448,7 +449,8 @@ class DataFrame(NDFrame):
                     columns = arr_names
                     # GH#10056
                     if (
-                        is_dict_like(data[0])
+                        PY37
+                        and is_dict_like(data[0])
                         and infer_columns_names
                         and (type(columns) is Index)
                     ):
