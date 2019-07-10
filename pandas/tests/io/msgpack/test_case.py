@@ -5,7 +5,11 @@ from pandas.io.msgpack import packb, unpackb
 
 def check(length, obj):
     v = packb(obj)
-    assert len(v) == length, "%r length should be %r but get %r" % (obj, length, len(v))
+    assert (
+        len(v) == length
+    ), "{obj!r} length should be {length!r} but get {got:!r}".format(
+        obj=obj, length=length, got=len(v)
+    )
     assert unpackb(v, use_list=0) == obj
 
 

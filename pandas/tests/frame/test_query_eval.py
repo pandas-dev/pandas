@@ -453,7 +453,9 @@ class TestDataFrameQueryNumExprPandas:
 
         for op in ["<", ">", "<=", ">="]:
             with pytest.raises(TypeError):
-                df.query("dates %s nondate" % op, parser=parser, engine=engine)
+                df.query(
+                    "dates {op} nondate".format(op=op), parser=parser, engine=engine
+                )
 
     def test_query_syntax_error(self):
         engine, parser = self.engine, self.parser
@@ -688,7 +690,7 @@ class TestDataFrameQueryNumExprPandas:
         ops = "==", "!="
         d = dict(zip(ops, (operator.eq, operator.ne)))
         for op, f in d.items():
-            q = "a %s inf" % op
+            q = "a {op} inf".format(op=op)
             expected = df[f(df.a, np.inf)]
             result = df.query(q, engine=self.engine, parser=self.parser)
             assert_frame_equal(result, expected)

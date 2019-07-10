@@ -101,7 +101,7 @@ def check_arbitrary(a, b):
 @pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestPackers:
     def setup_method(self, method):
-        self.path = "__%s__.msg" % tm.rands(10)
+        self.path = "__{}__.msg".format(tm.rands(10))
 
     def teardown_method(self, method):
         pass

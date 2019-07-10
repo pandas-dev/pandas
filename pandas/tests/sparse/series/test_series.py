@@ -619,7 +619,9 @@ class TestSparseSeries(SharedWithSparse):
 
         inplace_ops = ["add", "sub", "mul", "truediv", "floordiv", "pow"]
         for op in inplace_ops:
-            _check_inplace_op(getattr(operator, "i%s" % op), getattr(operator, op))
+            _check_inplace_op(
+                getattr(operator, "i{op}".format(op=op)), getattr(operator, op)
+            )
 
     @pytest.mark.parametrize(
         "values, op, fill_value",

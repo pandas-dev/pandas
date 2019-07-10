@@ -856,10 +856,10 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_xticklabels(self):
         # GH11529
-        s = Series(np.arange(10), index=["P%02d" % i for i in range(10)])
+        s = Series(np.arange(10), index=["P{i:02d}".format(i=i) for i in range(10)])
         _, ax = self.plt.subplots()
         ax = s.plot(xticks=[0, 3, 5, 9], ax=ax)
-        exp = ["P%02d" % i for i in [0, 3, 5, 9]]
+        exp = ["P{i:02d}".format(i=i) for i in [0, 3, 5, 9]]
         self._check_text_labels(ax.get_xticklabels(), exp)
 
     def test_custom_business_day_freq(self):

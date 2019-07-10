@@ -362,7 +362,7 @@ class TestStyler:
             strings, black otherwise.
             """
             color = "red" if val < 0 else "black"
-            return "color: %s" % color
+            return "color: {color}".format(color=color)
 
         dic = {
             ("a", "d"): [-1.12, 2.11],

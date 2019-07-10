@@ -307,7 +307,7 @@ class TestPeriodConstruction:
     @pytest.mark.parametrize("month", MONTHS)
     def test_period_cons_quarterly(self, month):
         # bugs in scikits.timeseries
-        freq = "Q-%s" % month
+        freq = "Q-{month}".format(month=month)
         exp = Period("1989Q3", freq=freq)
         assert "1989Q3" in str(exp)
         stamp = exp.to_timestamp("D", how="end")
@@ -321,7 +321,7 @@ class TestPeriodConstruction:
     @pytest.mark.parametrize("month", MONTHS)
     def test_period_cons_annual(self, month):
         # bugs in scikits.timeseries
-        freq = "A-%s" % month
+        freq = "A-{month}".format(month=month)
         exp = Period("1989", freq=freq)
         stamp = exp.to_timestamp("D", how="end") + timedelta(days=30)
         p = Period(stamp, freq=freq)
@@ -332,8 +332,8 @@ class TestPeriodConstruction:
     @pytest.mark.parametrize("day", DAYS)
     @pytest.mark.parametrize("num", range(10, 17))
     def test_period_cons_weekly(self, num, day):
-        daystr = "2011-02-%d" % num
-        freq = "W-%s" % day
+        daystr = "2011-02-{num}".format(num=num)
+        freq = "W-{day}".format(day=day)
 
         result = Period(daystr, freq=freq)
         expected = Period(daystr, freq="D").asfreq(freq)

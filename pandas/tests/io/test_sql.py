@@ -217,7 +217,9 @@ class MixInBase:
 class MySQLMixIn(MixInBase):
     def drop_table(self, table_name):
         cur = self.conn.cursor()
-        cur.execute("DROP TABLE IF EXISTS %s" % sql._get_valid_mysql_name(table_name))
+        cur.execute(
+            "DROP TABLE IF EXISTS {}".format(sql._get_valid_mysql_name(table_name))
+        )
         self.conn.commit()
 
     def _get_all_tables(self):
@@ -237,7 +239,7 @@ class MySQLMixIn(MixInBase):
 class SQLiteMixIn(MixInBase):
     def drop_table(self, table_name):
         self.conn.execute(
-            "DROP TABLE IF EXISTS %s" % sql._get_valid_sqlite_name(table_name)
+            "DROP TABLE IF EXISTS {}".format(sql._get_valid_sqlite_name(table_name))
         )
         self.conn.commit()
 
@@ -405,7 +407,11 @@ class PandasSQLTest:
     def _count_rows(self, table_name):
         result = (
             self._get_exec()
-            .execute("SELECT count(*) AS count_1 FROM %s" % table_name)
+            .execute(
+                "SELECT count(*) AS count_1 FROM {table_name}".format(
+                    table_name=table_name
+                )
+            )
             .fetchone()
         )
         return result[0]
@@ -1201,7 +1207,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         for col in schema.split("\n"):
             if col.split()[0].strip('""') == column:
                 return col.split()[1]
-        raise ValueError("Column %s not found" % (column))
+        raise ValueError("Column {column} not found".format(column=column))
 
     def test_sqlite_type_mapping(self):
 
@@ -2193,12 +2199,14 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     def _get_index_columns(self, tbl_name):
         ixs = sql.read_sql_query(
             "SELECT * FROM sqlite_master WHERE type = 'index' "
-            + "AND tbl_name = '%s'" % tbl_name,
+            + "AND tbl_name = '{tbl_name}'".format(tbl_name=tbl_name),
             self.conn,
         )
         ix_cols = []
         for ix_name in ixs.name:
-            ix_info = sql.read_sql_query("PRAGMA index_info(%s)" % ix_name, self.conn)
+            ix_info = sql.read_sql_query(
+                "PRAGMA index_info({ix_name})".format(ix_name=ix_name), self.conn
+            )
             ix_cols.append(ix_info.name.tolist())
         return ix_cols
 
@@ -2211,11 +2219,15 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         self._transaction_test()
 
     def _get_sqlite_column_type(self, table, column):
-        recs = self.conn.execute("PRAGMA table_info(%s)" % table)
+        recs = self.conn.execute("PRAGMA table_info({table})".format(table=table))
         for cid, name, ctype, not_null, default, pk in recs:
             if name == column:
                 return ctype
-        raise ValueError("Table %s, column %s not found" % (table, column))
+        raise ValueError(
+            "Table {table}, column {column} not found".format(
+                table=table, column=column
+            )
+        )
 
     def test_dtype(self):
         if self.flavor == "mysql":
@@ -2285,7 +2297,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
             sql.table_exists(weird_name, self.conn)
 
             df2 = DataFrame([[1, 2], [3, 4]], columns=["a", weird_name])
-            c_tbl = "test_weird_col_name%d" % ndx
+            c_tbl = "test_weird_col_name{ndx:d}".format(ndx=ndx)
             df2.to_sql(c_tbl, self.conn)
             sql.table_exists(c_tbl, self.conn)
 
@@ -2300,15 +2312,15 @@ def date_format(dt):
 
 
 _formatters = {
-    datetime: lambda dt: "'%s'" % date_format(dt),
-    str: lambda x: "'%s'" % x,
-    np.str_: lambda x: "'%s'" % x,
-    bytes: lambda x: "'%s'" % x,
-    float: lambda x: "%.8f" % x,
-    int: lambda x: "%s" % x,
+    datetime: "'{}'".format,
+    str: "'{}'".format,
+    np.str_: "'{}'".format,
+    bytes: "'{}'".format,
+    float: "{:.8f}".format,
+    int: "{:d}".format,
     type(None): lambda x: "NULL",
-    np.float64: lambda x: "%.10f" % x,
-    bool: lambda x: "'%s'" % x,
+    np.float64: "{:.10f}".format,
+    bool: "'{!s}'".format,
 }
 
 
@@ -2490,7 +2502,7 @@ class TestXSQLite(SQLiteMixIn):
         df_if_exists_1 = DataFrame({"col1": [1, 2], "col2": ["A", "B"]})
         df_if_exists_2 = DataFrame({"col1": [3, 4, 5], "col2": ["C", "D", "E"]})
         table_name = "table_if_exists"
-        sql_select = "SELECT * FROM %s" % table_name
+        sql_select = "SELECT * FROM {table_name}".format(table_name=table_name)
 
         def clean_up(test_table_to_drop):
             """
@@ -2778,7 +2790,7 @@ class TestXMySQL(MySQLMixIn):
         df_if_exists_1 = DataFrame({"col1": [1, 2], "col2": ["A", "B"]})
         df_if_exists_2 = DataFrame({"col1": [3, 4, 5], "col2": ["C", "D", "E"]})
         table_name = "table_if_exists"
-        sql_select = "SELECT * FROM %s" % table_name
+        sql_select = "SELECT * FROM {table_name}".format(table_name=table_name)
 
         def clean_up(test_table_to_drop):
             """

@@ -292,8 +292,8 @@ class TestIX:
     def test_ix_setitem_out_of_bounds_axis_0(self):
         df = DataFrame(
             np.random.randn(2, 5),
-            index=["row%s" % i for i in range(2)],
-            columns=["col%s" % i for i in range(5)],
+            index=["row{i}".format(i=i) for i in range(2)],
+            columns=["col{i}".format(i=i) for i in range(5)],
         )
         with catch_warnings(record=True):
             msg = "cannot set by positional indexing with enlargement"
@@ -303,8 +303,8 @@ class TestIX:
     def test_ix_setitem_out_of_bounds_axis_1(self):
         df = DataFrame(
             np.random.randn(5, 2),
-            index=["row%s" % i for i in range(5)],
-            columns=["col%s" % i for i in range(2)],
+            index=["row{i}".format(i=i) for i in range(5)],
+            columns=["col{i}".format(i=i) for i in range(2)],
         )
         with catch_warnings(record=True):
             msg = "cannot set by positional indexing with enlargement"

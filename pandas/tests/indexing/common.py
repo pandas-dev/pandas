@@ -16,7 +16,7 @@ _verbose = False
 
 
 def _mklbl(prefix, n):
-    return ["%s%s" % (prefix, i) for i in range(n)]
+    return ["{prefix}{i}".format(prefix=prefix, i=i) for i in range(n)]
 
 
 def _axify(obj, key, axis):
@@ -105,7 +105,7 @@ class Base:
 
             d = dict()
             for t in self._typs:
-                d[t] = getattr(self, "%s_%s" % (o, t), None)
+                d[t] = getattr(self, "{o}_{t}".format(o=o, t=t), None)
 
             setattr(self, o, d)
 
@@ -247,7 +247,7 @@ class Base:
                 # if we are in fails, the ok, otherwise raise it
                 if fails is not None:
                     if isinstance(detail, fails):
-                        result = "ok (%s)" % type(detail).__name__
+                        result = "ok ({0.__name__})".format(type(detail))
                         _print(result)
                         return
 

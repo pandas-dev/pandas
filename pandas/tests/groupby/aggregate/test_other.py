@@ -473,7 +473,8 @@ def test_agg_timezone_round_trip():
     assert result3 == ts
 
     dates = [
-        pd.Timestamp("2016-01-0%d 12:00:00" % i, tz="US/Pacific") for i in range(1, 5)
+        pd.Timestamp("2016-01-0{i:d} 12:00:00".format(i=i), tz="US/Pacific")
+        for i in range(1, 5)
     ]
     df = pd.DataFrame({"A": ["a", "b"] * 2, "B": dates})
     grouped = df.groupby("A")

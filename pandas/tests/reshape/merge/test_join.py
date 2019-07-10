@@ -790,7 +790,9 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
         except KeyError:
             if how in ("left", "inner"):
                 raise AssertionError(
-                    "key %s should not have been in the join" % str(group_key)
+                    "key {group_key!s} should not have been in the join".format(
+                        group_key=group_key
+                    )
                 )
 
             _assert_all_na(l_joined, left.columns, join_col)
@@ -802,7 +804,9 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
         except KeyError:
             if how in ("right", "inner"):
                 raise AssertionError(
-                    "key %s should not have been in the join" % str(group_key)
+                    "key {group_key!s} should not have been in the join".format(
+                        group_key=group_key
+                    )
                 )
 
             _assert_all_na(r_joined, right.columns, join_col)

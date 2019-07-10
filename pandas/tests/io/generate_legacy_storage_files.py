@@ -352,7 +352,7 @@ def write_legacy_pickles(output_dir):
     pickle.dump(create_pickle_data(), fh, pickle.HIGHEST_PROTOCOL)
     fh.close()
 
-    print("created pickle file: %s" % pth)
+    print("created pickle file: {pth}".format(pth=pth))
 
 
 def write_legacy_msgpack(output_dir, compress):
@@ -369,7 +369,7 @@ def write_legacy_msgpack(output_dir, compress):
     pth = "{0}.msgpack".format(platform_name())
     to_msgpack(os.path.join(output_dir, pth), create_msgpack_data(), compress=compress)
 
-    print("created msgpack file: %s" % pth)
+    print("created msgpack file: {pth}".format(pth=pth))
 
 
 def write_legacy_file():

@@ -736,16 +736,16 @@ class TestEvalNumexprPandas:
 
         df = pd.DataFrame({"A": [1000000000.0009, 1000000000.0011, 1000000000.0015]})
         cutoff = 1000000000.0006
-        result = df.query("A < %.4f" % cutoff)
+        result = df.query("A < {cutoff:.4f}".format(cutoff=cutoff))
         assert result.empty
 
         cutoff = 1000000000.0010
-        result = df.query("A > %.4f" % cutoff)
+        result = df.query("A > {cutoff:.4f}".format(cutoff=cutoff))
         expected = df.loc[[1, 2], :]
         tm.assert_frame_equal(expected, result)
 
         exact = 1000000000.0011
-        result = df.query("A == %.4f" % exact)
+        result = df.query("A == {exact:.4f}".format(exact=exact))
         expected = df.loc[[1], :]
         tm.assert_frame_equal(expected, result)
 

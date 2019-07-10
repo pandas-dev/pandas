@@ -576,7 +576,7 @@ class TestTimestampConstructors:
 
         for date_string in out_of_bounds_dates:
             for unit in time_units:
-                dt64 = np.datetime64(date_string, dtype="M8[%s]" % unit)
+                dt64 = np.datetime64(date_string, dtype="M8[{unit}]".format(unit=unit))
                 with pytest.raises(ValueError):
                     Timestamp(dt64)
 
@@ -584,7 +584,7 @@ class TestTimestampConstructors:
 
         for date_string in in_bounds_dates:
             for unit in time_units:
-                dt64 = np.datetime64(date_string, dtype="M8[%s]" % unit)
+                dt64 = np.datetime64(date_string, dtype="M8[{unit}]".format(unit=unit))
                 Timestamp(dt64)
 
     def test_min_valid(self):

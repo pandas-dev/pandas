@@ -718,7 +718,7 @@ class TestDataFrameToCSV(TestData):
 
     def test_to_csv_mixed(self):
         def create_cols(name):
-            return ["%s%03d" % (name, i) for i in range(5)]
+            return ["{name}{i:03d}".format(name=name, i=i) for i in range(5)]
 
         df_float = DataFrame(
             np.random.randn(100, 5), dtype="float64", columns=create_cols("float")

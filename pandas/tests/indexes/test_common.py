@@ -163,7 +163,7 @@ class TestCommon:
     def test_hash_error(self, indices):
         index = indices
         with pytest.raises(
-            TypeError, match=("unhashable type: %r" % type(index).__name__)
+            TypeError, match=("unhashable type: {0.__name__!r}".format(type(index)))
         ):
             hash(indices)
 
