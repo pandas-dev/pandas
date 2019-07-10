@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index
+from pandas.compat import PY36
 import pandas.util.testing as tm
 
 from pandas.io.json import json_normalize
@@ -513,6 +514,11 @@ class TestNestedToRecord:
         ]
         columns = ["number", "street", "city", "state", "zip", "name"]
         expected = DataFrame(ex_data, columns=columns)
+        if not PY36:
+            # json_normalize order is not guaranteed, so columns
+            # depends on implementation. Opt to test on PY36/37
+            # and force column order on PY35.
+            expected = expected[columns]
         tm.assert_frame_equal(result, expected)
 
     def test_donot_drop_nonevalues(self):
