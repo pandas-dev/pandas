@@ -4557,7 +4557,11 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Subset the dataframe rows or columns according to the specified index labels.
 
-        Note that this routine does not filter a dataframe on its
+        .. deprecated:: 1.0
+            Use .loc instead, e.g. for regular expressions
+            use .loc(regex=True)[:, "^col_"]
+
+        Note that this method does not filter a dataframe on its
         contents. The filter is applied to the labels of the index.
 
         Parameters
@@ -4612,6 +4616,13 @@ class NDFrame(PandasObject, SelectionMixin):
                  one  two  three
         rabbit    4    5      6
         """
+        warnings.warn(
+            "DataFrame/Series.filter is deprecated "
+            "and will be removed in a future version",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         nkw = com.count_not_none(items, like, regex)
         if nkw > 1:
             raise TypeError(
