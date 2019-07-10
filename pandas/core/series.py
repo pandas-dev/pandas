@@ -1210,7 +1210,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     pass
                 elif is_timedelta64_dtype(self.dtype):
                     # reassign a null value to iNaT
-                    if isna(value):
+                    if isna(value) and not isinstance(value, np.datetime64):
+                        # exclude np.datetime64("NaT")
                         value = iNaT
 
                         try:
