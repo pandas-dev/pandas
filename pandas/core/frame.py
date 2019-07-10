@@ -439,8 +439,8 @@ class DataFrame(NDFrame):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
-                    infer_columns = columns is None
-                    if is_named_tuple(data[0]) and infer_columns:
+                    infer_columns_names = columns is None
+                    if is_named_tuple(data[0]) and infer_columns_names:
                         columns = data[0]._fields
                     arrays, arr_names = to_arrays(data, columns, dtype=dtype)
                     arr_names = ensure_index(arr_names)
@@ -449,7 +449,7 @@ class DataFrame(NDFrame):
                     # GH#10056
                     if (
                         is_dict_like(data[0])
-                        and infer_columns
+                        and infer_columns_names
                         and (type(columns) is Index)
                     ):
                         _columns = list(columns)
