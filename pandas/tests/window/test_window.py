@@ -1536,21 +1536,20 @@ class TestMoments(Base):
         # suppress warnings about empty slices, as we are deliberately testing
         # with a 0-length Series
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message=".*(empty slice|0 for slice).*",
-                category=RuntimeWarning,
-            )
-
-            def f(x):
+        def f(x):
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message=".*(empty slice|0 for slice).*",
+                    category=RuntimeWarning,
+                )
                 return x[np.isfinite(x)].mean()
 
-            self._check_moment_func(np.mean, name="apply", func=f, raw=raw)
+        self._check_moment_func(np.mean, name="apply", func=f, raw=raw)
 
-            expected = Series([])
-            result = expected.rolling(10).apply(lambda x: x.mean(), raw=raw)
-            tm.assert_series_equal(result, expected)
+        expected = Series([])
+        result = expected.rolling(10).apply(lambda x: x.mean(), raw=raw)
+        tm.assert_series_equal(result, expected)
 
         # gh-8080
         s = Series([None, None, None])
@@ -1678,7 +1677,7 @@ class TestMoments(Base):
     ):
         def get_result(obj, window, min_periods=None, center=False):
             r = obj.rolling(window=window, min_periods=min_periods, center=center)
-            return getattr(r, name)(**kwargs)
+            return getattr(r, name)(raw=raw, **kwargs)
 
         series_result = get_result(self.series, window=50)
         assert isinstance(series_result, Series)
