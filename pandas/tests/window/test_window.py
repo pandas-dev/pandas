@@ -1,6 +1,5 @@
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import Any
 import warnings
 from warnings import catch_warnings
 
