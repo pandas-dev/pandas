@@ -1720,7 +1720,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return zip(iter(self.index), iter(self))
 
-    @Appender(generic._shared_docs["iteritems"] % _shared_doc_kwargs)
+    @Appender(items.__doc__)
     def iteritems(self):
         return self.items()
 

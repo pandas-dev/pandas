@@ -67,8 +67,8 @@ Indexing, iteration
    DataFrame.insert
    DataFrame.__iter__
    DataFrame.items
+   DataFrame.iteritems
    DataFrame.keys
-   DataFrame.items
    DataFrame.iterrows
    DataFrame.itertuples
    DataFrame.lookup

@@ -886,7 +886,6 @@ Other deprecations
 - :meth:`Index.item` and :meth:`Series.item` is deprecated. (:issue:`18262`)
 - The default value ``ordered=None`` in :class:`~pandas.api.types.CategoricalDtype` has been deprecated in favor of ``ordered=False``. When converting between categorical types ``ordered=True`` must be explicitly passed in order to be preserved. (:issue:`26336`)
 - :meth:`Index.contains` is deprecated. Use ``key in index`` (``__contains__``) instead (:issue:`17753`).
-- ``DataFrame.iteritems`` and ``Series.iteritems`` have been deprecated. :attr:`DataFrame.items` and :attr:`Series.items` provide the exact same functionality and should be used instead (:issue:`26114`).
 - :meth:`DataFrame.get_dtype_counts` is deprecated. (:issue:`18262`)
 - :meth:`Categorical.ravel` will return a :class:`Categorical` instead of a ``np.ndarray`` (:issue:`27199`)
 

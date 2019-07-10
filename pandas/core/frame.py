@@ -826,9 +826,10 @@ class DataFrame(NDFrame):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
-    @Appender(items.__doc)
+    @Appender(items.__doc__)
     def iteritems(self):
-        return self.items()
+        for key, value in self.items():
+            yield key, value
 
     def iterrows(self):
         """
