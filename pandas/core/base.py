@@ -317,7 +317,7 @@ class SelectionMixin:
             try:
                 return f(self, *args, **kwargs)
             except AttributeError:
-                raise ValueError(
+                raise AttributeError(
                     "'{arg}' is not a valid function for "
                     "'{cls}' object".format(arg=arg, cls=type(self).__name__)
                 )
@@ -560,18 +560,7 @@ class SelectionMixin:
             return result, True
         elif is_list_like(arg):
             # we require a list, but not an 'str'
-            try:
-                return (
-                    self._aggregate_multiple_funcs(arg, _level=_level, _axis=_axis),
-                    None,
-                )
-
-            # if no results
-            except ValueError:
-                raise ValueError(
-                    "'{arg}' is not a valid set of functions for "
-                    "'{cls}' object".format(arg=", ".join(arg), cls=type(self).__name__)
-                )
+            return self._aggregate_multiple_funcs(arg, _level=_level, _axis=_axis), None
 
         else:
             result = None

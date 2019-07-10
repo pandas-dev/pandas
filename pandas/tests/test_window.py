@@ -488,15 +488,8 @@ class TestWindow(Base):
         ser = pd.DataFrame({"A": np.arange(5), "B": np.arange(5)})
         roll = ser.rolling(2, win_type="triang")
 
-        if isinstance(arg, (list, tuple)):
-            msg = (
-                "'{arg}' is not a valid set of functions for "
-                "'Window' object".format(arg=", ".join(arg))
-            )
-        else:
-            msg = "'std' is not a valid function for 'Window' object"
-
-        with pytest.raises(ValueError, match=msg):
+        msg = "'std' is not a valid function for 'Window' object"
+        with pytest.raises(AttributeError, match=msg):
             roll.agg(arg)
 
 
