@@ -654,6 +654,29 @@ def test_timedelta_assignment():
     tm.assert_series_equal(s, expected)
 
 
+@pytest.mark.parametrize(
+    "td",
+    [
+        pd.Timedelta("9 days"),
+        pd.Timedelta("9 days").to_timedelta64(),
+        pd.Timedelta("9 days").to_pytimedelta(),
+    ],
+)
+def test_append_timedelta_does_not_cast(td):
+    # GH#22717 inserting a Timedelta should _not_ cast to int64
+    expected = pd.Series(["x", td], index=[0, "td"], dtype=object)
+
+    ser = pd.Series(["x"])
+    ser["td"] = td
+    tm.assert_series_equal(ser, expected)
+    assert isinstance(ser["td"], pd.Timedelta)
+
+    ser = pd.Series(["x"])
+    ser.loc["td"] = pd.Timedelta("9 days")
+    tm.assert_series_equal(ser, expected)
+    assert isinstance(ser["td"], pd.Timedelta)
+
+
 def test_underlying_data_conversion():
     # GH 4080
     df = DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
