@@ -429,7 +429,8 @@ def _get_axes(N, K, index, columns):
 # Conversion of Inputs to Arrays
 
 
-def to_arrays(data, columns, coerce_float=False, dtype=None):
+def to_arrays(data, columns, coerce_float=False, dtype=None,
+              to_integer_array=False):
     """
     Return list of arrays, columns.
     """
@@ -456,7 +457,8 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
         return _list_to_arrays(data, columns, coerce_float=coerce_float, dtype=dtype)
     elif isinstance(data[0], abc.Mapping):
         return _list_of_dict_to_arrays(
-            data, columns, coerce_float=coerce_float, dtype=dtype
+            data, columns, coerce_float=coerce_float, dtype=dtype,
+            to_integer_array=to_integer_array
         )
     elif isinstance(data[0], ABCSeries):
         return _list_of_series_to_arrays(
@@ -548,6 +550,7 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     tuple
         arrays, columns
     """
+
     if columns is None:
         gen = (list(x.keys()) for x in data)
         types = (dict, OrderedDict) if PY36 else OrderedDict
@@ -560,11 +563,13 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
 
     content = list(lib.dicts_to_array(data, list(columns)).T)
     return _convert_object_array(
-        content, columns, dtype=dtype, coerce_float=coerce_float
+        content, columns, dtype=dtype, coerce_float=coerce_float,
+        to_integer_array=to_integer_array
     )
 
 
-def _convert_object_array(content, columns, coerce_float=False, dtype=None):
+def _convert_object_array(content, columns, coerce_float=False, dtype=None,
+                          to_integer_array=False):
     if columns is None:
         columns = ibase.default_index(len(content))
     else:
@@ -578,7 +583,8 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
     # provide soft conversion of object dtypes
     def convert(arr):
         if dtype != object and dtype != np.object:
-            arr = lib.maybe_convert_objects(arr, try_float=coerce_float)
+            arr = lib.maybe_convert_objects(arr, try_float=coerce_float,
+                                            to_integer_array=to_integer_array)
             arr = maybe_cast_to_datetime(arr, dtype)
         return arr
 
