@@ -110,6 +110,10 @@ def mask_zero_div_zero(x, y, result):
     >>> mask_zero_div_zero(x, y, result)
     array([ inf,  nan, -inf])
     """
+    if not isinstance(result, np.ndarray):
+        # e.g. SparseArray would raise TypeError with np.putmask
+        return result
+
     if is_scalar(y):
         y = np.array(y)
 
@@ -187,11 +191,11 @@ def dispatch_fill_zeros(op, left, right, result):
     elif op is operator.floordiv:
         # Note: no need to do this for truediv; in py3 numpy behaves the way
         #  we want.
-        result = fill_zeros(result, left, right, "__floordiv__", np.inf)
+        result = mask_zero_div_zero(left, right, result)
     elif op is op is rfloordiv:
         # Note: no need to do this for rtruediv; in py3 numpy behaves the way
         #  we want.
-        result = fill_zeros(result, left, right, "__rfloordiv__", np.inf)
+        result = mask_zero_div_zero(right, left, result)
     elif op is operator.mod:
         result = fill_zeros(result, left, right, "__mod__", np.nan)
     elif op is rmod:

@@ -884,17 +884,16 @@ class TestAdditionSubtraction:
 
             _check_op(series, other, operator.pow, pos_only=True)
 
-            _check_op(series, other, lambda x, y: operator.add(y, x))
-            _check_op(series, other, lambda x, y: operator.sub(y, x))
-            _check_op(series, other, lambda x, y: operator.truediv(y, x))
-            _check_op(series, other, lambda x, y: operator.floordiv(y, x))
-            _check_op(series, other, lambda x, y: operator.mul(y, x))
-            _check_op(series, other, lambda x, y: operator.pow(y, x), pos_only=True)
-            _check_op(series, other, lambda x, y: operator.mod(y, x))
+            _check_op(series, other, ops.radd)
+            _check_op(series, other, ops.rsub)
+            _check_op(series, other, ops.rtruediv)
+            _check_op(series, other, ops.rfloordiv)
+            _check_op(series, other, ops.rmul)
+            _check_op(series, other, ops.rpow, pos_only=True)
+            _check_op(series, other, ops.rmod)
 
         tser = tm.makeTimeSeries().rename("ts")
         check(tser, tser * 2)
-        check(tser, tser * 0)
         check(tser, tser[::2])
         check(tser, 5)
 
