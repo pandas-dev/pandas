@@ -771,15 +771,15 @@ class DataFrame(NDFrame):
 
         return Styler(self)
 
-    def items(self):
-        r"""
+    _shared_docs[
+        "items"
+    ] = r"""
         Iterator over (column name, Series) pairs.
 
         Iterates over the DataFrame columns, returning a tuple with
         the column name and the content as a Series.
 
-        Yields
-        ------
+        %s
         label : object
             The column names for the DataFrame being iterated over.
         content : Series
@@ -819,6 +819,9 @@ class DataFrame(NDFrame):
         koala    80000
         Name: population, dtype: int64
         """
+
+    @Appender(_shared_docs["items"] % "Yields\n        ------")
+    def items(self):
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
@@ -826,10 +829,9 @@ class DataFrame(NDFrame):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
-    @Appender(items.__doc__)
+    @Appender(_shared_docs["items"] % "Returns\n        -------")
     def iteritems(self):
-        for key, value in self.items():
-            yield key, value
+        return self.items()
 
     def iterrows(self):
         """
