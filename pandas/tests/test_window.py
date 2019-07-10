@@ -979,6 +979,20 @@ class TestEWM(Base):
         with pytest.raises(UnsupportedFunctionCall, match=msg):
             getattr(e, method)(dtype=np.float64)
 
+    def test_agg_unknown(self):
+        df = pd.DataFrame({"A": np.arange(5)})
+        roll = df.rolling(2)
+
+        msg = "'foo' is an unknown string function"
+        with pytest.raises(AttributeError, match=msg):
+            roll.agg("foo")
+
+        with pytest.raises(AttributeError, match=msg):
+            roll.agg(["foo"])
+
+        with pytest.raises(AttributeError, match=msg):
+            roll.agg({"A": "foo"})
+
 
 # gh-12373 : rolling functions error on float32 data
 # make sure rolling functions works for different dtypes
