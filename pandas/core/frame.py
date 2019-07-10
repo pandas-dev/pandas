@@ -24,7 +24,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas.compat import PY36, PY37, raise_with_traceback
+from pandas.compat import PY36, raise_with_traceback
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -448,7 +448,7 @@ class DataFrame(NDFrame):
                     columns = arr_names
                     # GH#10056
                     if (
-                        PY37
+                        PY36
                         and is_dict_like(data[0])
                         and infer_columns_names
                         and (type(columns) is Index)
