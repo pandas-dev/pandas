@@ -3,8 +3,9 @@ import json
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index
 from pandas.compat import PY36
+
+from pandas import DataFrame, Index
 import pandas.util.testing as tm
 
 from pandas.io.json import json_normalize
