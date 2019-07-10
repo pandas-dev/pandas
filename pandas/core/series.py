@@ -1230,6 +1230,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if _is_unorderable_exception(e):
                     raise IndexError(key)
 
+                if is_scalar(key) and not is_integer(key) and key not in self.index:
+                    # GH#12862 adding an new key to the Series
+                    # Note: ave to exclude integers because that is ambiguously
+                    #  position-based
+                    self.loc[key] = value
+                    return
+
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
                 try:
