@@ -111,13 +111,18 @@ def mask_zero_div_zero(x, y, result):
     array([ inf,  nan, -inf])
     """
     if not isinstance(result, np.ndarray):
-        # e.g. SparseArray would raise TypeError with np.putmask
+        # FIXME: SparseArray would raise TypeError with np.putmask
         return result
 
     if is_scalar(y):
         y = np.array(y)
 
     zmask = y == 0
+
+    if isinstance(zmask, bool):
+        # FIXME: numpy did not evaluate pointwise, seen in docs build
+        return result
+
     if zmask.any():
         shape = result.shape
 
