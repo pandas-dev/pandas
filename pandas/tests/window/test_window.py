@@ -22,54 +22,6 @@ import pandas.tseries.offsets as offsets
 N, K = 100, 10
 
 
-@pytest.fixture(params=[True, False])
-def raw(request) -> bool:
-    return request.param
-
-
-@pytest.fixture(
-    params=[
-        "triang",
-        "blackman",
-        "hamming",
-        "bartlett",
-        "bohman",
-        "blackmanharris",
-        "nuttall",
-        "barthann",
-    ]
-)
-def win_types(request) -> str:
-    return request.param
-
-
-@pytest.fixture(params=["kaiser", "gaussian", "general_gaussian", "exponential"])
-def win_types_special(request) -> str:
-    return request.param
-
-
-@pytest.fixture(
-    params=["sum", "mean", "median", "max", "min", "var", "std", "kurt", "skew"]
-)
-def arithmetic_win_operators(request) -> str:
-    return request.param
-
-
-@pytest.fixture(params=["right", "left", "both", "neither"])
-def closed(request) -> str:
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def center(request) -> bool:
-    return request.param
-
-
-@pytest.fixture(params=[None, 1])
-def min_periods(request) -> Any:
-    return request.param
-
-
 class Base:
 
     _nan_locs = np.arange(20, 40)
@@ -992,17 +944,19 @@ class TestMoments(Base):
         with pytest.raises(ValueError):
             (DataFrame(np.ones((10, 10))).rolling(window=3, center=True, axis=2).mean())
 
-    def test_rolling_sum(self):
-        self._check_moment_func(np.nansum, name="sum", zero_min_periods_equal=False)
-
-    def test_rolling_count(self):
-        counter = lambda x: np.isfinite(x).astype(float).sum()
+    def test_rolling_sum(self, raw):
         self._check_moment_func(
-            counter, name="count", has_min_periods=False, fill_value=0
+            np.nansum, name="sum", zero_min_periods_equal=False, raw=raw
         )
 
-    def test_rolling_mean(self):
-        self._check_moment_func(np.mean, name="mean")
+    def test_rolling_count(self, raw):
+        counter = lambda x: np.isfinite(x).astype(float).sum()
+        self._check_moment_func(
+            counter, name="count", has_min_periods=False, fill_value=0, raw=raw
+        )
+
+    def test_rolling_mean(self, raw):
+        self._check_moment_func(np.mean, name="mean", raw=raw)
 
     @td.skip_if_no_scipy
     def test_cmov_mean(self):
@@ -1467,11 +1421,11 @@ class TestMoments(Base):
         )
         tm.assert_series_equal(xp, rs)
 
-    def test_rolling_median(self):
-        self._check_moment_func(np.median, name="median")
+    def test_rolling_median(self, raw):
+        self._check_moment_func(np.median, name="median", raw=raw)
 
-    def test_rolling_min(self):
-        self._check_moment_func(np.min, name="min")
+    def test_rolling_min(self, raw):
+        self._check_moment_func(np.min, name="min", raw=raw)
 
         a = pd.Series([1, 2, 3, 4, 5])
         result = a.rolling(window=100, min_periods=1).min()
@@ -1481,8 +1435,8 @@ class TestMoments(Base):
         with pytest.raises(ValueError):
             pd.Series([1, 2, 3]).rolling(window=3, min_periods=5).min()
 
-    def test_rolling_max(self):
-        self._check_moment_func(np.max, name="max")
+    def test_rolling_max(self, raw):
+        self._check_moment_func(np.max, name="max", raw=raw)
 
         a = pd.Series([1, 2, 3, 4, 5], dtype=np.float64)
         b = a.rolling(window=100, min_periods=1).max()
@@ -1492,7 +1446,7 @@ class TestMoments(Base):
             pd.Series([1, 2, 3]).rolling(window=3, min_periods=5).max()
 
     @pytest.mark.parametrize("q", [0.0, 0.1, 0.5, 0.9, 1.0])
-    def test_rolling_quantile(self, q):
+    def test_rolling_quantile(self, q, raw):
         def scoreatpercentile(a, per):
             values = np.sort(a, axis=0)
 
@@ -1513,7 +1467,7 @@ class TestMoments(Base):
         def quantile_func(x):
             return scoreatpercentile(x, q)
 
-        self._check_moment_func(quantile_func, name="quantile", quantile=q)
+        self._check_moment_func(quantile_func, name="quantile", quantile=q, raw=raw)
 
     def test_rolling_quantile_np_percentile(self):
         # #9413: Tests that rolling window's quantile default behavior
@@ -1653,9 +1607,11 @@ class TestMoments(Base):
         with pytest.raises(AttributeError):
             df.rolling(window).apply(f, raw=True)
 
-    def test_rolling_std(self):
-        self._check_moment_func(lambda x: np.std(x, ddof=1), name="std")
-        self._check_moment_func(lambda x: np.std(x, ddof=0), name="std", ddof=0)
+    def test_rolling_std(self, raw):
+        self._check_moment_func(lambda x: np.std(x, ddof=1), name="std", raw=raw)
+        self._check_moment_func(
+            lambda x: np.std(x, ddof=0), name="std", ddof=0, raw=raw
+        )
 
     def test_rolling_std_1obs(self):
         vals = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0])
@@ -1691,26 +1647,29 @@ class TestMoments(Base):
         b = a.ewm(span=3).std()
         assert np.isfinite(b[2:]).all()
 
-    def test_rolling_var(self):
-        self._check_moment_func(lambda x: np.var(x, ddof=1), name="var")
-        self._check_moment_func(lambda x: np.var(x, ddof=0), name="var", ddof=0)
+    def test_rolling_var(self, raw):
+        self._check_moment_func(lambda x: np.var(x, ddof=1), name="var", raw=raw)
+        self._check_moment_func(
+            lambda x: np.var(x, ddof=0), name="var", ddof=0, raw=raw
+        )
 
     @td.skip_if_no_scipy
-    def test_rolling_skew(self):
+    def test_rolling_skew(self, raw):
         from scipy.stats import skew
 
-        self._check_moment_func(lambda x: skew(x, bias=False), name="skew")
+        self._check_moment_func(lambda x: skew(x, bias=False), name="skew", raw=raw)
 
     @td.skip_if_no_scipy
-    def test_rolling_kurt(self):
+    def test_rolling_kurt(self, raw):
         from scipy.stats import kurtosis
 
-        self._check_moment_func(lambda x: kurtosis(x, bias=False), name="kurt")
+        self._check_moment_func(lambda x: kurtosis(x, bias=False), name="kurt", raw=raw)
 
     def _check_moment_func(
         self,
         static_comp,
         name,
+        raw,
         has_min_periods=True,
         has_center=True,
         has_time_rule=True,
