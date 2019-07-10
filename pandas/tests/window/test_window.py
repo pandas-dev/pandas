@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import copy
 from datetime import datetime, timedelta
 import warnings
 from warnings import catch_warnings
@@ -1675,9 +1676,15 @@ class TestMoments(Base):
         zero_min_periods_equal=True,
         **kwargs
     ):
+
+        # inject raw
+        if name == "apply":
+            kwargs = copy.copy(kwargs)
+            kwargs["raw"] = raw
+
         def get_result(obj, window, min_periods=None, center=False):
             r = obj.rolling(window=window, min_periods=min_periods, center=center)
-            return getattr(r, name)(raw=raw, **kwargs)
+            return getattr(r, name)(**kwargs)
 
         series_result = get_result(self.series, window=50)
         assert isinstance(series_result, Series)
