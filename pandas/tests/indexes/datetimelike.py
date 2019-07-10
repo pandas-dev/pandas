@@ -9,7 +9,6 @@ from .common import Base
 
 
 class DatetimeLike(Base):
-
     def test_argmax_axis_invalid(self):
         # GH#23081
         rng = self.create_index()
@@ -36,21 +35,21 @@ class DatetimeLike(Base):
 
         # test the string repr
         idx = self.create_index()
-        idx.name = 'foo'
-        assert not "length=%s" % len(idx) in str(idx)
+        idx.name = "foo"
+        assert not "length={}".format(len(idx)) in str(idx)
         assert "'foo'" in str(idx)
         assert idx.__class__.__name__ in str(idx)
 
-        if hasattr(idx, 'tz'):
+        if hasattr(idx, "tz"):
             if idx.tz is not None:
                 assert idx.tz in str(idx)
-        if hasattr(idx, 'freq'):
-            assert "freq='%s'" % idx.freqstr in str(idx)
+        if hasattr(idx, "freq"):
+            assert "freq='{idx.freqstr}'".format(idx=idx) in str(idx)
 
     def test_view(self):
         i = self.create_index()
 
-        i_view = i.view('i8')
+        i_view = i.view("i8")
         result = self._holder(i)
         tm.assert_index_equal(result, i)
 
@@ -72,7 +71,9 @@ class DatetimeLike(Base):
         "mapper",
         [
             lambda values, index: {i: e for e, i in zip(values, index)},
-            lambda values, index: pd.Series(values, index)])
+            lambda values, index: pd.Series(values, index),
+        ],
+    )
     def test_map_dictlike(self, mapper):
         expected = self.index + self.index.freq
 

@@ -25,12 +25,11 @@ def df_ref():
     """
     Obtain the reference data from read_csv with the Python engine.
     """
-    df_ref = read_csv('test1.csv', index_col=0,
-                      parse_dates=True, engine='python')
+    df_ref = read_csv("test1.csv", index_col=0, parse_dates=True, engine="python")
     return df_ref
 
 
-@pytest.fixture(params=['.xls', '.xlsx', '.xlsm'])
+@pytest.fixture(params=[".xls", ".xlsx", ".xlsm", ".ods"])
 def read_ext(request):
     """
     Valid extensions for reading Excel files.

@@ -8,9 +8,16 @@ import warnings
 import pandas._libs.json as json
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype, is_categorical_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype, is_integer_dtype, is_numeric_dtype, is_period_dtype,
-    is_string_dtype, is_timedelta64_dtype)
+    is_bool_dtype,
+    is_categorical_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+    is_integer_dtype,
+    is_numeric_dtype,
+    is_period_dtype,
+    is_string_dtype,
+    is_timedelta64_dtype,
+)
 
 from pandas import DataFrame
 from pandas.api.types import CategoricalDtype
@@ -50,70 +57,71 @@ def as_json_table_type(x):
     =============== =================
     """
     if is_integer_dtype(x):
-        return 'integer'
+        return "integer"
     elif is_bool_dtype(x):
-        return 'boolean'
+        return "boolean"
     elif is_numeric_dtype(x):
-        return 'number'
-    elif (is_datetime64_dtype(x) or is_datetime64tz_dtype(x) or
-          is_period_dtype(x)):
-        return 'datetime'
+        return "number"
+    elif is_datetime64_dtype(x) or is_datetime64tz_dtype(x) or is_period_dtype(x):
+        return "datetime"
     elif is_timedelta64_dtype(x):
-        return 'duration'
+        return "duration"
     elif is_categorical_dtype(x):
-        return 'any'
+        return "any"
     elif is_string_dtype(x):
-        return 'string'
+        return "string"
     else:
-        return 'any'
+        return "any"
 
 
 def set_default_names(data):
     """Sets index names to 'index' for regular, or 'level_x' for Multi"""
     if com._all_not_none(*data.index.names):
         nms = data.index.names
-        if len(nms) == 1 and data.index.name == 'index':
+        if len(nms) == 1 and data.index.name == "index":
             warnings.warn("Index name of 'index' is not round-trippable")
-        elif len(nms) > 1 and any(x.startswith('level_') for x in nms):
-            warnings.warn("Index names beginning with 'level_' are not "
-                          "round-trippable")
+        elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
+            warnings.warn(
+                "Index names beginning with 'level_' are not " "round-trippable"
+            )
         return data
 
     data = data.copy()
     if data.index.nlevels > 1:
-        names = [name if name is not None else 'level_{}'.format(i)
-                 for i, name in enumerate(data.index.names)]
+        names = [
+            name if name is not None else "level_{}".format(i)
+            for i, name in enumerate(data.index.names)
+        ]
         data.index.names = names
     else:
-        data.index.name = data.index.name or 'index'
+        data.index.name = data.index.name or "index"
     return data
 
 
 def convert_pandas_type_to_json_field(arr, dtype=None):
     dtype = dtype or arr.dtype
     if arr.name is None:
-        name = 'values'
+        name = "values"
     else:
         name = arr.name
-    field = {'name': name,
-             'type': as_json_table_type(dtype)}
+    field = {"name": name, "type": as_json_table_type(dtype)}
 
     if is_categorical_dtype(arr):
-        if hasattr(arr, 'categories'):
+        if hasattr(arr, "categories"):
             cats = arr.categories
             ordered = arr.ordered
         else:
             cats = arr.cat.categories
             ordered = arr.cat.ordered
-        field['constraints'] = {"enum": list(cats)}
-        field['ordered'] = ordered
+        field["constraints"] = {"enum": list(cats)}
+        field["ordered"] = ordered
     elif is_period_dtype(arr):
-        field['freq'] = arr.freqstr
+        field["freq"] = arr.freqstr
     elif is_datetime64tz_dtype(arr):
-        if hasattr(arr, 'dt'):
-            field['tz'] = arr.dt.tz.zone
+        if hasattr(arr, "dt"):
+            field["tz"] = arr.dt.tz.zone
         else:
-            field['tz'] = arr.tz.zone
+            field["tz"] = arr.tz.zone
     return field
 
 
@@ -154,28 +162,29 @@ def convert_json_field_to_pandas_type(field):
                                            'tz': 'US/Central'})
     'datetime64[ns, US/Central]'
     """
-    typ = field['type']
-    if typ == 'string':
-        return 'object'
-    elif typ == 'integer':
-        return 'int64'
-    elif typ == 'number':
-        return 'float64'
-    elif typ == 'boolean':
-        return 'bool'
-    elif typ == 'duration':
-        return 'timedelta64'
-    elif typ == 'datetime':
-        if field.get('tz'):
-            return 'datetime64[ns, {tz}]'.format(tz=field['tz'])
+    typ = field["type"]
+    if typ == "string":
+        return "object"
+    elif typ == "integer":
+        return "int64"
+    elif typ == "number":
+        return "float64"
+    elif typ == "boolean":
+        return "bool"
+    elif typ == "duration":
+        return "timedelta64"
+    elif typ == "datetime":
+        if field.get("tz"):
+            return "datetime64[ns, {tz}]".format(tz=field["tz"])
         else:
-            return 'datetime64[ns]'
-    elif typ == 'any':
-        if 'constraints' in field and 'ordered' in field:
-            return CategoricalDtype(categories=field['constraints']['enum'],
-                                    ordered=field['ordered'])
+            return "datetime64[ns]"
+    elif typ == "any":
+        if "constraints" in field and "ordered" in field:
+            return CategoricalDtype(
+                categories=field["constraints"]["enum"], ordered=field["ordered"]
+            )
         else:
-            return 'object'
+            return "object"
 
     raise ValueError("Unsupported or invalid field type: {}".format(typ))
 
@@ -240,22 +249,22 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
             fields.append(convert_pandas_type_to_json_field(data.index))
 
     if data.ndim > 1:
-        for column, s in data.iteritems():
+        for column, s in data.items():
             fields.append(convert_pandas_type_to_json_field(s))
     else:
         fields.append(convert_pandas_type_to_json_field(data))
 
-    schema['fields'] = fields
+    schema["fields"] = fields
     if index and data.index.is_unique and primary_key is None:
         if data.index.nlevels == 1:
-            schema['primaryKey'] = [data.index.name]
+            schema["primaryKey"] = [data.index.name]
         else:
-            schema['primaryKey'] = data.index.names
+            schema["primaryKey"] = data.index.names
     elif primary_key is not None:
-        schema['primaryKey'] = primary_key
+        schema["primaryKey"] = primary_key
 
     if version:
-        schema['pandas_version'] = '0.20.0'
+        schema["pandas_version"] = "0.20.0"
     return schema
 
 
@@ -296,31 +305,34 @@ def parse_table_schema(json, precise_float):
     pandas.read_json
     """
     table = loads(json, precise_float=precise_float)
-    col_order = [field['name'] for field in table['schema']['fields']]
-    df = DataFrame(table['data'], columns=col_order)[col_order]
+    col_order = [field["name"] for field in table["schema"]["fields"]]
+    df = DataFrame(table["data"], columns=col_order)[col_order]
 
-    dtypes = {field['name']: convert_json_field_to_pandas_type(field)
-              for field in table['schema']['fields']}
+    dtypes = {
+        field["name"]: convert_json_field_to_pandas_type(field)
+        for field in table["schema"]["fields"]
+    }
 
     # Cannot directly use as_type with timezone data on object; raise for now
-    if any(str(x).startswith('datetime64[ns, ') for x in dtypes.values()):
-        raise NotImplementedError('table="orient" can not yet read timezone '
-                                  'data')
+    if any(str(x).startswith("datetime64[ns, ") for x in dtypes.values()):
+        raise NotImplementedError('table="orient" can not yet read timezone ' "data")
 
     # No ISO constructor for Timedelta as of yet, so need to raise
-    if 'timedelta64' in dtypes.values():
-        raise NotImplementedError('table="orient" can not yet read '
-                                  'ISO-formatted Timedelta data')
+    if "timedelta64" in dtypes.values():
+        raise NotImplementedError(
+            'table="orient" can not yet read ' "ISO-formatted Timedelta data"
+        )
 
     df = df.astype(dtypes)
 
-    if 'primaryKey' in table['schema']:
-        df = df.set_index(table['schema']['primaryKey'])
+    if "primaryKey" in table["schema"]:
+        df = df.set_index(table["schema"]["primaryKey"])
         if len(df.index.names) == 1:
-            if df.index.name == 'index':
+            if df.index.name == "index":
                 df.index.name = None
         else:
-            df.index.names = [None if x.startswith('level_') else x for x in
-                              df.index.names]
+            df.index.names = [
+                None if x.startswith("level_") else x for x in df.index.names
+            ]
 
     return df

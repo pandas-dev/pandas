@@ -9,17 +9,25 @@ def _try_import():
         "pandas-gbq is required to load data from Google BigQuery. "
         "See the docs: https://pandas-gbq.readthedocs.io."
     )
-    pandas_gbq = import_optional_dependency(
-        "pandas_gbq",
-        extra=msg,
-    )
+    pandas_gbq = import_optional_dependency("pandas_gbq", extra=msg)
     return pandas_gbq
 
 
-def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, auth_local_webserver=False, dialect=None,
-             location=None, configuration=None, credentials=None,
-             use_bqstorage_api=None, private_key=None, verbose=None):
+def read_gbq(
+    query,
+    project_id=None,
+    index_col=None,
+    col_order=None,
+    reauth=False,
+    auth_local_webserver=False,
+    dialect=None,
+    location=None,
+    configuration=None,
+    credentials=None,
+    use_bqstorage_api=None,
+    private_key=None,
+    verbose=None,
+):
     """
     Load data from Google BigQuery.
 
@@ -155,21 +163,48 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     # END: deprecated kwargs
 
     return pandas_gbq.read_gbq(
-        query, project_id=project_id, index_col=index_col,
-        col_order=col_order, reauth=reauth,
-        auth_local_webserver=auth_local_webserver, dialect=dialect,
-        location=location, configuration=configuration,
-        credentials=credentials, **kwargs)
+        query,
+        project_id=project_id,
+        index_col=index_col,
+        col_order=col_order,
+        reauth=reauth,
+        auth_local_webserver=auth_local_webserver,
+        dialect=dialect,
+        location=location,
+        configuration=configuration,
+        credentials=credentials,
+        **kwargs
+    )
 
 
-def to_gbq(dataframe, destination_table, project_id=None, chunksize=None,
-           reauth=False, if_exists='fail', auth_local_webserver=False,
-           table_schema=None, location=None, progress_bar=True,
-           credentials=None, verbose=None, private_key=None):
+def to_gbq(
+    dataframe,
+    destination_table,
+    project_id=None,
+    chunksize=None,
+    reauth=False,
+    if_exists="fail",
+    auth_local_webserver=False,
+    table_schema=None,
+    location=None,
+    progress_bar=True,
+    credentials=None,
+    verbose=None,
+    private_key=None,
+):
     pandas_gbq = _try_import()
-    pandas_gbq.to_gbq(dataframe, destination_table, project_id=project_id,
-                      chunksize=chunksize, reauth=reauth, if_exists=if_exists,
-                      auth_local_webserver=auth_local_webserver,
-                      table_schema=table_schema, location=location,
-                      progress_bar=progress_bar, credentials=credentials,
-                      verbose=verbose, private_key=private_key)
+    pandas_gbq.to_gbq(
+        dataframe,
+        destination_table,
+        project_id=project_id,
+        chunksize=chunksize,
+        reauth=reauth,
+        if_exists=if_exists,
+        auth_local_webserver=auth_local_webserver,
+        table_schema=table_schema,
+        location=location,
+        progress_bar=progress_bar,
+        credentials=credentials,
+        verbose=verbose,
+        private_key=private_key,
+    )
