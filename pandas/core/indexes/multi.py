@@ -2810,7 +2810,10 @@ class MultiIndex(Index):
 
                 if len(key) == self.nlevels and self.is_unique:
                     # Complete key in unique index -> standard get_loc
-                    return (self._engine.get_loc(key), None)
+                    try:
+                        return (self._engine.get_loc(key), None)
+                    except KeyError as e:
+                        raise KeyError(key) from e
                 else:
                     return partial_selection(key)
             else:

@@ -92,7 +92,7 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
             return c(lhs, rhs)
         except ValueError as e:
             if str(e).startswith(
-                "negative number cannot be " "raised to a fractional power"
+                "negative number cannot be raised to a fractional power"
             ):
                 return np.nan
             raise
@@ -362,7 +362,7 @@ class TestEvalNumexprPandas:
             expected = _eval_single_bin(lhs, "**", rhs, self.engine)
         except ValueError as e:
             if str(e).startswith(
-                "negative number cannot be " "raised to a fractional power"
+                "negative number cannot be raised to a fractional power"
             ):
                 if self.engine == "python":
                     pytest.skip(str(e))
@@ -411,7 +411,7 @@ class TestEvalNumexprPandas:
                 )
 
     def check_compound_invert_op(self, lhs, cmp1, rhs):
-        skip_these = "in", "not in"
+        skip_these = ["in", "not in"]
         ex = "~(lhs {0} rhs)".format(cmp1)
 
         msg = (
@@ -1944,7 +1944,7 @@ def test_empty_string_raises(engine, parser):
 
 
 def test_more_than_one_expression_raises(engine, parser):
-    with pytest.raises(SyntaxError, match=("only a single expression " "is allowed")):
+    with pytest.raises(SyntaxError, match=("only a single expression is allowed")):
         pd.eval("1 + 1; 2 + 2", engine=engine, parser=parser)
 
 

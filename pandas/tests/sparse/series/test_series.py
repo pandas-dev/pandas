@@ -578,6 +578,7 @@ class TestSparseSeries(SharedWithSparse):
             _check_op(a, b, lambda x, y: operator.floordiv(y, x))
             _check_op(a, b, lambda x, y: operator.mul(y, x))
 
+            # FIXME: don't leave commented-out
             # NaN ** 0 = 1 in C?
             # _check_op(a, b, operator.pow)
             # _check_op(a, b, lambda x, y: operator.pow(y, x))
@@ -1193,7 +1194,7 @@ class TestSparseSeriesScipyInteraction:
 
     def test_to_coo_duplicate_index_entries(self):
         ss = pd.concat([self.sparse_series[0], self.sparse_series[0]]).to_sparse()
-        msg = "Duplicate index entries are not allowed in to_coo" " transformation"
+        msg = "Duplicate index entries are not allowed in to_coo transformation"
         with pytest.raises(ValueError, match=msg):
             ss.to_coo(["A", "B"], ["C", "D"])
 

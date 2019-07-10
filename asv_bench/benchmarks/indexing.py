@@ -15,6 +15,7 @@ from pandas import (
     concat,
     date_range,
     option_context,
+    period_range,
 )
 
 
@@ -66,16 +67,20 @@ class NumericSeriesIndexing:
         self.data.iloc[:800000]
 
     def time_ix_array(self, index, index_structure):
-        self.data.ix[self.array]
+        with warnings.catch_warnings(record=True):
+            self.data.ix[self.array]
 
     def time_ix_list_like(self, index, index_structure):
-        self.data.ix[[800000]]
+        with warnings.catch_warnings(record=True):
+            self.data.ix[[800000]]
 
     def time_ix_scalar(self, index, index_structure):
-        self.data.ix[800000]
+        with warnings.catch_warnings(record=True):
+            self.data.ix[800000]
 
     def time_ix_slice(self, index, index_structure):
-        self.data.ix[:800000]
+        with warnings.catch_warnings(record=True):
+            self.data.ix[:800000]
 
     def time_loc_array(self, index, index_structure):
         self.data.loc[self.array]
@@ -93,22 +98,30 @@ class NumericSeriesIndexing:
 class NonNumericSeriesIndexing:
 
     params = [
-        ("string", "datetime"),
-        ("unique_monotonic_inc", "nonunique_monotonic_inc"),
+        ("string", "datetime", "period"),
+        ("unique_monotonic_inc", "nonunique_monotonic_inc", "non_monotonic"),
     ]
     param_names = ["index_dtype", "index_structure"]
 
     def setup(self, index, index_structure):
         N = 10 ** 6
-        indexes = {
-            "string": tm.makeStringIndex(N),
-            "datetime": date_range("1900", periods=N, freq="s"),
-        }
-        index = indexes[index]
+        if index == "string":
+            index = tm.makeStringIndex(N)
+        elif index == "datetime":
+            index = date_range("1900", periods=N, freq="s")
+        elif index == "period":
+            index = period_range("1900", periods=N, freq="s")
+        index = index.sort_values()
+        assert index.is_unique and index.is_monotonic_increasing
         if index_structure == "nonunique_monotonic_inc":
             index = index.insert(item=index[2], loc=2)[:-1]
+        elif index_structure == "non_monotonic":
+            index = index[::2].append(index[1::2])
+            assert len(index) == N
         self.s = Series(np.random.rand(N), index=index)
         self.lbl = index[80000]
+        # warm up index mapping
+        self.s[self.lbl]
 
     def time_getitem_label_slice(self, index, index_structure):
         self.s[: self.lbl]
@@ -131,7 +144,8 @@ class DataFrameStringIndexing:
     def setup(self):
         index = tm.makeStringIndex(1000)
         columns = tm.makeStringIndex(30)
-        self.df = DataFrame(np.random.randn(1000, 30), index=index, columns=columns)
+        with warnings.catch_warnings(record=True):
+            self.df = DataFrame(np.random.randn(1000, 30), index=index, columns=columns)
         self.idx_scalar = index[100]
         self.col_scalar = columns[10]
         self.bool_indexer = self.df[self.col_scalar] > 0
@@ -142,7 +156,8 @@ class DataFrameStringIndexing:
             self.df.get_value(self.idx_scalar, self.col_scalar)
 
     def time_ix(self):
-        self.df.ix[self.idx_scalar, self.col_scalar]
+        with warnings.catch_warnings(record=True):
+            self.df.ix[self.idx_scalar, self.col_scalar]
 
     def time_loc(self):
         self.df.loc[self.idx_scalar, self.col_scalar]
@@ -206,24 +221,27 @@ class MultiIndexing:
         self.df = DataFrame(self.s)
 
         n = 100000
-        self.mdt = DataFrame(
-            {
-                "A": np.random.choice(range(10000, 45000, 1000), n),
-                "B": np.random.choice(range(10, 400), n),
-                "C": np.random.choice(range(1, 150), n),
-                "D": np.random.choice(range(10000, 45000), n),
-                "x": np.random.choice(range(400), n),
-                "y": np.random.choice(range(25), n),
-            }
-        )
+        with warnings.catch_warnings(record=True):
+            self.mdt = DataFrame(
+                {
+                    "A": np.random.choice(range(10000, 45000, 1000), n),
+                    "B": np.random.choice(range(10, 400), n),
+                    "C": np.random.choice(range(1, 150), n),
+                    "D": np.random.choice(range(10000, 45000), n),
+                    "x": np.random.choice(range(400), n),
+                    "y": np.random.choice(range(25), n),
+                }
+            )
         self.idx = IndexSlice[20000:30000, 20:30, 35:45, 30000:40000]
         self.mdt = self.mdt.set_index(["A", "B", "C", "D"]).sort_index()
 
     def time_series_ix(self):
-        self.s.ix[999]
+        with warnings.catch_warnings(record=True):
+            self.s.ix[999]
 
     def time_frame_ix(self):
-        self.df.ix[999]
+        with warnings.catch_warnings(record=True):
+            self.df.ix[999]
 
     def time_index_slice(self):
         self.mdt.loc[self.idx, :]
@@ -300,7 +318,8 @@ class MethodLookup:
         s.iloc
 
     def time_lookup_ix(self, s):
-        s.ix
+        with warnings.catch_warnings(record=True):
+            s.ix
 
     def time_lookup_loc(self, s):
         s.loc

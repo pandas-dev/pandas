@@ -1304,7 +1304,7 @@ class TestDataFrameAlterAxes:
         df = DataFrame({"A": [1, 2], "B": [1, 2]}, index=["0", "1"])
 
         # Named target and axis
-        over_spec_msg = "Cannot specify both 'axis' and " "any of 'index' or 'columns'"
+        over_spec_msg = "Cannot specify both 'axis' and any of 'index' or 'columns'"
         with pytest.raises(TypeError, match=over_spec_msg):
             df.rename(index=str.lower, axis=1)
 

@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib, ops as libops
+from pandas._libs import Timedelta, Timestamp, lib, ops as libops
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -43,14 +43,15 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCSparseArray,
     ABCSparseSeries,
+    ABCTimedeltaArray,
 )
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
 from pandas._typing import ArrayLike
 import pandas.core.common as com
-import pandas.core.missing as missing
 
+from . import missing
 from .roperator import (  # noqa:F401
     radd,
     rand_,
@@ -86,7 +87,7 @@ def get_op_result_name(left, right):
         Usually a string
     """
     # `left` is always a pd.Series when called from within ops
-    if isinstance(right, (ABCSeries, pd.Index)):
+    if isinstance(right, (ABCSeries, ABCIndexClass)):
         name = _maybe_match_name(left, right)
     else:
         name = left.name
@@ -150,14 +151,14 @@ def maybe_upcast_for_op(obj):
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
-        return pd.Timedelta(obj)
+        return Timedelta(obj)
     elif isinstance(obj, np.timedelta64) and not isna(obj):
         # In particular non-nanosecond timedelta64 needs to be cast to
         #  nanoseconds, or else we get undesired behavior like
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         # The isna check is to avoid casting timedelta64("NaT"), which would
         #  return NaT and incorrectly be treated as a datetime-NaT.
-        return pd.Timedelta(obj)
+        return Timedelta(obj)
     elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
         # GH#22390 Unfortunately we need to special-case right-hand
         # timedelta64 dtypes because numpy casts integer dtypes to
@@ -249,7 +250,7 @@ def _gen_fill_zeros(name):
     """
     name = name.strip("__")
     if "div" in name:
-        # truediv, floordiv, div, and reversed variants
+        # truediv, floordiv, and reversed variants
         fill_value = np.inf
     elif "mod" in name:
         # mod, rmod
@@ -1401,12 +1402,6 @@ def _get_method_wrappers(cls):
         arith_special = _arith_method_SERIES
         comp_special = _comp_method_SERIES
         bool_special = _bool_method_SERIES
-    elif issubclass(cls, ABCSparseArray):
-        arith_flex = None
-        comp_flex = None
-        arith_special = _arith_method_SPARSE_ARRAY
-        comp_special = _arith_method_SPARSE_ARRAY
-        bool_special = _arith_method_SPARSE_ARRAY
     elif issubclass(cls, ABCDataFrame):
         # Same for DataFrame and SparseDataFrame
         arith_flex = _arith_method_FRAME
@@ -1668,14 +1663,7 @@ def _arith_method_SERIES(cls, op, special):
         except TypeError:
             result = masked_arith_op(x, y, op)
 
-        if isinstance(result, tuple):
-            # e.g. divmod
-            result = tuple(
-                missing.fill_zeros(r, x, y, op_name, fill_zeros) for r in result
-            )
-        else:
-            result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-        return result
+        return missing.dispatch_fill_zeros(op, x, y, result, fill_zeros)
 
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
@@ -1716,10 +1704,30 @@ def _arith_method_SERIES(cls, op, special):
             # Note: we cannot use dispatch_to_index_op because
             #  that may incorrectly raise TypeError when we
             #  should get NullFrequencyError
-            result = op(pd.Index(left), right)
-            return construct_result(
-                left, result, index=left.index, name=res_name, dtype=result.dtype
-            )
+            orig_right = right
+            if is_scalar(right):
+                # broadcast and wrap in a TimedeltaIndex
+                assert np.isnat(right)
+                right = np.broadcast_to(right, left.shape)
+                right = pd.TimedeltaIndex(right)
+
+            assert isinstance(right, (pd.TimedeltaIndex, ABCTimedeltaArray, ABCSeries))
+            try:
+                result = op(left._values, right)
+            except NullFrequencyError:
+                if orig_right is not right:
+                    # i.e. scalar timedelta64('NaT')
+                    #  We get a NullFrequencyError because we broadcast to
+                    #  TimedeltaIndex, but this should be TypeError.
+                    raise TypeError(
+                        "incompatible type for a datetime/timedelta "
+                        "operation [{name}]".format(name=op.__name__)
+                    )
+                raise
+
+            # We do not pass dtype to ensure that the Series constructor
+            #  does inference in the case where `result` has object-dtype.
+            return construct_result(left, result, index=left.index, name=res_name)
 
         lvalues = left.values
         rvalues = right
@@ -1856,7 +1864,7 @@ def _comp_method_SERIES(cls, op, special):
                     )
                 msg = "\n".join(textwrap.wrap(msg.format(future=future)))
                 warnings.warn(msg, FutureWarning, stacklevel=2)
-                other = pd.Timestamp(other)
+                other = Timestamp(other)
 
             res_values = dispatch_to_index_op(op, self, other, pd.DatetimeIndex)
 
@@ -1882,7 +1890,7 @@ def _comp_method_SERIES(cls, op, special):
                 res_values, index=self.index, name=res_name
             ).rename(res_name)
 
-        elif isinstance(other, (np.ndarray, pd.Index)):
+        elif isinstance(other, (np.ndarray, ABCIndexClass)):
             # do not check length of zerodim array
             # as it will broadcast
             if other.ndim != 0 and len(self) != len(other):
@@ -2157,8 +2165,7 @@ def _arith_method_FRAME(cls, op, special):
         except TypeError:
             result = masked_arith_op(x, y, op)
 
-        result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-        return result
+        return missing.dispatch_fill_zeros(op, x, y, result, fill_zeros)
 
     if op_name in _op_descriptions:
         # i.e. include "add" but not "__add__"
@@ -2342,47 +2349,6 @@ def _sparse_series_op(left, right, op, name):
     lvalues, rvalues = _cast_sparse_series_op(left.values, right.values, name)
     result = _sparse_array_op(lvalues, rvalues, op, name)
     return left._constructor(result, index=new_index, name=new_name)
-
-
-def _arith_method_SPARSE_ARRAY(cls, op, special):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-    op_name = _get_op_name(op, special)
-
-    def wrapper(self, other):
-        from pandas.core.arrays.sparse.array import (
-            SparseArray,
-            _sparse_array_op,
-            _wrap_result,
-            _get_fill,
-        )
-
-        if isinstance(other, np.ndarray):
-            if len(self) != len(other):
-                raise AssertionError(
-                    "length mismatch: {self} vs. {other}".format(
-                        self=len(self), other=len(other)
-                    )
-                )
-            if not isinstance(other, SparseArray):
-                dtype = getattr(other, "dtype", None)
-                other = SparseArray(other, fill_value=self.fill_value, dtype=dtype)
-            return _sparse_array_op(self, other, op, op_name)
-        elif is_scalar(other):
-            with np.errstate(all="ignore"):
-                fill = op(_get_fill(self), np.asarray(other))
-                result = op(self.sp_values, other)
-
-            return _wrap_result(op_name, result, self.sp_index, fill)
-        else:  # pragma: no cover
-            raise TypeError(
-                "operation with {other} not supported".format(other=type(other))
-            )
-
-    wrapper.__name__ = op_name
-    return wrapper
 
 
 def maybe_dispatch_ufunc_to_dunder_op(

@@ -139,7 +139,6 @@ for more.
     )
 )
 class IntervalArray(IntervalMixin, ExtensionArray):
-    dtype = IntervalDtype()
     ndim = 1
     can_hold_na = True
     _na_value = _fill_value = np.nan
