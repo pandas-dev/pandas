@@ -764,6 +764,34 @@ The appropriate way to annotate this would be as follows
    class SomeClass2:
        str = None  # type: str_type
 
+In some cases you may be tempted to use ``cast`` from the typing module when you know better than the analyzer. This occurs particularly when using custom inference functions. For example
+
+.. code-block::
+
+   from typing import cast
+
+   from pandas.core.dtypes.common import is_number
+
+   def cannot_infer_bad(obj: Union[str, int, float]):
+
+       if is_number(obj):
+           ...
+       else:  # Reasonably only str objects would reach this but...
+           obj = cast(str, obj)  # Mypy complains without this!
+	   return obj.upper()
+
+The limitation here is that while a human can reasonably understand that ``is_number`` would catch the ``int`` and ``float`` types mypy cannot make that same inference just yet (see `mypy #5206 <https://github.com/python/mypy/issues/5206>`_. While the above works, the use of ``cast`` is **strongly discouraged**. Where applicable a refactor of the code to appease static analysis is preferable
+
+.. code-block::
+
+   def cannot_infer_good(obj: Union[str, int, float]):
+
+       if isinstance(obj, str):
+           return obj.upper()
+       else:
+           ...
+
+With custom types and inference this is not always possible so exceptions are made, but every effort should be exhausted to avoid ``cast`` before going down such paths.
 
 Syntax Requirements
 ~~~~~~~~~~~~~~~~~~~
