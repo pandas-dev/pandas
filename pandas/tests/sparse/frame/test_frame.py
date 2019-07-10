@@ -136,6 +136,12 @@ class TestSparseDataFrame(SharedWithSparse):
 
         repr(float_frame)
 
+    def test_constructor_fill_value_not_scalar_raises(self):
+        d = {"b": [2, 3], "a": [0, 1]}
+        fill_value = np.array(np.nan)
+        with pytest.raises(ValueError, match="must be a scalar"):
+            SparseDataFrame(data=d, default_fill_value=fill_value)
+
     def test_constructor_dict_order(self):
         # GH19018
         # initialization ordering: by insertion order if python>= 3.6, else
