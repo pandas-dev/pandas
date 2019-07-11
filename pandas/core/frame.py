@@ -6239,7 +6239,7 @@ class DataFrame(NDFrame):
 
     def explode(self, column: str) -> "DataFrame":
         """
-        Transforms each element of a list-like to a row, replicating the
+        Transform each element of a list-like to a row, replicating the
         index values.
 
         .. versionadded:: 0.25.0

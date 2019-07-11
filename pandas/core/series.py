@@ -2008,7 +2008,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        Generate an Series with duplicated entries.
+        Generate a Series with duplicated entries.
 
         >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'],
         ...               name='animal')
@@ -3638,7 +3638,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def explode(self) -> "Series":
         """
-        Transforms each element of a list-like to a row, replicating the
+        Transform each element of a list-like to a row, replicating the
         index values.
 
         .. versionadded:: 0.25.0
