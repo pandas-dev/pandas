@@ -90,7 +90,7 @@ def test_typical_usecase():
     expected = pd.DataFrame(
         {"var2": [1, 1, 1, 2, 2, 2], "var1": list("abcdef")}, index=[0, 0, 0, 1, 1, 1]
     )
-    tm.assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_nested_EA():
