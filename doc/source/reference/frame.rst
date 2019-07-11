@@ -32,6 +32,7 @@ Attributes and underlying data
    DataFrame.get_dtype_counts
    DataFrame.get_ftype_counts
    DataFrame.select_dtypes
+   DataFrame.select_str
    DataFrame.values
    DataFrame.get_values
    DataFrame.axes

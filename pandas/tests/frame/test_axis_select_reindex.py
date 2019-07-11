@@ -806,6 +806,24 @@ class TestDataFrameSelectReindex:
         tm.assert_series_equal(res1, exp2)
         tm.assert_frame_equal(res2, exp1)
 
+    def test_select_str(self, float_frame):
+        fcopy = float_frame.copy()
+        fcopy["AA"] = 1
+
+        # regex
+        selected = fcopy.select_str(regex="[A]+")
+        assert len(selected.columns) == 2
+        assert "AA" in selected
+
+        # doesn't have to be at beginning
+        df = DataFrame(
+            {"aBBa": [1, 2], "BBaBB": [1, 2], "aCCa": [1, 2], "aCCaBB": [1, 2]}
+        )
+
+        result = df.select_str(regex="BB")
+        exp = df[[x for x in df.columns if "BB" in x]]
+        assert_frame_equal(result, exp)
+
     def test_filter(self, float_frame, float_string_frame):
         # Items
         filtered = float_frame.filter(["A", "B", "E"])

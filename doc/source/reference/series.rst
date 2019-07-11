@@ -211,6 +211,7 @@ Reindexing / selection / label manipulation
    Series.rename_axis
    Series.reset_index
    Series.sample
+   Series.select_str
    Series.set_axis
    Series.take
    Series.tail

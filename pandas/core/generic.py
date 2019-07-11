@@ -4640,6 +4640,89 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return self._constructor(new_data).__finalize__(self)
 
+    def select_str(
+        self, *, startswith=None, endswith=None, regex=None, flags=0, axis=None
+    ):
+        """
+        Select rows or columns of dataframe from the string labels in the selected axis.
+
+        Only one of keywords arguments `startswith`, `endswith` and `regex` can be used.
+
+        Parameters
+        ----------
+        startswith: str, optional
+            Test if the start of each string element matches a pattern.
+            Equivalent to :meth:`str.startswith`.
+        endswith: str, optional
+            Test if the end of each string element matches a pattern.
+            Equivalent to :meth:`str.endsswith`.
+        regex : str, optional
+            Keep labels from axis for which re.search(regex, label) is True.
+        flags : int, default 0 (no flags)
+            re module flags, e.g. re.IGNORECASE. Can only be used with parameter regex.
+        axis : int or string axis name
+            The axis to filter on.  By default this is the info axis,
+            'index' for Series, 'columns' for DataFrame.
+
+        Returns
+        -------
+        same type as input object
+
+        See Also
+        --------
+        DataFrame.loc
+        DataFrame.select_dtypes
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.array(([1, 2, 3], [4, 5, 6])),
+        ...                   index=['mouse', 'rabbit'],
+        ...                   columns=['one', 'two', 'three'])
+
+        >>> df.select_str(startswith='t')
+                two  three
+        mouse     2      3
+        rabbit    5      6
+
+        >>> # select columns by regular expression
+        >>> df.select_str(regex=r'e$', axis=1)
+                 one  three
+        mouse     1      3
+        rabbit    4      6
+
+        >>> # select rows containing 'bbi'
+        >>> df.select_str(regex=r'bbi', axis=0)
+                 one  two  three
+        rabbit    4    5      6
+        """
+        import re
+
+        num_kw = com.count_not_none(startswith, endswith, regex)
+        if num_kw != 1:
+            raise TypeError(
+                "Only one of keywords arguments `startswith`, `endswith` and "
+                "`regex` can be used."
+            )
+        if regex is None and flags != 0:
+            raise ValueError("Can only be used togehter with parameter 'regex'")
+
+        if axis is None:
+            axis = self._info_axis_name
+        labels = self._get_axis(axis)
+
+        if startswith is not None:
+            mapped = labels.str.startswith(startswith)
+        elif endswith is not None:
+            mapped = labels.str.endsswith(endswith)
+        else:  # regex
+            matcher = re.compile(regex, flags=flags)
+
+            def f(x):
+                return matcher.search(x) is not None
+
+            mapped = labels.map(f)
+        return self.loc(axis=axis)[mapped]
+
     def filter(self, items=None, like=None, regex=None, axis=None):
         """
         Subset rows or columns of dataframe according to labels in

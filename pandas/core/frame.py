@@ -3347,6 +3347,11 @@ class DataFrame(NDFrame):
         * To select Pandas datetimetz dtypes, use ``'datetimetz'`` (new in
           0.20.0) or ``'datetime64[ns, tz]'``
 
+        See Also
+        --------
+        DataFrame.select_str
+        DataFrame.loc
+
         Examples
         --------
         >>> df = pd.DataFrame({'a': [1, 2] * 3,
