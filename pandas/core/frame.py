@@ -2784,7 +2784,6 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Getting and setting elements
 
-    # indexing method
     def get_value(self, index, col, takeable=False):
         """
         Quickly retrieve single value at passed column and index.
@@ -2812,7 +2811,6 @@ class DataFrame(NDFrame):
         )
         return self._get_value(index, col, takeable=takeable)
 
-    # indexing method
     def _get_value(self, index, col, takeable=False):
 
         if takeable:
@@ -2840,7 +2838,6 @@ class DataFrame(NDFrame):
 
     _get_value.__doc__ = get_value.__doc__
 
-    # indexing method
     def set_value(self, index, col, value, takeable=False):
         """
         Put single value at passed column and index.
@@ -2870,7 +2867,6 @@ class DataFrame(NDFrame):
         )
         return self._set_value(index, col, value, takeable=takeable)
 
-    # indexing method
     def _set_value(self, index, col, value, takeable=False):
         try:
             if takeable is True:
@@ -2894,7 +2890,6 @@ class DataFrame(NDFrame):
 
     _set_value.__doc__ = set_value.__doc__
 
-    # indexing method
     def _ixs(self, i: int, axis: int = 0):
         """
         Parameters
@@ -2944,7 +2939,6 @@ class DataFrame(NDFrame):
 
             return result
 
-    # indexing method
     def __getitem__(self, key):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
@@ -3000,7 +2994,6 @@ class DataFrame(NDFrame):
 
         return data
 
-    # indexing method
     def _getitem_bool_array(self, key):
         # also raises Exception if object array with NA values
         # warning here just in case -- previously __setitem__ was
@@ -3024,7 +3017,6 @@ class DataFrame(NDFrame):
         indexer = key.nonzero()[0]
         return self._take(indexer, axis=0)
 
-    # indexing method
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
         if isinstance(loc, (slice, Series, np.ndarray, Index)):
@@ -3062,7 +3054,6 @@ class DataFrame(NDFrame):
         else:
             return self._get_item_cache(key)
 
-    # indexing method
     def _getitem_frame(self, key):
         if key.values.size and not is_bool_dtype(key.values):
             raise ValueError("Must pass DataFrame with boolean values only")
@@ -3457,7 +3448,6 @@ class DataFrame(NDFrame):
         klass = self._constructor_sliced
         return klass(values, index=self.index, name=items, fastpath=True)
 
-    # indexing method
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
 
@@ -3474,12 +3464,10 @@ class DataFrame(NDFrame):
             # set column
             self._set_item(key, value)
 
-    # indexing method
     def _setitem_slice(self, key, value):
         self._check_setitem_copy()
         self.loc._setitem_with_indexer(key, value)
 
-    # indexing method
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
         if com.is_bool_indexer(key):
@@ -3502,7 +3490,6 @@ class DataFrame(NDFrame):
                 self._check_setitem_copy()
                 self.loc._setitem_with_indexer((slice(None), indexer), value)
 
-    # indexing method
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
@@ -3540,7 +3527,6 @@ class DataFrame(NDFrame):
                 value.index.copy(), axis=1, fill_value=np.nan
             )
 
-    # indexing method
     def _set_item(self, key, value):
         """
         Add series to DataFrame in specified column.

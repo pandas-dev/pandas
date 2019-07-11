@@ -1029,7 +1029,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return [self.index]
 
-    # indexing method
     def _ixs(self, i, axis=0):
         """
         Return the i-th value or values in the Series by location.
@@ -1067,12 +1066,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _is_mixed_type(self):
         return False
 
-    # indexing method
     def _slice(self, slobj, axis=0, kind=None):
         slobj = self.index._convert_slice_indexer(slobj, kind=kind or "getitem")
         return self._get_values(slobj)
 
-    # indexing method
     def __getitem__(self, key):
         key = com.apply_if_callable(key, self)
         try:
@@ -1120,7 +1117,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return self._get_with(key)
 
-    # indexing method
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
@@ -1172,7 +1168,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self._get_values(key)
             raise
 
-    # indexing method
     def _get_values_tuple(self, key):
         # mpl hackaround
         if com._any_none(*key):
@@ -1187,7 +1182,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self
         )
 
-    # indexing method
     def _get_values(self, indexer):
         try:
             return self._constructor(
@@ -1196,7 +1190,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         except Exception:
             return self._values[indexer]
 
-    # indexing method
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
 
@@ -1255,7 +1248,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if cacher_needs_updating:
             self._maybe_update_cacher()
 
-    # indexing method
     def _set_with_engine(self, key, value):
         values = self._values
         try:
@@ -1265,7 +1257,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             values[self.index.get_loc(key)] = value
             return
 
-    # indexing method
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
@@ -1308,7 +1299,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 self._set_labels(key, value)
 
-    # indexing method
     def _set_labels(self, key, value):
         if isinstance(key, Index):
             key = key.values
@@ -1320,7 +1310,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             raise ValueError("%s not contained in the index" % str(key[mask]))
         self._set_values(indexer, value)
 
-    # indexing method
     def _set_values(self, key, value):
         if isinstance(key, Series):
             key = key._values
@@ -1384,7 +1373,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_values = self._values.repeat(repeats)
         return self._constructor(new_values, index=new_index).__finalize__(self)
 
-    # indexing method
     def get_value(self, label, takeable=False):
         """
         Quickly retrieve single value at passed index label.
@@ -1410,7 +1398,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         )
         return self._get_value(label, takeable=takeable)
 
-    # indexing method
     def _get_value(self, label, takeable=False):
         if takeable is True:
             return com.maybe_box_datetimelike(self._values[label])
@@ -1418,7 +1405,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _get_value.__doc__ = get_value.__doc__
 
-    # indexing method
     def set_value(self, label, value, takeable=False):
         """
         Quickly set single value at passed label.
@@ -1452,7 +1438,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         )
         return self._set_value(label, value, takeable=takeable)
 
-    # indexing method
     def _set_value(self, label, value, takeable=False):
         try:
             if takeable:
@@ -4387,7 +4372,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             v += self.index.memory_usage(deep=deep)
         return v
 
-    # indexing method
     @Appender(generic.NDFrame._take.__doc__)
     def _take(self, indices, axis=0, is_copy=False):
 
