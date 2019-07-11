@@ -362,9 +362,6 @@ class TestJSONNormalize:
         result = json_normalize(json.loads(testjson))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(
-        not PY36, reason="Test vectors depends on PY36 guaranteed dict key ordering"
-    )
     def test_missing_field(self, author_missing_data):
         # GH20030:
         result = json_normalize(author_missing_data)
@@ -385,7 +382,7 @@ class TestJSONNormalize:
             },
         ]
         expected = DataFrame(ex_data)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_like=PY36)
 
     @pytest.mark.parametrize(
         "max_level,expected",
@@ -505,9 +502,6 @@ class TestNestedToRecord:
                 errors="raise",
             )
 
-    @pytest.mark.skipif(
-        not PY36, reason="Test vectors depends on PY36 guaranteed dict key ordering"
-    )
     def test_missing_meta(self, missing_metadata):
         # GH25468
         # If metadata is nullable with errors set to ignore, the null values
@@ -522,7 +516,7 @@ class TestNestedToRecord:
         columns = ["city", "number", "state", "street", "zip", "name"]
         columns = ["number", "street", "city", "state", "zip", "name"]
         expected = DataFrame(ex_data, columns=columns)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_like=PY36)
 
     def test_donot_drop_nonevalues(self):
         # GH21356

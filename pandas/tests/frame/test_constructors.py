@@ -1340,7 +1340,6 @@ class TestDataFrameConstructors:
         result = DataFrame(tuples, columns=["y", "z"])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY36, reason="Guaranteed dict order requires Python>=3.6")
     def test_constructor_list_of_dict_order(self):
         # GH10056
         data = [
@@ -1360,7 +1359,7 @@ class TestDataFrameConstructors:
         )
         result = DataFrame(data)
         assert set(result.columns) == set(expected.columns)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_like=PY36)
 
     def test_constructor_orient(self, float_string_frame):
         data_dict = float_string_frame.T._series
