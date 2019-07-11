@@ -482,7 +482,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         from pandas.core.computation.common import _remove_spaces_column_name
 
-        return {_remove_spaces_column_name(k): v for k, v in self.iteritems()}
+        return {_remove_spaces_column_name(k): v for k, v in self.items()}
 
     @property
     def _info_axis(self):
@@ -1912,14 +1912,21 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         return self._info_axis
 
-    def iteritems(self):
-        """
-        Iterate over (label, values) on info axis
+    def items(self):
+        """Iterate over (label, values) on info axis
 
-        This is index for Series, columns for DataFrame and so on.
+        This is index for Series and columns for DataFrame.
+
+        Returns
+        -------
+        Generator
         """
         for h in self._info_axis:
             yield h, self[h]
+
+    @Appender(items.__doc__)
+    def iteritems(self):
+        return self.items()
 
     def __len__(self):
         """Returns length of info axis"""
@@ -5888,7 +5895,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         "key in a dtype mappings argument."
                     )
             results = []
-            for col_name, col in self.iteritems():
+            for col_name, col in self.items():
                 if col_name in dtype:
                     results.append(
                         col.astype(
@@ -10304,7 +10311,7 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             data = self.select_dtypes(include=include, exclude=exclude)
 
-        ldesc = [describe_1d(s) for _, s in data.iteritems()]
+        ldesc = [describe_1d(s) for _, s in data.items()]
         # set a convenient order for rows
         names = []
         ldesc_indexes = sorted((x.index for x in ldesc), key=len)
