@@ -225,7 +225,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         KeyError
             If the key was not found
         """
-        raise AbstractMethodError()
+        raise AbstractMethodError(self)
 
     def _has_valid_tuple(self, key):
         """ check the key for valid keys across my indexer """
