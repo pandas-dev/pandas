@@ -181,15 +181,6 @@ The repr now looks like this:
     }]
     json_normalize(data, max_level=1)
 
-Column order is preserved when passing a list of dicts to DataFrame
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-A long requested feature, this has been the behavior for lists of
-`OrderedDict` since v0.19.0. With dict key-order now officially
-`guaranteed <https://mail.python.org/pipermail/python-dev/2017-December/151283.html>`
-for python>=3.7, and in practice since python 3.6, the DataFrame
-constructor now treats dicts the same way in this case, when pandas
-is running on python>=3.6 (:issue:`27309`).
 
 .. _whatsnew_0250.enhancements.other:
 
@@ -749,6 +740,44 @@ consistent with NumPy and the rest of pandas (:issue:`21801`).
 
    cat.argsort()
    cat[cat.argsort()]
+
+.. _whatsnew_0250.api_breaking.list_of_dict:
+
+Column order is preserved when passing a list of dicts to DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Starting with Python 3.7 the key-order of `dict` is `guaranteed <https://mail.python.org/pipermail/python-dev/2017-December/151283.html>`_. In practice, this has been true since
+Python 3.6. The DataFrame constructor now treats a list of dicts in the same way as
+it has a list of `OrderedDict` since v0.19.0. This change applies only when pandas is running
+on python>=3.6 (:issue:`27309`). As a consequence, the column order produced by `DataFrame()`
+in such cases has changed.
+
+.. code-block:: ipython
+
+   In [1]: data= [
+      ...:     {'name': 'Joe', 'state': 'NY', 'age': 18},
+      ...:     {'name': 'Jane', 'state': 'KY', 'age': 19}
+      ...: ]
+
+*Previous behavior*
+
+.. code-block:: ipython
+
+   In [1]: pd.DataFrame(data)
+   Out[1]:
+      age  name state
+   0   18   Joe    NY
+   1   19  Jane    KY
+
+*New behavior*
+
+.. code-block:: ipython
+
+   In [2]: pd.DataFrame(data)
+   Out[2]:
+      name state  age
+   0   Joe    NY   18
+   1  Jane    KY   19
 
 .. _whatsnew_0250.api_breaking.deps:
 
