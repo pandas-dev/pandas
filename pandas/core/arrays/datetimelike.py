@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas._typing import DatetimeLikeScalar
 from pandas.core import missing, nanops
@@ -492,7 +492,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value)
             value = self._unbox_scalar(value)
-        elif is_valid_na(value, self.dtype):
+        elif is_valid_nat_for_dtype(value, self.dtype):
             value = iNaT
         elif not isna(value) and lib.is_integer(value) and value == iNaT:
             # exclude misc e.g. object() and any NAs not allowed above
@@ -1682,27 +1682,3 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
             # period array cannot be coerced to int
             other = Index(other)
     return other.asi8
-
-
-def is_valid_na(obj, dtype):
-    """
-    isna check that excludes incompatible dtypes
-
-    Parameters
-    ----------
-    obj : object
-    dtype : np.datetime64, np.timedelta64, DatetimeTZDtype, or PeriodDtype
-
-    Returns
-    -------
-    bool
-    """
-    if not isna(obj):
-        return False
-    if dtype.kind == "M":
-        return not isinstance(obj, np.timedelta64)
-    if dtype.kind == "m":
-        return not isinstance(obj, np.datetime64)
-
-    # must be PeriodDType
-    return not isinstance(obj, (np.datetime64, np.timedelta64))
