@@ -67,7 +67,7 @@ def test_usecase():
     # explode a single column
     # gh-10511
     df = pd.DataFrame(
-        [[11, range(5), 10], [22, range(3), 20]], columns=["A", "B", "C"]
+        [[11, range(5), 10], [22, range(3), 20]], columns=list("ABC")
     ).set_index("C")
     result = df.explode("B")
 
