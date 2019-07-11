@@ -1340,7 +1340,7 @@ class TestDataFrameConstructors:
         result = DataFrame(tuples, columns=["y", "z"])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY36, reason="Guaranteed dict order is Python>=3.7")
+    @pytest.mark.skipif(not PY36, reason="Guaranteed dict order requires Python>=3.6")
     def test_constructor_list_of_dict_order(self):
         # GH10056
         data = [

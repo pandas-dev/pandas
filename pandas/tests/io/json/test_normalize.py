@@ -363,7 +363,7 @@ class TestJSONNormalize:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(
-        not PY36, reason="Test vectors depend on " "PY36 guaranteed dict key ordering"
+        not PY36, reason="Test vectors depends on PY36 guaranteed dict key ordering"
     )
     def test_missing_field(self, author_missing_data):
         # GH20030:
@@ -506,7 +506,7 @@ class TestNestedToRecord:
             )
 
     @pytest.mark.skipif(
-        not PY36, reason="Test vectors depend on " "PY36 guaranteed dict key ordering"
+        not PY36, reason="Test vectors depends on PY36 guaranteed dict key ordering"
     )
     def test_missing_meta(self, missing_metadata):
         # GH25468
