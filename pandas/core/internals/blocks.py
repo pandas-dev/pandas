@@ -61,7 +61,13 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import _isna_compat, array_equivalent, isna, notna
+from pandas.core.dtypes.missing import (
+    _isna_compat,
+    array_equivalent,
+    is_valid_nat_for_dtype,
+    isna,
+    notna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
@@ -2259,7 +2265,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         elif is_integer(element):
             return element == tslibs.iNaT
 
-        return isna(element) and not isinstance(element, np.timedelta64)
+        return is_valid_nat_for_dtype(element, self.dtype)
 
     def _coerce_values(self, values):
         return values.view("i8")
@@ -2619,7 +2625,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             return True
         elif is_integer(element):
             return element == tslibs.iNaT
-        return isna(element) and not isinstance(element, np.datetime64)
+        return is_valid_nat_for_dtype(element, self.dtype)
 
     def fillna(self, value, **kwargs):
 
