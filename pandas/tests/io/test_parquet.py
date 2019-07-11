@@ -472,6 +472,7 @@ class TestParquetPyArrow(Base):
             assert dataset.partitions.partition_names == set(partition_cols)
 
     def test_empty_dataframe(self, pa):
+        # GH #27339
         df = pd.DataFrame()
         check_round_trip(df, pa)
 
@@ -572,6 +573,7 @@ class TestParquetFastParquet(Base):
                 )
 
     def test_empty_dataframe(self, fp):
+        # GH #27339
         df = pd.DataFrame()
         expected = df.copy()
         expected.index.name = "index"
