@@ -24,7 +24,7 @@ dependencies:
   - pytest-xdist
   - pytest-mock
   - pytest-azurepipelines
-  - hypothesis>=4.0
+  - hypothesis>=3.58.0
   - pip
   - pip:
     - html5lib==1.0b2

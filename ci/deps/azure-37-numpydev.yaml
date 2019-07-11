@@ -9,7 +9,7 @@ dependencies:
   - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
-  - hypothesis>=4.0
+  - hypothesis>=3.58.0
   - pip
   - pip:
     - "git+git://github.com/dateutil/dateutil.git"

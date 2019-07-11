@@ -29,4 +29,4 @@ dependencies:
   - pytest-xdist
   - pytest-mock
   - moto
-  - hypothesis>=4.0
+  - hypothesis>=3.58.0

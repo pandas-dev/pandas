@@ -39,4 +39,4 @@ dependencies:
   - pytest-mock
   - pip
   - pip:
-    - hypothesis>=4.0
+    - hypothesis>=3.58.0
