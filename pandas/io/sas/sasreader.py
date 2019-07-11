@@ -23,8 +23,8 @@ def read_sas(
         expected. A local file could be:
         ``file://localhost/path/to/table.sas``.
 
-        If you want to pass in a path object, pandas accepts either
-        ``pathlib.Path`` or ``py._path.local.LocalPath``.
+        If you want to pass in a path object, pandas accepts any
+        ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)

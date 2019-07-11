@@ -171,8 +171,8 @@ def read_msgpack(path_or_buf, encoding="utf-8", iterator=False, **kwargs):
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected.
 
-        If you want to pass in a path object, pandas accepts either
-        ``pathlib.Path`` or ``py._path.local.LocalPath``.
+        If you want to pass in a path object, pandas accepts any
+        ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function) or
