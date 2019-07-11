@@ -1212,7 +1212,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if not (ax.is_categorical() or ax.is_interval()):
                 warnings.warn(_missing_key_warning, FutureWarning, stacklevel=6)
 
-    def _convert_to_indexer(self, obj, axis: int, is_setter: bool = False):
+    def _convert_to_indexer(
+        self, obj, axis: int, is_setter: bool = False, raise_missing: bool = False
+    ):
         """
         Convert indexing key into something we can use to do actual fancy
         indexing on an ndarray
@@ -1289,7 +1291,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 return inds
             else:
                 # When setting, missing keys are not allowed, even with .loc:
-                kwargs = {"raise_missing": is_setter}
+                kwargs = {"raise_missing": True if is_setter else raise_missing}
                 return self._get_listlike_indexer(obj, axis, **kwargs)[1]
         else:
             try:
@@ -2172,7 +2174,10 @@ class _iLocIndexer(_LocationIndexer):
 
             return self._get_loc(key, axis=axis)
 
-    def _convert_to_indexer(self, obj, axis: int, is_setter: bool = False):
+    # raise_missing is included for compat with the parent class signature
+    def _convert_to_indexer(
+        self, obj, axis: int, is_setter: bool = False, raise_missing: bool = False
+    ):
         """ much simpler as we only have to deal with our valid types """
 
         # make need to convert a float key
