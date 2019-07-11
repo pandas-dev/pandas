@@ -1105,7 +1105,7 @@ class FrameParser(Parser):
 
         needs_new_obj = False
         new_obj = dict()
-        for i, (col, c) in enumerate(self.obj.iteritems()):
+        for i, (col, c) in enumerate(self.obj.items()):
             if filt(col, c):
                 new_data, result = f(col, c)
                 if result:

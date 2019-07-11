@@ -319,7 +319,7 @@ class SharedWithSparse:
         for row, s in df.iterrows():
             str(s)
 
-        for c, col in df.iteritems():
+        for c, col in df.items():
             str(s)
 
     def test_len(self, float_frame):
@@ -430,7 +430,7 @@ class SharedWithSparse:
         expected = "              X\nNaT        a  1\n2013-01-01 b  2"
         assert result == expected
 
-    def test_iteritems_names(self, float_string_frame):
+    def test_items_names(self, float_string_frame):
         for k, v in float_string_frame.items():
             assert v.name == k
 

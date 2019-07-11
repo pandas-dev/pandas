@@ -2712,7 +2712,7 @@ class TestDataFrameIndexing(TestData):
             other1 = _safe_add(df)
             rs = df.where(cond, other1)
             rs2 = df.where(cond.values, other1)
-            for k, v in rs.iteritems():
+            for k, v in rs.items():
                 exp = Series(np.where(cond[k], df[k], other1[k]), index=v.index)
                 assert_series_equal(v, exp, check_names=False)
             assert_frame_equal(rs, rs2)

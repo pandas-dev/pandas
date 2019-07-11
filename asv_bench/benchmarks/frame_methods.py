@@ -115,15 +115,15 @@ class Iteration:
         )
         self.df4 = DataFrame(np.random.randn(N * 1000, 10))
 
-    def time_iteritems(self):
+    def time_items(self):
         # (monitor no-copying behaviour)
         if hasattr(self.df, "_item_cache"):
             self.df._item_cache.clear()
-        for name, col in self.df.iteritems():
+        for name, col in self.df.items():
             pass
 
-    def time_iteritems_cached(self):
-        for name, col in self.df.iteritems():
+    def time_items_cached(self):
+        for name, col in self.df.items():
             pass
 
     def time_iteritems_indexing(self):
