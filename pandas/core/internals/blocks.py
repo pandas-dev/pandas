@@ -786,6 +786,8 @@ class Block(PandasObject):
         # If we cannot replace with own dtype, convert to ObjectBlock and
         # retry
         if not self._can_hold_element(to_replace):
+            # TODO: we should be able to infer at this point that there is
+            #  nothing to replace
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
             if is_object_dtype(self):
