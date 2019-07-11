@@ -694,7 +694,7 @@ class TestSeriesOperators(TestData):
 
     pairings = [
         (Series.div, operator.truediv, 1),
-        (Series.rdiv, lambda x, y: operator.truediv(y, x), 1),
+        (Series.rdiv, ops.rtruediv, 1),
     ]
     for op in ["add", "sub", "mul", "pow", "truediv", "floordiv"]:
         fv = 0

@@ -12,6 +12,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Series, SparseDtype, SparseSeries, bdate_range, isna
+from pandas.core import ops
 from pandas.core.reshape.util import cartesian_product
 import pandas.core.sparse.frame as spf
 from pandas.tests.series.test_api import SharedWithSparse
@@ -572,16 +573,16 @@ class TestSparseSeries(SharedWithSparse):
             _check_op(a, b, operator.floordiv)
             _check_op(a, b, operator.mul)
 
-            _check_op(a, b, lambda x, y: operator.add(y, x))
-            _check_op(a, b, lambda x, y: operator.sub(y, x))
-            _check_op(a, b, lambda x, y: operator.truediv(y, x))
-            _check_op(a, b, lambda x, y: operator.floordiv(y, x))
-            _check_op(a, b, lambda x, y: operator.mul(y, x))
+            _check_op(a, b, ops.radd)
+            _check_op(a, b, ops.rsub)
+            _check_op(a, b, ops.rtruediv)
+            _check_op(a, b, ops.rfloordiv)
+            _check_op(a, b, ops.rmul)
 
             # FIXME: don't leave commented-out
             # NaN ** 0 = 1 in C?
             # _check_op(a, b, operator.pow)
-            # _check_op(a, b, lambda x, y: operator.pow(y, x))
+            # _check_op(a, b, ops.rpow)
 
         check(self.bseries, self.bseries)
         check(self.iseries, self.iseries)
