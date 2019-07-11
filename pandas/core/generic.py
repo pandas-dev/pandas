@@ -2182,6 +2182,9 @@ class NDFrame(PandasObject, SelectionMixin):
     freeze_panes : tuple of int (length 2), optional
         Specifies the one-based bottommost row and rightmost column that
         is to be frozen.
+
+        .. versionadded:: 0.20.0.
+
     table : string, default None
         Write the dataframe to a named and formatted excel table object
 
