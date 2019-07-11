@@ -802,7 +802,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         assert is_scalar(result) and result == "Z"
 
-    def test_loc_coerceion(self):
+    def test_loc_coercion(self):
 
         # 12411
         df = DataFrame({"date": [Timestamp("20130101").tz_localize("UTC"), pd.NaT]})
@@ -837,6 +837,26 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         result = df.iloc[3:]
         tm.assert_series_equal(result.dtypes, expected)
+
+    def test_setitem_new_key_tz(self):
+        # GH#12862 should not raise on assigning the second value
+        vals = [
+            pd.to_datetime(42).tz_localize("UTC"),
+            pd.to_datetime(666).tz_localize("UTC"),
+        ]
+        expected = pd.Series(vals, index=["foo", "bar"])
+
+        ser = pd.Series()
+        ser["foo"] = vals[0]
+        ser["bar"] = vals[1]
+
+        tm.assert_series_equal(ser, expected)
+
+        ser = pd.Series()
+        ser.loc["foo"] = vals[0]
+        ser.loc["bar"] = vals[1]
+
+        tm.assert_series_equal(ser, expected)
 
     def test_loc_non_unique(self):
         # GH3659
