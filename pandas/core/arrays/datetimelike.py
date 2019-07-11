@@ -492,7 +492,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value)
             value = self._unbox_scalar(value)
-        elif is_valid_na(value, self.dtype) or value == iNaT:
+        elif is_valid_na(value, self.dtype):
+            value = iNaT
+        elif not isna(value) and lib.is_integer(value) and value == iNaT:
+            # exclude misc e.g. object() and any NAs not allowed above
             value = iNaT
         else:
             msg = (
