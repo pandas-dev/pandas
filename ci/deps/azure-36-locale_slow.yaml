@@ -33,4 +33,4 @@ dependencies:
   - moto
   - pip
   - pip:
-    - hypothesis>=3.58.0
+    - hypothesis>=4.0
