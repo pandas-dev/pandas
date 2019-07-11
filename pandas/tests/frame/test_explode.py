@@ -9,16 +9,19 @@ def test_error():
     df = pd.DataFrame(
         {"A": pd.Series([[0, 1, 2], np.nan, [], (3, 4)], index=list("abcd")), "B": 1}
     )
+    with pytest.raises(ValueError):
+        df.explode(list("AA"))
+
     df.columns = list("AA")
     with pytest.raises(ValueError):
-        df.explode(subset=list("AA"))
+        df.explode("A")
 
 
 def test_basic():
     df = pd.DataFrame(
         {"A": pd.Series([[0, 1, 2], np.nan, [], (3, 4)], index=list("abcd")), "B": 1}
     )
-    result = df.explode(subset=["A"])
+    result = df.explode("A")
     expected = pd.DataFrame(
         {
             "A": pd.Series(
@@ -26,41 +29,6 @@ def test_basic():
             ),
             "B": 1,
         }
-    )
-    tm.assert_frame_equal(result, expected)
-
-
-def test_all_columns():
-    df = pd.DataFrame(
-        {"A": pd.Series([[0, 1, 2], np.nan, [], (3, 4)], index=list("abcd")), "B": 1}
-    )
-    result = df.explode(subset=["A", "B"])
-    expected = pd.DataFrame(
-        {
-            "A": pd.Series(
-                [0, 1, 2, np.nan, np.nan, 3, 4], index=list("aaabcdd"), dtype=object
-            ),
-            "B": 1,
-        }
-    )
-    tm.assert_frame_equal(result, expected)
-
-
-def test_multiple_columns():
-    df = pd.DataFrame(
-        {
-            "A": pd.Series([[0, 1, 2], np.nan, [], (3, 4)], index=list("abcd")),
-            "B": pd.Series([[0, 1, 2], np.nan, np.nan, 3], index=list("abcd")),
-        }
-    )
-    result = df.explode(subset=["A", "B"])
-    expected = pd.DataFrame(
-        {
-            "A": [0, 0, 0, 1, 1, 1, 2, 2, 2, np.nan, np.nan, 3, 4],
-            "B": [0, 1, 2, 0, 1, 2, 0, 1, 2, np.nan, np.nan, 3, 3],
-        },
-        dtype=object,
-        index=list("aaaaaaaaabcdd"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -71,7 +39,7 @@ def test_usecase():
     df = pd.DataFrame(
         [[11, range(5), 10], [22, range(3), 20]], columns=["A", "B", "C"]
     ).set_index("C")
-    result = df.explode(["B"])
+    result = df.explode("B")
 
     expected = pd.DataFrame(
         {
@@ -89,7 +57,7 @@ def test_usecase():
         [["2014-01-01", "Alice", "A B"], ["2014-01-02", "Bob", "C D"]],
         columns=["dt", "name", "text"],
     )
-    result = df.assign(text=df.text.str.split(" ")).explode(["text"])
+    result = df.assign(text=df.text.str.split(" ")).explode("text")
     expected = pd.DataFrame(
         [
             ["2014-01-01", "Alice", "A"],

@@ -6237,15 +6237,15 @@ class DataFrame(NDFrame):
         else:
             return stack(self, level, dropna=dropna)
 
-    def explode(self, subset: Iterable) -> "DataFrame":
+    def explode(self, column: str) -> "DataFrame":
         """
-        Create new DataFrame expanding a list-like columns.
+        Create new DataFrame expanding a specified list-like column.
 
         .. versionadded:: 0.25.0
 
         Parameters
         ----------
-        subset : list-like
+        column : str
 
         Returns
         -------
@@ -6256,9 +6256,7 @@ class DataFrame(NDFrame):
         Raises
         ------
         ValueError :
-            if columns & subset are not unique.
-        ValueError :
-            subset must be list-like
+            if columns of the frame are not unique.
 
         See Also
         --------
@@ -6285,7 +6283,7 @@ class DataFrame(NDFrame):
         2         []  1
         3     [3, 4]  1
 
-        >>>  df.explode(['A'])
+        >>>  df.explode('A')
              A  B
         0    1  1
         0    2  1
@@ -6297,24 +6295,16 @@ class DataFrame(NDFrame):
 
         """
 
-        if not is_list_like(subset):
-            raise ValueError("subset must be a list-like")
-        if not Index(subset).is_unique:
-            raise ValueError("subset must be unique")
+        if not is_scalar(column):
+            raise ValueError("column must be a scalar")
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
-        results = [self[s].explode() for s in subset]
-        result = self.drop(subset, axis=1)
-
-        # recursive merge
-        from pandas.core.reshape.merge import merge
-
-        def merger(left, right):
-            return merge(left, right, left_index=True, right_index=True)
-
-        return functools.reduce(merger, [result] + results).reindex(
-            columns=self.columns, copy=False
+        result = self[column].explode()
+        return (
+            self.drop([column], axis=1)
+            .join(result)
+            .reindex(columns=self.columns, copy=False)
         )
 
     def unstack(self, level=-1, fill_value=None):
