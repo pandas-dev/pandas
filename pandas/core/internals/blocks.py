@@ -1001,6 +1001,7 @@ class Block(PandasObject):
                     or len(new) == 1
                 ):
                     raise ValueError("cannot assign mismatch length to masked array")
+
             np.putmask(new_values, mask, new)
 
         # maybe upcast me
@@ -2657,9 +2658,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         if is_null_datetimelike(other) and not isinstance(other, np.datetime64):
             other = tslibs.iNaT
         elif isinstance(other, (timedelta, np.timedelta64)):
-            other = Timedelta(other).to_timedelta64()
+            other = Timedelta(other).value
         elif hasattr(other, "dtype") and is_timedelta64_dtype(other):
-            other = other.astype("i8", copy=False).view("m8[ns]")
+            other = other.astype("i8", copy=False).view("i8")
         else:
             # coercion issues
             # let higher levels handle
