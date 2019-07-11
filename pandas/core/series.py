@@ -3683,6 +3683,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3      3
         3      4
         dtype: object
+
         """
         if not len(self) or not is_object_dtype(self):
             return self.copy()

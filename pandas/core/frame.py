@@ -6283,7 +6283,7 @@ class DataFrame(NDFrame):
         2         []  1
         3     [3, 4]  1
 
-        >>>  df.explode('A')
+        >>> df.explode('A')
              A  B
         0    1  1
         0    2  1
