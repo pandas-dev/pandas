@@ -331,7 +331,12 @@ class TestDivisionByZero:
         left = pd.Series([1, 1]).astype(dtype1)
         right = pd.Series([0, 2]).astype(dtype2)
 
+        # GH#27321 pandas convention is to set 1 // 0 to np.inf, as opposed
+        #  to numpy which sets to np.nan; patch `expected[0]` below
         expected = left // right, left % right
+        expected = list(expected)
+        expected[0] = expected[0].astype(np.float64)
+        expected[0][0] = np.inf
         result = divmod(left, right)
 
         tm.assert_series_equal(result[0], expected[0])
@@ -881,17 +886,16 @@ class TestAdditionSubtraction:
 
             _check_op(series, other, operator.pow, pos_only=True)
 
-            _check_op(series, other, lambda x, y: operator.add(y, x))
-            _check_op(series, other, lambda x, y: operator.sub(y, x))
-            _check_op(series, other, lambda x, y: operator.truediv(y, x))
-            _check_op(series, other, lambda x, y: operator.floordiv(y, x))
-            _check_op(series, other, lambda x, y: operator.mul(y, x))
-            _check_op(series, other, lambda x, y: operator.pow(y, x), pos_only=True)
-            _check_op(series, other, lambda x, y: operator.mod(y, x))
+            _check_op(series, other, ops.radd)
+            _check_op(series, other, ops.rsub)
+            _check_op(series, other, ops.rtruediv)
+            _check_op(series, other, ops.rfloordiv)
+            _check_op(series, other, ops.rmul)
+            _check_op(series, other, ops.rpow, pos_only=True)
+            _check_op(series, other, ops.rmod)
 
         tser = tm.makeTimeSeries().rename("ts")
         check(tser, tser * 2)
-        check(tser, tser * 0)
         check(tser, tser[::2])
         check(tser, 5)
 
@@ -931,13 +935,9 @@ class TestAdditionSubtraction:
 
         tser = tm.makeTimeSeries().rename("ts")
         check(tser, tser * 2)
-        check(tser, tser * 0)
         check(tser, tser[::2])
         check(tser, 5)
 
-    @pytest.mark.xfail(
-        reason="Series division does not yet fill 1/0 consistently; Index does."
-    )
     def test_series_divmod_zero(self):
         # Check that divmod uses pandas convention for division by zero,
         #  which does not match numpy.
@@ -950,8 +950,8 @@ class TestAdditionSubtraction:
         other = tser * 0
 
         result = divmod(tser, other)
-        exp1 = pd.Series([np.inf] * len(tser), index=tser.index)
-        exp2 = pd.Series([np.nan] * len(tser), index=tser.index)
+        exp1 = pd.Series([np.inf] * len(tser), index=tser.index, name="ts")
+        exp2 = pd.Series([np.nan] * len(tser), index=tser.index, name="ts")
         tm.assert_series_equal(result[0], exp1)
         tm.assert_series_equal(result[1], exp2)
 
