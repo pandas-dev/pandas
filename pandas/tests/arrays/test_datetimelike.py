@@ -651,3 +651,39 @@ class TestPeriodArray(SharedTests):
         result = np.asarray(arr, dtype="S20")
         expected = np.asarray(arr).astype("S20")
         tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "array",
+    [
+        pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
+        pd.date_range("2000-01-01", periods=3, freq="D")._data,
+        pd.period_range("2000-01-01", periods=3, freq="D")._data,
+    ],
+    ids=lambda x: type(x).__name__,
+)
+def test_nat_assignment_array(array):
+    expected = type(array)._from_sequence([pd.NaT, array[1], array[2]])
+
+    all_nats = [pd.NaT, np.timedelta64("NaT", "ns"), np.datetime64("NaT", "ns")]
+    casting_nats = {
+        TimedeltaArray: [pd.NaT, np.timedelta64("NaT", "ns")],
+        DatetimeArray: [pd.NaT, np.datetime64("NaT", "ns")],
+        PeriodArray: [pd.NaT],
+    }[type(array)]
+    non_casting_nats = {
+        TimedeltaArray: [np.datetime64("NaT", "ns")],
+        DatetimeArray: [np.timedelta64("NaT", "ns")],
+        PeriodArray: [np.timedelta64("NaT", "ns"), np.datetime64("NaT", "ns")],
+    }[type(array)]
+
+    for nat in casting_nats:
+        arr = array.copy()
+        arr[0] = nat
+
+        tm.assert_equal(arr, expected)
+
+    for nat in non_casting_nats:
+        arr = array.copy()
+        with pytest.raises(TypeError):
+            arr[0] = nat

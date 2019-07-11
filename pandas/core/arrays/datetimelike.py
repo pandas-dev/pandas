@@ -492,7 +492,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value)
             value = self._unbox_scalar(value)
-        elif isna(value) or value == iNaT:
+        elif is_valid_na(value, self.dtype) or value == iNaT:
             value = iNaT
         else:
             msg = (
@@ -1679,3 +1679,27 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
             # period array cannot be coerced to int
             other = Index(other)
     return other.asi8
+
+
+def is_valid_na(obj, dtype):
+    """
+    isna check that excludes incompatible dtypes
+
+    Parameters
+    ----------
+    obj : object
+    dtype : np.datetime64, np.timedelta64, DatetimeTZDtype, or PeriodDtype
+
+    Returns
+    -------
+    bool
+    """
+    if not isna(obj):
+        return False
+    if dtype.kind == "M":
+        return not isinstance(obj, np.timedelta64)
+    if dtype.kind == "m":
+        return not isinstance(obj, np.datetime64)
+
+    # must be PeriodDType
+    return not isinstance(obj, (np.datetime64, np.timedelta64))
