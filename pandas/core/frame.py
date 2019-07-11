@@ -2751,7 +2751,6 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Picklability
 
-    # TODO: can we get rid of these?
     # legacy pickle formats
     def _unpickle_frame_compat(self, state):  # pragma: no cover
         if len(state) == 2:  # pragma: no cover

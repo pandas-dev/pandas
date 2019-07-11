@@ -10321,7 +10321,6 @@ class NDFrame(PandasObject, SelectionMixin):
         d.columns = data.columns.copy()
         return d
 
-    # TODO: doesn't need to be a method
     def _check_percentile(self, q):
         """
         Validate percentiles (used by describe and quantile).

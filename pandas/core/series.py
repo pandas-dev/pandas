@@ -991,7 +991,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
 
-    # TODO: can we get rid of this?
     def _unpickle_series_compat(self, state):
         if isinstance(state, dict):
             self._data = state["_data"]
