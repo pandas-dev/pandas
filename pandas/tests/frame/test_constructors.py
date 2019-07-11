@@ -1354,16 +1354,13 @@ class TestDataFrameConstructors:
                 "Second": [4, 5, 6],
                 "Third": [7, 8, 9],
                 "Fourth": [10, 11, 12],
-                "XXX": [None, None, 13],
                 "YYY": [None, None, 14],
+                "XXX": [None, None, 13],
             }
         )
         result = DataFrame(data)
         assert set(result.columns) == set(expected.columns)
-        # order of first 4 columns dictated by data[0]
-        tm.assert_frame_equal(result.iloc[:, :4], expected.iloc[:, :4])
-        # the order of the remaining two is arbitrary, but assert the data matches
-        tm.assert_frame_equal(result[["XXX", "YYY"]], expected[["XXX", "YYY"]])
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_orient(self, float_string_frame):
         data_dict = float_string_frame.T._series
