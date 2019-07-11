@@ -189,7 +189,7 @@ A long requested feature, this has been the behavior for lists of
 `guaranteed <https://mail.python.org/pipermail/python-dev/2017-December/151283.html>`
 for python>=3.7, and in practice since python 3.6, the DataFrame
 constructor now treats dicts the same way in this case, when pandas
-is running on python>=3.6 (:issue:`10056`).
+is running on python>=3.6 (:issue:`27309`).
 
 .. _whatsnew_0250.enhancements.other:
 
