@@ -826,9 +826,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         # no shortcut needed
         retval = self.obj
         for i, key in enumerate(tup):
-            if i >= self.obj.ndim:
-                raise IndexingError("Too many indexers")
-
             if com.is_null_slice(key):
                 continue
 
@@ -2114,9 +2111,6 @@ class _iLocIndexer(_LocationIndexer):
         retval = self.obj
         axis = 0
         for i, key in enumerate(tup):
-            if i >= self.obj.ndim:
-                raise IndexingError("Too many indexers")
-
             if com.is_null_slice(key):
                 axis += 1
                 continue

@@ -3265,6 +3265,7 @@ class NDFrame(PandasObject, SelectionMixin):
             _indexer = functools.partial(indexer, name)
             setattr(cls, name, property(_indexer, doc=indexer.__doc__))
 
+    # indexing method
     def get(self, key, default=None):
         """
         Get item from object for given key (ex: DataFrame column).
@@ -3284,9 +3285,11 @@ class NDFrame(PandasObject, SelectionMixin):
         except (KeyError, ValueError, IndexError):
             return default
 
+    # indexing method
     def __getitem__(self, item):
         return self._get_item_cache(item)
 
+    # indexing method
     def _get_item_cache(self, item):
         """Return the cached item, item represents a label indexer."""
         cache = self._item_cache
@@ -3312,6 +3315,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if hasattr(self, "_cacher"):
             del self._cacher
 
+    # indexing method
     def _iget_item_cache(self, item):
         """Return the cached item, item represents a positional indexer."""
         ax = self._info_axis
@@ -3386,6 +3390,7 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             self._item_cache.clear()
 
+    # indexing method
     def _slice(self, slobj, axis=0, kind=None):
         """
         Construct a slice of this container.
@@ -3402,6 +3407,7 @@ class NDFrame(PandasObject, SelectionMixin):
         result._set_is_copy(self, copy=is_copy)
         return result
 
+    # indexing method
     def _set_item(self, key, value):
         self._data.set(key, value)
         self._clear_item_cache()
@@ -3512,6 +3518,7 @@ class NDFrame(PandasObject, SelectionMixin):
         elif value == "warn":
             warnings.warn(t, com.SettingWithCopyWarning, stacklevel=stacklevel)
 
+    # indexing method
     def __delitem__(self, key):
         """
         Delete item
@@ -3546,6 +3553,7 @@ class NDFrame(PandasObject, SelectionMixin):
         except KeyError:
             pass
 
+    # indexing method
     def _take(self, indices, axis=0, is_copy=True):
         """
         Return the elements in the given *positional* indices along an axis.
@@ -3592,6 +3600,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return result
 
+    # indexing method
     def take(self, indices, axis=0, is_copy=True, **kwargs):
         """
         Return the elements in the given *positional* indices along an axis.
@@ -3670,6 +3679,7 @@ class NDFrame(PandasObject, SelectionMixin):
         nv.validate_take(tuple(), kwargs)
         return self._take(indices, axis=axis, is_copy=is_copy)
 
+    # indexing method
     def xs(self, key, axis=0, level=None, drop_level=True):
         """
         Return cross-section from the Series/DataFrame.
@@ -5287,9 +5297,6 @@ class NDFrame(PandasObject, SelectionMixin):
             if isinstance(c, str) and c.isidentifier()
         }
         return super()._dir_additions().union(additions)
-
-    # ----------------------------------------------------------------------
-    # Getting and setting elements
 
     # ----------------------------------------------------------------------
     # Consolidation of internals
@@ -9031,6 +9038,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return left.__finalize__(self), right.__finalize__(other)
 
+    # indexing method
     def _where(
         self,
         cond,
@@ -10348,6 +10356,7 @@ class NDFrame(PandasObject, SelectionMixin):
         d.columns = data.columns.copy()
         return d
 
+    # TODO: doesn't need to be a method
     def _check_percentile(self, q):
         """
         Validate percentiles (used by describe and quantile).
