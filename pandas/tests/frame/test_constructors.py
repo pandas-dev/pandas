@@ -1358,7 +1358,6 @@ class TestDataFrameConstructors:
             }
         )
         result = DataFrame(data)
-        assert set(result.columns) == set(expected.columns)
         tm.assert_frame_equal(result, expected, check_like=PY36)
 
     def test_constructor_orient(self, float_string_frame):
