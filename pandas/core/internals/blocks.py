@@ -1409,7 +1409,7 @@ class Block(PandasObject):
         def func(cond, values, other):
 
             if not (self.is_integer and lib.is_scalar(other) and np.isnan(other)):
-                # TODO: why does this one case behave differently?
+                # np.where will cast integer array to floats in this case
                 other = self._try_coerce_args(other)
 
             try:
