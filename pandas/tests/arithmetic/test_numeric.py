@@ -331,6 +331,8 @@ class TestDivisionByZero:
         left = pd.Series([1, 1]).astype(dtype1)
         right = pd.Series([0, 2]).astype(dtype2)
 
+        # GH#27321 pandas convention is to set 1 // 0 to np.inf, as opposed
+        #  to numpy which sets to np.nan; patch `expected[0]` below
         expected = left // right, left % right
         expected = list(expected)
         expected[0] = expected[0].astype(np.float64)

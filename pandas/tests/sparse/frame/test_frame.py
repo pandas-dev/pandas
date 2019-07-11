@@ -426,8 +426,10 @@ class TestSparseDataFrame(SharedWithSparse):
             sparse_result = op(a, b)
             dense_result = op(da, db)
 
+            # catch lambdas but not non-lambdas e.g. operator.add
             if op in [operator.floordiv, ops.rfloordiv] or isinstance(op, LambdaType):
-                # Series sets 1//0 to np.inf, which SparseArray does not do (yet)
+                # GH#27231 Series sets 1//0 to np.inf, which SparseArray
+                #  does not do (yet)
                 mask = np.isinf(dense_result) & ~np.isinf(sparse_result.to_dense())
                 dense_result[mask] = np.nan
 
