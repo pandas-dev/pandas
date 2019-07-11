@@ -274,7 +274,6 @@ class NDFrame(PandasObject, SelectionMixin):
         info_axis=None,
         stat_axis=None,
         aliases=None,
-        slicers=None,
         axes_are_reversed=False,
         build_axes=True,
         ns=None,
@@ -288,7 +287,6 @@ class NDFrame(PandasObject, SelectionMixin):
         info_axis_num : the axis of the selector dimension (int)
         stat_axis_num : the number of axis for the default stats (int)
         aliases : other names for a single axis (dict)
-        slicers : how axes slice to others (dict)
         axes_are_reversed : boolean whether to treat passed axes as
             reversed (DataFrame)
         build_axes : setup the axis properties (default True)
@@ -300,7 +298,6 @@ class NDFrame(PandasObject, SelectionMixin):
         cls._AXIS_ALIASES = aliases or dict()
         cls._AXIS_IALIASES = {v: k for k, v in cls._AXIS_ALIASES.items()}
         cls._AXIS_NAMES = dict(enumerate(axes))
-        cls._AXIS_SLICEMAP = slicers or None
         cls._AXIS_REVERSED = axes_are_reversed
 
         # typ
@@ -344,15 +341,6 @@ class NDFrame(PandasObject, SelectionMixin):
     def _construct_axes_dict_from(self, axes, **kwargs):
         """Return an axes dictionary for the passed axes."""
         d = {a: ax for a, ax in zip(self._AXIS_ORDERS, axes)}
-        d.update(kwargs)
-        return d
-
-    def _construct_axes_dict_for_slice(self, axes=None, **kwargs):
-        """Return an axes dictionary for myself."""
-        d = {
-            self._AXIS_SLICEMAP[a]: self._get_axis(a)
-            for a in (axes or self._AXIS_ORDERS)
-        }
         d.update(kwargs)
         return d
 
@@ -576,18 +564,6 @@ class NDFrame(PandasObject, SelectionMixin):
     def _obj_with_exclusions(self):
         """ internal compat with SelectionMixin """
         return self
-
-    def _expand_axes(self, key):
-        new_axes = []
-        for k, ax in zip(key, self.axes):
-            if k not in ax:
-                if type(k) != ax.dtype.type:
-                    ax = ax.astype("O")
-                new_axes.append(ax.insert(len(ax), k))
-            else:
-                new_axes.append(ax)
-
-        return new_axes
 
     def set_axis(self, labels, axis=0, inplace=None):
         """
