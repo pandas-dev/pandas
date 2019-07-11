@@ -203,7 +203,6 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
-
         """
         raise AbstractMethodError(cls)
 
@@ -221,7 +220,7 @@ class ExtensionArray:
 
         See Also
         --------
-        pandas.factorize
+        factorize
         ExtensionArray.factorize
         """
         raise AbstractMethodError(cls)
@@ -814,7 +813,7 @@ class ExtensionArray:
         See Also
         --------
         numpy.take
-        pandas.api.extensions.take
+        api.extensions.take
 
         Notes
         -----
@@ -895,7 +894,7 @@ class ExtensionArray:
 
         Parameters
         ----------
-        boxed: bool, default False
+        boxed : bool, default False
             An indicated for whether or not your array is being printed
             within a Series, DataFrame, or Index (True), or just by
             itself (False). This may be useful if you want scalar values
@@ -922,6 +921,10 @@ class ExtensionArray:
         .. deprecated:: 0.24.0
 
            Use :meth:`ExtensionArray._formatter` instead.
+
+        Returns
+        -------
+        array : ndarray
         """
         return np.array(self)
 
@@ -981,10 +984,6 @@ class ExtensionArray:
 
         The expectation is that this is cheap to compute, and is primarily
         used for interacting with our indexers.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
