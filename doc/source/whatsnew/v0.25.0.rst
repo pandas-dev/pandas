@@ -187,14 +187,8 @@ The repr now looks like this:
 Series.explode to split list-like values to rows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:class:`Series` has gained the :meth:`Series.explode` method to transform list-likes to individual rows. See :ref:`section on Exploding list-like column <reshaping.explode>` in docs for more information (:issue:`16538`, :issue:`10511`)
+:class:`Series` and :class:`DataFrame` have gained the :meth:`DataFrame.explode` methods to transform list-likes to individual rows. See :ref:`section on Exploding list-like column <reshaping.explode>` in docs for more information (:issue:`16538`, :issue:`10511`)
 
-
-.. ipython:: python
-
-    s = pd.Series([[1, 2, 3], np.nan, [], [3, 4]])
-    s
-    s.explode()
 
 Here is a typical usecase. You have comma separated string in a column.
 
@@ -208,9 +202,7 @@ Creating a long form ``DataFrame`` is now straightforward using chained operatio
 
 .. ipython:: python
 
-    exploded = df.var1.str.split(',').explode()
-    exploded
-    df[['var2']].join(exploded)
+    df.assign(var1=df.var1.str.split(',')).explode('var1')
 
 .. _whatsnew_0250.enhancements.other:
 

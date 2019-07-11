@@ -824,11 +824,11 @@ We can 'explode' this transforming each element of a list-like to a row, by usin
 
    df['values'].explode()
 
-You can easily join this with the original to get an expanded ``DataFrame``.
+You can also explode the column in the ``DataFrame``.
 
 .. ipython:: python
 
-   df[['keys']].join(df['values'].explode())
+   df.explode('values')
 
 :meth:`Series.explode` will replace empty lists with ``np.nan`` and preserve scalar entries. The dtype of the resulting ``Series`` is always ``object``.
 
@@ -850,6 +850,4 @@ Creating a long form DataFrame is now straightforward using explode and chained 
 
 .. ipython:: python
 
-   exploded = df.var1.str.split(',').explode()
-   exploded
-   df[['var2']].join(exploded)
+   df.assign(var1=df.var1.str.split(',')).explode('var1')
