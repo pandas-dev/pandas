@@ -586,7 +586,7 @@ class TestSparseSeries(SharedWithSparse):
             # FIXME: don't leave commented-out
             # NaN ** 0 = 1 in C?
             # _check_op(a, b, operator.pow)
-            # _check_op(a, b, lambda x, y: operator.pow(y, x))
+            # _check_op(a, b, ops.rpow)
 
         check(self.bseries, self.bseries)
         check(self.iseries, self.iseries)

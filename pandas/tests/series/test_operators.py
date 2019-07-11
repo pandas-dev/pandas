@@ -692,10 +692,7 @@ class TestSeriesOperators(TestData):
         )
         tm.assert_series_equal(added[:-5], expected)
 
-    pairings = [
-        (Series.div, operator.truediv, 1),
-        (Series.rdiv, lambda x, y: operator.truediv(y, x), 1),
-    ]
+    pairings = [(Series.div, operator.truediv, 1), (Series.rdiv, ops.rtruediv, 1)]
     for op in ["add", "sub", "mul", "pow", "truediv", "floordiv"]:
         fv = 0
         lop = getattr(Series, op)

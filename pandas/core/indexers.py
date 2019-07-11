@@ -36,9 +36,19 @@ def is_scalar_indexer(indexer, arr_value) -> bool:
     return False
 
 
-def is_empty_indexer(indexer, arr_value) -> bool:
-    # return a boolean if we have an empty indexer
+def is_empty_indexer(indexer, arr_value: np.ndarray) -> bool:
+    """
+    Check if we have an empty indexer.
 
+    Parameters
+    ----------
+    indexer : object
+    arr_value : np.ndarray
+
+    Returns
+    -------
+    bool
+    """
     if is_list_like(indexer) and not len(indexer):
         return True
     if arr_value.ndim == 1:

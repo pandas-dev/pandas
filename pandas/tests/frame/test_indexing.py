@@ -1680,6 +1680,7 @@ class TestDataFrameIndexing(TestData):
         df.loc["d", :] = np.nan
         assert not isna(df.loc["c", :]).all()
 
+        # FIXME: don't leave commented-out
         # as of GH 3216 this will now work!
         # try to set with a list like item
         # pytest.raises(
