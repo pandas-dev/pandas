@@ -34,7 +34,7 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, ensure_index
-from pandas.core.indexing import maybe_convert_indices
+from pandas.core.indexers import maybe_convert_indices
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -583,8 +583,9 @@ class BlockManager(PandasObject):
     def convert(self, **kwargs):
         return self.apply("convert", **kwargs)
 
-    def replace(self, **kwargs):
-        return self.apply("replace", **kwargs)
+    def replace(self, value, **kwargs):
+        assert np.ndim(value) == 0, value
+        return self.apply("replace", value=value, **kwargs)
 
     def replace_list(self, src_list, dest_list, inplace=False, regex=False):
         """ do a list replace """
@@ -617,6 +618,7 @@ class BlockManager(PandasObject):
             # replace ALWAYS will return a list
             rb = [blk if inplace else blk.copy()]
             for i, (s, d) in enumerate(zip(src_list, dest_list)):
+                # TODO: assert/validate that `d` is always a scalar?
                 new_rb = []
                 for b in rb:
                     m = masks[i][b.mgr_locs.indexer]

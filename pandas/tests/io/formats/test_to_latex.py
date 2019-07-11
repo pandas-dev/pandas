@@ -610,7 +610,9 @@ AA &  BB \\
 
         idx_names = tuple(n or "{}" for n in names)
         idx_names_row = (
-            "%s & %s &    &    &    &    \\\\\n" % idx_names
+            "{idx_names[0]} & {idx_names[1]} &    &    &    &    \\\\\n".format(
+                idx_names=idx_names
+            )
             if (0 in axes and any(names))
             else ""
         )

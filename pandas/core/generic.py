@@ -274,7 +274,6 @@ class NDFrame(PandasObject, SelectionMixin):
         info_axis=None,
         stat_axis=None,
         aliases=None,
-        slicers=None,
         axes_are_reversed=False,
         build_axes=True,
         ns=None,
@@ -288,7 +287,6 @@ class NDFrame(PandasObject, SelectionMixin):
         info_axis_num : the axis of the selector dimension (int)
         stat_axis_num : the number of axis for the default stats (int)
         aliases : other names for a single axis (dict)
-        slicers : how axes slice to others (dict)
         axes_are_reversed : boolean whether to treat passed axes as
             reversed (DataFrame)
         build_axes : setup the axis properties (default True)
@@ -300,7 +298,6 @@ class NDFrame(PandasObject, SelectionMixin):
         cls._AXIS_ALIASES = aliases or dict()
         cls._AXIS_IALIASES = {v: k for k, v in cls._AXIS_ALIASES.items()}
         cls._AXIS_NAMES = dict(enumerate(axes))
-        cls._AXIS_SLICEMAP = slicers or None
         cls._AXIS_REVERSED = axes_are_reversed
 
         # typ
@@ -344,15 +341,6 @@ class NDFrame(PandasObject, SelectionMixin):
     def _construct_axes_dict_from(self, axes, **kwargs):
         """Return an axes dictionary for the passed axes."""
         d = {a: ax for a, ax in zip(self._AXIS_ORDERS, axes)}
-        d.update(kwargs)
-        return d
-
-    def _construct_axes_dict_for_slice(self, axes=None, **kwargs):
-        """Return an axes dictionary for myself."""
-        d = {
-            self._AXIS_SLICEMAP[a]: self._get_axis(a)
-            for a in (axes or self._AXIS_ORDERS)
-        }
         d.update(kwargs)
         return d
 
@@ -494,7 +482,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         from pandas.core.computation.common import _remove_spaces_column_name
 
-        return {_remove_spaces_column_name(k): v for k, v in self.iteritems()}
+        return {_remove_spaces_column_name(k): v for k, v in self.items()}
 
     @property
     def _info_axis(self):
@@ -576,18 +564,6 @@ class NDFrame(PandasObject, SelectionMixin):
     def _obj_with_exclusions(self):
         """ internal compat with SelectionMixin """
         return self
-
-    def _expand_axes(self, key):
-        new_axes = []
-        for k, ax in zip(key, self.axes):
-            if k not in ax:
-                if type(k) != ax.dtype.type:
-                    ax = ax.astype("O")
-                new_axes.append(ax.insert(len(ax), k))
-            else:
-                new_axes.append(ax)
-
-        return new_axes
 
     def set_axis(self, labels, axis=0, inplace=None):
         """
@@ -1936,14 +1912,21 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         return self._info_axis
 
-    def iteritems(self):
-        """
-        Iterate over (label, values) on info axis
+    def items(self):
+        """Iterate over (label, values) on info axis
 
-        This is index for Series, columns for DataFrame and so on.
+        This is index for Series and columns for DataFrame.
+
+        Returns
+        -------
+        Generator
         """
         for h in self._info_axis:
             yield h, self[h]
+
+    @Appender(items.__doc__)
+    def iteritems(self):
+        return self.items()
 
     def __len__(self):
         """Returns length of info axis"""
@@ -5603,6 +5586,7 @@ class NDFrame(PandasObject, SelectionMixin):
             FutureWarning,
             stacklevel=2,
         )
+
         from pandas import Series
 
         return Series(self._data.get_dtype_counts())
@@ -5911,7 +5895,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         "key in a dtype mappings argument."
                     )
             results = []
-            for col_name, col in self.iteritems():
+            for col_name, col in self.items():
                 if col_name in dtype:
                     results.append(
                         col.astype(
@@ -10327,7 +10311,7 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             data = self.select_dtypes(include=include, exclude=exclude)
 
-        ldesc = [describe_1d(s) for _, s in data.iteritems()]
+        ldesc = [describe_1d(s) for _, s in data.items()]
         # set a convenient order for rows
         names = []
         ldesc_indexes = sorted((x.index for x in ldesc), key=len)

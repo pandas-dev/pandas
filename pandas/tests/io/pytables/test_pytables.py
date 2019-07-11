@@ -168,7 +168,7 @@ class Base:
         tm.set_testing_mode()
 
     def setup_method(self, method):
-        self.path = "tmp.__%s__.h5" % tm.rands(10)
+        self.path = "tmp.__{}__.h5".format(tm.rands(10))
 
     def teardown_method(self, method):
         pass
@@ -736,7 +736,7 @@ class TestHDFStore(Base):
 
             # not stores
             for x in ["mode", "path", "handle", "complib"]:
-                getattr(store, "_%s" % x)
+                getattr(store, "_{x}".format(x=x))
 
     def test_put(self):
 
@@ -773,7 +773,9 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
 
-            index = Index(["I am a very long string index: %s" % i for i in range(20)])
+            index = Index(
+                ["I am a very long string index: {i}".format(i=i) for i in range(20)]
+            )
             s = Series(np.arange(20), index=index)
             df = DataFrame({"A": s, "B": s})
 
@@ -786,7 +788,7 @@ class TestHDFStore(Base):
             # mixed length
             index = Index(
                 ["abcdefghijklmnopqrstuvwxyz1234567890"]
-                + ["I am a very long string index: %s" % i for i in range(20)]
+                + ["I am a very long string index: {i}".format(i=i) for i in range(20)]
             )
             s = Series(np.arange(21), index=index)
             df = DataFrame({"A": s, "B": s})
@@ -2109,7 +2111,7 @@ class TestHDFStore(Base):
                 df = tm.makeDataFrame()
                 df[n] = f
                 with pytest.raises(TypeError):
-                    store.append("df1_%s" % n, df)
+                    store.append("df1_{n}".format(n=n), df)
 
         # frame
         df = tm.makeDataFrame()
@@ -2802,14 +2804,14 @@ class TestHDFStore(Base):
             expected = df[df.boolv == True].reindex(columns=["A", "boolv"])  # noqa
             for v in [True, "true", 1]:
                 result = store.select(
-                    "df", "boolv == %s" % str(v), columns=["A", "boolv"]
+                    "df", "boolv == {v!s}".format(v=v), columns=["A", "boolv"]
                 )
                 tm.assert_frame_equal(expected, result)
 
             expected = df[df.boolv == False].reindex(columns=["A", "boolv"])  # noqa
             for v in [False, "false", 0]:
                 result = store.select(
-                    "df", "boolv == %s" % str(v), columns=["A", "boolv"]
+                    "df", "boolv == {v!s}".format(v=v), columns=["A", "boolv"]
                 )
                 tm.assert_frame_equal(expected, result)
 
@@ -2896,7 +2898,7 @@ class TestHDFStore(Base):
                     users=["a"] * 50
                     + ["b"] * 50
                     + ["c"] * 100
-                    + ["a%03d" % i for i in range(100)],
+                    + ["a{i:03d}".format(i=i) for i in range(100)],
                 )
             )
             _maybe_remove(store, "df")
@@ -2917,7 +2919,7 @@ class TestHDFStore(Base):
             tm.assert_frame_equal(expected, result)
 
             # big selector along the columns
-            selector = ["a", "b", "c"] + ["a%03d" % i for i in range(60)]
+            selector = ["a", "b", "c"] + ["a{i:03d}".format(i=i) for i in range(60)]
             result = store.select(
                 "df", "ts>=Timestamp('2012-02-01') and users=selector"
             )
@@ -2990,7 +2992,7 @@ class TestHDFStore(Base):
 
             df1 = tm.makeTimeDataFrame(500)
             store.append("df1", df1, data_columns=True)
-            df2 = tm.makeTimeDataFrame(500).rename(columns=lambda x: "%s_2" % x)
+            df2 = tm.makeTimeDataFrame(500).rename(columns="{}_2".format)
             df2["foo"] = "bar"
             store.append("df2", df2)
 
@@ -3029,19 +3031,21 @@ class TestHDFStore(Base):
 
             # select w/o iterator and where clause, single term, begin
             # of range, works
-            where = "index >= '%s'" % beg_dt
+            where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
             result = store.select("df", where=where)
             tm.assert_frame_equal(expected, result)
 
             # select w/o iterator and where clause, single term, end
             # of range, works
-            where = "index <= '%s'" % end_dt
+            where = "index <= '{end_dt}'".format(end_dt=end_dt)
             result = store.select("df", where=where)
             tm.assert_frame_equal(expected, result)
 
             # select w/o iterator and where clause, inclusive range,
             # works
-            where = "index >= '%s' & index <= '%s'" % (beg_dt, end_dt)
+            where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
+                beg_dt=beg_dt, end_dt=end_dt
+            )
             result = store.select("df", where=where)
             tm.assert_frame_equal(expected, result)
 
@@ -3061,19 +3065,21 @@ class TestHDFStore(Base):
             tm.assert_frame_equal(expected, result)
 
             # select w/iterator and where clause, single term, begin of range
-            where = "index >= '%s'" % beg_dt
+            where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
             results = [s for s in store.select("df", where=where, chunksize=chunksize)]
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
             # select w/iterator and where clause, single term, end of range
-            where = "index <= '%s'" % end_dt
+            where = "index <= '{end_dt}'".format(end_dt=end_dt)
             results = [s for s in store.select("df", where=where, chunksize=chunksize)]
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
             # select w/iterator and where clause, inclusive range
-            where = "index >= '%s' & index <= '%s'" % (beg_dt, end_dt)
+            where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
+                beg_dt=beg_dt, end_dt=end_dt
+            )
             results = [s for s in store.select("df", where=where, chunksize=chunksize)]
             result = concat(results)
             tm.assert_frame_equal(expected, result)
@@ -3095,21 +3101,23 @@ class TestHDFStore(Base):
             end_dt = expected.index[-2]
 
             # select w/iterator and where clause, single term, begin of range
-            where = "index >= '%s'" % beg_dt
+            where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
             results = [s for s in store.select("df", where=where, chunksize=chunksize)]
             result = concat(results)
             rexpected = expected[expected.index >= beg_dt]
             tm.assert_frame_equal(rexpected, result)
 
             # select w/iterator and where clause, single term, end of range
-            where = "index <= '%s'" % end_dt
+            where = "index <= '{end_dt}'".format(end_dt=end_dt)
             results = [s for s in store.select("df", where=where, chunksize=chunksize)]
             result = concat(results)
             rexpected = expected[expected.index <= end_dt]
             tm.assert_frame_equal(rexpected, result)
 
             # select w/iterator and where clause, inclusive range
-            where = "index >= '%s' & index <= '%s'" % (beg_dt, end_dt)
+            where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
+                beg_dt=beg_dt, end_dt=end_dt
+            )
             results = [s for s in store.select("df", where=where, chunksize=chunksize)]
             result = concat(results)
             rexpected = expected[
@@ -3127,7 +3135,7 @@ class TestHDFStore(Base):
             end_dt = expected.index[-1]
 
             # select w/iterator and where clause, single term, begin of range
-            where = "index > '%s'" % end_dt
+            where = "index > '{end_dt}'".format(end_dt=end_dt)
             results = [s for s in store.select("df", where=where, chunksize=chunksize)]
             assert 0 == len(results)
 
@@ -3149,14 +3157,14 @@ class TestHDFStore(Base):
             end_dt = expected.index[chunksize - 1]
 
             # select w/iterator and where clause, single term, begin of range
-            where = "index >= '%s'" % beg_dt
+            where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
             results = [s for s in store.select("df", where=where, chunksize=chunksize)]
             result = concat(results)
             rexpected = expected[expected.index >= beg_dt]
             tm.assert_frame_equal(rexpected, result)
 
             # select w/iterator and where clause, single term, end of range
-            where = "index <= '%s'" % end_dt
+            where = "index <= '{end_dt}'".format(end_dt=end_dt)
             results = [s for s in store.select("df", where=where, chunksize=chunksize)]
 
             assert len(results) == 1
@@ -3165,7 +3173,9 @@ class TestHDFStore(Base):
             tm.assert_frame_equal(rexpected, result)
 
             # select w/iterator and where clause, inclusive range
-            where = "index >= '%s' & index <= '%s'" % (beg_dt, end_dt)
+            where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
+                beg_dt=beg_dt, end_dt=end_dt
+            )
             results = [s for s in store.select("df", where=where, chunksize=chunksize)]
 
             # should be 1, is 10
@@ -3183,7 +3193,9 @@ class TestHDFStore(Base):
             # return [] e.g. `for e in []: print True` never prints
             # True.
 
-            where = "index <= '%s' & index >= '%s'" % (beg_dt, end_dt)
+            where = "index <= '{beg_dt}' & index >= '{end_dt}'".format(
+                beg_dt=beg_dt, end_dt=end_dt
+            )
             results = [s for s in store.select("df", where=where, chunksize=chunksize)]
 
             # should be []
@@ -3608,7 +3620,7 @@ class TestHDFStore(Base):
             _maybe_remove(store, "df1")
             _maybe_remove(store, "df2")
             df1 = tm.makeTimeDataFrame()
-            df2 = tm.makeTimeDataFrame().rename(columns=lambda x: "%s_2" % x)
+            df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
             store.append("df1", df1, data_columns=["A", "B"])
             store.append("df2", df2)
 
@@ -3680,7 +3692,7 @@ class TestHDFStore(Base):
 
     def test_append_to_multiple(self):
         df1 = tm.makeTimeDataFrame()
-        df2 = tm.makeTimeDataFrame().rename(columns=lambda x: "%s_2" % x)
+        df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
         df2["foo"] = "bar"
         df = concat([df1, df2], axis=1)
 
@@ -3710,7 +3722,7 @@ class TestHDFStore(Base):
 
     def test_append_to_multiple_dropna(self):
         df1 = tm.makeTimeDataFrame()
-        df2 = tm.makeTimeDataFrame().rename(columns=lambda x: "%s_2" % x)
+        df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
         df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
         df = concat([df1, df2], axis=1)
 
@@ -3730,7 +3742,7 @@ class TestHDFStore(Base):
     )
     def test_append_to_multiple_dropna_false(self):
         df1 = tm.makeTimeDataFrame()
-        df2 = tm.makeTimeDataFrame().rename(columns=lambda x: "%s_2" % x)
+        df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
         df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
         df = concat([df1, df2], axis=1)
 
@@ -3749,7 +3761,7 @@ class TestHDFStore(Base):
     def test_select_as_multiple(self):
 
         df1 = tm.makeTimeDataFrame()
-        df2 = tm.makeTimeDataFrame().rename(columns=lambda x: "%s_2" % x)
+        df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
         df2["foo"] = "bar"
 
         with ensure_clean_store(self.path) as store:
@@ -3920,8 +3932,8 @@ class TestHDFStore(Base):
     def test_select_filter_corner(self):
 
         df = DataFrame(np.random.randn(50, 100))
-        df.index = ["%.3d" % c for c in df.index]
-        df.columns = ["%.3d" % c for c in df.columns]
+        df.index = ["{c:3d}".format(c=c) for c in df.index]
+        df.columns = ["{c:3d}".format(c=c) for c in df.columns]
 
         with ensure_clean_store(self.path) as store:
             store.put("frame", df, format="table")
@@ -4355,7 +4367,7 @@ class TestHDFStore(Base):
         df5 = DataFrame({("1", 2, object): np.random.randn(10)})
 
         with ensure_clean_store(self.path) as store:
-            name = "df_%s" % tm.rands(10)
+            name = "df_{}".format(tm.rands(10))
             store.append(name, df)
 
             for d in (df2, df3, df4, df5):
@@ -4775,16 +4787,16 @@ class TestHDFStore(Base):
             store.append("test", df, format="table", data_columns=True)
 
             cutoff = 1000000000.0006
-            result = store.select("test", "A < %.4f" % cutoff)
+            result = store.select("test", "A < {cutoff:.4f}".format(cutoff=cutoff))
             assert result.empty
 
             cutoff = 1000000000.0010
-            result = store.select("test", "A > %.4f" % cutoff)
+            result = store.select("test", "A > {cutoff:.4f}".format(cutoff=cutoff))
             expected = df.loc[[1, 2], :]
             tm.assert_frame_equal(expected, result)
 
             exact = 1000000000.0011
-            result = store.select("test", "A == %.4f" % exact)
+            result = store.select("test", "A == {exact:.4f}".format(exact=exact))
             expected = df.loc[[1], :]
             tm.assert_frame_equal(expected, result)
 
@@ -5084,7 +5096,9 @@ class TestTimezones(Base):
                 a_e = a.loc[i, c]
                 b_e = b.loc[i, c]
                 if not (a_e == b_e and a_e.tz == b_e.tz):
-                    raise AssertionError("invalid tz comparison [%s] [%s]" % (a_e, b_e))
+                    raise AssertionError(
+                        "invalid tz comparison [{a_e}] [{b_e}]".format(a_e=a_e, b_e=b_e)
+                    )
 
     def test_append_with_timezones_dateutil(self):
 

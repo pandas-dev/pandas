@@ -226,6 +226,15 @@ class TestSeriesIO:
             unpickled = self._pickle_roundtrip_name(tm.makeTimeSeries(name=n))
             assert unpickled.name == n
 
+    def test_pickle_categorical_ordered_from_sentinel(self):
+        # GH 27295: can remove test when _ordered_from_sentinel is removed (GH 26403)
+        s = Series(["a", "b", "c", "a"], dtype="category")
+        result = tm.round_trip_pickle(s)
+        result = result.astype("category")
+
+        tm.assert_series_equal(result, s)
+        assert result.dtype._ordered_from_sentinel is False
+
     def _pickle_roundtrip_name(self, obj):
 
         with ensure_clean() as path:
@@ -259,5 +268,5 @@ class TestSeriesIO:
             Series(datetime_series.to_dict(mapping), name="ts"), datetime_series
         )
         from_method = Series(datetime_series.to_dict(collections.Counter))
-        from_constructor = Series(collections.Counter(datetime_series.iteritems()))
+        from_constructor = Series(collections.Counter(datetime_series.items()))
         tm.assert_series_equal(from_method, from_constructor)
