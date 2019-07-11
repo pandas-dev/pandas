@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas._typing import DatetimeLikeScalar
 from pandas.core import missing, nanops
@@ -492,7 +492,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value)
             value = self._unbox_scalar(value)
-        elif isna(value) or value == iNaT:
+        elif is_valid_nat_for_dtype(value, self.dtype):
+            value = iNaT
+        elif not isna(value) and lib.is_integer(value) and value == iNaT:
+            # exclude misc e.g. object() and any NAs not allowed above
             value = iNaT
         else:
             msg = (
