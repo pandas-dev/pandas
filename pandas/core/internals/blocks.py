@@ -1001,7 +1001,6 @@ class Block(PandasObject):
                     or len(new) == 1
                 ):
                     raise ValueError("cannot assign mismatch length to masked array")
-
             np.putmask(new_values, mask, new)
 
         # maybe upcast me
@@ -2613,11 +2612,13 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, np.timedelta64)
-        if element is NaT:
+        elif element is NaT:
             return True
-        if is_integer(element):
+        elif isinstance(element, (timedelta, np.timedelta64)):
+            return True
+        elif is_integer(element):
             return element == tslibs.iNaT
-        return isinstance(element, (timedelta, np.timedelta64))
+        return isna(element) and not isinstance(element, np.datetime64)
 
     def fillna(self, value, **kwargs):
 
