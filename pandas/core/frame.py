@@ -6250,7 +6250,8 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
-            Exploded lists to rows of the subset columns; index will be duplicated for these rows.
+            Exploded lists to rows of the subset columns;
+            index will be duplicated for these rows.
 
         Raises
         ------
@@ -6261,32 +6262,39 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.str.split : Split string values on specified separator.
-        Series.unstack : Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
+        DataFrame.unstack : Pivot a level of the (necessarily hierarchical)
+            index labels
         DataFrame.melt : Unpivot a DataFrame from wide format to long format
         Series.explode : Explode a DataFrame from list-like columns to long format.
 
         Notes
         -----
-        This routine will explode list-likes including lists, tuples, Series, and np.ndarray.
+        This routine will explode list-likes including lists, tuples,
+            Series, and np.ndarray.
         The result dtype of the subset rows will be object.
         Scalars will be returned unchanged.
         Empty list-likes will result in a np.nan for that row.
 
         Examples
         --------
-        In [1]: df = pd.DataFrame({'A': [[1, 2, 3], 'foo', [], [3, 4]], 'B': 1})
+        >>> df = pd.DataFrame({'A': [[1, 2, 3], 'foo', [], [3, 4]], 'B': 1})
+        >>> df
+                   A  B
+        0  [1, 2, 3]  1
+        1        foo  1
+        2         []  1
+        3     [3, 4]  1
 
-        In [3]: df.explode()
-        Out[3]:
-        0      1
-        0      2
-        0      3
-        1    foo
-        2    NaN
-        3      3
-        3      4
-        dtype: object
+        >>>  df.explode(['A'])
+             A  B
+        0    1  1
+        0    2  1
+        0    3  1
+        1  foo  1
+        2  NaN  1
+        3    3  1
+        3    4  1
+
         """
 
         if not is_list_like(subset):

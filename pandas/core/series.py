@@ -3650,31 +3650,31 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.str.split : Split string values on specified separator.
-        Series.unstack : Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
+        Series.unstack : Unstack, a.k.a. pivot, Series with MultiIndex
+            to produce DataFrame.
         DataFrame.melt : Unpivot a DataFrame from wide format to long format
-        DataFrame.explode : Explode a DataFrame from list-like columns to long format.
+        DataFrame.explode : Explode a DataFrame from list-like
+            columns to long format.
 
         Notes
         -----
-        This routine will explode list-likes including lists, tuples, Series, and np.ndarray.
+        This routine will explode list-likes including lists, tuples,
+            Series, and np.ndarray.
         The result dtype of the returned Series will always be object.
         Scalars will be returned unchanged.
         Empty list-likes will result in a np.nan for that row.
 
         Examples
         --------
-        In [1]: s = pd.Series([[1, 2, 3], 'foo', [], [3, 4]])
-
-        In [2]: s
-        Out[2]:
+        >>> s = pd.Series([[1, 2, 3], 'foo', [], [3, 4]])
+        >>> s
         0    [1, 2, 3]
         1          foo
         2           []
         3       [3, 4]
         dtype: object
 
-        In [3]: s.explode()
-        Out[3]:
+        >>> s.explode()
         0      1
         0      2
         0      3
