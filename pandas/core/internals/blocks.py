@@ -2251,11 +2251,11 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             return is_dtype_equal(tipo, self.dtype)
         elif element is NaT:
             return True
-        if isinstance(element, datetime):
+        elif isinstance(element, datetime):
             if self.is_datetimetz:
                 return tz_compare(element.tzinfo, self.dtype.tz)
             return element.tzinfo is None
-        if is_integer(element):
+        elif is_integer(element):
             return element == tslibs.iNaT
 
         return isna(element) and not isinstance(element, np.timedelta64)

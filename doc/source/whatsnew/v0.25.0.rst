@@ -1053,6 +1053,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` on a :class:`DataFrame` with a single timezone-aware datetime64[ns] column incorrectly returning a scalar instead of a :class:`Series` (:issue:`27110`)
 - Bug in :class:`CategoricalIndex` and :class:`Categorical` incorrectly raising ``ValueError`` instead of ``TypeError`` when a list is passed using the ``in`` operator (``__contains__``) (:issue:`21729`)
 - Bug in setting a new value in a :class:`Series` with a :class:`Timedelta` object incorrectly casting the value to an integer (:issue:`22717`)
+- Bug in :class:`Series` setting a new key (``__setitem__``) with a timezone-aware datetime incorrectly raising ``ValueError`` (:issue:`12862`)
 -
 
 Missing
@@ -1137,6 +1138,7 @@ Groupby/resample/rolling
 - Bug in :meth:`pandas.core.window.Rolling.median` and :meth:`pandas.core.window.Rolling.quantile` where incorrect results are returned with ``closed='left'`` and ``closed='neither'`` (:issue:`26005`)
 - Improved :class:`pandas.core.window.Rolling`, :class:`pandas.core.window.Window` and :class:`pandas.core.window.EWM` functions to exclude nuisance columns from results instead of raising errors and raise a ``DataError`` only if all columns are nuisance (:issue:`12537`)
 - Bug in :meth:`pandas.core.window.Rolling.max` and :meth:`pandas.core.window.Rolling.min` where incorrect results are returned with an empty variable window (:issue:`26005`)
+- Raise a helpful exception when an unsupported weighted window function is used as an argument of :meth:`pandas.core.window.Window.aggregate` (:issue:`26597`)
 
 Reshaping
 ^^^^^^^^^
