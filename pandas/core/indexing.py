@@ -155,7 +155,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         return self.obj._xs(label, axis=axis)
 
-    def _get_loc(self, key, axis: int):
+    def _get_loc(self, key: int, axis: int):
         return self.obj._ixs(key, axis=axis)
 
     def _slice(self, obj, axis: int, kind=None):
