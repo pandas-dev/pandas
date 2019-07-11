@@ -10,7 +10,7 @@ import numpy.ma as ma
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
 import pandas.compat as compat
-from pandas.compat import raise_with_traceback, PY36
+from pandas.compat import PY36, raise_with_traceback
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,

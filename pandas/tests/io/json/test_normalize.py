@@ -3,10 +3,10 @@ import json
 import numpy as np
 import pytest
 
+from pandas.compat import PY36
+
 from pandas import DataFrame, Index
 import pandas.util.testing as tm
-
-from pandas.compat import PY36
 
 from pandas.io.json import json_normalize
 from pandas.io.json._normalize import nested_to_record
