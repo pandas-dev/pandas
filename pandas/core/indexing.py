@@ -143,10 +143,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             key = com.apply_if_callable(key, self.obj)
             return self._getitem_axis(key, axis=axis)
 
-    def _get_label(self, label, axis=None):
-        if axis is None:
-            axis = self.axis or 0
-
+    def _get_label(self, label, axis: int):
         if self.ndim == 1:
             # for perf reasons we want to try _xs first
             # as its basically direct indexing
@@ -161,9 +158,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
     def _get_loc(self, key, axis: int):
         return self.obj._ixs(key, axis=axis)
 
-    def _slice(self, obj, axis=None, kind=None):
-        if axis is None:
-            axis = self.axis
+    def _slice(self, obj, axis: int, kind=None):
         return self.obj._slice(obj, axis=axis, kind=kind)
 
     def _get_setitem_indexer(self, key):
@@ -879,10 +874,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def _handle_lowerdim_multi_index_axis0(self, tup):
         # we have an axis0 multi-index, handle or raise
-
+        axis = self.axis or 0
         try:
             # fast path for series or for tup devoid of slices
-            return self._get_label(tup, axis=self.axis)
+            return self._get_label(tup, axis=axis)
         except TypeError:
             # slices are unhashable
             pass
@@ -980,7 +975,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             # this is a series with a multi-index specified a tuple of
             # selectors
-            return self._getitem_axis(tup, axis=self.axis)
+            axis = self.axis or 0
+            return self._getitem_axis(tup, axis=axis)
 
         # handle the multi-axis by taking sections and reducing
         # this is iterative
@@ -1007,11 +1003,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         return obj
 
-    def _getitem_axis(self, key, axis=None):
-
-        if axis is None:
-            axis = self.axis or 0
-
+    def _getitem_axis(self, key, axis: int):
         if is_iterator(key):
             key = list(key)
         self._validate_key(key, axis)
@@ -1436,7 +1428,7 @@ class _LocationIndexer(_NDFrameIndexer):
     def _getitem_scalar(self, key):
         raise NotImplementedError()
 
-    def _getitem_axis(self, key, axis=None):
+    def _getitem_axis(self, key, axis: int):
         raise NotImplementedError()
 
     def _getbool_axis(self, key, axis: int):
@@ -1783,10 +1775,7 @@ class _LocIndexer(_LocationIndexer):
 
         return key
 
-    def _getitem_axis(self, key, axis=None):
-        if axis is None:
-            axis = self.axis or 0
-
+    def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
         if is_iterator(key):
             key = list(key)
@@ -2137,10 +2126,7 @@ class _iLocIndexer(_LocationIndexer):
             # re-raise with different error message
             raise IndexError("positional indexers are out-of-bounds")
 
-    def _getitem_axis(self, key, axis=None):
-        if axis is None:
-            axis = self.axis or 0
-
+    def _getitem_axis(self, key, axis: int):
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
 
