@@ -421,7 +421,11 @@ class _OpenpyxlWriter(ExcelWriter):
                 row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
             )
 
+        n_cols = 0
+        n_rows = 0
         for cell in cells:
+            n_cols = max(n_cols, cell.col)
+            n_rows = max(n_rows, cell.row)
             xcell = wks.cell(
                 row=startrow + cell.row + 1, column=startcol + cell.col + 1
             )
@@ -468,73 +472,27 @@ class _OpenpyxlWriter(ExcelWriter):
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
 
-    def write_table(
-        self,
-        cells,
-        table,
-        sheet_name=None,
-        startrow=0,
-        startcol=0,
-        freeze_panes=None,
-        header=True,
+        return wks, n_rows, n_cols, False
+
+    def format_table(
+        self, wks, table_name, table_range, header=True, index=True, first_row=None
     ):
-        # Write the frame to an excel table using openpyxl.
+        # Format the written cells as table
 
         from openpyxl.worksheet.table import Table, TableStyleInfo
 
-        sheet_name = self._get_sheet_name(sheet_name)
-
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
-        else:
-            wks = self.book.create_sheet()
-            wks.title = sheet_name
-            self.sheets[sheet_name] = wks
-
-        if _validate_freeze_panes(freeze_panes):
-            wks.freeze_panes = wks.cell(
-                row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
-            )
-
-        header_rows = 1 if header > 0 else 0
-
-        n_cols = 0
-        n_rows = 0
-        header_cells = {}
-        for cell in cells:
-            val, fmt = self._value_with_fmt(cell.val)
-            if header and cell.row == 0:
-                header_cells[cell.col] = cell.val
-                continue
-            wks.cell(
-                row=startrow + cell.row + 1, column=startcol + cell.col + 1, value=val
-            )
-            n_cols = max(n_cols, cell.col)
-            n_rows = max(n_rows, cell.row)
-
-        # add generic name for every unnamed (index) column that is included
-        for col in range(n_cols + 1):
-            if col in header_cells:
-                val = str(header_cells[col])
-            else:
-                val = "Column%d" % (col + 1)
-            wks.cell(row=startrow + 1, column=startcol + col + 1, value=val)
-
-        ref = self._to_excel_range(
-            startrow, startcol, startrow + n_rows, startcol + n_cols
-        )
-        tab = Table(displayName=table, ref=ref, headerRowCount=header_rows)
+        ref = self._to_excel_range(*table_range)
+        tab = Table(displayName=table_name, ref=ref, headerRowCount=1 if header else 0)
 
         # Add a default style with striped rows
         style = TableStyleInfo(
             name="TableStyleMedium9",
-            showFirstColumn=False,
+            showFirstColumn=index,
             showLastColumn=False,
             showRowStripes=True,
             showColumnStripes=False,
         )
         tab.tableStyleInfo = style
-
         wks.add_table(tab)
 
 

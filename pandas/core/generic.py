@@ -2276,7 +2276,7 @@ class NDFrame(PandasObject, SelectionMixin):
             startcol=startcol,
             freeze_panes=freeze_panes,
             engine=engine,
-            table=None,
+            table=table,
         )
 
     def to_json(
