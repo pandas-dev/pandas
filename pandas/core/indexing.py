@@ -170,11 +170,11 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if self.axis is not None:
             return self._convert_tuple(key, is_setter=True)
 
-        axis = self.obj._get_axis(0)
+        ax = self.obj._get_axis(0)
 
-        if isinstance(axis, MultiIndex) and self.name != "iloc":
+        if isinstance(ax, MultiIndex) and self.name != "iloc":
             try:
-                return axis.get_loc(key)
+                return ax.get_loc(key)
             except Exception:
                 pass
 
@@ -187,9 +187,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if isinstance(key, range):
             return self._convert_range(key, is_setter=True)
 
-        ax_num = self.axis or 0
+        axis = self.axis or 0
         try:
-            return self._convert_to_indexer(key, axis=ax_num, is_setter=True)
+            return self._convert_to_indexer(key, axis=axis, is_setter=True)
         except TypeError as e:
 
             # invalid indexer type vs 'other' indexing errors
