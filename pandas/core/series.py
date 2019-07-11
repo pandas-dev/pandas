@@ -66,12 +66,13 @@ from pandas.core.index import (
     MultiIndex,
     ensure_index,
 )
+from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
+from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
 from pandas.core.internals.construction import sanitize_array
 from pandas.core.strings import StringMethods
@@ -1692,13 +1693,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
 
-    def iteritems(self):
+    def items(self):
         """
         Lazily iterate over (index, value) tuples.
 
         This method returns an iterable tuple (index, value). This is
-        convenient if you want to create a lazy iterator. Note that the
-        methods Series.items and Series.iteritems are the same methods.
+        convenient if you want to create a lazy iterator.
 
         Returns
         -------
@@ -1708,12 +1708,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.iteritems : Equivalent to Series.iteritems for DataFrame.
+        DataFrame.items : Equivalent to Series.items for DataFrame.
 
         Examples
         --------
         >>> s = pd.Series(['A', 'B', 'C'])
-        >>> for index, value in s.iteritems():
+        >>> for index, value in s.items():
         ...     print("Index : {}, Value : {}".format(index, value))
         Index : 0, Value : A
         Index : 1, Value : B
@@ -1721,7 +1721,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return zip(iter(self.index), iter(self))
 
-    items = iteritems
+    @Appender(items.__doc__)
+    def iteritems(self):
+        return self.items()
 
     # ----------------------------------------------------------------------
     # Misc public methods
