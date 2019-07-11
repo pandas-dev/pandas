@@ -395,6 +395,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         # align and set the values
         if take_split_path:
+            # Above we only set take_split_path to True for 2D cases
+            assert self.ndim == 2
+            assert info_axis == 1
 
             if not isinstance(indexer, tuple):
                 indexer = self._tuplify(indexer)
@@ -448,11 +451,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # non-mi
             else:
                 plane_indexer = indexer[:info_axis] + indexer[info_axis + 1 :]
-                if info_axis > 0:
-                    plane_axis = self.obj.axes[:info_axis][0]
-                    lplane_indexer = length_of_indexer(plane_indexer[0], plane_axis)
-                else:
-                    lplane_indexer = 0
+                plane_axis = self.obj.axes[:info_axis][0]
+                lplane_indexer = length_of_indexer(plane_indexer[0], plane_axis)
 
             def setter(item, v):
                 s = self.obj[item]
@@ -502,9 +502,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # hasattr first, to avoid coercing to ndarray without reason.
                 # But we may be relying on the ndarray coercion to check ndim.
                 # Why not just convert to an ndarray earlier on if needed?
-                elif (hasattr(value, "ndim") and value.ndim == 2) or (
-                    not hasattr(value, "ndim") and np.array(value).ndim
-                ) == 2:
+                elif np.ndim(value) == 2:
 
                     # note that this coerces the dtype if we are mixed
                     # GH 7551
