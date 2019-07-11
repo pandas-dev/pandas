@@ -233,23 +233,6 @@ class TestRoundTrip:
             )
             tm.assert_frame_equal(df, res)
 
-    def test_excel_table_roundtrip_indexname(self, ext):
-        if ext == ".xls":
-            pytest.skip()
-        df = DataFrame(np.random.randn(10, 4))
-
-        df.columns = df.columns.map(str)
-        df.index.name = "foo"
-
-        with ensure_clean(ext) as pth:
-            df.to_excel(pth, header=True, table="Table1")
-
-            xf = ExcelFile(pth)
-            result = pd.read_excel(xf, xf.sheet_names[0], index_col=0)
-
-            tm.assert_frame_equal(result, df)
-            assert result.index.name == "foo"
-
 
 class _WriterBase:
     @pytest.fixture(autouse=True)
@@ -1227,6 +1210,67 @@ class TestExcelWriter(_WriterBase):
         df = DataFrame([data], dtype=dtype)
         with pytest.raises(ValueError, match="Excel does not support"):
             df.to_excel(self.path)
+
+
+@td.skip_if_no("xlrd")
+@td.skip_if_no("openpyxl")
+@pytest.mark.parametrize(
+    "engine,ext",
+    [
+        pytest.param("openpyxl", ".xlsx"),
+        pytest.param("openpyxl", ".xlsm"),
+        pytest.param("xlsxwriter", ".xlsx", marks=td.skip_if_no("xlsxwriter")),
+    ],
+)
+class TestTable(_WriterBase):
+    def read_table(self, tablename):
+        from openpyxl import load_workbook
+
+        wbk = load_workbook(self.path, data_only=True, read_only=False)
+
+        # first discover all tables in workbook
+        tables = {}
+        for wks in wbk:
+            for table in wks._tables:
+                tables[table.name] = (table, wks)
+
+        # then retrieve the desired one
+        table, wks = tables[tablename]
+
+        columns = [col.name for col in table.tableColumns]
+        data_rows = wks[table.ref][
+            (table.headerRowCount or 0) : -table.totalsRowCount
+            if table.totalsRowCount is not None
+            else None
+        ]
+
+        data = [[cell.value for cell in row] for row in data_rows]
+        frame = DataFrame(data, columns=columns, index=None)
+
+        if table.tableStyleInfo.showFirstColumn:
+            frame = frame.set_index(columns[0])
+
+        return frame
+
+    @pytest.mark.parametrize("header", (True, False))
+    @pytest.mark.parametrize("index", (True, False))
+    def test_excel_table_options(self, header, index):
+        df = DataFrame(np.random.randn(2, 4))
+
+        df.columns = ["1", "2", "a", "b"]
+        df.index.name = "foo"
+
+        df.to_excel(self.path, header=header, index=index, table="TestTable1")
+        result = self.read_table("TestTable1")
+        if not header:
+            result.columns = df.columns
+            if index:
+                result.index.name = df.index.name
+
+        if not index:
+            result.index = df.index
+
+        tm.assert_frame_equal(df, result)
 
 
 class TestExcelWriterEngineTests:
