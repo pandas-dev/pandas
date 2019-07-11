@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import copy
 from datetime import datetime, timedelta
 import warnings
 from warnings import catch_warnings
@@ -1536,21 +1537,20 @@ class TestMoments(Base):
         # suppress warnings about empty slices, as we are deliberately testing
         # with a 0-length Series
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message=".*(empty slice|0 for slice).*",
-                category=RuntimeWarning,
-            )
-
-            def f(x):
+        def f(x):
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message=".*(empty slice|0 for slice).*",
+                    category=RuntimeWarning,
+                )
                 return x[np.isfinite(x)].mean()
 
-            self._check_moment_func(np.mean, name="apply", func=f, raw=raw)
+        self._check_moment_func(np.mean, name="apply", func=f, raw=raw)
 
-            expected = Series([])
-            result = expected.rolling(10).apply(lambda x: x.mean(), raw=raw)
-            tm.assert_series_equal(result, expected)
+        expected = Series([])
+        result = expected.rolling(10).apply(lambda x: x.mean(), raw=raw)
+        tm.assert_series_equal(result, expected)
 
         # gh-8080
         s = Series([None, None, None])
@@ -1676,6 +1676,12 @@ class TestMoments(Base):
         zero_min_periods_equal=True,
         **kwargs
     ):
+
+        # inject raw
+        if name == "apply":
+            kwargs = copy.copy(kwargs)
+            kwargs["raw"] = raw
+
         def get_result(obj, window, min_periods=None, center=False):
             r = obj.rolling(window=window, min_periods=min_periods, center=center)
             return getattr(r, name)(**kwargs)
