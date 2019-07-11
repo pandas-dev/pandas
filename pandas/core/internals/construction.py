@@ -10,7 +10,7 @@ import numpy.ma as ma
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
 import pandas.compat as compat
-from pandas.compat import raise_with_traceback
+from pandas.compat import raise_with_traceback, PY36
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -538,7 +538,8 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
 def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     if columns is None:
         gen = (list(x.keys()) for x in data)
-        sort = not any(isinstance(d, OrderedDict) for d in data)
+        additional = dict if PY36 else OrderedDict
+        sort = not any(isinstance(d, (additional, OrderedDict)) for d in data)
         columns = lib.fast_unique_multiple_list_gen(gen, sort=sort)
 
     # assure that they are of the base dict class and not of derived
