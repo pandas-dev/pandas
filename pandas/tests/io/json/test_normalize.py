@@ -6,6 +6,8 @@ import pytest
 from pandas import DataFrame, Index
 import pandas.util.testing as tm
 
+from pandas.compat import PY36
+
 from pandas.io.json import json_normalize
 from pandas.io.json._normalize import nested_to_record
 
@@ -360,21 +362,24 @@ class TestJSONNormalize:
         result = json_normalize(json.loads(testjson))
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(
+        not PY36, reason="Test vectors depend on " "PY36 guaranteed dict key ordering"
+    )
     def test_missing_field(self, author_missing_data):
         # GH20030:
         result = json_normalize(author_missing_data)
         ex_data = [
             {
-                "info": np.nan,
                 "author_name.first": np.nan,
                 "author_name.last_name": np.nan,
+                "info": np.nan,
                 "info.created_at": np.nan,
                 "info.last_updated": np.nan,
             },
             {
-                "info": None,
                 "author_name.first": "Jane",
                 "author_name.last_name": "Doe",
+                "info": None,
                 "info.created_at": "11/08/1993",
                 "info.last_updated": "26/05/2012",
             },
@@ -500,6 +505,9 @@ class TestNestedToRecord:
                 errors="raise",
             )
 
+    @pytest.mark.skipif(
+        not PY36, reason="Test vectors depend on " "PY36 guaranteed dict key ordering"
+    )
     def test_missing_meta(self, missing_metadata):
         # GH25468
         # If metadata is nullable with errors set to ignore, the null values
