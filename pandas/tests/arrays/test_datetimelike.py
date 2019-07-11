@@ -654,29 +654,48 @@ class TestPeriodArray(SharedTests):
 
 
 @pytest.mark.parametrize(
-    "array",
+    "array,casting_nats",
     [
-        pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
-        pd.date_range("2000-01-01", periods=3, freq="D")._data,
-        pd.period_range("2000-01-01", periods=3, freq="D")._data,
+        (
+            pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
+            (pd.NaT, np.timedelta64("NaT", "ns")),
+        ),
+        (
+            pd.date_range("2000-01-01", periods=3, freq="D")._data,
+            (pd.NaT, np.datetime64("NaT", "ns")),
+        ),
+        (pd.period_range("2000-01-01", periods=3, freq="D")._data, (pd.NaT,)),
     ],
     ids=lambda x: type(x).__name__,
 )
-def test_nat_assignment_array(array):
+def test_casting_nat_setitem_array(array, casting_nats):
     expected = type(array)._from_sequence([pd.NaT, array[1], array[2]])
-
-    all_np_nats = [np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")]
-    casting_nats = [x for x in all_np_nats if x.dtype.kind == array.dtype.kind]
-    casting_nats.append(pd.NaT)
-    non_casting_nats = [x for x in all_np_nats if x.dtype.kind != array.dtype.kind]
 
     for nat in casting_nats:
         arr = array.copy()
         arr[0] = nat
-
         tm.assert_equal(arr, expected)
 
+
+@pytest.mark.parametrize(
+    "array,non_casting_nats",
+    [
+        (
+            pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
+            (np.datetime64("NaT", "ns"),),
+        ),
+        (
+            pd.date_range("2000-01-01", periods=3, freq="D")._data,
+            (np.timedelta64("NaT", "ns"),),
+        ),
+        (
+            pd.period_range("2000-01-01", periods=3, freq="D")._data,
+            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")),
+        ),
+    ],
+    ids=lambda x: type(x).__name__,
+)
+def test_invalid_nat_setitem_array(array, non_casting_nats):
     for nat in non_casting_nats:
-        arr = array.copy()
         with pytest.raises(TypeError):
-            arr[0] = nat
+            array[0] = nat
