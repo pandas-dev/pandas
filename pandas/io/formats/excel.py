@@ -373,6 +373,16 @@ class ExcelFormatter:
         merge_cells=False,
         inf_rep="inf",
         style_converter=None,
+        header_style={
+            "font": {"bold": True},
+            "borders": {
+                "top": "thin",
+                "right": "thin",
+                "bottom": "thin",
+                "left": "thin",
+            },
+            "alignment": {"horizontal": "center", "vertical": "top"},
+        },
     ):
         self.rowcounter = 0
         self.na_rep = na_rep
@@ -408,19 +418,7 @@ class ExcelFormatter:
         self.header = header
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
-
-    @property
-    def header_style(self):
-        return {
-            "font": {"bold": True},
-            "borders": {
-                "top": "thin",
-                "right": "thin",
-                "bottom": "thin",
-                "left": "thin",
-            },
-            "alignment": {"horizontal": "center", "vertical": "top"},
-        }
+        self.header_style = header_style
 
     def _format_value(self, val):
         if is_scalar(val) and missing.isna(val):
@@ -682,12 +680,8 @@ class ExcelFormatter:
                     xlstyle = self.style_converter(";".join(styles[i, colidx]))
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val, xlstyle)
 
-    def get_formatted_cells(self, include_header=True):
-        if include_header:
-            cells = itertools.chain(self._format_header(), self._format_body())
-        else:
-            cells = self._format_body()
-        for cell in cells:
+    def get_formatted_cells(self):
+        for cell in itertools.chain(self._format_header(), self._format_body()):
             cell.val = self._format_value(cell.val)
             yield cell
 
@@ -738,24 +732,27 @@ class ExcelFormatter:
             writer = ExcelWriter(_stringify_path(writer), engine=engine)
             need_save = True
 
-        formatted_cells = self.get_formatted_cells()
         if table is not None:
-            writer.write_table(
-                formatted_cells,
-                sheet_name,
-                table,
-                startrow=startrow,
-                startcol=startcol,
-                freeze_panes=freeze_panes,
+            self.header_style = {}
+        formatted_cells = self.get_formatted_cells()
+
+        worksheet, n_rows, n_cols, first_row = writer.write_cells(
+            formatted_cells,
+            sheet_name,
+            startrow=startrow,
+            startcol=startcol,
+            freeze_panes=freeze_panes,
+        )
+
+        if table is not None:
+            table_range = (startrow, startcol, startrow + n_rows, startcol + n_cols)
+            writer.format_table(
+                worksheet,
+                table_name=table,
+                table_range=table_range,
+                first_row=first_row,
                 header=self.header,
-            )
-        else:
-            writer.write_cells(
-                formatted_cells,
-                sheet_name,
-                startrow=startrow,
-                startcol=startcol,
-                freeze_panes=freeze_panes,
+                index=self.index,
             )
         if need_save:
             writer.save()

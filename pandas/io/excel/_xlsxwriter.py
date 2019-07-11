@@ -211,8 +211,15 @@ class _XlsxWriter(ExcelWriter):
         if _validate_freeze_panes(freeze_panes):
             wks.freeze_panes(*(freeze_panes))
 
+        n_cols = 0
+        n_rows = 0
+        first_row = {}
         for cell in cells:
+            n_cols = max(n_cols, cell.col)
+            n_rows = max(n_rows, cell.row)
             val, fmt = self._value_with_fmt(cell.val)
+            if cell.row == 0:
+                first_row[cell.col] = val
 
             stylekey = json.dumps(cell.style)
             if fmt:
@@ -236,50 +243,26 @@ class _XlsxWriter(ExcelWriter):
             else:
                 wks.write(startrow + cell.row, startcol + cell.col, val, style)
 
-    def write_table(
-        self,
-        cells,
-        table,
-        sheet_name=None,
-        startrow=0,
-        startcol=0,
-        freeze_panes=None,
-        header=True,
+        return wks, n_rows, n_cols, first_row
+
+    def format_table(
+        self, wks, table_name, table_range, first_row={}, header=True, index=True
     ):
-        # Write the frame to an excel table using xlsxwriter.
-        sheet_name = self._get_sheet_name(sheet_name)
+        # Format the written cells as table
+        options = dict(
+            autofilter=True,
+            header_row=header,
+            banded_columns=False,
+            banded_rows=True,
+            first_column=index,
+            last_column=False,
+            style="Table Style Medium 9",
+            total_row=False,
+            name=table_name,
+        )
+        if header:
+            options["columns"] = [
+                {"header": first_row[i]} for i in range(len(first_row))
+            ]
 
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
-        else:
-            wks = self.book.add_worksheet(sheet_name)
-            self.sheets[sheet_name] = wks
-
-        if _validate_freeze_panes(freeze_panes):
-            wks.freeze_panes(*(freeze_panes))
-
-        n_cols = 0
-        n_rows = 0
-        header_cells = {}
-        for cell in cells:
-            val, fmt = self._value_with_fmt(cell.val)
-            if header and cell.row == 0:
-                header_cells[cell.col] = cell.val
-                continue
-            wks.write(startrow + cell.row, startcol + cell.col, val)
-            n_cols = max(n_cols, cell.col)
-            n_rows = max(n_rows, cell.row)
-
-        # add generic name for every unnamed (index) column that is included
-        columns = [
-            {
-                "header": str(header_cells[col])
-                if col in header_cells
-                else "Column%d" % (col + 1)
-            }
-            for col in range(n_cols + 1)
-        ]
-
-        options = {"columns": columns, "name": table}
-
-        wks.add_table(startrow, startcol, startrow + n_rows, startcol + n_cols, options)
+        wks.add_table(*table_range, options=options)
