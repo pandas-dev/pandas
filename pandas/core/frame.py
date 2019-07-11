@@ -8387,6 +8387,48 @@ class DataFrame(NDFrame):
                 self.columns,
             )
 
+    def value_counts(self):
+        """
+        The number of times each unique row appears in the DataFrame.
+
+        Returns
+        -------
+        counts : Series
+
+        See Also
+        --------
+        Series.value_counts: Equivalent method on Series.
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame({'num_legs': [2, 4, 4], 'num_wings': [2, 0, 0]},
+        ...                   index=['falcon', 'dog', 'cat'])
+        >>> df
+                num_legs  num_wings
+        falcon         2          2
+        dog            4          0
+        cat            4          0
+
+        >>> df.value_counts()
+        (4, 0)    2
+        (2, 2)    1
+        dtype: int64
+
+        >>> df1col = df[['num_legs']]
+        >>> df1col
+                num_legs
+        falcon         2
+        dog            4
+        cat            4
+
+        >>> df1col.value_counts()
+        (4,)    2
+        (2,)    1
+        dtype: int64
+        """
+        return self.apply(tuple, 1).value_counts()
+
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
     plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
