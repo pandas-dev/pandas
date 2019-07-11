@@ -523,27 +523,6 @@ def test_setitem_with_tz_dst():
     tm.assert_series_equal(s, exp)
 
 
-def test_setitem_new_key_tz():
-    # GH#12862 should not raise on assigning the second value
-    vals = [
-        pd.to_datetime(42).tz_localize("UTC"),
-        pd.to_datetime(666).tz_localize("UTC"),
-    ]
-    expected = pd.Series(vals, index=["foo", "bar"])
-
-    ser = pd.Series()
-    ser["foo"] = vals[0]
-    ser["bar"] = vals[1]
-
-    tm.assert_series_equal(ser, expected)
-
-    ser = pd.Series()
-    ser.loc["foo"] = vals[0]
-    ser.loc["bar"] = vals[1]
-
-    tm.assert_series_equal(ser, expected)
-
-
 def test_categorical_assigning_ops():
     orig = Series(Categorical(["b", "b"], categories=["a", "b"]))
     s = orig.copy()
