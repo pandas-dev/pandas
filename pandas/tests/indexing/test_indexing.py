@@ -231,8 +231,9 @@ class TestFancy(Base):
 
         df.loc[0, "c"] = "foo"
         expected = DataFrame([{"a": 1, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}])
-        expected = expected[df.columns]  # compensate dict key ordering
-        tm.assert_frame_equal(df, expected)
+        # dataframe dict key order is preserved, so these two
+        # sequences of ops lead to different column order
+        tm.assert_frame_equal(df, expected, check_like=True)
 
         # GH10280
         df = DataFrame(
