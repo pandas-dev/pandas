@@ -440,7 +440,7 @@ class TestWindow(Base):
             getattr(w, method)(dtype=np.float64)
 
     @td.skip_if_no_scipy
-    @pytest.mark.parametrize("arg", ["median", "var", "std"])
+    @pytest.mark.parametrize("arg", ["median", "var", "std", "kurt", "skew"])
     def test_agg_function_support(self, arg):
         df = pd.DataFrame({"A": np.arange(5)})
         roll = df.rolling(2, win_type="triang")
@@ -936,20 +936,6 @@ class TestEWM(Base):
             getattr(e, method)(1, 2, 3)
         with pytest.raises(UnsupportedFunctionCall, match=msg):
             getattr(e, method)(dtype=np.float64)
-
-    def test_agg_unknown(self):
-        df = pd.DataFrame({"A": np.arange(5)})
-        roll = df.rolling(2)
-
-        msg = "'foo' is an unknown string function"
-        with pytest.raises(AttributeError, match=msg):
-            roll.agg("foo")
-
-        with pytest.raises(AttributeError, match=msg):
-            roll.agg(["foo"])
-
-        with pytest.raises(AttributeError, match=msg):
-            roll.agg({"A": "foo"})
 
 
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
