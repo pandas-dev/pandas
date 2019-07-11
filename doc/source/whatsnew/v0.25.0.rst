@@ -409,7 +409,7 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
 .. _whatsnew_0250.api_breaking.groupby_categorical:
 
 Categorical dtypes are preserved during groupby
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously, columns that were categorical, but not the groupby key(s) would be converted to ``object`` dtype during groupby operations. Pandas now will preserve these dtypes. (:issue:`18502`)
 
