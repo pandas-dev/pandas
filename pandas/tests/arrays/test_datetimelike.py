@@ -665,16 +665,10 @@ class TestPeriodArray(SharedTests):
 def test_nat_assignment_array(array):
     expected = type(array)._from_sequence([pd.NaT, array[1], array[2]])
 
-    casting_nats = {
-        TimedeltaArray: [pd.NaT, np.timedelta64("NaT", "ns")],
-        DatetimeArray: [pd.NaT, np.datetime64("NaT", "ns")],
-        PeriodArray: [pd.NaT],
-    }[type(array)]
-    non_casting_nats = {
-        TimedeltaArray: [np.datetime64("NaT", "ns")],
-        DatetimeArray: [np.timedelta64("NaT", "ns")],
-        PeriodArray: [np.timedelta64("NaT", "ns"), np.datetime64("NaT", "ns")],
-    }[type(array)]
+    all_np_nats = [np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")]
+    casting_nats = [x for x in all_np_nats if x.dtype.kind == array.dtype.kind]
+    casting_nats.append(pd.NaT)
+    non_casting_nats = [x for x in all_np_nats if x.dtype.kind != array.dtype.kind]
 
     for nat in casting_nats:
         arr = array.copy()
