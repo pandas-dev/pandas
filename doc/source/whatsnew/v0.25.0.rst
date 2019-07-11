@@ -754,7 +754,7 @@ in such cases has changed.
 
 .. code-block:: ipython
 
-   In [1]: data= [
+   In [1]: data = [
       ...:     {'name': 'Joe', 'state': 'NY', 'age': 18},
       ...:     {'name': 'Jane', 'state': 'KY', 'age': 19}
       ...: ]
