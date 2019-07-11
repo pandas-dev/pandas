@@ -10,6 +10,7 @@ import numpy as np
 from pandas._libs import NaT, lib, tslib, tslibs
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
+from pandas._libs.tslibs.timezones import tz_compare
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -727,6 +728,13 @@ class Block(PandasObject):
                     type(self).__name__.lower().replace("Block", ""),
                 )
             )
+        if lib.is_scalar(other) and isna(other) and self.is_integer:
+            raise TypeError(
+                "cannot convert {} to an {}".format(
+                    type(other).__name__,
+                    type(self).__name__.lower().replace("Block", ""),
+                )
+            )
 
         return other
 
@@ -775,16 +783,13 @@ class Block(PandasObject):
         inplace = validate_bool_kwarg(inplace, "inplace")
         original_to_replace = to_replace
 
-        # try to replace, if we raise an error, convert to ObjectBlock and
+        # If we cannot replace with own dtype, convert to ObjectBlock and
         # retry
-        values = self._coerce_values(self.values)
-        try:
-            to_replace = self._try_coerce_args(to_replace)
-        except (TypeError, ValueError):
+        if not self._can_hold_element(to_replace):
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
             if is_object_dtype(self):
-                raise
+                raise AssertionError
 
             # try again with a compatible block
             block = self.astype(object)
@@ -796,6 +801,9 @@ class Block(PandasObject):
                 regex=regex,
                 convert=convert,
             )
+
+        values = self._coerce_values(self.values)
+        to_replace = self._try_coerce_args(to_replace)
 
         mask = missing.mask_missing(values, to_replace)
         if filter is not None:
@@ -1399,7 +1407,10 @@ class Block(PandasObject):
 
         # our where function
         def func(cond, values, other):
-            other = self._try_coerce_args(other)
+
+            if not (self.is_integer and lib.is_scalar(other) and np.isnan(other)):
+                # TODO: why does this one case behave differently?
+                other = self._try_coerce_args(other)
 
             try:
                 fastres = expressions.where(cond, values, other)
@@ -2248,14 +2259,18 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
+            return is_dtype_equal(tipo, self.dtype)
             return tipo == _NS_DTYPE or tipo == np.int64
+        elif element is NaT:
+            return True
         elif isinstance(element, datetime):
+            if self.is_datetimetz:
+                return tz_compare(element.tzinfo, self.dtype.tz)
             return element.tzinfo is None
         elif is_integer(element):
             return element == tslibs.iNaT
 
-        # TODO: shouldnt we exclude timedelta64("NaT")?  See GH#27297
-        return isna(element)
+        return isna(element) and not isinstance(element, np.timedelta64)
 
     def _coerce_values(self, values):
         return values.view("i8")
@@ -2358,6 +2373,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     __slots__ = ()
     is_datetimetz = True
     is_extension = True
+
+    _can_hold_element = DatetimeBlock._can_hold_element
 
     @property
     def _holder(self):
