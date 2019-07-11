@@ -1218,7 +1218,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         try:
                             self.index._engine.set_value(self._values, key, value)
                             return
-                        except TypeError:
+                        except (TypeError, ValueError):
                             pass
 
                 self.loc[key] = value
