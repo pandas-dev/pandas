@@ -66,6 +66,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
+from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name, make_invalid_op
@@ -3318,7 +3319,6 @@ class Index(IndexOpsMixin, PandasObject):
                 # values outside the range of indices so as to trigger an
                 # IndexError in maybe_convert_indices
                 indexer[indexer < 0] = len(self)
-                from pandas.core.indexing import maybe_convert_indices
 
                 return maybe_convert_indices(indexer, len(self))
 

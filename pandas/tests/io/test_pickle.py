@@ -48,7 +48,7 @@ def compare_element(result, expected, typ, version=None):
         return
 
     if typ.startswith("sp_"):
-        comparator = getattr(tm, "assert_%s_equal" % typ)
+        comparator = getattr(tm, "assert_{typ}_equal".format(typ=typ))
         comparator(result, expected, exact_indices=False)
     elif typ == "timestamp":
         if expected is pd.NaT:
@@ -57,7 +57,9 @@ def compare_element(result, expected, typ, version=None):
             assert result == expected
             assert result.freq == expected.freq
     else:
-        comparator = getattr(tm, "assert_%s_equal" % typ, tm.assert_almost_equal)
+        comparator = getattr(
+            tm, "assert_{typ}_equal".format(typ=typ), tm.assert_almost_equal
+        )
         comparator(result, expected)
 
 
@@ -242,7 +244,7 @@ def test_pickle_path_localpath():
 
 @pytest.fixture
 def get_random_path():
-    return "__%s__.pickle" % tm.rands(10)
+    return "__{}__.pickle".format(tm.rands(10))
 
 
 class TestCompression:

@@ -523,7 +523,7 @@ def test_setitem_with_tz_dst():
     tm.assert_series_equal(s, exp)
 
 
-def test_categorial_assigning_ops():
+def test_categorical_assigning_ops():
     orig = Series(Categorical(["b", "b"], categories=["a", "b"]))
     s = orig.copy()
     s[:] = "a"
@@ -754,43 +754,27 @@ def test_datetime_nat_assignment_series(tz):
         tm.assert_frame_equal(df, pd.DataFrame(expected, dtype=object))
 
 
-def test_timedelta_nat_assignment_array():
-    tdi = pd.timedelta_range("1s", periods=3, freq="s")
-    tda = tdi._data
-    expected = pd.TimedeltaIndex([pd.NaT, tdi[1], tdi[2]])._data
+@pytest.mark.parametrize(
+    "td",
+    [
+        pd.Timedelta("9 days"),
+        pd.Timedelta("9 days").to_timedelta64(),
+        pd.Timedelta("9 days").to_pytimedelta(),
+    ],
+)
+def test_append_timedelta_does_not_cast(td):
+    # GH#22717 inserting a Timedelta should _not_ cast to int64
+    expected = pd.Series(["x", td], index=[0, "td"], dtype=object)
 
-    casting_nas = [pd.NaT, np.timedelta64("NaT", "ns")]
-    for nat in casting_nas:
-        arr = tda.copy()
-        arr[0] = nat
+    ser = pd.Series(["x"])
+    ser["td"] = td
+    tm.assert_series_equal(ser, expected)
+    assert isinstance(ser["td"], pd.Timedelta)
 
-        tm.assert_equal(arr, expected)
-
-    non_casting_nas = [np.datetime64("NaT", "ns")]
-    for nat in non_casting_nas:
-        arr = tda.copy()
-        with pytest.raises(TypeError):
-            arr[0] = nat
-
-
-@pytest.mark.parametrize("tz", [None, "US/Pacific"])
-def test_datetime_nat_assignment_array(tz):
-    dti = pd.date_range("2016-01-01", periods=3, tz=tz)
-    dta = dti._data
-    expected = pd.DatetimeIndex([pd.NaT, dti[1], dti[2]])._data
-
-    casting_nas = [pd.NaT, np.datetime64("NaT", "ns")]
-    for nat in casting_nas:
-        arr = dta.copy()
-        arr[0] = nat
-
-        tm.assert_equal(arr, expected)
-
-    non_casting_nas = [np.timedelta64("NaT", "ns")]
-    for nat in non_casting_nas:
-        arr = dta.copy()
-        with pytest.raises(TypeError):
-            arr[0] = nat
+    ser = pd.Series(["x"])
+    ser.loc["td"] = pd.Timedelta("9 days")
+    tm.assert_series_equal(ser, expected)
+    assert isinstance(ser["td"], pd.Timedelta)
 
 
 def test_underlying_data_conversion():

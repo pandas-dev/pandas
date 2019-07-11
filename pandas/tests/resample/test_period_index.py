@@ -101,7 +101,9 @@ class TestPeriodIndex:
     def test_annual_upsample_cases(
         self, targ, conv, meth, month, simple_period_range_series
     ):
-        ts = simple_period_range_series("1/1/1990", "12/31/1991", freq="A-%s" % month)
+        ts = simple_period_range_series(
+            "1/1/1990", "12/31/1991", freq="A-{month}".format(month=month)
+        )
 
         result = getattr(ts.resample(targ, convention=conv), meth)()
         expected = result.to_timestamp(targ, how=conv)
@@ -370,14 +372,16 @@ class TestPeriodIndex:
 
     def test_resample_to_quarterly(self, simple_period_range_series):
         for month in MONTHS:
-            ts = simple_period_range_series("1990", "1992", freq="A-%s" % month)
-            quar_ts = ts.resample("Q-%s" % month).ffill()
+            ts = simple_period_range_series(
+                "1990", "1992", freq="A-{month}".format(month=month)
+            )
+            quar_ts = ts.resample("Q-{month}".format(month=month)).ffill()
 
             stamps = ts.to_timestamp("D", how="start")
             qdates = period_range(
                 ts.index[0].asfreq("D", "start"),
                 ts.index[-1].asfreq("D", "end"),
-                freq="Q-%s" % month,
+                freq="Q-{month}".format(month=month),
             )
 
             expected = stamps.reindex(qdates.to_timestamp("D", "s"), method="ffill")
