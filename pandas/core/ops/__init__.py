@@ -234,32 +234,6 @@ def _gen_eval_kwargs(name):
     return kwargs
 
 
-def _gen_fill_zeros(name):
-    """
-    Find the appropriate fill value to use when filling in undefined values
-    in the results of the given operation caused by operating on
-    (generally dividing by) zero.
-
-    Parameters
-    ----------
-    name : str
-
-    Returns
-    -------
-    fill_value : {None, np.nan, np.inf}
-    """
-    name = name.strip("__")
-    if "div" in name:
-        # truediv, floordiv, and reversed variants
-        fill_value = np.inf
-    elif "mod" in name:
-        # mod, rmod
-        fill_value = np.nan
-    else:
-        fill_value = None
-    return fill_value
-
-
 def _get_frame_op_default_axis(name):
     """
     Only DataFrame cares about default_axis, specifically:
@@ -1632,7 +1606,6 @@ def _arith_method_SERIES(cls, op, special):
     str_rep = _get_opstr(op, cls)
     op_name = _get_op_name(op, special)
     eval_kwargs = _gen_eval_kwargs(op_name)
-    fill_zeros = _gen_fill_zeros(op_name)
     construct_result = (
         _construct_divmod_result if op in [divmod, rdivmod] else _construct_result
     )
@@ -1663,7 +1636,7 @@ def _arith_method_SERIES(cls, op, special):
         except TypeError:
             result = masked_arith_op(x, y, op)
 
-        return missing.dispatch_fill_zeros(op, x, y, result, fill_zeros)
+        return missing.dispatch_fill_zeros(op, x, y, result)
 
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
@@ -2154,7 +2127,6 @@ def _arith_method_FRAME(cls, op, special):
     str_rep = _get_opstr(op, cls)
     op_name = _get_op_name(op, special)
     eval_kwargs = _gen_eval_kwargs(op_name)
-    fill_zeros = _gen_fill_zeros(op_name)
     default_axis = _get_frame_op_default_axis(op_name)
 
     def na_op(x, y):
@@ -2165,7 +2137,7 @@ def _arith_method_FRAME(cls, op, special):
         except TypeError:
             result = masked_arith_op(x, y, op)
 
-        return missing.dispatch_fill_zeros(op, x, y, result, fill_zeros)
+        return missing.dispatch_fill_zeros(op, x, y, result)
 
     if op_name in _op_descriptions:
         # i.e. include "add" but not "__add__"

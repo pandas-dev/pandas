@@ -49,6 +49,12 @@ class TestSparseArrayArithmetics:
             else:
                 expected = op(a_dense, b_dense)
 
+            if op in [operator.floordiv, ops.rfloordiv]:
+                # Series sets 1//0 to np.inf, which SparseArray does not do (yet)
+                mask = np.isinf(expected)
+                if mask.any():
+                    expected[mask] = np.nan
+
             self._assert(result, expected)
 
     def _check_bool_result(self, res):
