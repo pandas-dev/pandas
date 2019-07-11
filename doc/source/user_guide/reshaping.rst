@@ -804,12 +804,12 @@ Note to subdivide over multiple columns we can pass in a list to the
 
 .. _reshaping.explode:
 
-Exploding a List-like Column
+Exploding a list-like column
 ----------------------------
 
 .. versionadded:: 0.25.0
 
-Sometimes the value column is list-like.
+Sometimes the values in a column are list-like.
 
 .. ipython:: python
 
@@ -818,7 +818,7 @@ Sometimes the value column is list-like.
    df = pd.DataFrame({'keys': keys, 'values': values})
    df
 
-We can 'explode' this transforming each element of a list-like to a row, by using :meth:`~Series.explode`. This will replicate the index values:
+We can 'explode' the ``values`` column, transforming each list-like to a separate row, by using :meth:`~Series.explode`. This will replicate the index values from the original row:
 
 .. ipython:: python
 

@@ -932,15 +932,12 @@ def is_list_like(obj: object, allow_sets: bool = True):
 cdef inline bint c_is_list_like(object obj, bint allow_sets):
     return (
         isinstance(obj, abc.Iterable)
-        and
         # we do not count strings/unicode/bytes as list-like
-        not isinstance(obj, (str, bytes))
-        and
+        and not isinstance(obj, (str, bytes))
         # exclude zero-dimensional numpy arrays, effectively scalars
-        not (util.is_array(obj) and obj.ndim == 0)
-        and
+        and not (util.is_array(obj) and obj.ndim == 0)
         # exclude sets if allow_sets is False
-        not (allow_sets is False and isinstance(obj, abc.Set))
+        and not (allow_sets is False and isinstance(obj, abc.Set))
     )
 
 

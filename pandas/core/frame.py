@@ -15,7 +15,7 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, Iterable, List, Optional, Set, Type, Union
+from typing import FrozenSet, List, Optional, Set, Type, Union
 import warnings
 
 import numpy as np
@@ -6239,7 +6239,8 @@ class DataFrame(NDFrame):
 
     def explode(self, column: str) -> "DataFrame":
         """
-        Create new DataFrame expanding a specified list-like column.
+        Transforms each element of a list-like to a row, replicating the
+        index values.
 
         .. versionadded:: 0.25.0
 
@@ -6268,10 +6269,9 @@ class DataFrame(NDFrame):
         Notes
         -----
         This routine will explode list-likes including lists, tuples,
-            Series, and np.ndarray.
-        The result dtype of the subset rows will be object.
-        Scalars will be returned unchanged.
-        Empty list-likes will result in a np.nan for that row.
+        Series, and np.ndarray. The result dtype of the subset rows will
+        be object. Scalars will be returned unchanged. Empty list-likes will
+        result in a np.nan for that row.
 
         Examples
         --------
@@ -6292,7 +6292,6 @@ class DataFrame(NDFrame):
         2  NaN  1
         3    3  1
         3    4  1
-
         """
 
         if not is_scalar(column):

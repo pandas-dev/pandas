@@ -3638,7 +3638,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def explode(self) -> "Series":
         """
-        Create new Series expanding a list-like column.
+        Transforms each element of a list-like to a row, replicating the
+        index values.
 
         .. versionadded:: 0.25.0
 
@@ -3659,10 +3660,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Notes
         -----
         This routine will explode list-likes including lists, tuples,
-            Series, and np.ndarray.
-        The result dtype of the returned Series will always be object.
-        Scalars will be returned unchanged.
-        Empty list-likes will result in a np.nan for that row.
+        Series, and np.ndarray. The result dtype of the subset rows will
+        be object. Scalars will be returned unchanged. Empty list-likes will
+        result in a np.nan for that row.
 
         Examples
         --------
@@ -3683,7 +3683,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3      3
         3      4
         dtype: object
-
         """
         if not len(self) or not is_object_dtype(self):
             return self.copy()
