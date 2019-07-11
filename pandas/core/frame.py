@@ -439,28 +439,9 @@ class DataFrame(NDFrame):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
-                    infer_columns_names = columns is None
-                    if is_named_tuple(data[0]) and infer_columns_names:
+                    if is_named_tuple(data[0]) and columns is None:
                         columns = data[0]._fields
-                    arrays, arr_names = to_arrays(data, columns, dtype=dtype)
-                    arr_names = ensure_index(arr_names)
-
-                    columns = arr_names
-                    # GH#10056
-                    if (
-                        PY36
-                        and is_dict_like(data[0])
-                        and infer_columns_names
-                        and (type(columns) is Index)
-                    ):
-                        _columns = list(columns)
-                        known_columns = set(data[0])
-                        extra_columns = [_ for _ in _columns if _ not in known_columns]
-                        if set(_columns[: len(data[0])]) == known_columns:
-                            _columns[: len(known_columns)] = list(data[0])
-                            _columns[len(known_columns) :] = extra_columns
-                            columns = _columns
-
+                    arrays, columns = to_arrays(data, columns, dtype=dtype)
                     columns = ensure_index(columns)
 
                     # set the index
@@ -472,7 +453,7 @@ class DataFrame(NDFrame):
                         else:
                             index = ibase.default_index(len(data))
 
-                    mgr = arrays_to_mgr(arrays, arr_names, index, columns, dtype=dtype)
+                    mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
                 else:
                     mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
             else:
