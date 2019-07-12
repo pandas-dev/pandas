@@ -1069,3 +1069,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         s = Series([1, 2])
         result = s.loc[np.array(0)]
         assert result == 1
+
+
+def test_series_loc_getitem_label_list_missing_values():
+    # gh-11428
+    key = np.array(
+        ["2001-01-04", "2001-01-02", "2001-01-04", "2001-01-14"], dtype="datetime64"
+    )
+    s = Series([2, 5, 8, 11], date_range("2001-01-01", freq="D", periods=4))
+    expected = Series([11.0, 5.0, 11.0, np.nan], index=key)
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = s.loc[key]
+    tm.assert_series_equal(result, expected)
