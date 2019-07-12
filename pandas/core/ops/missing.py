@@ -148,40 +148,26 @@ def mask_zero_div_zero(x, y, result):
     return result
 
 
-def dispatch_missing(op, left, right, result):
-    """
-    Fill nulls caused by division by zero, casting to a different dtype
-    if necessary.
-
-    Parameters
-    ----------
-    op : function (operator.add, operator.div, ...)
-    left : object (Index for non-reversed ops)
-    right : object (Index fof reversed ops)
-    result : ndarray
-
-    Returns
-    -------
-    result : ndarray
-    """
-    if op is operator.floordiv:
-        # Note: no need to do this for truediv; in py3 numpy behaves the way
-        #  we want.
-        result = mask_zero_div_zero(left, right, result)
-    elif op is operator.mod:
-        result = fill_zeros(result, left, right, "__mod__", np.nan)
-    elif op is divmod:
-        res0 = mask_zero_div_zero(left, right, result[0])
-        res1 = fill_zeros(result[1], left, right, "__divmod__", np.nan)
-        result = (res0, res1)
-    return result
-
-
-# FIXME: de-duplicate with dispatch_missing
 def dispatch_fill_zeros(op, left, right, result):
     """
     Call fill_zeros with the appropriate fill value depending on the operation,
     with special logic for divmod and rdivmod.
+
+    Parameters
+    ----------
+    op : function (operator.add, operator.div, ...)
+    left : object (np.ndarray for non-reversed ops)
+    right : object (np.ndarray for reversed ops)
+    result : ndarray
+
+    Returns
+    -------
+    result : np.ndarray
+
+    Notes
+    -----
+    For divmod and rdivmod, the `result` parameter and returned `result`
+    is a 2-tuple of ndarray objects.
     """
     if op is divmod:
         result = (

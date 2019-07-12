@@ -103,18 +103,6 @@ class TestArithmetic:
         result = op(arr, other)
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "box",
-        [
-            pytest.param(
-                pd.Index,
-                marks=pytest.mark.xfail(reason="Does not mask nulls", raises=TypeError),
-            ),
-            pd.Series,
-            pd.DataFrame,
-        ],
-        ids=lambda x: x.__name__,
-    )
     def test_objarr_add_str(self, box):
         ser = pd.Series(["x", np.nan, "x"])
         expected = pd.Series(["xa", np.nan, "xa"])
@@ -125,18 +113,6 @@ class TestArithmetic:
         result = ser + "a"
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "box",
-        [
-            pytest.param(
-                pd.Index,
-                marks=pytest.mark.xfail(reason="Does not mask nulls", raises=TypeError),
-            ),
-            pd.Series,
-            pd.DataFrame,
-        ],
-        ids=lambda x: x.__name__,
-    )
     def test_objarr_radd_str(self, box):
         ser = pd.Series(["x", np.nan, "x"])
         expected = pd.Series(["ax", np.nan, "ax"])

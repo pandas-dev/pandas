@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
+    ABCDatetimeArray,
     ABCIndex,
     ABCIndexClass,
     ABCSeries,
@@ -1702,10 +1703,14 @@ def _arith_method_SERIES(cls, op, special):
             #  does inference in the case where `result` has object-dtype.
             return construct_result(left, result, index=left.index, name=res_name)
 
+        elif isinstance(right, (ABCDatetimeArray, pd.DatetimeIndex)):
+            result = op(left._values, right)
+            return construct_result(left, result, index=left.index, name=res_name)
+
         lvalues = left.values
         rvalues = right
-        if isinstance(rvalues, ABCSeries):
-            rvalues = rvalues.values
+        if isinstance(rvalues, (ABCSeries, ABCIndexClass)):
+            rvalues = rvalues._values
 
         with np.errstate(all="ignore"):
             result = na_op(lvalues, rvalues)

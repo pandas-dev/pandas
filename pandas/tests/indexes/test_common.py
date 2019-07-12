@@ -144,6 +144,7 @@ class TestCommon:
         assert res is None
         assert indices.name == new_name
         assert indices.names == [new_name]
+        # FIXME: dont leave commented-out
         # with pytest.raises(TypeError, match="list-like"):
         #    # should still fail even if it would be the right length
         #    ind.set_names("a")
