@@ -746,38 +746,46 @@ consistent with NumPy and the rest of pandas (:issue:`21801`).
 Column order is preserved when passing a list of dicts to DataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Starting with Python 3.7 the key-order of `dict` is `guaranteed <https://mail.python.org/pipermail/python-dev/2017-December/151283.html>`_. In practice, this has been true since
-Python 3.6. The DataFrame constructor now treats a list of dicts in the same way as
-it has a list of `OrderedDict` since v0.19.0. This change applies only when pandas is running
-on python>=3.6 (:issue:`27309`). As a consequence, the column order produced by `DataFrame()`
-in such cases has changed.
+Starting with Python 3.7 the key-order of ``dict`` is `guaranteed <https://mail.python.org/pipermail/python-dev/2017-December/151283.html>`_. In practice, this has been true since
+Python 3.6. The :class:`DataFrame`  constructor now treats a list of dicts in the same way as
+it has a list of ``OrderedDict`` since v0.19.0. This change applies only when pandas is running
+on Python>=3.6. As a consequence, the column order produced by `DataFrame()`
+in such cases has changed (:issue:`27309`).
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [1]: data = [
-      ...:     {'name': 'Joe', 'state': 'NY', 'age': 18},
-      ...:     {'name': 'Jane', 'state': 'KY', 'age': 19}
-      ...: ]
+   data = [
+     {'name': 'Joe', 'state': 'NY', 'age': 18},
+     {'name': 'Jane', 'state': 'KY', 'age': 19, 'hobby': 'Minecraft'},
+     {'name': 'Jean', 'state': 'OK', 'age': 20, 'finances': 'good'}
+   ]
 
-*Previous behavior* (lexicographically sorted)
+*Previous Behavior*:
 
-.. code-block:: ipython
+The columns were lexicographically sorted previously,
+
+.. code-block:: python
 
    In [1]: pd.DataFrame(data)
    Out[1]:
-      age  name state
-   0   18   Joe    NY
-   1   19  Jane    KY
+      age finances      hobby  name state
+   0   18      NaN        NaN   Joe    NY
+   1   19      NaN  Minecraft  Jane    KY
+   2   20     good        NaN  Jean    OK
 
-*New behavior*: preserve order of the dicts
+*New Behavior*:
 
-.. code-block:: ipython
+The column order now matches the insertion-order of the keys in the ``dict``,
+considering all the records from top to bottom.
+
+.. code-block:: python
 
    In [2]: pd.DataFrame(data)
    Out[2]:
-      name state  age
-   0   Joe    NY   18
-   1  Jane    KY   19
+      name state  age      hobby finances
+   0   Joe    NY   18        NaN      NaN
+   1  Jane    KY   19  Minecraft      NaN
+   2  Jean    OK   20        NaN     good
 
 .. _whatsnew_0250.api_breaking.deps:
 
