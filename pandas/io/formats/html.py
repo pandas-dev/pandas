@@ -4,11 +4,11 @@ Module for formatting output data in HTML.
 
 from collections import OrderedDict
 from textwrap import dedent
-from typing import List, Optional, Tuple, Union, Dict
+from typing import Dict, List, Optional, Tuple, Union
 
 from pandas._config import get_option
 
-from pandas.core.dtypes.generic import ABCMultiIndex, ABCIndex
+from pandas.core.dtypes.generic import ABCIndex, ABCMultiIndex
 
 from pandas import option_context
 
