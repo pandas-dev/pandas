@@ -1112,7 +1112,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # A boolean indexer
             key = check_bool_indexer(labels, key)
             inds, = key.nonzero()
-            return self.obj._take(inds, axis=axis)
+            return self.obj.take(inds, axis=axis)
         else:
             # A collection of keys
             keyarr, indexer = self._get_listlike_indexer(key, axis, raise_missing=False)
@@ -1423,7 +1423,7 @@ class _LocationIndexer(_NDFrameIndexer):
         key = check_bool_indexer(labels, key)
         inds, = key.nonzero()
         try:
-            return self.obj._take(inds, axis=axis)
+            return self.obj.take(inds, axis=axis)
         except Exception as detail:
             raise self._exception(detail)
 
@@ -1444,7 +1444,7 @@ class _LocationIndexer(_NDFrameIndexer):
         else:
             # DatetimeIndex overrides Index.slice_indexer and may
             #  return a DatetimeIndex instead of a slice object.
-            return self.obj._take(indexer, axis=axis)
+            return self.obj.take(indexer, axis=axis)
 
 
 class _LocIndexer(_LocationIndexer):
@@ -2107,7 +2107,7 @@ class _iLocIndexer(_LocationIndexer):
         Series object
         """
         try:
-            return self.obj._take(key, axis=axis)
+            return self.obj.take(key, axis=axis)
         except IndexError:
             # re-raise with different error message
             raise IndexError("positional indexers are out-of-bounds")
