@@ -13,6 +13,66 @@ from pandas.tests.indexing.common import Base
 from pandas.util import testing as tm
 
 
+class TestLocRegex:
+    # test calls to df.loc, with a regex parameter set to True,
+    # ie. df.loc(..., regex=True)[...]
+
+    idx = ["AB", "BC", "CD", "DE"]
+    cols = idx[::-1]
+
+    def test_regex_frame(self):
+        idx, cols = self.idx, self.cols
+
+        df = pd.DataFrame(1, index=idx, columns=cols)
+        ser = df["AB"]
+
+        result = df.loc(regex=True)["B"]
+        expected = pd.DataFrame(1, index=["AB", "BC"], columns=cols)
+        tm.assert_frame_equal(result, expected)
+
+        result = ser.loc(regex=True)["B"]
+        expected = pd.Series(1, index=["AB", "BC"], name="AB")
+        tm.assert_series_equal(result, expected)
+
+        result = df.loc(regex=True)[:, "B"]
+        expected = pd.DataFrame(1, index=idx, columns=["BC", "AB"])
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc(regex=True)["B", "B"]
+        expected = pd.DataFrame(1, index=["AB", "BC"], columns=["BC", "AB"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_regex_empty(self):
+        idx, cols = self.idx, self.cols
+
+        df = pd.DataFrame(1, index=idx, columns=cols)
+        ser = df["AB"]
+
+        result = df.loc(regex=True)["X"]
+        expected = pd.DataFrame(columns=cols, dtype="int64")
+        tm.assert_frame_equal(result, expected)
+
+        result = ser.loc(regex=True)["X"]
+        expected = pd.Series(name="AB", dtype="int64")
+        tm.assert_series_equal(result, expected)
+
+        result = df.loc(regex=True)[:, "X"]
+        expected = pd.DataFrame(index=idx, dtype="int64")
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc(regex=True)["X", "X"]
+        expected = pd.DataFrame(dtype="int64")
+        tm.assert_frame_equal(result, expected)
+
+    def test_regex_inserting(self):
+        idx, cols = self.idx, self.cols
+
+        df = pd.DataFrame(1, index=idx, columns=cols)
+
+        with pytest.raises(TypeError, match="Inserting with regex not supported"):
+            df.loc(regex=True)["B", "B"] = [[2, 2], [2, 2]]
+
+
 class TestLoc(Base):
     def test_loc_getitem_dups(self):
         # GH 5678

@@ -563,6 +563,38 @@ without using a temporary variable.
    (bb.groupby(['year', 'team']).sum()
       .loc[lambda df: df.r > 100])
 
+
+.. _indexing.selecting_with_regex:
+
+Selection by regular expression
+-------------------------------
+
+.. versionadded:: 0.25.0
+
+it is possible to call :attr:`~DataFrame.loc` with parameter ``regex=True`` to select by
+row/columns axis labels that match a regular expression pattern.
+
+.. ipython:: python
+
+    df = pd.DataFrame(1, index=["A", "AB", "BC"], columns=["BC", "AB", "A"])
+    df
+
+    df.loc(regex=True)["B", "B"]
+    df.loc(axis=1, regex=True)["B"]
+
+The regex matching will only work when looking up single strings, not list of strings etc.
+
+.. ipython:: python
+
+    df.loc(regex=True)[["A"], "A"]
+
+*Notice*: Is is currently not possible to set values for a given regular expression.
+
+.. ipython:: python
+
+    df.loc(regex=True)["B", "B"] = [[1, 2], [3, 4]]
+
+
 .. _indexing.deprecate_ix:
 
 IX indexer is deprecated

@@ -939,10 +939,14 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # slice returns a new object.
                 if com.is_null_slice(new_key):
                     return section
-                # This is an elided recursive call to iloc/loc/etc'
-                return getattr(section, self.name)[new_key]
+
+                return self._getitem_lower_dim(section, new_key)
 
         raise IndexingError("not applicable")
+
+    def _getitem_lower_dim(self, section, key):
+        # This is an elided recursive call to iloc/loc/etc'
+        return getattr(section, self.name)[key]
 
     def _getitem_nested_tuple(self, tup: Tuple):
         # we have a nested tuple so have at least 1 multi-index level
@@ -1689,6 +1693,14 @@ class _LocIndexer(_LocationIndexer):
     )
     _exception = KeyError
 
+    regex = False
+
+    def __call__(self, axis=None, regex=False):
+        new_self = super().__call__(axis=axis)
+        if regex:
+            new_self.regex = regex
+        return new_self
+
     @Appender(_NDFrameIndexer._validate_key.__doc__)
     def _validate_key(self, key, axis: int):
 
@@ -1755,6 +1767,27 @@ class _LocIndexer(_LocationIndexer):
 
         return key
 
+    def _get_regex_mappings(self, key, axis=None):
+        import re
+
+        if axis is None:
+            axis = self.axis or 0
+
+        labels = self.obj._get_axis(axis)
+
+        matcher = re.compile(key)
+
+        def f(x):
+            return matcher.search(x) is not None
+
+        return labels.map(f)
+
+    def _getitem_regex(self, key, axis=None):
+        """Subset obj by regex-searching axis for key."""
+        mapped = self._get_regex_mappings(key, axis)
+
+        return self.obj.loc(axis=axis)[mapped]
+
     def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
         if is_iterator(key):
@@ -1816,9 +1849,20 @@ class _LocIndexer(_LocationIndexer):
                 indexer[axis] = locs
                 return self.obj.iloc[tuple(indexer)]
 
+        if self.regex and isinstance(key, str):
+            return self._getitem_regex(key, axis=axis)
+
         # fall thru to straight lookup
         self._validate_key(key, axis)
         return self._get_label(key, axis=axis)
+
+    def _getitem_lower_dim(self, section, key):
+        return getattr(section, self.name)(regex=self.regex)[key]
+
+    def __setitem__(self, key, value):
+        if self.regex:
+            raise TypeError("Inserting with regex not supported")
+        return super().__setitem__(key, value)
 
 
 class _iLocIndexer(_LocationIndexer):
