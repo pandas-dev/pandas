@@ -324,9 +324,6 @@ class DatetimeConverter(dates.DateConverter):
 class PandasAutoDateFormatter(dates.AutoDateFormatter):
     def __init__(self, locator, tz=None, defaultfmt="%Y-%m-%d"):
         dates.AutoDateFormatter.__init__(self, locator, tz, defaultfmt)
-        # matplotlib.dates._UTC has no _utcoffset called by pandas
-        if self._tz is dates.UTC:
-            self._tz._utcoffset = self._tz.utcoffset(None)
 
 
 class PandasAutoDateLocator(dates.AutoDateLocator):
