@@ -675,7 +675,7 @@ class BaseGrouper:
         # avoids object / Series creation overhead
         dummy = obj._get_values(slice(None, 0))
         indexer = get_group_index_sorter(group_index, ngroups)
-        obj = obj._take(indexer)
+        obj = obj.take(indexer)
         group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
         grouper = reduction.SeriesGrouper(obj, func, group_index, ngroups, dummy)
         result, counts = grouper.get_result()
@@ -915,7 +915,7 @@ class DataSplitter:
             yield i, self._chop(sdata, slice(start, end))
 
     def _get_sorted_data(self):
-        return self.data._take(self.sort_idx, axis=self.axis)
+        return self.data.take(self.sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj):
         return sdata.iloc[slice_obj]

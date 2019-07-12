@@ -4,15 +4,20 @@ Module for formatting output data in HTML.
 
 from collections import OrderedDict
 from textwrap import dedent
+from typing import Dict, List, Optional, Tuple, Union
 
 from pandas._config import get_option
 
-from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import ABCIndex, ABCMultiIndex
 
 from pandas import option_context
 
 from pandas.io.common import _is_url
-from pandas.io.formats.format import TableFormatter, get_level_lengths
+from pandas.io.formats.format import (
+    DataFrameFormatter,
+    TableFormatter,
+    get_level_lengths,
+)
 from pandas.io.formats.printing import pprint_thing
 
 
@@ -28,13 +33,18 @@ class HTMLFormatter(TableFormatter):
 
     indent_delta = 2
 
-    def __init__(self, formatter, classes=None, border=None):
+    def __init__(
+        self,
+        formatter: DataFrameFormatter,
+        classes: Optional[Union[str, List, Tuple]] = None,
+        border: Optional[bool] = None,
+    ) -> None:
         self.fmt = formatter
         self.classes = classes
 
         self.frame = self.fmt.frame
         self.columns = self.fmt.tr_frame.columns
-        self.elements = []
+        self.elements = []  # type: List[str]
         self.bold_rows = self.fmt.kwds.get("bold_rows", False)
         self.escape = self.fmt.kwds.get("escape", True)
         self.show_dimensions = self.fmt.show_dimensions
@@ -47,15 +57,15 @@ class HTMLFormatter(TableFormatter):
             self.fmt.col_space = "{colspace}px".format(colspace=self.fmt.col_space)
 
     @property
-    def show_row_idx_names(self):
+    def show_row_idx_names(self) -> bool:
         return self.fmt.show_row_idx_names
 
     @property
-    def show_col_idx_names(self):
+    def show_col_idx_names(self) -> bool:
         return self.fmt.show_col_idx_names
 
     @property
-    def row_levels(self):
+    def row_levels(self) -> int:
         if self.fmt.index:
             # showing (row) index
             return self.frame.index.nlevels
@@ -69,22 +79,24 @@ class HTMLFormatter(TableFormatter):
         # not showing (row) index
         return 0
 
-    def _get_columns_formatted_values(self):
+    def _get_columns_formatted_values(self) -> ABCIndex:
         return self.columns
 
     @property
-    def is_truncated(self):
+    def is_truncated(self) -> bool:
         return self.fmt.is_truncated
 
     @property
-    def ncols(self):
+    def ncols(self) -> int:
         return len(self.fmt.tr_frame.columns)
 
-    def write(self, s, indent=0):
+    def write(self, s: str, indent: int = 0) -> None:
         rs = pprint_thing(s)
         self.elements.append(" " * indent + rs)
 
-    def write_th(self, s, header=False, indent=0, tags=None):
+    def write_th(
+        self, s: str, header: bool = False, indent: int = 0, tags: Optional[str] = None
+    ) -> None:
         """
         Method for writting a formatted <th> cell.
 
@@ -111,12 +123,14 @@ class HTMLFormatter(TableFormatter):
             tags = tags or ""
             tags += 'style="min-width: {colspace};"'.format(colspace=self.fmt.col_space)
 
-        return self._write_cell(s, kind="th", indent=indent, tags=tags)
+        self._write_cell(s, kind="th", indent=indent, tags=tags)
 
-    def write_td(self, s, indent=0, tags=None):
-        return self._write_cell(s, kind="td", indent=indent, tags=tags)
+    def write_td(self, s: str, indent: int = 0, tags: Optional[str] = None) -> None:
+        self._write_cell(s, kind="td", indent=indent, tags=tags)
 
-    def _write_cell(self, s, kind="td", indent=0, tags=None):
+    def _write_cell(
+        self, s: str, kind: str = "td", indent: int = 0, tags: Optional[str] = None
+    ) -> None:
         if tags is not None:
             start_tag = "<{kind} {tags}>".format(kind=kind, tags=tags)
         else:
@@ -124,7 +138,9 @@ class HTMLFormatter(TableFormatter):
 
         if self.escape:
             # escape & first to prevent double escaping of &
-            esc = OrderedDict([("&", r"&amp;"), ("<", r"&lt;"), (">", r"&gt;")])
+            esc = OrderedDict(
+                [("&", r"&amp;"), ("<", r"&lt;"), (">", r"&gt;")]
+            )  # type: Union[OrderedDict[str, str], Dict]
         else:
             esc = {}
 
@@ -146,14 +162,14 @@ class HTMLFormatter(TableFormatter):
 
     def write_tr(
         self,
-        line,
-        indent=0,
-        indent_delta=0,
-        header=False,
-        align=None,
-        tags=None,
-        nindex_levels=0,
-    ):
+        line: List[str],
+        indent: int = 0,
+        indent_delta: int = 0,
+        header: bool = False,
+        align: Optional[str] = None,
+        tags: Optional[Dict[int, str]] = None,
+        nindex_levels: int = 0,
+    ) -> None:
         if tags is None:
             tags = {}
 
@@ -173,7 +189,7 @@ class HTMLFormatter(TableFormatter):
         indent -= indent_delta
         self.write("</tr>", indent)
 
-    def render(self):
+    def render(self) -> List[str]:
         self._write_table()
 
         if self.should_show_dimensions:
@@ -186,7 +202,7 @@ class HTMLFormatter(TableFormatter):
 
         return self.elements
 
-    def _write_table(self, indent=0):
+    def _write_table(self, indent: int = 0) -> None:
         _classes = ["dataframe"]  # Default class.
         use_mathjax = get_option("display.html.use_mathjax")
         if not use_mathjax:
@@ -220,7 +236,7 @@ class HTMLFormatter(TableFormatter):
 
         self.write("</table>", indent)
 
-    def _write_col_header(self, indent):
+    def _write_col_header(self, indent: int) -> None:
         truncate_h = self.fmt.truncate_h
         if isinstance(self.columns, ABCMultiIndex):
             template = 'colspan="{span:d}" halign="left"'
@@ -337,14 +353,14 @@ class HTMLFormatter(TableFormatter):
 
             self.write_tr(row, indent, self.indent_delta, header=True, align=align)
 
-    def _write_row_header(self, indent):
+    def _write_row_header(self, indent: int) -> None:
         truncate_h = self.fmt.truncate_h
         row = [x if x is not None else "" for x in self.frame.index.names] + [""] * (
             self.ncols + (1 if truncate_h else 0)
         )
         self.write_tr(row, indent, self.indent_delta, header=True)
 
-    def _write_header(self, indent):
+    def _write_header(self, indent: int) -> None:
         self.write("<thead>", indent)
 
         if self.fmt.header:
@@ -355,12 +371,12 @@ class HTMLFormatter(TableFormatter):
 
         self.write("</thead>", indent)
 
-    def _get_formatted_values(self):
+    def _get_formatted_values(self) -> Dict[int, List[str]]:
         with option_context("display.max_colwidth", 999999):
             fmt_values = {i: self.fmt._format_col(i) for i in range(self.ncols)}
         return fmt_values
 
-    def _write_body(self, indent):
+    def _write_body(self, indent: int) -> None:
         self.write("<tbody>", indent)
         fmt_values = self._get_formatted_values()
 
@@ -372,7 +388,9 @@ class HTMLFormatter(TableFormatter):
 
         self.write("</tbody>", indent)
 
-    def _write_regular_rows(self, fmt_values, indent):
+    def _write_regular_rows(
+        self, fmt_values: Dict[int, List[str]], indent: int
+    ) -> None:
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
 
@@ -385,7 +403,7 @@ class HTMLFormatter(TableFormatter):
             else:
                 index_values = self.fmt.tr_frame.index.format()
 
-        row = []
+        row = []  # type: List[str]
         for i in range(nrows):
 
             if truncate_v and i == (self.fmt.tr_row_num):
@@ -416,7 +434,9 @@ class HTMLFormatter(TableFormatter):
                 row, indent, self.indent_delta, tags=None, nindex_levels=self.row_levels
             )
 
-    def _write_hierarchical_rows(self, fmt_values, indent):
+    def _write_hierarchical_rows(
+        self, fmt_values: Dict[int, List[str]], indent: int
+    ) -> None:
         template = 'rowspan="{span}" valign="top"'
 
         truncate_h = self.fmt.truncate_h
@@ -546,13 +566,13 @@ class NotebookFormatter(HTMLFormatter):
     DataFrame._repr_html_() and DataFrame.to_html(notebook=True)
     """
 
-    def _get_formatted_values(self):
+    def _get_formatted_values(self) -> Dict[int, List[str]]:
         return {i: self.fmt._format_col(i) for i in range(self.ncols)}
 
-    def _get_columns_formatted_values(self):
+    def _get_columns_formatted_values(self) -> List[str]:
         return self.columns.format()
 
-    def write_style(self):
+    def write_style(self) -> None:
         # We use the "scoped" attribute here so that the desired
         # style properties for the data frame are not then applied
         # throughout the entire notebook.
@@ -580,7 +600,7 @@ class NotebookFormatter(HTMLFormatter):
         template = dedent("\n".join((template_first, template_mid, template_last)))
         self.write(template)
 
-    def render(self):
+    def render(self) -> List[str]:
         self.write("<div>")
         self.write_style()
         super().render()
