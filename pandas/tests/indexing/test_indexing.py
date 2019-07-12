@@ -233,7 +233,7 @@ class TestFancy(Base):
         expected = DataFrame([{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}])
         # dataframe dict key order is preserved, so these two
         # sequences of ops lead to different column order
-        tm.assert_frame_equal(df, expected, check_like=True)
+        tm.assert_frame_equal(df, expected, check_like=not PY36)
 
         # GH10280
         df = DataFrame(
