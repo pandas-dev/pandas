@@ -1692,6 +1692,25 @@ cdef:
     char* cneginf = b'-inf'
 
 
+ctypedef char flag_with_gil_t
+ctypedef float flag_no_gil_t
+
+ctypedef fused use_gil_t:
+    flag_with_gil_t
+    flag_no_gil_t
+
+ctypedef float64_t (*double_converter_with_gil_t)(
+              const char *, char **, char,
+              char, char, int, int *, int *) ;
+
+ctypedef float64_t (*double_converter_with_nogil_t)(
+              const char *, char **, char,
+              char, char, int, int *, int *) nogil;
+
+ctypedef fused double_converter_t:
+    double_converter_with_gil_t
+    double_converter_with_nogil_t
+
 cdef _try_double(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
                  bint na_filter, kh_str_starts_t *na_hashset, object na_flist):
@@ -1713,37 +1732,32 @@ cdef _try_double(parser_t *parser, int64_t col,
     data = <float64_t *>result.data
     na_fset = kset_float64_from_list(na_flist)
     if parser.double_converter_nogil != NULL:  # if it can run without the GIL
-        with nogil:
-            error = _try_double_nogil(parser, parser.double_converter_nogil,
-                                      col, line_start, line_end,
-                                      na_filter, na_hashset, use_na_flist,
-                                      na_fset, NA, data, &na_count)
-    else:
-        assert parser.double_converter_withgil != NULL
         error = _try_double_nogil(parser,
-                                  <float64_t (*)(const char *, char **,
-                                                 char, char, char,
-                                                 int, int *, int *)
-                                  nogil>parser.double_converter_withgil,
+                                  parser.double_converter_nogil,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
                                   na_fset, NA, data, &na_count)
+    else:
+        assert parser.double_converter_withgil != NULL
+        error = _try_double_nogil(parser,
+                                  parser.double_converter_withgil,
+                                  col, line_start, line_end,
+                                  na_filter, na_hashset, use_na_flist,
+                                  na_fset, NA, data, &na_count)
+
     kh_destroy_float64(na_fset)
     if error != 0:
         return None, None
     return result, na_count
 
-
 cdef inline int _try_double_nogil(parser_t *parser,
-                                  float64_t (*double_converter)(
-                                      const char *, char **, char,
-                                      char, char, int, int *, int *) nogil,
+                                  double_converter_t double_converter,
                                   int col, int line_start, int line_end,
                                   bint na_filter, kh_str_starts_t *na_hashset,
                                   bint use_na_flist,
                                   const kh_float64_t *na_flist,
                                   float64_t NA, float64_t *data,
-                                  int *na_count) nogil:
+                                  int *na_count):
     cdef:
         int error = 0,
         Py_ssize_t i, lines = line_end - line_start
@@ -1752,18 +1766,40 @@ cdef inline int _try_double_nogil(parser_t *parser,
         char *p_end
         khiter_t k, k64
 
-    na_count[0] = 0
-    coliter_setup(&it, parser, col, line_start)
+    with nogil(double_converter_t is double_converter_with_nogil_t):
+        na_count[0] = 0
+        coliter_setup(&it, parser, col, line_start)
 
-    if na_filter:
-        for i in range(lines):
-            COLITER_NEXT(it, word)
+        if na_filter:
+            for i in range(lines):
+                COLITER_NEXT(it, word)
 
-            if kh_get_str_starts_item(na_hashset, word):
-                # in the hash table
-                na_count[0] += 1
-                data[0] = NA
-            else:
+                if kh_get_str_starts_item(na_hashset, word):
+                    # in the hash table
+                    na_count[0] += 1
+                    data[0] = NA
+                else:
+                    data[0] = double_converter(word, &p_end, parser.decimal,
+                                               parser.sci, parser.thousands,
+                                               1, &error, NULL)
+                    if error != 0 or p_end == word or p_end[0]:
+                        error = 0
+                        if (strcasecmp(word, cinf) == 0 or
+                                strcasecmp(word, cposinf) == 0):
+                            data[0] = INF
+                        elif strcasecmp(word, cneginf) == 0:
+                            data[0] = NEGINF
+                        else:
+                            return 1
+                    if use_na_flist:
+                        k64 = kh_get_float64(na_flist, data[0])
+                        if k64 != na_flist.n_buckets:
+                            na_count[0] += 1
+                            data[0] = NA
+                data += 1
+        else:
+            for i in range(lines):
+                COLITER_NEXT(it, word)
                 data[0] = double_converter(word, &p_end, parser.decimal,
                                            parser.sci, parser.thousands,
                                            1, &error, NULL)
@@ -1776,28 +1812,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
                         data[0] = NEGINF
                     else:
                         return 1
-                if use_na_flist:
-                    k64 = kh_get_float64(na_flist, data[0])
-                    if k64 != na_flist.n_buckets:
-                        na_count[0] += 1
-                        data[0] = NA
-            data += 1
-    else:
-        for i in range(lines):
-            COLITER_NEXT(it, word)
-            data[0] = double_converter(word, &p_end, parser.decimal,
-                                       parser.sci, parser.thousands,
-                                       1, &error, NULL)
-            if error != 0 or p_end == word or p_end[0]:
-                error = 0
-                if (strcasecmp(word, cinf) == 0 or
-                        strcasecmp(word, cposinf) == 0):
-                    data[0] = INF
-                elif strcasecmp(word, cneginf) == 0:
-                    data[0] = NEGINF
-                else:
-                    return 1
-            data += 1
+                data += 1
 
     return 0
 
