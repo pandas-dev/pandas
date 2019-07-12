@@ -9,7 +9,7 @@ import numpy as np
 
 from pandas._libs import NaT, lib, tslib, tslibs
 import pandas._libs.internals as libinternals
-from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
+from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas.util._validators import validate_bool_kwarg
 
@@ -2285,7 +2285,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         -------
         base-type other
         """
-        if is_null_datetimelike(other):
+        if is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
@@ -2477,7 +2477,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # add the tz back
             other = self._holder(other, dtype=self.dtype)
 
-        elif is_null_datetimelike(other):
+        elif is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
@@ -2663,7 +2663,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         base-type other
         """
 
-        if is_null_datetimelike(other) and not isinstance(other, np.datetime64):
+        if is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
         elif isinstance(other, (timedelta, np.timedelta64)):
             other = Timedelta(other).value
