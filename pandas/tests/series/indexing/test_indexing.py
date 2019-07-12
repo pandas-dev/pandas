@@ -851,7 +851,7 @@ def test_head_tail(test_data):
 
 def test_setitem_tuple_with_datetimetz():
     # GH 20441
-    arr = pd.date_range('2017', periods=4, tz='US/Eastern')
+    arr = pd.date_range("2017", periods=4, tz="US/Eastern")
     index = [(0, 1), (0, 2), (0, 3), (0, 4)]
     result = Series(arr, index=index)
     expected = result.copy()
