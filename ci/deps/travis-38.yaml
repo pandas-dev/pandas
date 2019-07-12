@@ -10,7 +10,7 @@ dependencies:
     - "--pre"
     - "--no-binary :all:"
     - cython
-    - git+https://github.com/numpy/numpy
+    - git+git://github.com/numpy/numpy
     - python-dateutil
     - pytz
 
