@@ -2287,6 +2287,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         """
         if is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
+        elif is_integer(other) and other == tslibs.iNaT:
+            pass
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
             if getattr(other, "tz") is not None:
@@ -2479,6 +2481,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
         elif is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
+        elif is_integer(other) and other == tslibs.iNaT:
+            pass
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
@@ -2665,6 +2669,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
         if is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
+        elif is_integer(other) and other == tslibs.iNaT:
+            pass
         elif isinstance(other, (timedelta, np.timedelta64)):
             other = Timedelta(other).value
         elif hasattr(other, "dtype") and is_timedelta64_dtype(other):
