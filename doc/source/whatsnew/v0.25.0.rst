@@ -759,7 +759,7 @@ in such cases has changed.
       ...:     {'name': 'Jane', 'state': 'KY', 'age': 19}
       ...: ]
 
-*Previous behavior*
+*Previous behavior* (lexicographically sorted)
 
 .. code-block:: ipython
 
