@@ -3483,7 +3483,7 @@ class DataFrame(NDFrame):
 
     def _setitem_slice(self, key, value):
         self._check_setitem_copy()
-        self.loc._setitem_with_indexer(key, value)
+        self.loc[key] = value
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
