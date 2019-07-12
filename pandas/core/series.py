@@ -1250,6 +1250,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_with_engine(self, key, value):
         values = self._values
         try:
+            if is_extension_array_dtype(values):
+                # The cython indexing routines do not support ExtensionArrays.
+                # Defer to the next setting routine.
+                raise KeyError
             self.index._engine.set_value(values, key, value)
             return
         except KeyError:
