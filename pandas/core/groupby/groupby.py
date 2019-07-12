@@ -679,7 +679,7 @@ b  2""",
         if not len(inds):
             raise KeyError(name)
 
-        return obj._take(inds, axis=self.axis)
+        return obj.take(inds, axis=self.axis)
 
     def __iter__(self):
         """

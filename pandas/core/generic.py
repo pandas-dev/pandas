@@ -3294,7 +3294,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if ax.is_unique:
             lower = self._get_item_cache(ax[item])
         else:
-            lower = self._take(item, axis=self._info_axis_number)
+            lower = self.take(item, axis=self._info_axis_number)
         return lower
 
     def _box_item_values(self, key, values):
@@ -3522,52 +3522,6 @@ class NDFrame(PandasObject, SelectionMixin):
         except KeyError:
             pass
 
-    def _take(self, indices, axis=0, is_copy=True):
-        """
-        Return the elements in the given *positional* indices along an axis.
-
-        This means that we are not indexing according to actual values in
-        the index attribute of the object. We are indexing according to the
-        actual position of the element in the object.
-
-        This is the internal version of ``.take()`` and will contain a wider
-        selection of parameters useful for internal use but not as suitable
-        for public usage.
-
-        Parameters
-        ----------
-        indices : array-like
-            An array of ints indicating which positions to take.
-        axis : int, default 0
-            The axis on which to select elements. "0" means that we are
-            selecting rows, "1" means that we are selecting columns, etc.
-        is_copy : bool, default True
-            Whether to return a copy of the original object or not.
-
-        Returns
-        -------
-        taken : same type as caller
-            An array-like containing the elements taken from the object.
-
-        See Also
-        --------
-        numpy.ndarray.take
-        numpy.take
-        """
-        self._consolidate_inplace()
-
-        new_data = self._data.take(
-            indices, axis=self._get_block_manager_axis(axis), verify=True
-        )
-        result = self._constructor(new_data).__finalize__(self)
-
-        # Maybe set copy if we didn't actually change the index.
-        if is_copy:
-            if not result._get_axis(axis).equals(self._get_axis(axis)):
-                result._set_is_copy(self)
-
-        return result
-
     def take(self, indices, axis=0, is_copy=True, **kwargs):
         """
         Return the elements in the given *positional* indices along an axis.
@@ -3644,7 +3598,20 @@ class NDFrame(PandasObject, SelectionMixin):
         3    lion  mammal       80.5
         """
         nv.validate_take(tuple(), kwargs)
-        return self._take(indices, axis=axis, is_copy=is_copy)
+
+        self._consolidate_inplace()
+
+        new_data = self._data.take(
+            indices, axis=self._get_block_manager_axis(axis), verify=True
+        )
+        result = self._constructor(new_data).__finalize__(self)
+
+        # Maybe set copy if we didn't actually change the index.
+        if is_copy:
+            if not result._get_axis(axis).equals(self._get_axis(axis)):
+                result._set_is_copy(self)
+
+        return result
 
     def xs(self, key, axis=0, level=None, drop_level=True):
         """
@@ -3773,9 +3740,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
                     inds, = loc.nonzero()
-                    return self._take(inds, axis=axis)
+                    return self.take(inds, axis=axis)
                 else:
-                    return self._take(loc, axis=axis)
+                    return self.take(loc, axis=axis)
 
             if not is_scalar(loc):
                 new_index = self.index[loc]
@@ -8091,7 +8058,7 @@ class NDFrame(PandasObject, SelectionMixin):
         except AttributeError:
             raise TypeError("Index must be DatetimeIndex")
 
-        return self._take(indexer, axis=axis)
+        return self.take(indexer, axis=axis)
 
     def between_time(
         self, start_time, end_time, include_start=True, include_end=True, axis=None
@@ -8168,7 +8135,7 @@ class NDFrame(PandasObject, SelectionMixin):
         except AttributeError:
             raise TypeError("Index must be DatetimeIndex")
 
-        return self._take(indexer, axis=axis)
+        return self.take(indexer, axis=axis)
 
     def resample(
         self,

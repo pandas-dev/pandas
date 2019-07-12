@@ -4371,8 +4371,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             v += self.index.memory_usage(deep=deep)
         return v
 
-    @Appender(generic.NDFrame._take.__doc__)
-    def _take(self, indices, axis=0, is_copy=False):
+    @Appender(generic.NDFrame.take.__doc__)
+    def take(self, indices, axis=0, is_copy=False, **kwargs):
+        nv.validate_take(tuple(), kwargs)
 
         indices = ensure_platform_int(indices)
         new_index = self.index.take(indices)
