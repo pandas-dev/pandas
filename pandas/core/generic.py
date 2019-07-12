@@ -3495,7 +3495,7 @@ class NDFrame(PandasObject, SelectionMixin):
         deleted = False
 
         maybe_shortcut = False
-        if hasattr(self, "columns") and isinstance(self.columns, MultiIndex):
+        if self.ndim == 2 and isinstance(self.columns, MultiIndex):
             try:
                 maybe_shortcut = key not in self.columns._engine
             except TypeError:
@@ -5230,9 +5230,6 @@ class NDFrame(PandasObject, SelectionMixin):
             if isinstance(c, str) and c.isidentifier()
         }
         return super()._dir_additions().union(additions)
-
-    # ----------------------------------------------------------------------
-    # Getting and setting elements
 
     # ----------------------------------------------------------------------
     # Consolidation of internals
