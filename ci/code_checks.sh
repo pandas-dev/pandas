@@ -45,8 +45,10 @@ function invgrep {
 
 if [[ "$AZURE" == "true" ]]; then
     FLAKE8_FORMAT="##vso[task.logissue type=error;sourcepath=%(path)s;linenumber=%(row)s;columnnumber=%(col)s;code=%(code)s;]%(text)s"
+    ISORT_FORMAT="##vso[task.logissue type=error;sourcepath=%(path)s]%(text)s"
 else
     FLAKE8_FORMAT="default"
+    ISORT_FORMAT="default"
 fi
 
 ### LINTING ###
@@ -109,7 +111,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # Imports - Check formatting using isort see setup.cfg for settings
     MSG='Check import format using isort ' ; echo $MSG
-    isort --recursive --check-only pandas asv_bench | awk -F ":" '##vso[task.logissue type=error;sourcepath=%(path)s]%(text)s'
+    isort --recursive --check-only pandas asv_bench | awk -F ":" $ISORT_FORMAT
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
