@@ -157,7 +157,7 @@ def dispatch_fill_zeros(op, left, right, result):
     ----------
     op : function (operator.add, operator.div, ...)
     left : object (np.ndarray for non-reversed ops)
-    right : object (np.ndarray fof reversed ops)
+    right : object (np.ndarray for reversed ops)
     result : ndarray
 
     Returns

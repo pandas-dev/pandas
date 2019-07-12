@@ -1709,9 +1709,7 @@ def _arith_method_SERIES(cls, op, special):
 
         lvalues = left.values
         rvalues = right
-        if isinstance(rvalues, ABCSeries):
-            rvalues = rvalues._values
-        elif isinstance(rvalues, ABCIndexClass):
+        if isinstance(rvalues, (ABCSeries, ABCIndexClass)):
             rvalues = rvalues._values
 
         with np.errstate(all="ignore"):
