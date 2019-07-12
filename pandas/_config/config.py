@@ -787,6 +787,7 @@ def is_instance_factory(_type):
                 ValueError if x is not an instance of `_type`
 
     """
+
     if isinstance(_type, (tuple, list)):
         _type = tuple(_type)
         type_repr = "|".join(map(str, _type))
@@ -816,6 +817,34 @@ def is_one_of_factory(legal_values):
                 if len(callables):
                     msg += " or a callable"
                 raise ValueError(msg.format(pp_values=pp_values))
+
+    return inner
+
+
+def is_pos_int():
+    """
+    Creates a function for validating that an option value is either a positive
+    integer or a None type
+
+    Returns
+    -------
+    validator - a function of a single argument x , which raises
+                ValueError if type(x) is not equal to `_type` or if x is not
+                positive in the case of a int type.
+
+    """
+
+    _type = (type(None), int)
+    type_repr = "|".join(map(str, _type))
+
+    def inner(x):
+        if not isinstance(x, _type):
+            msg = "Value must be an instance of {type_repr}"
+            raise ValueError(msg.format(type_repr=type_repr))
+        if type(x) == int:
+            if x < 0:
+                msg = "int values must be positive for this option"
+                raise ValueError(msg)
 
     return inner
 
