@@ -34,7 +34,9 @@ class TestCommon:
                 indices.droplevel(level)
 
         for level in "wrong", ["wrong"]:
-            with pytest.raises(KeyError):
+            with pytest.raises(
+                KeyError, match=re.escape("'Level wrong must be same as name (None)'")
+            ):
                 indices.droplevel(level)
 
     def test_constructor_non_hashable_name(self, indices):

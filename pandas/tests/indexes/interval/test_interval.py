@@ -445,7 +445,7 @@ class TestIntervalIndex(Base):
             result = index.get_loc(scalar)
             assert result == 0
         else:
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match=str(scalar)):
                 index.get_loc(scalar)
 
     @pytest.mark.parametrize("other_closed", ["left", "right", "both", "neither"])
@@ -458,7 +458,14 @@ class TestIntervalIndex(Base):
             result = index.get_loc(interval)
             assert result == 0
         else:
-            with pytest.raises(KeyError):
+            with pytest.raises(
+                KeyError,
+                match=re.escape(
+                    "Interval({left}, {right}, closed='{other_closed}')".format(
+                        left=left, right=right, other_closed=other_closed
+                    )
+                ),
+            ):
                 index.get_loc(interval)
 
     # Make consistent with test_interval_new.py (see #16316, #16386)

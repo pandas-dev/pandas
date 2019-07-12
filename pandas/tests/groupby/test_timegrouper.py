@@ -206,7 +206,7 @@ class TestGroupBy:
             result = df.groupby([pd.Grouper(freq="1M", key="Date"), "Buyer"]).sum()
             assert_frame_equal(result, expected)
 
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match="'The grouper name foo is not found'"):
                 df.groupby([pd.Grouper(freq="1M", key="foo"), "Buyer"]).sum()
 
             # passing the level

@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -30,31 +32,35 @@ class TestIntervalIndex:
         tm.assert_series_equal(expected, result)
 
         # missing or not exact
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='left')")):
             s.loc[Interval(3, 5, closed="left")]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='left')")):
             s[Interval(3, 5, closed="left")]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
             s[Interval(3, 5)]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
             s.loc[Interval(3, 5)]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
             s[Interval(3, 5)]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(
+            KeyError, match=re.escape("Interval(-2, 0, closed='right')")
+        ):
             s.loc[Interval(-2, 0)]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(
+            KeyError, match=re.escape("Interval(-2, 0, closed='right')")
+        ):
             s[Interval(-2, 0)]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=re.escape("Interval(5, 6, closed='right')")):
             s.loc[Interval(5, 6)]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=re.escape("Interval(5, 6, closed='right')")):
             s[Interval(5, 6)]
 
     def test_loc_with_scalar(self):
@@ -175,16 +181,16 @@ class TestIntervalIndex:
         result = s[[Interval(1, 5), Interval(3, 7)]]
         tm.assert_series_equal(expected, result)
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
             s.loc[Interval(3, 5)]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^$"):
             s.loc[[Interval(3, 5)]]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
             s[Interval(3, 5)]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^$"):
             s[[Interval(3, 5)]]
 
         # slices with interval (only exact matches)
@@ -195,15 +201,17 @@ class TestIntervalIndex:
         result = s[Interval(1, 5) : Interval(3, 7)]
         tm.assert_series_equal(expected, result)
 
-        with pytest.raises(KeyError):
+        msg = "'can only get slices from an IntervalIndex if bounds are"
+        " non-overlapping and all monotonic increasing or decreasing'"
+        with pytest.raises(KeyError, match=msg):
             s.loc[Interval(1, 6) : Interval(3, 8)]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=msg):
             s[Interval(1, 6) : Interval(3, 8)]
 
         # slices with scalar raise for overlapping intervals
         # TODO KeyError is the appropriate error?
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=msg):
             s.loc[1:4]
 
     def test_non_unique(self):

@@ -697,7 +697,7 @@ class TestCategoricalIndex(Base):
         assert cidx1.get_loc("e") == idx1.get_loc("e")
 
         for i in [cidx1, idx1]:
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match="'NOT-EXIST'"):
                 i.get_loc("NOT-EXIST")
 
         # non-unique
@@ -716,7 +716,7 @@ class TestCategoricalIndex(Base):
         assert res == 4
 
         for i in [cidx2, idx2]:
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match="'NOT-EXIST'"):
                 i.get_loc("NOT-EXIST")
 
         # non-unique, sliceable
@@ -733,7 +733,7 @@ class TestCategoricalIndex(Base):
         assert res == slice(2, 5, None)
 
         for i in [cidx3, idx3]:
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match="'c'"):
                 i.get_loc("c")
 
     def test_repr_roundtrip(self):

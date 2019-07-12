@@ -115,7 +115,7 @@ def test_unsortedindex():
     df.sort_index(inplace=True)
     assert len(df.loc(axis=0)["z", :]) == 2
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match="'q'"):
         df.loc(axis=0)["q", :]
 
 
