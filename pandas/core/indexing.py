@@ -1,3 +1,4 @@
+import re
 import textwrap
 from typing import Tuple
 import warnings
@@ -1471,6 +1472,12 @@ class _LocIndexer(_LocationIndexer):
     - A ``callable`` function with one argument (the calling Series or
       DataFrame) and that returns valid output for indexing (one of the above)
 
+    ``.loc`` can be called before selecting using parameters:
+
+    - ``axis``, to select by a single axis on a DataFrame, e.g. ``.loc(axis=1)['a']``.
+    - ``regex``, to let strings be interpreted as regex patterns, e.g.
+      ``.loc(regex=True)[:, '^col_']``
+
     See more at :ref:`Selection by Label <indexing.label>`
 
     Raises
@@ -1548,6 +1555,21 @@ class _LocIndexer(_LocationIndexer):
 
     >>> df.loc[lambda df: df['shield'] == 8]
                 max_speed  shield
+    sidewinder          7       8
+
+    The axis may be preselected
+
+    >>> df.loc(axis=1)["max_speed"]
+    cobra         1
+    viper         4
+    sidewinder    7
+    Name: max_speed, dtype: int64
+
+    Single strings are considered regex patterns if ``regex=True``
+
+    >>> df.loc(regex=True)["r$", "d$"]
+                max_speed  shield
+    viper               4       5
     sidewinder          7       8
 
     **Setting values**
@@ -1768,7 +1790,6 @@ class _LocIndexer(_LocationIndexer):
         return key
 
     def _get_regex_mappings(self, key, axis=None):
-        import re
 
         if axis is None:
             axis = self.axis or 0
@@ -1849,7 +1870,8 @@ class _LocIndexer(_LocationIndexer):
                 indexer[axis] = locs
                 return self.obj.iloc[tuple(indexer)]
 
-        if self.regex and isinstance(key, str):
+        elif self.regex and isinstance(key, (str, bytes)):
+            print(key, axis)
             return self._getitem_regex(key, axis=axis)
 
         # fall thru to straight lookup
@@ -1861,7 +1883,7 @@ class _LocIndexer(_LocationIndexer):
 
     def __setitem__(self, key, value):
         if self.regex:
-            raise TypeError("Inserting with regex not supported")
+            raise NotImplementedError("Inserting with regex has not been implemented")
         return super().__setitem__(key, value)
 
 

@@ -207,6 +207,7 @@ The regex matching will only work when looking up single strings, not list of st
 Is is currently not possible to set values for a given regular expression.
 
 .. ipython:: python
+    :okexcept:
 
     df.loc(regex=True)["B", "B"] = [[1, 2], [3, 4]]
 

@@ -69,7 +69,8 @@ class TestLocRegex:
 
         df = pd.DataFrame(1, index=idx, columns=cols)
 
-        with pytest.raises(TypeError, match="Inserting with regex not supported"):
+        msg = "Inserting with regex has not been implemented"
+        with pytest.raises(NotImplementedError, match=msg):
             df.loc(regex=True)["B", "B"] = [[2, 2], [2, 2]]
 
 

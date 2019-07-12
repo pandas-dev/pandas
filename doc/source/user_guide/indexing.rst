@@ -576,23 +576,24 @@ row/columns axis labels that match a regular expression pattern.
 
 .. ipython:: python
 
-    df = pd.DataFrame(1, index=["A", "AB", "BC"], columns=["BC", "AB", "A"])
-    df
+    df_re = pd.DataFrame(1, index=["A", "AB", "BC"], columns=["BC", "AB", "A"])
+    df_re
 
-    df.loc(regex=True)["B", "B"]
-    df.loc(axis=1, regex=True)["B"]
+    df_re.loc(regex=True)["B", "B"]
+    df_re.loc(axis=1, regex=True)["B"]
 
 The regex matching will only work when looking up single strings, not list of strings etc.
 
 .. ipython:: python
 
-    df.loc(regex=True)[["A"], "A"]
+    df_re.loc(regex=True)[["A"], "A"]
 
 *Notice*: Is is currently not possible to set values for a given regular expression.
 
 .. ipython:: python
+    :okexcept:
 
-    df.loc(regex=True)["B", "B"] = [[1, 2], [3, 4]]
+    df_re.loc(regex=True)["B", "B"] = [[1, 2], [3, 4]]
 
 
 .. _indexing.deprecate_ix:
