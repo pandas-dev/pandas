@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 import numpy as np
 import pytest
@@ -1120,9 +1121,10 @@ class TestDataFrameSelectReindex:
 
         # issue 19186
         level = 0 if isinstance(actual.index, MultiIndex) else None
-        with pytest.raises(KeyError):
+        msg = re.escape("\"['c'] not found in axis\"")
+        with pytest.raises(KeyError, match=msg):
             actual.drop("c", level=level, axis=0)
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=msg):
             actual.T.drop("c", level=level, axis=1)
         expected_no_err = actual.drop("c", axis=0, level=level, errors="ignore")
         assert_frame_equal(expected_no_err, actual)

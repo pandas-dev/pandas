@@ -203,9 +203,9 @@ class TestScalar(Base):
         for i in range(len(s)):
             assert s.iat[i] == s.iloc[i] == i + 1
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^4$"):
             s.at[4]
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^4$"):
             s.loc[4]
 
     def test_mixed_index_at_iat_loc_iloc_dataframe(self):
@@ -221,9 +221,9 @@ class TestScalar(Base):
             for i in range(5):
                 assert df.iat[row, i] == df.iloc[row, i] == row * 5 + i
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^3$"):
             df.at[0, 3]
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^3$"):
             df.loc[0, 3]
 
     def test_iat_setter_incompatible_assignment(self):
