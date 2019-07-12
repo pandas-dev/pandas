@@ -200,7 +200,7 @@ class TestGetItem:
 
             invalid = ["2013/02/01 9H", "2013/02/01 09:00"]
             for v in invalid:
-                with pytest.raises(KeyError):
+                with pytest.raises(KeyError, match=v):
                     s[v]
 
 

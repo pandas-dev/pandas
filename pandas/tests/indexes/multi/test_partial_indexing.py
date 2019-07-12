@@ -54,7 +54,7 @@ def test_partial_string_timestamp_multiindex():
     # ambiguous and we don't want to extend this behavior forward to work
     # in multi-indexes. This would amount to selecting a scalar from a
     # column.
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match="'2016-01-01'"):
         df["2016-01-01"]
 
     # partial string match on year only
@@ -83,7 +83,7 @@ def test_partial_string_timestamp_multiindex():
     tm.assert_frame_equal(result, expected)
 
     # Slicing date on first level should break (of course)
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match="'2016-01-01'"):
         df_swap.loc["2016-01-01"]
 
     # GH12685 (partial string with daily resolution or below)
