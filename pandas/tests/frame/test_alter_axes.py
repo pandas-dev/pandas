@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import (
 
 from pandas import (
     Categorical,
+    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -1185,6 +1186,36 @@ class TestDataFrameAlterAxes:
         )
         rs = df.set_index(["A", "B"]).reset_index()
         tm.assert_frame_equal(rs, df)
+
+        # GH 19602
+        df = DataFrame({0: DatetimeIndex([]), 1: []})
+        rs = df.set_index([0, 1]).reset_index()
+        tm.assert_frame_equal(rs, df)
+
+        idx = MultiIndex(
+            levels=[DatetimeIndex([]),
+                    DatetimeIndex(['2015-01-01 11:00:00'])],
+            codes=[[-1, -1], [0, -1]],
+            names=[0, 1]
+        )
+        df = DataFrame(index=idx).reset_index()
+
+        xp = DataFrame({
+            0: DatetimeIndex([np.nan, np.nan]),
+            1: DatetimeIndex(['2015-01-01 11:00:00', np.nan])
+        })
+        tm.assert_frame_equal(df, xp)
+
+        # GH 24206
+        idx = MultiIndex([CategoricalIndex(['A', 'B']), CategoricalIndex(['a', 'b'])],
+                         [[0, 0, 1, 1], [0, 1, 0, -1]])
+        df = DataFrame({'col': range(len(idx))}, index=idx).reset_index()
+        xp = DataFrame({
+            'level_0': CategoricalIndex(['A', 'A', 'B', 'B']),
+            'level_1': CategoricalIndex(['a', 'b', 'a', np.nan]),
+            'col': [0, 1, 2, 3]
+        })
+        tm.assert_frame_equal(df, xp)
 
     def test_reset_index_with_datetimeindex_cols(self):
         # GH5818

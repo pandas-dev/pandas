@@ -4610,33 +4610,19 @@ class DataFrame(NDFrame):
 
             # if we have the labels, extract the values with a mask
             if labels is not None:
-                mask = labels == -1
-
-                # we can have situations where the whole mask is -1,
-                # meaning there is nothing found in labels, so make all nan's
-                if mask.all():
-                    values = np.empty(len(mask))
-                    values.fill(np.nan)
+                if isinstance(values, np.ndarray):
+                    mask = labels == -1
+                    # we can have situations where the whole mask is -1,
+                    # meaning there is nothing found in labels, so make all nan's
+                    if mask.all():
+                        values = np.empty(len(mask), dtype=values.dtype)
+                        values.fill(np.nan)
+                    else:
+                        values = values.take(labels)
+                        if mask.any():
+                            values, _ = maybe_upcast_putmask(values, mask, np.nan)
                 else:
-                    values = values.take(labels)
-
-                    # TODO(https://github.com/pandas-dev/pandas/issues/24206)
-                    # Push this into maybe_upcast_putmask?
-                    # We can't pass EAs there right now. Looks a bit
-                    # complicated.
-                    # So we unbox the ndarray_values, op, re-box.
-                    values_type = type(values)
-                    values_dtype = values.dtype
-
-                    if issubclass(values_type, DatetimeLikeArray):
-                        values = values._data
-
-                    if mask.any():
-                        values, changed = maybe_upcast_putmask(values, mask, np.nan)
-
-                    if issubclass(values_type, DatetimeLikeArray):
-                        values = values_type(values, dtype=values_dtype)
-
+                    values = values.take(labels, allow_fill=True)
             return values
 
         new_index = ibase.default_index(len(new_obj))
@@ -4680,7 +4666,7 @@ class DataFrame(NDFrame):
                     missing = self.columns.nlevels - len(name_lst)
                     name_lst += [col_fill] * missing
                     name = tuple(name_lst)
-                # to ndarray and maybe infer different dtype
+                # to array-like and maybe infer different dtype
                 level_values = _maybe_casted_values(lev, lab)
                 new_obj.insert(0, name, level_values)
 
