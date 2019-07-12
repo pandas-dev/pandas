@@ -2427,6 +2427,13 @@ class TestDataFrameConstructors:
         result = DataFrame(List([List([1, 2, 3]), List([4, 5, 6])]))
         tm.assert_frame_equal(result, expected)
 
+    def test_from_records_series_list_dict(self):
+        # GH27358
+        expected = pd.DataFrame([[{"a": 1, "b": 2}, {"a": 3, "b": 4}]]).T
+        data = Series([[{"a": 1, "b": 2}], [{"a": 3, "b": 4}]])
+        result = pd.DataFrame.from_records(data)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameConstructorWithDatetimeTZ:
     def test_from_dict(self):
