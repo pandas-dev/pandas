@@ -1028,38 +1028,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return [self.index]
 
-    def _ixs(self, i, axis=0):
+    def _ixs(self, i: int, axis: int = 0):
         """
         Return the i-th value or values in the Series by location.
 
         Parameters
         ----------
-        i : int, slice, or sequence of integers
+        i : int
 
         Returns
         -------
         scalar (int) or Series (slice, sequence)
         """
-        try:
 
-            # dispatch to the values if we need
-            values = self._values
-            if isinstance(values, np.ndarray):
-                return libindex.get_value_at(values, i)
-            else:
-                return values[i]
-        except IndexError:
-            raise
-        except Exception:
-            if isinstance(i, slice):
-                indexer = self.index._convert_slice_indexer(i, kind="iloc")
-                return self._get_values(indexer)
-            else:
-                label = self.index[i]
-                if isinstance(label, Index):
-                    return self.take(i, axis=axis, convert=True)
-                else:
-                    return libindex.get_value_at(self, i)
+        # dispatch to the values if we need
+        values = self._values
+        if isinstance(values, np.ndarray):
+            return libindex.get_value_at(values, i)
+        else:
+            return values[i]
 
     @property
     def _is_mixed_type(self):
@@ -4371,8 +4358,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             v += self.index.memory_usage(deep=deep)
         return v
 
-    @Appender(generic.NDFrame._take.__doc__)
-    def _take(self, indices, axis=0, is_copy=False):
+    @Appender(generic.NDFrame.take.__doc__)
+    def take(self, indices, axis=0, is_copy=False, **kwargs):
+        nv.validate_take(tuple(), kwargs)
 
         indices = ensure_platform_int(indices)
         new_index = self.index.take(indices)
