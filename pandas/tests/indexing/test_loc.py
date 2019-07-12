@@ -1,5 +1,6 @@
 """ test label based indexing with loc """
 from io import StringIO
+import re
 from warnings import catch_warnings, filterwarnings
 
 import numpy as np
@@ -425,7 +426,12 @@ class TestLoc(Base):
 
         s.loc[[2]]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(
+            KeyError,
+            match=re.escape(
+                "\"None of [Int64Index([3], dtype='int64')] are in the [index]\""
+            ),
+        ):
             s.loc[[3]]
 
         # a non-match and a match

@@ -4,6 +4,7 @@ from datetime import timedelta
 from distutils.version import LooseVersion
 from io import BytesIO
 import os
+import re
 import tempfile
 from warnings import catch_warnings, simplefilter
 
@@ -648,7 +649,7 @@ class TestHDFStore(Base):
             right = store["/a"]
             tm.assert_series_equal(left, right)
 
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match="'No object named b in the file'"):
                 store.get("b")
 
     @pytest.mark.parametrize(
@@ -1300,7 +1301,7 @@ class TestHDFStore(Base):
             df = pd.DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match="'No object named k2 in the file'"):
                 pd.read_hdf(path, "k2")
 
             # smoke test to test that file is properly closed after
@@ -1953,7 +1954,7 @@ class TestHDFStore(Base):
             # 0 len
             df_empty = DataFrame(columns=list("ABC"))
             store.append("df", df_empty)
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match="'No object named df in the file'"):
                 store.select("df")
 
             # repeated append of 0/non-zero frames
@@ -2237,7 +2238,9 @@ class TestHDFStore(Base):
             assert len(store) == 0
 
             # nonexistence
-            with pytest.raises(KeyError):
+            with pytest.raises(
+                KeyError, match="'No object named a_nonexistent_store in the file'"
+            ):
                 store.remove("a_nonexistent_store")
 
             # pathing
@@ -3530,7 +3533,9 @@ class TestHDFStore(Base):
 
             store.append("df", df)
             # error
-            with pytest.raises(KeyError):
+            with pytest.raises(
+                KeyError, match=re.escape("'column [foo] not found in the table'")
+            ):
                 store.select_column("df", "foo")
 
             with pytest.raises(Exception):
@@ -3780,15 +3785,16 @@ class TestHDFStore(Base):
             with pytest.raises(Exception):
                 store.select_as_multiple([None], where=["A>0", "B>0"], selector="df1")
 
-            with pytest.raises(KeyError):
+            msg = "'No object named df3 in the file'"
+            with pytest.raises(KeyError, match=msg):
                 store.select_as_multiple(
                     ["df1", "df3"], where=["A>0", "B>0"], selector="df1"
                 )
 
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match=msg):
                 store.select_as_multiple(["df3"], where=["A>0", "B>0"], selector="df1")
 
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match="'No object named df4 in the file'"):
                 store.select_as_multiple(
                     ["df1", "df2"], where=["A>0", "B>0"], selector="df4"
                 )
@@ -4502,7 +4508,9 @@ class TestHDFStore(Base):
             assert result is not None
             store.remove("df3")
 
-            with pytest.raises(KeyError):
+            with pytest.raises(
+                KeyError, match="'No object named df3/meta/s/meta in the file'"
+            ):
                 store.select("df3/meta/s/meta")
 
     def test_categorical_conversion(self):

@@ -311,7 +311,7 @@ class TestRangeIndex(Numeric):
         df.loc[50]
         assert idx._cached_data is None
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="51"):
             df.loc[51]
         assert idx._cached_data is None
 
@@ -1027,13 +1027,13 @@ class TestRangeIndex(Numeric):
         tm.assert_numpy_array_equal(
             idx.get_indexer([2, 8]), ensure_platform_int(np.array([0, 2]))
         )
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="3"):
             idx.get_loc(3)
 
         assert "_engine" not in idx._cache
 
         # The engine is still required for lookup of a different dtype scalar:
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="'a'"):
             assert idx.get_loc("a") == -1
 
         assert "_engine" in idx._cache
