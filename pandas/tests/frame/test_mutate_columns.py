@@ -90,9 +90,9 @@ class TestDataFrameMutateColumns:
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
 
         # Key C does not exist at definition time of df
-        with pytest.raises(KeyError, match="<insert message here>"):
+        with pytest.raises(KeyError, match="^'C'$"):
             df.assign(C=lambda df: df.A, D=lambda df: df["A"] + df["C"])
-        with pytest.raises(KeyError, match="<insert message here>"):
+        with pytest.raises(KeyError, match="^'C'$"):
             df.assign(C=df.A, D=lambda x: x["A"] + x["C"])
 
     @pytest.mark.skipif(
