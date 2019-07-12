@@ -1187,6 +1187,7 @@ class TestDataFrameAlterAxes:
         rs = df.set_index(["A", "B"]).reset_index()
         tm.assert_frame_equal(rs, df)
 
+    def test_reset_index_multiindex_datetime_all_nan(self):
         # GH 19602
         df = DataFrame({0: DatetimeIndex([]), 1: []})
         rs = df.set_index([0, 1]).reset_index()
@@ -1206,6 +1207,7 @@ class TestDataFrameAlterAxes:
         })
         tm.assert_frame_equal(df, xp)
 
+    def test_reset_index_multiindex_categorical_with_nan(self):
         # GH 24206
         idx = MultiIndex([CategoricalIndex(['A', 'B']), CategoricalIndex(['a', 'b'])],
                          [[0, 0, 1, 1], [0, 1, 0, -1]])
