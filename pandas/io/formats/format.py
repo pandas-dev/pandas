@@ -400,8 +400,11 @@ def _get_adjustment():
 
 class TableFormatter:
 
-    is_truncated = False
     show_dimensions = None
+
+    @property
+    def is_truncated(self) -> bool:
+        return False
 
     @property
     def should_show_dimensions(self):
