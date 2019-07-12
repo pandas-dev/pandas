@@ -2759,3 +2759,29 @@ class TestNLargestNSmallest:
         result = df.nlargest(3, ("x", "b"))
         expected = df.iloc[[3, 2, 1]]
         tm.assert_frame_equal(result, expected)
+
+    def test_data_frame_value_counts(self):
+        # Multi column data frame.
+        df = pd.DataFrame({'num_legs': [2, 4, 4], 'num_wings': [2, 0, 0]},
+                          index=['falcon', 'dog', 'cat'])
+        actual = df.value_counts()
+        expected = pd.Series(data=[1, 2],
+                             index=pd.MultiIndex.from_arrays(
+                                 [(2, 4), (2, 0)],
+                                 names=['num_legs', 'num_wings']))
+        tm.assert_series_equal(actual, expected)
+
+        # Single column data frame.
+        df_single_col = df[['num_legs']]
+        actual = df_single_col.value_counts()
+        expected = pd.Series(data=[1, 2],
+                             index=pd.Int64Index(
+                                 data=[2, 4],
+                                 name='num_legs'))
+        tm.assert_series_equal(actual, expected)
+
+        # Empty data frame.
+        df_no_cols = pd.DataFrame()
+        actual = df_no_cols.value_counts()
+        expected = pd.Series([], dtype=np.int64)
+        tm.assert_series_equal(actual, expected)

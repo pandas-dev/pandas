@@ -2289,16 +2289,6 @@ class TestIndex(Base):
         index = pd.Index(["01:02:03", "01:02:04"], name="label")
         assert index.name == dt_conv(index).name
 
-    def test_data_frame_value_counts(self):
-        df = pd.DataFrame({'num_legs': [2, 4, 4], 'num_wings': [2, 0, 0]},
-                          index=['falcon', 'dog', 'cat'])
-        assert df.value_counts().equals(pd.Series(data=[2, 1],
-                                                  index=[(4, 0), (2, 2)]))
-
-        df_single_col = df[['num_legs']]
-        assert df_single_col.value_counts().equals(pd.Series(
-            data=[2, 1], index=[(4,), (2,)]))
-
     @pytest.mark.parametrize(
         "index,expected",
         [

@@ -8391,6 +8391,8 @@ class DataFrame(NDFrame):
         """
         The number of times each unique row appears in the DataFrame.
 
+        Rows that contain any NaN value are omitted from the results.
+
         Returns
         -------
         counts : Series
@@ -8411,8 +8413,9 @@ class DataFrame(NDFrame):
         cat            4          0
 
         >>> df.value_counts()
-        (4, 0)    2
-        (2, 2)    1
+        num_legs  num_wings
+        2         2            1
+        4         0            2
         dtype: int64
 
         >>> df1col = df[['num_legs']]
@@ -8423,11 +8426,12 @@ class DataFrame(NDFrame):
         cat            4
 
         >>> df1col.value_counts()
-        (4,)    2
-        (2,)    1
+        num_legs
+        2    1
+        4    2
         dtype: int64
         """
-        return self.apply(tuple, 1).value_counts()
+        return self.groupby(self.columns.tolist(), as_index=False).size()
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
