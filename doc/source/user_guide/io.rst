@@ -3233,7 +3233,7 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 
 Using the `Xlsxwriter`_ engine provides many options for controlling the
 format of an Excel worksheet created with the ``to_excel`` method.  Excellent examples can be found in the
-`Xlsxwriter`_ documentation here: https://xlsxwriter.readthedocs.io/working_with_pandas.html 
+`Xlsxwriter`_ documentation here: https://xlsxwriter.readthedocs.io/working_with_pandas.html
 
 .. _io.ods:
 
