@@ -243,6 +243,8 @@ cdef class _Timestamp(datetime):
                 nanos = (other.days * 24 * 60 * 60 * 1000000 +
                          other.seconds * 1000000 +
                          other.microseconds) * 1000
+            else:
+                nanos = 0
 
             result = self.__class__(self.value + nanos,
                                     tz=self.tzinfo, freq=self.freq)
