@@ -769,7 +769,7 @@ in such cases has changed.
    0   18   Joe    NY
    1   19  Jane    KY
 
-*New behavior*
+*New behavior*: preserve order of the dicts
 
 .. code-block:: ipython
 
