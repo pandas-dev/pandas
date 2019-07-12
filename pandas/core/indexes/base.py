@@ -2351,10 +2351,12 @@ class Index(IndexOpsMixin, PandasObject):
     def __add__(self, other):
         if isinstance(other, (ABCSeries, ABCDataFrame)):
             return NotImplemented
-        return Index(np.array(self) + other)
+        from pandas import Series
+        return Index(Series(self) + other)
 
     def __radd__(self, other):
-        return Index(other + np.array(self))
+        from pandas import Series
+        return Index(other + Series(self))
 
     def __iadd__(self, other):
         # alias for __add__
