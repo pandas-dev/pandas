@@ -755,9 +755,9 @@ in such cases has changed (:issue:`27309`).
 .. ipython:: python
 
    data = [
-     {'name': 'Joe', 'state': 'NY', 'age': 18},
-     {'name': 'Jane', 'state': 'KY', 'age': 19, 'hobby': 'Minecraft'},
-     {'name': 'Jean', 'state': 'OK', 'age': 20, 'finances': 'good'}
+       {'name': 'Joe', 'state': 'NY', 'age': 18},
+       {'name': 'Jane', 'state': 'KY', 'age': 19, 'hobby': 'Minecraft'},
+       {'name': 'Jean', 'state': 'OK', 'age': 20, 'finances': 'good'}
    ]
 
 *Previous Behavior*:
