@@ -2921,7 +2921,6 @@ class DataFrame(NDFrame):
         # icol
         else:
             label = self.columns[i]
-            index_len = len(self.index)
 
             # if the values returned are not the same length
             # as the index (iow a not found value), iget returns
@@ -2929,8 +2928,8 @@ class DataFrame(NDFrame):
             # a numpy error (as numpy should really raise)
             values = self._data.iget(i)
 
-            if index_len and not len(values):
-                values = np.array([np.nan] * index_len, dtype=object)
+            if len(self.index) and not len(values):
+                values = np.array([np.nan] * len(self.index), dtype=object)
             result = self._box_col_values(values, label)
 
             # this is a cached value, mark it so
