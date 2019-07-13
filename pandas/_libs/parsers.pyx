@@ -234,9 +234,10 @@ cdef extern from "parser/tokenizer.h":
     float64_t precise_xstrtod(const char *p, char **q, char decimal,
                               char sci, char tsep, int skip_trailing,
                               int *error, int *maybe_int) nogil
+    # gh-15140 Our current round_trip implementation requires the GIL.
     float64_t round_trip(const char *p, char **q, char decimal,
                          char sci, char tsep, int skip_trailing,
-                         int *error, int *maybe_int) nogil
+                         int *error, int *maybe_int)
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
