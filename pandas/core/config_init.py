@@ -18,8 +18,8 @@ from pandas._config.config import (
     is_instance_factory,
     is_int,
     is_one_of_factory,
-    is_text,
     is_pos_int,
+    is_text,
 )
 
 # compute
