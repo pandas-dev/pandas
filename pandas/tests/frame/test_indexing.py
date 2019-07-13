@@ -1,4 +1,5 @@
 from datetime import date, datetime, time, timedelta
+import re
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -59,7 +60,7 @@ class TestDataFrameIndexing(TestData):
         ad = np.random.randn(len(df))
         df["@awesome_domain"] = ad
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=re.escape("'df[\"$10\"]'")):
             df.__getitem__('df["$10"]')
 
         res = df["@awesome_domain"]
@@ -67,7 +68,8 @@ class TestDataFrameIndexing(TestData):
 
     def test_getitem_dupe_cols(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
-        with pytest.raises(KeyError):
+        msg = "\"None of [Index(['baf'], dtype='object')] are in the [columns]\""
+        with pytest.raises(KeyError, match=re.escape(msg)):
             df[["baf"]]
 
     def test_get(self, float_frame):
@@ -446,14 +448,16 @@ class TestDataFrameIndexing(TestData):
 
         df = DataFrame(np.random.randn(8, 4))
         # ix does label-based indexing when having an integer index
+        msg = "\"None of [Int64Index([-1], dtype='int64')] are in the [index]\""
         with catch_warnings(record=True):
             simplefilter("ignore", FutureWarning)
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match=re.escape(msg)):
                 df.ix[[-1]]
 
+        msg = "\"None of [Int64Index([-1], dtype='int64')] are in the [columns]\""
         with catch_warnings(record=True):
             simplefilter("ignore", FutureWarning)
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match=re.escape(msg)):
                 df.ix[:, [-1]]
 
         # #1942
@@ -497,7 +501,11 @@ class TestDataFrameIndexing(TestData):
         float_frame["col6"] = series
         tm.assert_series_equal(series, float_frame["col6"], check_names=False)
 
-        with pytest.raises(KeyError):
+        msg = (
+            r"\"None of \[Float64Index\(\[.*dtype='float64'\)\] are in the"
+            r" \[columns\]\""
+        )
+        with pytest.raises(KeyError, match=msg):
             float_frame[np.random.randn(len(float_frame) + 1)] = 1
 
         # set ndarray
@@ -1885,10 +1893,10 @@ class TestDataFrameIndexing(TestData):
         assert df["mask"].dtype == np.bool_
 
     def test_lookup_raises(self, float_frame):
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="'One or more row labels was not found'"):
             float_frame.lookup(["xyz"], ["A"])
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="'One or more column labels was not found'"):
             float_frame.lookup([float_frame.index[0]], ["xyz"])
 
         with pytest.raises(ValueError, match="same size"):
@@ -2544,7 +2552,9 @@ class TestDataFrameIndexing(TestData):
         assert xs["A"] == 1
         assert xs["B"] == "1"
 
-        with pytest.raises(KeyError):
+        with pytest.raises(
+            KeyError, match=re.escape("Timestamp('1999-12-31 00:00:00', freq='B')")
+        ):
             datetime_frame.xs(datetime_frame.index[0] - BDay())
 
         # xs get column

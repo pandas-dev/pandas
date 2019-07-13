@@ -2889,11 +2889,11 @@ class DataFrame(NDFrame):
 
     _set_value.__doc__ = set_value.__doc__
 
-    def _ixs(self, i, axis=0):
+    def _ixs(self, i: int, axis: int = 0):
         """
         Parameters
         ----------
-        i : int, slice, or sequence of integers
+        i : int
         axis : int
 
         Notes
@@ -2902,59 +2902,40 @@ class DataFrame(NDFrame):
         """
         # irow
         if axis == 0:
-            if isinstance(i, slice):
-                return self[i]
-            else:
-                label = self.index[i]
-                if isinstance(label, Index):
-                    # a location index by definition
-                    result = self.take(i, axis=axis)
-                    copy = True
-                else:
-                    new_values = self._data.fast_xs(i)
-                    if is_scalar(new_values):
-                        return new_values
+            label = self.index[i]
+            new_values = self._data.fast_xs(i)
+            if is_scalar(new_values):
+                return new_values
 
-                    # if we are a copy, mark as such
-                    copy = (
-                        isinstance(new_values, np.ndarray) and new_values.base is None
-                    )
-                    result = self._constructor_sliced(
-                        new_values,
-                        index=self.columns,
-                        name=self.index[i],
-                        dtype=new_values.dtype,
-                    )
-                result._set_is_copy(self, copy=copy)
-                return result
+            # if we are a copy, mark as such
+            copy = isinstance(new_values, np.ndarray) and new_values.base is None
+            result = self._constructor_sliced(
+                new_values,
+                index=self.columns,
+                name=self.index[i],
+                dtype=new_values.dtype,
+            )
+            result._set_is_copy(self, copy=copy)
+            return result
 
         # icol
         else:
             label = self.columns[i]
-            if isinstance(i, slice):
-                # need to return view
-                lab_slice = slice(label[0], label[-1])
-                return self.loc[:, lab_slice]
-            else:
-                if isinstance(label, Index):
-                    return self._take(i, axis=1)
 
-                index_len = len(self.index)
+            # if the values returned are not the same length
+            # as the index (iow a not found value), iget returns
+            # a 0-len ndarray. This is effectively catching
+            # a numpy error (as numpy should really raise)
+            values = self._data.iget(i)
 
-                # if the values returned are not the same length
-                # as the index (iow a not found value), iget returns
-                # a 0-len ndarray. This is effectively catching
-                # a numpy error (as numpy should really raise)
-                values = self._data.iget(i)
+            if len(self.index) and not len(values):
+                values = np.array([np.nan] * len(self.index), dtype=object)
+            result = self._box_col_values(values, label)
 
-                if index_len and not len(values):
-                    values = np.array([np.nan] * index_len, dtype=object)
-                result = self._box_col_values(values, label)
+            # this is a cached value, mark it so
+            result._set_as_cached(label, self)
 
-                # this is a cached value, mark it so
-                result._set_as_cached(label, self)
-
-                return result
+            return result
 
     def __getitem__(self, key):
         key = lib.item_from_zerodim(key)
@@ -2999,7 +2980,7 @@ class DataFrame(NDFrame):
         if getattr(indexer, "dtype", None) == bool:
             indexer = np.where(indexer)[0]
 
-        data = self._take(indexer, axis=1)
+        data = self.take(indexer, axis=1)
 
         if is_single_key:
             # What does looking for a single key in a non-unique index return?
@@ -3032,7 +3013,7 @@ class DataFrame(NDFrame):
         # be reindexed to match DataFrame rows
         key = check_bool_indexer(self.index, key)
         indexer = key.nonzero()[0]
-        return self._take(indexer, axis=0)
+        return self.take(indexer, axis=0)
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
