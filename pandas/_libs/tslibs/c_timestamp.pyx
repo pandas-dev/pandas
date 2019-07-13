@@ -320,7 +320,7 @@ cdef class _Timestamp(datetime):
         cdef:
             int64_t val
             dict kwds
-            npy_bool[:] out
+            int8_t out[1] out
             int month_kw
 
         freq = self.freq
