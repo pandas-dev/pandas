@@ -1024,7 +1024,9 @@ class TestExcelWriter(_WriterBase):
         read_frame = pd.read_excel(self.path, "test1", index_col=0)
         tm.assert_frame_equal(expected, read_frame)
 
-        with pytest.raises(KeyError):
+        with pytest.raises(
+            KeyError, match="'passes columns are not ALL present dataframe'"
+        ):
             write_frame.to_excel(self.path, "test1", columns=["C", "D"])
 
     def test_comment_arg(self, engine, ext):
