@@ -307,7 +307,7 @@ class TestPeriodConstruction:
     @pytest.mark.parametrize("month", MONTHS)
     def test_period_cons_quarterly(self, month):
         # bugs in scikits.timeseries
-        freq = "Q-%s" % month
+        freq = "Q-{month}".format(month=month)
         exp = Period("1989Q3", freq=freq)
         assert "1989Q3" in str(exp)
         stamp = exp.to_timestamp("D", how="end")
@@ -321,7 +321,7 @@ class TestPeriodConstruction:
     @pytest.mark.parametrize("month", MONTHS)
     def test_period_cons_annual(self, month):
         # bugs in scikits.timeseries
-        freq = "A-%s" % month
+        freq = "A-{month}".format(month=month)
         exp = Period("1989", freq=freq)
         stamp = exp.to_timestamp("D", how="end") + timedelta(days=30)
         p = Period(stamp, freq=freq)
@@ -332,8 +332,8 @@ class TestPeriodConstruction:
     @pytest.mark.parametrize("day", DAYS)
     @pytest.mark.parametrize("num", range(10, 17))
     def test_period_cons_weekly(self, num, day):
-        daystr = "2011-02-%d" % num
-        freq = "W-%s" % day
+        daystr = "2011-02-{num}".format(num=num)
+        freq = "W-{day}".format(day=day)
 
         result = Period(daystr, freq=freq)
         expected = Period(daystr, freq="D").asfreq(freq)
@@ -390,11 +390,11 @@ class TestPeriodConstruction:
         assert result.freq == p1.freq
         assert result.freqstr == "3M"
 
-        msg = "Frequency must be positive, because it" " represents span: -3M"
+        msg = "Frequency must be positive, because it represents span: -3M"
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="-3M")
 
-        msg = "Frequency must be positive, because it" " represents span: 0M"
+        msg = "Frequency must be positive, because it represents span: 0M"
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="0M")
 
@@ -445,7 +445,7 @@ class TestPeriodConstruction:
             assert result.freq == p2.freq
             assert result.freqstr == "25H"
 
-        msg = "Frequency must be positive, because it" " represents span: -25H"
+        msg = "Frequency must be positive, because it represents span: -25H"
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="-1D1H")
         with pytest.raises(ValueError, match=msg):
@@ -455,7 +455,7 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period(ordinal=1, freq="-1H1D")
 
-        msg = "Frequency must be positive, because it" " represents span: 0D"
+        msg = "Frequency must be positive, because it represents span: 0D"
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="0D0H")
         with pytest.raises(ValueError, match=msg):

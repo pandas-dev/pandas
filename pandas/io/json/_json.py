@@ -23,8 +23,8 @@ from pandas.io.common import (
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import _validate_integer
 
-from .normalize import _convert_to_line_delimits
-from .table_schema import build_table_schema, parse_table_schema
+from ._normalize import convert_to_line_delimits
+from ._table_schema import build_table_schema, parse_table_schema
 
 loads = json.loads
 dumps = json.dumps
@@ -79,7 +79,7 @@ def to_json(
     ).write()
 
     if lines:
-        s = _convert_to_line_delimits(s)
+        s = convert_to_line_delimits(s)
 
     if isinstance(path_or_buf, str):
         fh, handles = _get_handle(path_or_buf, "w", compression=compression)
@@ -1105,7 +1105,7 @@ class FrameParser(Parser):
 
         needs_new_obj = False
         new_obj = dict()
-        for i, (col, c) in enumerate(self.obj.iteritems()):
+        for i, (col, c) in enumerate(self.obj.items()):
             if filt(col, c):
                 new_data, result = f(col, c)
                 if result:

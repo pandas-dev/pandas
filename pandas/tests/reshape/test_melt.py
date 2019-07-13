@@ -121,9 +121,7 @@ class TestMelt:
         tuple_b = ("B", "b")
         list_b = [tuple_b]
 
-        msg = (
-            r"(id|value)_vars must be a list of tuples when columns are" " a MultiIndex"
-        )
+        msg = r"(id|value)_vars must be a list of tuples when columns are a MultiIndex"
         for id_vars, value_vars in (
             (tuple_a, list_b),
             (list_a, tuple_b),
@@ -341,8 +339,8 @@ class TestLreshape:
         df = DataFrame(data)
 
         spec = {
-            "visitdt": ["visitdt%d" % i for i in range(1, 4)],
-            "wt": ["wt%d" % i for i in range(1, 4)],
+            "visitdt": ["visitdt{i:d}".format(i=i) for i in range(1, 4)],
+            "wt": ["wt{i:d}".format(i=i) for i in range(1, 4)],
         }
         result = lreshape(df, spec)
 
@@ -531,8 +529,8 @@ class TestLreshape:
         tm.assert_frame_equal(result, exp)
 
         spec = {
-            "visitdt": ["visitdt%d" % i for i in range(1, 3)],
-            "wt": ["wt%d" % i for i in range(1, 4)],
+            "visitdt": ["visitdt{i:d}".format(i=i) for i in range(1, 3)],
+            "wt": ["wt{i:d}".format(i=i) for i in range(1, 4)],
         }
         msg = "All column lists must be same length"
         with pytest.raises(ValueError, match=msg):

@@ -40,13 +40,13 @@ except ImportError:
         pytest.param(
             "fastparquet",
             marks=pytest.mark.skipif(
-                not _HAVE_FASTPARQUET, reason="fastparquet is " "not installed"
+                not _HAVE_FASTPARQUET, reason="fastparquet is not installed"
             ),
         ),
         pytest.param(
             "pyarrow",
             marks=pytest.mark.skipif(
-                not _HAVE_PYARROW, reason="pyarrow is " "not installed"
+                not _HAVE_PYARROW, reason="pyarrow is not installed"
             ),
         ),
     ]
@@ -471,6 +471,11 @@ class TestParquetPyArrow(Base):
             assert len(dataset.partitions.partition_names) == 2
             assert dataset.partitions.partition_names == set(partition_cols)
 
+    def test_empty_dataframe(self, pa):
+        # GH #27339
+        df = pd.DataFrame()
+        check_round_trip(df, pa)
+
 
 class TestParquetFastParquet(Base):
     @td.skip_if_no("fastparquet", min_version="0.2.1")
@@ -566,3 +571,10 @@ class TestParquetFastParquet(Base):
                     partition_on=partition_cols,
                     partition_cols=partition_cols,
                 )
+
+    def test_empty_dataframe(self, fp):
+        # GH #27339
+        df = pd.DataFrame()
+        expected = df.copy()
+        expected.index.name = "index"
+        check_round_trip(df, fp, expected=expected)

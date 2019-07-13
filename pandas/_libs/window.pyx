@@ -1683,7 +1683,7 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] values,
     """
     cdef:
         ndarray[float64_t] output, tot_wgt, counts
-        Py_ssize_t in_i, win_i, win_n, win_k, in_n, in_k
+        Py_ssize_t in_i, win_i, win_n, in_n
         float64_t val_in, val_win, c, w
 
     in_n = len(values)

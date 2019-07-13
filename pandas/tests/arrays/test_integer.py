@@ -88,7 +88,7 @@ def test_repr_dtype(dtype, expected):
 
 def test_repr_array():
     result = repr(integer_array([1, None, 3]))
-    expected = "<IntegerArray>\n" "[1, NaN, 3]\n" "Length: 3, dtype: Int64"
+    expected = "<IntegerArray>\n[1, NaN, 3]\nLength: 3, dtype: Int64"
     assert result == expected
 
 
@@ -179,6 +179,10 @@ class TestArithmeticOps(BaseOpsUtil):
         # check comparisons that are resulting in float dtypes
 
         expected[mask] = np.nan
+        if "floordiv" in op_name:
+            # Series op sets 1//0 to np.inf, which IntegerArray does not do (yet)
+            mask2 = np.isinf(expected) & np.isnan(result)
+            expected[mask2] = np.nan
         tm.assert_series_equal(result, expected)
 
     def _check_op_integer(self, result, expected, mask, s, op_name, other):

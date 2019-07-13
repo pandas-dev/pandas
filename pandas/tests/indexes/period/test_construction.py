@@ -363,7 +363,7 @@ class TestPeriodIndex:
         year = pd.Series([2001, 2002, 2003])
         quarter = year - 2000
         idx = PeriodIndex(year=year, quarter=quarter)
-        strs = ["%dQ%d" % t for t in zip(quarter, year)]
+        strs = ["{t[0]:d}Q{t[1]:d}".format(t=t) for t in zip(quarter, year)]
         lops = list(map(Period, strs))
         p = PeriodIndex(lops)
         tm.assert_index_equal(p, idx)
@@ -394,15 +394,15 @@ class TestPeriodIndex:
         )
         tm.assert_index_equal(pidx, expected)
 
-        msg = "Frequency must be positive, because it" " represents span: -1M"
+        msg = "Frequency must be positive, because it represents span: -1M"
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2011-01"], freq="-1M")
 
-        msg = "Frequency must be positive, because it" " represents span: 0M"
+        msg = "Frequency must be positive, because it represents span: 0M"
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2011-01"], freq="0M")
 
-        msg = "Frequency must be positive, because it" " represents span: 0M"
+        msg = "Frequency must be positive, because it represents span: 0M"
         with pytest.raises(ValueError, match=msg):
             period_range("2011-01", periods=3, freq="0M")
 

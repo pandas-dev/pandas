@@ -352,7 +352,7 @@ class TestToDatetime:
             [
                 "ISO year directive '%G' must be used with the ISO week directive "
                 "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.",
-                "1999 " "Monday",
+                "1999 Monday",
                 "%G %A",
             ],
             [

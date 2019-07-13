@@ -95,10 +95,10 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 1,2,3,4,"""
 
         for default in py_unsupported:
-            msg = "The %r option is not supported " "with the %r engine" % (
-                default,
-                python_engine,
-            )
+            msg = (
+                "The {default!r} option is not supported with the {python_engine!r}"
+                " engine"
+            ).format(default=default, python_engine=python_engine)
 
             kwargs = {default: object()}
             with pytest.raises(ValueError, match=msg):

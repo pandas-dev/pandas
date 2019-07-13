@@ -57,9 +57,8 @@ def test_deprecate_no_docstring():
 
 
 def test_deprecate_wrong_docstring():
-    with pytest.raises(
-        AssertionError, match="deprecate needs a correctly " "formatted docstring"
-    ):
+    msg = "deprecate needs a correctly formatted docstring"
+    with pytest.raises(AssertionError, match=msg):
         deprecate(
             "depr_func", new_func_wrong_docstring, "1.0", msg="Use new_func instead."
         )

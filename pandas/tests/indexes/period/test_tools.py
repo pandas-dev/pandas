@@ -161,7 +161,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("month", MONTHS)
     def test_to_period_quarterly(self, month):
         # make sure we can make the round trip
-        freq = "Q-%s" % month
+        freq = "Q-{month}".format(month=month)
         rng = period_range("1989Q3", "1991Q3", freq=freq)
         stamps = rng.to_timestamp()
         result = stamps.to_period(freq)
@@ -270,7 +270,7 @@ class TestPeriodIndexConversion:
         tm.assert_index_equal(result3, exp)
         assert result3.freqstr == "3M"
 
-        msg = "Frequency must be positive, because it" " represents span: -2A"
+        msg = "Frequency must be positive, because it represents span: -2A"
         with pytest.raises(ValueError, match=msg):
             result.to_period(freq="-2A")
 

@@ -172,7 +172,7 @@ class TestRoundTrip:
         with ensure_clean(ext) as pth:
             if c_idx_levels == 1 and c_idx_names:
                 pytest.skip(
-                    "Column index name cannot be " "serialized unless it's a MultiIndex"
+                    "Column index name cannot be serialized unless it's a MultiIndex"
                 )
 
             # Empty name case current read in as
@@ -1024,7 +1024,9 @@ class TestExcelWriter(_WriterBase):
         read_frame = pd.read_excel(self.path, "test1", index_col=0)
         tm.assert_frame_equal(expected, read_frame)
 
-        with pytest.raises(KeyError):
+        with pytest.raises(
+            KeyError, match="'passes columns are not ALL present dataframe'"
+        ):
             write_frame.to_excel(self.path, "test1", columns=["C", "D"])
 
     def test_comment_arg(self, engine, ext):

@@ -307,7 +307,7 @@ class TestChaining:
         )
         mask = pd.isna(df.c)
 
-        msg = "A value is trying to be set on a copy of a slice from a" " DataFrame"
+        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(com.SettingWithCopyError, match=msg):
             df[["c"]][mask] = df[["b"]][mask]
 

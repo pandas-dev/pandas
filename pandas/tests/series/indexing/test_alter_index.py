@@ -480,7 +480,7 @@ def test_rename():
 
 
 @pytest.mark.parametrize(
-    "data, index, drop_labels," " axis, expected_data, expected_index",
+    "data, index, drop_labels, axis, expected_data, expected_index",
     [
         # Unique Index
         ([1, 2], ["one", "two"], ["two"], 0, [1], ["one"]),
@@ -503,7 +503,7 @@ def test_drop_unique_and_non_unique_index(
 
 
 @pytest.mark.parametrize(
-    "data, index, drop_labels," " axis, error_type, error_desc",
+    "data, index, drop_labels, axis, error_type, error_desc",
     [
         # single string/tuple-like
         (range(3), list("abc"), "bc", 0, KeyError, "not found in axis"),

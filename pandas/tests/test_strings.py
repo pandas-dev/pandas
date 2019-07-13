@@ -196,10 +196,8 @@ class TestStringMethods:
     def test_api_mi_raises(self):
         # GH 23679
         mi = MultiIndex.from_arrays([["a", "b", "c"]])
-        with pytest.raises(
-            AttributeError,
-            match="Can only use .str accessor " "with Index, not MultiIndex",
-        ):
+        msg = "Can only use .str accessor with Index, not MultiIndex"
+        with pytest.raises(AttributeError, match=msg):
             mi.str
         assert not hasattr(mi, "str")
 
@@ -232,10 +230,8 @@ class TestStringMethods:
             assert isinstance(t.str, strings.StringMethods)
         else:
             # GH 9184, GH 23011, GH 23163
-            with pytest.raises(
-                AttributeError,
-                match="Can only use .str " "accessor with string values.*",
-            ):
+            msg = "Can only use .str accessor with string values.*"
+            with pytest.raises(AttributeError, match=msg):
                 t.str
             assert not hasattr(t, "str")
 
@@ -1101,7 +1097,7 @@ class TestStringMethods:
         with pytest.raises(ValueError, match=msg):
             values.str.replace("abc", callable_repl, regex=False)
 
-        msg = "Cannot use a compiled regex as replacement pattern with" " regex=False"
+        msg = "Cannot use a compiled regex as replacement pattern with regex=False"
         with pytest.raises(ValueError, match=msg):
             values.str.replace(compiled_pat, "", regex=False)
 
@@ -2799,23 +2795,20 @@ class TestStringMethods:
 
         tm.assert_series_equal(result, exp)
 
-    def test_slice(self):
+    @pytest.mark.parametrize(
+        "start, stop, step, expected",
+        [
+            (2, 5, None, Series(["foo", "bar", NA, "baz"])),
+            (0, 3, -1, Series(["", "", NA, ""])),
+            (None, None, -1, Series(["owtoofaa", "owtrabaa", NA, "xuqzabaa"])),
+            (3, 10, 2, Series(["oto", "ato", NA, "aqx"])),
+            (3, 0, -1, Series(["ofa", "aba", NA, "aba"])),
+        ],
+    )
+    def test_slice(self, start, stop, step, expected):
         values = Series(["aafootwo", "aabartwo", NA, "aabazqux"])
-
-        result = values.str.slice(2, 5)
-        exp = Series(["foo", "bar", NA, "baz"])
-        tm.assert_series_equal(result, exp)
-
-        for start, stop, step in [(0, 3, -1), (None, None, -1), (3, 10, 2), (3, 0, -1)]:
-            try:
-                result = values.str.slice(start, stop, step)
-                expected = Series(
-                    [s[start:stop:step] if not isna(s) else NA for s in values]
-                )
-                tm.assert_series_equal(result, expected)
-            except IndexError:
-                print("failed on %s:%s:%s" % (start, stop, step))
-                raise
+        result = values.str.slice(start, stop, step)
+        tm.assert_series_equal(result, expected)
 
         # mixed
         mixed = Series(

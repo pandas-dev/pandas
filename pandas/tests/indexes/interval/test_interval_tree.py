@@ -62,7 +62,7 @@ class TestIntervalTree:
         expected = np.array([0, 1], dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="-1"):
             tree.get_loc(-1)
 
     def test_get_indexer(self, tree):
@@ -70,7 +70,9 @@ class TestIntervalTree:
         expected = np.array([0, 4, -1], dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
-        with pytest.raises(KeyError):
+        with pytest.raises(
+            KeyError, match="'indexer does not intersect a unique set of intervals'"
+        ):
             tree.get_indexer(np.array([3.0]))
 
     def test_get_indexer_non_unique(self, tree):
@@ -100,7 +102,9 @@ class TestIntervalTree:
         expected = np.array([0, 1, 2], dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
-        with pytest.raises(KeyError):
+        with pytest.raises(
+            KeyError, match="'indexer does not intersect a unique set of intervals'"
+        ):
             tree.get_indexer(np.array([0.5]))
 
         indexer, missing = tree.get_indexer_non_unique(np.array([0.5]))
@@ -116,7 +120,7 @@ class TestIntervalTree:
         tree = IntervalTree([0], [1], closed=closed)
         for p, errors in [(0, tree.open_left), (1, tree.open_right)]:
             if errors:
-                with pytest.raises(KeyError):
+                with pytest.raises(KeyError, match=str(p)):
                     tree.get_loc(p)
             else:
                 result = tree.get_loc(p)

@@ -559,3 +559,27 @@ def remove_na_arraylike(arr):
         return arr[notna(arr)]
     else:
         return arr[notna(lib.values_from_object(arr))]
+
+
+def is_valid_nat_for_dtype(obj, dtype):
+    """
+    isna check that excludes incompatible dtypes
+
+    Parameters
+    ----------
+    obj : object
+    dtype : np.datetime64, np.timedelta64, DatetimeTZDtype, or PeriodDtype
+
+    Returns
+    -------
+    bool
+    """
+    if not isna(obj):
+        return False
+    if dtype.kind == "M":
+        return not isinstance(obj, np.timedelta64)
+    if dtype.kind == "m":
+        return not isinstance(obj, np.datetime64)
+
+    # must be PeriodDType
+    return not isinstance(obj, (np.datetime64, np.timedelta64))

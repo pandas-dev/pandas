@@ -1349,7 +1349,7 @@ class TestIsScalar:
 
 def test_datetimeindex_from_empty_datetime64_array():
     for unit in ["ms", "us", "ns"]:
-        idx = DatetimeIndex(np.array([], dtype="datetime64[%s]" % unit))
+        idx = DatetimeIndex(np.array([], dtype="datetime64[{unit}]".format(unit=unit)))
         assert len(idx) == 0
 
 

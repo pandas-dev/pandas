@@ -441,7 +441,7 @@ class TestSparseSeriesIndexing:
         tm.assert_sp_series_equal(s[indexer], expected)
         tm.assert_sp_series_equal(s.loc[indexer], expected)
 
-        msg = "iLocation based boolean indexing cannot " "use an indexable as a mask"
+        msg = "iLocation based boolean indexing cannot use an indexable as a mask"
         with pytest.raises(ValueError, match=msg):
             s.iloc[indexer]
 

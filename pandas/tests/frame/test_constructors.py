@@ -264,7 +264,7 @@ class TestDataFrameConstructors:
         nitems = 100
         nums = list(range(nitems))
         random.shuffle(nums)
-        expected = ["A%d" % i for i in nums]
+        expected = ["A{i:d}".format(i=i) for i in nums]
         df = DataFrame(OrderedDict(zip(expected, [[0]] * nitems)))
         assert expected == list(df.columns)
 
@@ -474,7 +474,7 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame((range(10), range(10, 20)), columns=("ones", "twos"))
 
-        msg = "If using all scalar " "values, you must pass " "an index"
+        msg = "If using all scalar values, you must pass an index"
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": False, "b": True})
 
@@ -517,7 +517,8 @@ class TestDataFrameConstructors:
             dct.update(v.to_dict())
             data[k] = dct
         frame = DataFrame(data)
-        tm.assert_frame_equal(float_frame.sort_index(), frame)
+        expected = frame.reindex(index=float_frame.index)
+        tm.assert_frame_equal(float_frame, expected)
 
     def test_constructor_dict_block(self):
         expected = np.array([[4.0, 3.0, 2.0, 1.0]])
@@ -1203,7 +1204,7 @@ class TestDataFrameConstructors:
 
         sdict = OrderedDict(zip(["x", "Unnamed 0"], data))
         expected = DataFrame.from_dict(sdict, orient="index")
-        tm.assert_frame_equal(result.sort_index(), expected)
+        tm.assert_frame_equal(result, expected)
 
         # none named
         data = [
@@ -1342,7 +1343,7 @@ class TestDataFrameConstructors:
     def test_constructor_orient(self, float_string_frame):
         data_dict = float_string_frame.T._series
         recons = DataFrame.from_dict(data_dict, orient="index")
-        expected = float_string_frame.sort_index()
+        expected = float_string_frame.reindex(index=recons.index)
         tm.assert_frame_equal(recons, expected)
 
         # dict of sequence
@@ -1350,6 +1351,19 @@ class TestDataFrameConstructors:
         rs = DataFrame.from_dict(a, orient="index")
         xp = DataFrame.from_dict(a).T.reindex(list(a.keys()))
         tm.assert_frame_equal(rs, xp)
+
+    def test_constructor_from_ordered_dict(self):
+        # GH8425
+        a = OrderedDict(
+            [
+                ("one", OrderedDict([("col_a", "foo1"), ("col_b", "bar1")])),
+                ("two", OrderedDict([("col_a", "foo2"), ("col_b", "bar2")])),
+                ("three", OrderedDict([("col_a", "foo3"), ("col_b", "bar3")])),
+            ]
+        )
+        expected = DataFrame.from_dict(a, orient="columns").T
+        result = DataFrame.from_dict(a, orient="index")
+        tm.assert_frame_equal(result, expected)
 
     def test_from_dict_columns_parameter(self):
         # GH 18529
@@ -2382,6 +2396,13 @@ class TestDataFrameConstructors:
         assert len(result) == 0
         assert result.index.name == "foo"
         tm.assert_index_equal(result.columns, expected)
+
+    def test_from_records_series_list_dict(self):
+        # GH27358
+        expected = DataFrame([[{"a": 1, "b": 2}, {"a": 3, "b": 4}]]).T
+        data = Series([[{"a": 1, "b": 2}], [{"a": 3, "b": 4}]])
+        result = DataFrame.from_records(data)
+        tm.assert_frame_equal(result, expected)
 
     def test_to_frame_with_falsey_names(self):
         # GH 16114

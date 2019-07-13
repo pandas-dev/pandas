@@ -92,7 +92,7 @@ def test_builtins_apply(keys, f):
     result = df.groupby(keys).apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
-    assert_msg = "invalid frame shape: {} " "(expected ({}, 3))".format(
+    assert_msg = "invalid frame shape: {} (expected ({}, 3))".format(
         result.shape, ngroups
     )
     assert result.shape == (ngroups, 3), assert_msg
@@ -1220,7 +1220,7 @@ def test_size_groupby_all_null():
 def test_quantile(interpolation, a_vals, b_vals, q):
     if interpolation == "nearest" and q == 0.5 and b_vals == [4, 3, 2, 1]:
         pytest.skip(
-            "Unclear numpy expectation for nearest result with " "equidistant data"
+            "Unclear numpy expectation for nearest result with equidistant data"
         )
 
     a_expected = pd.Series(a_vals).quantile(q, interpolation=interpolation)
@@ -1243,9 +1243,7 @@ def test_quantile_raises():
         [["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"]
     )
 
-    with pytest.raises(
-        TypeError, match="cannot be performed against " "'object' dtypes"
-    ):
+    with pytest.raises(TypeError, match="cannot be performed against 'object' dtypes"):
         df.groupby("key").quantile()
 
 

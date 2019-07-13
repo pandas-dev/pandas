@@ -99,7 +99,7 @@ class TestSeriesAnalytics:
         assert issubclass(argsorted.dtype.type, np.integer)
 
         # GH 2967 (introduced bug in 0.11-dev I think)
-        s = Series([Timestamp("201301%02d" % (i + 1)) for i in range(5)])
+        s = Series([Timestamp("201301{i:02d}".format(i=i)) for i in range(1, 6)])
         assert s.dtype == "datetime64[ns]"
         shifted = s.shift(-1)
         assert shifted.dtype == "datetime64[ns]"
@@ -229,7 +229,7 @@ class TestSeriesAnalytics:
         tm.assert_series_equal(expected, result)
 
     def test_npdiff(self):
-        pytest.skip("skipping due to Series no longer being an " "ndarray")
+        pytest.skip("skipping due to Series no longer being an ndarray")
 
         # no longer works as the return type of np.diff is now nd.array
         s = Series(np.arange(5))
@@ -407,9 +407,7 @@ class TestSeriesAnalytics:
         # GH PR #22298
         s1 = pd.Series(np.random.randn(10))
         s2 = pd.Series(np.random.randn(10))
-        msg = (
-            "method must be either 'pearson', " "'spearman', 'kendall', or a callable, "
-        )
+        msg = "method must be either 'pearson', 'spearman', 'kendall', or a callable, "
         with pytest.raises(ValueError, match=msg):
             s1.corr(s2, method="____")
 
@@ -820,7 +818,7 @@ class TestSeriesAnalytics:
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
 
-        msg = "No axis named 1 for object type" " <class 'pandas.core.series.Series'>"
+        msg = "No axis named 1 for object type <class 'pandas.core.series.Series'>"
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
                 s.ptp(axis=1)
@@ -1295,7 +1293,7 @@ class TestNLargestNSmallest:
     )
     def test_error(self, r):
         dt = r.dtype
-        msg = "Cannot use method 'n(larg|small)est' with " "dtype {dt}".format(dt=dt)
+        msg = "Cannot use method 'n(larg|small)est' with dtype {dt}".format(dt=dt)
         args = 2, len(r), 0, -1
         methods = r.nlargest, r.nsmallest
         for method, arg in product(methods, args):

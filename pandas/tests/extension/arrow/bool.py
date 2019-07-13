@@ -33,7 +33,7 @@ class ArrowBoolDtype(ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError("Cannot construct a '{}' from " "'{}'".format(cls, string))
+            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
 
     @classmethod
     def construct_array_type(cls):
