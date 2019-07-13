@@ -601,7 +601,7 @@ class MultiIndex(Index):
         if not isinstance(df, ABCDataFrame):
             raise TypeError("Input must be a DataFrame")
 
-        column_names, columns = zip(*df.iteritems())
+        column_names, columns = zip(*df.items())
         names = column_names if names is None else names
         return cls.from_arrays(columns, sortorder=sortorder, names=names)
 
@@ -2810,7 +2810,10 @@ class MultiIndex(Index):
 
                 if len(key) == self.nlevels and self.is_unique:
                     # Complete key in unique index -> standard get_loc
-                    return (self._engine.get_loc(key), None)
+                    try:
+                        return (self._engine.get_loc(key), None)
+                    except KeyError as e:
+                        raise KeyError(key) from e
                 else:
                     return partial_selection(key)
             else:

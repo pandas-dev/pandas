@@ -7,7 +7,7 @@ from pandas import DataFrame, Index
 import pandas.util.testing as tm
 
 from pandas.io.json import json_normalize
-from pandas.io.json.normalize import nested_to_record
+from pandas.io.json._normalize import nested_to_record
 
 
 @pytest.fixture
@@ -297,7 +297,7 @@ class TestJSONNormalize:
             }
         ]
 
-        msg = r"Conflicting metadata name (foo|bar)," " need distinguishing prefix"
+        msg = r"Conflicting metadata name (foo|bar), need distinguishing prefix"
         with pytest.raises(ValueError, match=msg):
             json_normalize(data, "data", meta=["foo", "bar"])
 
@@ -518,7 +518,7 @@ class TestNestedToRecord:
         # If meta keys are not always present a new option to set
         # errors='ignore' has been implemented
 
-        msg = "Try running with errors='ignore' as key 'name'" " is not always present"
+        msg = "Try running with errors='ignore' as key 'name' is not always present"
         with pytest.raises(KeyError, match=msg):
             json_normalize(
                 data=missing_metadata,
@@ -711,7 +711,7 @@ class TestNestedToRecord:
                 "CreatedBy.user.family_tree.father.name": "Father001",
                 "CreatedBy.user.family_tree.father.father.Name": "Father002",
                 "CreatedBy.user.family_tree.father.father.father.name": "Father003",
-                "CreatedBy.user.family_tree.father.father.father.father.Name": "Father004",
+                "CreatedBy.user.family_tree.father.father.father.father.Name": "Father004",  # noqa: E501
             }
         ]
         output = nested_to_record(input_data, max_level=max_level)

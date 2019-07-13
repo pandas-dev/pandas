@@ -176,7 +176,6 @@ class TimedeltaIndex(
 
     _freq = None
 
-    _box_func = TimedeltaArray._box_func
     _bool_ops = TimedeltaArray._bool_ops
     _object_ops = TimedeltaArray._object_ops
     _field_ops = TimedeltaArray._field_ops

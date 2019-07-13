@@ -694,7 +694,7 @@ class TestWhereCoercion(CoercionBase):
         assert obj.dtype == "datetime64[ns]"
         cond = pd.Index([True, False, True, False])
 
-        msg = "Index\\(\\.\\.\\.\\) must be called with a collection " "of some kind"
+        msg = "Index\\(\\.\\.\\.\\) must be called with a collection of some kind"
         with pytest.raises(TypeError, match=msg):
             obj.where(cond, fill_val)
 
@@ -725,7 +725,7 @@ class TestWhereCoercion(CoercionBase):
         assert obj.dtype == "datetime64[ns]"
         cond = pd.Index([True, False, True, False])
 
-        msg = "Index\\(\\.\\.\\.\\) must be called with a collection " "of some kind"
+        msg = "Index\\(\\.\\.\\.\\) must be called with a collection of some kind"
         with pytest.raises(TypeError, match=msg):
             obj.where(cond, fill_val)
 
@@ -1031,7 +1031,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
     # TODO(jbrockmendel) commented out to only have a single xfail printed
     @pytest.mark.xfail(
-        reason="GH #18376, tzawareness-compat bug " "in BlockManager.replace_list"
+        reason="GH #18376, tzawareness-compat bug in BlockManager.replace_list"
     )
     # @pytest.mark.parametrize('how', ['dict', 'series'])
     # @pytest.mark.parametrize('to_key', ['timedelta64[ns]', 'bool', 'object',
@@ -1063,8 +1063,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
     # TODO(jreback) commented out to only have a single xfail printed
     @pytest.mark.xfail(
-        reason="different tz, " "currently mask_missing raises SystemError",
-        strict=False,
+        reason="different tz, currently mask_missing raises SystemError", strict=False
     )
     # @pytest.mark.parametrize('how', ['dict', 'series'])
     # @pytest.mark.parametrize('to_key', [

@@ -12,7 +12,7 @@ from pandas._libs.writers import convert_json_to_lines
 from pandas import DataFrame
 
 
-def _convert_to_line_delimits(s):
+def convert_to_line_delimits(s):
     """
     Helper function that converts JSON lists to line delimited JSON.
     """

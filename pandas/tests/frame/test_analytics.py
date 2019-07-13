@@ -363,9 +363,7 @@ class TestDataFrameAnalytics:
     def test_corr_invalid_method(self):
         # GH 22298
         df = pd.DataFrame(np.random.normal(size=(10, 2)))
-        msg = (
-            "method must be either 'pearson', " "'spearman', 'kendall', or a callable, "
-        )
+        msg = "method must be either 'pearson', 'spearman', 'kendall', or a callable, "
         with pytest.raises(ValueError, match=msg):
             df.corr(method="____")
 
@@ -1441,7 +1439,7 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.xfail(
-        reason="casts to object-dtype and then tries to " "add timestamps",
+        reason="casts to object-dtype and then tries to add timestamps",
         raises=TypeError,
         strict=True,
     )
@@ -1643,7 +1641,7 @@ class TestDataFrameAnalytics:
                     expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        msg = "No axis named 2 for object type" " <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
         with pytest.raises(ValueError, match=msg):
             frame.idxmin(axis=2)
 
@@ -1658,7 +1656,7 @@ class TestDataFrameAnalytics:
                     expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        msg = "No axis named 2 for object type" " <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
         with pytest.raises(ValueError, match=msg):
             frame.idxmax(axis=2)
 

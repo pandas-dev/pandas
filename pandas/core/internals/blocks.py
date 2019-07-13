@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib, tslib, tslibs
+from pandas._libs import NaT, lib, tslib, tslibs
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
 from pandas.util._validators import validate_bool_kwarg
@@ -72,7 +72,11 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.indexing import check_setitem_lengths
+from pandas.core.indexers import (
+    check_setitem_lengths,
+    is_empty_indexer,
+    is_scalar_indexer,
+)
 from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
@@ -143,7 +147,7 @@ class Block(PandasObject):
             ndim = values.ndim
 
         if self._validate_ndim and values.ndim != ndim:
-            msg = "Wrong number of dimensions. values.ndim != ndim " "[{} != {}]"
+            msg = "Wrong number of dimensions. values.ndim != ndim [{} != {}]"
             raise ValueError(msg.format(values.ndim, ndim))
 
         return ndim
@@ -259,7 +263,7 @@ class Block(PandasObject):
         if dtype is not None:
             # issue 19431 fastparquet is passing this
             warnings.warn(
-                "dtype argument is deprecated, will be removed " "in a future release.",
+                "dtype argument is deprecated, will be removed in a future release.",
                 FutureWarning,
             )
         if placement is None:
@@ -397,10 +401,6 @@ class Block(PandasObject):
                 raise ValueError("Limit must be an integer")
             if limit < 1:
                 raise ValueError("Limit must be greater than 0")
-            if self.ndim > 2:
-                raise NotImplementedError(
-                    "number of dimensions for 'fillna' " "is currently limited to 2"
-                )
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if not self._can_hold_na:
@@ -409,32 +409,28 @@ class Block(PandasObject):
             else:
                 return self.copy()
 
-        # fillna, but if we cannot coerce, then try again as an ObjectBlock
-        try:
-            # Note: we only call try_coerce_args to let it raise
-            self._try_coerce_args(value)
-        except (TypeError, ValueError):
-
-            # we can't process the value, but nothing to do
-            if not mask.any():
-                return self if inplace else self.copy()
-
-            # operate column-by-column
-            def f(m, v, i):
-                block = self.coerce_to_target_dtype(value)
-
-                # slice out our block
-                if i is not None:
-                    block = block.getitem_block(slice(i, i + 1))
-                return block.fillna(value, limit=limit, inplace=inplace, downcast=None)
-
-            return self.split_and_operate(mask, f, inplace)
-        else:
+        if self._can_hold_element(value):
+            # equivalent: self._try_coerce_args(value) would not raise
             blocks = self.putmask(mask, value, inplace=inplace)
             blocks = [
                 b.make_block(values=self._try_coerce_result(b.values)) for b in blocks
             ]
             return self._maybe_downcast(blocks, downcast)
+
+        # we can't process the value, but nothing to do
+        if not mask.any():
+            return self if inplace else self.copy()
+
+        # operate column-by-column
+        def f(m, v, i):
+            block = self.coerce_to_target_dtype(value)
+
+            # slice out our block
+            if i is not None:
+                block = block.getitem_block(slice(i, i + 1))
+            return block.fillna(value, limit=limit, inplace=inplace, downcast=None)
+
+        return self.split_and_operate(mask, f, inplace)
 
     def split_and_operate(self, mask, f, inplace):
         """
@@ -533,7 +529,7 @@ class Block(PandasObject):
 
         if not (dtypes == "infer" or isinstance(dtypes, dict)):
             raise ValueError(
-                "downcast must have a dictionary or 'infer' as " "its argument"
+                "downcast must have a dictionary or 'infer' as its argument"
             )
 
         # operate column-by-column
@@ -853,6 +849,8 @@ class Block(PandasObject):
         `indexer` is a direct slice/positional indexer. `value` must
         be a compatible shape.
         """
+        transpose = self.ndim == 2
+
         # coerce None values, if appropriate
         if value is None:
             if self.is_numeric:
@@ -901,45 +899,19 @@ class Block(PandasObject):
             dtype, _ = maybe_promote(arr_value.dtype)
             values = values.astype(dtype)
 
-        transf = (lambda x: x.T) if self.ndim == 2 else (lambda x: x)
-        values = transf(values)
+        if transpose:
+            values = values.T
 
         # length checking
         check_setitem_lengths(indexer, value, values)
 
-        def _is_scalar_indexer(indexer):
-            # return True if we are all scalar indexers
-
-            if arr_value.ndim == 1:
-                if not isinstance(indexer, tuple):
-                    indexer = tuple([indexer])
-                    return any(
-                        isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer
-                    )
-            return False
-
-        def _is_empty_indexer(indexer):
-            # return a boolean if we have an empty indexer
-
-            if is_list_like(indexer) and not len(indexer):
-                return True
-            if arr_value.ndim == 1:
-                if not isinstance(indexer, tuple):
-                    indexer = tuple([indexer])
-                return any(
-                    isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer
-                )
-            return False
-
-        # empty indexers
-        # 8669 (empty)
-        if _is_empty_indexer(indexer):
+        if is_empty_indexer(indexer, arr_value):
+            # GH#8669 empty indexers
             pass
 
-        # setting a single element for each dim and with a rhs that could
-        # be say a list
-        # GH 6043
-        elif _is_scalar_indexer(indexer):
+        elif is_scalar_indexer(indexer, arr_value):
+            # setting a single element for each dim and with a rhs that could
+            #  be e.g. a list; see GH#6043
             values[indexer] = value
 
         # if we are an exact match (ex-broadcasting),
@@ -961,7 +933,9 @@ class Block(PandasObject):
 
         # coerce and try to infer the dtypes of the result
         values = self._try_coerce_and_cast_result(values, dtype)
-        block = self.make_block(transf(values))
+        if transpose:
+            values = values.T
+        block = self.make_block(values)
         return block
 
     def putmask(self, mask, new, align=True, inplace=False, axis=0, transpose=False):
@@ -1025,7 +999,7 @@ class Block(PandasObject):
                     or mask[mask].shape[-1] == len(new)
                     or len(new) == 1
                 ):
-                    raise ValueError("cannot assign mismatch " "length to masked array")
+                    raise ValueError("cannot assign mismatch length to masked array")
 
             np.putmask(new_values, mask, new)
 
@@ -1381,16 +1355,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def where(
-        self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast=False,
-        axis=0,
-        transpose=False,
-    ):
+    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
         """
         evaluate the block; return result block(s) from the result
 
@@ -1402,10 +1367,7 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
-
         axis : int
-        transpose : boolean
-            Set to True if self is stored with axes reversed
 
         Returns
         -------
@@ -1414,6 +1376,7 @@ class Block(PandasObject):
         import pandas.core.computation.expressions as expressions
 
         assert errors in ["raise", "ignore"]
+        transpose = self.ndim == 2
 
         values = self.values
         orig_other = other
@@ -1432,7 +1395,7 @@ class Block(PandasObject):
                 cond = cond.T
 
         if not hasattr(cond, "shape"):
-            raise ValueError("where must have a condition that is ndarray " "like")
+            raise ValueError("where must have a condition that is ndarray like")
 
         # our where function
         def func(cond, values, other):
@@ -1473,7 +1436,6 @@ class Block(PandasObject):
                     errors=errors,
                     try_cast=try_cast,
                     axis=axis,
-                    transpose=transpose,
                 )
                 return self._maybe_downcast(blocks, "infer")
 
@@ -1917,7 +1879,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         if isinstance(slicer, tuple) and len(slicer) == 2:
             if not com.is_null_slice(slicer[0]):
-                raise AssertionError("invalid slicing for a 1-ndim " "categorical")
+                raise AssertionError("invalid slicing for a 1-ndim categorical")
             slicer = slicer[1]
 
         return self.values[slicer]
@@ -2004,16 +1966,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             )
         ]
 
-    def where(
-        self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast=False,
-        axis=0,
-        transpose=False,
-    ):
+    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
         if isinstance(other, ABCDataFrame):
             # ExtensionArrays are 1-D, so if we get here then
             # `other` should be a DataFrame with a single column.
@@ -2296,7 +2249,13 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return tipo == _NS_DTYPE or tipo == np.int64
-        return is_integer(element) or isinstance(element, datetime) or isna(element)
+        elif isinstance(element, datetime):
+            return element.tzinfo is None
+        elif is_integer(element):
+            return element == tslibs.iNaT
+
+        # TODO: shouldnt we exclude timedelta64("NaT")?  See GH#27297
+        return isna(element)
 
     def _coerce_values(self, values):
         return values.view("i8")
@@ -2321,9 +2280,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
             if getattr(other, "tz") is not None:
-                raise TypeError(
-                    "cannot coerce a Timestamp with a tz on a " "naive Block"
-                )
+                raise TypeError("cannot coerce a Timestamp with a tz on a naive Block")
             other = other.asm8.view("i8")
         elif hasattr(other, "dtype") and is_datetime64_dtype(other):
             other = other.astype("i8", copy=False).view("i8")
@@ -2650,6 +2607,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, (np.timedelta64, np.int64))
+        elif element is NaT:
+            return True
         return is_integer(element) or isinstance(
             element, (timedelta, np.timedelta64, np.int64)
         )
@@ -2997,7 +2956,7 @@ class ObjectBlock(Block):
         # only one will survive
         if to_rep_re and regex_re:
             raise AssertionError(
-                "only one of to_replace and regex can be " "regex compilable"
+                "only one of to_replace and regex can be regex compilable"
             )
 
         # if regex was passed as something that can be a regex (rather than a
@@ -3181,16 +3140,7 @@ class CategoricalBlock(ExtensionBlock):
             values, placement=placement or slice(0, len(values), 1), ndim=self.ndim
         )
 
-    def where(
-        self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast=False,
-        axis=0,
-        transpose=False,
-    ):
+    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
         # TODO(CategoricalBlock.where):
         # This can all be deleted in favor of ExtensionBlock.where once
         # we enforce the deprecation.
@@ -3205,19 +3155,11 @@ class CategoricalBlock(ExtensionBlock):
         )
         try:
             # Attempt to do preserve categorical dtype.
-            result = super().where(
-                other, cond, align, errors, try_cast, axis, transpose
-            )
+            result = super().where(other, cond, align, errors, try_cast, axis)
         except (TypeError, ValueError):
             warnings.warn(object_msg, FutureWarning, stacklevel=6)
             result = self.astype(object).where(
-                other,
-                cond,
-                align=align,
-                errors=errors,
-                try_cast=try_cast,
-                axis=axis,
-                transpose=transpose,
+                other, cond, align=align, errors=errors, try_cast=try_cast, axis=axis
             )
         return result
 
@@ -3286,7 +3228,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None, fastpath=No
     if fastpath is not None:
         # GH#19265 pyarrow is passing this
         warnings.warn(
-            "fastpath argument is deprecated, will be removed " "in a future release.",
+            "fastpath argument is deprecated, will be removed in a future release.",
             FutureWarning,
         )
     if klass is None:
@@ -3416,36 +3358,36 @@ def _putmask_smart(v, m, n):
     # will work in the current dtype
     try:
         nn = n[m]
-
+    except TypeError:
+        # TypeError: only integer scalar arrays can be converted to a scalar index
+        pass
+    else:
         # make sure that we have a nullable type
         # if we have nulls
         if not _isna_compat(v, nn[0]):
-            raise ValueError
+            pass
+        elif is_numeric_v_string_like(nn, v):
+            # avoid invalid dtype comparisons
+            # between numbers & strings
+            pass
+        elif not (is_float_dtype(nn.dtype) or is_integer_dtype(nn.dtype)):
+            # only compare integers/floats
+            pass
+        elif not (is_float_dtype(v.dtype) or is_integer_dtype(v.dtype)):
+            # only compare integers/floats
+            pass
+        else:
 
-        # we ignore ComplexWarning here
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", np.ComplexWarning)
-            nn_at = nn.astype(v.dtype)
-
-        # avoid invalid dtype comparisons
-        # between numbers & strings
-
-        # only compare integers/floats
-        # don't compare integers to datetimelikes
-        if not is_numeric_v_string_like(nn, nn_at) and (
-            is_float_dtype(nn.dtype)
-            or is_integer_dtype(nn.dtype)
-            and is_float_dtype(nn_at.dtype)
-            or is_integer_dtype(nn_at.dtype)
-        ):
+            # we ignore ComplexWarning here
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter("ignore", np.ComplexWarning)
+                nn_at = nn.astype(v.dtype)
 
             comp = nn == nn_at
             if is_list_like(comp) and comp.all():
                 nv = v.copy()
                 nv[m] = nn_at
                 return nv
-    except (ValueError, IndexError, TypeError, OverflowError):
-        pass
 
     n = np.asarray(n)
 

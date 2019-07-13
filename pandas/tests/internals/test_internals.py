@@ -110,7 +110,9 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
     elif typestr in ("complex", "c16", "c8"):
         values = 1.0j * (mat.astype(typestr) + num_offset)
     elif typestr in ("object", "string", "O"):
-        values = np.reshape(["A%d" % i for i in mat.ravel() + num_offset], shape)
+        values = np.reshape(
+            ["A{i:d}".format(i=i) for i in mat.ravel() + num_offset], shape
+        )
     elif typestr in ("b", "bool"):
         values = np.ones(shape, dtype=np.bool_)
     elif typestr in ("datetime", "dt", "M8[ns]"):
@@ -418,9 +420,6 @@ class TestBlockManager:
         block = make_block(values=values.copy(), placement=np.arange(3))
         mgr = BlockManager(blocks=[block], axes=[cols, np.arange(3)])
 
-        assert_almost_equal(mgr.get("a", fastpath=False), values[0])
-        assert_almost_equal(mgr.get("b", fastpath=False), values[1])
-        assert_almost_equal(mgr.get("c", fastpath=False), values[2])
         assert_almost_equal(mgr.get("a").internal_values(), values[0])
         assert_almost_equal(mgr.get("b").internal_values(), values[1])
         assert_almost_equal(mgr.get("c").internal_values(), values[2])
@@ -540,7 +539,7 @@ class TestBlockManager:
             assert tmgr.get("e").dtype.type == t
 
         # mixed
-        mgr = create_mgr("a,b: object; c: bool; d: datetime;" "e: f4; f: f2; g: f8")
+        mgr = create_mgr("a,b: object; c: bool; d: datetime; e: f4; f: f2; g: f8")
         for t in ["float16", "float32", "float64", "int32", "int64"]:
             t = np.dtype(t)
             tmgr = mgr.astype(t, errors="ignore")
@@ -602,7 +601,7 @@ class TestBlockManager:
         assert new_mgr.get("g").dtype == np.float64
 
         mgr = create_mgr(
-            "a,b,foo: object; f: i4; bool: bool; dt: datetime;" "i: i8; g: f8; h: f2"
+            "a,b,foo: object; f: i4; bool: bool; dt: datetime; i: i8; g: f8; h: f2"
         )
         mgr.set("a", np.array(["1"] * N, dtype=np.object_))
         mgr.set("b", np.array(["2."] * N, dtype=np.object_))
@@ -701,27 +700,16 @@ class TestBlockManager:
         )
 
     def test_reindex_index(self):
+        # TODO: should this be pytest.skip?
         pass
 
     def test_reindex_items(self):
         # mgr is not consolidated, f8 & f8-2 blocks
-        mgr = create_mgr("a: f8; b: i8; c: f8; d: i8; e: f8;" "f: bool; g: f8-2")
+        mgr = create_mgr("a: f8; b: i8; c: f8; d: i8; e: f8; f: bool; g: f8-2")
 
         reindexed = mgr.reindex_axis(["g", "c", "a", "d"], axis=0)
         assert reindexed.nblocks == 2
         tm.assert_index_equal(reindexed.items, pd.Index(["g", "c", "a", "d"]))
-        assert_almost_equal(
-            mgr.get("g", fastpath=False), reindexed.get("g", fastpath=False)
-        )
-        assert_almost_equal(
-            mgr.get("c", fastpath=False), reindexed.get("c", fastpath=False)
-        )
-        assert_almost_equal(
-            mgr.get("a", fastpath=False), reindexed.get("a", fastpath=False)
-        )
-        assert_almost_equal(
-            mgr.get("d", fastpath=False), reindexed.get("d", fastpath=False)
-        )
         assert_almost_equal(
             mgr.get("g").internal_values(), reindexed.get("g").internal_values()
         )
@@ -748,17 +736,11 @@ class TestBlockManager:
             numeric.items, pd.Index(["int", "float", "complex", "bool"])
         )
         assert_almost_equal(
-            mgr.get("float", fastpath=False), numeric.get("float", fastpath=False)
-        )
-        assert_almost_equal(
             mgr.get("float").internal_values(), numeric.get("float").internal_values()
         )
 
         # Check sharing
         numeric.set("float", np.array([100.0, 200.0, 300.0]))
-        assert_almost_equal(
-            mgr.get("float", fastpath=False), np.array([100.0, 200.0, 300.0])
-        )
         assert_almost_equal(
             mgr.get("float").internal_values(), np.array([100.0, 200.0, 300.0])
         )
@@ -768,9 +750,6 @@ class TestBlockManager:
             numeric.items, pd.Index(["int", "float", "complex", "bool"])
         )
         numeric2.set("float", np.array([1000.0, 2000.0, 3000.0]))
-        assert_almost_equal(
-            mgr.get("float", fastpath=False), np.array([100.0, 200.0, 300.0])
-        )
         assert_almost_equal(
             mgr.get("float").internal_values(), np.array([100.0, 200.0, 300.0])
         )
@@ -786,16 +765,10 @@ class TestBlockManager:
         bools = mgr.get_bool_data()
         tm.assert_index_equal(bools.items, pd.Index(["bool"]))
         assert_almost_equal(
-            mgr.get("bool", fastpath=False), bools.get("bool", fastpath=False)
-        )
-        assert_almost_equal(
             mgr.get("bool").internal_values(), bools.get("bool").internal_values()
         )
 
         bools.set("bool", np.array([True, False, True]))
-        tm.assert_numpy_array_equal(
-            mgr.get("bool", fastpath=False), np.array([True, False, True])
-        )
         tm.assert_numpy_array_equal(
             mgr.get("bool").internal_values(), np.array([True, False, True])
         )
@@ -803,9 +776,6 @@ class TestBlockManager:
         # Check sharing
         bools2 = mgr.get_bool_data(copy=True)
         bools2.set("bool", np.array([False, True, False]))
-        tm.assert_numpy_array_equal(
-            mgr.get("bool", fastpath=False), np.array([True, False, True])
-        )
         tm.assert_numpy_array_equal(
             mgr.get("bool").internal_values(), np.array([True, False, True])
         )

@@ -9,6 +9,7 @@ import numpy.ma as ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
+import pandas.compat as compat
 from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.cast import (
@@ -338,6 +339,7 @@ def extract_index(data):
         have_raw_arrays = False
         have_series = False
         have_dicts = False
+        have_ordered = False
 
         for val in data:
             if isinstance(val, ABCSeries):
@@ -345,6 +347,8 @@ def extract_index(data):
                 indexes.append(val.index)
             elif isinstance(val, dict):
                 have_dicts = True
+                if isinstance(val, OrderedDict):
+                    have_ordered = True
                 indexes.append(list(val.keys()))
             elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
                 have_raw_arrays = True
@@ -353,8 +357,10 @@ def extract_index(data):
         if not indexes and not raw_lengths:
             raise ValueError("If using all scalar values, you must pass" " an index")
 
-        if have_series or have_dicts:
+        if have_series:
             index = _union_indexes(indexes)
+        elif have_dicts:
+            index = _union_indexes(indexes, sort=not (compat.PY36 or have_ordered))
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))

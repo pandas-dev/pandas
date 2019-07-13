@@ -285,7 +285,7 @@ class TestDataFrameReprInfoEtc(TestData):
         df.info(buf=buf)
         res = buf.getvalue()
         for i, dtype in enumerate(dtypes):
-            name = "%d    %d non-null %s" % (i, n, dtype)
+            name = "{i:d}    {n:d} non-null {dtype}".format(i=i, n=n, dtype=dtype)
             assert name in res
 
     def test_info_max_cols(self):

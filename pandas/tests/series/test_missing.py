@@ -813,7 +813,7 @@ class TestSeriesMissingData:
         assert len(s) == 0
 
         # invalid axis
-        msg = "No axis named 1 for object type" " <class 'pandas.core.series.Series'>"
+        msg = "No axis named 1 for object type <class 'pandas.core.series.Series'>"
         with pytest.raises(ValueError, match=msg):
             s.dropna(axis=1)
 
@@ -1117,9 +1117,7 @@ class TestSeriesInterpolateData:
         # When method='time' is used on a non-TimeSeries that contains a null
         # value, a ValueError should be raised.
         non_ts = Series([0, 1, 2, np.NaN])
-        msg = (
-            "time-weighted interpolation only works on Series.* " "with a DatetimeIndex"
-        )
+        msg = "time-weighted interpolation only works on Series.* with a DatetimeIndex"
         with pytest.raises(ValueError, match=msg):
             non_ts.interpolate(method="time")
 
@@ -1417,9 +1415,7 @@ class TestSeriesInterpolateData:
         )
 
         # raises an error even if limit type is wrong.
-        msg = (
-            r"Invalid limit_area: expecting one of \['inside', 'outside'\]," " got abc"
-        )
+        msg = r"Invalid limit_area: expecting one of \['inside', 'outside'\], got abc"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method="linear", limit_area="abc")
 
@@ -1668,5 +1664,5 @@ class TestSeriesInterpolateData:
             assert_series_equal(result, expected)
         else:
             pytest.skip(
-                "This interpolation method is not supported for " "Timedelta Index yet."
+                "This interpolation method is not supported for Timedelta Index yet."
             )

@@ -1432,9 +1432,10 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert result == expected
         assert_frame_equal(pd.read_json(result, lines=True), df)
 
+    # TODO: there is a near-identical test for pytables; can we share?
     def test_latin_encoding(self):
         # GH 13774
-        pytest.skip("encoding not implemented in .to_json(), " "xref #13774")
+        pytest.skip("encoding not implemented in .to_json(), xref #13774")
 
         values = [
             [b"E\xc9, 17", b"", b"a", b"b", b"c"],
@@ -1589,7 +1590,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         df = pd.DataFrame([[1, 2], [4, 5]], columns=["a", "b"])
 
-        msg = "'index=False' is only valid when " "'orient' is 'split' or 'table'"
+        msg = "'index=False' is only valid when 'orient' is 'split' or 'table'"
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient, index=False)
 

@@ -3974,6 +3974,7 @@ class Table(Fixed):
                     for axis_name in obj._AXIS_NAMES.values():
                         axis_number = obj._get_axis_number(axis_name)
                         axis_values = obj._get_axis(axis_name)
+                        assert axis_number is not None
 
                         # see if the field is the name of an axis
                         if field == axis_name:

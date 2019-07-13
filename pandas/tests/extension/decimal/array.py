@@ -40,7 +40,7 @@ class DecimalDtype(ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError("Cannot construct a '{}' from " "'{}'".format(cls, string))
+            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
 
     @property
     def _is_numeric(self):
@@ -172,7 +172,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
             op = getattr(self.data, name)
         except AttributeError:
             raise NotImplementedError(
-                "decimal does not support " "the {} operation".format(name)
+                "decimal does not support the {} operation".format(name)
             )
         return op(axis=0)
 

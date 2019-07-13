@@ -130,6 +130,19 @@ class TestMultiIndexLoc:
         with pytest.raises(KeyError, match=r"^2$"):
             df.loc[2]
 
+    @pytest.mark.parametrize("key, pos", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])
+    def test_loc_multiindex_list_missing_label(self, key, pos):
+        # GH 27148 - lists with missing labels do not raise:
+        df = DataFrame(
+            np.random.randn(3, 3),
+            columns=[[2, 2, 4], [6, 8, 10]],
+            index=[[4, 4, 8], [8, 10, 12]],
+        )
+
+        expected = df.iloc[pos]
+        result = df.loc[key]
+        tm.assert_frame_equal(result, expected)
+
     def test_loc_multiindex_too_many_dims_raises(self):
         # GH 14885
         s = Series(
@@ -280,47 +293,27 @@ class TestMultiIndexLoc:
 
 
 @pytest.mark.parametrize(
-    "indexer, is_level1, expected_error",
+    "indexer, pos",
     [
-        ([], False, None),  # empty ok
-        (["A"], False, None),
-        (["A", "D"], False, None),
-        (["D"], False, r"\['D'\] not in index"),  # not any values found
-        (pd.IndexSlice[:, ["foo"]], True, None),
-        (pd.IndexSlice[:, ["foo", "bah"]], True, None),
+        ([], []),  # empty ok
+        (["A"], slice(3)),
+        (["A", "D"], slice(3)),
+        (["D", "E"], []),  # no values found - fine
+        (["D"], []),  # same, with single item list: GH 27148
+        (pd.IndexSlice[:, ["foo"]], slice(2, None, 3)),
+        (pd.IndexSlice[:, ["foo", "bah"]], slice(2, None, 3)),
     ],
 )
-def test_loc_getitem_duplicates_multiindex_missing_indexers(
-    indexer, is_level1, expected_error
-):
+def test_loc_getitem_duplicates_multiindex_missing_indexers(indexer, pos):
     # GH 7866
     # multi-index slicing with missing indexers
     idx = MultiIndex.from_product(
         [["A", "B", "C"], ["foo", "bar", "baz"]], names=["one", "two"]
     )
     s = Series(np.arange(9, dtype="int64"), index=idx).sort_index()
-
-    if indexer == []:
-        expected = s.iloc[[]]
-    elif is_level1:
-        expected = Series(
-            [0, 3, 6],
-            index=MultiIndex.from_product(
-                [["A", "B", "C"], ["foo"]], names=["one", "two"]
-            ),
-        ).sort_index()
-    else:
-        exp_idx = MultiIndex.from_product(
-            [["A"], ["foo", "bar", "baz"]], names=["one", "two"]
-        )
-        expected = Series(np.arange(3, dtype="int64"), index=exp_idx).sort_index()
-
-    if expected_error is not None:
-        with pytest.raises(KeyError, match=expected_error):
-            s.loc[indexer]
-    else:
-        result = s.loc[indexer]
-        tm.assert_series_equal(result, expected)
+    expected = s.iloc[pos]
+    result = s.loc[indexer]
+    tm.assert_series_equal(result, expected)
 
 
 def test_series_loc_getitem_fancy(multiindex_year_month_day_dataframe_random_data):
@@ -389,7 +382,7 @@ def test_loc_getitem_lowerdim_corner(multiindex_dataframe_random_data):
     df = multiindex_dataframe_random_data
 
     # test setup - check key not in dataframe
-    with pytest.raises(KeyError, match=r"^11$"):
+    with pytest.raises(KeyError, match=r"^\('bar', 'three'\)$"):
         df.loc[("bar", "three"), "B"]
 
     # in theory should be inserting in a sorted space????

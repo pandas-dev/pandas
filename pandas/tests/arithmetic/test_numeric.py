@@ -14,6 +14,22 @@ from pandas import Index, Series, Timedelta, TimedeltaIndex
 from pandas.core import ops
 import pandas.util.testing as tm
 
+
+def adjust_negative_zero(zero, expected):
+    """
+    Helper to adjust the expected result if we are dividing by -0.0
+    as opposed to 0.0
+    """
+    if np.signbit(np.array(zero)).any():
+        # All entries in the `zero` fixture should be either
+        #  all-negative or no-negative.
+        assert np.signbit(np.array(zero)).all()
+
+        expected *= -1
+
+    return expected
+
+
 # ------------------------------------------------------------------
 # Comparisons
 
@@ -229,20 +245,27 @@ class TestDivisionByZero:
         idx = numeric_idx
 
         expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
+        # We only adjust for Index, because Series does not yet apply
+        #  the adjustment correctly.
+        expected2 = adjust_negative_zero(zero, expected)
+
         result = idx / zero
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected2)
         ser_compat = Series(idx).astype("i8") / np.array(zero).astype("i8")
-        tm.assert_series_equal(ser_compat, Series(result))
+        tm.assert_series_equal(ser_compat, Series(expected))
 
     def test_floordiv_zero(self, zero, numeric_idx):
         idx = numeric_idx
 
         expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
+        # We only adjust for Index, because Series does not yet apply
+        #  the adjustment correctly.
+        expected2 = adjust_negative_zero(zero, expected)
 
         result = idx // zero
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected2)
         ser_compat = Series(idx).astype("i8") // np.array(zero).astype("i8")
-        tm.assert_series_equal(ser_compat, Series(result))
+        tm.assert_series_equal(ser_compat, Series(expected))
 
     def test_mod_zero(self, zero, numeric_idx):
         idx = numeric_idx
@@ -258,32 +281,34 @@ class TestDivisionByZero:
 
         exleft = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
         exright = pd.Index([np.nan, np.nan, np.nan, np.nan, np.nan], dtype=np.float64)
+        exleft = adjust_negative_zero(zero, exleft)
 
         result = divmod(idx, zero)
         tm.assert_index_equal(result[0], exleft)
         tm.assert_index_equal(result[1], exright)
 
+    @pytest.mark.parametrize("op", [operator.truediv, operator.floordiv])
+    def test_div_negative_zero(self, zero, numeric_idx, op):
+        # Check that -1 / -0.0 returns np.inf, not -np.inf
+        if isinstance(numeric_idx, pd.UInt64Index):
+            return
+        idx = numeric_idx - 3
+
+        expected = pd.Index(
+            [-np.inf, -np.inf, -np.inf, np.nan, np.inf], dtype=np.float64
+        )
+        expected = adjust_negative_zero(zero, expected)
+
+        result = op(idx, zero)
+        tm.assert_index_equal(result, expected)
+
     # ------------------------------------------------------------------
 
-    @pytest.mark.parametrize(
-        "dtype2",
-        [
-            np.int64,
-            np.int32,
-            np.int16,
-            np.int8,
-            np.float64,
-            np.float32,
-            np.float16,
-            np.uint64,
-            np.uint32,
-            np.uint16,
-            np.uint8,
-        ],
-    )
     @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
-    def test_ser_div_ser(self, dtype1, dtype2):
+    def test_ser_div_ser(self, dtype1, any_real_dtype):
         # no longer do integer div for any ops, but deal with the 0's
+        dtype2 = any_real_dtype
+
         first = Series([3, 4, 5, 8], name="first").astype(dtype1)
         second = Series([0, 0, 0, 3], name="second").astype(dtype2)
 
@@ -298,6 +323,44 @@ class TestDivisionByZero:
         result = first / second
         tm.assert_series_equal(result, expected)
         assert not result.equals(second / first)
+
+    @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
+    def test_ser_divmod_zero(self, dtype1, any_real_dtype):
+        # GH#26987
+        dtype2 = any_real_dtype
+        left = pd.Series([1, 1]).astype(dtype1)
+        right = pd.Series([0, 2]).astype(dtype2)
+
+        # GH#27321 pandas convention is to set 1 // 0 to np.inf, as opposed
+        #  to numpy which sets to np.nan; patch `expected[0]` below
+        expected = left // right, left % right
+        expected = list(expected)
+        expected[0] = expected[0].astype(np.float64)
+        expected[0][0] = np.inf
+        result = divmod(left, right)
+
+        tm.assert_series_equal(result[0], expected[0])
+        tm.assert_series_equal(result[1], expected[1])
+
+        # rdivmod case
+        result = divmod(left.values, right)
+        tm.assert_series_equal(result[0], expected[0])
+        tm.assert_series_equal(result[1], expected[1])
+
+    def test_ser_divmod_inf(self):
+        left = pd.Series([np.inf, 1.0])
+        right = pd.Series([np.inf, 2.0])
+
+        expected = left // right, left % right
+        result = divmod(left, right)
+
+        tm.assert_series_equal(result[0], expected[0])
+        tm.assert_series_equal(result[1], expected[1])
+
+        # rdivmod case
+        result = divmod(left.values, right)
+        tm.assert_series_equal(result[0], expected[0])
+        tm.assert_series_equal(result[1], expected[1])
 
     def test_rdiv_zero_compat(self):
         # GH#8674
@@ -450,7 +513,7 @@ class TestMultiplicationDivision:
             pytest.param(
                 pd.Index,
                 marks=pytest.mark.xfail(
-                    reason="Index.__div__ always " "raises", raises=TypeError
+                    reason="Index.__div__ always raises", raises=TypeError
                 ),
             ),
             pd.Series,
@@ -662,7 +725,9 @@ class TestMultiplicationDivision:
             result2 = p["second"] % p["first"]
             assert not result.equals(result2)
 
-            # GH#9144
+    def test_modulo_zero_int(self):
+        # GH#9144
+        with np.errstate(all="ignore"):
             s = Series([0, 1])
 
             result = s % 0
@@ -821,17 +886,16 @@ class TestAdditionSubtraction:
 
             _check_op(series, other, operator.pow, pos_only=True)
 
-            _check_op(series, other, lambda x, y: operator.add(y, x))
-            _check_op(series, other, lambda x, y: operator.sub(y, x))
-            _check_op(series, other, lambda x, y: operator.truediv(y, x))
-            _check_op(series, other, lambda x, y: operator.floordiv(y, x))
-            _check_op(series, other, lambda x, y: operator.mul(y, x))
-            _check_op(series, other, lambda x, y: operator.pow(y, x), pos_only=True)
-            _check_op(series, other, lambda x, y: operator.mod(y, x))
+            _check_op(series, other, ops.radd)
+            _check_op(series, other, ops.rsub)
+            _check_op(series, other, ops.rtruediv)
+            _check_op(series, other, ops.rfloordiv)
+            _check_op(series, other, ops.rmul)
+            _check_op(series, other, ops.rpow, pos_only=True)
+            _check_op(series, other, ops.rmod)
 
         tser = tm.makeTimeSeries().rename("ts")
         check(tser, tser * 2)
-        check(tser, tser * 0)
         check(tser, tser[::2])
         check(tser, 5)
 
@@ -871,9 +935,25 @@ class TestAdditionSubtraction:
 
         tser = tm.makeTimeSeries().rename("ts")
         check(tser, tser * 2)
-        check(tser, tser * 0)
         check(tser, tser[::2])
         check(tser, 5)
+
+    def test_series_divmod_zero(self):
+        # Check that divmod uses pandas convention for division by zero,
+        #  which does not match numpy.
+        # pandas convention has
+        #  1/0 == np.inf
+        #  -1/0 == -np.inf
+        #  1/-0.0 == -np.inf
+        #  -1/-0.0 == np.inf
+        tser = tm.makeTimeSeries().rename("ts")
+        other = tser * 0
+
+        result = divmod(tser, other)
+        exp1 = pd.Series([np.inf] * len(tser), index=tser.index, name="ts")
+        exp2 = pd.Series([np.nan] * len(tser), index=tser.index, name="ts")
+        tm.assert_series_equal(result[0], exp1)
+        tm.assert_series_equal(result[1], exp2)
 
 
 class TestUFuncCompat:

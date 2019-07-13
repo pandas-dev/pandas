@@ -232,9 +232,7 @@ def test_groupby_blacklist(df_letters):
     blacklist.extend(to_methods)
 
     # e.g., to_csv
-    defined_but_not_allowed = (
-        "(?:^Cannot.+{0!r}.+{1!r}.+try using the " "'apply' method$)"
-    )
+    defined_but_not_allowed = "(?:^Cannot.+{0!r}.+{1!r}.+try using the 'apply' method$)"
 
     # e.g., query, eval
     not_defined = "(?:^{1!r} object has no attribute {0!r}$)"

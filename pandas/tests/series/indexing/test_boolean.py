@@ -353,7 +353,7 @@ def test_where_setitem_invalid():
     # GH 2702
     # make sure correct exceptions are raised on invalid list assignment
 
-    msg = "cannot set using a {} indexer with a different length than" " the value"
+    msg = "cannot set using a {} indexer with a different length than the value"
 
     # slice
     s = Series(list("abc"))

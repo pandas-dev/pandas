@@ -1107,13 +1107,13 @@ class TestToIterable:
     @pytest.mark.parametrize("dtype, rdtype", dtypes)
     def test_iterable_items(self, dtype, rdtype):
         # gh-13258
-        # test items / iteritems yields the correct boxed scalars
+        # test if items yields the correct boxed scalars
         # this only applies to series
         s = Series([1], dtype=dtype)
         _, result = list(s.items())[0]
         assert isinstance(result, rdtype)
 
-        _, result = list(s.iteritems())[0]
+        _, result = list(s.items())[0]
         assert isinstance(result, rdtype)
 
     @pytest.mark.parametrize(

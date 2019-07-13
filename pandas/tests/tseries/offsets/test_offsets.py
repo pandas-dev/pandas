@@ -843,7 +843,7 @@ class TestBusinessDay(Base):
         assert rs == xp
 
     def test_apply_corner(self):
-        msg = "Only know how to combine business day with datetime or" " timedelta"
+        msg = "Only know how to combine business day with datetime or timedelta"
         with pytest.raises(ApplyTypeError, match=msg):
             BDay().apply(BMonthEnd())
 
@@ -3969,10 +3969,10 @@ def test_get_offset():
 
     for name, expected in pairs:
         offset = get_offset(name)
-        assert offset == expected, "Expected %r to yield %r (actual: %r)" % (
-            name,
-            expected,
-            offset,
+        assert (
+            offset == expected
+        ), "Expected {name!r} to yield {expected!r} (actual: {offset!r})".format(
+            name=name, expected=expected, offset=offset
         )
 
 

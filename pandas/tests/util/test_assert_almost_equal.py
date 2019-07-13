@@ -40,7 +40,7 @@ def _assert_not_almost_equal(a, b, **kwargs):
     try:
         assert_almost_equal(a, b, **kwargs)
         msg = (
-            "{a} and {b} were approximately equal " "when they shouldn't have been"
+            "{a} and {b} were approximately equal when they shouldn't have been"
         ).format(a=a, b=b)
         pytest.fail(msg=msg)
     except AssertionError:

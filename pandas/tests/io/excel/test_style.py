@@ -14,7 +14,7 @@ from pandas.io.formats.excel import ExcelFormatter
         pytest.param(
             "xlwt",
             marks=pytest.mark.xfail(
-                reason="xlwt does not support " "openpyxl-compatible " "style dicts"
+                reason="xlwt does not support openpyxl-compatible style dicts"
             ),
         ),
         "xlsxwriter",
@@ -108,7 +108,7 @@ def test_styler_to_excel(engine):
         for col1, col2 in zip(wb["frame"].columns, wb["styled"].columns):
             assert len(col1) == len(col2)
             for cell1, cell2 in zip(col1, col2):
-                ref = "%s%d" % (cell2.column, cell2.row)
+                ref = "{cell2.column}{cell2.row:d}".format(cell2=cell2)
                 # XXX: this isn't as strong a test as ideal; we should
                 #      confirm that differences are exclusive
                 if ref == "B2":
@@ -156,7 +156,7 @@ def test_styler_to_excel(engine):
         for col1, col2 in zip(wb["frame"].columns, wb["custom"].columns):
             assert len(col1) == len(col2)
             for cell1, cell2 in zip(col1, col2):
-                ref = "%s%d" % (cell2.column, cell2.row)
+                ref = "{cell2.column}{cell2.row:d}".format(cell2=cell2)
                 if ref in ("B2", "C3", "D4", "B5", "C6", "D7", "B8", "B9"):
                     assert not cell1.font.bold
                     assert cell2.font.bold

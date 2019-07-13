@@ -979,7 +979,7 @@ def test_nonexistent_path(all_parsers):
     # gh-2428: pls no segfault
     # gh-14086: raise more helpful FileNotFoundError
     parser = all_parsers
-    path = "%s.csv" % tm.rands(10)
+    path = "{}.csv".format(tm.rands(10))
 
     msg = "does not exist" if parser.engine == "c" else r"\[Errno 2\]"
     with pytest.raises(FileNotFoundError, match=msg) as e:
@@ -1078,7 +1078,7 @@ A,B,C
 4,5,6""".replace(
         ",", sep
     )
-    path = "__%s__.csv" % tm.rands(10)
+    path = "__{}__.csv".format(tm.rands(10))
     kwargs = dict(sep=sep, skiprows=2)
     utf8 = "utf-8"
 
@@ -1243,7 +1243,7 @@ def test_catch_too_many_names(all_parsers):
 10,11,12\n"""
     parser = all_parsers
     msg = (
-        "Too many columns specified: " "expected 4 and found 3"
+        "Too many columns specified: expected 4 and found 3"
         if parser.engine == "c"
         else "Number of passed names did not match "
         "number of header fields in the file"
@@ -1982,7 +1982,7 @@ def test_internal_eof_byte_to_file(all_parsers):
     parser = all_parsers
     data = b'c1,c2\r\n"test \x1a    test", test\r\n'
     expected = DataFrame([["test \x1a    test", " test"]], columns=["c1", "c2"])
-    path = "__%s__.csv" % tm.rands(10)
+    path = "__{}__.csv".format(tm.rands(10))
 
     with tm.ensure_clean(path) as path:
         with open(path, "wb") as f:

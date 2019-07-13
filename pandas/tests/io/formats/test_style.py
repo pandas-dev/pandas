@@ -362,7 +362,7 @@ class TestStyler:
             strings, black otherwise.
             """
             color = "red" if val < 0 else "black"
-            return "color: %s" % color
+            return "color: {color}".format(color=color)
 
         dic = {
             ("a", "d"): [-1.12, 2.11],
@@ -484,12 +484,12 @@ class TestStyler:
             (1, 0): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(" "90deg,red 25.0%, transparent 25.0%)",
+                "background: linear-gradient(90deg,red 25.0%, transparent 25.0%)",
             ],
             (2, 0): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(" "90deg,red 50.0%, transparent 50.0%)",
+                "background: linear-gradient(90deg,red 50.0%, transparent 50.0%)",
             ],
         }
         assert result == expected

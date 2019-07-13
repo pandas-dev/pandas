@@ -618,7 +618,9 @@ class TestNDFrame:
             df.sample(n=1, weights="weight_column", axis=1)
 
         # Check weighting key error
-        with pytest.raises(KeyError):
+        with pytest.raises(
+            KeyError, match="'String passed to weights not a valid column'"
+        ):
             df.sample(n=3, weights="not_a_real_column_name")
 
         # Check that re-normalizes weights that don't sum to one.
@@ -724,10 +726,10 @@ class TestNDFrame:
         tm.assert_series_equal(df.squeeze(axis=1), df.iloc[:, 0])
         tm.assert_series_equal(df.squeeze(axis="columns"), df.iloc[:, 0])
         assert df.squeeze() == df.iloc[0, 0]
-        msg = "No axis named 2 for object type <class" " 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
         with pytest.raises(ValueError, match=msg):
             df.squeeze(axis=2)
-        msg = "No axis named x for object type <class" " 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named x for object type <class 'pandas.core.frame.DataFrame'>"
         with pytest.raises(ValueError, match=msg):
             df.squeeze(axis="x")
 

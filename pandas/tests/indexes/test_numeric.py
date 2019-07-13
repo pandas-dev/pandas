@@ -172,7 +172,7 @@ class TestFloat64Index(Numeric):
         )
         with pytest.raises(TypeError, match=msg):
             Float64Index(["a", "b", 0.0])
-        msg = r"float\(\) argument must be a string or a number, not" " 'Timestamp'"
+        msg = r"float\(\) argument must be a string or a number, not 'Timestamp'"
         with pytest.raises(TypeError, match=msg):
             Float64Index([Timestamp("20130101")])
 
@@ -569,9 +569,7 @@ class NumericInt(Numeric):
         tm.assert_index_equal(result, expected)
 
         name = self._holder.__name__
-        msg = ("Unable to fill values because " "{name} cannot contain NA").format(
-            name=name
-        )
+        msg = "Unable to fill values because {name} cannot contain NA".format(name=name)
 
         # fill_value=True
         with pytest.raises(ValueError, match=msg):

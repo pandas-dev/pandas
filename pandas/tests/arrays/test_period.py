@@ -259,7 +259,7 @@ def test_repr_small():
     arr = period_array(["2000", "2001"], freq="D")
     result = str(arr)
     expected = (
-        "<PeriodArray>\n" "['2000-01-01', '2001-01-01']\n" "Length: 2, dtype: period[D]"
+        "<PeriodArray>\n['2000-01-01', '2001-01-01']\nLength: 2, dtype: period[D]"
     )
     assert result == expected
 

@@ -74,19 +74,19 @@ class SharedWithSparse:
 
     def test_add_prefix_suffix(self, float_frame):
         with_prefix = float_frame.add_prefix("foo#")
-        expected = pd.Index(["foo#%s" % c for c in float_frame.columns])
+        expected = pd.Index(["foo#{c}".format(c=c) for c in float_frame.columns])
         tm.assert_index_equal(with_prefix.columns, expected)
 
         with_suffix = float_frame.add_suffix("#foo")
-        expected = pd.Index(["%s#foo" % c for c in float_frame.columns])
+        expected = pd.Index(["{c}#foo".format(c=c) for c in float_frame.columns])
         tm.assert_index_equal(with_suffix.columns, expected)
 
         with_pct_prefix = float_frame.add_prefix("%")
-        expected = pd.Index(["%{}".format(c) for c in float_frame.columns])
+        expected = pd.Index(["%{c}".format(c=c) for c in float_frame.columns])
         tm.assert_index_equal(with_pct_prefix.columns, expected)
 
         with_pct_suffix = float_frame.add_suffix("%")
-        expected = pd.Index(["{}%".format(c) for c in float_frame.columns])
+        expected = pd.Index(["{c}%".format(c=c) for c in float_frame.columns])
         tm.assert_index_equal(with_pct_suffix.columns, expected)
 
     def test_get_axis(self, float_frame):
@@ -149,7 +149,7 @@ class SharedWithSparse:
         empty_frame = DataFrame()
 
         df = self.klass([1])
-        msg = "'(Sparse)?DataFrame' objects are mutable, thus they cannot be" " hashed"
+        msg = "'(Sparse)?DataFrame' objects are mutable, thus they cannot be hashed"
         with pytest.raises(TypeError, match=msg):
             hash(df)
         with pytest.raises(TypeError, match=msg):
@@ -319,7 +319,7 @@ class SharedWithSparse:
         for row, s in df.iterrows():
             str(s)
 
-        for c, col in df.iteritems():
+        for c, col in df.items():
             str(s)
 
     def test_len(self, float_frame):
@@ -430,7 +430,7 @@ class SharedWithSparse:
         expected = "              X\nNaT        a  1\n2013-01-01 b  2"
         assert result == expected
 
-    def test_iteritems_names(self, float_string_frame):
+    def test_items_names(self, float_string_frame):
         for k, v in float_string_frame.items():
             assert v.name == k
 

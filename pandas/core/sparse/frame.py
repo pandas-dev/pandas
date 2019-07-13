@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.lib import is_scalar, item_from_zerodim
 from pandas._libs.sparse import BlockIndex, get_blocks
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
@@ -74,6 +75,8 @@ class SparseDataFrame(DataFrame):
         dtype=None,
         copy=False,
     ):
+        if not is_scalar(default_fill_value):
+            raise ValueError("'default_fill_value' must be a scalar")
 
         warnings.warn(depr_msg, FutureWarning, stacklevel=2)
         # pick up the defaults from the Sparse structures
@@ -666,7 +669,7 @@ class SparseDataFrame(DataFrame):
                 fill_value = np.nan
             else:
                 fill_value = func(np.float64(own_default), np.float64(other.fill_value))
-
+                fill_value = item_from_zerodim(fill_value)
         else:
             raise NotImplementedError(type(other))
 
@@ -695,7 +698,7 @@ class SparseDataFrame(DataFrame):
         need_mask = mask.any()
 
         new_series = {}
-        for col, series in self.iteritems():
+        for col, series in self.items():
             if mask.all():
                 continue
 

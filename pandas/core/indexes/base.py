@@ -66,6 +66,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
+from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name, make_invalid_op
@@ -142,27 +143,18 @@ def _make_arithmetic_op(op, cls):
             out = op(self, other)
             return Index(out, name=self.name)
 
-        other = self._validate_for_numeric_binop(other, op)
-
         # handle time-based others
         if isinstance(other, (ABCDateOffset, np.timedelta64, timedelta)):
             return self._evaluate_with_timedelta_like(other, op)
-        elif isinstance(other, (datetime, np.datetime64)):
-            return self._evaluate_with_datetime_like(other, op)
 
-        values = self.values
-        with np.errstate(all="ignore"):
-            result = op(values, other)
+        other = self._validate_for_numeric_binop(other, op)
 
-        result = missing.dispatch_missing(op, values, other, result)
+        from pandas import Series
 
-        attrs = self._get_attributes_dict()
-        attrs = self._maybe_update_attributes(attrs)
-        if op is divmod:
-            result = (Index(result[0], **attrs), Index(result[1], **attrs))
-        else:
-            result = Index(result, **attrs)
-        return result
+        result = op(Series(self), other)
+        if isinstance(result, tuple):
+            return (Index(result[0]), Index(result[1]))
+        return Index(result)
 
     name = "__{name}__".format(name=op.__name__)
     # TODO: docstring?
@@ -2359,10 +2351,14 @@ class Index(IndexOpsMixin, PandasObject):
     def __add__(self, other):
         if isinstance(other, (ABCSeries, ABCDataFrame)):
             return NotImplemented
-        return Index(np.array(self) + other)
+        from pandas import Series
+
+        return Index(Series(self) + other)
 
     def __radd__(self, other):
-        return Index(other + np.array(self))
+        from pandas import Series
+
+        return Index(other + Series(self))
 
     def __iadd__(self, other):
         # alias for __add__
@@ -3317,7 +3313,6 @@ class Index(IndexOpsMixin, PandasObject):
                 # values outside the range of indices so as to trigger an
                 # IndexError in maybe_convert_indices
                 indexer[indexer < 0] = len(self)
-                from pandas.core.indexing import maybe_convert_indices
 
                 return maybe_convert_indices(indexer, len(self))
 
@@ -4791,7 +4786,6 @@ class Index(IndexOpsMixin, PandasObject):
             return pself.get_indexer_non_unique(ptarget)
 
         if self.is_all_dates:
-            self = Index(self.asi8)
             tgt_values = target.asi8
         else:
             tgt_values = target._ndarray_values
