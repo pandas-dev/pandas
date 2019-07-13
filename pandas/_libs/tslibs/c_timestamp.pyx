@@ -19,7 +19,7 @@ from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t, int8_t, ndarray
+from numpy cimport int64_t, int8_t, ndarray, npy_bool
 cnp.import_array()
 
 from cpython.datetime cimport (datetime,
@@ -320,7 +320,7 @@ cdef class _Timestamp(datetime):
         cdef:
             int64_t val
             dict kwds
-            ndarray[int8_t] out
+            npy_bool[:] out
             int month_kw
 
         freq = self.freq
