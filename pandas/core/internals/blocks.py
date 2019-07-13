@@ -41,7 +41,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_interval_dtype,
     is_list_like,
-    is_numeric_v_string_like,
     is_object_dtype,
     is_period_dtype,
     is_re,
@@ -3361,10 +3360,6 @@ def _putmask_smart(v, m, n):
         # make sure that we have a nullable type
         # if we have nulls
         if not _isna_compat(v, nn[0]):
-            pass
-        elif is_numeric_v_string_like(nn, v):
-            # avoid invalid dtype comparisons
-            # between numbers & strings
             pass
         elif not (is_float_dtype(nn.dtype) or is_integer_dtype(nn.dtype)):
             # only compare integers/floats
