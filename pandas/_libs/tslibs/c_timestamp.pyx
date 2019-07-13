@@ -316,11 +316,11 @@ cdef class _Timestamp(datetime):
             val = tz_convert_single(self.value, UTC, self.tz)
         return val
 
-    cpdef bint _get_start_end_field(self, str field):
+    cpdef bint _get_start_end_field(self, str field) except -1:
         cdef:
             int64_t val
             dict kwds
-            npy_bool[:] out
+            int8_t out[1] # npy_bool[:] out
             int month_kw
 
         freq = self.freq
