@@ -222,7 +222,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         """
         raise AbstractMethodError(self)
 
-    def _has_valid_tuple(self, key):
+    def _has_valid_tuple(self, key: tuple):
         """ check the key for valid keys across my indexer """
         for i, k in enumerate(key):
             if i >= self.obj.ndim:
@@ -235,7 +235,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     "[{types}] types".format(types=self._valid_types)
                 )
 
-    def _is_nested_tuple_indexer(self, tup):
+    def _is_nested_tuple_indexer(self, tup: tuple):
         if any(isinstance(ax, MultiIndex) for ax in self.obj.axes):
             return any(is_nested_tuple(tup, ax) for ax in self.obj.axes)
         return False
@@ -259,7 +259,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 keyidx.append(idx)
         return tuple(keyidx)
 
-    def _convert_range(self, key, is_setter: bool = False):
+    def _convert_range(self, key: range, is_setter: bool = False):
         """ convert a range argument """
         return list(key)
 
@@ -269,7 +269,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         # a scalar
         return ax._convert_scalar_indexer(key, kind=self.name)
 
-    def _convert_slice_indexer(self, key, axis: int):
+    def _convert_slice_indexer(self, key: slice, axis: int):
         # if we are accessing via lowered dim, use the last dim
         ax = self.obj._get_axis(min(axis, self.ndim - 1))
         return ax._convert_slice_indexer(key, kind=self.name)
@@ -637,27 +637,23 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             self.obj._maybe_update_cacher(clear=True)
             return self.obj
 
-    def _align_series(self, indexer, ser, multiindex_indexer=False):
+    def _align_series(self, indexer, ser: ABCSeries, multiindex_indexer=False):
         """
         Parameters
         ----------
         indexer : tuple, slice, scalar
             The indexer used to get the locations that will be set to
             `ser`
-
         ser : pd.Series
             The values to assign to the locations specified by `indexer`
-
         multiindex_indexer : boolean, optional
             Defaults to False. Should be set to True if `indexer` was from
             a `pd.MultiIndex`, to avoid unnecessary broadcasting.
-
 
         Returns
         -------
         `np.array` of `ser` broadcast to the appropriate shape for assignment
         to the locations selected by `indexer`
-
         """
         if isinstance(indexer, (slice, np.ndarray, list, Index)):
             indexer = tuple([indexer])
@@ -733,7 +729,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         raise ValueError("Incompatible indexer with Series")
 
-    def _align_frame(self, indexer, df):
+    def _align_frame(self, indexer, df: ABCDataFrame):
         is_frame = self.obj.ndim == 2
 
         if isinstance(indexer, tuple):
@@ -785,7 +781,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         raise ValueError("Incompatible indexer with DataFrame")
 
-    def _getitem_tuple(self, tup):
+    def _getitem_tuple(self, tup: tuple):
         try:
             return self._getitem_lowerdim(tup)
         except IndexingError:
@@ -808,7 +804,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         return retval
 
-    def _multi_take_opportunity(self, tup):
+    def _multi_take_opportunity(self, tup: tuple):
         """
         Check whether there is the possibility to use ``_multi_take``.
         Currently the limit is that all axes being indexed must be indexed with
@@ -832,7 +828,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         return True
 
-    def _multi_take(self, tup):
+    def _multi_take(self, tup: tuple):
         """
         Create the indexers for the passed tuple of keys, and execute the take
         operation. This allows the take operation to be executed all at once -
@@ -858,7 +854,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
     def _convert_for_reindex(self, key, axis: int):
         return key
 
-    def _handle_lowerdim_multi_index_axis0(self, tup):
+    def _handle_lowerdim_multi_index_axis0(self, tup: tuple):
         # we have an axis0 multi-index, handle or raise
         axis = self.axis or 0
         try:
@@ -883,7 +879,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         return None
 
-    def _getitem_lowerdim(self, tup):
+    def _getitem_lowerdim(self, tup: tuple):
 
         # we can directly get the axis result since the axis is specified
         if self.axis is not None:
@@ -947,7 +943,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         raise IndexingError("not applicable")
 
-    def _getitem_nested_tuple(self, tup):
+    def _getitem_nested_tuple(self, tup: tuple):
         # we have a nested tuple so have at least 1 multi-index level
         # we should be able to match up the dimensionality here
 
@@ -1421,7 +1417,7 @@ class _LocationIndexer(_NDFrameIndexer):
         # caller is responsible for ensuring non-None axis
         labels = self.obj._get_axis(axis)
         key = check_bool_indexer(labels, key)
-        inds, = key.nonzero()
+        inds = key.nonzero()[0]
         try:
             return self.obj.take(inds, axis=axis)
         except Exception as detail:
@@ -1739,7 +1735,7 @@ class _LocIndexer(_LocationIndexer):
         values = self.obj._get_value(*key)
         return values
 
-    def _get_partial_string_timestamp_match_key(self, key, labels):
+    def _get_partial_string_timestamp_match_key(self, key, labels: Index):
         """Translate any partial string timestamp matches in key, returning the
         new key (GH 10331)"""
         if isinstance(labels, MultiIndex):
@@ -2042,7 +2038,7 @@ class _iLocIndexer(_LocationIndexer):
         values = self.obj._get_value(*key, takeable=True)
         return values
 
-    def _validate_integer(self, key, axis):
+    def _validate_integer(self, key: int, axis: int):
         """
         Check that 'key' is a valid position in the desired axis.
 
@@ -2067,7 +2063,7 @@ class _iLocIndexer(_LocationIndexer):
         if key >= len_axis or key < -len_axis:
             raise IndexError("single positional indexer is out-of-bounds")
 
-    def _getitem_tuple(self, tup):
+    def _getitem_tuple(self, tup: tuple):
 
         self._has_valid_tuple(tup)
         try:
