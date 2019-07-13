@@ -2191,8 +2191,8 @@ With max_level=1 the following snippet normalizes until 1st nesting level of the
     json_normalize(data, max_level=1)
 
 
-The ignore_keys parameter allows you to ignore specific keys while normalizing.
-With ignore_keys=["Image"] the following snippet normalizes all keys except "Image".
+The use_key parameter allows you to include or exclude specific keys while normalizing.
+With use_key the following snippet normalizes all keys except "Image".
 
 .. ipython:: python
 
@@ -2202,7 +2202,7 @@ With ignore_keys=["Image"] the following snippet normalizes all keys except "Ima
                                       'Name': 'Name001'}},
              'Image': {'a': 'b'}
              }]
-    json_normalize(data, ignore_keys=["Image"])
+    json_normalize(data, use_key=lambda key: key not in ["Image"])
 
 .. _io.jsonl:
 
