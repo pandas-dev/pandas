@@ -19,7 +19,7 @@ from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t, int8_t, ndarray, npy_bool
+from numpy cimport int64_t, int8_t
 cnp.import_array()
 
 from cpython.datetime cimport (datetime,
