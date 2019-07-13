@@ -316,7 +316,7 @@ cdef class _Timestamp(datetime):
             val = tz_convert_single(self.value, UTC, self.tz)
         return val
 
-    cpdef bint _get_start_end_field(self, str field) except -1:
+    cpdef bint _get_start_end_field(self, str field):
         cdef:
             int64_t val
             dict kwds

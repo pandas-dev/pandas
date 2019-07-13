@@ -9,7 +9,7 @@ cdef class _Timestamp(datetime):
         int64_t value, nanosecond
         object freq
         list _date_attributes
-    cpdef bint _get_start_end_field(self, str field) except -1
+    cpdef bint _get_start_end_field(self, str field)
     cpdef _get_date_name_field(self, object field, object locale)
     cdef int64_t _maybe_convert_value_to_local(self)
     cpdef to_datetime64(self)
