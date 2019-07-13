@@ -1692,13 +1692,6 @@ cdef:
     char* cneginf = b'-inf'
 
 
-ctypedef char flag_with_gil_t
-ctypedef float flag_no_gil_t
-
-ctypedef fused use_gil_t:
-    flag_with_gil_t
-    flag_no_gil_t
-
 ctypedef float64_t (*double_converter_with_gil_t)(
               const char *, char **, char,
               char, char, int, int *, int *) ;
