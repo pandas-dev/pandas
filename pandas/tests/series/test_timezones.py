@@ -10,7 +10,7 @@ import pytz
 
 from pandas._libs.tslibs import conversion, timezones
 
-from pandas import DatetimeIndex, Index, NaT, Series, Timestamp, to_datetime
+from pandas import DatetimeIndex, Index, NaT, Series, Timestamp
 from pandas.core.indexes.datetimes import date_range
 import pandas.util.testing as tm
 
@@ -378,12 +378,4 @@ class TestSeriesTimezones:
         tz = tz_aware_fixture
         result = Series([Timestamp("2019", tz=tz)], dtype="datetime64[ns]")
         expected = Series([Timestamp("2019")])
-        tm.assert_series_equal(result, expected)
-
-    def test_numpy_reduction_with_tz_aware_dtype(self, tz_aware_fixture):
-        # GH 15552
-        tz = tz_aware_fixture
-        arg = to_datetime(["2019"]).tz_localize(tz)
-        expected = Series(arg)
-        result = np.minimum(expected, expected)
         tm.assert_series_equal(result, expected)

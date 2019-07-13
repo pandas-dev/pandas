@@ -1251,9 +1251,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         values = self._values
         try:
             if is_extension_array_dtype(values):
-                # The cython indexing routines do not support ExtensionArrays.
-                # Defer to the next setting routine.
-                raise KeyError
+                # The cython indexing engine does not support ExtensionArrays.
+                values[self.index.get_loc(key)] = value
+                return
             self.index._engine.set_value(values, key, value)
             return
         except KeyError:
