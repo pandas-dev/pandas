@@ -1726,14 +1726,14 @@ cdef _try_double(parser_t *parser, int64_t col,
     data = <float64_t *>result.data
     na_fset = kset_float64_from_list(na_flist)
     if parser.double_converter_nogil != NULL:  # if it can run without the GIL
-        error = _try_double_nogil(parser,
+        error = _try_double_maybe_gil(parser,
                                   parser.double_converter_nogil,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
                                   na_fset, NA, data, &na_count)
     else:
         assert parser.double_converter_withgil != NULL
-        error = _try_double_nogil(parser,
+        error = _try_double_maybe_gil(parser,
                                   parser.double_converter_withgil,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
@@ -1744,7 +1744,7 @@ cdef _try_double(parser_t *parser, int64_t col,
         return None, None
     return result, na_count
 
-cdef inline int _try_double_nogil(parser_t *parser,
+cdef inline int _try_double_maybe_gil(parser_t *parser,
                                   double_converter_t double_converter,
                                   int col, int line_start, int line_end,
                                   bint na_filter, kh_str_starts_t *na_hashset,
