@@ -1250,7 +1250,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # a positional
                 if obj >= self.obj.shape[axis] and not isinstance(labels, MultiIndex):
                     raise ValueError(
-                        "cannot set by positional indexing with " "enlargement"
+                        "cannot set by positional indexing with enlargement"
                     )
 
             return obj
@@ -1997,7 +1997,7 @@ class _iLocIndexer(_LocationIndexer):
             # check that the key has a numeric dtype
             if not is_numeric_dtype(arr.dtype):
                 raise IndexError(
-                    ".iloc requires numeric indexers, got " "{arr}".format(arr=arr)
+                    ".iloc requires numeric indexers, got {arr}".format(arr=arr)
                 )
 
             # check that the key does not exceed the maximum size of the index
@@ -2126,7 +2126,7 @@ class _iLocIndexer(_LocationIndexer):
             key = item_from_zerodim(key)
             if not is_integer(key):
                 raise TypeError(
-                    "Cannot index by location index with a " "non-integer key"
+                    "Cannot index by location index with a non-integer key"
                 )
 
             # validate the location
@@ -2185,7 +2185,7 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
         if not isinstance(key, tuple):
             key = self._tuplify(key)
         if len(key) != self.obj.ndim:
-            raise ValueError("Not enough indexers for scalar access " "(setting)!")
+            raise ValueError("Not enough indexers for scalar access (setting)!")
         key = list(self._convert_key(key, is_setter=True))
         key.append(value)
         self.obj._set_value(*key, takeable=self._takeable)
@@ -2321,7 +2321,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
         """ require integer args (and convert to label arguments) """
         for a, i in zip(self.obj.axes, key):
             if not is_integer(i):
-                raise ValueError("iAt based indexing can only have integer " "indexers")
+                raise ValueError("iAt based indexing can only have integer indexers")
         return key
 
 
