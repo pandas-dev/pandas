@@ -1248,7 +1248,7 @@ def test_ndframe_indexing_raises(idxr, error, error_message):
 
 def test_readonly_indices():
     # GH#17192 iloc with read-only array raising TypeError
-    df = pd.DataFrame({'data': np.ones(100, dtype='float64')})
+    df = pd.DataFrame({"data": np.ones(100, dtype="float64")})
     indices = np.array([1, 3, 6])
     indices.flags.writeable = False
 
@@ -1256,6 +1256,6 @@ def test_readonly_indices():
     expected = df.loc[[1, 3, 6]]
     tm.assert_frame_equal(result, expected)
 
-    result = df['data'].iloc[indices]
-    expected = df['data'].loc[[1, 3, 6]]
+    result = df["data"].iloc[indices]
+    expected = df["data"].loc[[1, 3, 6]]
     tm.assert_series_equal(result, expected)
