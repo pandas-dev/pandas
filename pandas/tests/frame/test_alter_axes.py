@@ -1189,7 +1189,7 @@ class TestDataFrameAlterAxes:
 
     def test_reset_index_multiindex_datetime_all_nan(self):
         # GH 19602
-        df = DataFrame({0: DatetimeIndex([]), 1: []})
+        df = DataFrame({0: DatetimeIndex([]), 1: []}, columns=[0, 1])
         rs = df.set_index([0, 1]).reset_index()
         tm.assert_frame_equal(rs, df)
 
@@ -1204,7 +1204,7 @@ class TestDataFrameAlterAxes:
         xp = DataFrame({
             0: DatetimeIndex([np.nan, np.nan]),
             1: DatetimeIndex(['2015-01-01 11:00:00', np.nan])
-        })
+        }, columns=[0, 1])
         tm.assert_frame_equal(df, xp)
 
     def test_reset_index_multiindex_categorical_with_nan(self):
@@ -1216,7 +1216,7 @@ class TestDataFrameAlterAxes:
             'level_0': CategoricalIndex(['A', 'A', 'B', 'B']),
             'level_1': CategoricalIndex(['a', 'b', 'a', np.nan]),
             'col': [0, 1, 2, 3]
-        })
+        }, columns=['level_0', 'level_1', 'col'])
         tm.assert_frame_equal(df, xp)
 
     def test_reset_index_with_datetimeindex_cols(self):
