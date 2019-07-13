@@ -1,6 +1,8 @@
 import importlib
 import warnings
 
+import numpy as np
+
 from pandas._config import get_option
 
 from pandas.util._decorators import Appender, Substitution
@@ -10,6 +12,22 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import PandasObject
 
+_shared_docs = """figsize : a tuple (width, height) in inches
+        subplots : boolean, default False
+            Make separate subplots for each column
+        sharex : boolean, default True if ax is None else False
+            In case subplots=True, share x axis and set some x axis labels to invisible;
+            defaults to True if ax is None otherwise False if an ax is passed in;
+            Be aware, that passing in both an ax and sharex=True will alter all x axis
+            labels for all axis in a figure!
+        sharey : boolean, default False
+            In case subplots=True, share y axis and set some y axis labels to subplots
+        layout : tuple (optional)
+            (rows, columns) for the layout of subplots
+        title : string or list
+            Title to use for the plot. If a string is passed, print the string at the
+            top of the figure. If a list is passed and subplots is True, print each item
+            in the list above the corresponding subplot."""
 
 def hist_series(
     self,
@@ -852,8 +870,7 @@ class PlotAccessor(PandasObject):
 
         return plot_backend.plot(data, kind=kind, **kwargs)
 
-    def line(self, x=None, y=None, **kwargs):
-        """
+    _line_docs = """
         Plot Series or DataFrame as lines.
 
         This function is useful to plot lines using DataFrame's values
@@ -869,6 +886,7 @@ class PlotAccessor(PandasObject):
             The values to be plotted.
             Either the location or the label of the columns to be used.
             By default, it will use the remaining DataFrame numeric columns.
+        %s
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
@@ -919,10 +937,14 @@ class PlotAccessor(PandasObject):
 
             >>> lines = df.plot.line(x='pig', y='horse')
         """
-        return self(kind="line", x=x, y=y, **kwargs)
 
-    def bar(self, x=None, y=None, **kwargs):
-        """
+    @Appender(_line_docs % _shared_docs)
+    def line(self, x=None, y=None, figsize=None, subplots=False, sharex=None,
+             sharey=False, layout=None, title=None, **kwargs):
+        return self(kind="line", x=x, y=y, figsize=figsize, subplots=subplots,
+                    sharex=sharex, sharey=sharey, layout=layout, title=title, **kwargs)
+
+    _bar_docs = """
         Vertical bar plot.
 
         A bar plot is a plot that presents categorical data with
@@ -939,6 +961,7 @@ class PlotAccessor(PandasObject):
         y : label or position, optional
             Allows plotting of one column versus another. If not specified,
             all numerical columns are used.
+        %s
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
@@ -1004,10 +1027,14 @@ class PlotAccessor(PandasObject):
 
             >>> ax = df.plot.bar(x='lifespan', rot=0)
         """
-        return self(kind="bar", x=x, y=y, **kwargs)
 
-    def barh(self, x=None, y=None, **kwargs):
-        """
+    @Appender(_bar_docs % _shared_docs)
+    def bar(self, x=None, y=None, figsize=None, subplots=False, sharex=None,
+            sharey=False, layout=None, title=None, **kwargs):
+        return self(kind="bar", x=x, y=y, figsize=figsize, subplots=subplots,
+                    sharex=sharex, sharey=sharey, layout=layout, title=title, **kwargs)
+
+    _barh_docs = """
         Make a horizontal bar plot.
 
         A horizontal bar plot is a plot that presents quantitative data with
@@ -1022,6 +1049,7 @@ class PlotAccessor(PandasObject):
             Column to be used for categories.
         y : label or position, default All numeric columns in dataframe
             Columns to be plotted from the DataFrame.
+        %s
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
@@ -1083,11 +1111,15 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({'speed': speed,
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.barh(x='lifespan')
-        """
-        return self(kind="barh", x=x, y=y, **kwargs)
+    """
 
-    def box(self, by=None, **kwargs):
-        r"""
+    @Appender(_barh_docs % _shared_docs)
+    def barh(self, x=None, y=None, figsize=None, subplots=False, sharex=None,
+             sharey=False, layout=None, title=None, **kwargs):
+        return self(kind="barh", x=x, y=y, figsize=figsize, subplots=subplots,
+                    sharex=sharex, sharey=sharey, layout=layout, title=title, **kwargs)
+
+    _box_docs = r"""
         Make a box plot of the DataFrame columns.
 
         A box plot is a method for graphically depicting groups of numerical
@@ -1108,7 +1140,8 @@ class PlotAccessor(PandasObject):
         ----------
         by : str or sequence
             Column in the DataFrame to group by.
-        **kwargs
+        %s
+        **kwargs : optional
             Additional keywords are documented in
             :meth:`DataFrame.plot`.
 
@@ -1134,10 +1167,14 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame(data, columns=list('ABCD'))
             >>> ax = df.plot.box()
         """
-        return self(kind="box", by=by, **kwargs)
 
-    def hist(self, by=None, bins=10, **kwargs):
-        """
+    @Appender(_box_docs % _shared_docs)
+    def box(self, by=None, figsize=None, subplots=False, sharex=None, sharey=False,
+            layout=None, title=None, **kwargs):
+        return self(kind="box", by=by, figsize=figsize, subplots=subplots,
+                    sharex=sharex, sharey=sharey, layout=layout, title=title, **kwargs)
+
+    _hist_docs = """
         Draw one histogram of the DataFrame's columns.
 
         A histogram is a representation of the distribution of data.
@@ -1151,6 +1188,7 @@ class PlotAccessor(PandasObject):
             Column in the DataFrame to group by.
         bins : int, default 10
             Number of histogram bins to be used.
+        %s
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
@@ -1181,10 +1219,13 @@ class PlotAccessor(PandasObject):
             >>> df['two'] = df['one'] + np.random.randint(1, 7, 6000)
             >>> ax = df.plot.hist(bins=12, alpha=0.5)
         """
-        return self(kind="hist", by=by, bins=bins, **kwargs)
 
-    def kde(self, bw_method=None, ind=None, **kwargs):
-        """
+    @Appender(_hist_docs % _shared_docs)
+    def hist(self, by=None, bins=10, figsize=None, subplots=False, sharex=None,
+             sharey=False, layout=None, title=None, **kwargs):
+        return self(kind="hist", by=by, bins=bins, figsize=figsize, subplots=subplots,
+                    sharex=sharex, sharey=sharey, layout=layout, title=title, **kwargs)
+    _kde_docs = """
         Generate Kernel Density Estimate plot using Gaussian kernels.
 
         In statistics, `kernel density estimation`_ (KDE) is a non-parametric
@@ -1207,9 +1248,10 @@ class PlotAccessor(PandasObject):
             1000 equally spaced points are used. If `ind` is a NumPy array, the
             KDE is evaluated at the points passed. If `ind` is an integer,
             `ind` number of equally spaced points are used.
-        **kwargs
+        %s
+        **kwargs : optional
             Additional keyword arguments are documented in
-            :meth:`pandas.%(this-datatype)s.plot`.
+            :meth:`pandas.%%(this-datatype)s.plot`.
 
         Returns
         -------
@@ -1289,12 +1331,17 @@ class PlotAccessor(PandasObject):
 
             >>> ax = df.plot.kde(ind=[1, 2, 3, 4, 5, 6])
         """
-        return self(kind="kde", bw_method=bw_method, ind=ind, **kwargs)
+
+    @Appender(_kde_docs % _shared_docs)
+    def kde(self, bw_method=None, ind=None, figsize=None, subplots=False, sharex=None,
+            sharey=False, layout=None, title=None, **kwargs):
+        return self(kind="kde", bw_method=bw_method, ind=ind, figsize=figsize,
+                    subplots=subplots, sharex=sharex, sharey=sharey, layout=layout,
+                    **kwargs)
 
     density = kde
 
-    def area(self, x=None, y=None, **kwargs):
-        """
+    _area_docs = """
         Draw a stacked area plot.
 
         An area plot displays quantitative data visually.
@@ -1309,7 +1356,8 @@ class PlotAccessor(PandasObject):
         stacked : bool, default True
             Area plots are stacked by default. Set to False to create a
             unstacked plot.
-        **kwargs
+        %s
+        **kwargs : optional
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
 
@@ -1364,10 +1412,14 @@ class PlotAccessor(PandasObject):
             ... })
             >>> ax = df.plot.area(x='day')
         """
-        return self(kind="area", x=x, y=y, **kwargs)
 
-    def pie(self, **kwargs):
-        """
+    @Appender(_area_docs % _shared_docs)
+    def area(self, x=None, y=None, figsize=None, subplots=False, sharex=None,
+             sharey=False, layout=None, title=None, **kwargs):
+        return self(kind="area", x=x, y=y, figsize=figsize, subplots=subplots,
+                    sharex=sharex, sharey=sharey, layout=layout, title=title, **kwargs)
+
+    _pie_docs = """
         Generate a pie plot.
 
         A pie plot is a proportional representation of the numerical data in a
@@ -1381,6 +1433,7 @@ class PlotAccessor(PandasObject):
         y : int or label, optional
             Label or position of the column to plot.
             If not provided, ``subplots=True`` argument must be passed.
+        %s
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
@@ -1413,16 +1466,16 @@ class PlotAccessor(PandasObject):
 
             >>> plot = df.plot.pie(subplots=True, figsize=(6, 3))
         """
-        if (
-            isinstance(self._parent, ABCDataFrame)
-            and kwargs.get("y", None) is None
-            and not kwargs.get("subplots", False)
-        ):
-            raise ValueError("pie requires either y column or 'subplots=True'")
-        return self(kind="pie", **kwargs)
 
-    def scatter(self, x, y, s=None, c=None, **kwargs):
-        """
+    @Appender(_pie_docs % _shared_docs)
+    def pie(self, y=None, figsize=None, subplots=False, sharex=None,
+            sharey=False, layout=None, title=None, **kwargs):
+        if isinstance(self._parent, ABCDataFrame) and y is None and not subplots:
+            raise ValueError("pie requires either y column or 'subplots=True'")
+        return self(kind="pie", y=y, figsize=figsize, subplots=subplots, sharex=sharex,
+                    sharey=sharey, layout=layout, title=title, **kwargs)
+
+    _scatter_docs = """
         Create a scatter plot with varying marker point size and color.
 
         The coordinates of each point are defined by two dataframe columns and
@@ -1462,7 +1515,7 @@ class PlotAccessor(PandasObject):
 
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
-
+        %s
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
@@ -1500,10 +1553,15 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        return self(kind="scatter", x=x, y=y, s=s, c=c, **kwargs)
 
-    def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs):
-        """
+    @Appender(_scatter_docs % _shared_docs)
+    def scatter(self, x, y, s=None, c=None, figsize=None, subplots=False, sharex=None,
+                sharey=False, layout=None, title=None, **kwargs):
+        return self(kind="scatter", x=x, y=y, s=s, c=c, figsize=figsize,
+                    subplots=subplots, sharex=sharex, sharey=sharey, layout=layout,
+                    title=title, **kwargs)
+
+    _hexbin_docs = """
         Generate a hexagonal binning plot.
 
         Generate a hexagonal binning plot of `x` versus `y`. If `C` is `None`
@@ -1535,6 +1593,7 @@ class PlotAccessor(PandasObject):
             Alternatively, gridsize can be a tuple with two elements
             specifying the number of hexagons in the x-direction and the
             y-direction.
+        %s
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
@@ -1584,12 +1643,14 @@ class PlotAccessor(PandasObject):
             ...                     gridsize=10,
             ...                     cmap="viridis")
         """
-        if reduce_C_function is not None:
-            kwargs["reduce_C_function"] = reduce_C_function
-        if gridsize is not None:
-            kwargs["gridsize"] = gridsize
 
-        return self(kind="hexbin", x=x, y=y, C=C, **kwargs)
+    @Appender(_hexbin_docs % _shared_docs)
+    def hexbin(self, x, y, C=None, reduce_C_function=np.mean, gridsize=100,
+               figsize=None, subplots=False, sharex=None, sharey=False, layout=None,
+               title=None, **kwargs):
+        return self(kind="hexbin", x=x, y=y, C=C, reduce_C_function=reduce_C_function,
+                    gridsize=gridsize, figsize=figsize, subplots=subplots,
+                    sharex=sharex, sharey=sharey, layout=layout, title=title, **kwargs)
 
 
 _backends = {}
