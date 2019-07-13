@@ -637,7 +637,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             self.obj._maybe_update_cacher(clear=True)
             return self.obj
 
-    def _align_series(self, indexer, ser: ABCSeries, multiindex_indexer=False):
+    def _align_series(self, indexer, ser: ABCSeries, multiindex_indexer: bool = False):
         """
         Parameters
         ----------
