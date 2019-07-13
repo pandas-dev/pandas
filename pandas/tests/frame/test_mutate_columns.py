@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -88,9 +90,9 @@ class TestDataFrameMutateColumns:
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
 
         # Key C does not exist at definition time of df
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^'C'$"):
             df.assign(C=lambda df: df.A, D=lambda df: df["A"] + df["C"])
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^'C'$"):
             df.assign(C=df.A, D=lambda x: x["A"] + x["C"])
 
     @pytest.mark.skipif(
@@ -219,14 +221,14 @@ class TestDataFrameMutateColumns:
         # A still in the levels, BUT get a KeyError if trying
         # to delete
         assert ("A",) not in df.columns
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=re.escape("('A',)")):
             del df[("A",)]
 
         # behavior of dropped/deleted MultiIndex levels changed from
         # GH 2770 to GH 19027: MultiIndex no longer '.__contains__'
         # levels which are dropped/deleted
         assert "A" not in df.columns
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=re.escape("('A',)")):
             del df["A"]
 
     def test_pop(self, float_frame):

@@ -34,7 +34,9 @@ class TestCommon:
                 indices.droplevel(level)
 
         for level in "wrong", ["wrong"]:
-            with pytest.raises(KeyError):
+            with pytest.raises(
+                KeyError, match=re.escape("'Level wrong must be same as name (None)'")
+            ):
                 indices.droplevel(level)
 
     def test_constructor_non_hashable_name(self, indices):
@@ -142,6 +144,7 @@ class TestCommon:
         assert res is None
         assert indices.name == new_name
         assert indices.names == [new_name]
+        # FIXME: dont leave commented-out
         # with pytest.raises(TypeError, match="list-like"):
         #    # should still fail even if it would be the right length
         #    ind.set_names("a")

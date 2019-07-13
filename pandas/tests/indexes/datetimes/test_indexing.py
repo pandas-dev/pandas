@@ -614,7 +614,7 @@ class TestDatetimeIndex:
         )
         with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
             idx.get_loc("2000-01-01T12", method="nearest", tolerance="foo")
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="'2000-01-01T03'"):
             idx.get_loc("2000-01-01T03", method="nearest", tolerance="2 hours")
         with pytest.raises(
             ValueError, match="tolerance size must match target index size"
@@ -634,12 +634,12 @@ class TestDatetimeIndex:
         assert idx.get_loc("1999", method="nearest") == 0
         assert idx.get_loc("2001", method="nearest") == 2
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="'1999'"):
             idx.get_loc("1999", method="pad")
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="'2001'"):
             idx.get_loc("2001", method="backfill")
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="'foobar'"):
             idx.get_loc("foobar")
         with pytest.raises(TypeError):
             idx.get_loc(slice(2))
