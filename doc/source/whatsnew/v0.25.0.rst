@@ -1188,6 +1188,7 @@ Other
 - Allow :class:`Index` and :class:`RangeIndex` to be passed to numpy ``min`` and ``max`` functions (:issue:`26125`)
 - Use actual class name in repr of empty objects of a ``Series`` subclass (:issue:`27001`).
 - Bug in :class:`DataFrame` where passing an object array of timezone-aware `datetime` objects would incorrectly raise ``ValueError`` (:issue:`13287`)
+- Added a new option validation function (is_pos_int) to allow only positive integers, and set the display.precision, display.max_rows and display.max_columns options to use it (:issue:`23348`)
 
 .. _whatsnew_0.250.contributors:
 
