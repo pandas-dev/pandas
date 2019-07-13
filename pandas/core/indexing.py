@@ -936,7 +936,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         new_key = b, a
 
                     if len(new_key) == 1:
-                        new_key, = new_key
+                        new_key = new_key[0]
 
                 # Slices should return views, but calling iloc/loc with a null
                 # slice returns a new object.
@@ -1408,7 +1408,7 @@ class _LocationIndexer(_NDFrameIndexer):
             maybe_callable = com.apply_if_callable(key, self.obj)
             return self._getitem_axis(maybe_callable, axis=axis)
 
-    def _is_scalar_access(self, key):
+    def _is_scalar_access(self, key: tuple):
         raise NotImplementedError()
 
     def _getitem_scalar(self, key):
@@ -1709,14 +1709,11 @@ class _LocIndexer(_LocationIndexer):
         if not is_list_like_indexer(key):
             self._convert_scalar_indexer(key, axis)
 
-    def _is_scalar_access(self, key):
+    def _is_scalar_access(self, key: tuple):
         # this is a shortcut accessor to both .loc and .iloc
         # that provide the equivalent access of .at and .iat
         # a) avoid getting things via sections and (to minimize dtype changes)
         # b) provide a performant path
-        if not hasattr(key, "__len__"):
-            return False
-
         if len(key) != self.ndim:
             return False
 
@@ -2015,14 +2012,11 @@ class _iLocIndexer(_LocationIndexer):
     def _has_valid_setitem_indexer(self, indexer):
         self._has_valid_positional_setitem_indexer(indexer)
 
-    def _is_scalar_access(self, key):
+    def _is_scalar_access(self, key: tuple):
         # this is a shortcut accessor to both .loc and .iloc
         # that provide the equivalent access of .at and .iat
         # a) avoid getting things via sections and (to minimize dtype changes)
         # b) provide a performant path
-        if not hasattr(key, "__len__"):
-            return False
-
         if len(key) != self.ndim:
             return False
 

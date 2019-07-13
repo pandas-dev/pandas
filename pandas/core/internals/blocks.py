@@ -1297,24 +1297,20 @@ class Block(PandasObject):
 
         if fill_tuple is None:
             fill_value = self.fill_value
-            new_values = algos.take_nd(
-                values, indexer, axis=axis, allow_fill=False, fill_value=fill_value
-            )
+            allow_fill = False
         else:
             fill_value = fill_tuple[0]
-            new_values = algos.take_nd(
-                values, indexer, axis=axis, allow_fill=True, fill_value=fill_value
-            )
+            allow_fill = True
 
+        new_values = algos.take_nd(
+            values, indexer, axis=axis, allow_fill=allow_fill, fill_value=fill_value
+        )
+
+        # Called from three places in managers, all of which satisfy
+        #  this assertion
+        assert not (axis == 0 and new_mgr_locs is None)
         if new_mgr_locs is None:
-            if axis == 0:
-                slc = libinternals.indexer_as_slice(indexer)
-                if slc is not None:
-                    new_mgr_locs = self.mgr_locs[slc]
-                else:
-                    new_mgr_locs = self.mgr_locs[indexer]
-            else:
-                new_mgr_locs = self.mgr_locs
+            new_mgr_locs = self.mgr_locs
 
         if not is_dtype_equal(new_values.dtype, self.dtype):
             return self.make_block(new_values, new_mgr_locs)
@@ -1858,11 +1854,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         # if its REALLY axis 0, then this will be a reindex and not a take
         new_values = self.values.take(indexer, fill_value=fill_value, allow_fill=True)
 
-        if self.ndim == 1 and new_mgr_locs is None:
-            new_mgr_locs = [0]
-        else:
-            if new_mgr_locs is None:
-                new_mgr_locs = self.mgr_locs
+        # Called from three places in managers, all of which satisfy
+        #  this assertion
+        assert not (self.ndim == 1 and new_mgr_locs is None)
+        if new_mgr_locs is None:
+            new_mgr_locs = self.mgr_locs
 
         return self.make_block_same_class(new_values, new_mgr_locs)
 
