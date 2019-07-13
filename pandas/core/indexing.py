@@ -2201,7 +2201,7 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
     """ access scalars quickly """
 
     def _convert_key(self, key, is_setter: bool = False):
-        return list(key)
+        raise AbstractMethodError(self)
 
     def __getitem__(self, key):
         if not isinstance(key, tuple):
