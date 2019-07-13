@@ -2125,9 +2125,7 @@ class _iLocIndexer(_LocationIndexer):
         else:
             key = item_from_zerodim(key)
             if not is_integer(key):
-                raise TypeError(
-                    "Cannot index by location index with a non-integer key"
-                )
+                raise TypeError("Cannot index by location index with a non-integer key")
 
             # validate the location
             self._validate_integer(key, axis)
