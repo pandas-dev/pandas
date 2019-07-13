@@ -1693,16 +1693,17 @@ cdef:
 
 
 ctypedef float64_t (*double_converter_with_gil_t)(
-              const char *, char **, char,
-              char, char, int, int *, int *) ;
+                    const char *, char **, char,
+                    char, char, int, int *, int *)
 
 ctypedef float64_t (*double_converter_with_nogil_t)(
-              const char *, char **, char,
-              char, char, int, int *, int *) nogil;
+                    const char *, char **, char,
+                    char, char, int, int *, int *) nogil
 
 ctypedef fused double_converter_t:
     double_converter_with_gil_t
     double_converter_with_nogil_t
+
 
 cdef _try_double(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
