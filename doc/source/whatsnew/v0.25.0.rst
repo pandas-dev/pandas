@@ -1186,6 +1186,7 @@ ExtensionArray
 - :meth:`Series.count` miscounts NA values in ExtensionArrays (:issue:`26835`)
 - Added ``Series.__array_ufunc__`` to better handle NumPy ufuncs applied to Series backed by extension arrays (:issue:`23293`).
 - Keyword argument ``deep`` has been removed from :meth:`ExtensionArray.copy` (:issue:`27083`)
+- Allow parsing of `PeriodDType` columns when using `read_csv()` (:issue:`26934`)
 
 Other
 ^^^^^
