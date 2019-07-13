@@ -778,14 +778,9 @@ The columns were lexicographically sorted previously,
 The column order now matches the insertion-order of the keys in the ``dict``,
 considering all the records from top to bottom.
 
-.. code-block:: python
+.. ipython:: python
 
-   In [2]: pd.DataFrame(data)
-   Out[2]:
-      name state  age      hobby finances
-   0   Joe    NY   18        NaN      NaN
-   1  Jane    KY   19  Minecraft      NaN
-   2  Jean    OK   20        NaN     good
+   pd.DataFrame(data)
 
 .. _whatsnew_0250.api_breaking.deps:
 
