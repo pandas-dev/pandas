@@ -329,10 +329,8 @@ class TestDataFrameConstructors:
         # Dict with None value
         frame_none = DataFrame(dict(a=None), index=[0])
         frame_none_list = DataFrame(dict(a=[None]), index=[0])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert frame_none.get_value(0, "a") is None
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert frame_none_list.get_value(0, "a") is None
+        assert frame_none._get_value(0, "a") is None
+        assert frame_none_list._get_value(0, "a") is None
         tm.assert_frame_equal(frame_none, frame_none_list)
 
         # GH10856
@@ -702,8 +700,7 @@ class TestDataFrameConstructors:
         data = {}
         for col in df.columns:
             for row in df.index:
-                with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                    data.setdefault(col, {})[row] = df.get_value(row, col)
+                data.setdefault(col, {})[row] = df._get_value(row, col)
 
         result = DataFrame(data, columns=rng)
         tm.assert_frame_equal(result, df)
@@ -711,8 +708,7 @@ class TestDataFrameConstructors:
         data = {}
         for col in df.columns:
             for row in df.index:
-                with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                    data.setdefault(row, {})[col] = df.get_value(row, col)
+                data.setdefault(row, {})[col] = df._get_value(row, col)
 
         result = DataFrame(data, index=rng).T
         tm.assert_frame_equal(result, df)
