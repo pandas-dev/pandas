@@ -483,7 +483,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
 
                 # we have an equal len Frame
-                if isinstance(value, ABCDataFrame) and value.ndim > 1:
+                if isinstance(value, ABCDataFrame):
                     sub_indexer = list(indexer)
                     multiindex_indexer = isinstance(labels, MultiIndex)
 
