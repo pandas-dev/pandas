@@ -2408,7 +2408,10 @@ class GroupBy(_GroupBy):
         if groupings is None:
             return output
         elif len(groupings) == 1:
-            return output
+            if self.sort:
+                return output.sort_index()
+            else:
+                return output
 
         # if we only care about the observed values
         # we are done
