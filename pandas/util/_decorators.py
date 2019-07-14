@@ -6,8 +6,9 @@ import warnings
 from pandas._libs.properties import cache_readonly  # noqa
 
 
-def deprecate(name, alternative, version, alt_name=None,
-              klass=None, stacklevel=2, msg=None):
+def deprecate(
+    name, alternative, version, alt_name=None, klass=None, stacklevel=2, msg=None
+):
     """
     Return a new function that emits a deprecation warning on use.
 
@@ -36,8 +37,7 @@ def deprecate(name, alternative, version, alt_name=None,
 
     alt_name = alt_name or alternative.__name__
     klass = klass or FutureWarning
-    warning_msg = msg or '{} is deprecated, use {} instead'.format(name,
-                                                                   alt_name)
+    warning_msg = msg or "{} is deprecated, use {} instead".format(name, alt_name)
 
     @wraps(alternative)
     def wrapper(*args, **kwargs):
@@ -45,31 +45,37 @@ def deprecate(name, alternative, version, alt_name=None,
         return alternative(*args, **kwargs)
 
     # adding deprecated directive to the docstring
-    msg = msg or 'Use `{alt_name}` instead.'.format(alt_name=alt_name)
-    doc_error_msg = ('deprecate needs a correctly formatted docstring in '
-                     'the target function (should have a one liner short '
-                     'summary, and opening quotes should be in their own '
-                     'line). Found:\n{}'.format(alternative.__doc__))
+    msg = msg or "Use `{alt_name}` instead.".format(alt_name=alt_name)
+    doc_error_msg = (
+        "deprecate needs a correctly formatted docstring in "
+        "the target function (should have a one liner short "
+        "summary, and opening quotes should be in their own "
+        "line). Found:\n{}".format(alternative.__doc__)
+    )
 
     # when python is running in optimized mode (i.e. `-OO`), docstrings are
     # removed, so we check that a docstring with correct formatting is used
     # but we allow empty docstrings
     if alternative.__doc__:
-        if alternative.__doc__.count('\n') < 3:
+        if alternative.__doc__.count("\n") < 3:
             raise AssertionError(doc_error_msg)
-        empty1, summary, empty2, doc = alternative.__doc__.split('\n', 3)
+        empty1, summary, empty2, doc = alternative.__doc__.split("\n", 3)
         if empty1 or empty2 and not summary:
             raise AssertionError(doc_error_msg)
-        wrapper.__doc__ = dedent("""
+        wrapper.__doc__ = dedent(
+            """
         {summary}
 
         .. deprecated:: {depr_version}
             {depr_msg}
 
-        {rest_of_docstring}""").format(summary=summary.strip(),
-                                       depr_version=version,
-                                       depr_msg=msg,
-                                       rest_of_docstring=dedent(doc))
+        {rest_of_docstring}"""
+        ).format(
+            summary=summary.strip(),
+            depr_version=version,
+            depr_msg=msg,
+            rest_of_docstring=dedent(doc),
+        )
 
     return wrapper
 
@@ -137,10 +143,10 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
     should raise warning
     """
 
-    if mapping is not None and not hasattr(mapping, 'get') and \
-            not callable(mapping):
-        raise TypeError("mapping from old to new argument values "
-                        "must be dict or callable!")
+    if mapping is not None and not hasattr(mapping, "get") and not callable(mapping):
+        raise TypeError(
+            "mapping from old to new argument values " "must be dict or callable!"
+        )
 
     def _deprecate_kwarg(func):
         @wraps(func)
@@ -159,34 +165,38 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
 
             if old_arg_value is not None:
                 if mapping is not None:
-                    if hasattr(mapping, 'get'):
-                        new_arg_value = mapping.get(old_arg_value,
-                                                    old_arg_value)
+                    if hasattr(mapping, "get"):
+                        new_arg_value = mapping.get(old_arg_value, old_arg_value)
                     else:
                         new_arg_value = mapping(old_arg_value)
-                    msg = ("the {old_name}={old_val!r} keyword is deprecated, "
-                           "use {new_name}={new_val!r} instead"
-                           ).format(old_name=old_arg_name,
-                                    old_val=old_arg_value,
-                                    new_name=new_arg_name,
-                                    new_val=new_arg_value)
+                    msg = (
+                        "the {old_name}={old_val!r} keyword is deprecated, "
+                        "use {new_name}={new_val!r} instead"
+                    ).format(
+                        old_name=old_arg_name,
+                        old_val=old_arg_value,
+                        new_name=new_arg_name,
+                        new_val=new_arg_value,
+                    )
                 else:
                     new_arg_value = old_arg_value
-                    msg = ("the '{old_name}' keyword is deprecated, "
-                           "use '{new_name}' instead"
-                           ).format(old_name=old_arg_name,
-                                    new_name=new_arg_name)
+                    msg = (
+                        "the '{old_name}' keyword is deprecated, "
+                        "use '{new_name}' instead"
+                    ).format(old_name=old_arg_name, new_name=new_arg_name)
 
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
                 if kwargs.get(new_arg_name, None) is not None:
-                    msg = ("Can only specify '{old_name}' or '{new_name}', "
-                           "not both").format(old_name=old_arg_name,
-                                              new_name=new_arg_name)
+                    msg = (
+                        "Can only specify '{old_name}' or '{new_name}', " "not both"
+                    ).format(old_name=old_arg_name, new_name=new_arg_name)
                     raise TypeError(msg)
                 else:
                     kwargs[new_arg_name] = new_arg_value
             return func(*args, **kwargs)
+
         return wrapper
+
     return _deprecate_kwarg
 
 
@@ -198,11 +208,11 @@ def rewrite_axis_style_signature(name, extra_params):
 
         kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
         params = [
-            inspect.Parameter('self', kind),
+            inspect.Parameter("self", kind),
             inspect.Parameter(name, kind, default=None),
-            inspect.Parameter('index', kind, default=None),
-            inspect.Parameter('columns', kind, default=None),
-            inspect.Parameter('axis', kind, default=None),
+            inspect.Parameter("index", kind, default=None),
+            inspect.Parameter("columns", kind, default=None),
+            inspect.Parameter("axis", kind, default=None),
         ]
 
         for pname, default in extra_params:
@@ -212,7 +222,9 @@ def rewrite_axis_style_signature(name, extra_params):
 
         func.__signature__ = sig
         return wrapper
+
     return decorate
+
 
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
 # module http://matplotlib.org/users/license.html
@@ -248,7 +260,7 @@ class Substitution:
     """
 
     def __init__(self, *args, **kwargs):
-        if (args and kwargs):
+        if args and kwargs:
             raise AssertionError("Only positional or keyword args are allowed")
 
         self.params = args or kwargs
@@ -299,7 +311,7 @@ class Appender:
         pass
     """
 
-    def __init__(self, addendum, join='', indents=0):
+    def __init__(self, addendum, join="", indents=0):
         if indents > 0:
             self.addendum = indent(addendum, indents=indents)
         else:
@@ -307,8 +319,8 @@ class Appender:
         self.join = join
 
     def __call__(self, func):
-        func.__doc__ = func.__doc__ if func.__doc__ else ''
-        self.addendum = self.addendum if self.addendum else ''
+        func.__doc__ = func.__doc__ if func.__doc__ else ""
+        self.addendum = self.addendum if self.addendum else ""
         docitems = [func.__doc__, self.addendum]
         func.__doc__ = dedent(self.join.join(docitems))
         return func
@@ -316,6 +328,6 @@ class Appender:
 
 def indent(text, indents=1):
     if not text or not isinstance(text, str):
-        return ''
-    jointext = ''.join(['\n'] + ['    '] * indents)
-    return jointext.join(text.split('\n'))
+        return ""
+    jointext = "".join(["\n"] + ["    "] * indents)
+    return jointext.join(text.split("\n"))
