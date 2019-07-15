@@ -61,12 +61,10 @@ class CSVFormatter:
             path_or_buf = StringIO()
 
         # Extract compression mode as given, if dict
-        compression, self.compression_args = _get_compression_method(
-            compression)
+        compression, self.compression_args = _get_compression_method(compression)
 
         self.path_or_buf, _, _, _ = get_filepath_or_buffer(
-            path_or_buf, encoding=encoding,
-            compression=compression, mode=mode
+            path_or_buf, encoding=encoding, compression=compression, mode=mode
         )
         self.sep = sep
         self.na_rep = na_rep
@@ -187,8 +185,7 @@ class CSVFormatter:
                 self.path_or_buf,
                 self.mode,
                 encoding=self.encoding,
-                compression=dict(self.compression_args,
-                                 method=self.compression),
+                compression=dict(self.compression_args, method=self.compression),
             )
             close = True
 
@@ -216,8 +213,7 @@ class CSVFormatter:
                 if hasattr(self.path_or_buf, "write"):
                     self.path_or_buf.write(buf)
                 else:
-                    compression = dict(self.compression_args,
-                                       method=self.compression)
+                    compression = dict(self.compression_args, method=self.compression)
 
                     f, handles = _get_handle(
                         self.path_or_buf,

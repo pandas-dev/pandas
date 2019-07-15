@@ -244,7 +244,7 @@ _compression_to_extension = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": 
 
 
 def _get_compression_method(
-        compression: Optional[Union[str, Dict[str, str]]]
+    compression: Optional[Union[str, Dict[str, str]]]
 ) -> Tuple[Optional[str], Dict[str, str]]:
     """
     Simplifies a compression argument to a compression method string and
@@ -269,10 +269,9 @@ def _get_compression_method(
     if isinstance(compression, dict):
         compression_args = compression.copy()
         try:
-            compression = compression_args.pop('method')
+            compression = compression_args.pop("method")
         except KeyError:
-            raise ValueError("If dict, compression "
-                             "must have key 'method'")
+            raise ValueError("If dict, compression must have key 'method'")
     else:
         compression_args = {}
     return compression, compression_args
@@ -330,7 +329,12 @@ def _infer_compression(filepath_or_buffer, compression):
 
 
 def _get_handle(
-    path_or_buf, mode, encoding=None, compression: Optional[Union[str, Dict[str, Any]]] = None, memory_map=False, is_text=True
+    path_or_buf,
+    mode,
+    encoding=None,
+    compression: Optional[Union[str, Dict[str, Any]]] = None,
+    memory_map=False,
+    is_text=True,
 ):
     """
     Get file handle for given path/buffer and mode.
@@ -373,6 +377,7 @@ def _get_handle(
     need_text_wrapping = (BytesIO,)  # type: Tuple[Type[BytesIO], ...]
     try:
         from s3fs import S3File
+
         need_text_wrapping = need_text_wrapping + (S3File,)
     except ImportError:
         pass
@@ -480,11 +485,16 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     """
 
     # GH 17778
-    def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED,
-                 archive_name: Optional[str] = None,
-                 **kwargs):
-        if mode in ['wb', 'rb']:
-            mode = mode.replace('b', '')
+    def __init__(
+        self,
+        file,
+        mode,
+        compression=zipfile.ZIP_DEFLATED,
+        archive_name: Optional[str] = None,
+        **kwargs
+    ):
+        if mode in ["wb", "rb"]:
+            mode = mode.replace("b", "")
         self.archive_name = archive_name
         super().__init__(file, mode, compression, **kwargs)
 
