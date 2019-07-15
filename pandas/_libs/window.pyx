@@ -354,6 +354,40 @@ def get_window_indexer(values, win, minp, index, closed,
     return indexer.get_data()
 
 
+cdef class WindowIterator:
+    cdef:
+        int64_t i, s, e, N, win, minp
+        float64_t[:,:] values
+        int64_t[:] start, end
+        object index, is_variable
+
+    def __init__(self, ndarray[float64_t, ndim=2] values, int64_t win, object index, object closed, int64_t minp):
+        self.values = values
+        self.index = index
+        self.i = 0
+
+        self.start, self.end, self.N, self.win, _, self.is_variable = get_window_indexer(
+            values, win, minp, None, closed
+        )
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.i >= self.N:
+            raise StopIteration
+        
+        if self.is_variable:
+            s = self.start[self.i]
+            e = self.end[self.i]
+        else:
+            s = int_max(self.i - self.win + 1, 0)
+            e = int_min(self.i + 1, self.N)
+
+        self.i = self.i + 1
+
+        return self.values[slice(s, e),:]
+
 # ----------------------------------------------------------------------
 # Rolling count
 # this is only an impl for index not None, IOW, freq aware

@@ -204,8 +204,22 @@ class _Window(PandasObject, SelectionMixin):
         )
 
     def __iter__(self):
-        url = "https://github.com/pandas-dev/pandas/issues/11704"
-        raise NotImplementedError("See issue #11704 {url}".format(url=url))
+        window = self._get_window()
+        minp = _use_window(self.min_periods, window)
+
+        blocks, obj, index = self._create_blocks()
+
+        iterators = []
+
+        for i, b in enumerate(blocks):
+            values = self._prep_values(b.values)
+
+            if values.ndim == 1:
+                values = np.expand_dims(values, axis=1)
+
+            iterators.append(libwindow.WindowIterator(values, window, b.index, self.closed, minp))
+        
+        return (elem for iterator in iterators for elem in iterator)
 
     def _get_index(self, index=None):
         """
