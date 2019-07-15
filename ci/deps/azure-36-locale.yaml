@@ -9,7 +9,7 @@ dependencies:
   - lxml
   - matplotlib=2.2.2
   - numpy=1.14.*
-  - openpyxl=2.4.8
+  - openpyxl=2.5.0
   - python-dateutil
   - python-blosc
   - python=3.6.*

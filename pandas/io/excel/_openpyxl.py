@@ -389,18 +389,6 @@ class _OpenpyxlWriter(ExcelWriter):
 
         return Protection(**protection_dict)
 
-    @classmethod
-    def _to_excel_range(cls, startrow, startcol, endrow, endcol):
-        """Convert (zero based) numeric coordinates to excel range."""
-        from openpyxl.utils.cell import get_column_letter
-
-        return "%s%d:%s%d" % (
-            get_column_letter(startcol + 1),
-            startrow + 1,
-            get_column_letter(endcol + 1),
-            endrow + 1,
-        )
-
     def write_cells(
         self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
     ):
@@ -480,8 +468,17 @@ class _OpenpyxlWriter(ExcelWriter):
         # Format the written cells as table
 
         from openpyxl.worksheet.table import Table, TableStyleInfo
+        from openpyxl.worksheet.cell_range import CellRange
 
-        ref = self._to_excel_range(*table_range)
+        ref = str(
+            CellRange(
+                min_row=table_range[0] + 1,
+                min_col=table_range[1] + 1,
+                max_row=table_range[2] + 1,
+                max_col=table_range[3] + 1,
+            )
+        )
+
         tab = Table(displayName=table_name, ref=ref, headerRowCount=1 if header else 0)
 
         # Add a default style with striped rows

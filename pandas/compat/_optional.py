@@ -14,7 +14,7 @@ VERSIONS = {
     "matplotlib": "2.2.2",
     "numexpr": "2.6.2",
     "odfpy": "1.3.0",
-    "openpyxl": "2.4.8",
+    "openpyxl": "2.5.0",
     "pandas_gbq": "0.8.0",
     "pyarrow": "0.9.0",
     "pytables": "3.4.2",
