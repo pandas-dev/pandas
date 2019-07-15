@@ -2253,6 +2253,20 @@ class TestBusinessHour(Base):
         for idx in [idx1, idx2, idx3]:
             tm.assert_index_equal(idx, expected)
 
+    def test_end_date_range(self):
+        start_date = Timestamp('2018-10-15-06')
+        end_date = Timestamp('2019-01-01-12')
+        twelve_hours = timedelta(hours=12)
+        month_end = MonthEnd()
+        # we expect (regardless of start_date) the last date in date_range to be
+        # offset.rollback(end)
+        expected_last_date = month_end.rollback(end_date).date()
+        # test over 31 days (12 hour periods)
+        for i in range(31 * 2):
+            start_date += twelve_hours
+            dates = date_range(start=start_date, end=end_date, freq=month_end)
+            assert dates[-1].date() == expected_last_date
+
 
 class TestCustomBusinessHour(Base):
     _offset = CustomBusinessHour
