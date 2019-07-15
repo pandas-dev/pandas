@@ -289,11 +289,19 @@ def read_hdf(path_or_buf, key=None, mode="r", **kwargs):
 
     Parameters
     ----------
-    path_or_buf : string, buffer or path object
-        Path to the file to open, or an open :class:`pandas.HDFStore` object.
-        Supports any object implementing the ``__fspath__`` protocol.
-        This includes :class:`pathlib.Path` and py._path.local.LocalPath
-        objects.
+    path_or_buf : str, path object, pandas.HDFStore or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be: ``file://localhost/path/to/table.h5``.
+
+        If you want to pass in a path object, pandas accepts any
+        ``os.PathLike``.
+
+        Alternatively, pandas accepts an open :class:`pandas.HDFStore` object.
+
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function)
+        or ``StringIO``.
 
         .. versionadded:: 0.19.0 support for pathlib, py.path.
         .. versionadded:: 0.21.0 support for __fspath__ protocol.
