@@ -134,7 +134,9 @@ typedef struct __PyObjectEncoder {
     PyObject *defaultHandler;
 } PyObjectEncoder;
 
-#define GET_TC(__ptrtc) ((TypeContext *)((__ptrtc)->prv))
+inline TypeContext* GET_TC(JSONTypeContext * __ptrtc) {
+  return (TypeContext *)__ptrtc->prv;
+}
 
 enum PANDAS_FORMAT { SPLIT, RECORDS, INDEX, COLUMNS, VALUES };
 
@@ -1128,6 +1130,7 @@ char *Series_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
 void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
     Py_ssize_t n_cols;
+    printf("call to dataframe iterbegin\n");
 
     // For SPLIT format the index tracks columns->index->data progression
     // all other formats use this to index by column
@@ -1143,7 +1146,7 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
         }
     } else {
       // Begin iteration over a dataframe's columns
-      // TODO: need to free this
+      printf("beginning frame iteration\n");
       PyObject *tmp = PyObject_CallMethod(obj, "items", NULL);
       
       if (tmp == 0) {
@@ -1157,9 +1160,11 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 	GET_TC(tc)->iterNext = NpyArr_iterNextNone;
 	return;
       }
-      
+
+      printf("setting frame iteration context\n");
       frameCtxt->iterable = tmp;
-      tc->prv = frameCtxt;
+      GET_TC(tc)->frame = frameCtxt;
+      printf("set frame iteration context!\n");
     }      
 
     PRINTMARK();
@@ -1168,6 +1173,7 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     Py_ssize_t n_cols;
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
+    printf("in frame iternext\n");
 
     if (enc->outputFormat == SPLIT) {
       Py_ssize_t index;
@@ -1197,12 +1203,18 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
         return 0;
       }
     } else {
-      // TODO: Need to free these
+      printf("iterating over dataframe\n");
+      // free previous entry
+      if (GET_TC(tc)->itemValue) {
+        Py_DECREF(GET_TC(tc)->itemValue);
+        GET_TC(tc)->itemValue = NULL;
+      }
+      
       PyObject *tmp = PyIter_Next(GET_TC(tc)->frame->iterable);
       if (tmp == 0)
 	return 0;
 
-      GET_TC(tc)->frame->currItem = tmp;
+      GET_TC(tc)->itemValue = tmp;
     }
 
     PRINTMARK();
@@ -1211,6 +1223,7 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
 
 void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
+  printf("done dataframe iteration\n");  
   
   if (enc->outputFormat == SPLIT) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
@@ -1222,21 +1235,9 @@ void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
 }
 
 JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
+  printf("getting dataframe itervalue\n");
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
-  if (enc->outputFormat == SPLIT) {  
-    return GET_TC(tc)->itemValue;
-  } else {
-    // get appropriate object from iterable
-    // Borrowed reference
-    PyObject *values = PyTuple_GetItem(GET_TC(tc)->frame->currItem, 1);
-
-
-    if (PyObject_HasAttrString(values, "to_numpy"))
-      // TODO: Need to free this
-      values = PyObject_CallMethod(values, "to_numpy", NULL);
-    
-    return values;
-  }
+    return GET_TC(tc)->itemValue;  
 }
 
 char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
@@ -1244,9 +1245,8 @@ char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
   if (enc->outputFormat == SPLIT) {  
     *outLen = strlen(GET_TC(tc)->cStr);
     return GET_TC(tc)->cStr;
-  } else {
-    // Return label of array here...
-    return PyTuple_GetItem(GET_TC(tc)->frame->currItem, 0);
+  } else {  // Pass through to underlying Series
+    return NULL;
   }
 }
 
@@ -1751,7 +1751,8 @@ ISITERABLE:
         pc->iterGetName = NpyArr_iterGetName;
         return;
     } else if (PyObject_TypeCheck(obj, cls_dataframe)) {
-
+      printf("got a frame\n");
+      tc->type = JT_OBJECT;
         pc->iterBegin = DataFrame_iterBegin;
         pc->iterEnd = DataFrame_iterEnd;
         pc->iterNext = DataFrame_iterNext;
