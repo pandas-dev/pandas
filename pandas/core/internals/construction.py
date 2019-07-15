@@ -542,6 +542,20 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     - for OrderedDict and (on Python>=3.6) dicts, the column names match
       the key insertion-order from the first record to the last.
     - For other kinds of dict-likes, the keys are lexically sorted.
+
+    Parameters
+    ----------
+    data : iterable
+        collection of records (OrderedDict, dict)
+    columns: iterables or None
+    coerce_float : bool
+        If False, don't copy the data if not needed.
+    dtype : np.dtype
+
+    Returns
+    -------
+    tuple
+        arrays, columns
     """
     if columns is None:
         gen = (list(x.keys()) for x in data)
