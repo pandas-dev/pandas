@@ -98,6 +98,66 @@ class TestRolling(Base):
         tm.assert_frame_equal(result_roll_sum, expected)
         tm.assert_frame_equal(result_roll_generic, expected)
 
+    @pytest.mark.parametrize(
+        "dataframe,expected,window",
+        [
+            (
+                DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+                [
+                    ({"A": [1], "B": [4]}, [0]),
+                    ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
+                    ({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2]),
+                ],
+                3,
+            ),
+            (
+                DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+                [
+                    ({"A": [1], "B": [4]}, [0]),
+                    ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
+                    ({"A": [2, 3], "B": [5, 6]}, [1, 2]),
+                ],
+                2,
+            ),
+            (
+                DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+                [
+                    ({"A": [1], "B": [4]}, [0]),
+                    ({"A": [2], "B": [5]}, [1]),
+                    ({"A": [3], "B": [6]}, [2]),
+                ],
+                1,
+            ),
+            (DataFrame({"A": [1], "B": [4]}), [({"A": [1], "B": [4]}, [0])], 1337),
+            (DataFrame(), [({}, [])], 1337),
+        ],
+    )
+    def test_iterator_dataframe(self, dataframe, expected, window):
+        expected = [DataFrame(values, index=index) for (values, index) in expected]
+
+        for (expected, actual) in zip(expected, dataframe.rolling(window)):
+            tm.assert_frame_equal(actual, expected)
+
+    @pytest.mark.parametrize(
+        "series,expected,window",
+        [
+            (
+                Series([1, 2, 3]),
+                [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])],
+                3,
+            ),
+            (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([2, 3], [1, 2])], 2),
+            (Series([1, 2, 3]), [([1], [0]), ([2], [1]), ([3], [2])], 1),
+            (Series([1]), [([1], [0])], 1337),
+            (Series([]), [], 1337),
+        ],
+    )
+    def test_iterator_series(self, series, expected, window):
+        expected = [Series(values, index=index) for (values, index) in expected]
+
+        for (expected, actual) in zip(expected, series.rolling(window)):
+            tm.assert_series_equal(actual, expected)
+
     @pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
     def test_numpy_compat(self, method):
         # see gh-12811
@@ -290,14 +350,6 @@ class TestRolling(Base):
 
         tm.assert_index_equal(result.columns, df.columns)
         assert result.index.names == [None, "1", "2"]
-
-    @pytest.mark.parametrize("klass", [pd.Series, pd.DataFrame])
-    def test_iter_raises(self, klass):
-        # https://github.com/pandas-dev/pandas/issues/11704
-        # Iteration over a Window
-        obj = klass([1, 2, 3, 4])
-        with pytest.raises(NotImplementedError):
-            iter(obj.rolling(2))
 
     def test_rolling_axis_sum(self, axis_frame):
         # see gh-23372.

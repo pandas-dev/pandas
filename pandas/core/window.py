@@ -211,14 +211,11 @@ class _Window(PandasObject, SelectionMixin):
 
         iterators = []
 
-        for i, b in enumerate(blocks):
-            values = self._prep_values(b.values)
+        for i, values in enumerate(blocks):
+            iterators.append(
+                libwindow.WindowIterator(values, window, self.closed, minp)
+            )
 
-            if values.ndim == 1:
-                values = np.expand_dims(values, axis=1)
-
-            iterators.append(libwindow.WindowIterator(values, window, b.index, self.closed, minp))
-        
         return (elem for iterator in iterators for elem in iterator)
 
     def _get_index(self, index=None):

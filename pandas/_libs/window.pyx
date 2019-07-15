@@ -357,17 +357,15 @@ def get_window_indexer(values, win, minp, index, closed,
 cdef class WindowIterator:
     cdef:
         int64_t i, s, e, N, win, minp
-        float64_t[:,:] values
         int64_t[:] start, end
-        object index, is_variable
+        object values, is_variable
 
-    def __init__(self, ndarray[float64_t, ndim=2] values, int64_t win, object index, object closed, int64_t minp):
+    def __init__(self, object values, int64_t win, object closed, int64_t minp):
         self.values = values
-        self.index = index
         self.i = 0
 
-        self.start, self.end, self.N, self.win, _, self.is_variable = get_window_indexer(
-            values, win, minp, None, closed
+        self.start, self.end, self.N, self.win, self.minp, self.is_variable = get_window_indexer(
+            np.asarray(values), win, minp, None, closed
         )
 
     def __iter__(self):
@@ -386,7 +384,10 @@ cdef class WindowIterator:
 
         self.i = self.i + 1
 
-        return self.values[slice(s, e),:]
+        if e - s < minp:
+            return self.__next__()
+
+        return self.values.iloc[slice(s, e)]
 
 # ----------------------------------------------------------------------
 # Rolling count
