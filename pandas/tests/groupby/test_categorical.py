@@ -433,15 +433,15 @@ def test_observed_groups_with_nan(observed):
 
 def test_observed_nth():
     # GH 26385
-    cat = pd.Categorical(['a', np.nan, np.nan], categories=['a', 'b', 'c'])
+    cat = pd.Categorical(["a", np.nan, np.nan], categories=["a", "b", "c"])
     ser = pd.Series([1, 2, 3])
-    df = pd.DataFrame({'cat': cat, 'ser': ser})
+    df = pd.DataFrame({"cat": cat, "ser": ser})
 
-    result = df.groupby('cat', observed=False)['ser'].nth(0)
+    result = df.groupby("cat", observed=False)["ser"].nth(0)
 
-    index = pd.Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c'])
-    expected = pd.Series([1, np.nan, np.nan], index=index, name='ser')
-    expected.index.name = 'cat'
+    index = pd.Categorical(["a", "b", "c"], categories=["a", "b", "c"])
+    expected = pd.Series([1, np.nan, np.nan], index=index, name="ser")
+    expected.index.name = "cat"
 
     tm.assert_series_equal(result, expected)
 

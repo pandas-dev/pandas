@@ -1774,8 +1774,7 @@ class GroupBy(_GroupBy):
             result_index = self.grouper.result_index
             out.index = result_index[ids[mask]]
 
-            if not self.observed and isinstance(
-                    result_index, CategoricalIndex):
+            if not self.observed and isinstance(result_index, CategoricalIndex):
                 out = out.reindex(result_index)
 
             return out.sort_index() if self.sort else out
