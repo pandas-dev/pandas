@@ -1698,7 +1698,7 @@ def _roll_window_sum_mean(ndarray[float64_t, ndim=1, cast=True] values,
     Assume len(weights) << len(values)
     """
     cdef:
-        float64_t[:] output, tot_wgt, counts
+        ndarray[float64_t] output, tot_wgt, counts
         Py_ssize_t in_i, win_i, win_n, in_n
         float64_t val_in, val_win, c, w
 
