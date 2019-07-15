@@ -143,10 +143,10 @@ def is_iterator(obj):
     False
     """
 
-    if not hasattr(obj, '__iter__'):
+    if not hasattr(obj, "__iter__"):
         return False
 
-    return hasattr(obj, '__next__')
+    return hasattr(obj, "__next__")
 
 
 def is_file_like(obj):
@@ -180,7 +180,7 @@ def is_file_like(obj):
     False
     """
 
-    if not (hasattr(obj, 'read') or hasattr(obj, 'write')):
+    if not (hasattr(obj, "read") or hasattr(obj, "write")):
         return False
 
     if not hasattr(obj, "__iter__"):
@@ -281,15 +281,18 @@ def is_list_like(obj, allow_sets=True):
     False
     """
 
-    return (isinstance(obj, abc.Iterable) and
-            # we do not count strings/unicode/bytes as list-like
-            not isinstance(obj, (str, bytes)) and
-
-            # exclude zero-dimensional numpy arrays, effectively scalars
-            not (isinstance(obj, np.ndarray) and obj.ndim == 0) and
-
-            # exclude sets if allow_sets is False
-            not (allow_sets is False and isinstance(obj, abc.Set)))
+    return (
+        isinstance(obj, abc.Iterable)
+        and
+        # we do not count strings/unicode/bytes as list-like
+        not isinstance(obj, (str, bytes))
+        and
+        # exclude zero-dimensional numpy arrays, effectively scalars
+        not (isinstance(obj, np.ndarray) and obj.ndim == 0)
+        and
+        # exclude sets if allow_sets is False
+        not (allow_sets is False and isinstance(obj, abc.Set))
+    )
 
 
 def is_array_like(obj):
@@ -365,8 +368,12 @@ def is_nested_list_like(obj):
     --------
     is_list_like
     """
-    return (is_list_like(obj) and hasattr(obj, '__len__') and
-            len(obj) > 0 and all(is_list_like(item) for item in obj))
+    return (
+        is_list_like(obj)
+        and hasattr(obj, "__len__")
+        and len(obj) > 0
+        and all(is_list_like(item) for item in obj)
+    )
 
 
 def is_dict_like(obj):
@@ -394,9 +401,11 @@ def is_dict_like(obj):
     True
     """
     dict_like_attrs = ("__getitem__", "keys", "__contains__")
-    return (all(hasattr(obj, attr) for attr in dict_like_attrs)
-            # [GH 25196] exclude classes
-            and not isinstance(obj, type))
+    return (
+        all(hasattr(obj, attr) for attr in dict_like_attrs)
+        # [GH 25196] exclude classes
+        and not isinstance(obj, type)
+    )
 
 
 def is_named_tuple(obj):
@@ -423,7 +432,7 @@ def is_named_tuple(obj):
     False
     """
 
-    return isinstance(obj, tuple) and hasattr(obj, '_fields')
+    return isinstance(obj, tuple) and hasattr(obj, "_fields")
 
 
 def is_hashable(obj):
@@ -489,7 +498,7 @@ def is_sequence(obj):
 
     try:
         iter(obj)  # Can iterate over it.
-        len(obj)   # Has a length associated with it.
+        len(obj)  # Has a length associated with it.
         return not isinstance(obj, (str, bytes))
     except (TypeError, AttributeError):
         return False

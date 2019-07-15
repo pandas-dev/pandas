@@ -321,7 +321,7 @@ Index level names may be supplied as keys.
 
 More on the ``sum`` function and aggregation later.
 
-Grouping DataFrame with Index Levels and Columns
+Grouping DataFrame with Index levels and columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 A DataFrame may be grouped by a combination of columns and index levels by
 specifying the column names as strings and the index levels as ``pd.Grouper``
@@ -568,9 +568,32 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
                             'mean': 'bar',
                             'std': 'baz'}))
 
+.. note::
+
+   In general, the output column names should be unique. You can't apply
+   the same function (or two functions with the same name) to the same
+   column.
+
+   .. ipython:: python
+      :okexcept:
+
+      grouped['C'].agg(['sum', 'sum'])
+
+
+   Pandas *does* allow you to provide multiple lambdas. In this case, pandas
+   will mangle the name of the (nameless) lambda functions, appending ``_<i>``
+   to each subsequent lambda.
+
+   .. ipython:: python
+
+      grouped['C'].agg([lambda x: x.max() - x.min(),
+                        lambda x: x.median() - x.mean()])
+
+
+
 .. _groupby.aggregate.named:
 
-Named Aggregation
+Named aggregation
 ~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.25.0
@@ -1122,7 +1145,7 @@ can be used as group keys. If so, the order of the levels will be preserved:
 
 .. _groupby.specify:
 
-Grouping with a Grouper specification
+Grouping with a grouper specification
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You may need to specify a bit more data to properly group. You can
@@ -1404,7 +1427,7 @@ introduction <categorical>` and the
 
     dfg.groupby(["A", [0, 0, 0, 1, 1]]).ngroup()
 
-Groupby by Indexer to 'resample' data
+Groupby by indexer to 'resample' data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.

@@ -127,7 +127,7 @@ to build the documentation locally before pushing your changes.
 
 .. _contributing.dev_c:
 
-Installing a C Compiler
+Installing a C compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Pandas uses C extensions (mostly written using Cython) to speed up certain
@@ -155,7 +155,7 @@ Let us know if you have any difficulties by opening an issue or reaching out on
 
 .. _contributing.dev_python:
 
-Creating a Python Environment
+Creating a Python environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now that you have a C compiler, create an isolated pandas development
@@ -178,7 +178,6 @@ We'll now kick off a three-step process:
    # Create and activate the build environment
    conda env create -f environment.yml
    conda activate pandas-dev
-   conda uninstall --force pandas
 
    # or with older versions of Anaconda:
    source activate pandas-dev
@@ -209,7 +208,7 @@ See the full conda docs `here <http://conda.pydata.org/docs>`__.
 
 .. _contributing.pip:
 
-Creating a Python Environment (pip)
+Creating a Python environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you aren't using conda for your development environment, follow these instructions.
@@ -563,22 +562,37 @@ many errors as possible, but it may not correct *all* of them. Thus, it is
 recommended that you run ``cpplint`` to double check and make any other style
 fixes manually.
 
-Python (PEP8)
-~~~~~~~~~~~~~
+Python (PEP8 / black)
+~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* uses the `PEP8 <http://www.python.org/dev/peps/pep-0008/>`_ standard.
-There are several tools to ensure you abide by this standard. Here are *some* of
-the more common ``PEP8`` issues:
+*pandas* follows the `PEP8 <http://www.python.org/dev/peps/pep-0008/>`_ standard
+and uses `Black <https://black.readthedocs.io/en/stable/>`_ and
+`Flake8 <http://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
+format throughout the project.
 
-* we restrict line-length to 79 characters to promote readability
-* passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
+:ref:`Continuous Integration <contributing.ci>` will run those tools and
+report any stylistic errors in your code. Therefore, it is helpful before
+submitting code to run the check yourself::
 
-:ref:`Continuous Integration <contributing.ci>` will run
-the `flake8 <https://pypi.org/project/flake8>`_ tool
-and report any stylistic errors in your code. Therefore, it is helpful before
-submitting code to run the check yourself on the diff::
-
+   black pandas
    git diff upstream/master -u -- "*.py" | flake8 --diff
+
+to auto-format your code. Additionally, many editors have plugins that will
+apply ``black`` as you edit files.
+
+Optionally, you may wish to setup `pre-commit hooks <https://pre-commit.com/>`_
+to automatically run ``black`` and ``flake8`` when you make a git commit. This
+can be done by installing ``pre-commit``::
+
+   pip install pre-commit
+
+and then running::
+
+   pre-commit install
+
+from the root of the pandas repository. Now ``black`` and ``flake8`` will be run
+each time you commit changes. You can skip these checks with
+``git commit --no-verify``.
 
 This command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
@@ -605,7 +619,7 @@ and run ``flake8`` on them, one after the other.
 
 .. _contributing.import-formatting:
 
-Import Formatting
+Import formatting
 ~~~~~~~~~~~~~~~~~
 *pandas* uses `isort <https://pypi.org/project/isort/>`__ to standardise import
 formatting across the codebase.
@@ -651,7 +665,7 @@ The `--recursive` flag can be passed to sort all files in a directory.
 
 You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
 
-Backwards Compatibility
+Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Please try to maintain backward compatibility. *pandas* has lots of users with lots of
@@ -699,7 +713,7 @@ See :ref:`contributing.warnings` for more.
 
 .. _contributing.ci:
 
-Testing With Continuous Integration
+Testing with continuous integration
 -----------------------------------
 
 The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__ and
@@ -930,7 +944,7 @@ options or subtle interactions to test (or think of!) all of them.
 
 .. _contributing.warnings:
 
-Testing Warnings
+Testing warnings
 ~~~~~~~~~~~~~~~~
 
 By default, one of pandas CI workers will fail if any unhandled warnings are emitted.
