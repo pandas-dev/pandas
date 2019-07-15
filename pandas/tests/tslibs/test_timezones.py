@@ -32,7 +32,7 @@ def test_tzlocal_repr():
 
 def test_tzlocal_maybe_get_tz():
     # see gh-13583
-    tz = timezones.maybe_get_tz('tzlocal()')
+    tz = timezones.maybe_get_tz("tzlocal()")
     assert tz == dateutil.tz.tzlocal()
 
 
@@ -48,10 +48,12 @@ def test_tzlocal_offset():
     assert ts.value + offset == Timestamp("2011-01-01").value
 
 
-@pytest.fixture(params=[
-    (pytz.timezone("US/Eastern"), lambda tz, x: tz.localize(x)),
-    (dateutil.tz.gettz("US/Eastern"), lambda tz, x: x.replace(tzinfo=tz))
-])
+@pytest.fixture(
+    params=[
+        (pytz.timezone("US/Eastern"), lambda tz, x: tz.localize(x)),
+        (dateutil.tz.gettz("US/Eastern"), lambda tz, x: x.replace(tzinfo=tz)),
+    ]
+)
 def infer_setup(request):
     eastern, localize = request.param
 
@@ -67,12 +69,18 @@ def infer_setup(request):
 def test_infer_tz_compat(infer_setup):
     eastern, _, start, end, start_naive, end_naive = infer_setup
 
-    assert (timezones.infer_tzinfo(start, end) is
-            conversion.localize_pydatetime(start_naive, eastern).tzinfo)
-    assert (timezones.infer_tzinfo(start, None) is
-            conversion.localize_pydatetime(start_naive, eastern).tzinfo)
-    assert (timezones.infer_tzinfo(None, end) is
-            conversion.localize_pydatetime(end_naive, eastern).tzinfo)
+    assert (
+        timezones.infer_tzinfo(start, end)
+        is conversion.localize_pydatetime(start_naive, eastern).tzinfo
+    )
+    assert (
+        timezones.infer_tzinfo(start, None)
+        is conversion.localize_pydatetime(start_naive, eastern).tzinfo
+    )
+    assert (
+        timezones.infer_tzinfo(None, end)
+        is conversion.localize_pydatetime(end_naive, eastern).tzinfo
+    )
 
 
 def test_infer_tz_utc_localize(infer_setup):

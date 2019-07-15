@@ -52,6 +52,13 @@ fi
 ### LINTING ###
 if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
+    echo "black --version"
+    black --version
+
+    MSG='Checking black formatting' ; echo $MSG
+	black . --check --exclude '(asv_bench/env|\.egg|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist)'
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # `setup.cfg` contains the list of error codes that are being ignored in flake8
 
     echo "flake8 --version"
@@ -245,10 +252,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests interval classes' ; echo $MSG
-    pytest --doctest-modules -v \
+    pytest -q --doctest-modules \
         pandas/core/indexes/interval.py \
         pandas/core/arrays/interval.py \
-        -k"-from_arrays -from_breaks -from_intervals -from_tuples -get_loc -set_closed -to_tuples -interval_range"
+        -k"-from_arrays -from_breaks -from_intervals -from_tuples -set_closed -to_tuples -interval_range"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

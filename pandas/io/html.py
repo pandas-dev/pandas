@@ -4,7 +4,6 @@ HTML IO.
 """
 
 from collections import abc
-from distutils.version import LooseVersion
 import numbers
 import os
 import re
@@ -36,16 +35,17 @@ def _importers():
         return
 
     global _HAS_BS4, _HAS_LXML, _HAS_HTML5LIB
-    bs4 = import_optional_dependency("bs4", raise_on_missing=False,
-                                     on_version="ignore")
+    bs4 = import_optional_dependency("bs4", raise_on_missing=False, on_version="ignore")
     _HAS_BS4 = bs4 is not None
 
-    lxml = import_optional_dependency("lxml.etree", raise_on_missing=False,
-                                      on_version="ignore")
+    lxml = import_optional_dependency(
+        "lxml.etree", raise_on_missing=False, on_version="ignore"
+    )
     _HAS_LXML = lxml is not None
 
-    html5lib = import_optional_dependency("html5lib", raise_on_missing=False,
-                                          on_version="ignore")
+    html5lib = import_optional_dependency(
+        "html5lib", raise_on_missing=False, on_version="ignore"
+    )
     _HAS_HTML5LIB = html5lib is not None
 
     _IMPORTS = True
@@ -54,7 +54,7 @@ def _importers():
 #############
 # READ HTML #
 #############
-_RE_WHITESPACE = re.compile(r'[\r\n]+|\s{2,}')
+_RE_WHITESPACE = re.compile(r"[\r\n]+|\s{2,}")
 
 
 def _remove_whitespace(s, regex=_RE_WHITESPACE):
@@ -73,7 +73,7 @@ def _remove_whitespace(s, regex=_RE_WHITESPACE):
     subd : str or unicode
         `s` with all extra whitespace replaced with a single space.
     """
-    return regex.sub(' ', s.strip())
+    return regex.sub(" ", s.strip())
 
 
 def _get_skiprows(skiprows):
@@ -101,8 +101,9 @@ def _get_skiprows(skiprows):
         return skiprows
     elif skiprows is None:
         return 0
-    raise TypeError('%r is not a valid type for skipping rows' %
-                    type(skiprows).__name__)
+    raise TypeError(
+        "%r is not a valid type for skipping rows" % type(skiprows).__name__
+    )
 
 
 def _read(obj):
@@ -119,13 +120,13 @@ def _read(obj):
     if _is_url(obj):
         with urlopen(obj) as url:
             text = url.read()
-    elif hasattr(obj, 'read'):
+    elif hasattr(obj, "read"):
         text = obj.read()
     elif isinstance(obj, (str, bytes)):
         text = obj
         try:
             if os.path.isfile(text):
-                with open(text, 'rb') as f:
+                with open(text, "rb") as f:
                     return f.read()
         except (TypeError, ValueError):
             pass
@@ -398,8 +399,7 @@ class _HtmlFrameParser:
         footer_rows = self._parse_tfoot_tr(table_html)
 
         def row_is_all_th(row):
-            return all(self._equals_tag(t, 'th') for t in
-                       self._parse_td(row))
+            return all(self._equals_tag(t, "th") for t in self._parse_td(row))
 
         if not header_rows:
             # The table has no <thead>. Move the top all-<th> rows from
@@ -450,14 +450,13 @@ class _HtmlFrameParser:
                     prev_i, prev_text, prev_rowspan = remainder.pop(0)
                     texts.append(prev_text)
                     if prev_rowspan > 1:
-                        next_remainder.append((prev_i, prev_text,
-                                               prev_rowspan - 1))
+                        next_remainder.append((prev_i, prev_text, prev_rowspan - 1))
                     index += 1
 
                 # Append the text from this <td>, colspan times
                 text = _remove_whitespace(self._text_getter(td))
-                rowspan = int(self._attr_getter(td, 'rowspan') or 1)
-                colspan = int(self._attr_getter(td, 'colspan') or 1)
+                rowspan = int(self._attr_getter(td, "rowspan") or 1)
+                colspan = int(self._attr_getter(td, "colspan") or 1)
 
                 for _ in range(colspan):
                     texts.append(text)
@@ -469,8 +468,7 @@ class _HtmlFrameParser:
             for prev_i, prev_text, prev_rowspan in remainder:
                 texts.append(prev_text)
                 if prev_rowspan > 1:
-                    next_remainder.append((prev_i, prev_text,
-                                           prev_rowspan - 1))
+                    next_remainder.append((prev_i, prev_text, prev_rowspan - 1))
 
             all_texts.append(texts)
             remainder = next_remainder
@@ -483,8 +481,7 @@ class _HtmlFrameParser:
             for prev_i, prev_text, prev_rowspan in remainder:
                 texts.append(prev_text)
                 if prev_rowspan > 1:
-                    next_remainder.append((prev_i, prev_text,
-                                           prev_rowspan - 1))
+                    next_remainder.append((prev_i, prev_text, prev_rowspan - 1))
             all_texts.append(texts)
             remainder = next_remainder
 
@@ -509,8 +506,12 @@ class _HtmlFrameParser:
         if not self.displayed_only:
             return tbl_list
 
-        return [x for x in tbl_list if "display:none" not in
-                getattr(x, attr_name).get('style', '').replace(" ", "")]
+        return [
+            x
+            for x in tbl_list
+            if "display:none"
+            not in getattr(x, attr_name).get("style", "").replace(" ", "")
+        ]
 
 
 class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
@@ -530,14 +531,15 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from bs4 import SoupStrainer
-        self._strainer = SoupStrainer('table')
+
+        self._strainer = SoupStrainer("table")
 
     def _parse_tables(self, doc, match, attrs):
         element_name = self._strainer.name
         tables = doc.find_all(element_name, attrs=attrs)
 
         if not tables:
-            raise ValueError('No tables found')
+            raise ValueError("No tables found")
 
         result = []
         unique_tables = set()
@@ -545,18 +547,17 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
         for table in tables:
             if self.displayed_only:
-                for elem in table.find_all(
-                        style=re.compile(r"display:\s*none")):
+                for elem in table.find_all(style=re.compile(r"display:\s*none")):
                     elem.decompose()
 
-            if (table not in unique_tables and
-                    table.find(text=match) is not None):
+            if table not in unique_tables and table.find(text=match) is not None:
                 result.append(table)
             unique_tables.add(table)
 
         if not result:
-            raise ValueError("No tables found matching pattern {patt!r}"
-                             .format(patt=match.pattern))
+            raise ValueError(
+                "No tables found matching pattern {patt!r}".format(patt=match.pattern)
+            )
         return result
 
     def _text_getter(self, obj):
@@ -566,31 +567,32 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return obj.name == tag
 
     def _parse_td(self, row):
-        return row.find_all(('td', 'th'), recursive=False)
+        return row.find_all(("td", "th"), recursive=False)
 
     def _parse_thead_tr(self, table):
-        return table.select('thead tr')
+        return table.select("thead tr")
 
     def _parse_tbody_tr(self, table):
-        from_tbody = table.select('tbody tr')
-        from_root = table.find_all('tr', recursive=False)
+        from_tbody = table.select("tbody tr")
+        from_root = table.find_all("tr", recursive=False)
         # HTML spec: at most one of these lists has content
         return from_tbody + from_root
 
     def _parse_tfoot_tr(self, table):
-        return table.select('tfoot tr')
+        return table.select("tfoot tr")
 
     def _setup_build_doc(self):
         raw_text = _read(self.io)
         if not raw_text:
-            raise ValueError('No text parsed from document: {doc}'
-                             .format(doc=self.io))
+            raise ValueError("No text parsed from document: {doc}".format(doc=self.io))
         return raw_text
 
     def _build_doc(self):
         from bs4 import BeautifulSoup
-        return BeautifulSoup(self._setup_build_doc(), features='html5lib',
-                             from_encoding=self.encoding)
+
+        return BeautifulSoup(
+            self._setup_build_doc(), features="html5lib", from_encoding=self.encoding
+        )
 
 
 def _build_xpath_expr(attrs):
@@ -608,15 +610,15 @@ def _build_xpath_expr(attrs):
         An XPath expression that checks for the given HTML attributes.
     """
     # give class attribute as class_ because class is a python keyword
-    if 'class_' in attrs:
-        attrs['class'] = attrs.pop('class_')
+    if "class_" in attrs:
+        attrs["class"] = attrs.pop("class_")
 
     s = ["@{key}={val!r}".format(key=k, val=v) for k, v in attrs.items()]
-    return '[{expr}]'.format(expr=' and '.join(s))
+    return "[{expr}]".format(expr=" and ".join(s))
 
 
-_re_namespace = {'re': 'http://exslt.org/regular-expressions'}
-_valid_schemes = 'http', 'file', 'ftp'
+_re_namespace = {"re": "http://exslt.org/regular-expressions"}
+_valid_schemes = "http", "file", "ftp"
 
 
 class _LxmlFrameParser(_HtmlFrameParser):
@@ -646,14 +648,14 @@ class _LxmlFrameParser(_HtmlFrameParser):
     def _parse_td(self, row):
         # Look for direct children only: the "row" element here may be a
         # <thead> or <tfoot> (see _parse_thead_tr).
-        return row.xpath('./td|./th')
+        return row.xpath("./td|./th")
 
     def _parse_tables(self, doc, match, kwargs):
         pattern = match.pattern
 
         # 1. check all descendants for the given pattern and only search tables
         # 2. go up the tree until we find a table
-        query = '//table//*[re:test(text(), {patt!r})]/ancestor::table'
+        query = "//table//*[re:test(text(), {patt!r})]/ancestor::table"
         xpath_expr = query.format(patt=pattern)
 
         # if any table attributes were given build an xpath expression to
@@ -669,14 +671,14 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 # lxml utilizes XPATH 1.0 which does not have regex
                 # support. As a result, we find all elements with a style
                 # attribute and iterate them to check for display:none
-                for elem in table.xpath('.//*[@style]'):
-                    if "display:none" in elem.attrib.get(
-                            "style", "").replace(" ", ""):
+                for elem in table.xpath(".//*[@style]"):
+                    if "display:none" in elem.attrib.get("style", "").replace(" ", ""):
                         elem.getparent().remove(elem)
 
         if not tables:
-            raise ValueError("No tables found matching regex {patt!r}"
-                             .format(patt=pattern))
+            raise ValueError(
+                "No tables found matching regex {patt!r}".format(patt=pattern)
+            )
         return tables
 
     def _equals_tag(self, obj, tag):
@@ -700,6 +702,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         """
         from lxml.html import parse, fromstring, HTMLParser
         from lxml.etree import XMLSyntaxError
+
         parser = HTMLParser(recover=True, encoding=self.encoding)
 
         try:
@@ -725,15 +728,15 @@ class _LxmlFrameParser(_HtmlFrameParser):
             else:
                 raise e
         else:
-            if not hasattr(r, 'text_content'):
+            if not hasattr(r, "text_content"):
                 raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
         return r
 
     def _parse_thead_tr(self, table):
         rows = []
 
-        for thead in table.xpath('.//thead'):
-            rows.extend(thead.xpath('./tr'))
+        for thead in table.xpath(".//thead"):
+            rows.extend(thead.xpath("./tr"))
 
             # HACK: lxml does not clean up the clearly-erroneous
             # <thead><th>foo</th><th>bar</th></thead>. (Missing <tr>). Add
@@ -741,20 +744,20 @@ class _LxmlFrameParser(_HtmlFrameParser):
             # children as though it's a <tr>.
             #
             # Better solution would be to use html5lib.
-            elements_at_root = thead.xpath('./td|./th')
+            elements_at_root = thead.xpath("./td|./th")
             if elements_at_root:
                 rows.append(thead)
 
         return rows
 
     def _parse_tbody_tr(self, table):
-        from_tbody = table.xpath('.//tbody//tr')
-        from_root = table.xpath('./tr')
+        from_tbody = table.xpath(".//tbody//tr")
+        from_root = table.xpath("./tr")
         # HTML spec: at most one of these lists has content
         return from_tbody + from_root
 
     def _parse_tfoot_tr(self, table):
-        return table.xpath('.//tfoot//tr')
+        return table.xpath(".//tfoot//tr")
 
 
 def _expand_elements(body):
@@ -762,15 +765,15 @@ def _expand_elements(body):
     lens_max = lens.max()
     not_max = lens[lens != lens_max]
 
-    empty = ['']
+    empty = [""]
     for ind, length in not_max.items():
         body[ind] += empty * (lens_max - length)
 
 
 def _data_to_frame(**kwargs):
-    head, body, foot = kwargs.pop('data')
-    header = kwargs.pop('header')
-    kwargs['skiprows'] = _get_skiprows(kwargs['skiprows'])
+    head, body, foot = kwargs.pop("data")
+    header = kwargs.pop("header")
+    kwargs["skiprows"] = _get_skiprows(kwargs["skiprows"])
     if head:
         body = head + body
 
@@ -780,8 +783,7 @@ def _data_to_frame(**kwargs):
                 header = 0
             else:
                 # ignore all-empty-text rows
-                header = [i for i, row in enumerate(head)
-                          if any(text for text in row)]
+                header = [i for i, row in enumerate(head) if any(text for text in row)]
 
     if foot:
         body += foot
@@ -793,9 +795,12 @@ def _data_to_frame(**kwargs):
     return df
 
 
-_valid_parsers = {'lxml': _LxmlFrameParser, None: _LxmlFrameParser,
-                  'html5lib': _BeautifulSoupHtml5LibFrameParser,
-                  'bs4': _BeautifulSoupHtml5LibFrameParser}
+_valid_parsers = {
+    "lxml": _LxmlFrameParser,
+    None: _LxmlFrameParser,
+    "html5lib": _BeautifulSoupHtml5LibFrameParser,
+    "bs4": _BeautifulSoupHtml5LibFrameParser,
+}
 
 
 def _parser_dispatch(flavor):
@@ -820,20 +825,18 @@ def _parser_dispatch(flavor):
     """
     valid_parsers = list(_valid_parsers.keys())
     if flavor not in valid_parsers:
-        raise ValueError('{invalid!r} is not a valid flavor, valid flavors '
-                         'are {valid}'
-                         .format(invalid=flavor, valid=valid_parsers))
+        raise ValueError(
+            "{invalid!r} is not a valid flavor, valid flavors "
+            "are {valid}".format(invalid=flavor, valid=valid_parsers)
+        )
 
-    if flavor in ('bs4', 'html5lib'):
+    if flavor in ("bs4", "html5lib"):
         if not _HAS_HTML5LIB:
             raise ImportError("html5lib not found, please install it")
         if not _HAS_BS4:
-            raise ImportError(
-                "BeautifulSoup4 (bs4) not found, please install it")
-        import bs4
-        if LooseVersion(bs4.__version__) <= LooseVersion('4.2.0'):
-            raise ValueError("A minimum version of BeautifulSoup 4.2.1 "
-                             "is required")
+            raise ImportError("BeautifulSoup4 (bs4) not found, please install it")
+        # Although we call this above, we want to raise here right before use.
+        bs4 = import_optional_dependency("bs4")  # noqa:F841
 
     else:
         if not _HAS_LXML:
@@ -842,23 +845,23 @@ def _parser_dispatch(flavor):
 
 
 def _print_as_set(s):
-    return ('{' + '{arg}'.format(arg=', '.join(
-        pprint_thing(el) for el in s)) + '}')
+    return "{" + "{arg}".format(arg=", ".join(pprint_thing(el) for el in s)) + "}"
 
 
 def _validate_flavor(flavor):
     if flavor is None:
-        flavor = 'lxml', 'bs4'
+        flavor = "lxml", "bs4"
     elif isinstance(flavor, str):
-        flavor = flavor,
+        flavor = (flavor,)
     elif isinstance(flavor, abc.Iterable):
         if not all(isinstance(flav, str) for flav in flavor):
-            raise TypeError('Object of type {typ!r} is not an iterable of '
-                            'strings'
-                            .format(typ=type(flavor).__name__))
+            raise TypeError(
+                "Object of type {typ!r} is not an iterable of "
+                "strings".format(typ=type(flavor).__name__)
+            )
     else:
-        fmt = '{flavor!r}' if isinstance(flavor, str) else '{flavor}'
-        fmt += ' is not a valid flavor'
+        fmt = "{flavor!r}" if isinstance(flavor, str) else "{flavor}"
+        fmt += " is not a valid flavor"
         raise ValueError(fmt.format(flavor=flavor))
 
     flavor = tuple(flavor)
@@ -866,10 +869,12 @@ def _validate_flavor(flavor):
     flavor_set = set(flavor)
 
     if not flavor_set & valid_flavors:
-        raise ValueError('{invalid} is not a valid set of flavors, valid '
-                         'flavors are {valid}'
-                         .format(invalid=_print_as_set(flavor_set),
-                                 valid=_print_as_set(valid_flavors)))
+        raise ValueError(
+            "{invalid} is not a valid set of flavors, valid "
+            "flavors are {valid}".format(
+                invalid=_print_as_set(flavor_set), valid=_print_as_set(valid_flavors)
+            )
+        )
     return flavor
 
 
@@ -888,15 +893,17 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
         except Exception as caught:
             # if `io` is an io-like object, check if it's seekable
             # and try to rewind it before trying the next parser
-            if hasattr(io, 'seekable') and io.seekable():
+            if hasattr(io, "seekable") and io.seekable():
                 io.seek(0)
-            elif hasattr(io, 'seekable') and not io.seekable():
+            elif hasattr(io, "seekable") and not io.seekable():
                 # if we couldn't rewind it, let the user know
-                raise ValueError('The flavor {} failed to parse your input. '
-                                 'Since you passed a non-rewindable file '
-                                 'object, we can\'t rewind it to try '
-                                 'another parser. Try read_html() with a '
-                                 'different flavor.'.format(flav))
+                raise ValueError(
+                    "The flavor {} failed to parse your input. "
+                    "Since you passed a non-rewindable file "
+                    "object, we can't rewind it to try "
+                    "another parser. Try read_html() with a "
+                    "different flavor.".format(flav)
+                )
 
             retained = caught
         else:
@@ -913,11 +920,23 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
     return ret
 
 
-def read_html(io, match='.+', flavor=None, header=None, index_col=None,
-              skiprows=None, attrs=None, parse_dates=False,
-              tupleize_cols=None, thousands=',', encoding=None,
-              decimal='.', converters=None, na_values=None,
-              keep_default_na=True, displayed_only=True):
+def read_html(
+    io,
+    match=".+",
+    flavor=None,
+    header=None,
+    index_col=None,
+    skiprows=None,
+    attrs=None,
+    parse_dates=False,
+    thousands=",",
+    encoding=None,
+    decimal=".",
+    converters=None,
+    na_values=None,
+    keep_default_na=True,
+    displayed_only=True,
+):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
@@ -978,14 +997,6 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
     parse_dates : bool, optional
         See :func:`~read_csv` for more details.
-
-    tupleize_cols : bool, optional
-        If ``False`` try to parse multiple header rows into a
-        :class:`~pandas.MultiIndex`, otherwise return raw tuples. Defaults to
-        ``False``.
-
-        .. deprecated:: 0.21.0
-           This argument will be removed and will always convert to MultiIndex
 
     thousands : str, optional
         Separator to use to parse thousands. Defaults to ``','``.
@@ -1071,13 +1082,25 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     # Type check here. We don't want to parse only to fail because of an
     # invalid value of an integer skiprows.
     if isinstance(skiprows, numbers.Integral) and skiprows < 0:
-        raise ValueError('cannot skip rows starting from the end of the '
-                         'data (you passed a negative value)')
+        raise ValueError(
+            "cannot skip rows starting from the end of the "
+            "data (you passed a negative value)"
+        )
     _validate_header_arg(header)
-    return _parse(flavor=flavor, io=io, match=match, header=header,
-                  index_col=index_col, skiprows=skiprows,
-                  parse_dates=parse_dates, tupleize_cols=tupleize_cols,
-                  thousands=thousands, attrs=attrs, encoding=encoding,
-                  decimal=decimal, converters=converters, na_values=na_values,
-                  keep_default_na=keep_default_na,
-                  displayed_only=displayed_only)
+    return _parse(
+        flavor=flavor,
+        io=io,
+        match=match,
+        header=header,
+        index_col=index_col,
+        skiprows=skiprows,
+        parse_dates=parse_dates,
+        thousands=thousands,
+        attrs=attrs,
+        encoding=encoding,
+        decimal=decimal,
+        converters=converters,
+        na_values=na_values,
+        keep_default_na=keep_default_na,
+        displayed_only=displayed_only,
+    )

@@ -169,7 +169,7 @@ Experimental
 
 .. _whatsnew_0141.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 - Bug in ``DataFrame.where`` with a symmetric shaped frame and a passed other of a DataFrame (:issue:`7506`)
 - Bug in Panel indexing with a MultiIndex axis (:issue:`7516`)

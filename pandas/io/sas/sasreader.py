@@ -4,8 +4,14 @@ Read SAS sas7bdat or xport files.
 from pandas.io.common import _stringify_path
 
 
-def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
-             chunksize=None, iterator=False):
+def read_sas(
+    filepath_or_buffer,
+    format=None,
+    index=None,
+    encoding=None,
+    chunksize=None,
+    iterator=False,
+):
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 
@@ -31,9 +37,11 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
     or XportReader
     """
     if format is None:
-        buffer_error_msg = ("If this is a buffer object rather "
-                            "than a string name, you must specify "
-                            "a format string")
+        buffer_error_msg = (
+            "If this is a buffer object rather "
+            "than a string name, you must specify "
+            "a format string"
+        )
         filepath_or_buffer = _stringify_path(filepath_or_buffer)
         if not isinstance(filepath_or_buffer, str):
             raise ValueError(buffer_error_msg)
@@ -45,18 +53,20 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
         else:
             raise ValueError("unable to infer format of SAS file")
 
-    if format.lower() == 'xport':
+    if format.lower() == "xport":
         from pandas.io.sas.sas_xport import XportReader
-        reader = XportReader(filepath_or_buffer, index=index,
-                             encoding=encoding,
-                             chunksize=chunksize)
-    elif format.lower() == 'sas7bdat':
+
+        reader = XportReader(
+            filepath_or_buffer, index=index, encoding=encoding, chunksize=chunksize
+        )
+    elif format.lower() == "sas7bdat":
         from pandas.io.sas.sas7bdat import SAS7BDATReader
-        reader = SAS7BDATReader(filepath_or_buffer, index=index,
-                                encoding=encoding,
-                                chunksize=chunksize)
+
+        reader = SAS7BDATReader(
+            filepath_or_buffer, index=index, encoding=encoding, chunksize=chunksize
+        )
     else:
-        raise ValueError('unknown SAS format')
+        raise ValueError("unknown SAS format")
 
     if iterator or chunksize:
         return reader

@@ -297,7 +297,6 @@ cdef class TextReader:
         object encoding
         object compression
         object mangle_dupe_cols
-        object tupleize_cols
         object usecols
         list dtype_cast_order
         set unnamed_cols
@@ -351,7 +350,6 @@ cdef class TextReader:
                   skipfooter=0,
                   verbose=False,
                   mangle_dupe_cols=True,
-                  tupleize_cols=False,
                   float_precision=None,
                   skip_blank_lines=True):
 
@@ -370,7 +368,6 @@ cdef class TextReader:
         self.parser.chunksize = tokenize_chunksize
 
         self.mangle_dupe_cols = mangle_dupe_cols
-        self.tupleize_cols = tupleize_cols
 
         # For timekeeping
         self.clocks = []

@@ -1,6 +1,6 @@
 .. _whatsnew_0231:
 
-What's New in 0.23.1 (June 12, 2018)
+What's new in 0.23.1 (June 12, 2018)
 ------------------------------------
 
 {{ header }}
@@ -20,7 +20,7 @@ and bug fixes. We recommend that all users upgrade to this version.
 
 .. _whatsnew_0231.fixed_regressions:
 
-Fixed Regressions
+Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
 **Comparing Series with datetime.date**
@@ -64,7 +64,7 @@ To summarize, here's the behavior in 0.22.0, 0.23.0, 0.23.1:
 
 In addition, ordering comparisons will raise a ``TypeError`` in the future.
 
-**Other Fixes**
+**Other fixes**
 
 - Reverted the ability of :func:`~DataFrame.to_sql` to perform multivalue
   inserts as this caused regression in certain cases (:issue:`21103`).
@@ -85,7 +85,7 @@ In addition, ordering comparisons will raise a ``TypeError`` in the future.
 
 .. _whatsnew_0231.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of :meth:`CategoricalIndex.is_monotonic_increasing`, :meth:`CategoricalIndex.is_monotonic_decreasing` and :meth:`CategoricalIndex.is_monotonic` (:issue:`21025`)
@@ -94,10 +94,10 @@ Performance Improvements
 
 .. _whatsnew_0231.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
-**Groupby/Resample/Rolling**
+**Groupby/resample/rolling**
 
 - Bug in :func:`DataFrame.agg` where applying multiple aggregation functions to a :class:`DataFrame` with duplicated column names would cause a stack overflow (:issue:`21063`)
 - Bug in :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` where the fill within a grouping would not always be applied as intended due to the implementations' use of a non-stable sort (:issue:`21207`)

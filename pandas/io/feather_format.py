@@ -28,7 +28,7 @@ def to_feather(df, path):
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
 
-    valid_types = {'string', 'unicode'}
+    valid_types = {"string", "unicode"}
 
     # validate index
     # --------------
@@ -37,20 +37,24 @@ def to_feather(df, path):
     # raise on anything else as we don't serialize the index
 
     if not isinstance(df.index, Int64Index):
-        raise ValueError("feather does not support serializing {} "
-                         "for the index; you can .reset_index()"
-                         "to make the index into column(s)".format(
-                             type(df.index)))
+        raise ValueError(
+            "feather does not support serializing {} "
+            "for the index; you can .reset_index()"
+            "to make the index into column(s)".format(type(df.index))
+        )
 
     if not df.index.equals(RangeIndex.from_range(range(len(df)))):
-        raise ValueError("feather does not support serializing a "
-                         "non-default index for the index; you "
-                         "can .reset_index() to make the index "
-                         "into column(s)")
+        raise ValueError(
+            "feather does not support serializing a "
+            "non-default index for the index; you "
+            "can .reset_index() to make the index "
+            "into column(s)"
+        )
 
     if df.index.name is not None:
-        raise ValueError("feather does not serialize index meta-data on a "
-                         "default index")
+        raise ValueError(
+            "feather does not serialize index meta-data on a " "default index"
+        )
 
     # validate columns
     # ----------------
@@ -62,7 +66,7 @@ def to_feather(df, path):
     feather.write_feather(df, path)
 
 
-@deprecate_kwarg(old_arg_name='nthreads', new_arg_name='use_threads')
+@deprecate_kwarg(old_arg_name="nthreads", new_arg_name="use_threads")
 def read_feather(path, columns=None, use_threads=True):
     """
     Load a feather-format object from the file path
@@ -95,12 +99,10 @@ def read_feather(path, columns=None, use_threads=True):
 
     path = _stringify_path(path)
 
-    if LooseVersion(pyarrow.__version__) < LooseVersion('0.11.0'):
+    if LooseVersion(pyarrow.__version__) < LooseVersion("0.11.0"):
         int_use_threads = int(use_threads)
         if int_use_threads < 1:
             int_use_threads = 1
-        return feather.read_feather(path, columns=columns,
-                                    nthreads=int_use_threads)
+        return feather.read_feather(path, columns=columns, nthreads=int_use_threads)
 
-    return feather.read_feather(path, columns=columns,
-                                use_threads=bool(use_threads))
+    return feather.read_feather(path, columns=columns, use_threads=bool(use_threads))
