@@ -320,7 +320,7 @@ def is_terminal():
 
 
 with cf.config_prefix("display"):
-    cf.register_option("precision", 6, pc_precision_doc, validator=is_pos_int())
+    cf.register_option("precision", 6, pc_precision_doc, validator=is_pos_int)
     cf.register_option(
         "float_format",
         None,
@@ -334,7 +334,7 @@ with cf.config_prefix("display"):
         pc_max_info_rows_doc,
         validator=is_instance_factory((int, type(None))),
     )
-    cf.register_option("max_rows", 60, pc_max_rows_doc, validator=is_pos_int())
+    cf.register_option("max_rows", 60, pc_max_rows_doc, validator=is_pos_int)
     cf.register_option(
         "min_rows",
         10,
@@ -347,7 +347,7 @@ with cf.config_prefix("display"):
         max_cols = 0  # automatically determine optimal number of columns
     else:
         max_cols = 20  # cannot determine optimal number of columns
-    cf.register_option("max_columns", max_cols, pc_max_cols_doc, validator=is_pos_int())
+    cf.register_option("max_columns", max_cols, pc_max_cols_doc, validator=is_pos_int)
     cf.register_option(
         "large_repr",
         "truncate",

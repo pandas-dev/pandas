@@ -208,7 +208,7 @@ class TestConfig:
 
     def test_validation(self):
         self.cf.register_option("a", 1, "doc", validator=self.cf.is_int)
-        self.cf.register_option("d", 1, "doc", validator=self.cf.is_pos_int())
+        self.cf.register_option("d", 1, "doc", validator=self.cf.is_pos_int)
         self.cf.register_option("b.c", "hullo", "doc2", validator=self.cf.is_text)
 
         msg = "Value must have type '<class 'int'>'"
@@ -228,14 +228,12 @@ class TestConfig:
         msg = r"Value must be an instance of <class 'NoneType'>\|<class 'int'>"
         with pytest.raises(ValueError, match=msg):
             self.cf.register_option(
-                "a.b.c.d3", "NO", "doc", validator=self.cf.is_pos_int()
+                "a.b.c.d3", "NO", "doc", validator=self.cf.is_pos_int
             )
 
         msg = "int values must be positive for this option"
         with pytest.raises(ValueError, match=msg):
-            self.cf.register_option(
-                "a.b.c.d3", -2, "doc", validator=self.cf.is_pos_int()
-            )
+            self.cf.register_option("a.b.c.d3", -2, "doc", validator=self.cf.is_pos_int)
 
         msg = r"Value must be an instance of <class 'str'>\|<class 'bytes'>"
         with pytest.raises(ValueError, match=msg):

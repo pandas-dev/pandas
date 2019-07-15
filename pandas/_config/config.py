@@ -821,32 +821,25 @@ def is_one_of_factory(legal_values):
     return inner
 
 
-def is_pos_int():
+def is_pos_int(value):
     """
-    Creates a function for validating that an option value is either a positive
-    integer or a None type
+    Raises ValueError if type(x) is not equal to None or int, or if x is not
+    positive in the case of a int type.
 
-    Returns
-    -------
-    validator - a function of a single argument x , which raises
-                ValueError if type(x) is not equal to `_type` or if x is not
-                positive in the case of a int type.
 
+    Parameters
+    ----------
+    value - the value to be checked
     """
 
-    _type = (type(None), int)
-    type_repr = "|".join(map(str, _type))
+    if not (value is None or isinstance(value, int)):
+        msg = "Value must be an instance of <class 'NoneType'>|<class 'int'>"
+        raise ValueError(msg)
 
-    def inner(x):
-        if not isinstance(x, _type):
-            msg = "Value must be an instance of {type_repr}"
-            raise ValueError(msg.format(type_repr=type_repr))
-        if type(x) == int:
-            if x < 0:
-                msg = "int values must be positive for this option"
-                raise ValueError(msg)
-
-    return inner
+    elif isinstance(value, int):
+        if value < 0:
+            msg = "int values must be positive for this option"
+            raise ValueError(msg)
 
 
 # common type validators, for convenience
