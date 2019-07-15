@@ -186,6 +186,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             "floating",
             "integer",
             "mixed-integer",
+            "integer-na",
             "mixed-integer-float",
         ]:
             raise TypeError(

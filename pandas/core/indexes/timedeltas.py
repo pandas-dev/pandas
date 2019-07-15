@@ -727,6 +727,7 @@ def _is_convertible_to_index(other):
         "floating",
         "mixed-integer",
         "integer",
+        "integer-na",
         "mixed-integer-float",
         "mixed",
     ):
