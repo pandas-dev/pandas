@@ -1103,6 +1103,7 @@ I/O
 - Bug in :meth:`read_hdf` where reading a timezone aware :class:`DatetimeIndex` would raise a ``TypeError`` (:issue:`11926`)
 - Bug in :meth:`to_msgpack` and :meth:`read_msgpack` which would raise a ``ValueError`` rather than a ``FileNotFoundError`` for an invalid path (:issue:`27160`)
 - Fixed bug in :meth:`DataFrame.to_parquet` which would raise a ``ValueError`` when the dataframe had no columns (:issue:`27339`)
+- Allow parsing of :class:`PeriodDtype` columns when using :func:`read_csv` (:issue:`26934`)
 
 Plotting
 ^^^^^^^^
@@ -1186,7 +1187,6 @@ ExtensionArray
 - :meth:`Series.count` miscounts NA values in ExtensionArrays (:issue:`26835`)
 - Added ``Series.__array_ufunc__`` to better handle NumPy ufuncs applied to Series backed by extension arrays (:issue:`23293`).
 - Keyword argument ``deep`` has been removed from :meth:`ExtensionArray.copy` (:issue:`27083`)
-- Allow parsing of :class:`PeriodDtype` columns when using `read_csv()` (:issue:`26934`)
 
 Other
 ^^^^^
