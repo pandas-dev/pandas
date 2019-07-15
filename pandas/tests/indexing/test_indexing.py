@@ -1,6 +1,7 @@
 """ test fancy indexing & misc """
 
 from datetime import datetime
+import re
 from warnings import catch_warnings, simplefilter
 import weakref
 
@@ -336,7 +337,12 @@ class TestFancy(Base):
 
         # List containing only missing label
         dfnu = DataFrame(np.random.randn(5, 3), index=list("AABCD"))
-        with pytest.raises(KeyError):
+        with pytest.raises(
+            KeyError,
+            match=re.escape(
+                "\"None of [Index(['E'], dtype='object')] are in the [index]\""
+            ),
+        ):
             dfnu.loc[["E"]]
 
         # ToDo: check_index_type can be True after GH 11497
@@ -425,7 +431,7 @@ class TestFancy(Base):
         # GH 10610
         df = DataFrame(np.random.random((10, 5)), columns=["a"] + [20, 21, 22, 23])
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=re.escape("'[-8, 26] not in index'")):
             df[[22, 26, -8]]
         assert df[21].shape[0] == df.shape[0]
 
@@ -641,18 +647,18 @@ class TestFancy(Base):
         # dtype should properly raises KeyError
         df = DataFrame([1], Index([pd.Timestamp("2011-01-01")], dtype=object))
         assert df.index.is_all_dates
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="'2011'"):
             df.loc["2011", 0]
 
         df = DataFrame()
         assert not df.index.is_all_dates
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="'2011'"):
             df.loc["2011", 0]
 
     def test_astype_assignment(self):
@@ -855,9 +861,9 @@ class TestMisc(Base):
     def test_mixed_index_no_fallback(self):
         # GH 19860
         s = Series([1, 2, 3, 4, 5], index=["a", "b", "c", 1, 2])
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^0$"):
             s.at[0]
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^4$"):
             s.at[4]
 
     def test_rhs_alignment(self):
@@ -1238,3 +1244,18 @@ def test_ndframe_indexing_raises(idxr, error, error_message):
     frame = NDFrame(np.random.randint(5, size=(2, 2, 2)))
     with pytest.raises(error, match=error_message):
         idxr(frame)[0]
+
+
+def test_readonly_indices():
+    # GH#17192 iloc with read-only array raising TypeError
+    df = pd.DataFrame({"data": np.ones(100, dtype="float64")})
+    indices = np.array([1, 3, 6])
+    indices.flags.writeable = False
+
+    result = df.iloc[indices]
+    expected = df.loc[[1, 3, 6]]
+    tm.assert_frame_equal(result, expected)
+
+    result = df["data"].iloc[indices]
+    expected = df["data"].loc[[1, 3, 6]]
+    tm.assert_series_equal(result, expected)
