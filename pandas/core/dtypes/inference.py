@@ -24,21 +24,6 @@ is_decimal = lib.is_decimal
 is_interval = lib.is_interval
 
 
-def is_integer_strict(obj) -> bool:
-    """
-    Check if the object is an integer, excluding timedelta64 objects.
-
-    Parameters
-    ----------
-    obj : object
-
-    Returns
-    -------
-    bool
-    """
-    return is_integer(obj) and not isinstance(obj, np.timedelta64)
-
-
 def is_number(obj):
     """
     Check if the object is a number.

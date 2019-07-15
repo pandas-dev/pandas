@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
-    is_integer_strict,
     is_interval_dtype,
     is_list_like,
     is_numeric_v_string_like,
@@ -2263,7 +2262,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             if self.is_datetimetz:
                 return tz_compare(element.tzinfo, self.dtype.tz)
             return element.tzinfo is None
-        elif is_integer_strict(element):
+        elif is_integer(element) and not isinstance(element, np.timedelta64):
             return element == tslibs.iNaT
 
         return is_valid_nat_for_dtype(element, self.dtype)
@@ -2288,7 +2287,11 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         """
         if is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
-        elif is_integer_strict(other) and other == tslibs.iNaT:
+        elif (
+            is_integer(other)
+            and not isinstance(other, np.timedelta64)
+            and other == tslibs.iNaT
+        ):
             pass
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
@@ -2482,7 +2485,11 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
         elif is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
-        elif is_integer_strict(other) and other == tslibs.iNaT:
+        elif (
+            is_integer(other)
+            and not isinstance(other, np.timedelta64)
+            and other == tslibs.iNaT
+        ):
             pass
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
@@ -2630,7 +2637,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             return True
         elif isinstance(element, (timedelta, np.timedelta64)):
             return True
-        elif is_integer_strict(element):
+        elif is_integer(element) and not isinstance(element, np.timedelta64):
             return element == tslibs.iNaT
         return is_valid_nat_for_dtype(element, self.dtype)
 
@@ -2670,7 +2677,11 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
         if is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
-        elif is_integer_strict(other) and other == tslibs.iNaT:
+        elif (
+            is_integer(other)
+            and not isinstance(other, np.timedelta64)
+            and other == tslibs.iNaT
+        ):
             pass
         elif isinstance(other, (timedelta, np.timedelta64)):
             other = Timedelta(other).value
