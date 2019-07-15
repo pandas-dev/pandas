@@ -1207,7 +1207,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                             self.index._engine.set_value(self._values, key, value)
                             return
                         except (TypeError, ValueError):
-                            # ValueError appears in only some build in CI
+                            # ValueError appears in only some builds in CI
                             pass
 
                 self.loc[key] = value
