@@ -384,7 +384,7 @@ cdef class WindowIterator:
 
         self.i = self.i + 1
 
-        if e - s < minp:
+        if e - s < self.minp:
             return self.__next__()
 
         return self.values.iloc[slice(s, e)]
