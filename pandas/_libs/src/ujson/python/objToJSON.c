@@ -263,26 +263,6 @@ static PyObject *get_values(PyObject *obj) {
         }
     }
 
-    if (!values && PyObject_HasAttrString(obj, "_internal_get_values")) {
-        PRINTMARK();
-        values = PyObject_CallMethod(obj, "_internal_get_values", NULL);
-        if (values && !PyArray_CheckExact(values)) {
-            PRINTMARK();
-            Py_DECREF(values);
-            values = NULL;
-        }
-    }
-
-    if (!values && PyObject_HasAttrString(obj, "get_block_values")) {
-        PRINTMARK();
-        values = PyObject_CallMethod(obj, "get_block_values", NULL);
-        if (values && !PyArray_CheckExact(values)) {
-            PRINTMARK();
-            Py_DECREF(values);
-            values = NULL;
-        }
-    }
-
     if (!values) {
         PyObject *typeRepr = PyObject_Repr((PyObject *)Py_TYPE(obj));
         PyObject *repr;
@@ -1160,7 +1140,7 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 	GET_TC(tc)->iterNext = NpyArr_iterNextNone;
 	return;
       }
-
+      
       printf("setting frame iteration context\n");
       frameCtxt->iterable = tmp;
       GET_TC(tc)->frame = frameCtxt;
@@ -1173,7 +1153,6 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     Py_ssize_t n_cols;
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
-    printf("in frame iternext\n");
 
     if (enc->outputFormat == SPLIT) {
       Py_ssize_t index;
@@ -1236,8 +1215,13 @@ void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
 
 JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
   printf("getting dataframe itervalue\n");
-  PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
-    return GET_TC(tc)->itemValue;  
+  PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;  
+  if (enc->outputFormat == SPLIT) {  
+    return GET_TC(tc)->itemValue;
+  } else {
+    // Borrowed ref
+    return PyTuple_GetItem(GET_TC(tc)->itemValue, 1);
+  }
 }
 
 char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
@@ -1245,8 +1229,8 @@ char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
   if (enc->outputFormat == SPLIT) {  
     *outLen = strlen(GET_TC(tc)->cStr);
     return GET_TC(tc)->cStr;
-  } else {  // Pass through to underlying Series
-    return NULL;
+  } else {
+    return PyUnicode_AsUTF8(PyTuple_GetItem(GET_TC(tc)->itemValue, 0));
   }
 }
 
