@@ -2614,15 +2614,13 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             return issubclass(tipo.type, (np.timedelta64, np.int64))
         elif element is NaT:
             return True
-        return is_integer(element) or isinstance(
-            element, (timedelta, np.timedelta64, np.int64)
-        )
+        return is_integer(element) or isinstance(element, (timedelta, np.timedelta64))
 
     def fillna(self, value, **kwargs):
 
         # allow filling with integers to be
         # interpreted as nanoseconds
-        if is_integer(value) and not isinstance(value, np.timedelta64):
+        if is_integer(value):
             # Deprecation GH#24694, GH#19233
             warnings.warn(
                 "Passing integers to fillna is deprecated, will "
