@@ -2262,7 +2262,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return is_dtype_equal(tipo, self.dtype)
-            return tipo == _NS_DTYPE or tipo == np.int64
         elif element is NaT:
             return True
         elif isinstance(element, datetime):
