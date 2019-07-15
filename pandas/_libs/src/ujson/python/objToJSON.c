@@ -81,6 +81,7 @@ typedef struct __NpyArrContext {
 typedef struct __PdFrameContext {
   PyObject *iterable;
   PyObject *currItem;
+  
 }  PdFrameContext;
 
 typedef struct __TypeContext {
@@ -1149,7 +1150,7 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 	return;
       }
 
-      PyObject *frameCtxt = (PdFrameContext *)PyObject_Malloc(sizeof(PdFrameContext));
+      PdFrameContext *frameCtxt = (PdFrameContext *)PyObject_Malloc(sizeof(PdFrameContext));
       if (!frameCtxt) {
 	Py_DECREF(tmp);
 	PyErr_NoMemory();
@@ -1158,7 +1159,7 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
       }
       
       frameCtxt->iterable = tmp;
-      GET_TC(tc)->prv = frameCtxt;
+      tc->prv = frameCtxt;
     }      
 
     PRINTMARK();
@@ -1169,6 +1170,8 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
 
     if (enc->outputFormat == SPLIT) {
+      Py_ssize_t index;
+      
       if (!GET_TC(tc)->cStr) {
         return 0;
       }
@@ -1754,99 +1757,8 @@ ISITERABLE:
         pc->iterNext = DataFrame_iterNext;
         pc->iterGetValue = DataFrame_iterGetValue;
         pc->iterGetName = DataFrame_iterGetName;
+	
 	return;
-    }
-
-
-        PRINTMARK();
-	pc->iterBegin = NpyArr_iterBegin;
-	pc->iterEnd = NpyArr_iterEnd;
-	pc->iterNext = NpyArr_iterNext;
-	pc->iterGetName = NpyArr_iterGetName;
-
-	pc->newObj = get_values(obj);
-	if (!pc->newObj) {
-	  goto INVALID;
-	}
-
-        pc->iterGetValue = NpyArr_iterGetValue;
-
-        if (enc->outputFormat == VALUES) {
-            PRINTMARK();
-            tc->type = JT_ARRAY;
-        } else if (enc->outputFormat == RECORDS) {
-            PRINTMARK();
-            tc->type = JT_ARRAY;
-            tmpObj = PyObject_GetAttrString(obj, "columns");
-            if (!tmpObj) {
-                goto INVALID;
-            }
-            values = get_values(tmpObj);
-            if (!values) {
-                Py_DECREF(tmpObj);
-                goto INVALID;
-            }
-            pc->columnLabelsLen = PyObject_Size(tmpObj);
-            pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values,
-                                                   (JSONObjectEncoder *)enc,
-                                                   pc->columnLabelsLen);
-            Py_DECREF(tmpObj);
-            if (!pc->columnLabels) {
-                goto INVALID;
-            }
-        } else if (enc->outputFormat == INDEX || enc->outputFormat == COLUMNS) {
-            PRINTMARK();
-            tc->type = JT_OBJECT;
-            tmpObj = (enc->outputFormat == INDEX
-                          ? PyObject_GetAttrString(obj, "index")
-                          : PyObject_GetAttrString(obj, "columns"));
-            if (!tmpObj) {
-                goto INVALID;
-            }
-            values = get_values(tmpObj);
-            if (!values) {
-                Py_DECREF(tmpObj);
-                goto INVALID;
-            }
-            pc->rowLabelsLen = PyObject_Size(tmpObj);
-            pc->rowLabels =
-                NpyArr_encodeLabels((PyArrayObject *)values,
-                                    (JSONObjectEncoder *)enc, pc->rowLabelsLen);
-            Py_DECREF(tmpObj);
-            tmpObj = (enc->outputFormat == INDEX
-                          ? PyObject_GetAttrString(obj, "columns")
-                          : PyObject_GetAttrString(obj, "index"));
-            if (!tmpObj) {
-                NpyArr_freeLabels(pc->rowLabels, pc->rowLabelsLen);
-                pc->rowLabels = NULL;
-                goto INVALID;
-            }
-            values = get_values(tmpObj);
-            if (!values) {
-                Py_DECREF(tmpObj);
-                NpyArr_freeLabels(pc->rowLabels, pc->rowLabelsLen);
-                pc->rowLabels = NULL;
-                goto INVALID;
-            }
-            pc->columnLabelsLen = PyObject_Size(tmpObj);
-            pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values,
-                                                   (JSONObjectEncoder *)enc,
-                                                   pc->columnLabelsLen);
-            Py_DECREF(tmpObj);
-            if (!pc->columnLabels) {
-                NpyArr_freeLabels(pc->rowLabels, pc->rowLabelsLen);
-                pc->rowLabels = NULL;
-                goto INVALID;
-            }
-
-            if (enc->outputFormat == COLUMNS) {
-                PRINTMARK();
-                pc->transpose = 1;
-            }
-        } else {
-            goto INVALID;
-        }
-        return;
     } else if (PyDict_Check(obj)) {
         PRINTMARK();
         tc->type = JT_OBJECT;
