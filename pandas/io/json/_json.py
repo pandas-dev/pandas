@@ -352,11 +352,18 @@ def read_json(
 
     Parameters
     ----------
-    path_or_buf : a valid JSON string or file-like, default: None
-        The string could be a URL. Valid URL schemes include http, ftp, s3,
-        gcs, and file. For file URLs, a host is expected. For instance, a local
-        file could be ``file://localhost/path/to/table.json``
+    path_or_buf : a valid JSON str, path object or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be:
+        ``file://localhost/path/to/table.json``.
 
+        If you want to pass in a path object, pandas accepts any
+        ``os.PathLike``.
+
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function)
+        or ``StringIO``.
     orient : string,
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
