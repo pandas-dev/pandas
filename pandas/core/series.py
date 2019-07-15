@@ -47,6 +47,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import (
     isna,
+    is_valid_nat_for_dtype,
     na_value_for_dtype,
     notna,
     remove_na_arraylike,
@@ -1198,14 +1199,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     pass
                 elif is_timedelta64_dtype(self.dtype):
                     # reassign a null value to iNaT
-                    if isna(value) and not isinstance(value, np.datetime64):
+                    if is_valid_nat_for_dtype(value, self.dtype):
                         # exclude np.datetime64("NaT")
                         value = iNaT
 
                         try:
                             self.index._engine.set_value(self._values, key, value)
                             return
-                        except TypeError:
+                        except (TypeError, ValueError):
+                            # ValueError appears in only some build in CI
                             pass
 
                 self.loc[key] = value

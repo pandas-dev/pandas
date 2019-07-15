@@ -9,7 +9,7 @@ import numpy as np
 
 from pandas._libs import NaT, lib, tslib, tslibs
 import pandas._libs.internals as libinternals
-from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
+from pandas._libs.tslibs import Timedelta, conversion
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -60,7 +60,13 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import _isna_compat, array_equivalent, isna, notna
+from pandas.core.dtypes.missing import (
+    _isna_compat,
+    array_equivalent,
+    is_valid_nat_for_dtype,
+    isna,
+    notna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
@@ -2275,7 +2281,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         -------
         base-type other
         """
-        if is_null_datetimelike(other) and not isinstance(other, np.timedelta64):
+        if is_valid_nat_for_dtype(other, self.dtype):
             # exclude np.timedelta64("NaT")
             other = tslibs.iNaT
         elif isinstance(other, (datetime, np.datetime64, date)):
@@ -2285,6 +2291,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             other = other.asm8.view("i8")
         elif hasattr(other, "dtype") and is_datetime64_dtype(other):
             other = other.astype("i8", copy=False).view("i8")
+        elif is_integer(other) and other == tslibs.iNaT:
+            pass
         else:
             # coercion issues
             # let higher levels handle
@@ -2466,7 +2474,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # add the tz back
             other = self._holder(other, dtype=self.dtype)
 
-        if is_null_datetimelike(other) and not isinstance(other, np.timedelta64):
+        if is_valid_nat_for_dtype(other, self.dtype):
             # exclude np.timedelta64("NaT")
             other = tslibs.iNaT
         elif isinstance(other, self._holder):
@@ -2650,13 +2658,15 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         base-type other
         """
 
-        if is_null_datetimelike(other) and not isinstance(other, np.datetime64):
+        if is_valid_nat_for_dtype(other, self.dtype):
             # exclude np.datetime64("NaT")
             other = tslibs.iNaT
         elif isinstance(other, (timedelta, np.timedelta64)):
             other = Timedelta(other).value
         elif hasattr(other, "dtype") and is_timedelta64_dtype(other):
             other = other.astype("i8", copy=False).view("i8")
+        elif is_integer(other) and other == tslibs.iNaT:
+            pass
         else:
             # coercion issues
             # let higher levels handle

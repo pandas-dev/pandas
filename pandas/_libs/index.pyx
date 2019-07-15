@@ -533,10 +533,11 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif isinstance(value, (datetime, np.datetime64, date)):
             return Timestamp(value).value
+        elif util.is_timedelta64_object(value):
+            # exclude np.timedelta64("NaT") from value != value below
+            pass
         elif value is None or value != value:
-            if not util.is_timedelta64_object(value):
-                # exclude np.timedelta64("NaT")
-                return NPY_NAT
+            return NPY_NAT
         elif isinstance(value, str):
             return Timestamp(value).value
         raise ValueError("cannot set a Timestamp with a non-timestamp")
@@ -546,10 +547,11 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif isinstance(value, timedelta):
             return Timedelta(value).value
+        elif util.is_datetime64_object(value):
+            # exclude np.datetime64("NaT") from value != value below
+            pass
         elif value is None or value != value:
-            if not util.is_datetime64_object(value):
-                # exclude np.datetime64("NaT")
-                return NPY_NAT
+            return NPY_NAT
         elif isinstance(value, str):
             return Timedelta(value).value
         raise ValueError("cannot set a Timedelta with a non-timedelta")
