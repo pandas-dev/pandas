@@ -9,7 +9,8 @@ import numpy as np
 
 from pandas._libs import NaT, lib, tslib, tslibs
 import pandas._libs.internals as libinternals
-from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
+from pandas._libs.tslibs import Timedelta, conversion
+from pandas._libs.tslibs.timezones import tz_compare
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -60,7 +61,13 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import _isna_compat, array_equivalent, isna, notna
+from pandas.core.dtypes.missing import (
+    _isna_compat,
+    array_equivalent,
+    is_valid_nat_for_dtype,
+    isna,
+    notna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
@@ -2248,14 +2255,17 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
-            return tipo == _NS_DTYPE or tipo == np.int64
+            return is_dtype_equal(tipo, self.dtype)
+        elif element is NaT:
+            return True
         elif isinstance(element, datetime):
+            if self.is_datetimetz:
+                return tz_compare(element.tzinfo, self.dtype.tz)
             return element.tzinfo is None
         elif is_integer(element):
             return element == tslibs.iNaT
 
-        # TODO: shouldnt we exclude timedelta64("NaT")?  See GH#27297
-        return isna(element)
+        return is_valid_nat_for_dtype(element, self.dtype)
 
     def _coerce_values(self, values):
         return values.view("i8")
@@ -2275,8 +2285,10 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         -------
         base-type other
         """
-        if is_null_datetimelike(other):
+        if is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
+        elif is_integer(other) and other == tslibs.iNaT:
+            pass
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
             if getattr(other, "tz") is not None:
@@ -2358,6 +2370,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     __slots__ = ()
     is_datetimetz = True
     is_extension = True
+
+    _can_hold_element = DatetimeBlock._can_hold_element
 
     @property
     def _holder(self):
@@ -2465,8 +2479,10 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # add the tz back
             other = self._holder(other, dtype=self.dtype)
 
-        elif is_null_datetimelike(other):
+        elif is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
+        elif is_integer(other) and other == tslibs.iNaT:
+            pass
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
@@ -2606,10 +2622,16 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
+            # TODO: remove the np.int64 support once coerce_values and
+            #  _try_coerce_args both coerce to m8[ns] and not i8.
             return issubclass(tipo.type, (np.timedelta64, np.int64))
         elif element is NaT:
             return True
-        return is_integer(element) or isinstance(element, (timedelta, np.timedelta64))
+        elif isinstance(element, (timedelta, np.timedelta64)):
+            return True
+        elif is_integer(element):
+            return element == tslibs.iNaT
+        return is_valid_nat_for_dtype(element, self.dtype)
 
     def fillna(self, value, **kwargs):
 
@@ -2645,8 +2667,10 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         base-type other
         """
 
-        if is_null_datetimelike(other):
+        if is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
+        elif is_integer(other) and other == tslibs.iNaT:
+            pass
         elif isinstance(other, (timedelta, np.timedelta64)):
             other = Timedelta(other).value
         elif hasattr(other, "dtype") and is_timedelta64_dtype(other):
