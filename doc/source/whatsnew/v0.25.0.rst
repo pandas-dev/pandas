@@ -1068,6 +1068,8 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in which incorrect exception raised by :class:`Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
+- Bug in :meth:`DataFrame.reset_index` where dtype was sometimes not preserved for :class:`MultiIndex` that is empty or with missing values (:issue:`19602`)
+- Bug in which :meth:`DataFrame.reset_index` did not work for :class:`MultiIndex` with :class:`CategoricalIndex` levels with missing values (:issue:`24206`)
 -
 
 I/O
