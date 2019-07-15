@@ -85,13 +85,12 @@ Additional help can be found in the online docs for
 
 Parameters
 ----------
-filepath_or_buffer : str, path object, or file-like object
+filepath_or_buffer : str, path object or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
     URL schemes include http, ftp, s3, and file. For file URLs, a host is
     expected. A local file could be: file://localhost/path/to/table.csv.
 
-    If you want to pass in a path object, pandas accepts either
-    ``pathlib.Path`` or ``py._path.local.LocalPath``.
+    If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
     By file-like object, we refer to objects with a ``read()`` method, such as
     a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
@@ -728,13 +727,14 @@ def read_fwf(
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object, or file-like object
+    filepath_or_buffer : str, path object or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
-        expected. A local file could be: file://localhost/path/to/table.csv.
+        expected. A local file could be:
+        ``file://localhost/path/to/table.csv``.
 
-        If you want to pass in a path object, pandas accepts either
-        ``pathlib.Path`` or ``py._path.local.LocalPath``.
+        If you want to pass in a path object, pandas accepts any
+        ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
