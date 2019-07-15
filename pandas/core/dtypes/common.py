@@ -35,6 +35,7 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_float,
     is_hashable,
     is_integer,
+    is_integer_strict,
     is_interval,
     is_iterator,
     is_list_like,
