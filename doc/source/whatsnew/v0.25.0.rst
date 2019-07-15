@@ -181,7 +181,6 @@ The repr now looks like this:
     }]
     json_normalize(data, max_level=1)
 
-
 .. _whatsnew_0250.enhancements.json_normalize_with_ignore_keys:
 
 Json normalize with use_key param support

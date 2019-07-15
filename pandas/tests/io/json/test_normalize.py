@@ -457,8 +457,9 @@ class TestJSONNormalize:
 
     def test_ignore_keys(self, nested_input_data):
         # GH 27241 ignore specific keys from normalization
-        result = json_normalize(nested_input_data,
-                                use_key=lambda key: key not in ["Image"])
+        result = json_normalize(
+            nested_input_data, use_key=lambda key: key not in ["Image"]
+        )
         expected = [
             {
                 "CreatedBy.Name": "User001",
@@ -475,11 +476,14 @@ class TestJSONNormalize:
         # GH 27241 ignore specific keys from normalization
         nested_input_data[0]["Tags"] = ["a", "b", "c"]
         result = json_normalize(
-            data=nested_input_data, record_path="Tags",
-            meta=["Image"], use_key=lambda key: key not in ["Image"]
+            data=nested_input_data,
+            record_path="Tags",
+            meta=["Image"],
+            use_key=lambda key: key not in ["Image"],
         )
-        expected = json_normalize(data=nested_input_data,
-                                  record_path="Tags", meta=["Image"])
+        expected = json_normalize(
+            data=nested_input_data, record_path="Tags", meta=["Image"]
+        )
         tm.assert_equal(expected, result)
 
 
@@ -720,8 +724,7 @@ class TestNestedToRecord:
     def test_use_keys(self, nested_input_data):
         # GH 27241 ignore specific keys from flattening
         use_key = lambda key: key not in ["Image"]
-        output = nested_to_record(nested_input_data,
-                                  use_key=use_key)
+        output = nested_to_record(nested_input_data, use_key=use_key)
         expected = [
             {
                 "CreatedBy.Name": "User001",

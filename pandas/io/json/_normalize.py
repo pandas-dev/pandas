@@ -27,12 +27,12 @@ def convert_to_line_delimits(s):
 
 
 def nested_to_record(
-        ds,
-        prefix: str = "",
-        sep: str = ".",
-        level: int = 0,
-        max_level: Optional[int] = None,
-        use_key: Optional[Callable] = None,
+    ds,
+    prefix: str = "",
+    sep: str = ".",
+    level: int = 0,
+    max_level: Optional[int] = None,
+    use_key: Optional[Callable] = None,
 ):
     """
     A simplified json_normalize
@@ -101,9 +101,10 @@ def nested_to_record(
             # only dicts gets recurse-flattened
             # only at level>1 do we rename the rest of the keys
             if (
-                    use_key and not use_key(k)
-                    or (not isinstance(v, dict))
-                    or (max_level is not None and level >= max_level)
+                use_key
+                and not use_key(k)
+                or (not isinstance(v, dict))
+                or (max_level is not None and level >= max_level)
             ):
                 if level != 0:  # so we skip copying for top level, common case
                     v = new_d.pop(k)
@@ -112,8 +113,7 @@ def nested_to_record(
             else:
                 v = new_d.pop(k)
                 new_d.update(
-                    nested_to_record(v, newkey, sep,
-                                     level + 1, max_level, use_key)
+                    nested_to_record(v, newkey, sep, level + 1, max_level, use_key)
                 )
         new_ds.append(new_d)
 
@@ -123,15 +123,15 @@ def nested_to_record(
 
 
 def json_normalize(
-        data: List[Dict],
-        record_path: Optional[Union[str, List]] = None,
-        meta: Optional[Union[str, List]] = None,
-        meta_prefix: Optional[str] = None,
-        record_prefix: Optional[str] = None,
-        errors: Optional[str] = "raise",
-        sep: str = ".",
-        max_level: Optional[int] = None,
-        use_key: Optional[Callable] = None,
+    data: List[Dict],
+    record_path: Optional[Union[str, List]] = None,
+    meta: Optional[Union[str, List]] = None,
+    meta_prefix: Optional[str] = None,
+    record_prefix: Optional[str] = None,
+    errors: Optional[str] = "raise",
+    sep: str = ".",
+    max_level: Optional[int] = None,
+    use_key: Optional[Callable] = None,
 ):
     """
     Normalize semi-structured JSON data into a flat table.
@@ -300,8 +300,7 @@ def json_normalize(
             # TODO: handle record value which are lists, at least error
             #       reasonably
             data = nested_to_record(
-                ds=data, sep=sep,
-                max_level=max_level, use_key=use_key
+                ds=data, sep=sep, max_level=max_level, use_key=use_key
             )
         return DataFrame(data)
     elif not isinstance(record_path, list):
@@ -338,8 +337,7 @@ def json_normalize(
                 recs = _pull_field(obj, path[0])
                 recs = [
                     nested_to_record(
-                        ds=r, sep=sep,
-                        max_level=max_level, use_key=use_key
+                        ds=r, sep=sep, max_level=max_level, use_key=use_key
                     )
                     if isinstance(r, dict)
                     else r
