@@ -4,6 +4,8 @@ channels:
   - conda-forge
 dependencies:
   - gcc_linux-32
+  - gcc_linux-32
+  - gxx_linux-32
   - cython=0.28.2
   - numpy=1.14.*
   - python-dateutil
