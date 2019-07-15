@@ -1,14 +1,21 @@
 from functools import wraps
 import inspect
 from textwrap import dedent
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa
 
 
 def deprecate(
-    name, alternative, version, alt_name=None, klass=None, stacklevel=2, msg=None
-):
+    name: str,
+    alternative: Callable,
+    version: str,
+    alt_name: Optional[str] = None,
+    klass: Optional[Type[Warning]] = None,
+    stacklevel: int = 2,
+    msg: Optional[str] = None,
+) -> Callable:
     """
     Return a new function that emits a deprecation warning on use.
 
@@ -80,7 +87,12 @@ def deprecate(
     return wrapper
 
 
-def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
+def deprecate_kwarg(
+    old_arg_name: str,
+    new_arg_name: Optional[str],
+    mapping: Optional[Union[Dict, Callable[[Any], Any]]] = None,
+    stacklevel: int = 2,
+) -> Callable:
     """
     Decorator to deprecate a keyword argument of a function.
 
@@ -200,7 +212,9 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
     return _deprecate_kwarg
 
 
-def rewrite_axis_style_signature(name, extra_params):
+def rewrite_axis_style_signature(
+    name: str, extra_params: List[Tuple[str, Any]]
+) -> Callable:
     def decorate(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -265,11 +279,11 @@ class Substitution:
 
         self.params = args or kwargs
 
-    def __call__(self, func):
+    def __call__(self, func: Callable) -> Callable:
         func.__doc__ = func.__doc__ and func.__doc__ % self.params
         return func
 
-    def update(self, *args, **kwargs):
+    def update(self, *args, **kwargs) -> None:
         """
         Update self.params with supplied args.
 
@@ -277,18 +291,6 @@ class Substitution:
         """
 
         self.params.update(*args, **kwargs)
-
-    @classmethod
-    def from_params(cls, params):
-        """
-        In the case where the params is a mutable sequence (list or dictionary)
-        and it may change before this class is called, one may explicitly use a
-        reference to the params rather than using *args or **kwargs which will
-        copy the values and not reference them.
-        """
-        result = cls()
-        result.params = params
-        return result
 
 
 class Appender:
@@ -311,14 +313,14 @@ class Appender:
         pass
     """
 
-    def __init__(self, addendum, join="", indents=0):
+    def __init__(self, addendum: Optional[str], join: str = "", indents: int = 0):
         if indents > 0:
-            self.addendum = indent(addendum, indents=indents)
+            self.addendum = indent(addendum, indents=indents)  # type: Optional[str]
         else:
             self.addendum = addendum
         self.join = join
 
-    def __call__(self, func):
+    def __call__(self, func: Callable) -> Callable:
         func.__doc__ = func.__doc__ if func.__doc__ else ""
         self.addendum = self.addendum if self.addendum else ""
         docitems = [func.__doc__, self.addendum]
@@ -326,7 +328,7 @@ class Appender:
         return func
 
 
-def indent(text, indents=1):
+def indent(text: Optional[str], indents: int = 1) -> str:
     if not text or not isinstance(text, str):
         return ""
     jointext = "".join(["\n"] + ["    "] * indents)
