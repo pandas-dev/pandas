@@ -889,6 +889,7 @@ Other deprecations
 - :meth:`DataFrame.get_dtype_counts` is deprecated. (:issue:`18262`)
 - :meth:`Categorical.ravel` will return a :class:`Categorical` instead of a ``np.ndarray`` (:issue:`27199`)
 
+
 .. _whatsnew_0250.prior_deprecations:
 
 Removal of prior version deprecations/changes
@@ -1008,6 +1009,7 @@ Numeric
 - Bug in :meth:`~pandas.eval` when comparing floats with scalar operators, for example: ``x < -0.1`` (:issue:`25928`)
 - Fixed bug where casting all-boolean array to integer extension array failed (:issue:`25211`)
 - Bug in ``divmod`` with a :class:`Series` object containing zeros incorrectly raising ``AttributeError`` (:issue:`26987`)
+- Inconsistency in :class:`Series` floor-division (`//`) and ``divmod`` filling positive//zero with ``NaN`` instead of ``Inf`` (:issue:`27321`)
 -
 
 Conversion
@@ -1050,6 +1052,9 @@ Indexing
 - Bug in :class:`Categorical` and  :class:`CategoricalIndex` with :class:`Interval` values when using the ``in`` operator (``__contains``) with objects that are not comparable to the values in the ``Interval`` (:issue:`23705`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` on a :class:`DataFrame` with a single timezone-aware datetime64[ns] column incorrectly returning a scalar instead of a :class:`Series` (:issue:`27110`)
 - Bug in :class:`CategoricalIndex` and :class:`Categorical` incorrectly raising ``ValueError`` instead of ``TypeError`` when a list is passed using the ``in`` operator (``__contains__``) (:issue:`21729`)
+- Bug in setting a new value in a :class:`Series` with a :class:`Timedelta` object incorrectly casting the value to an integer (:issue:`22717`)
+- Bug in :class:`Series` setting a new key (``__setitem__``) with a timezone-aware datetime incorrectly raising ``ValueError`` (:issue:`12862`)
+- Bug in :meth:`DataFrame.iloc` when indexing with a read-only indexer (:issue:`17192`)
 -
 
 Missing
@@ -1098,6 +1103,7 @@ I/O
 - Fixed bug in :func:`DataFrame.to_excel()` where custom objects (i.e. `PeriodIndex`) inside merged cells were not being converted into types safe for the Excel writer (:issue:`27006`)
 - Bug in :meth:`read_hdf` where reading a timezone aware :class:`DatetimeIndex` would raise a ``TypeError`` (:issue:`11926`)
 - Bug in :meth:`to_msgpack` and :meth:`read_msgpack` which would raise a ``ValueError`` rather than a ``FileNotFoundError`` for an invalid path (:issue:`27160`)
+- Fixed bug in :meth:`DataFrame.to_parquet` which would raise a ``ValueError`` when the dataframe had no columns (:issue:`27339`)
 
 Plotting
 ^^^^^^^^
@@ -1134,6 +1140,7 @@ Groupby/resample/rolling
 - Bug in :meth:`pandas.core.window.Rolling.median` and :meth:`pandas.core.window.Rolling.quantile` where incorrect results are returned with ``closed='left'`` and ``closed='neither'`` (:issue:`26005`)
 - Improved :class:`pandas.core.window.Rolling`, :class:`pandas.core.window.Window` and :class:`pandas.core.window.EWM` functions to exclude nuisance columns from results instead of raising errors and raise a ``DataError`` only if all columns are nuisance (:issue:`12537`)
 - Bug in :meth:`pandas.core.window.Rolling.max` and :meth:`pandas.core.window.Rolling.min` where incorrect results are returned with an empty variable window (:issue:`26005`)
+- Raise a helpful exception when an unsupported weighted window function is used as an argument of :meth:`pandas.core.window.Window.aggregate` (:issue:`26597`)
 
 Reshaping
 ^^^^^^^^^

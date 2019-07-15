@@ -903,6 +903,19 @@ class TestCategoricalDtypeParametrized:
         with tm.assert_produces_warning(warning):
             dtype.ordered
 
+    @pytest.mark.parametrize("ordered", [True, False, None, ordered_sentinel])
+    def test_pickle_ordered_from_sentinel(self, ordered):
+        # GH 27295: can remove test when _ordered_from_sentinel is removed (GH 26403)
+        dtype = CategoricalDtype(categories=list("abc"), ordered=ordered)
+
+        warning = FutureWarning if ordered is ordered_sentinel else None
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            dtype_from_pickle = tm.round_trip_pickle(dtype)
+
+        result = dtype_from_pickle._ordered_from_sentinel
+        expected = ordered is ordered_sentinel
+        assert result is expected
+
 
 @pytest.mark.parametrize(
     "dtype", [CategoricalDtype, IntervalDtype, DatetimeTZDtype, PeriodDtype]

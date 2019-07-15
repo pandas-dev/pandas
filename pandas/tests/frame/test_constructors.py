@@ -264,7 +264,7 @@ class TestDataFrameConstructors:
         nitems = 100
         nums = list(range(nitems))
         random.shuffle(nums)
-        expected = ["A%d" % i for i in nums]
+        expected = ["A{i:d}".format(i=i) for i in nums]
         df = DataFrame(OrderedDict(zip(expected, [[0]] * nitems)))
         assert expected == list(df.columns)
 
@@ -2396,6 +2396,13 @@ class TestDataFrameConstructors:
         assert len(result) == 0
         assert result.index.name == "foo"
         tm.assert_index_equal(result.columns, expected)
+
+    def test_from_records_series_list_dict(self):
+        # GH27358
+        expected = DataFrame([[{"a": 1, "b": 2}, {"a": 3, "b": 4}]]).T
+        data = Series([[{"a": 1, "b": 2}], [{"a": 3, "b": 4}]])
+        result = DataFrame.from_records(data)
+        tm.assert_frame_equal(result, expected)
 
     def test_to_frame_with_falsey_names(self):
         # GH 16114

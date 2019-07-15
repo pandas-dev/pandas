@@ -380,7 +380,7 @@ class TestReadHtml:
         dfs = self.read_html(macau_data, index_col=0, attrs={"class": "style1"})
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isna().any() for _, s in df.iteritems())
+        assert not any(s.isna().any() for _, s in df.items())
 
     @pytest.mark.slow
     def test_thousands_macau_index_col(self, datapath):
@@ -389,7 +389,7 @@ class TestReadHtml:
         dfs = self.read_html(macau_data, index_col=0, header=0)
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isna().any() for _, s in df.iteritems())
+        assert not any(s.isna().any() for _, s in df.items())
 
     def test_empty_tables(self):
         """
@@ -902,8 +902,8 @@ class TestReadHtml:
 
     def test_wikipedia_states_table(self, datapath):
         data = datapath("io", "data", "wikipedia_states.html")
-        assert os.path.isfile(data), "%r is not a file" % data
-        assert os.path.getsize(data), "%r is an empty file" % data
+        assert os.path.isfile(data), "{data!r} is not a file".format(data=data)
+        assert os.path.getsize(data), "{data!r} is an empty file".format(data=data)
         result = self.read_html(data, "Arizona", header=1)[0]
         assert result["sq mi"].dtype == np.dtype("float64")
 

@@ -258,7 +258,7 @@ class MPLPlot:
         # else:
         #     columns = data.columns
 
-        for col, values in data.iteritems():
+        for col, values in data.items():
             if keep_index is True:
                 yield col, values
             else:

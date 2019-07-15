@@ -342,7 +342,7 @@ class TestDataFrameAlterAxes:
                 self.color = color
 
             def __str__(self):
-                return "<Thing %r>" % (self.name,)
+                return "<Thing {self.name!r}>".format(self=self)
 
             # necessary for pretty KeyError
             __repr__ = __str__
@@ -419,7 +419,7 @@ class TestDataFrameAlterAxes:
                 self.color = color
 
             def __str__(self):
-                return "<Thing %r>" % (self.name,)
+                return "<Thing {self.name!r}>".format(self=self)
 
         thing1 = Thing("One", "red")
         thing2 = Thing("Two", "blue")

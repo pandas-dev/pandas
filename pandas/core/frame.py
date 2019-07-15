@@ -771,15 +771,15 @@ class DataFrame(NDFrame):
 
         return Styler(self)
 
-    def iteritems(self):
-        r"""
+    _shared_docs[
+        "items"
+    ] = r"""
         Iterator over (column name, Series) pairs.
 
         Iterates over the DataFrame columns, returning a tuple with
         the column name and the content as a Series.
 
-        Yields
-        ------
+        %s
         label : object
             The column names for the DataFrame being iterated over.
         content : Series
@@ -802,7 +802,7 @@ class DataFrame(NDFrame):
         panda 	bear 	  1864
         polar 	bear 	  22000
         koala 	marsupial 80000
-        >>> for label, content in df.iteritems():
+        >>> for label, content in df.items():
         ...     print('label:', label)
         ...     print('content:', content, sep='\n')
         ...
@@ -819,12 +819,19 @@ class DataFrame(NDFrame):
         koala    80000
         Name: population, dtype: int64
         """
+
+    @Appender(_shared_docs["items"] % "Yields\n        ------")
+    def items(self):
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
         else:
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
+
+    @Appender(_shared_docs["items"] % "Returns\n        -------")
+    def iteritems(self):
+        return self.items()
 
     def iterrows(self):
         """
@@ -843,7 +850,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         itertuples : Iterate over DataFrame rows as namedtuples of the values.
-        iteritems : Iterate over (column name, Series) pairs.
+        items : Iterate over (column name, Series) pairs.
 
         Notes
         -----
@@ -901,7 +908,7 @@ class DataFrame(NDFrame):
         --------
         DataFrame.iterrows : Iterate over DataFrame rows as (index, Series)
             pairs.
-        DataFrame.iteritems : Iterate over (column name, Series) pairs.
+        DataFrame.items : Iterate over (column name, Series) pairs.
 
         Notes
         -----
@@ -957,8 +964,6 @@ class DataFrame(NDFrame):
 
         # fallback to regular tuples
         return zip(*arrays)
-
-    items = iteritems
 
     def __len__(self):
         """
@@ -2634,7 +2639,7 @@ class DataFrame(NDFrame):
         5216
         """
         result = Series(
-            [c.memory_usage(index=False, deep=deep) for col, c in self.iteritems()],
+            [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
             index=self.columns,
         )
         if index:
@@ -2884,11 +2889,11 @@ class DataFrame(NDFrame):
 
     _set_value.__doc__ = set_value.__doc__
 
-    def _ixs(self, i, axis=0):
+    def _ixs(self, i: int, axis: int = 0):
         """
         Parameters
         ----------
-        i : int, slice, or sequence of integers
+        i : int
         axis : int
 
         Notes
@@ -2897,59 +2902,40 @@ class DataFrame(NDFrame):
         """
         # irow
         if axis == 0:
-            if isinstance(i, slice):
-                return self[i]
-            else:
-                label = self.index[i]
-                if isinstance(label, Index):
-                    # a location index by definition
-                    result = self.take(i, axis=axis)
-                    copy = True
-                else:
-                    new_values = self._data.fast_xs(i)
-                    if is_scalar(new_values):
-                        return new_values
+            label = self.index[i]
+            new_values = self._data.fast_xs(i)
+            if is_scalar(new_values):
+                return new_values
 
-                    # if we are a copy, mark as such
-                    copy = (
-                        isinstance(new_values, np.ndarray) and new_values.base is None
-                    )
-                    result = self._constructor_sliced(
-                        new_values,
-                        index=self.columns,
-                        name=self.index[i],
-                        dtype=new_values.dtype,
-                    )
-                result._set_is_copy(self, copy=copy)
-                return result
+            # if we are a copy, mark as such
+            copy = isinstance(new_values, np.ndarray) and new_values.base is None
+            result = self._constructor_sliced(
+                new_values,
+                index=self.columns,
+                name=self.index[i],
+                dtype=new_values.dtype,
+            )
+            result._set_is_copy(self, copy=copy)
+            return result
 
         # icol
         else:
             label = self.columns[i]
-            if isinstance(i, slice):
-                # need to return view
-                lab_slice = slice(label[0], label[-1])
-                return self.loc[:, lab_slice]
-            else:
-                if isinstance(label, Index):
-                    return self._take(i, axis=1)
 
-                index_len = len(self.index)
+            # if the values returned are not the same length
+            # as the index (iow a not found value), iget returns
+            # a 0-len ndarray. This is effectively catching
+            # a numpy error (as numpy should really raise)
+            values = self._data.iget(i)
 
-                # if the values returned are not the same length
-                # as the index (iow a not found value), iget returns
-                # a 0-len ndarray. This is effectively catching
-                # a numpy error (as numpy should really raise)
-                values = self._data.iget(i)
+            if len(self.index) and not len(values):
+                values = np.array([np.nan] * len(self.index), dtype=object)
+            result = self._box_col_values(values, label)
 
-                if index_len and not len(values):
-                    values = np.array([np.nan] * index_len, dtype=object)
-                result = self._box_col_values(values, label)
+            # this is a cached value, mark it so
+            result._set_as_cached(label, self)
 
-                # this is a cached value, mark it so
-                result._set_as_cached(label, self)
-
-                return result
+            return result
 
     def __getitem__(self, key):
         key = lib.item_from_zerodim(key)
@@ -2994,7 +2980,7 @@ class DataFrame(NDFrame):
         if getattr(indexer, "dtype", None) == bool:
             indexer = np.where(indexer)[0]
 
-        data = self._take(indexer, axis=1)
+        data = self.take(indexer, axis=1)
 
         if is_single_key:
             # What does looking for a single key in a non-unique index return?
@@ -3027,7 +3013,7 @@ class DataFrame(NDFrame):
         # be reindexed to match DataFrame rows
         key = check_bool_indexer(self.index, key)
         indexer = key.nonzero()[0]
-        return self._take(indexer, axis=0)
+        return self.take(indexer, axis=0)
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
@@ -4955,7 +4941,7 @@ class DataFrame(NDFrame):
         if not diff.empty:
             raise KeyError(diff)
 
-        vals = (col.values for name, col in self.iteritems() if name in subset)
+        vals = (col.values for name, col in self.items() if name in subset)
         labels, shape = map(list, zip(*map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
@@ -7343,7 +7329,7 @@ class DataFrame(NDFrame):
         from pandas.core.reshape.concat import concat
 
         def _dict_round(df, decimals):
-            for col, vals in df.iteritems():
+            for col, vals in df.items():
                 try:
                     yield _series_round(vals, decimals[col])
                 except KeyError:
@@ -7363,7 +7349,7 @@ class DataFrame(NDFrame):
             new_cols = [col for col in _dict_round(self, decimals)]
         elif is_integer(decimals):
             # Dispatch to Series.round
-            new_cols = [_series_round(v, decimals) for _, v in self.iteritems()]
+            new_cols = [_series_round(v, decimals) for _, v in self.items()]
         else:
             raise TypeError("decimals must be an integer, a dict-like or a " "Series")
 

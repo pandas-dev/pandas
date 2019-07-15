@@ -249,7 +249,7 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
             fields.append(convert_pandas_type_to_json_field(data.index))
 
     if data.ndim > 1:
-        for column, s in data.iteritems():
+        for column, s in data.items():
             fields.append(convert_pandas_type_to_json_field(s))
     else:
         fields.append(convert_pandas_type_to_json_field(data))

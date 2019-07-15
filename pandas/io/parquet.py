@@ -55,7 +55,7 @@ class BaseImpl:
             raise ValueError("to_parquet only supports IO with DataFrames")
 
         # must have value column names (strings only)
-        if df.columns.inferred_type not in {"string", "unicode"}:
+        if df.columns.inferred_type not in {"string", "unicode", "empty"}:
             raise ValueError("parquet must have string column names")
 
         # index level names must be strings
@@ -261,8 +261,18 @@ def read_parquet(path, engine="auto", columns=None, **kwargs):
 
     Parameters
     ----------
-    path : string
-        File path
+    path : str, path object or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be:
+        ``file://localhost/path/to/table.parquet``.
+
+        If you want to pass in a path object, pandas accepts any
+        ``os.PathLike``.
+
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function)
+        or ``StringIO``.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``

@@ -99,7 +99,7 @@ class TestSeriesAnalytics:
         assert issubclass(argsorted.dtype.type, np.integer)
 
         # GH 2967 (introduced bug in 0.11-dev I think)
-        s = Series([Timestamp("201301%02d" % (i + 1)) for i in range(5)])
+        s = Series([Timestamp("201301{i:02d}".format(i=i)) for i in range(1, 6)])
         assert s.dtype == "datetime64[ns]"
         shifted = s.shift(-1)
         assert shifted.dtype == "datetime64[ns]"

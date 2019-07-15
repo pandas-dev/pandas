@@ -81,7 +81,7 @@ class TestExpressions:
                         assert expected.dtype.kind == "f"
                 assert_func(expected, result)
             except Exception:
-                pprint_thing("Failed test with operator %r" % op.__name__)
+                pprint_thing("Failed test with operator {op.__name__!r}".format(op=op))
                 raise
 
     def test_integer_arithmetic(self):
@@ -129,8 +129,8 @@ class TestExpressions:
                     assert not used_numexpr, "Used numexpr unexpectedly."
                 assert_func(expected, result)
             except Exception:
-                pprint_thing("Failed test with operation %r" % arith)
-                pprint_thing("test_flex was %r" % test_flex)
+                pprint_thing("Failed test with operation {arith!r}".format(arith=arith))
+                pprint_thing("test_flex was {test_flex!r}".format(test_flex=test_flex))
                 raise
 
     def run_frame(self, df, other, binary_comp=None, run_binary=True, **kwargs):
