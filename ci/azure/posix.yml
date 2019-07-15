@@ -34,7 +34,7 @@ jobs:
           LOCALE_OVERRIDE: "it_IT.UTF-8"
 
         py36_32bit:
-          ENV_FILE: ci/deps/azure-36-locale.yml
+          ENV_FILE: ci/deps/azure-36-32bit.yaml
           CONDA_PY: "36"
           PATTERN: "not slow and not network"
           BITS32: "yes"
