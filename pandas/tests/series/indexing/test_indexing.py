@@ -847,14 +847,3 @@ def test_head_tail(test_data):
     assert_series_equal(test_data.series.head(0), test_data.series[0:0])
     assert_series_equal(test_data.series.tail(), test_data.series[-5:])
     assert_series_equal(test_data.series.tail(0), test_data.series[0:0])
-
-
-def test_setitem_tuple_with_datetimetz():
-    # GH 20441
-    arr = pd.date_range("2017", periods=4, tz="US/Eastern")
-    index = [(0, 1), (0, 2), (0, 3), (0, 4)]
-    result = Series(arr, index=index)
-    expected = result.copy()
-    result[(0, 1)] = np.nan
-    expected.iloc[0] = np.nan
-    assert_series_equal(result, expected)

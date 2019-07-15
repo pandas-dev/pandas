@@ -995,7 +995,7 @@ Timezones
 - Bug in :func:`DataFrame.join` where joining a timezone aware index with a timezone aware column would result in a column of ``NaN`` (:issue:`26335`)
 - Bug in :func:`date_range` where ambiguous or nonexistent start or end times were not handled by the ``ambiguous`` or ``nonexistent`` keywords respectively (:issue:`27088`)
 - Bug in :meth:`DatetimeIndex.union` when combining a timezone aware and timezone unaware :class:`DatetimeIndex` (:issue:`21671`)
-- Bug when applying a numpy reduction function (e.g. ``np.minimum``) to a timezone aware :class:`Series` (:issue:`15552`)
+- Bug when applying a numpy reduction function (e.g. :meth:`numpy.minimum`) to a timezone aware :class:`Series` (:issue:`15552`)
 
 Numeric
 ^^^^^^^
@@ -1056,7 +1056,7 @@ Indexing
 - Bug in setting a new value in a :class:`Series` with a :class:`Timedelta` object incorrectly casting the value to an integer (:issue:`22717`)
 - Bug in :class:`Series` setting a new key (``__setitem__``) with a timezone-aware datetime incorrectly raising ``ValueError`` (:issue:`12862`)
 - Bug in :meth:`DataFrame.iloc` when indexing with a read-only indexer (:issue:`17192`)
-- Bug in :class:`Series` setting a existing tuple key (``__setitem__``) with timezone-aware datetime values incorrectly raising ``TypeError`` (:issue:`20441`)
+- Bug in :class:`Series` setting an existing tuple key (``__setitem__``) with timezone-aware datetime values incorrectly raising ``TypeError`` (:issue:`20441`)
 
 Missing
 ^^^^^^^
