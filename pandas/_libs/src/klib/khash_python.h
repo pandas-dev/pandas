@@ -106,7 +106,7 @@ khint_t PANDAS_INLINE kh_put_str_starts_item(kh_str_starts_t* table, char* key, 
     return result;
 }
 
-khint_t PANDAS_INLINE kh_get_str_starts_item(kh_str_starts_t* table, char* key) {
+khint_t PANDAS_INLINE kh_get_str_starts_item(const kh_str_starts_t* table, const char* key) {
     unsigned char ch = *key;
 	if (table->starts[ch]) {
 		if (ch == '\0' || kh_get_str(table->table, key) != table->table->n_buckets) return 1;

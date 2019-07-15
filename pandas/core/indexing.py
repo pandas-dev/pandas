@@ -1,4 +1,5 @@
 import textwrap
+from typing import Tuple
 import warnings
 
 import numpy as np
@@ -936,7 +937,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         new_key = b, a
 
                     if len(new_key) == 1:
-                        new_key, = new_key
+                        new_key = new_key[0]
 
                 # Slices should return views, but calling iloc/loc with a null
                 # slice returns a new object.
@@ -1250,7 +1251,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # a positional
                 if obj >= self.obj.shape[axis] and not isinstance(labels, MultiIndex):
                     raise ValueError(
-                        "cannot set by positional indexing with " "enlargement"
+                        "cannot set by positional indexing with enlargement"
                     )
 
             return obj
@@ -1408,7 +1409,7 @@ class _LocationIndexer(_NDFrameIndexer):
             maybe_callable = com.apply_if_callable(key, self.obj)
             return self._getitem_axis(maybe_callable, axis=axis)
 
-    def _is_scalar_access(self, key):
+    def _is_scalar_access(self, key: Tuple):
         raise NotImplementedError()
 
     def _getitem_scalar(self, key):
@@ -1709,14 +1710,11 @@ class _LocIndexer(_LocationIndexer):
         if not is_list_like_indexer(key):
             self._convert_scalar_indexer(key, axis)
 
-    def _is_scalar_access(self, key):
+    def _is_scalar_access(self, key: Tuple):
         # this is a shortcut accessor to both .loc and .iloc
         # that provide the equivalent access of .at and .iat
         # a) avoid getting things via sections and (to minimize dtype changes)
         # b) provide a performant path
-        if not hasattr(key, "__len__"):
-            return False
-
         if len(key) != self.ndim:
             return False
 
@@ -2000,7 +1998,7 @@ class _iLocIndexer(_LocationIndexer):
             # check that the key has a numeric dtype
             if not is_numeric_dtype(arr.dtype):
                 raise IndexError(
-                    ".iloc requires numeric indexers, got " "{arr}".format(arr=arr)
+                    ".iloc requires numeric indexers, got {arr}".format(arr=arr)
                 )
 
             # check that the key does not exceed the maximum size of the index
@@ -2015,14 +2013,11 @@ class _iLocIndexer(_LocationIndexer):
     def _has_valid_setitem_indexer(self, indexer):
         self._has_valid_positional_setitem_indexer(indexer)
 
-    def _is_scalar_access(self, key):
+    def _is_scalar_access(self, key: Tuple):
         # this is a shortcut accessor to both .loc and .iloc
         # that provide the equivalent access of .at and .iat
         # a) avoid getting things via sections and (to minimize dtype changes)
         # b) provide a performant path
-        if not hasattr(key, "__len__"):
-            return False
-
         if len(key) != self.ndim:
             return False
 
@@ -2131,9 +2126,7 @@ class _iLocIndexer(_LocationIndexer):
         else:
             key = item_from_zerodim(key)
             if not is_integer(key):
-                raise TypeError(
-                    "Cannot index by location index with a " "non-integer key"
-                )
+                raise TypeError("Cannot index by location index with a non-integer key")
 
             # validate the location
             self._validate_integer(key, axis)
@@ -2191,7 +2184,7 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
         if not isinstance(key, tuple):
             key = self._tuplify(key)
         if len(key) != self.obj.ndim:
-            raise ValueError("Not enough indexers for scalar access " "(setting)!")
+            raise ValueError("Not enough indexers for scalar access (setting)!")
         key = list(self._convert_key(key, is_setter=True))
         key.append(value)
         self.obj._set_value(*key, takeable=self._takeable)
@@ -2327,7 +2320,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
         """ require integer args (and convert to label arguments) """
         for a, i in zip(self.obj.axes, key):
             if not is_integer(i):
-                raise ValueError("iAt based indexing can only have integer " "indexers")
+                raise ValueError("iAt based indexing can only have integer indexers")
         return key
 
 
