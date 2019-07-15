@@ -9,7 +9,7 @@ import numpy as np
 
 from pandas._libs import NaT, lib, tslib, tslibs
 import pandas._libs.internals as libinternals
-from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
+from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas.util._validators import validate_bool_kwarg
 
@@ -42,7 +42,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_interval_dtype,
     is_list_like,
-    is_numeric_v_string_like,
     is_object_dtype,
     is_period_dtype,
     is_re,
@@ -61,7 +60,13 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import _isna_compat, array_equivalent, isna, notna
+from pandas.core.dtypes.missing import (
+    _isna_compat,
+    array_equivalent,
+    is_valid_nat_for_dtype,
+    isna,
+    notna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
@@ -1307,24 +1312,20 @@ class Block(PandasObject):
 
         if fill_tuple is None:
             fill_value = self.fill_value
-            new_values = algos.take_nd(
-                values, indexer, axis=axis, allow_fill=False, fill_value=fill_value
-            )
+            allow_fill = False
         else:
             fill_value = fill_tuple[0]
-            new_values = algos.take_nd(
-                values, indexer, axis=axis, allow_fill=True, fill_value=fill_value
-            )
+            allow_fill = True
 
+        new_values = algos.take_nd(
+            values, indexer, axis=axis, allow_fill=allow_fill, fill_value=fill_value
+        )
+
+        # Called from three places in managers, all of which satisfy
+        #  this assertion
+        assert not (axis == 0 and new_mgr_locs is None)
         if new_mgr_locs is None:
-            if axis == 0:
-                slc = libinternals.indexer_as_slice(indexer)
-                if slc is not None:
-                    new_mgr_locs = self.mgr_locs[slc]
-                else:
-                    new_mgr_locs = self.mgr_locs[indexer]
-            else:
-                new_mgr_locs = self.mgr_locs
+            new_mgr_locs = self.mgr_locs
 
         if not is_dtype_equal(new_values.dtype, self.dtype):
             return self.make_block(new_values, new_mgr_locs)
@@ -1871,11 +1872,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         # if its REALLY axis 0, then this will be a reindex and not a take
         new_values = self.values.take(indexer, fill_value=fill_value, allow_fill=True)
 
-        if self.ndim == 1 and new_mgr_locs is None:
-            new_mgr_locs = [0]
-        else:
-            if new_mgr_locs is None:
-                new_mgr_locs = self.mgr_locs
+        # Called from three places in managers, all of which satisfy
+        #  this assertion
+        assert not (self.ndim == 1 and new_mgr_locs is None)
+        if new_mgr_locs is None:
+            new_mgr_locs = self.mgr_locs
 
         return self.make_block_same_class(new_values, new_mgr_locs)
 
@@ -2271,7 +2272,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         elif is_integer(element):
             return element == tslibs.iNaT
 
-        return isna(element) and not isinstance(element, np.timedelta64)
+        return is_valid_nat_for_dtype(element, self.dtype)
 
     def _coerce_values(self, values):
         return values.view("i8")
@@ -2291,8 +2292,10 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         -------
         base-type other
         """
-        if is_null_datetimelike(other):
+        if is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
+        elif is_integer(other) and other == tslibs.iNaT:
+            pass
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
             if getattr(other, "tz") is not None:
@@ -2483,8 +2486,10 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # add the tz back
             other = self._holder(other, dtype=self.dtype)
 
-        elif is_null_datetimelike(other):
+        elif is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
+        elif is_integer(other) and other == tslibs.iNaT:
+            pass
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
@@ -2624,10 +2629,16 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
+            # TODO: remove the np.int64 support once coerce_values and
+            #  _try_coerce_args both coerce to m8[ns] and not i8.
             return issubclass(tipo.type, (np.timedelta64, np.int64))
         elif element is NaT:
             return True
-        return is_integer(element) or isinstance(element, (timedelta, np.timedelta64))
+        elif isinstance(element, (timedelta, np.timedelta64)):
+            return True
+        elif is_integer(element):
+            return element == tslibs.iNaT
+        return is_valid_nat_for_dtype(element, self.dtype)
 
     def fillna(self, value, **kwargs):
 
@@ -2663,8 +2674,10 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         base-type other
         """
 
-        if is_null_datetimelike(other):
+        if is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
+        elif is_integer(other) and other == tslibs.iNaT:
+            pass
         elif isinstance(other, (timedelta, np.timedelta64)):
             other = Timedelta(other).value
         elif hasattr(other, "dtype") and is_timedelta64_dtype(other):
@@ -3381,10 +3394,6 @@ def _putmask_smart(v, m, n):
         # make sure that we have a nullable type
         # if we have nulls
         if not _isna_compat(v, nn[0]):
-            pass
-        elif is_numeric_v_string_like(nn, v):
-            # avoid invalid dtype comparisons
-            # between numbers & strings
             pass
         elif not (is_float_dtype(nn.dtype) or is_integer_dtype(nn.dtype)):
             # only compare integers/floats

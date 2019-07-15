@@ -616,7 +616,7 @@ class TestGrouping:
         # check group properties
         assert len(gr.grouper.groupings) == 1
         tm.assert_numpy_array_equal(
-            gr.grouper.group_info[0], np.array([], dtype=np.dtype("intp"))
+            gr.grouper.group_info[0], np.array([], dtype=np.dtype("int64"))
         )
 
         tm.assert_numpy_array_equal(
