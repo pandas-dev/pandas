@@ -306,12 +306,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     def equals(self, other):
         """
-        Determine if two CategorialIndex objects contain the same elements.
+        Determine if two CategoricalIndex objects contain the same elements.
 
         Returns
         -------
         bool
-            If two CategorialIndex objects have equal elements True,
+            If two CategoricalIndex objects have equal elements True,
             otherwise False.
         """
         if self.is_(other):
