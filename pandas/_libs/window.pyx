@@ -1675,9 +1675,9 @@ def roll_generic(object obj,
     return output
 
 
-def roll_window(ndarray[float64_t, ndim=1, cast=True] values,
+def roll_weighted_window(ndarray[float64_t, ndim=1, cast=True] values,
                 ndarray[float64_t, ndim=1, cast=True] weights,
-                int minp, bint avg=True):
+                int minp, name="mean"):
     """
     Assume len(weights) << len(values)
     """
@@ -1686,16 +1686,19 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] values,
         Py_ssize_t in_i, win_i, win_n, in_n
         float64_t val_in, val_win, c, w
 
+    # currently supported ops
+    assert name in ("mean", "sum")
+
     in_n = len(values)
     win_n = len(weights)
     output = np.zeros(in_n, dtype=float)
     counts = np.zeros(in_n, dtype=float)
-    if avg:
+    if name == "mean":
         tot_wgt = np.zeros(in_n, dtype=float)
 
     minp = _check_minp(len(weights), minp, in_n)
 
-    if avg:
+    if name == "mean":
         for win_i in range(win_n):
             val_win = weights[win_i]
             if val_win != val_win:
@@ -1719,7 +1722,7 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] values,
                 else:
                     output[in_i] /= tot_wgt[in_i]
 
-    else:
+    elif name == "sum":
         for win_i in range(win_n):
             val_win = weights[win_i]
             if val_win != val_win:
