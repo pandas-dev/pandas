@@ -574,7 +574,7 @@ def is_valid_nat_for_dtype(obj, dtype):
     -------
     bool
     """
-    if not is_scalar(obj) or not isna(obj):
+    if not lib.is_scalar(obj) or not isna(obj):
         return False
     if dtype.kind == "M":
         return not isinstance(obj, np.timedelta64)
