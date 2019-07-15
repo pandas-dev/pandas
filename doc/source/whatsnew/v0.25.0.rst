@@ -748,7 +748,7 @@ Column order is preserved when passing a list of dicts to DataFrame
 
 Starting with Python 3.7 the key-order of ``dict`` is `guaranteed <https://mail.python.org/pipermail/python-dev/2017-December/151283.html>`_. In practice, this has been true since
 Python 3.6. The :class:`DataFrame` constructor now treats a list of dicts in the same way as
-it has a list of ``OrderedDict`` since v0.19.0, i.e. preserving the order of the dicsts.
+it has a list of ``OrderedDict`` since v0.19.0, i.e. preserving the order of the dicts.
 This change applies only when pandas is running on Python>=3.6 (:issue:`27309`).
 
 .. ipython:: python
