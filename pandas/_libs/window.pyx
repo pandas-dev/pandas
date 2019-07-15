@@ -360,12 +360,12 @@ cdef class WindowIterator:
         int64_t[:] start, end
         object values, is_variable
 
-    def __init__(self, object values, int64_t win, object closed, int64_t minp):
+    def __init__(self, object values, object index, int64_t win, object closed, int64_t minp):
         self.values = values
         self.i = 0
 
         self.start, self.end, self.N, self.win, self.minp, self.is_variable = get_window_indexer(
-            np.asarray(values), win, minp, None, closed
+            np.asarray(values), win, minp, index, closed
         )
 
     def __iter__(self):

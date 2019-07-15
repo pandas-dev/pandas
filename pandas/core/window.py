@@ -204,16 +204,18 @@ class _Window(PandasObject, SelectionMixin):
         )
 
     def __iter__(self):
+        self.validate()
         window = self._get_window()
         minp = _use_window(self.min_periods, window)
 
         blocks, obj, index = self._create_blocks()
+        index, indexi = self._get_index(index)
 
         iterators = []
 
         for i, values in enumerate(blocks):
             iterators.append(
-                libwindow.WindowIterator(values, window, self.closed, minp)
+                libwindow.WindowIterator(values, indexi, window, self.closed, minp)
             )
 
         return (elem for iterator in iterators for elem in iterator)
