@@ -39,6 +39,39 @@ class ExtensionArray:
 
     .. versionadded:: 0.23.0
 
+    Attributes
+    ----------
+    dtype
+    nbytes
+    ndim
+    shape
+
+    Methods
+    -------
+    argsort
+    astype
+    copy
+    dropna
+    factorize
+    fillna
+    isna
+    ravel
+    repeat
+    searchsorted
+    shift
+    take
+    unique
+    _concat_same_type
+    _formatter
+    _formatting_values
+    _from_factorized
+    _from_sequence
+    _from_sequence_of_strings
+    _ndarray_values
+    _reduce
+    _values_for_argsort
+    _values_for_factorize
+
     Notes
     -----
     The interface includes the following abstract methods that must be
@@ -170,7 +203,6 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
-
         """
         raise AbstractMethodError(cls)
 
@@ -188,7 +220,7 @@ class ExtensionArray:
 
         See Also
         --------
-        pandas.factorize
+        factorize
         ExtensionArray.factorize
         """
         raise AbstractMethodError(cls)
@@ -654,7 +686,7 @@ class ExtensionArray:
 
         See Also
         --------
-        pandas.factorize : Top-level factorize method that dispatches here.
+        factorize : Top-level factorize method that dispatches here.
 
         Notes
         -----
@@ -778,17 +810,17 @@ class ExtensionArray:
             When `indices` contains negative values other than ``-1``
             and `allow_fill` is True.
 
+        See Also
+        --------
+        numpy.take
+        api.extensions.take
+
         Notes
         -----
         ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
         ``iloc``, when `indices` is a sequence of values. Additionally,
         it's called by :meth:`Series.reindex`, or any other method
         that causes realignment, with a `fill_value`.
-
-        See Also
-        --------
-        numpy.take
-        pandas.api.extensions.take
 
         Examples
         --------
@@ -862,7 +894,7 @@ class ExtensionArray:
 
         Parameters
         ----------
-        boxed: bool, default False
+        boxed : bool, default False
             An indicated for whether or not your array is being printed
             within a Series, DataFrame, or Index (True), or just by
             itself (False). This may be useful if you want scalar values
@@ -889,6 +921,10 @@ class ExtensionArray:
         .. deprecated:: 0.24.0
 
            Use :meth:`ExtensionArray._formatter` instead.
+
+        Returns
+        -------
+        array : ndarray
         """
         return np.array(self)
 
@@ -903,6 +939,10 @@ class ExtensionArray:
         Parameters
         ----------
         order : {None, 'C', 'F', 'A', 'K'}, default 'C'
+
+        Returns
+        -------
+        ExtensionArray
 
         Notes
         -----
@@ -944,6 +984,10 @@ class ExtensionArray:
 
         The expectation is that this is cheap to compute, and is primarily
         used for interacting with our indexers.
+
+        Returns
+        -------
+        array : ndarray
         """
         return np.array(self)
 
