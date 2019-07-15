@@ -213,7 +213,7 @@ cdef class _Timestamp(datetime):
 
     def __add__(self, other):
         cdef:
-            int64_t other_int, nanos
+            int64_t other_int, nanos = 0
 
         if is_timedelta64_object(other):
             other_int = other.astype('timedelta64[ns]').view('i8')
