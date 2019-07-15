@@ -593,7 +593,7 @@ class TimedeltaIndex(
                 return lbound
             else:
                 return lbound + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
-        elif (is_integer(label) or is_float(label)) and not is_timedelta64_dtype(label):
+        elif is_integer(label) or is_float(label):
             self._invalid_indexer("slice", label)
 
         return label

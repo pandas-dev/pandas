@@ -1203,9 +1203,7 @@ class TestNumberScalar:
         assert not is_integer(Timestamp("2011-01-01", tz="US/Eastern"))
         assert not is_integer(timedelta(1000))
         assert not is_integer(Timedelta("1 days"))
-
-        # questionable
-        assert is_integer(np.timedelta64(1, "D"))
+        assert not is_integer(np.timedelta64(1, "D"))
 
     def test_is_float(self):
         assert is_float(1.1)
