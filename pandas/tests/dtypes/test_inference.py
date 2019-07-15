@@ -577,6 +577,16 @@ class TestTypeInference:
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "integer"
 
+    # GH 27392
+    def test_integer_na(self):
+        arr = np.array([1, 2, np.nan, np.nan, 3], dtype="O")
+        result = lib.infer_dtype(arr, skipna=False)
+        assert result == "integer-na"
+
+        arr = np.array([1, 2, 3, np.int64(4), np.int32(5), np.nan], dtype="O")
+        result = lib.infer_dtype(arr, skipna=False)
+        assert result == "integer-na"
+
     def test_deprecation(self):
         # GH 24050
         arr = np.array([1, 2, 3], dtype=object)

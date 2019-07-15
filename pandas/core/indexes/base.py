@@ -3197,8 +3197,10 @@ class Index(IndexOpsMixin, PandasObject):
                     self.get_loc(stop)
                 is_positional = False
         except KeyError:
-            if (self.inferred_type == "mixed-integer-float" or
-                    self.inferred_type == "integer-na"):
+            if (
+                self.inferred_type == "mixed-integer-float"
+                or self.inferred_type == "integer-na"
+            ):
                 raise
 
         if is_null_slicer:
