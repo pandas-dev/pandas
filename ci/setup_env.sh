@@ -94,6 +94,12 @@ echo
 echo "conda env create -q --file=${ENV_FILE}"
 time conda env create -q --file="${ENV_FILE}"
 
+
+if [[ "$BITS32" == "yes" ]]; then
+    # activate 32-bit compiler
+    export CONDA_BUILD=1
+fi
+
 echo "activate pandas-dev"
 source activate pandas-dev
 
