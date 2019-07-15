@@ -53,6 +53,18 @@ class Dtype:
                 "var": Series([np.nan, 2, 2, 2, 2], dtype="float64"),
                 "median": Series([np.nan, 9, 7, 5, 3], dtype="float64"),
             },
+            "sr3": {
+                "count": Series([1, 2, 2, 1, 1], dtype="float64"),
+                "max": Series([np.nan, 1, 2, np.nan, np.nan], dtype="float64"),
+                "min": Series([np.nan, 0, 1, np.nan, np.nan], dtype="float64"),
+                "sum": Series([np.nan, 1, 3, np.nan, np.nan], dtype="float64"),
+                "mean": Series([np.nan, 0.5, 1.5, np.nan, np.nan], dtype="float64"),
+                "std": Series(
+                    [np.nan] + [np.sqrt(0.5)] * 2 + [np.nan] * 2, dtype="float64"
+                ),
+                "var": Series([np.nan, 0.5, 0.5, np.nan, np.nan], dtype="float64"),
+                "median": Series([np.nan, 0.5, 1.5, np.nan, np.nan], dtype="float64"),
+            },
             "df": {
                 "count": DataFrame(
                     {0: Series([1, 2, 2, 2, 2]), 1: Series([1, 2, 2, 2, 2])},
@@ -99,9 +111,11 @@ class Dtype:
     def _create_dtype_data(self, dtype):
         sr1 = Series(np.arange(5), dtype=dtype)
         sr2 = Series(np.arange(10, 0, -2), dtype=dtype)
+        sr3 = sr1.copy()
+        sr3[3] = np.NaN
         df = DataFrame(np.arange(10).reshape((5, 2)), dtype=dtype)
 
-        data = {"sr1": sr1, "sr2": sr2, "df": df}
+        data = {"sr1": sr1, "sr2": sr2, "sr3": sr3, "df": df}
 
         return data
 
