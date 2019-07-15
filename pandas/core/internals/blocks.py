@@ -2637,7 +2637,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             return True
         elif isinstance(element, (timedelta, np.timedelta64)):
             return True
-        elif is_integer(element) and not isinstance(element, np.timedelta64):
+        elif is_integer(element):
             return element == tslibs.iNaT
         return is_valid_nat_for_dtype(element, self.dtype)
 
@@ -2645,7 +2645,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
         # allow filling with integers to be
         # interpreted as nanoseconds
-        if is_integer(value) and not isinstance(value, np.timedelta64):
+        if is_integer(value):
             # Deprecation GH#24694, GH#19233
             warnings.warn(
                 "Passing integers to fillna is deprecated, will "

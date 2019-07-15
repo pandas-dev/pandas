@@ -90,9 +90,7 @@ class BinOp(ops.BinOp):
 
             k = klass
             if isinstance(left, ConditionBinOp):
-                if isinstance(left, ConditionBinOp) and isinstance(
-                    right, ConditionBinOp
-                ):
+                if isinstance(right, ConditionBinOp):
                     k = JointConditionBinOp
                 elif isinstance(left, k):
                     return left
@@ -100,7 +98,7 @@ class BinOp(ops.BinOp):
                     return right
 
             elif isinstance(left, FilterBinOp):
-                if isinstance(left, FilterBinOp) and isinstance(right, FilterBinOp):
+                if isinstance(right, FilterBinOp):
                     k = JointFilterBinOp
                 elif isinstance(left, k):
                     return left
