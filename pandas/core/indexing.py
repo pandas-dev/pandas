@@ -1,4 +1,5 @@
 import textwrap
+from typing import Tuple
 import warnings
 
 import numpy as np
@@ -222,7 +223,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         """
         raise AbstractMethodError(self)
 
-    def _has_valid_tuple(self, key: tuple):
+    def _has_valid_tuple(self, key: Tuple):
         """ check the key for valid keys across my indexer """
         for i, k in enumerate(key):
             if i >= self.obj.ndim:
@@ -235,7 +236,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     "[{types}] types".format(types=self._valid_types)
                 )
 
-    def _is_nested_tuple_indexer(self, tup: tuple):
+    def _is_nested_tuple_indexer(self, tup: Tuple):
         if any(isinstance(ax, MultiIndex) for ax in self.obj.axes):
             return any(is_nested_tuple(tup, ax) for ax in self.obj.axes)
         return False
@@ -781,7 +782,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         raise ValueError("Incompatible indexer with DataFrame")
 
-    def _getitem_tuple(self, tup: tuple):
+    def _getitem_tuple(self, tup: Tuple):
         try:
             return self._getitem_lowerdim(tup)
         except IndexingError:
@@ -804,7 +805,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         return retval
 
-    def _multi_take_opportunity(self, tup: tuple):
+    def _multi_take_opportunity(self, tup: Tuple):
         """
         Check whether there is the possibility to use ``_multi_take``.
         Currently the limit is that all axes being indexed must be indexed with
@@ -828,7 +829,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         return True
 
-    def _multi_take(self, tup: tuple):
+    def _multi_take(self, tup: Tuple):
         """
         Create the indexers for the passed tuple of keys, and execute the take
         operation. This allows the take operation to be executed all at once -
@@ -854,7 +855,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
     def _convert_for_reindex(self, key, axis: int):
         return key
 
-    def _handle_lowerdim_multi_index_axis0(self, tup: tuple):
+    def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
         # we have an axis0 multi-index, handle or raise
         axis = self.axis or 0
         try:
@@ -879,7 +880,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         return None
 
-    def _getitem_lowerdim(self, tup: tuple):
+    def _getitem_lowerdim(self, tup: Tuple):
 
         # we can directly get the axis result since the axis is specified
         if self.axis is not None:
@@ -943,7 +944,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         raise IndexingError("not applicable")
 
-    def _getitem_nested_tuple(self, tup: tuple):
+    def _getitem_nested_tuple(self, tup: Tuple):
         # we have a nested tuple so have at least 1 multi-index level
         # we should be able to match up the dimensionality here
 
@@ -2063,7 +2064,7 @@ class _iLocIndexer(_LocationIndexer):
         if key >= len_axis or key < -len_axis:
             raise IndexError("single positional indexer is out-of-bounds")
 
-    def _getitem_tuple(self, tup: tuple):
+    def _getitem_tuple(self, tup: Tuple):
 
         self._has_valid_tuple(tup)
         try:
