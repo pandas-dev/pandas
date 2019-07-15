@@ -707,14 +707,14 @@ class Window(_Window):
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
 
-    def _apply_window(self, mean=True, **kwargs):
+    def _apply_window(self, func, **kwargs):
         """
         Applies a moving window of type ``window_type`` on the data.
 
         Parameters
         ----------
-        mean : bool, default True
-            If True computes weighted mean, else weighted sum
+        func : str
+            Name of function to apply
 
         Returns
         -------
@@ -749,12 +749,13 @@ class Window(_Window):
             additional_nans = np.array([np.NaN] * offset)
 
             def f(arg, *args, **kwargs):
+                cfunc = getattr(libwindow, func)
                 minp = _use_window(self.min_periods, len(window))
-                return libwindow.roll_window(
+
+                return cfunc(
                     np.concatenate((arg, additional_nans)) if center else arg,
                     window,
                     minp,
-                    avg=mean,
                 )
 
             result = np.apply_along_axis(f, self.axis, values)
@@ -831,13 +832,13 @@ class Window(_Window):
     @Appender(_shared_docs["sum"])
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
-        return self._apply_window(mean=False, **kwargs)
+        return self._apply_window("roll_window_sum", **kwargs)
 
     @Substitution(name="window")
     @Appender(_shared_docs["mean"])
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
-        return self._apply_window(mean=True, **kwargs)
+        return self._apply_window("roll_window_mean", **kwargs)
 
 
 class _GroupByMixin(GroupByMixin):

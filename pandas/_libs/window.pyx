@@ -1675,9 +1675,13 @@ def roll_generic(object obj,
     return output
 
 
-def roll_window(ndarray[float64_t, ndim=1, cast=True] values,
-                ndarray[float64_t, ndim=1, cast=True] weights,
-                int minp, bint avg=True):
+# ----------------------------------------------------------------------
+# Rolling mean for weighted window
+
+
+def roll_window_mean(ndarray[float64_t, ndim=1, cast=True] values,
+                     ndarray[float64_t, ndim=1, cast=True] weights,
+                     int minp):
     """
     Assume len(weights) << len(values)
     """
@@ -1688,56 +1692,81 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] values,
 
     in_n = len(values)
     win_n = len(weights)
+
     output = np.zeros(in_n, dtype=float)
     counts = np.zeros(in_n, dtype=float)
-    if avg:
-        tot_wgt = np.zeros(in_n, dtype=float)
+    tot_wgt = np.zeros(in_n, dtype=float)
 
     minp = _check_minp(len(weights), minp, in_n)
 
-    if avg:
-        for win_i in range(win_n):
-            val_win = weights[win_i]
-            if val_win != val_win:
-                continue
+    for win_i in range(win_n):
+        val_win = weights[win_i]
+        if val_win != val_win:
+            continue
 
-            for in_i from 0 <= in_i < in_n - (win_n - win_i) + 1:
-                val_in = values[in_i]
-                if val_in == val_in:
-                    output[in_i + (win_n - win_i) - 1] += val_in * val_win
-                    counts[in_i + (win_n - win_i) - 1] += 1
-                    tot_wgt[in_i + (win_n - win_i) - 1] += val_win
+        for in_i from 0 <= in_i < in_n - (win_n - win_i) + 1:
+            val_in = values[in_i]
+            if val_in == val_in:
+                output[in_i + (win_n - win_i) - 1] += val_in * val_win
+                counts[in_i + (win_n - win_i) - 1] += 1
+                tot_wgt[in_i + (win_n - win_i) - 1] += val_win
 
-        for in_i in range(in_n):
-            c = counts[in_i]
-            if c < minp:
+    for in_i in range(in_n):
+        c = counts[in_i]
+        if c < minp:
+            output[in_i] = NaN
+        else:
+            w = tot_wgt[in_i]
+            if w == 0:
                 output[in_i] = NaN
             else:
-                w = tot_wgt[in_i]
-                if w == 0:
-                    output[in_i] = NaN
-                else:
-                    output[in_i] /= tot_wgt[in_i]
-
-    else:
-        for win_i in range(win_n):
-            val_win = weights[win_i]
-            if val_win != val_win:
-                continue
-
-            for in_i from 0 <= in_i < in_n - (win_n - win_i) + 1:
-                val_in = values[in_i]
-
-                if val_in == val_in:
-                    output[in_i + (win_n - win_i) - 1] += val_in * val_win
-                    counts[in_i + (win_n - win_i) - 1] += 1
-
-        for in_i in range(in_n):
-            c = counts[in_i]
-            if c < minp:
-                output[in_i] = NaN
+                output[in_i] /= tot_wgt[in_i]
 
     return output
+
+
+# ----------------------------------------------------------------------
+# Rolling sum for weighted window
+
+
+def roll_window_sum(ndarray[float64_t, ndim=1, cast=True] values,
+                    ndarray[float64_t, ndim=1, cast=True] weights,
+                    int minp):
+    """
+    Assume len(weights) << len(values)
+    """
+    cdef:
+        ndarray[float64_t] output, counts
+        Py_ssize_t in_i, win_i, win_n, in_n
+        float64_t val_in, val_win
+
+    in_n = len(values)
+    win_n = len(weights)
+
+    output = np.zeros(in_n, dtype=float)
+    counts = np.zeros(in_n, dtype=float)
+
+    minp = _check_minp(len(weights), minp, in_n)
+
+    for win_i in range(win_n):
+        val_win = weights[win_i]
+        if val_win != val_win:
+            continue
+
+        for in_i from 0 <= in_i < in_n - (win_n - win_i) + 1:
+            val_in = values[in_i]
+
+            if val_in == val_in:
+                output[in_i + (win_n - win_i) - 1] += val_in * val_win
+                counts[in_i + (win_n - win_i) - 1] += 1
+
+    for in_i in range(in_n):
+        c = counts[in_i]
+        if c < minp:
+            output[in_i] = NaN
+
+    return output
+
 
 # ----------------------------------------------------------------------
 # Exponentially weighted moving average
