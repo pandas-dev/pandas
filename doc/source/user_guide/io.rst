@@ -32,6 +32,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
     binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
@@ -108,8 +109,7 @@ header : int or list of ints, default ``'infer'``
   line of data rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
-  explicitly pass ``header=None``. Duplicates in this list will cause
-  a ``UserWarning`` to be issued.
+  explicitly pass ``header=None``. Duplicates in this list are not allowed.
 index_col : int, str, sequence of int / str, or False, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as
   string name or column index. If a sequence of int / str is given, a
@@ -2177,6 +2177,19 @@ into a flat table.
 
    json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
 
+The max_level parameter provides more control over which level to end normalization.
+With max_level=1 the following snippet normalizes until 1st nesting level of the provided dict.
+
+.. ipython:: python
+
+    data = [{'CreatedBy': {'Name': 'User001'},
+             'Lookup': {'TextField': 'Some text',
+                        'UserField': {'Id': 'ID001',
+                                      'Name': 'Name001'}},
+             'Image': {'a': 'b'}
+             }]
+    json_normalize(data, max_level=1)
+
 .. _io.jsonl:
 
 Line delimited json
@@ -2779,9 +2792,10 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 Excel files
 -----------
 
-The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``) and
-Excel 2007+ (``.xlsx``) files using the ``xlrd`` Python
-module.  The :meth:`~DataFrame.to_excel` instance method is used for
+The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``)
+files using the ``xlrd`` Python module.  Excel 2007+ (``.xlsx``) files
+can be read using either ``xlrd`` or ``openpyxl``.
+The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
@@ -3217,7 +3231,31 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 * ``float_format`` : Format string for floating point numbers (default ``None``).
 * ``freeze_panes`` : A tuple of two integers representing the bottommost row and rightmost column to freeze. Each of these parameters is one-based, so (1, 1) will freeze the first row and first column (default ``None``).
 
+Using the `Xlsxwriter`_ engine provides many options for controlling the
+format of an Excel worksheet created with the ``to_excel`` method.  Excellent examples can be found in the
+`Xlsxwriter`_ documentation here: https://xlsxwriter.readthedocs.io/working_with_pandas.html
 
+.. _io.ods:
+
+OpenDocument Spreadsheets
+-------------------------
+
+.. versionadded:: 0.25
+
+The :func:`~pandas.read_excel` method can also read OpenDocument spreadsheets
+using the ``odfpy`` module. The semantics and features for reading
+OpenDocument spreadsheets match what can be done for `Excel files`_ using
+``engine='odf'``.
+
+.. code-block:: python
+
+   # Returns a DataFrame
+   pd.read_excel('path_to_file.ods', engine='odf')
+
+.. note::
+
+   Currently pandas only supports *reading* OpenDocument spreadsheets. Writing
+   is not implemented.
 
 .. _io.clipboard:
 
@@ -3755,7 +3793,7 @@ defaults to `nan`.
     store.append('df_mixed', df_mixed, min_itemsize={'values': 50})
     df_mixed1 = store.select('df_mixed')
     df_mixed1
-    df_mixed1.get_dtype_counts()
+    df_mixed1.dtypes.value_counts()
 
     # we have provided a minimum string column size
     store.root.df_mixed.table

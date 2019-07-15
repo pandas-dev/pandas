@@ -260,9 +260,19 @@ static PyObject *get_values(PyObject *obj) {
         }
     }
 
-    if (!values && PyObject_HasAttrString(obj, "get_values")) {
+    if (!values && PyObject_HasAttrString(obj, "_internal_get_values")) {
         PRINTMARK();
-        values = PyObject_CallMethod(obj, "get_values", NULL);
+        values = PyObject_CallMethod(obj, "_internal_get_values", NULL);
+        if (values && !PyArray_CheckExact(values)) {
+            PRINTMARK();
+            Py_DECREF(values);
+            values = NULL;
+        }
+    }
+
+    if (!values && PyObject_HasAttrString(obj, "get_block_values")) {
+        PRINTMARK();
+        values = PyObject_CallMethod(obj, "get_block_values", NULL);
         if (values && !PyArray_CheckExact(values)) {
             PRINTMARK();
             Py_DECREF(values);

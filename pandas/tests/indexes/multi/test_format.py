@@ -10,8 +10,8 @@ import pandas.util.testing as tm
 def test_dtype_str(indices):
     with tm.assert_produces_warning(FutureWarning):
         dtype = indices.dtype_str
-        assert isinstance(dtype, str)
-        assert dtype == str(indices.dtype)
+    assert isinstance(dtype, str)
+    assert dtype == str(indices.dtype)
 
 
 def test_format(idx):
@@ -20,20 +20,20 @@ def test_format(idx):
 
 
 def test_format_integer_names():
-    index = MultiIndex(levels=[[0, 1], [0, 1]],
-                       codes=[[0, 0, 1, 1], [0, 1, 0, 1]], names=[0, 1])
+    index = MultiIndex(
+        levels=[[0, 1], [0, 1]], codes=[[0, 0, 1, 1], [0, 1, 0, 1]], names=[0, 1]
+    )
     index.format(names=True)
 
 
 def test_format_sparse_config(idx):
     warn_filters = warnings.filters
-    warnings.filterwarnings('ignore', category=FutureWarning,
-                            module=".*format")
+    warnings.filterwarnings("ignore", category=FutureWarning, module=".*format")
     # GH1538
-    pd.set_option('display.multi_sparse', False)
+    pd.set_option("display.multi_sparse", False)
 
     result = idx.format()
-    assert result[1] == 'foo  two'
+    assert result[1] == "foo  two"
 
     tm.reset_display_options()
 
@@ -41,24 +41,29 @@ def test_format_sparse_config(idx):
 
 
 def test_format_sparse_display():
-    index = MultiIndex(levels=[[0, 1], [0, 1], [0, 1], [0]],
-                       codes=[[0, 0, 0, 1, 1, 1], [0, 0, 1, 0, 0, 1],
-                              [0, 1, 0, 0, 1, 0], [0, 0, 0, 0, 0, 0]])
+    index = MultiIndex(
+        levels=[[0, 1], [0, 1], [0, 1], [0]],
+        codes=[
+            [0, 0, 0, 1, 1, 1],
+            [0, 0, 1, 0, 0, 1],
+            [0, 1, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 0],
+        ],
+    )
 
     result = index.format()
-    assert result[3] == '1  0  0  0'
+    assert result[3] == "1  0  0  0"
 
 
 def test_repr_with_unicode_data():
-    with pd.option_context("display.encoding", 'UTF-8'):
+    with pd.option_context("display.encoding", "UTF-8"):
         d = {"a": ["\u05d0", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
         index = pd.DataFrame(d).set_index(["a", "b"]).index
         assert "\\" not in repr(index)  # we don't want unicode-escaped
 
 
 def test_repr_roundtrip_raises():
-    mi = MultiIndex.from_product([list('ab'), range(3)],
-                                 names=['first', 'second'])
+    mi = MultiIndex.from_product([list("ab"), range(3)], names=["first", "second"])
     with pytest.raises(TypeError):
         eval(repr(mi))
 
@@ -74,11 +79,10 @@ def test_repr_max_seq_item_setting(idx):
     idx = idx.repeat(50)
     with pd.option_context("display.max_seq_items", None):
         repr(idx)
-        assert '...' not in str(idx)
+        assert "..." not in str(idx)
 
 
 class TestRepr:
-
     def test_repr(self, idx):
         result = idx[:1].__repr__()
         expected = """\
@@ -97,7 +101,7 @@ MultiIndex([('foo', 'one'),
            names=['first', 'second'])"""
         assert result == expected
 
-        with pd.option_context('display.max_seq_items', 5):
+        with pd.option_context("display.max_seq_items", 5):
             result = idx.__repr__()
             expected = """\
 MultiIndex([('foo', 'one'),

@@ -45,8 +45,8 @@ def test_boolean_context_compat2():
 
     # boolean context compat
     # GH7897
-    i1 = MultiIndex.from_tuples([('A', 1), ('A', 2)])
-    i2 = MultiIndex.from_tuples([('A', 1), ('A', 3)])
+    i1 = MultiIndex.from_tuples([("A", 1), ("A", 2)])
+    i2 = MultiIndex.from_tuples([("A", 1), ("A", 3)])
     common = i1.intersection(i2)
 
     with pytest.raises(ValueError):
@@ -54,8 +54,8 @@ def test_boolean_context_compat2():
 
 
 def test_inplace_mutation_resets_values():
-    levels = [['a', 'b', 'c'], [4]]
-    levels2 = [[1, 2, 3], ['a']]
+    levels = [["a", "b", "c"], [4]]
+    levels2 = [[1, 2, 3], ["a"]]
     codes = [[0, 1, 0, 2, 2, 0], [0, 0, 0, 0, 0, 0]]
 
     mi1 = MultiIndex(levels=levels, codes=codes)
@@ -82,7 +82,7 @@ def test_inplace_mutation_resets_values():
     # Make sure label setting works too
     codes2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
     exp_values = np.empty((6,), dtype=object)
-    exp_values[:] = [(1, 'a')] * 6
+    exp_values[:] = [(1, "a")] * 6
 
     # Must be 1d array of tuples
     assert exp_values.shape == (6,)

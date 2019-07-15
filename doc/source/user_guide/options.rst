@@ -157,6 +157,22 @@ lines are replaced by an ellipsis.
    df
    pd.reset_option('max_rows')
 
+Once the ``display.max_rows`` is exceeded, the ``display.min_rows`` options
+determines how many rows are shown in the truncated repr.
+
+.. ipython:: python
+
+   pd.set_option('max_rows', 8)
+   pd.set_option('max_rows', 4)
+   # below max_rows -> all rows shown
+   df = pd.DataFrame(np.random.randn(7, 2))
+   df
+   # above max_rows -> only min_rows (4) rows shown
+   df = pd.DataFrame(np.random.randn(9, 2))
+   df
+   pd.reset_option('max_rows')
+   pd.reset_option('min_rows')
+
 ``display.expand_frame_repr`` allows for the representation of
 dataframes to stretch across pages, wrapped over the full column vs row-wise.
 
@@ -352,8 +368,12 @@ display.max_rows                        60           This sets the maximum numbe
                                                      out various output. For example,
                                                      this value determines whether the
                                                      repr() for a dataframe prints out
-                                                     fully or just a summary repr.
+                                                     fully or just a truncated or summary repr.
                                                      'None' value means unlimited.
+display.min_rows                        10           The numbers of rows to show in a truncated
+                                                     repr (when `max_rows` is exceeded). Ignored
+                                                     when `max_rows` is set to None or 0. When set
+                                                     to None, follows the value of `max_rows`.
 display.max_seq_items                   100          when pretty-printing a long sequence,
                                                      no more then `max_seq_items` will
                                                      be printed. If items are omitted,

@@ -27,44 +27,90 @@ from pandas._libs import algos as libalgos, lib
 from pandas.compat import PY36, raise_with_traceback
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
-    Appender, Substitution, deprecate_kwarg, rewrite_axis_style_signature)
-from pandas.util._validators import (
-    validate_axis_style_args, validate_bool_kwarg)
+    Appender,
+    Substitution,
+    deprecate_kwarg,
+    rewrite_axis_style_signature,
+)
+from pandas.util._validators import validate_axis_style_args, validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
-    cast_scalar_to_array, coerce_to_dtypes, find_common_type,
-    infer_dtype_from_scalar, invalidate_string_dtypes, maybe_cast_to_datetime,
-    maybe_convert_platform, maybe_downcast_to_dtype,
-    maybe_infer_to_datetimelike, maybe_upcast, maybe_upcast_putmask)
+    cast_scalar_to_array,
+    coerce_to_dtypes,
+    find_common_type,
+    infer_dtype_from_scalar,
+    invalidate_string_dtypes,
+    maybe_cast_to_datetime,
+    maybe_convert_platform,
+    maybe_downcast_to_dtype,
+    maybe_infer_to_datetimelike,
+    maybe_upcast,
+    maybe_upcast_putmask,
+)
 from pandas.core.dtypes.common import (
-    ensure_float64, ensure_int64, ensure_platform_int, infer_dtype_from_object,
-    is_bool_dtype, is_datetime64_any_dtype, is_datetime64tz_dtype,
-    is_dict_like, is_dtype_equal, is_extension_array_dtype, is_extension_type,
-    is_float_dtype, is_integer, is_integer_dtype, is_iterator, is_list_like,
-    is_named_tuple, is_nested_list_like, is_object_dtype, is_scalar,
-    is_sequence, needs_i8_conversion)
+    ensure_float64,
+    ensure_int64,
+    ensure_platform_int,
+    infer_dtype_from_object,
+    is_bool_dtype,
+    is_datetime64_any_dtype,
+    is_datetime64tz_dtype,
+    is_dict_like,
+    is_dtype_equal,
+    is_extension_array_dtype,
+    is_extension_type,
+    is_float_dtype,
+    is_hashable,
+    is_integer,
+    is_integer_dtype,
+    is_iterator,
+    is_list_like,
+    is_named_tuple,
+    is_nested_list_like,
+    is_object_dtype,
+    is_scalar,
+    is_sequence,
+    needs_i8_conversion,
+)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCSeries)
+    ABCDataFrame,
+    ABCIndexClass,
+    ABCMultiIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
-from pandas.core.arrays.datetimelike import (
-    DatetimeLikeArrayMixin as DatetimeLikeArray)
+from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (
-    Index, MultiIndex, ensure_index, ensure_index_from_sequences)
+    Index,
+    MultiIndex,
+    ensure_index,
+    ensure_index_from_sequences,
+)
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import (
-    check_bool_indexer, convert_to_index_sliceable, maybe_droplevels)
+    check_bool_indexer,
+    convert_to_index_sliceable,
+    maybe_droplevels,
+)
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
-    arrays_to_mgr, get_names_from_index, init_dict, init_ndarray,
-    masked_rec_array_to_mgr, reorder_arrays, sanitize_index, to_arrays)
+    arrays_to_mgr,
+    get_names_from_index,
+    init_dict,
+    init_ndarray,
+    masked_rec_array_to_mgr,
+    reorder_arrays,
+    sanitize_index,
+    to_arrays,
+)
 from pandas.core.series import Series
 
 from pandas.io.formats import console, format as fmt
@@ -75,7 +121,8 @@ import pandas.plotting
 # Docstring templates
 
 _shared_doc_kwargs = dict(
-    axes='index, columns', klass='DataFrame',
+    axes="index, columns",
+    klass="DataFrame",
     axes_single_arg="{0 or 'index', 1 or 'columns'}",
     axis="""axis : {0 or 'index', 1 or 'columns'}, default 0
         If 0 or 'index': apply function to each column.
@@ -91,7 +138,7 @@ _shared_doc_kwargs = dict(
 
             .. versionchanged:: 0.23.0
                Allow specifying index or column level names.""",
-    versionadded_to_excel='',
+    versionadded_to_excel="",
     optional_labels="""labels : array-like, optional
             New labels / index to conform the axis specified by 'axis' to.""",
     optional_axis="""axis : int or str, optional
@@ -330,9 +377,9 @@ class DataFrame(NDFrame):
         return DataFrame
 
     _constructor_sliced = Series  # type: Type[Series]
-    _deprecations = NDFrame._deprecations | frozenset([
-        'get_value', 'set_value', 'from_items'
-    ])  # type: FrozenSet[str]
+    _deprecations = NDFrame._deprecations | frozenset(
+        ["get_value", "set_value", "from_items"]
+    )  # type: FrozenSet[str]
     _accessors = set()  # type: Set[str]
 
     @property
@@ -342,8 +389,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, data=None, index=None, columns=None, dtype=None,
-                 copy=False):
+    def __init__(self, data=None, index=None, columns=None, dtype=None, copy=False):
         if data is None:
             data = {}
         if dtype is not None:
@@ -353,16 +399,17 @@ class DataFrame(NDFrame):
             data = data._data
 
         if isinstance(data, BlockManager):
-            mgr = self._init_mgr(data, axes=dict(index=index, columns=columns),
-                                 dtype=dtype, copy=copy)
+            mgr = self._init_mgr(
+                data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy
+            )
         elif isinstance(data, dict):
             mgr = init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
+
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
-                mgr = masked_rec_array_to_mgr(data, index, columns, dtype,
-                                              copy)
+                mgr = masked_rec_array_to_mgr(data, index, columns, dtype, copy)
 
             # a masked array
             else:
@@ -373,8 +420,7 @@ class DataFrame(NDFrame):
                     data[mask] = fill_value
                 else:
                     data = data.copy()
-                mgr = init_ndarray(data, index, columns, dtype=dtype,
-                                   copy=copy)
+                mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
 
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
@@ -383,20 +429,17 @@ class DataFrame(NDFrame):
                 if columns is None:
                     columns = data_columns
                 mgr = init_dict(data, index, columns, dtype=dtype)
-            elif getattr(data, 'name', None) is not None:
-                mgr = init_dict({data.name: data}, index, columns,
-                                dtype=dtype)
+            elif getattr(data, "name", None) is not None:
+                mgr = init_dict({data.name: data}, index, columns, dtype=dtype)
             else:
-                mgr = init_ndarray(data, index, columns, dtype=dtype,
-                                   copy=copy)
+                mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
-        elif (isinstance(data, abc.Iterable) and
-              not isinstance(data, (str, bytes))):
+        elif isinstance(data, abc.Iterable) and not isinstance(data, (str, bytes)):
             if not isinstance(data, abc.Sequence):
                 data = list(data)
             if len(data) > 0:
-                if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
+                if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
                     if is_named_tuple(data[0]) and columns is None:
                         columns = data[0]._fields
                     arrays, columns = to_arrays(data, columns, dtype=dtype)
@@ -411,28 +454,30 @@ class DataFrame(NDFrame):
                         else:
                             index = ibase.default_index(len(data))
 
-                    mgr = arrays_to_mgr(arrays, columns, index, columns,
-                                        dtype=dtype)
+                    mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
                 else:
-                    mgr = init_ndarray(data, index, columns, dtype=dtype,
-                                       copy=copy)
+                    mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
             else:
                 mgr = init_dict({}, index, columns, dtype=dtype)
         else:
             try:
                 arr = np.array(data, dtype=dtype, copy=copy)
             except (ValueError, TypeError) as e:
-                exc = TypeError('DataFrame constructor called with '
-                                'incompatible data and dtype: {e}'.format(e=e))
+                exc = TypeError(
+                    "DataFrame constructor called with "
+                    "incompatible data and dtype: {e}".format(e=e)
+                )
                 raise_with_traceback(exc)
 
             if arr.ndim == 0 and index is not None and columns is not None:
-                values = cast_scalar_to_array((len(index), len(columns)),
-                                              data, dtype=dtype)
-                mgr = init_ndarray(values, index, columns,
-                                   dtype=values.dtype, copy=False)
+                values = cast_scalar_to_array(
+                    (len(index), len(columns)), data, dtype=dtype
+                )
+                mgr = init_ndarray(
+                    values, index, columns, dtype=values.dtype, copy=False
+                )
             else:
-                raise ValueError('DataFrame constructor not properly called!')
+                raise ValueError("DataFrame constructor not properly called!")
 
         NDFrame.__init__(self, mgr, fastpath=True)
 
@@ -533,8 +578,9 @@ class DataFrame(NDFrame):
         nb_columns = len(self.columns)
 
         # exceed max columns
-        if ((max_columns and nb_columns > max_columns) or
-                ((not ignore_width) and width and nb_columns > (width // 2))):
+        if (max_columns and nb_columns > max_columns) or (
+            (not ignore_width) and width and nb_columns > (width // 2)
+        ):
             return False
 
         # used by repr_html under IPython notebook or scripts ignore terminal
@@ -542,8 +588,7 @@ class DataFrame(NDFrame):
         if ignore_width or not console.in_interactive_session():
             return True
 
-        if (get_option('display.width') is not None or
-                console.in_ipython_frontend()):
+        if get_option("display.width") is not None or console.in_ipython_frontend():
             # check at least the column row for excessive width
             max_rows = 1
         else:
@@ -560,13 +605,13 @@ class DataFrame(NDFrame):
 
         if not (max_rows is None):  # unlimited rows
             # min of two, where one may be None
-            d = d.iloc[:min(max_rows, len(d))]
+            d = d.iloc[: min(max_rows, len(d))]
         else:
             return True
 
         d.to_string(buf=buf)
         value = buf.getvalue()
-        repr_width = max(len(l) for l in value.split('\n'))
+        repr_width = max(len(l) for l in value.split("\n"))
 
         return repr_width < width
 
@@ -574,9 +619,10 @@ class DataFrame(NDFrame):
         """
         True if the repr should show the info view.
         """
-        info_repr_option = (get_option("display.large_repr") == "info")
-        return info_repr_option and not (self._repr_fits_horizontal_() and
-                                         self._repr_fits_vertical_())
+        info_repr_option = get_option("display.large_repr") == "info"
+        return info_repr_option and not (
+            self._repr_fits_horizontal_() and self._repr_fits_vertical_()
+        )
 
     def __repr__(self):
         """
@@ -588,14 +634,21 @@ class DataFrame(NDFrame):
             return buf.getvalue()
 
         max_rows = get_option("display.max_rows")
+        min_rows = get_option("display.min_rows")
         max_cols = get_option("display.max_columns")
         show_dimensions = get_option("display.show_dimensions")
         if get_option("display.expand_frame_repr"):
             width, _ = console.get_console_size()
         else:
             width = None
-        self.to_string(buf=buf, max_rows=max_rows, max_cols=max_cols,
-                       line_width=width, show_dimensions=show_dimensions)
+        self.to_string(
+            buf=buf,
+            max_rows=max_rows,
+            min_rows=min_rows,
+            max_cols=max_cols,
+            line_width=width,
+            show_dimensions=show_dimensions,
+        )
 
         return buf.getvalue()
 
@@ -609,32 +662,52 @@ class DataFrame(NDFrame):
             buf = StringIO("")
             self.info(buf=buf)
             # need to escape the <class>, should be the first line.
-            val = buf.getvalue().replace('<', r'&lt;', 1)
-            val = val.replace('>', r'&gt;', 1)
-            return '<pre>' + val + '</pre>'
+            val = buf.getvalue().replace("<", r"&lt;", 1)
+            val = val.replace(">", r"&gt;", 1)
+            return "<pre>" + val + "</pre>"
 
         if get_option("display.notebook_repr_html"):
             max_rows = get_option("display.max_rows")
             max_cols = get_option("display.max_columns")
             show_dimensions = get_option("display.show_dimensions")
 
-            return self.to_html(max_rows=max_rows, max_cols=max_cols,
-                                show_dimensions=show_dimensions, notebook=True)
+            return self.to_html(
+                max_rows=max_rows,
+                max_cols=max_cols,
+                show_dimensions=show_dimensions,
+                notebook=True,
+            )
         else:
             return None
 
-    @Substitution(header='Write out the column names. If a list of strings '
-                         'is given, it is assumed to be aliases for the '
-                         'column names',
-                  col_space_type='int',
-                  col_space='The minimum width of each column')
-    @Substitution(shared_params=fmt.common_docstring,
-                  returns=fmt.return_docstring)
-    def to_string(self, buf=None, columns=None, col_space=None, header=True,
-                  index=True, na_rep='NaN', formatters=None, float_format=None,
-                  sparsify=None, index_names=True, justify=None,
-                  max_rows=None, max_cols=None, show_dimensions=False,
-                  decimal='.', line_width=None):
+    @Substitution(
+        header="Write out the column names. If a list of strings "
+        "is given, it is assumed to be aliases for the "
+        "column names",
+        col_space_type="int",
+        col_space="The minimum width of each column",
+    )
+    @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
+    def to_string(
+        self,
+        buf=None,
+        columns=None,
+        col_space=None,
+        header=True,
+        index=True,
+        na_rep="NaN",
+        formatters=None,
+        float_format=None,
+        sparsify=None,
+        index_names=True,
+        justify=None,
+        max_rows=None,
+        min_rows=None,
+        max_cols=None,
+        show_dimensions=False,
+        decimal=".",
+        line_width=None,
+    ):
         """
         Render a DataFrame to a console-friendly tabular output.
         %(shared_params)s
@@ -656,18 +729,26 @@ class DataFrame(NDFrame):
         2     3     6
         """
 
-        formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
-                                           col_space=col_space, na_rep=na_rep,
-                                           formatters=formatters,
-                                           float_format=float_format,
-                                           sparsify=sparsify, justify=justify,
-                                           index_names=index_names,
-                                           header=header, index=index,
-                                           max_rows=max_rows,
-                                           max_cols=max_cols,
-                                           show_dimensions=show_dimensions,
-                                           decimal=decimal,
-                                           line_width=line_width)
+        formatter = fmt.DataFrameFormatter(
+            self,
+            buf=buf,
+            columns=columns,
+            col_space=col_space,
+            na_rep=na_rep,
+            formatters=formatters,
+            float_format=float_format,
+            sparsify=sparsify,
+            justify=justify,
+            index_names=index_names,
+            header=header,
+            index=index,
+            min_rows=min_rows,
+            max_rows=max_rows,
+            max_cols=max_cols,
+            show_dimensions=show_dimensions,
+            decimal=decimal,
+            line_width=line_width,
+        )
         formatter.to_string()
 
         if buf is None:
@@ -687,17 +768,18 @@ class DataFrame(NDFrame):
         io.formats.style.Styler
         """
         from pandas.io.formats.style import Styler
+
         return Styler(self)
 
-    def iteritems(self):
-        r"""
+    _shared_docs[
+        "items"
+    ] = r"""
         Iterator over (column name, Series) pairs.
 
         Iterates over the DataFrame columns, returning a tuple with
         the column name and the content as a Series.
 
-        Yields
-        ------
+        %s
         label : object
             The column names for the DataFrame being iterated over.
         content : Series
@@ -720,7 +802,7 @@ class DataFrame(NDFrame):
         panda 	bear 	  1864
         polar 	bear 	  22000
         koala 	marsupial 80000
-        >>> for label, content in df.iteritems():
+        >>> for label, content in df.items():
         ...     print('label:', label)
         ...     print('content:', content, sep='\n')
         ...
@@ -737,12 +819,19 @@ class DataFrame(NDFrame):
         koala    80000
         Name: population, dtype: int64
         """
-        if self.columns.is_unique and hasattr(self, '_item_cache'):
+
+    @Appender(_shared_docs["items"] % "Yields\n        ------")
+    def items(self):
+        if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
         else:
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
+
+    @Appender(_shared_docs["items"] % "Returns\n        -------")
+    def iteritems(self):
+        return self.items()
 
     def iterrows(self):
         """
@@ -761,7 +850,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         itertuples : Iterate over DataFrame rows as namedtuples of the values.
-        iteritems : Iterate over (column name, Series) pairs.
+        items : Iterate over (column name, Series) pairs.
 
         Notes
         -----
@@ -819,7 +908,7 @@ class DataFrame(NDFrame):
         --------
         DataFrame.iterrows : Iterate over DataFrame rows as (index, Series)
             pairs.
-        DataFrame.iteritems : Iterate over (column name, Series) pairs.
+        DataFrame.items : Iterate over (column name, Series) pairs.
 
         Notes
         -----
@@ -875,8 +964,6 @@ class DataFrame(NDFrame):
 
         # fallback to regular tuples
         return zip(*arrays)
-
-    items = iteritems
 
     def __len__(self):
         """
@@ -963,9 +1050,8 @@ class DataFrame(NDFrame):
         """
         if isinstance(other, (Series, DataFrame)):
             common = self.columns.union(other.index)
-            if (len(common) > len(self.columns) or
-                    len(common) > len(other.index)):
-                raise ValueError('matrices are not aligned')
+            if len(common) > len(self.columns) or len(common) > len(other.index):
+                raise ValueError("matrices are not aligned")
 
             left = self.reindex(columns=common, copy=False)
             right = other.reindex(index=common, copy=False)
@@ -976,13 +1062,15 @@ class DataFrame(NDFrame):
             lvals = self.values
             rvals = np.asarray(other)
             if lvals.shape[1] != rvals.shape[0]:
-                raise ValueError('Dot product shape mismatch, '
-                                 '{s} vs {r}'.format(s=lvals.shape,
-                                                     r=rvals.shape))
+                raise ValueError(
+                    "Dot product shape mismatch, "
+                    "{s} vs {r}".format(s=lvals.shape, r=rvals.shape)
+                )
 
         if isinstance(other, DataFrame):
-            return self._constructor(np.dot(lvals, rvals), index=left.index,
-                                     columns=other.columns)
+            return self._constructor(
+                np.dot(lvals, rvals), index=left.index, columns=other.columns
+            )
         elif isinstance(other, Series):
             return Series(np.dot(lvals, rvals), index=left.index)
         elif isinstance(rvals, (np.ndarray, Index)):
@@ -992,7 +1080,7 @@ class DataFrame(NDFrame):
             else:
                 return Series(result, index=left.index)
         else:  # pragma: no cover
-            raise TypeError('unsupported type: {oth}'.format(oth=type(other)))
+            raise TypeError("unsupported type: {oth}".format(oth=type(other)))
 
     def __matmul__(self, other):
         """
@@ -1010,7 +1098,7 @@ class DataFrame(NDFrame):
     # IO methods (to / from other formats)
 
     @classmethod
-    def from_dict(cls, data, orient='columns', dtype=None, columns=None):
+    def from_dict(cls, data, orient="columns", dtype=None, columns=None):
         """
         Construct DataFrame from dict of array-like or dicts.
 
@@ -1075,19 +1163,20 @@ class DataFrame(NDFrame):
         """
         index = None
         orient = orient.lower()
-        if orient == 'index':
+        if orient == "index":
             if len(data) > 0:
                 # TODO speed up Series case
                 if isinstance(list(data.values())[0], (Series, dict)):
                     data = _from_nested_dict(data)
                 else:
                     data, index = list(data.values()), list(data.keys())
-        elif orient == 'columns':
+        elif orient == "columns":
             if columns is not None:
-                raise ValueError("cannot use columns parameter with "
-                                 "orient='columns'")
+                raise ValueError(
+                    "cannot use columns parameter with " "orient='columns'"
+                )
         else:  # pragma: no cover
-            raise ValueError('only recognize index or columns for orient')
+            raise ValueError("only recognize index or columns for orient")
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
@@ -1146,7 +1235,7 @@ class DataFrame(NDFrame):
         result = np.array(self.values, dtype=dtype, copy=copy)
         return result
 
-    def to_dict(self, orient='dict', into=dict):
+    def to_dict(self, orient="dict", into=dict):
         """
         Convert the DataFrame to a dictionary.
 
@@ -1236,48 +1325,68 @@ class DataFrame(NDFrame):
          defaultdict(<class 'list'>, {'col1': 2, 'col2': 0.75})]
         """
         if not self.columns.is_unique:
-            warnings.warn("DataFrame columns are not unique, some "
-                          "columns will be omitted.", UserWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "DataFrame columns are not unique, some " "columns will be omitted.",
+                UserWarning,
+                stacklevel=2,
+            )
         # GH16122
         into_c = com.standardize_mapping(into)
-        if orient.lower().startswith('d'):
-            return into_c(
-                (k, v.to_dict(into)) for k, v in self.items())
-        elif orient.lower().startswith('l'):
+        if orient.lower().startswith("d"):
+            return into_c((k, v.to_dict(into)) for k, v in self.items())
+        elif orient.lower().startswith("l"):
             return into_c((k, v.tolist()) for k, v in self.items())
-        elif orient.lower().startswith('sp'):
-            return into_c((('index', self.index.tolist()),
-                           ('columns', self.columns.tolist()),
-                           ('data', [
-                               list(map(com.maybe_box_datetimelike, t))
-                               for t in self.itertuples(index=False, name=None)
-                           ])))
-        elif orient.lower().startswith('s'):
-            return into_c((k, com.maybe_box_datetimelike(v))
-                          for k, v in self.items())
-        elif orient.lower().startswith('r'):
-            columns = self.columns.tolist()
-            rows = (dict(zip(columns, row))
-                    for row in self.itertuples(index=False, name=None))
-            return [
-                into_c((k, com.maybe_box_datetimelike(v))
-                       for k, v in row.items())
-                for row in rows]
-        elif orient.lower().startswith('i'):
-            if not self.index.is_unique:
-                raise ValueError(
-                    "DataFrame index must be unique for orient='index'."
+        elif orient.lower().startswith("sp"):
+            return into_c(
+                (
+                    ("index", self.index.tolist()),
+                    ("columns", self.columns.tolist()),
+                    (
+                        "data",
+                        [
+                            list(map(com.maybe_box_datetimelike, t))
+                            for t in self.itertuples(index=False, name=None)
+                        ],
+                    ),
                 )
-            return into_c((t[0], dict(zip(self.columns, t[1:])))
-                          for t in self.itertuples(name=None))
+            )
+        elif orient.lower().startswith("s"):
+            return into_c((k, com.maybe_box_datetimelike(v)) for k, v in self.items())
+        elif orient.lower().startswith("r"):
+            columns = self.columns.tolist()
+            rows = (
+                dict(zip(columns, row))
+                for row in self.itertuples(index=False, name=None)
+            )
+            return [
+                into_c((k, com.maybe_box_datetimelike(v)) for k, v in row.items())
+                for row in rows
+            ]
+        elif orient.lower().startswith("i"):
+            if not self.index.is_unique:
+                raise ValueError("DataFrame index must be unique for orient='index'.")
+            return into_c(
+                (t[0], dict(zip(self.columns, t[1:])))
+                for t in self.itertuples(name=None)
+            )
         else:
             raise ValueError("orient '{o}' not understood".format(o=orient))
 
-    def to_gbq(self, destination_table, project_id=None, chunksize=None,
-               reauth=False, if_exists='fail', auth_local_webserver=False,
-               table_schema=None, location=None, progress_bar=True,
-               credentials=None, verbose=None, private_key=None):
+    def to_gbq(
+        self,
+        destination_table,
+        project_id=None,
+        chunksize=None,
+        reauth=False,
+        if_exists="fail",
+        auth_local_webserver=False,
+        table_schema=None,
+        location=None,
+        progress_bar=True,
+        credentials=None,
+        verbose=None,
+        private_key=None,
+    ):
         """
         Write a DataFrame to a Google BigQuery table.
 
@@ -1373,16 +1482,33 @@ class DataFrame(NDFrame):
         read_gbq : Read a DataFrame from Google BigQuery.
         """
         from pandas.io import gbq
-        gbq.to_gbq(self, destination_table, project_id=project_id,
-                   chunksize=chunksize, reauth=reauth, if_exists=if_exists,
-                   auth_local_webserver=auth_local_webserver,
-                   table_schema=table_schema, location=location,
-                   progress_bar=progress_bar, credentials=credentials,
-                   verbose=verbose, private_key=private_key)
+
+        gbq.to_gbq(
+            self,
+            destination_table,
+            project_id=project_id,
+            chunksize=chunksize,
+            reauth=reauth,
+            if_exists=if_exists,
+            auth_local_webserver=auth_local_webserver,
+            table_schema=table_schema,
+            location=location,
+            progress_bar=progress_bar,
+            credentials=credentials,
+            verbose=verbose,
+            private_key=private_key,
+        )
 
     @classmethod
-    def from_records(cls, data, index=None, exclude=None, columns=None,
-                     coerce_float=False, nrows=None):
+    def from_records(
+        cls,
+        data,
+        index=None,
+        exclude=None,
+        columns=None,
+        coerce_float=False,
+        nrows=None,
+    ):
         """
         Convert structured or record ndarray to DataFrame.
 
@@ -1425,7 +1551,7 @@ class DataFrame(NDFrame):
                 return cls(index=index, columns=columns)
 
             dtype = None
-            if hasattr(first_row, 'dtype') and first_row.dtype.names:
+            if hasattr(first_row, "dtype") and first_row.dtype.names:
                 dtype = first_row.dtype
 
             values = [first_row]
@@ -1452,8 +1578,7 @@ class DataFrame(NDFrame):
                         arr_columns.append(k)
                         arrays.append(v)
 
-                arrays, arr_columns = reorder_arrays(arrays, arr_columns,
-                                                     columns)
+                arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns)
 
         elif isinstance(data, (np.ndarray, DataFrame)):
             arrays, columns = to_arrays(data, columns)
@@ -1461,8 +1586,7 @@ class DataFrame(NDFrame):
                 columns = ensure_index(columns)
             arr_columns = columns
         else:
-            arrays, arr_columns = to_arrays(data, columns,
-                                            coerce_float=coerce_float)
+            arrays, arr_columns = to_arrays(data, columns, coerce_float=coerce_float)
 
             arr_columns = ensure_index(arr_columns)
             if columns is not None:
@@ -1477,8 +1601,7 @@ class DataFrame(NDFrame):
 
         result_index = None
         if index is not None:
-            if (isinstance(index, str) or
-                    not hasattr(index, "__iter__")):
+            if isinstance(index, str) or not hasattr(index, "__iter__"):
                 i = columns.get_loc(index)
                 exclude.add(index)
                 if len(arrays) > 0:
@@ -1487,10 +1610,8 @@ class DataFrame(NDFrame):
                     result_index = Index([], name=index)
             else:
                 try:
-                    index_data = [arrays[arr_columns.get_loc(field)]
-                                  for field in index]
-                    result_index = ensure_index_from_sequences(index_data,
-                                                               names=index)
+                    index_data = [arrays[arr_columns.get_loc(field)] for field in index]
+                    result_index = ensure_index_from_sequences(index_data, names=index)
 
                     exclude.update(index)
                 except Exception:
@@ -1508,8 +1629,9 @@ class DataFrame(NDFrame):
 
         return cls(mgr)
 
-    def to_records(self, index=True, convert_datetime64=None,
-                   column_dtypes=None, index_dtypes=None):
+    def to_records(
+        self, index=True, convert_datetime64=None, column_dtypes=None, index_dtypes=None
+    ):
         """
         Convert DataFrame to a NumPy record array.
 
@@ -1601,10 +1723,13 @@ class DataFrame(NDFrame):
         """
 
         if convert_datetime64 is not None:
-            warnings.warn("The 'convert_datetime64' parameter is "
-                          "deprecated and will be removed in a future "
-                          "version",
-                          FutureWarning, stacklevel=2)
+            warnings.warn(
+                "The 'convert_datetime64' parameter is "
+                "deprecated and will be removed in a future "
+                "version",
+                FutureWarning,
+                stacklevel=2,
+            )
 
         if index:
             if is_datetime64_any_dtype(self.index) and convert_datetime64:
@@ -1616,7 +1741,7 @@ class DataFrame(NDFrame):
                 else:
                     ix_vals = [self.index.values]
 
-            arrays = ix_vals + [self[c].get_values() for c in self.columns]
+            arrays = ix_vals + [self[c]._internal_get_values() for c in self.columns]
 
             count = 0
             index_names = list(self.index.names)
@@ -1624,15 +1749,14 @@ class DataFrame(NDFrame):
             if isinstance(self.index, MultiIndex):
                 for i, n in enumerate(index_names):
                     if n is None:
-                        index_names[i] = 'level_%d' % count
+                        index_names[i] = "level_%d" % count
                         count += 1
             elif index_names[0] is None:
-                index_names = ['index']
+                index_names = ["index"]
 
-            names = [str(name) for name in itertools.chain(index_names,
-                                                           self.columns)]
+            names = [str(name) for name in itertools.chain(index_names, self.columns)]
         else:
-            arrays = [self[c].get_values() for c in self.columns]
+            arrays = [self[c]._internal_get_values() for c in self.columns]
             names = [str(c) for c in self.columns]
             index_names = []
 
@@ -1683,18 +1807,15 @@ class DataFrame(NDFrame):
                 formats.append(dtype_mapping)
             else:
                 element = "row" if i < index_len else "column"
-                msg = ("Invalid dtype {dtype} specified for "
-                       "{element} {name}").format(dtype=dtype_mapping,
-                                                  element=element, name=name)
+                msg = (
+                    "Invalid dtype {dtype} specified for " "{element} {name}"
+                ).format(dtype=dtype_mapping, element=element, name=name)
                 raise ValueError(msg)
 
-        return np.rec.fromarrays(
-            arrays,
-            dtype={'names': names, 'formats': formats}
-        )
+        return np.rec.fromarrays(arrays, dtype={"names": names, "formats": formats})
 
     @classmethod
-    def from_items(cls, items, columns=None, orient='columns'):
+    def from_items(cls, items, columns=None, orient="columns"):
         """
         Construct a DataFrame from a list of tuples.
 
@@ -1726,23 +1847,28 @@ class DataFrame(NDFrame):
         DataFrame
         """
 
-        warnings.warn("from_items is deprecated. Please use "
-                      "DataFrame.from_dict(dict(items), ...) instead. "
-                      "DataFrame.from_dict(OrderedDict(items)) may be used to "
-                      "preserve the key order.",
-                      FutureWarning, stacklevel=2)
+        warnings.warn(
+            "from_items is deprecated. Please use "
+            "DataFrame.from_dict(dict(items), ...) instead. "
+            "DataFrame.from_dict(OrderedDict(items)) may be used to "
+            "preserve the key order.",
+            FutureWarning,
+            stacklevel=2,
+        )
 
         keys, values = zip(*items)
 
-        if orient == 'columns':
+        if orient == "columns":
             if columns is not None:
                 columns = ensure_index(columns)
 
                 idict = dict(items)
                 if len(idict) < len(items):
                     if not columns.equals(ensure_index(keys)):
-                        raise ValueError('With non-unique item names, passed '
-                                         'columns must be identical')
+                        raise ValueError(
+                            "With non-unique item names, passed "
+                            "columns must be identical"
+                        )
                     arrays = values
                 else:
                     arrays = [idict[k] for k in columns if k in idict]
@@ -1757,10 +1883,12 @@ class DataFrame(NDFrame):
 
             except ValueError:
                 if not is_nested_list_like(values):
-                    raise ValueError('The value in each (key, value) pair '
-                                     'must be an array, Series, or dict')
+                    raise ValueError(
+                        "The value in each (key, value) pair "
+                        "must be an array, Series, or dict"
+                    )
 
-        elif orient == 'index':
+        elif orient == "index":
             if columns is None:
                 raise TypeError("Must pass columns with orient='index'")
 
@@ -1775,8 +1903,10 @@ class DataFrame(NDFrame):
 
             except TypeError:
                 if not is_nested_list_like(values):
-                    raise ValueError('The value in each (key, value) pair '
-                                     'must be an array, Series, or dict')
+                    raise ValueError(
+                        "The value in each (key, value) pair "
+                        "must be an array, Series, or dict"
+                    )
 
         else:  # pragma: no cover
             raise ValueError("'orient' must be either 'columns' or 'index'")
@@ -1786,7 +1916,7 @@ class DataFrame(NDFrame):
         mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
         return cls(mgr)
 
-    def to_sparse(self, fill_value=None, kind='block'):
+    def to_sparse(self, fill_value=None, kind="block"):
         """
         Convert to SparseDataFrame.
 
@@ -1842,21 +1972,39 @@ class DataFrame(NDFrame):
         >>> type(sdf)  # doctest: +SKIP
         <class 'pandas.core.sparse.frame.SparseDataFrame'>
         """
-        warnings.warn("DataFrame.to_sparse is deprecated and will be removed "
-                      "in a future version", FutureWarning, stacklevel=2)
+        warnings.warn(
+            "DataFrame.to_sparse is deprecated and will be removed "
+            "in a future version",
+            FutureWarning,
+            stacklevel=2,
+        )
 
         from pandas.core.sparse.api import SparseDataFrame
+
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message="SparseDataFrame")
-            return SparseDataFrame(self._series, index=self.index,
-                                   columns=self.columns, default_kind=kind,
-                                   default_fill_value=fill_value)
+            return SparseDataFrame(
+                self._series,
+                index=self.index,
+                columns=self.columns,
+                default_kind=kind,
+                default_fill_value=fill_value,
+            )
 
-    @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
-    def to_stata(self, fname, convert_dates=None, write_index=True,
-                 encoding="latin-1", byteorder=None, time_stamp=None,
-                 data_label=None, variable_labels=None, version=114,
-                 convert_strl=None):
+    @deprecate_kwarg(old_arg_name="encoding", new_arg_name=None)
+    def to_stata(
+        self,
+        fname,
+        convert_dates=None,
+        write_index=True,
+        encoding="latin-1",
+        byteorder=None,
+        time_stamp=None,
+        data_label=None,
+        variable_labels=None,
+        version=114,
+        convert_strl=None,
+    ):
         """
         Export DataFrame object to Stata dta format.
 
@@ -1939,20 +2087,29 @@ class DataFrame(NDFrame):
         """
         kwargs = {}
         if version not in (114, 117):
-            raise ValueError('Only formats 114 and 117 supported.')
+            raise ValueError("Only formats 114 and 117 supported.")
         if version == 114:
             if convert_strl is not None:
-                raise ValueError('strl support is only available when using '
-                                 'format 117')
+                raise ValueError(
+                    "strl support is only available when using " "format 117"
+                )
             from pandas.io.stata import StataWriter as statawriter
         else:
             from pandas.io.stata import StataWriter117 as statawriter
-            kwargs['convert_strl'] = convert_strl
 
-        writer = statawriter(fname, self, convert_dates=convert_dates,
-                             byteorder=byteorder, time_stamp=time_stamp,
-                             data_label=data_label, write_index=write_index,
-                             variable_labels=variable_labels, **kwargs)
+            kwargs["convert_strl"] = convert_strl
+
+        writer = statawriter(
+            fname,
+            self,
+            convert_dates=convert_dates,
+            byteorder=byteorder,
+            time_stamp=time_stamp,
+            data_label=data_label,
+            write_index=write_index,
+            variable_labels=variable_labels,
+            **kwargs
+        )
         writer.write_file()
 
     def to_feather(self, fname):
@@ -1967,10 +2124,18 @@ class DataFrame(NDFrame):
             string file path
         """
         from pandas.io.feather_format import to_feather
+
         to_feather(self, fname)
 
-    def to_parquet(self, fname, engine='auto', compression='snappy',
-                   index=None, partition_cols=None, **kwargs):
+    def to_parquet(
+        self,
+        fname,
+        engine="auto",
+        compression="snappy",
+        index=None,
+        partition_cols=None,
+        **kwargs
+    ):
         """
         Write a DataFrame to the binary parquet format.
 
@@ -2037,24 +2202,51 @@ class DataFrame(NDFrame):
         1     2     4
         """
         from pandas.io.parquet import to_parquet
-        to_parquet(self, fname, engine,
-                   compression=compression, index=index,
-                   partition_cols=partition_cols, **kwargs)
 
-    @Substitution(header='Whether to print column labels, default True',
-                  col_space_type='str or int',
-                  col_space='The minimum width of each column in CSS length '
-                            'units.  An int is assumed to be px units.\n\n'
-                            '            .. versionadded:: 0.25.0\n'
-                            '                Ability to use str')
-    @Substitution(shared_params=fmt.common_docstring,
-                  returns=fmt.return_docstring)
-    def to_html(self, buf=None, columns=None, col_space=None, header=True,
-                index=True, na_rep='NaN', formatters=None, float_format=None,
-                sparsify=None, index_names=True, justify=None, max_rows=None,
-                max_cols=None, show_dimensions=False, decimal='.',
-                bold_rows=True, classes=None, escape=True, notebook=False,
-                border=None, table_id=None, render_links=False):
+        to_parquet(
+            self,
+            fname,
+            engine,
+            compression=compression,
+            index=index,
+            partition_cols=partition_cols,
+            **kwargs
+        )
+
+    @Substitution(
+        header="Whether to print column labels, default True",
+        col_space_type="str or int",
+        col_space="The minimum width of each column in CSS length "
+        "units.  An int is assumed to be px units.\n\n"
+        "            .. versionadded:: 0.25.0\n"
+        "                Ability to use str",
+    )
+    @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
+    def to_html(
+        self,
+        buf=None,
+        columns=None,
+        col_space=None,
+        header=True,
+        index=True,
+        na_rep="NaN",
+        formatters=None,
+        float_format=None,
+        sparsify=None,
+        index_names=True,
+        justify=None,
+        max_rows=None,
+        max_cols=None,
+        show_dimensions=False,
+        decimal=".",
+        bold_rows=True,
+        classes=None,
+        escape=True,
+        notebook=False,
+        border=None,
+        table_id=None,
+        render_links=False,
+    ):
         """
         Render a DataFrame as an HTML table.
         %(shared_params)s
@@ -2087,23 +2279,31 @@ class DataFrame(NDFrame):
         to_string : Convert DataFrame to a string.
         """
 
-        if (justify is not None and
-                justify not in fmt._VALID_JUSTIFY_PARAMETERS):
+        if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
 
-        formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
-                                           col_space=col_space, na_rep=na_rep,
-                                           formatters=formatters,
-                                           float_format=float_format,
-                                           sparsify=sparsify, justify=justify,
-                                           index_names=index_names,
-                                           header=header, index=index,
-                                           bold_rows=bold_rows, escape=escape,
-                                           max_rows=max_rows,
-                                           max_cols=max_cols,
-                                           show_dimensions=show_dimensions,
-                                           decimal=decimal, table_id=table_id,
-                                           render_links=render_links)
+        formatter = fmt.DataFrameFormatter(
+            self,
+            buf=buf,
+            columns=columns,
+            col_space=col_space,
+            na_rep=na_rep,
+            formatters=formatters,
+            float_format=float_format,
+            sparsify=sparsify,
+            justify=justify,
+            index_names=index_names,
+            header=header,
+            index=index,
+            bold_rows=bold_rows,
+            escape=escape,
+            max_rows=max_rows,
+            max_cols=max_cols,
+            show_dimensions=show_dimensions,
+            decimal=decimal,
+            table_id=table_id,
+            render_links=render_links,
+        )
         # TODO: a generic formatter wld b in DataFrameFormatter
         formatter.to_html(classes=classes, notebook=notebook, border=border)
 
@@ -2112,8 +2312,9 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
 
-    def info(self, verbose=None, buf=None, max_cols=None, memory_usage=None,
-             null_counts=None):
+    def info(
+        self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
+    ):
         """
         Print a concise summary of a DataFrame.
 
@@ -2253,7 +2454,7 @@ class DataFrame(NDFrame):
         lines.append(self.index._summary())
 
         if len(self.columns) == 0:
-            lines.append('Empty {name}'.format(name=type(self).__name__))
+            lines.append("Empty {name}".format(name=type(self).__name__))
             fmt.buffer_put_lines(buf, lines)
             return
 
@@ -2261,21 +2462,18 @@ class DataFrame(NDFrame):
 
         # hack
         if max_cols is None:
-            max_cols = get_option('display.max_info_columns',
-                                  len(self.columns) + 1)
+            max_cols = get_option("display.max_info_columns", len(self.columns) + 1)
 
-        max_rows = get_option('display.max_info_rows', len(self) + 1)
+        max_rows = get_option("display.max_info_rows", len(self) + 1)
 
         if null_counts is None:
-            show_counts = ((len(self.columns) <= max_cols) and
-                           (len(self) < max_rows))
+            show_counts = (len(self.columns) <= max_cols) and (len(self) < max_rows)
         else:
             show_counts = null_counts
         exceeds_info_cols = len(self.columns) > max_cols
 
         def _verbose_repr():
-            lines.append('Data columns (total %d columns):' %
-                         len(self.columns))
+            lines.append("Data columns (total %d columns):" % len(self.columns))
             space = max(len(pprint_thing(k)) for k in self.columns) + 4
             counts = None
 
@@ -2284,9 +2482,11 @@ class DataFrame(NDFrame):
                 counts = self.count()
                 if len(cols) != len(counts):  # pragma: no cover
                     raise AssertionError(
-                        'Columns must equal counts '
-                        '({cols:d} != {counts:d})'.format(
-                            cols=len(cols), counts=len(counts)))
+                        "Columns must equal counts "
+                        "({cols:d} != {counts:d})".format(
+                            cols=len(cols), counts=len(counts)
+                        )
+                    )
                 tmpl = "{count} non-null {dtype}"
 
             dtypes = self.dtypes
@@ -2298,22 +2498,24 @@ class DataFrame(NDFrame):
                 if show_counts:
                     count = counts.iloc[i]
 
-                lines.append(_put_str(col, space) + tmpl.format(count=count,
-                                                                dtype=dtype))
+                lines.append(
+                    _put_str(col, space) + tmpl.format(count=count, dtype=dtype)
+                )
 
         def _non_verbose_repr():
-            lines.append(self.columns._summary(name='Columns'))
+            lines.append(self.columns._summary(name="Columns"))
 
         def _sizeof_fmt(num, size_qualifier):
             # returns size in human readable format
-            for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
+            for x in ["bytes", "KB", "MB", "GB", "TB"]:
                 if num < 1024.0:
-                    return ("{num:3.1f}{size_q} "
-                            "{x}".format(num=num, size_q=size_qualifier, x=x))
+                    return "{num:3.1f}{size_q} " "{x}".format(
+                        num=num, size_q=size_qualifier, x=x
+                    )
                 num /= 1024.0
-            return "{num:3.1f}{size_q} {pb}".format(num=num,
-                                                    size_q=size_qualifier,
-                                                    pb='PB')
+            return "{num:3.1f}{size_q} {pb}".format(
+                num=num, size_q=size_qualifier, pb="PB"
+            )
 
         if verbose:
             _verbose_repr()
@@ -2325,29 +2527,30 @@ class DataFrame(NDFrame):
             else:
                 _verbose_repr()
 
-        counts = self.get_dtype_counts()
-        dtypes = ['{k}({kk:d})'.format(k=k[0], kk=k[1]) for k
-                  in sorted(counts.items())]
-        lines.append('dtypes: {types}'.format(types=', '.join(dtypes)))
+        counts = self._data.get_dtype_counts()
+        dtypes = ["{k}({kk:d})".format(k=k[0], kk=k[1]) for k in sorted(counts.items())]
+        lines.append("dtypes: {types}".format(types=", ".join(dtypes)))
 
         if memory_usage is None:
-            memory_usage = get_option('display.memory_usage')
+            memory_usage = get_option("display.memory_usage")
         if memory_usage:
             # append memory usage of df to display
-            size_qualifier = ''
-            if memory_usage == 'deep':
+            size_qualifier = ""
+            if memory_usage == "deep":
                 deep = True
             else:
                 # size_qualifier is just a best effort; not guaranteed to catch
                 # all cases (e.g., it misses categorical data even with object
                 # categories)
                 deep = False
-                if ('object' in counts or
-                        self.index._is_memory_usage_qualified()):
-                    size_qualifier = '+'
+                if "object" in counts or self.index._is_memory_usage_qualified():
+                    size_qualifier = "+"
             mem_usage = self.memory_usage(index=True, deep=deep).sum()
-            lines.append("memory usage: {mem}\n".format(
-                mem=_sizeof_fmt(mem_usage, size_qualifier)))
+            lines.append(
+                "memory usage: {mem}\n".format(
+                    mem=_sizeof_fmt(mem_usage, size_qualifier)
+                )
+            )
 
         fmt.buffer_put_lines(buf, lines)
 
@@ -2435,11 +2638,14 @@ class DataFrame(NDFrame):
         >>> df['object'].astype('category').memory_usage(deep=True)
         5216
         """
-        result = Series([c.memory_usage(index=False, deep=deep)
-                         for col, c in self.iteritems()], index=self.columns)
+        result = Series(
+            [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
+            index=self.columns,
+        )
         if index:
-            result = Series(self.index.memory_usage(deep=deep),
-                            index=['Index']).append(result)
+            result = Series(self.index.memory_usage(deep=deep), index=["Index"]).append(
+                result
+            )
         return result
 
     def transpose(self, *args, **kwargs):
@@ -2562,13 +2768,13 @@ class DataFrame(NDFrame):
         (vals, idx, cols), object_state = state
 
         index = com._unpickle_array(idx)
-        dm = DataFrame(vals, index=index, columns=com._unpickle_array(cols),
-                       copy=False)
+        dm = DataFrame(vals, index=index, columns=com._unpickle_array(cols), copy=False)
 
         if object_state is not None:
             ovals, _, ocols = object_state
-            objects = DataFrame(ovals, index=index,
-                                columns=com._unpickle_array(ocols), copy=False)
+            objects = DataFrame(
+                ovals, index=index, columns=com._unpickle_array(ocols), copy=False
+            )
 
             dm = dm.join(objects)
 
@@ -2595,10 +2801,13 @@ class DataFrame(NDFrame):
         scalar
         """
 
-        warnings.warn("get_value is deprecated and will be removed "
-                      "in a future release. Please use "
-                      ".at[] or .iat[] accessors instead", FutureWarning,
-                      stacklevel=2)
+        warnings.warn(
+            "get_value is deprecated and will be removed "
+            "in a future release. Please use "
+            ".at[] or .iat[] accessors instead",
+            FutureWarning,
+            stacklevel=2,
+        )
         return self._get_value(index, col, takeable=takeable)
 
     def _get_value(self, index, col, takeable=False):
@@ -2625,6 +2834,7 @@ class DataFrame(NDFrame):
         col = self.columns.get_loc(col)
         index = self.index.get_loc(index)
         return self._get_value(index, col, takeable=True)
+
     _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, index, col, value, takeable=False):
@@ -2647,10 +2857,13 @@ class DataFrame(NDFrame):
             If label pair is contained, will be reference to calling DataFrame,
             otherwise a new object.
         """
-        warnings.warn("set_value is deprecated and will be removed "
-                      "in a future release. Please use "
-                      ".at[] or .iat[] accessors instead", FutureWarning,
-                      stacklevel=2)
+        warnings.warn(
+            "set_value is deprecated and will be removed "
+            "in a future release. Please use "
+            ".at[] or .iat[] accessors instead",
+            FutureWarning,
+            stacklevel=2,
+        )
         return self._set_value(index, col, value, takeable=takeable)
 
     def _set_value(self, index, col, value, takeable=False):
@@ -2673,13 +2886,14 @@ class DataFrame(NDFrame):
             self._item_cache.pop(col, None)
 
             return self
+
     _set_value.__doc__ = set_value.__doc__
 
-    def _ixs(self, i, axis=0):
+    def _ixs(self, i: int, axis: int = 0):
         """
         Parameters
         ----------
-        i : int, slice, or sequence of integers
+        i : int
         axis : int
 
         Notes
@@ -2688,71 +2902,51 @@ class DataFrame(NDFrame):
         """
         # irow
         if axis == 0:
-            if isinstance(i, slice):
-                return self[i]
-            else:
-                label = self.index[i]
-                if isinstance(label, Index):
-                    # a location index by definition
-                    result = self.take(i, axis=axis)
-                    copy = True
-                else:
-                    new_values = self._data.fast_xs(i)
-                    if is_scalar(new_values):
-                        return new_values
+            label = self.index[i]
+            new_values = self._data.fast_xs(i)
+            if is_scalar(new_values):
+                return new_values
 
-                    # if we are a copy, mark as such
-                    copy = (isinstance(new_values, np.ndarray) and
-                            new_values.base is None)
-                    result = self._constructor_sliced(new_values,
-                                                      index=self.columns,
-                                                      name=self.index[i],
-                                                      dtype=new_values.dtype)
-                result._set_is_copy(self, copy=copy)
-                return result
+            # if we are a copy, mark as such
+            copy = isinstance(new_values, np.ndarray) and new_values.base is None
+            result = self._constructor_sliced(
+                new_values,
+                index=self.columns,
+                name=self.index[i],
+                dtype=new_values.dtype,
+            )
+            result._set_is_copy(self, copy=copy)
+            return result
 
         # icol
         else:
             label = self.columns[i]
-            if isinstance(i, slice):
-                # need to return view
-                lab_slice = slice(label[0], label[-1])
-                return self.loc[:, lab_slice]
-            else:
-                if isinstance(label, Index):
-                    return self._take(i, axis=1)
 
-                index_len = len(self.index)
+            # if the values returned are not the same length
+            # as the index (iow a not found value), iget returns
+            # a 0-len ndarray. This is effectively catching
+            # a numpy error (as numpy should really raise)
+            values = self._data.iget(i)
 
-                # if the values returned are not the same length
-                # as the index (iow a not found value), iget returns
-                # a 0-len ndarray. This is effectively catching
-                # a numpy error (as numpy should really raise)
-                values = self._data.iget(i)
+            if len(self.index) and not len(values):
+                values = np.array([np.nan] * len(self.index), dtype=object)
+            result = self._box_col_values(values, label)
 
-                if index_len and not len(values):
-                    values = np.array([np.nan] * index_len, dtype=object)
-                result = self._box_col_values(values, label)
+            # this is a cached value, mark it so
+            result._set_as_cached(label, self)
 
-                # this is a cached value, mark it so
-                result._set_as_cached(label, self)
-
-                return result
+            return result
 
     def __getitem__(self, key):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        # shortcut if the key is in columns
-        try:
+        if is_hashable(key):
+            # shortcut if the key is in columns
             if self.columns.is_unique and key in self.columns:
                 if self.columns.nlevels > 1:
                     return self._getitem_multilevel(key)
                 return self._get_item_cache(key)
-        except (TypeError, ValueError):
-            # The TypeError correctly catches non hashable "key" (e.g. list)
-            # The ValueError can be removed once GH #21729 is fixed
-            pass
 
         # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
@@ -2780,14 +2974,13 @@ class DataFrame(NDFrame):
         else:
             if is_iterator(key):
                 key = list(key)
-            indexer = self.loc._convert_to_indexer(key, axis=1,
-                                                   raise_missing=True)
+            indexer = self.loc._convert_to_indexer(key, axis=1, raise_missing=True)
 
         # take() does not accept boolean indexers
         if getattr(indexer, "dtype", None) == bool:
             indexer = np.where(indexer)[0]
 
-        data = self._take(indexer, axis=1)
+        data = self.take(indexer, axis=1)
 
         if is_single_key:
             # What does looking for a single key in a non-unique index return?
@@ -2806,17 +2999,21 @@ class DataFrame(NDFrame):
         # go with the __setitem__ behavior since that is more consistent
         # with all other indexing behavior
         if isinstance(key, Series) and not key.index.equals(self.index):
-            warnings.warn("Boolean Series key will be reindexed to match "
-                          "DataFrame index.", UserWarning, stacklevel=3)
+            warnings.warn(
+                "Boolean Series key will be reindexed to match " "DataFrame index.",
+                UserWarning,
+                stacklevel=3,
+            )
         elif len(key) != len(self.index):
-            raise ValueError('Item wrong length %d instead of %d.' %
-                             (len(key), len(self.index)))
+            raise ValueError(
+                "Item wrong length %d instead of %d." % (len(key), len(self.index))
+            )
 
         # check_bool_indexer will throw exception if Series key cannot
         # be reindexed to match DataFrame rows
         key = check_bool_indexer(self.index, key)
         indexer = key.nonzero()[0]
-        return self._take(indexer, axis=0)
+        return self.take(indexer, axis=0)
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
@@ -2828,8 +3025,9 @@ class DataFrame(NDFrame):
                 result.columns = result_columns
             else:
                 new_values = self.values[:, loc]
-                result = self._constructor(new_values, index=self.index,
-                                           columns=result_columns)
+                result = self._constructor(
+                    new_values, index=self.index, columns=result_columns
+                )
                 result = result.__finalize__(self)
 
             # If there is only one column being returned, and its name is
@@ -2842,12 +3040,12 @@ class DataFrame(NDFrame):
                 top = result.columns[0]
                 if isinstance(top, tuple):
                     top = top[0]
-                if top == '':
-                    result = result['']
+                if top == "":
+                    result = result[""]
                     if isinstance(result, Series):
-                        result = self._constructor_sliced(result,
-                                                          index=self.index,
-                                                          name=key)
+                        result = self._constructor_sliced(
+                            result, index=self.index, name=key
+                        )
 
             result._set_is_copy(self)
             return result
@@ -2856,7 +3054,7 @@ class DataFrame(NDFrame):
 
     def _getitem_frame(self, key):
         if key.values.size and not is_bool_dtype(key.values):
-            raise ValueError('Must pass DataFrame with boolean values only')
+            raise ValueError("Must pass DataFrame with boolean values only")
         return self.where(key)
 
     def query(self, expr, inplace=False, **kwargs):
@@ -2968,12 +3166,12 @@ class DataFrame(NDFrame):
            A   B  C C
         0  1  10   10
         """
-        inplace = validate_bool_kwarg(inplace, 'inplace')
+        inplace = validate_bool_kwarg(inplace, "inplace")
         if not isinstance(expr, str):
             msg = "expr must be a string to be evaluated, {0} given"
             raise ValueError(msg.format(type(expr)))
-        kwargs['level'] = kwargs.pop('level', 0) + 1
-        kwargs['target'] = None
+        kwargs["level"] = kwargs.pop("level", 0) + 1
+        kwargs["target"] = None
         res = self.eval(expr, **kwargs)
 
         try:
@@ -3080,17 +3278,16 @@ class DataFrame(NDFrame):
         """
         from pandas.core.computation.eval import eval as _eval
 
-        inplace = validate_bool_kwarg(inplace, 'inplace')
-        resolvers = kwargs.pop('resolvers', None)
-        kwargs['level'] = kwargs.pop('level', 0) + 1
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        resolvers = kwargs.pop("resolvers", None)
+        kwargs["level"] = kwargs.pop("level", 0) + 1
         if resolvers is None:
             index_resolvers = self._get_index_resolvers()
-            column_resolvers = \
-                self._get_space_character_free_column_resolvers()
+            column_resolvers = self._get_space_character_free_column_resolvers()
             resolvers = column_resolvers, index_resolvers
-        if 'target' not in kwargs:
-            kwargs['target'] = self
-        kwargs['resolvers'] = kwargs.get('resolvers', ()) + tuple(resolvers)
+        if "target" not in kwargs:
+            kwargs["target"] = self
+        kwargs["resolvers"] = kwargs.get("resolvers", ()) + tuple(resolvers)
         return _eval(expr, inplace=inplace, **kwargs)
 
     def select_dtypes(self, include=None, exclude=None):
@@ -3172,10 +3369,11 @@ class DataFrame(NDFrame):
         4   True  1.0
         5  False  2.0
         """
+
         def _get_info_slice(obj, indexer):
             """Slice the info axis of `obj` with `indexer`."""
-            if not hasattr(obj, '_info_axis_number'):
-                msg = 'object of type {typ!r} has no info axis'
+            if not hasattr(obj, "_info_axis_number"):
+                msg = "object of type {typ!r} has no info axis"
                 raise TypeError(msg.format(typ=type(obj).__name__))
             slices = [slice(None)] * obj.ndim
             slices[obj._info_axis_number] = indexer
@@ -3189,19 +3387,22 @@ class DataFrame(NDFrame):
         selection = tuple(map(frozenset, (include, exclude)))
 
         if not any(selection):
-            raise ValueError('at least one of include or exclude must be '
-                             'nonempty')
+            raise ValueError("at least one of include or exclude must be " "nonempty")
 
         # convert the myriad valid dtypes object to a single representation
         include, exclude = map(
-            lambda x: frozenset(map(infer_dtype_from_object, x)), selection)
+            lambda x: frozenset(map(infer_dtype_from_object, x)), selection
+        )
         for dtypes in (include, exclude):
             invalidate_string_dtypes(dtypes)
 
         # can't both include AND exclude!
         if not include.isdisjoint(exclude):
-            raise ValueError('include and exclude overlap on {inc_ex}'.format(
-                inc_ex=(include & exclude)))
+            raise ValueError(
+                "include and exclude overlap on {inc_ex}".format(
+                    inc_ex=(include & exclude)
+                )
+            )
 
         # empty include/exclude -> defaults to True
         # three cases (we've already raised if both are empty)
@@ -3220,8 +3421,9 @@ class DataFrame(NDFrame):
         def is_dtype_instance_mapper(idx, dtype):
             return idx, functools.partial(issubclass, dtype.type)
 
-        for idx, f in itertools.starmap(is_dtype_instance_mapper,
-                                        enumerate(self.dtypes)):
+        for idx, f in itertools.starmap(
+            is_dtype_instance_mapper, enumerate(self.dtypes)
+        ):
             if include:  # checks for the case of empty include or exclude
                 include_these.iloc[idx] = any(map(f, include))
             if exclude:
@@ -3252,7 +3454,7 @@ class DataFrame(NDFrame):
         if indexer is not None:
             return self._setitem_slice(indexer, value)
 
-        if isinstance(key, DataFrame) or getattr(key, 'ndim', None) == 2:
+        if isinstance(key, DataFrame) or getattr(key, "ndim", None) == 2:
             self._setitem_frame(key, value)
         elif isinstance(key, (Series, np.ndarray, list, Index)):
             self._setitem_array(key, value)
@@ -3268,8 +3470,9 @@ class DataFrame(NDFrame):
         # also raises Exception if object array with NA values
         if com.is_bool_indexer(key):
             if len(key) != len(self.index):
-                raise ValueError('Item wrong length %d instead of %d!' %
-                                 (len(key), len(self.index)))
+                raise ValueError(
+                    "Item wrong length %d instead of %d!" % (len(key), len(self.index))
+                )
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
@@ -3277,7 +3480,7 @@ class DataFrame(NDFrame):
         else:
             if isinstance(value, DataFrame):
                 if len(value.columns) != len(key):
-                    raise ValueError('Columns must be same length as key')
+                    raise ValueError("Columns must be same length as key")
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
@@ -3290,14 +3493,12 @@ class DataFrame(NDFrame):
         # df[df > df2] = 0
         if isinstance(key, np.ndarray):
             if key.shape != self.shape:
-                raise ValueError(
-                    'Array conditional must be same shape as self'
-                )
+                raise ValueError("Array conditional must be same shape as self")
             key = self._constructor(key, **self._construct_axes_dict())
 
         if key.values.size and not is_bool_dtype(key.values):
             raise TypeError(
-                'Must pass DataFrame or 2-d ndarray with boolean values only'
+                "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
 
         self._check_inplace_setting(value)
@@ -3314,12 +3515,15 @@ class DataFrame(NDFrame):
             try:
                 value = Series(value)
             except (ValueError, NotImplementedError, TypeError):
-                raise ValueError('Cannot set a frame with no defined index '
-                                 'and a value that cannot be converted to a '
-                                 'Series')
+                raise ValueError(
+                    "Cannot set a frame with no defined index "
+                    "and a value that cannot be converted to a "
+                    "Series"
+                )
 
-            self._data = self._data.reindex_axis(value.index.copy(), axis=1,
-                                                 fill_value=np.nan)
+            self._data = self._data.reindex_axis(
+                value.index.copy(), axis=1, fill_value=np.nan
+            )
 
     def _set_item(self, key, value):
         """
@@ -3360,8 +3564,7 @@ class DataFrame(NDFrame):
         """
         self._ensure_valid_index(value)
         value = self._sanitize_column(column, value, broadcast=False)
-        self._data.insert(loc, column, value,
-                          allow_duplicates=allow_duplicates)
+        self._data.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs):
         r"""
@@ -3490,8 +3693,9 @@ class DataFrame(NDFrame):
                         raise e
 
                     # other
-                    raise TypeError('incompatible index of inserted column '
-                                    'with frame index')
+                    raise TypeError(
+                        "incompatible index of inserted column " "with frame index"
+                    )
             return value
 
         if isinstance(value, Series):
@@ -3537,8 +3741,7 @@ class DataFrame(NDFrame):
 
         else:
             # cast ignores pandas dtypes. so save the dtype first
-            infer_dtype, _ = infer_dtype_from_scalar(
-                value, pandas_dtype=True)
+            infer_dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
 
             # upcast
             value = cast_scalar_to_array(len(self.index), value)
@@ -3550,8 +3753,7 @@ class DataFrame(NDFrame):
 
         # broadcast across multiple columns if necessary
         if broadcast and key in self.columns and value.ndim == 1:
-            if (not self.columns.is_unique or
-                    isinstance(self.columns, MultiIndex)):
+            if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
                     value = np.tile(value, (len(existing_piece.columns), 1))
@@ -3560,8 +3762,10 @@ class DataFrame(NDFrame):
 
     @property
     def _series(self):
-        return {item: Series(self._data.iget(idx), index=self.index, name=item)
-                for idx, item in enumerate(self.columns)}
+        return {
+            item: Series(self._data.iget(idx), index=self.index, name=item)
+            for idx, item in enumerate(self.columns)
+        }
 
     def lookup(self, row_labels, col_labels):
         """
@@ -3595,7 +3799,7 @@ class DataFrame(NDFrame):
         """
         n = len(row_labels)
         if n != len(col_labels):
-            raise ValueError('Row labels must have same size as column labels')
+            raise ValueError("Row labels must have same size as column labels")
 
         thresh = 1000
         if not self._is_mixed_type or n > thresh:
@@ -3603,13 +3807,13 @@ class DataFrame(NDFrame):
             ridx = self.index.get_indexer(row_labels)
             cidx = self.columns.get_indexer(col_labels)
             if (ridx == -1).any():
-                raise KeyError('One or more row labels was not found')
+                raise KeyError("One or more row labels was not found")
             if (cidx == -1).any():
-                raise KeyError('One or more column labels was not found')
+                raise KeyError("One or more column labels was not found")
             flat_index = ridx * len(self.columns) + cidx
             result = values.flat[flat_index]
         else:
-            result = np.empty(n, dtype='O')
+            result = np.empty(n, dtype="O")
             for i, (r, c) in enumerate(zip(row_labels, col_labels)):
                 result[i] = self._get_value(r, c)
 
@@ -3621,88 +3825,142 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def _reindex_axes(self, axes, level, limit, tolerance, method, fill_value,
-                      copy):
+    def _reindex_axes(self, axes, level, limit, tolerance, method, fill_value, copy):
         frame = self
 
-        columns = axes['columns']
+        columns = axes["columns"]
         if columns is not None:
-            frame = frame._reindex_columns(columns, method, copy, level,
-                                           fill_value, limit, tolerance)
+            frame = frame._reindex_columns(
+                columns, method, copy, level, fill_value, limit, tolerance
+            )
 
-        index = axes['index']
+        index = axes["index"]
         if index is not None:
-            frame = frame._reindex_index(index, method, copy, level,
-                                         fill_value, limit, tolerance)
+            frame = frame._reindex_index(
+                index, method, copy, level, fill_value, limit, tolerance
+            )
 
         return frame
 
-    def _reindex_index(self, new_index, method, copy, level, fill_value=np.nan,
-                       limit=None, tolerance=None):
-        new_index, indexer = self.index.reindex(new_index, method=method,
-                                                level=level, limit=limit,
-                                                tolerance=tolerance)
-        return self._reindex_with_indexers({0: [new_index, indexer]},
-                                           copy=copy, fill_value=fill_value,
-                                           allow_dups=False)
+    def _reindex_index(
+        self,
+        new_index,
+        method,
+        copy,
+        level,
+        fill_value=np.nan,
+        limit=None,
+        tolerance=None,
+    ):
+        new_index, indexer = self.index.reindex(
+            new_index, method=method, level=level, limit=limit, tolerance=tolerance
+        )
+        return self._reindex_with_indexers(
+            {0: [new_index, indexer]},
+            copy=copy,
+            fill_value=fill_value,
+            allow_dups=False,
+        )
 
-    def _reindex_columns(self, new_columns, method, copy, level,
-                         fill_value=None, limit=None, tolerance=None):
-        new_columns, indexer = self.columns.reindex(new_columns, method=method,
-                                                    level=level, limit=limit,
-                                                    tolerance=tolerance)
-        return self._reindex_with_indexers({1: [new_columns, indexer]},
-                                           copy=copy, fill_value=fill_value,
-                                           allow_dups=False)
+    def _reindex_columns(
+        self,
+        new_columns,
+        method,
+        copy,
+        level,
+        fill_value=None,
+        limit=None,
+        tolerance=None,
+    ):
+        new_columns, indexer = self.columns.reindex(
+            new_columns, method=method, level=level, limit=limit, tolerance=tolerance
+        )
+        return self._reindex_with_indexers(
+            {1: [new_columns, indexer]},
+            copy=copy,
+            fill_value=fill_value,
+            allow_dups=False,
+        )
 
     def _reindex_multi(self, axes, copy, fill_value):
         """
         We are guaranteed non-Nones in the axes.
         """
 
-        new_index, row_indexer = self.index.reindex(axes['index'])
-        new_columns, col_indexer = self.columns.reindex(axes['columns'])
+        new_index, row_indexer = self.index.reindex(axes["index"])
+        new_columns, col_indexer = self.columns.reindex(axes["columns"])
 
         if row_indexer is not None and col_indexer is not None:
             indexer = row_indexer, col_indexer
-            new_values = algorithms.take_2d_multi(self.values, indexer,
-                                                  fill_value=fill_value)
-            return self._constructor(new_values, index=new_index,
-                                     columns=new_columns)
+            new_values = algorithms.take_2d_multi(
+                self.values, indexer, fill_value=fill_value
+            )
+            return self._constructor(new_values, index=new_index, columns=new_columns)
         else:
-            return self._reindex_with_indexers({0: [new_index, row_indexer],
-                                                1: [new_columns, col_indexer]},
-                                               copy=copy,
-                                               fill_value=fill_value)
+            return self._reindex_with_indexers(
+                {0: [new_index, row_indexer], 1: [new_columns, col_indexer]},
+                copy=copy,
+                fill_value=fill_value,
+            )
 
-    @Appender(_shared_docs['align'] % _shared_doc_kwargs)
-    def align(self, other, join='outer', axis=None, level=None, copy=True,
-              fill_value=None, method=None, limit=None, fill_axis=0,
-              broadcast_axis=None):
-        return super().align(other, join=join, axis=axis, level=level,
-                             copy=copy, fill_value=fill_value, method=method,
-                             limit=limit, fill_axis=fill_axis,
-                             broadcast_axis=broadcast_axis)
+    @Appender(_shared_docs["align"] % _shared_doc_kwargs)
+    def align(
+        self,
+        other,
+        join="outer",
+        axis=None,
+        level=None,
+        copy=True,
+        fill_value=None,
+        method=None,
+        limit=None,
+        fill_axis=0,
+        broadcast_axis=None,
+    ):
+        return super().align(
+            other,
+            join=join,
+            axis=axis,
+            level=level,
+            copy=copy,
+            fill_value=fill_value,
+            method=method,
+            limit=limit,
+            fill_axis=fill_axis,
+            broadcast_axis=broadcast_axis,
+        )
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.reindex.__doc__)
-    @rewrite_axis_style_signature('labels', [('method', None),
-                                             ('copy', True),
-                                             ('level', None),
-                                             ('fill_value', np.nan),
-                                             ('limit', None),
-                                             ('tolerance', None)])
+    @rewrite_axis_style_signature(
+        "labels",
+        [
+            ("method", None),
+            ("copy", True),
+            ("level", None),
+            ("fill_value", np.nan),
+            ("limit", None),
+            ("tolerance", None),
+        ],
+    )
     def reindex(self, *args, **kwargs):
-        axes = validate_axis_style_args(self, args, kwargs, 'labels',
-                                        'reindex')
+        axes = validate_axis_style_args(self, args, kwargs, "labels", "reindex")
         kwargs.update(axes)
         # Pop these, since the values are in `kwargs` under different names
-        kwargs.pop('axis', None)
-        kwargs.pop('labels', None)
+        kwargs.pop("axis", None)
+        kwargs.pop("labels", None)
         return super().reindex(**kwargs)
 
-    def drop(self, labels=None, axis=0, index=None, columns=None,
-             level=None, inplace=False, errors='raise'):
+    def drop(
+        self,
+        labels=None,
+        axis=0,
+        index=None,
+        columns=None,
+        level=None,
+        inplace=False,
+        errors="raise",
+    ):
         """
         Drop specified labels from rows or columns.
 
@@ -3825,14 +4083,20 @@ class DataFrame(NDFrame):
         falcon  speed   320.0   250.0
                 weight  1.0     0.8
         """
-        return super().drop(labels=labels, axis=axis, index=index,
-                            columns=columns, level=level, inplace=inplace,
-                            errors=errors)
+        return super().drop(
+            labels=labels,
+            axis=axis,
+            index=index,
+            columns=columns,
+            level=level,
+            inplace=inplace,
+            errors=errors,
+        )
 
-    @rewrite_axis_style_signature('mapper', [('copy', True),
-                                             ('inplace', False),
-                                             ('level', None),
-                                             ('errors', 'ignore')])
+    @rewrite_axis_style_signature(
+        "mapper",
+        [("copy", True), ("inplace", False), ("level", None), ("errors", "ignore")],
+    )
     def rename(self, *args, **kwargs):
         """
         Alter axes labels.
@@ -3942,35 +4206,63 @@ class DataFrame(NDFrame):
         2  2  5
         4  3  6
         """
-        axes = validate_axis_style_args(self, args, kwargs, 'mapper', 'rename')
+        axes = validate_axis_style_args(self, args, kwargs, "mapper", "rename")
         kwargs.update(axes)
         # Pop these, since the values are in `kwargs` under different names
-        kwargs.pop('axis', None)
-        kwargs.pop('mapper', None)
+        kwargs.pop("axis", None)
+        kwargs.pop("mapper", None)
         return super().rename(**kwargs)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.fillna.__doc__)
-    def fillna(self, value=None, method=None, axis=None, inplace=False,
-               limit=None, downcast=None, **kwargs):
-        return super().fillna(value=value, method=method, axis=axis,
-                              inplace=inplace, limit=limit, downcast=downcast,
-                              **kwargs)
+    def fillna(
+        self,
+        value=None,
+        method=None,
+        axis=None,
+        inplace=False,
+        limit=None,
+        downcast=None,
+        **kwargs
+    ):
+        return super().fillna(
+            value=value,
+            method=method,
+            axis=axis,
+            inplace=inplace,
+            limit=limit,
+            downcast=downcast,
+            **kwargs
+        )
 
-    @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
-    def replace(self, to_replace=None, value=None, inplace=False, limit=None,
-                regex=False, method='pad'):
-        return super().replace(to_replace=to_replace, value=value,
-                               inplace=inplace, limit=limit, regex=regex,
-                               method=method)
+    @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
+    def replace(
+        self,
+        to_replace=None,
+        value=None,
+        inplace=False,
+        limit=None,
+        regex=False,
+        method="pad",
+    ):
+        return super().replace(
+            to_replace=to_replace,
+            value=value,
+            inplace=inplace,
+            limit=limit,
+            regex=regex,
+            method=method,
+        )
 
-    @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
+    @Appender(_shared_docs["shift"] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None):
-        return super().shift(periods=periods, freq=freq, axis=axis,
-                             fill_value=fill_value)
+        return super().shift(
+            periods=periods, freq=freq, axis=axis, fill_value=fill_value
+        )
 
-    def set_index(self, keys, drop=True, append=False, inplace=False,
-                  verify_integrity=False):
+    def set_index(
+        self, keys, drop=True, append=False, inplace=False, verify_integrity=False
+    ):
         """
         Set the DataFrame index using existing columns.
 
@@ -4060,35 +4352,39 @@ class DataFrame(NDFrame):
         3 9       7  2013    84
         4 16     10  2014    31
         """
-        inplace = validate_bool_kwarg(inplace, 'inplace')
+        inplace = validate_bool_kwarg(inplace, "inplace")
         if not isinstance(keys, list):
             keys = [keys]
 
-        err_msg = ('The parameter "keys" may be a column key, one-dimensional '
-                   'array, or a list containing only valid column keys and '
-                   'one-dimensional arrays.')
+        err_msg = (
+            'The parameter "keys" may be a column key, one-dimensional '
+            "array, or a list containing only valid column keys and "
+            "one-dimensional arrays."
+        )
 
         missing = []
         for col in keys:
-            if isinstance(col, (ABCIndexClass, ABCSeries, np.ndarray,
-                                list, abc.Iterator)):
+            if isinstance(
+                col, (ABCIndexClass, ABCSeries, np.ndarray, list, abc.Iterator)
+            ):
                 # arrays are fine as long as they are one-dimensional
                 # iterators get converted to list below
-                if getattr(col, 'ndim', 1) != 1:
+                if getattr(col, "ndim", 1) != 1:
                     raise ValueError(err_msg)
             else:
                 # everything else gets tried as a key; see GH 24969
                 try:
                     found = col in self.columns
                 except TypeError:
-                    raise TypeError(err_msg + ' Received column of '
-                                    'type {}'.format(type(col)))
+                    raise TypeError(
+                        err_msg + " Received column of " "type {}".format(type(col))
+                    )
                 else:
                     if not found:
                         missing.append(col)
 
         if missing:
-            raise KeyError('None of {} are in the columns'.format(missing))
+            raise KeyError("None of {} are in the columns".format(missing))
 
         if inplace:
             frame = self
@@ -4131,18 +4427,18 @@ class DataFrame(NDFrame):
             if len(arrays[-1]) != len(self):
                 # check newest element against length of calling frame, since
                 # ensure_index_from_sequences would not raise for append=False.
-                raise ValueError('Length mismatch: Expected {len_self} rows, '
-                                 'received array of length {len_col}'.format(
-                                     len_self=len(self),
-                                     len_col=len(arrays[-1])
-                                 ))
+                raise ValueError(
+                    "Length mismatch: Expected {len_self} rows, "
+                    "received array of length {len_col}".format(
+                        len_self=len(self), len_col=len(arrays[-1])
+                    )
+                )
 
         index = ensure_index_from_sequences(arrays, names)
 
         if verify_integrity and not index.is_unique:
             duplicates = index[index.duplicated()].unique()
-            raise ValueError('Index has duplicate keys: {dup}'.format(
-                dup=duplicates))
+            raise ValueError("Index has duplicate keys: {dup}".format(dup=duplicates))
 
         # use set to handle duplicate column names gracefully in case of drop
         for c in set(to_remove):
@@ -4156,8 +4452,9 @@ class DataFrame(NDFrame):
         if not inplace:
             return frame
 
-    def reset_index(self, level=None, drop=False, inplace=False, col_level=0,
-                    col_fill=''):
+    def reset_index(
+        self, level=None, drop=False, inplace=False, col_level=0, col_fill=""
+    ):
         """
         Reset the index, or a level of it.
 
@@ -4299,7 +4596,7 @@ class DataFrame(NDFrame):
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
         """
-        inplace = validate_bool_kwarg(inplace, 'inplace')
+        inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
             new_obj = self
         else:
@@ -4335,8 +4632,7 @@ class DataFrame(NDFrame):
                         values = values._data
 
                     if mask.any():
-                        values, changed = maybe_upcast_putmask(
-                            values, mask, np.nan)
+                        values, changed = maybe_upcast_putmask(values, mask, np.nan)
 
                     if issubclass(values_type, DatetimeLikeArray):
                         values = values_type(values, dtype=values_dtype)
@@ -4353,13 +4649,14 @@ class DataFrame(NDFrame):
 
         if not drop:
             if isinstance(self.index, MultiIndex):
-                names = [n if n is not None else ('level_%d' % i)
-                         for (i, n) in enumerate(self.index.names)]
+                names = [
+                    n if n is not None else ("level_%d" % i)
+                    for (i, n) in enumerate(self.index.names)
+                ]
                 to_insert = zip(self.index.levels, self.index.codes)
             else:
-                default = 'index' if 'index' not in self else 'level_0'
-                names = ([default] if self.index.name is None
-                         else [self.index.name])
+                default = "index" if "index" not in self else "level_0"
+                names = [default] if self.index.name is None else [self.index.name]
                 to_insert = ((self.index, None),)
 
             multi_col = isinstance(self.columns, MultiIndex)
@@ -4368,13 +4665,14 @@ class DataFrame(NDFrame):
                     continue
                 name = names[i]
                 if multi_col:
-                    col_name = (list(name) if isinstance(name, tuple)
-                                else [name])
+                    col_name = list(name) if isinstance(name, tuple) else [name]
                     if col_fill is None:
                         if len(col_name) not in (1, self.columns.nlevels):
-                            raise ValueError("col_fill=None is incompatible "
-                                             "with incomplete column name "
-                                             "{}".format(name))
+                            raise ValueError(
+                                "col_fill=None is incompatible "
+                                "with incomplete column name "
+                                "{}".format(name)
+                            )
                         col_fill = col_name[0]
 
                     lev_num = self.columns._get_level_number(col_level)
@@ -4393,24 +4691,23 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Reindex-based selection methods
 
-    @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
+    @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self):
         return super().isna()
 
-    @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
+    @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isnull(self):
         return super().isnull()
 
-    @Appender(_shared_docs['notna'] % _shared_doc_kwargs)
+    @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
     def notna(self):
         return super().notna()
 
-    @Appender(_shared_docs['notna'] % _shared_doc_kwargs)
+    @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
     def notnull(self):
         return super().notnull()
 
-    def dropna(self, axis=0, how='any', thresh=None, subset=None,
-               inplace=False):
+    def dropna(self, axis=0, how="any", thresh=None, subset=None, inplace=False):
         """
         Remove missing values.
 
@@ -4513,17 +4810,18 @@ class DataFrame(NDFrame):
              name        toy       born
         1  Batman  Batmobile 1940-04-25
         """
-        inplace = validate_bool_kwarg(inplace, 'inplace')
+        inplace = validate_bool_kwarg(inplace, "inplace")
         if isinstance(axis, (tuple, list)):
             # GH20987
-            msg = ("supplying multiple axes to axis is deprecated and "
-                   "will be removed in a future version.")
+            msg = (
+                "supplying multiple axes to axis is deprecated and "
+                "will be removed in a future version."
+            )
             warnings.warn(msg, FutureWarning, stacklevel=2)
 
             result = self
             for ax in axis:
-                result = result.dropna(how=how, thresh=thresh, subset=subset,
-                                       axis=ax)
+                result = result.dropna(how=how, thresh=thresh, subset=subset, axis=ax)
         else:
             axis = self._get_axis_number(axis)
             agg_axis = 1 - axis
@@ -4541,15 +4839,15 @@ class DataFrame(NDFrame):
 
             if thresh is not None:
                 mask = count >= thresh
-            elif how == 'any':
+            elif how == "any":
                 mask = count == len(agg_obj._get_axis(agg_axis))
-            elif how == 'all':
+            elif how == "all":
                 mask = count > 0
             else:
                 if how is not None:
-                    raise ValueError('invalid how option: {h}'.format(h=how))
+                    raise ValueError("invalid how option: {h}".format(h=how))
                 else:
-                    raise TypeError('must specify how or thresh')
+                    raise TypeError("must specify how or thresh")
 
             result = self.loc(axis=axis)[mask]
 
@@ -4558,7 +4856,7 @@ class DataFrame(NDFrame):
         else:
             return result
 
-    def drop_duplicates(self, subset=None, keep='first', inplace=False):
+    def drop_duplicates(self, subset=None, keep="first", inplace=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
         considering certain columns. Indexes, including time indexes
@@ -4583,7 +4881,7 @@ class DataFrame(NDFrame):
         if self.empty:
             return self.copy()
 
-        inplace = validate_bool_kwarg(inplace, 'inplace')
+        inplace = validate_bool_kwarg(inplace, "inplace")
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
@@ -4593,7 +4891,7 @@ class DataFrame(NDFrame):
         else:
             return self[-duplicated]
 
-    def duplicated(self, subset=None, keep='first'):
+    def duplicated(self, subset=None, keep="first"):
         """
         Return boolean Series denoting duplicate rows, optionally only
         considering certain columns.
@@ -4622,15 +4920,19 @@ class DataFrame(NDFrame):
 
         def f(vals):
             labels, shape = algorithms.factorize(
-                vals, size_hint=min(len(self), _SIZE_HINT_LIMIT))
-            return labels.astype('i8', copy=False), len(shape)
+                vals, size_hint=min(len(self), _SIZE_HINT_LIMIT)
+            )
+            return labels.astype("i8", copy=False), len(shape)
 
         if subset is None:
             subset = self.columns
-        elif (not np.iterable(subset) or
-              isinstance(subset, str) or
-              isinstance(subset, tuple) and subset in self.columns):
-            subset = subset,
+        elif (
+            not np.iterable(subset)
+            or isinstance(subset, str)
+            or isinstance(subset, tuple)
+            and subset in self.columns
+        ):
+            subset = (subset,)
 
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
@@ -4639,8 +4941,7 @@ class DataFrame(NDFrame):
         if not diff.empty:
             raise KeyError(diff)
 
-        vals = (col.values for name, col in self.iteritems()
-                if name in subset)
+        vals = (col.values for name, col in self.items() if name in subset)
         labels, shape = map(list, zip(*map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
@@ -4651,23 +4952,30 @@ class DataFrame(NDFrame):
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
-    def sort_values(self, by, axis=0, ascending=True, inplace=False,
-                    kind='quicksort', na_position='last'):
-        inplace = validate_bool_kwarg(inplace, 'inplace')
+    def sort_values(
+        self,
+        by,
+        axis=0,
+        ascending=True,
+        inplace=False,
+        kind="quicksort",
+        na_position="last",
+    ):
+        inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
 
         if not isinstance(by, list):
             by = [by]
         if is_sequence(ascending) and len(by) != len(ascending):
-            raise ValueError('Length of ascending (%d) != length of by (%d)' %
-                             (len(ascending), len(by)))
+            raise ValueError(
+                "Length of ascending (%d) != length of by (%d)"
+                % (len(ascending), len(by))
+            )
         if len(by) > 1:
             from pandas.core.sorting import lexsort_indexer
 
-            keys = [self._get_label_or_level_values(x, axis=axis)
-                    for x in by]
-            indexer = lexsort_indexer(keys, orders=ascending,
-                                      na_position=na_position)
+            keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
+            indexer = lexsort_indexer(keys, orders=ascending, na_position=na_position)
             indexer = ensure_platform_int(indexer)
         else:
             from pandas.core.sorting import nargsort
@@ -4678,12 +4986,13 @@ class DataFrame(NDFrame):
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]
 
-            indexer = nargsort(k, kind=kind, ascending=ascending,
-                               na_position=na_position)
+            indexer = nargsort(
+                k, kind=kind, ascending=ascending, na_position=na_position
+            )
 
-        new_data = self._data.take(indexer,
-                                   axis=self._get_block_manager_axis(axis),
-                                   verify=False)
+        new_data = self._data.take(
+            indexer, axis=self._get_block_manager_axis(axis), verify=False
+        )
 
         if inplace:
             return self._update_inplace(new_data)
@@ -4692,23 +5001,33 @@ class DataFrame(NDFrame):
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_index.__doc__)
-    def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
-                   kind='quicksort', na_position='last', sort_remaining=True,
-                   by=None):
+    def sort_index(
+        self,
+        axis=0,
+        level=None,
+        ascending=True,
+        inplace=False,
+        kind="quicksort",
+        na_position="last",
+        sort_remaining=True,
+        by=None,
+    ):
 
         # TODO: this can be combined with Series.sort_index impl as
         # almost identical
 
-        inplace = validate_bool_kwarg(inplace, 'inplace')
+        inplace = validate_bool_kwarg(inplace, "inplace")
         # 10726
         if by is not None:
-            warnings.warn("by argument to sort_index is deprecated, "
-                          "please use .sort_values(by=...)",
-                          FutureWarning, stacklevel=2)
+            warnings.warn(
+                "by argument to sort_index is deprecated, "
+                "please use .sort_values(by=...)",
+                FutureWarning,
+                stacklevel=2,
+            )
             if level is not None:
                 raise ValueError("unable to simultaneously sort by and level")
-            return self.sort_values(by, axis=axis, ascending=ascending,
-                                    inplace=inplace)
+            return self.sort_values(by, axis=axis, ascending=ascending, inplace=inplace)
 
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
@@ -4718,34 +5037,37 @@ class DataFrame(NDFrame):
         labels = labels._sort_levels_monotonic()
         if level is not None:
 
-            new_axis, indexer = labels.sortlevel(level, ascending=ascending,
-                                                 sort_remaining=sort_remaining)
+            new_axis, indexer = labels.sortlevel(
+                level, ascending=ascending, sort_remaining=sort_remaining
+            )
 
         elif isinstance(labels, MultiIndex):
             from pandas.core.sorting import lexsort_indexer
 
-            indexer = lexsort_indexer(labels._get_codes_for_sorting(),
-                                      orders=ascending,
-                                      na_position=na_position)
+            indexer = lexsort_indexer(
+                labels._get_codes_for_sorting(),
+                orders=ascending,
+                na_position=na_position,
+            )
         else:
             from pandas.core.sorting import nargsort
 
             # Check monotonic-ness before sort an index
             # GH11080
-            if ((ascending and labels.is_monotonic_increasing) or
-                    (not ascending and labels.is_monotonic_decreasing)):
+            if (ascending and labels.is_monotonic_increasing) or (
+                not ascending and labels.is_monotonic_decreasing
+            ):
                 if inplace:
                     return
                 else:
                     return self.copy()
 
-            indexer = nargsort(labels, kind=kind, ascending=ascending,
-                               na_position=na_position)
+            indexer = nargsort(
+                labels, kind=kind, ascending=ascending, na_position=na_position
+            )
 
         baxis = self._get_block_manager_axis(axis)
-        new_data = self._data.take(indexer,
-                                   axis=baxis,
-                                   verify=False)
+        new_data = self._data.take(indexer, axis=baxis, verify=False)
 
         # reconstruct axis if needed
         new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
@@ -4755,7 +5077,7 @@ class DataFrame(NDFrame):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    def nlargest(self, n, columns, keep='first'):
+    def nlargest(self, n, columns, keep="first"):
         """
         Return the first `n` rows ordered by `columns` in descending order.
 
@@ -4862,12 +5184,9 @@ class DataFrame(NDFrame):
         Italy     59000000  1937894      IT
         Brunei      434000    12128      BN
         """
-        return algorithms.SelectNFrame(self,
-                                       n=n,
-                                       keep=keep,
-                                       columns=columns).nlargest()
+        return algorithms.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
 
-    def nsmallest(self, n, columns, keep='first'):
+    def nsmallest(self, n, columns, keep="first"):
         """
         Return the first `n` rows ordered by `columns` in ascending order.
 
@@ -4964,10 +5283,9 @@ class DataFrame(NDFrame):
         Nauru          11300  182      NR
         Anguilla       11300  311      AI
         """
-        return algorithms.SelectNFrame(self,
-                                       n=n,
-                                       keep=keep,
-                                       columns=columns).nsmallest()
+        return algorithms.SelectNFrame(
+            self, n=n, keep=keep, columns=columns
+        ).nsmallest()
 
     def swaplevel(self, i=-2, j=-1, axis=0):
         """
@@ -5014,9 +5332,8 @@ class DataFrame(NDFrame):
         type of caller (new object)
         """
         axis = self._get_axis_number(axis)
-        if not isinstance(self._get_axis(axis),
-                          MultiIndex):  # pragma: no cover
-            raise TypeError('Can only reorder levels on a hierarchical axis.')
+        if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
+            raise TypeError("Can only reorder levels on a hierarchical axis.")
 
         result = self.copy()
 
@@ -5030,7 +5347,7 @@ class DataFrame(NDFrame):
     # Arithmetic / combination related
 
     def _combine_frame(self, other, func, fill_value=None, level=None):
-        this, other = self.align(other, join='outer', level=level, copy=False)
+        this, other = self.align(other, join="outer", level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
         def _arith_op(left, right):
@@ -5045,13 +5362,12 @@ class DataFrame(NDFrame):
             return ops.dispatch_to_series(this, other, _arith_op)
         else:
             result = _arith_op(this.values, other.values)
-            return self._constructor(result,
-                                     index=new_index, columns=new_columns,
-                                     copy=False)
+            return self._constructor(
+                result, index=new_index, columns=new_columns, copy=False
+            )
 
     def _combine_match_index(self, other, func, level=None):
-        left, right = self.align(other, join='outer', axis=0, level=level,
-                                 copy=False)
+        left, right = self.align(other, join="outer", axis=0, level=level, copy=False)
         assert left.index.equals(right.index)
 
         if left._is_mixed_type or right._is_mixed_type:
@@ -5061,14 +5377,13 @@ class DataFrame(NDFrame):
             # fastpath --> operate directly on values
             with np.errstate(all="ignore"):
                 new_data = func(left.values.T, right.values).T
-            return self._constructor(new_data,
-                                     index=left.index, columns=self.columns,
-                                     copy=False)
+            return self._constructor(
+                new_data, index=left.index, columns=self.columns, copy=False
+            )
 
     def _combine_match_columns(self, other, func, level=None):
         assert isinstance(other, Series)
-        left, right = self.align(other, join='outer', axis=1, level=level,
-                                 copy=False)
+        left, right = self.align(other, join="outer", axis=1, level=level, copy=False)
         assert left.columns.equals(right.index)
         return ops.dispatch_to_series(left, right, func, axis="columns")
 
@@ -5241,8 +5556,7 @@ class DataFrame(NDFrame):
             result[col] = arr
 
         # convert_objects just in case
-        return self._constructor(result, index=new_index,
-                                 columns=new_columns)
+        return self._constructor(result, index=new_index, columns=new_columns)
 
     def combine_first(self, other):
         """
@@ -5300,7 +5614,7 @@ class DataFrame(NDFrame):
                 if is_extension_array_dtype(arr.dtype):
                     arr = arr.asi8
                 else:
-                    arr = arr.view('i8')
+                    arr = arr.view("i8")
             return arr
 
         def combiner(x, y):
@@ -5320,10 +5634,14 @@ class DataFrame(NDFrame):
 
         return self.combine(other, combiner, overwrite=False)
 
-    @deprecate_kwarg(old_arg_name='raise_conflict', new_arg_name='errors',
-                     mapping={False: 'ignore', True: 'raise'})
-    def update(self, other, join='left', overwrite=True, filter_func=None,
-               errors='ignore'):
+    @deprecate_kwarg(
+        old_arg_name="raise_conflict",
+        new_arg_name="errors",
+        mapping={False: "ignore", True: "raise"},
+    )
+    def update(
+        self, other, join="left", overwrite=True, filter_func=None, errors="ignore"
+    ):
         """
         Modify in place using non-NA values from another DataFrame.
 
@@ -5436,12 +5754,14 @@ class DataFrame(NDFrame):
         2  3    6.0
         """
         import pandas.core.computation.expressions as expressions
+
         # TODO: Support other joins
-        if join != 'left':  # pragma: no cover
+        if join != "left":  # pragma: no cover
             raise NotImplementedError("Only left join is supported")
-        if errors not in ['ignore', 'raise']:
-            raise ValueError("The parameter errors must be either "
-                             "'ignore' or 'raise'")
+        if errors not in ["ignore", "raise"]:
+            raise ValueError(
+                "The parameter errors must be either " "'ignore' or 'raise'"
+            )
 
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
@@ -5452,10 +5772,10 @@ class DataFrame(NDFrame):
             this = self[col]._values
             that = other[col]._values
             if filter_func is not None:
-                with np.errstate(all='ignore'):
+                with np.errstate(all="ignore"):
                     mask = ~filter_func(this) | isna(that)
             else:
-                if errors == 'raise':
+                if errors == "raise":
                     mask_this = notna(that)
                     mask_that = notna(this)
                     if any(mask_this & mask_that):
@@ -5475,7 +5795,9 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Data reshaping
 
-    _shared_docs['pivot'] = """
+    _shared_docs[
+        "pivot"
+    ] = """
         Return reshaped DataFrame organized by given index / column values.
 
         Reshape data (produce a "pivot" table) based on column values. Uses
@@ -5578,13 +5900,16 @@ class DataFrame(NDFrame):
         ValueError: Index contains duplicate entries, cannot reshape
         """
 
-    @Substitution('')
-    @Appender(_shared_docs['pivot'])
+    @Substitution("")
+    @Appender(_shared_docs["pivot"])
     def pivot(self, index=None, columns=None, values=None):
         from pandas.core.reshape.pivot import pivot
+
         return pivot(self, index=index, columns=columns, values=values)
 
-    _shared_docs['pivot_table'] = """
+    _shared_docs[
+        "pivot_table"
+    ] = """
         Create a spreadsheet-style pivot table as a DataFrame. The levels in
         the pivot table will be stored in MultiIndex objects (hierarchical
         indexes) on the index and columns of the result DataFrame.
@@ -5709,16 +6034,34 @@ class DataFrame(NDFrame):
             small  2.333333  6.0  4.333333  2.0
         """
 
-    @Substitution('')
-    @Appender(_shared_docs['pivot_table'])
-    def pivot_table(self, values=None, index=None, columns=None,
-                    aggfunc='mean', fill_value=None, margins=False,
-                    dropna=True, margins_name='All', observed=False):
+    @Substitution("")
+    @Appender(_shared_docs["pivot_table"])
+    def pivot_table(
+        self,
+        values=None,
+        index=None,
+        columns=None,
+        aggfunc="mean",
+        fill_value=None,
+        margins=False,
+        dropna=True,
+        margins_name="All",
+        observed=False,
+    ):
         from pandas.core.reshape.pivot import pivot_table
-        return pivot_table(self, values=values, index=index, columns=columns,
-                           aggfunc=aggfunc, fill_value=fill_value,
-                           margins=margins, dropna=dropna,
-                           margins_name=margins_name, observed=observed)
+
+        return pivot_table(
+            self,
+            values=values,
+            index=index,
+            columns=columns,
+            aggfunc=aggfunc,
+            fill_value=fill_value,
+            margins=margins,
+            dropna=dropna,
+            margins_name=margins_name,
+            observed=observed,
+        )
 
     def stack(self, level=-1, dropna=True):
         """
@@ -5951,9 +6294,12 @@ class DataFrame(NDFrame):
         dtype: float64
         """
         from pandas.core.reshape.reshape import unstack
+
         return unstack(self, level, fill_value)
 
-    _shared_docs['melt'] = ("""
+    _shared_docs[
+        "melt"
+    ] = """
     Unpivot a DataFrame from wide format to long format, optionally
     leaving identifier variables set.
 
@@ -6046,18 +6392,32 @@ class DataFrame(NDFrame):
     0      a          B          E      1
     1      b          B          E      3
     2      c          B          E      5
-    """)
+    """
 
-    @Appender(_shared_docs['melt'] %
-              dict(caller='df.melt(',
-                   versionadded='.. versionadded:: 0.20.0\n',
-                   other='melt'))
-    def melt(self, id_vars=None, value_vars=None, var_name=None,
-             value_name='value', col_level=None):
+    @Appender(
+        _shared_docs["melt"]
+        % dict(
+            caller="df.melt(", versionadded=".. versionadded:: 0.20.0\n", other="melt"
+        )
+    )
+    def melt(
+        self,
+        id_vars=None,
+        value_vars=None,
+        var_name=None,
+        value_name="value",
+        col_level=None,
+    ):
         from pandas.core.reshape.melt import melt
-        return melt(self, id_vars=id_vars, value_vars=value_vars,
-                    var_name=var_name, value_name=value_name,
-                    col_level=col_level)
+
+        return melt(
+            self,
+            id_vars=id_vars,
+            value_vars=value_vars,
+            var_name=var_name,
+            value_name=value_name,
+            col_level=col_level,
+        )
 
     # ----------------------------------------------------------------------
     # Time series-related
@@ -6156,11 +6516,12 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Function application
 
-    def _gotitem(self,
-                 key: Union[str, List[str]],
-                 ndim: int,
-                 subset: Optional[Union[Series, ABCDataFrame]] = None,
-                 ) -> Union[Series, ABCDataFrame]:
+    def _gotitem(
+        self,
+        key: Union[str, List[str]],
+        ndim: int,
+        subset: Optional[Union[Series, ABCDataFrame]] = None,
+    ) -> Union[Series, ABCDataFrame]:
         """
         Sub-classes to define. Return a sliced object.
 
@@ -6180,7 +6541,8 @@ class DataFrame(NDFrame):
         # TODO: _shallow_copy(subset)?
         return subset[key]
 
-    _agg_summary_and_see_also_doc = dedent("""
+    _agg_summary_and_see_also_doc = dedent(
+        """
     The aggregation operations are always performed over an axis, either the
     index (default) or the column axis. This behavior is different from
     `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
@@ -6200,9 +6562,11 @@ class DataFrame(NDFrame):
     core.window.Expanding : Perform operations over expanding window.
     core.window.EWM : Perform operation over exponential weighted
         window.
-    """)
+    """
+    )
 
-    _agg_examples_doc = dedent("""
+    _agg_examples_doc = dedent(
+        """
     Examples
     --------
     >>> df = pd.DataFrame([[1, 2, 3],
@@ -6234,13 +6598,16 @@ class DataFrame(NDFrame):
     2    8.0
     3    NaN
     dtype: float64
-    """)
+    """
+    )
 
-    @Substitution(see_also=_agg_summary_and_see_also_doc,
-                  examples=_agg_examples_doc,
-                  versionadded='\n.. versionadded:: 0.20.0\n',
-                  **_shared_doc_kwargs)
-    @Appender(_shared_docs['aggregate'])
+    @Substitution(
+        see_also=_agg_summary_and_see_also_doc,
+        examples=_agg_examples_doc,
+        versionadded="\n.. versionadded:: 0.20.0\n",
+        **_shared_doc_kwargs
+    )
+    @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
@@ -6264,15 +6631,24 @@ class DataFrame(NDFrame):
 
     agg = aggregate
 
-    @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
+    @Appender(_shared_docs["transform"] % _shared_doc_kwargs)
     def transform(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
         if axis == 1:
             return self.T.transform(func, *args, **kwargs).T
         return super().transform(func, *args, **kwargs)
 
-    def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,
-              result_type=None, args=(), **kwds):
+    def apply(
+        self,
+        func,
+        axis=0,
+        broadcast=None,
+        raw=False,
+        reduce=None,
+        result_type=None,
+        args=(),
+        **kwds
+    ):
         """
         Apply a function along an axis of the DataFrame.
 
@@ -6441,15 +6817,18 @@ class DataFrame(NDFrame):
         2  1  2
         """
         from pandas.core.apply import frame_apply
-        op = frame_apply(self,
-                         func=func,
-                         axis=axis,
-                         broadcast=broadcast,
-                         raw=raw,
-                         reduce=reduce,
-                         result_type=result_type,
-                         args=args,
-                         kwds=kwds)
+
+        op = frame_apply(
+            self,
+            func=func,
+            axis=axis,
+            broadcast=broadcast,
+            raw=raw,
+            reduce=reduce,
+            result_type=result_type,
+            args=args,
+            kwds=kwds,
+        )
         return op.get_result()
 
     def applymap(self, func):
@@ -6521,8 +6900,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other, ignore_index=False,
-               verify_integrity=False, sort=None):
+    def append(self, other, ignore_index=False, verify_integrity=False, sort=None):
         """
         Append rows of `other` to the end of caller, returning a new object.
 
@@ -6620,8 +6998,10 @@ class DataFrame(NDFrame):
             if isinstance(other, dict):
                 other = Series(other)
             if other.name is None and not ignore_index:
-                raise TypeError('Can only append a Series if ignore_index=True'
-                                ' or if the Series has a name')
+                raise TypeError(
+                    "Can only append a Series if ignore_index=True"
+                    " or if the Series has a name"
+                )
 
             if other.name is None:
                 index = None
@@ -6636,9 +7016,11 @@ class DataFrame(NDFrame):
             except TypeError:
                 combined_columns = self.columns.astype(object).append(idx_diff)
             other = other.reindex(combined_columns, copy=False)
-            other = DataFrame(other.values.reshape((1, len(other))),
-                              index=index,
-                              columns=combined_columns)
+            other = DataFrame(
+                other.values.reshape((1, len(other))),
+                index=index,
+                columns=combined_columns,
+            )
             other = other._convert(datetime=True, timedelta=True)
             if not self.columns.equals(combined_columns):
                 self = self.reindex(columns=combined_columns)
@@ -6648,16 +7030,19 @@ class DataFrame(NDFrame):
                 other = other.reindex(columns=self.columns)
 
         from pandas.core.reshape.concat import concat
+
         if isinstance(other, (list, tuple)):
             to_concat = [self] + other
         else:
             to_concat = [self, other]
-        return concat(to_concat, ignore_index=ignore_index,
-                      verify_integrity=verify_integrity,
-                      sort=sort)
+        return concat(
+            to_concat,
+            ignore_index=ignore_index,
+            verify_integrity=verify_integrity,
+            sort=sort,
+        )
 
-    def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
-             sort=False):
+    def join(self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False):
         """
         Join columns of another DataFrame.
 
@@ -6776,27 +7161,37 @@ class DataFrame(NDFrame):
         5  K5  A5  NaN
         """
         # For SparseDataFrame's benefit
-        return self._join_compat(other, on=on, how=how, lsuffix=lsuffix,
-                                 rsuffix=rsuffix, sort=sort)
+        return self._join_compat(
+            other, on=on, how=how, lsuffix=lsuffix, rsuffix=rsuffix, sort=sort
+        )
 
-    def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
-                     sort=False):
+    def _join_compat(
+        self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
+    ):
         from pandas.core.reshape.merge import merge
         from pandas.core.reshape.concat import concat
 
         if isinstance(other, Series):
             if other.name is None:
-                raise ValueError('Other Series must have a name')
+                raise ValueError("Other Series must have a name")
             other = DataFrame({other.name: other})
 
         if isinstance(other, DataFrame):
-            return merge(self, other, left_on=on, how=how,
-                         left_index=on is None, right_index=True,
-                         suffixes=(lsuffix, rsuffix), sort=sort)
+            return merge(
+                self,
+                other,
+                left_on=on,
+                how=how,
+                left_index=on is None,
+                right_index=True,
+                suffixes=(lsuffix, rsuffix),
+                sort=sort,
+            )
         else:
             if on is not None:
-                raise ValueError('Joining multiple DataFrames only supported'
-                                 ' for joining on index')
+                raise ValueError(
+                    "Joining multiple DataFrames only supported" " for joining on index"
+                )
 
             frames = [self] + list(other)
 
@@ -6804,33 +7199,55 @@ class DataFrame(NDFrame):
 
             # join indexes only using concat
             if can_concat:
-                if how == 'left':
-                    how = 'outer'
-                    join_axes = [self.index]
+                if how == "left":
+                    res = concat(frames, axis=1, join="outer", verify_integrity=True)
+                    return res.reindex(self.index, copy=False)
                 else:
-                    join_axes = None
-                return concat(frames, axis=1, join=how, join_axes=join_axes,
-                              verify_integrity=True)
+                    return concat(frames, axis=1, join=how, verify_integrity=True)
 
             joined = frames[0]
 
             for frame in frames[1:]:
-                joined = merge(joined, frame, how=how, left_index=True,
-                               right_index=True)
+                joined = merge(
+                    joined, frame, how=how, left_index=True, right_index=True
+                )
 
             return joined
 
-    @Substitution('')
+    @Substitution("")
     @Appender(_merge_doc, indents=2)
-    def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
-              left_index=False, right_index=False, sort=False,
-              suffixes=('_x', '_y'), copy=True, indicator=False,
-              validate=None):
+    def merge(
+        self,
+        right,
+        how="inner",
+        on=None,
+        left_on=None,
+        right_on=None,
+        left_index=False,
+        right_index=False,
+        sort=False,
+        suffixes=("_x", "_y"),
+        copy=True,
+        indicator=False,
+        validate=None,
+    ):
         from pandas.core.reshape.merge import merge
-        return merge(self, right, how=how, on=on, left_on=left_on,
-                     right_on=right_on, left_index=left_index,
-                     right_index=right_index, sort=sort, suffixes=suffixes,
-                     copy=copy, indicator=indicator, validate=validate)
+
+        return merge(
+            self,
+            right,
+            how=how,
+            on=on,
+            left_on=left_on,
+            right_on=right_on,
+            left_index=left_index,
+            right_index=right_index,
+            sort=sort,
+            suffixes=suffixes,
+            copy=copy,
+            indicator=indicator,
+            validate=validate,
+        )
 
     def round(self, decimals=0, *args, **kwargs):
         """
@@ -6912,7 +7329,7 @@ class DataFrame(NDFrame):
         from pandas.core.reshape.concat import concat
 
         def _dict_round(df, decimals):
-            for col, vals in df.iteritems():
+            for col, vals in df.items():
                 try:
                     yield _series_round(vals, decimals[col])
                 except KeyError:
@@ -6932,23 +7349,21 @@ class DataFrame(NDFrame):
             new_cols = [col for col in _dict_round(self, decimals)]
         elif is_integer(decimals):
             # Dispatch to Series.round
-            new_cols = [_series_round(v, decimals)
-                        for _, v in self.iteritems()]
+            new_cols = [_series_round(v, decimals) for _, v in self.items()]
         else:
-            raise TypeError("decimals must be an integer, a dict-like or a "
-                            "Series")
+            raise TypeError("decimals must be an integer, a dict-like or a " "Series")
 
         if len(new_cols) > 0:
-            return self._constructor(concat(new_cols, axis=1),
-                                     index=self.index,
-                                     columns=self.columns)
+            return self._constructor(
+                concat(new_cols, axis=1), index=self.index, columns=self.columns
+            )
         else:
             return self
 
     # ----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self, method='pearson', min_periods=1):
+    def corr(self, method="pearson", min_periods=1):
         """
         Compute pairwise correlation of columns, excluding NA/null values.
 
@@ -6996,12 +7411,11 @@ class DataFrame(NDFrame):
         idx = cols.copy()
         mat = numeric_df.values
 
-        if method == 'pearson':
+        if method == "pearson":
             correl = libalgos.nancorr(ensure_float64(mat), minp=min_periods)
-        elif method == 'spearman':
-            correl = libalgos.nancorr_spearman(ensure_float64(mat),
-                                               minp=min_periods)
-        elif method == 'kendall' or callable(method):
+        elif method == "spearman":
+            correl = libalgos.nancorr_spearman(ensure_float64(mat), minp=min_periods)
+        elif method == "kendall" or callable(method):
             if min_periods is None:
                 min_periods = 1
             mat = ensure_float64(mat).T
@@ -7018,7 +7432,7 @@ class DataFrame(NDFrame):
                     if valid.sum() < min_periods:
                         c = np.nan
                     elif i == j:
-                        c = 1.
+                        c = 1.0
                     elif not valid.all():
                         c = corrf(ac[valid], bc[valid])
                     else:
@@ -7026,9 +7440,11 @@ class DataFrame(NDFrame):
                     correl[i, j] = c
                     correl[j, i] = c
         else:
-            raise ValueError("method must be either 'pearson', "
-                             "'spearman', 'kendall', or a callable, "
-                             "'{method}' was supplied".format(method=method))
+            raise ValueError(
+                "method must be either 'pearson', "
+                "'spearman', 'kendall', or a callable, "
+                "'{method}' was supplied".format(method=method)
+            )
 
         return self._constructor(correl, index=idx, columns=cols)
 
@@ -7138,12 +7554,11 @@ class DataFrame(NDFrame):
                 baseCov = np.cov(mat.T)
             baseCov = baseCov.reshape((len(cols), len(cols)))
         else:
-            baseCov = libalgos.nancorr(ensure_float64(mat), cov=True,
-                                       minp=min_periods)
+            baseCov = libalgos.nancorr(ensure_float64(mat), cov=True, minp=min_periods)
 
         return self._constructor(baseCov, index=idx, columns=cols)
 
-    def corrwith(self, other, axis=0, drop=False, method='pearson'):
+    def corrwith(self, other, axis=0, drop=False, method="pearson"):
         """
         Compute pairwise correlation between rows or columns of DataFrame
         with rows or columns of Series or DataFrame.  DataFrames are first
@@ -7179,17 +7594,16 @@ class DataFrame(NDFrame):
         this = self._get_numeric_data()
 
         if isinstance(other, Series):
-            return this.apply(lambda x: other.corr(x, method=method),
-                              axis=axis)
+            return this.apply(lambda x: other.corr(x, method=method), axis=axis)
 
         other = other._get_numeric_data()
-        left, right = this.align(other, join='inner', copy=False)
+        left, right = this.align(other, join="inner", copy=False)
 
         if axis == 1:
             left = left.T
             right = right.T
 
-        if method == 'pearson':
+        if method == "pearson":
             # mask missing values
             left = left + right * 0
             right = right + left * 0
@@ -7203,31 +7617,31 @@ class DataFrame(NDFrame):
 
             correl = num / dom
 
-        elif method in ['kendall', 'spearman'] or callable(method):
+        elif method in ["kendall", "spearman"] or callable(method):
+
             def c(x):
                 return nanops.nancorr(x[0], x[1], method=method)
 
-            correl = Series(map(c,
-                                zip(left.values.T, right.values.T)),
-                            index=left.columns)
+            correl = Series(
+                map(c, zip(left.values.T, right.values.T)), index=left.columns
+            )
 
         else:
-            raise ValueError("Invalid method {method} was passed, "
-                             "valid methods are: 'pearson', 'kendall', "
-                             "'spearman', or callable".
-                             format(method=method))
+            raise ValueError(
+                "Invalid method {method} was passed, "
+                "valid methods are: 'pearson', 'kendall', "
+                "'spearman', or callable".format(method=method)
+            )
 
         if not drop:
             # Find non-matching labels along the given axis
             # and append missing correlations (GH 22375)
             raxis = 1 if axis == 0 else 0
-            result_index = (this._get_axis(raxis).
-                            union(other._get_axis(raxis)))
+            result_index = this._get_axis(raxis).union(other._get_axis(raxis))
             idx_diff = result_index.difference(correl.index)
 
             if len(idx_diff) > 0:
-                correl = correl.append(Series([np.nan] * len(idx_diff),
-                                              index=idx_diff))
+                correl = correl.append(Series([np.nan] * len(idx_diff), index=idx_diff))
 
         return correl
 
@@ -7312,8 +7726,7 @@ class DataFrame(NDFrame):
         """
         axis = self._get_axis_number(axis)
         if level is not None:
-            return self._count_level(level, axis=axis,
-                                     numeric_only=numeric_only)
+            return self._count_level(level, axis=axis, numeric_only=numeric_only)
 
         if numeric_only:
             frame = self._get_numeric_data()
@@ -7334,7 +7747,7 @@ class DataFrame(NDFrame):
                 counts = series_counts.values
                 result = Series(counts, index=frame._get_agg_axis(axis))
 
-        return result.astype('int64')
+        return result.astype("int64")
 
     def _count_level(self, level, axis=0, numeric_only=False):
         if numeric_only:
@@ -7346,8 +7759,10 @@ class DataFrame(NDFrame):
         agg_axis = frame._get_agg_axis(axis)
 
         if not isinstance(count_axis, MultiIndex):
-            raise TypeError("Can only count levels on hierarchical "
-                            "{ax}.".format(ax=self._get_axis_name(axis)))
+            raise TypeError(
+                "Can only count levels on hierarchical "
+                "{ax}.".format(ax=self._get_axis_name(axis))
+            )
 
         if frame._is_mixed_type:
             # Since we have mixed types, calling notna(frame.values) might
@@ -7367,8 +7782,7 @@ class DataFrame(NDFrame):
 
         level_index = count_axis.levels[level]
         level_codes = ensure_int64(count_axis.codes[level])
-        counts = lib.count_level_2d(mask, level_codes, len(level_index),
-                                    axis=0)
+        counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=0)
 
         result = DataFrame(counts, index=level_index, columns=agg_axis)
 
@@ -7378,9 +7792,10 @@ class DataFrame(NDFrame):
         else:
             return result
 
-    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
-        if axis is None and filter_type == 'bool':
+    def _reduce(
+        self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
+    ):
+        if axis is None and filter_type == "bool":
             labels = None
             constructor = None
         else:
@@ -7393,9 +7808,14 @@ class DataFrame(NDFrame):
             return op(x, axis=axis, skipna=skipna, **kwds)
 
         # exclude timedelta/datetime unless we are uniform types
-        if (axis == 1 and self._is_datelike_mixed_type
-                and (not self._is_homogeneous_type
-                     and not is_datetime64tz_dtype(self.dtypes[0]))):
+        if (
+            axis == 1
+            and self._is_datelike_mixed_type
+            and (
+                not self._is_homogeneous_type
+                and not is_datetime64tz_dtype(self.dtypes[0])
+            )
+        ):
             numeric_only = True
 
         if numeric_only is None:
@@ -7403,8 +7823,7 @@ class DataFrame(NDFrame):
                 values = self.values
                 result = f(values)
 
-                if (filter_type == 'bool' and is_object_dtype(values) and
-                        axis is None):
+                if filter_type == "bool" and is_object_dtype(values) and axis is None:
                     # work around https://github.com/numpy/numpy/issues/10489
                     # TODO: combine with hasattr(result, 'dtype') further down
                     # hard since we don't have `values` down there.
@@ -7424,10 +7843,10 @@ class DataFrame(NDFrame):
                         # column-by-column reduction, where we have mixed type.
                         # So let's just do what we can
                         from pandas.core.apply import frame_apply
-                        opa = frame_apply(self,
-                                          func=f,
-                                          result_type='expand',
-                                          ignore_failures=True)
+
+                        opa = frame_apply(
+                            self, func=f, result_type="expand", ignore_failures=True
+                        )
                         result = opa.get_result()
                         if result.ndim == self.ndim:
                             result = result.iloc[0]
@@ -7435,28 +7854,31 @@ class DataFrame(NDFrame):
                     except Exception:
                         pass
 
-                if filter_type is None or filter_type == 'numeric':
+                if filter_type is None or filter_type == "numeric":
                     data = self._get_numeric_data()
-                elif filter_type == 'bool':
+                elif filter_type == "bool":
                     data = self._get_bool_data()
                 else:  # pragma: no cover
                     e = NotImplementedError(
                         "Handling exception with filter_type {f} not"
-                        "implemented.".format(f=filter_type))
+                        "implemented.".format(f=filter_type)
+                    )
                     raise_with_traceback(e)
-                with np.errstate(all='ignore'):
+                with np.errstate(all="ignore"):
                     result = f(data.values)
                 labels = data._get_agg_axis(axis)
         else:
             if numeric_only:
-                if filter_type is None or filter_type == 'numeric':
+                if filter_type is None or filter_type == "numeric":
                     data = self._get_numeric_data()
-                elif filter_type == 'bool':
+                elif filter_type == "bool":
                     # GH 25101, # GH 24434
                     data = self._get_bool_data() if axis == 0 else self
                 else:  # pragma: no cover
-                    msg = ("Generating numeric_only data with filter_type {f}"
-                           "not supported.".format(f=filter_type))
+                    msg = (
+                        "Generating numeric_only data with filter_type {f}"
+                        "not supported.".format(f=filter_type)
+                    )
                     raise NotImplementedError(msg)
                 values = data.values
                 labels = data._get_agg_axis(axis)
@@ -7464,11 +7886,11 @@ class DataFrame(NDFrame):
                 values = self.values
             result = f(values)
 
-        if hasattr(result, 'dtype') and is_object_dtype(result.dtype):
+        if hasattr(result, "dtype") and is_object_dtype(result.dtype):
             try:
-                if filter_type is None or filter_type == 'numeric':
+                if filter_type is None or filter_type == "numeric":
                     result = result.astype(np.float64)
-                elif filter_type == 'bool' and notna(result).all():
+                elif filter_type == "bool" and notna(result).all():
                     result = result.astype(np.bool_)
             except (ValueError, TypeError):
 
@@ -7605,7 +8027,7 @@ class DataFrame(NDFrame):
         elif axis_num == 1:
             return self.index
         else:
-            raise ValueError('Axis must be 0 or 1 (got %r)' % axis_num)
+            raise ValueError("Axis must be 0 or 1 (got %r)" % axis_num)
 
     def mode(self, axis=0, numeric_only=False, dropna=True):
         """
@@ -7693,8 +8115,7 @@ class DataFrame(NDFrame):
 
         return data.apply(f, axis=axis)
 
-    def quantile(self, q=0.5, axis=0, numeric_only=True,
-                 interpolation='linear'):
+    def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
         """
         Return values at the given quantile over requested axis.
 
@@ -7771,10 +8192,9 @@ class DataFrame(NDFrame):
         if is_transposed:
             data = data.T
 
-        result = data._data.quantile(qs=q,
-                                     axis=1,
-                                     interpolation=interpolation,
-                                     transposed=is_transposed)
+        result = data._data.quantile(
+            qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
+        )
 
         if result.ndim == 2:
             result = self._constructor(result)
@@ -7786,7 +8206,7 @@ class DataFrame(NDFrame):
 
         return result
 
-    def to_timestamp(self, freq=None, how='start', axis=0, copy=True):
+    def to_timestamp(self, freq=None, how="start", axis=0, copy=True):
         """
         Cast to DatetimeIndex of timestamps, at *beginning* of period.
 
@@ -7816,8 +8236,7 @@ class DataFrame(NDFrame):
         elif axis == 1:
             new_data.set_axis(0, self.columns.to_timestamp(freq=freq, how=how))
         else:  # pragma: no cover
-            raise AssertionError('Axis must be 0 or 1. Got {ax!s}'.format(
-                ax=axis))
+            raise AssertionError("Axis must be 0 or 1. Got {ax!s}".format(ax=axis))
 
         return self._constructor(new_data)
 
@@ -7849,8 +8268,7 @@ class DataFrame(NDFrame):
         elif axis == 1:
             new_data.set_axis(0, self.columns.to_period(freq=freq))
         else:  # pragma: no cover
-            raise AssertionError('Axis must be 0 or 1. Got {ax!s}'.format(
-                ax=axis))
+            raise AssertionError("Axis must be 0 or 1. Got {ax!s}".format(ax=axis))
 
         return self._constructor(new_data)
 
@@ -7919,43 +8337,56 @@ class DataFrame(NDFrame):
         """
         if isinstance(values, dict):
             from pandas.core.reshape.concat import concat
+
             values = collections.defaultdict(list, values)
-            return concat((self.iloc[:, [i]].isin(values[col])
-                           for i, col in enumerate(self.columns)), axis=1)
+            return concat(
+                (
+                    self.iloc[:, [i]].isin(values[col])
+                    for i, col in enumerate(self.columns)
+                ),
+                axis=1,
+            )
         elif isinstance(values, Series):
             if not values.index.is_unique:
-                raise ValueError("cannot compute isin with "
-                                 "a duplicate axis.")
-            return self.eq(values.reindex_like(self), axis='index')
+                raise ValueError("cannot compute isin with " "a duplicate axis.")
+            return self.eq(values.reindex_like(self), axis="index")
         elif isinstance(values, DataFrame):
             if not (values.columns.is_unique and values.index.is_unique):
-                raise ValueError("cannot compute isin with "
-                                 "a duplicate axis.")
+                raise ValueError("cannot compute isin with " "a duplicate axis.")
             return self.eq(values.reindex_like(self))
         else:
             if not is_list_like(values):
-                raise TypeError("only list-like or dict-like objects are "
-                                "allowed to be passed to DataFrame.isin(), "
-                                "you passed a "
-                                "{0!r}".format(type(values).__name__))
+                raise TypeError(
+                    "only list-like or dict-like objects are "
+                    "allowed to be passed to DataFrame.isin(), "
+                    "you passed a "
+                    "{0!r}".format(type(values).__name__)
+                )
             return DataFrame(
-                algorithms.isin(self.values.ravel(),
-                                values).reshape(self.shape), self.index,
-                self.columns)
+                algorithms.isin(self.values.ravel(), values).reshape(self.shape),
+                self.index,
+                self.columns,
+            )
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = CachedAccessor("plot", pandas.plotting.FramePlotMethods)
+    plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
     hist = pandas.plotting.hist_frame
     boxplot = pandas.plotting.boxplot_frame
     sparse = CachedAccessor("sparse", SparseFrameAccessor)
 
 
-DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
-                      axes_are_reversed=True, aliases={'rows': 0},
-                      docs={
-                          'index': 'The index (row labels) of the DataFrame.',
-                          'columns': 'The column labels of the DataFrame.'})
+DataFrame._setup_axes(
+    ["index", "columns"],
+    info_axis=1,
+    stat_axis=0,
+    axes_are_reversed=True,
+    aliases={"rows": 0},
+    docs={
+        "index": "The index (row labels) of the DataFrame.",
+        "columns": "The column labels of the DataFrame.",
+    },
+)
 DataFrame._add_numeric_operations()
 DataFrame._add_series_or_dataframe_operations()
 
@@ -7974,4 +8405,4 @@ def _from_nested_dict(data):
 
 
 def _put_str(s, space):
-    return '{s}'.format(s=s)[:space].ljust(space)
+    return "{s}".format(s=s)[:space].ljust(space)

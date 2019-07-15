@@ -7,9 +7,11 @@ from pandas.api.types import is_list_like
 from pandas.core.api import DataFrame
 
 
-def read_spss(path: Union[str, Path],
-              usecols: Optional[Sequence[str]] = None,
-              convert_categoricals: bool = True) -> DataFrame:
+def read_spss(
+    path: Union[str, Path],
+    usecols: Optional[Sequence[str]] = None,
+    convert_categoricals: bool = True,
+) -> DataFrame:
     """
     Load an SPSS file from the file path, returning a DataFrame.
 
@@ -36,6 +38,7 @@ def read_spss(path: Union[str, Path],
         else:
             usecols = list(usecols)  # pyreadstat requires a list
 
-    df, _ = pyreadstat.read_sav(path, usecols=usecols,
-                                apply_value_formats=convert_categoricals)
+    df, _ = pyreadstat.read_sav(
+        path, usecols=usecols, apply_value_formats=convert_categoricals
+    )
     return df
