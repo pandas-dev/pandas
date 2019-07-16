@@ -45,8 +45,7 @@ from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
     maybe_upcast,
-    maybe_upcast_putmask,
-)
+    maybe_casted_values)
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
@@ -92,8 +91,6 @@ from pandas.core.index import (
     ensure_index_from_sequences,
 )
 from pandas.core.indexes import base as ibase
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import (
     check_bool_indexer,
     convert_to_index_sliceable,
@@ -4601,29 +4598,6 @@ class DataFrame(NDFrame):
         else:
             new_obj = self.copy()
 
-        def _maybe_casted_values(index, labels=None):
-            values = index._values
-            if not isinstance(index, (PeriodIndex, DatetimeIndex)):
-                if values.dtype == np.object_:
-                    values = lib.maybe_convert_objects(values)
-
-            # if we have the labels, extract the values with a mask
-            if labels is not None:
-                if isinstance(values, np.ndarray):
-                    mask = labels == -1
-                    # we can have situations where the whole mask is -1,
-                    # meaning there is nothing found in labels, so make all nan's
-                    if mask.all():
-                        values = np.empty(len(mask), dtype=values.dtype)
-                        values.fill(np.nan)
-                    else:
-                        values = values.take(labels)
-                        if mask.any():
-                            values, _ = maybe_upcast_putmask(values, mask, np.nan)
-                else:
-                    values = values.take(labels, allow_fill=True)
-            return values
-
         new_index = ibase.default_index(len(new_obj))
         if level is not None:
             if not isinstance(level, (tuple, list)):
@@ -4665,8 +4639,7 @@ class DataFrame(NDFrame):
                     missing = self.columns.nlevels - len(name_lst)
                     name_lst += [col_fill] * missing
                     name = tuple(name_lst)
-                # to array-like and maybe infer different dtype
-                level_values = _maybe_casted_values(lev, lab)
+                level_values = maybe_casted_values(lev, lab)
                 new_obj.insert(0, name, level_values)
 
         new_obj.index = new_index

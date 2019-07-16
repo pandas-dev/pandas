@@ -1384,3 +1384,46 @@ def maybe_cast_to_integer_array(arr, dtype, copy=False):
 
     if is_integer_dtype(dtype) and (is_float_dtype(arr) or is_object_dtype(arr)):
         raise ValueError("Trying to coerce float values to integers")
+
+
+def maybe_casted_values(index, codes=None):
+    """
+    Convert an index, given directly or as a pair (level, codes), to a 1D array
+    containing its values.
+
+    Parameters
+    ----------
+    index : Index
+    codes : sequence of integers (optional)
+
+    Returns
+    -------
+    ExtensionArray or ndarray
+        If codes is `None`, the values of `index`.
+        If codes is passed, an array obtained by taking from `index` the indices
+        contained in `codes`.
+    """
+    from pandas.core.indexes.period import PeriodIndex
+    from pandas import DatetimeIndex
+
+    values = index._values
+    if not isinstance(index, (PeriodIndex, DatetimeIndex)):
+        if values.dtype == np.object_:
+            values = lib.maybe_convert_objects(values)
+
+    # if we have the labels, extract the values with a mask
+    if codes is not None:
+        if isinstance(values, np.ndarray):
+            mask = codes == -1
+            # we can have situations where the whole mask is -1,
+            # meaning there is nothing found in labels, so make all nan's
+            if mask.all():
+                values = np.empty(len(mask), dtype=values.dtype)
+                values.fill(np.nan)
+            else:
+                values = values.take(codes)
+                if mask.any():
+                    values, _ = maybe_upcast_putmask(values, mask, np.nan)
+        else:
+            values = values.take(codes, allow_fill=True)
+    return values
