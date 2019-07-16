@@ -204,7 +204,6 @@ class _Window(PandasObject, SelectionMixin):
         )
 
     def __iter__(self):
-        self.validate()
         window = self._get_window()
         minp = _use_window(self.min_periods, window)
 
