@@ -549,7 +549,6 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
         collection of records (OrderedDict, dict)
     columns: iterables or None
     coerce_float : bool
-        If False, don't copy the data if not needed.
     dtype : np.dtype
 
     Returns
