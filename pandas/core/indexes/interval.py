@@ -934,7 +934,7 @@ class IntervalIndex(IntervalMixin, Index):
         elif not is_object_dtype(target):
             # homogeneous scalar index: use IntervalTree
             target = self._maybe_convert_i8(target)
-            indexer = self._engine.get_indexer(target.values)
+            indexer = self._engine.get_indexer(target.values)  # type: ignore
         else:
             # heterogeneous scalar index: defer elementwise to get_loc
             # (non-overlapping so get_loc guarantees scalar of KeyError)
@@ -979,7 +979,9 @@ class IntervalIndex(IntervalMixin, Index):
             indexer = np.concatenate(indexer)
         else:
             target = self._maybe_convert_i8(target)
-            indexer, missing = self._engine.get_indexer_non_unique(target.values)
+            indexer, missing = self._engine.get_indexer_non_unique(
+                target.values
+            )  # type: ignore
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
