@@ -355,7 +355,7 @@ def extract_index(data):
                 raw_lengths.append(len(val))
 
         if not indexes and not raw_lengths:
-            raise ValueError("If using all scalar values, you must pass" " an index")
+            raise ValueError("If using all scalar values, you must pass an index")
 
         if have_series:
             index = _union_indexes(indexes)
@@ -369,7 +369,7 @@ def extract_index(data):
 
             if have_dicts:
                 raise ValueError(
-                    "Mixing dicts with non-Series may lead to " "ambiguous ordering."
+                    "Mixing dicts with non-Series may lead to ambiguous ordering."
                 )
 
             if have_series:
