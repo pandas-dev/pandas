@@ -941,7 +941,7 @@ def read_html(
 
     Parameters
     ----------
-    io : str or file-like
+    io : str, path object or file-like object
         A URL, a file-like object, or a raw string containing HTML. Note that
         lxml only accepts the http, ftp and file url protocols. If you have a
         URL that starts with ``'https'`` you might try removing the ``'s'``.
