@@ -13,7 +13,7 @@ from dateutil.tz import tzutc
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, uint8_t, intp_t
+from numpy cimport ndarray, int64_t, uint8_t, intp_t, npy_bool
 cnp.import_array()
 
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS, HOUR_SECONDS
@@ -65,7 +65,7 @@ timedelta-like}
     """
     cdef:
         int64_t[:] deltas, idx_shifted, idx_shifted_left, idx_shifted_right
-        ndarray[uint8_t, cast=True] ambiguous_array, both_nat, both_eq
+        npy_bool[:] ambiguous_array, both_nat, both_eq
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
         Py_ssize_t delta_idx_offset, delta_idx, pos_left, pos_right
         int64_t *tdata
@@ -80,6 +80,8 @@ timedelta-like}
         bint fill_nonexist = False
         list trans_grp
         str stamp
+
+    dst_hours = np.empty(0, dtype=np.int64) # silence false-positive compiler warning
 
     # Vectorized version of DstTzInfo.localize
     if is_utc(tz) or tz is None:
@@ -167,7 +169,8 @@ timedelta-like}
         # where result_a != result_b and neither of them are NAT)
         both_nat = np.logical_and(result_a != NPY_NAT, result_b != NPY_NAT)
         both_eq = result_a == result_b
-        trans_idx = np.squeeze(np.nonzero(np.logical_and(both_nat, ~both_eq)))
+        trans_idx = np.squeeze(np.nonzero(np.logical_and(both_nat,
+                                                        np.logical_not(both_eq))))
         if trans_idx.size == 1:
             stamp = _render_tstamp(vals[trans_idx])
             raise pytz.AmbiguousTimeError(
