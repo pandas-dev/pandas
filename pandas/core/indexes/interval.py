@@ -980,8 +980,8 @@ class IntervalIndex(IntervalMixin, Index):
         else:
             target = self._maybe_convert_i8(target)
             indexer, missing = self._engine.get_indexer_non_unique(
-                target.values
-            )  # type: ignore
+                target.values  # type: ignore
+            )
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
