@@ -180,7 +180,7 @@ class CategoricalFormatter:
             else:
                 return ""
 
-        values = ["{i}".format(i=i.strip()) for i in self._get_formatted_values()]
+        values = [i.strip() for i in self._get_formatted_values()]
         lines = ["[" + ", ".join(values) + "]"]
         if self.footer:
             footer = self._get_footer()
