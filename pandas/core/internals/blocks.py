@@ -2597,6 +2597,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     is_timedelta = True
     _can_hold_na = True
     is_numeric = False
+    fill_value = np.timedelta64("NaT", "ns")
 
     def __init__(self, values, placement, ndim=None):
         if values.dtype != _TD_DTYPE:
@@ -2617,15 +2618,11 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
-            # TODO: remove the np.int64 support once coerce_values and
-            #  _try_coerce_args both coerce to m8[ns] and not i8.
-            return issubclass(tipo.type, (np.timedelta64, np.int64))
+            return issubclass(tipo.type, np.timedelta64)
         elif element is NaT:
             return True
         elif isinstance(element, (timedelta, np.timedelta64)):
             return True
-        elif is_integer(element):
-            return element == tslibs.iNaT
         return is_valid_nat_for_dtype(element, self.dtype)
 
     def fillna(self, value, **kwargs):
@@ -2645,9 +2642,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             value = Timedelta(value, unit="s")
         return super().fillna(value, **kwargs)
 
-    def _coerce_values(self, values):
-        return values.view("i8")
-
     def _try_coerce_args(self, other):
         """
         Coerce values and other to int64, with null values converted to
@@ -2663,13 +2657,12 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         """
 
         if is_valid_nat_for_dtype(other, self.dtype):
-            other = tslibs.iNaT
-        elif is_integer(other) and other == tslibs.iNaT:
-            pass
+            other = np.timedelta64("NaT", "ns")
         elif isinstance(other, (timedelta, np.timedelta64)):
-            other = Timedelta(other).value
+            other = Timedelta(other).to_timedelta64()
         elif hasattr(other, "dtype") and is_timedelta64_dtype(other):
-            other = other.astype("i8", copy=False).view("i8")
+            # TODO: can we get here with non-nano dtype?
+            pass
         else:
             # coercion issues
             # let higher levels handle
@@ -2683,7 +2676,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             mask = isna(result)
             if result.dtype.kind in ["i", "f"]:
                 result = result.astype("m8[ns]")
-            result[mask] = tslibs.iNaT
+            result[mask] = np.timedelta64("NaT", "ns")
 
         elif isinstance(result, (np.integer, np.float)):
             result = self._box_func(result)

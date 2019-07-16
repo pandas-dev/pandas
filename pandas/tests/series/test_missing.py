@@ -780,9 +780,11 @@ class TestSeriesMissingData:
         td1[0] = td[0]
         assert not isna(td1[0])
 
+        # GH#16674 iNaT is treated as an integer when given by the user
         td1[1] = iNaT
-        assert isna(td1[1])
-        assert td1[1].value == iNaT
+        assert not isna(td1[1])
+        assert td1.dtype == np.object_
+        assert td1[1] == iNaT
         td1[1] = td[1]
         assert not isna(td1[1])
 
@@ -792,6 +794,7 @@ class TestSeriesMissingData:
         td1[2] = td[2]
         assert not isna(td1[2])
 
+        # FIXME: don't leave commented-out
         # boolean setting
         # this doesn't work, not sure numpy even supports it
         # result = td[(td>np.timedelta64(timedelta(days=3))) &
