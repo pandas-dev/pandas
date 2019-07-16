@@ -181,13 +181,13 @@ The repr now looks like this:
     }]
     json_normalize(data, max_level=1)
 
-.. _whatsnew_0250.enhancements.json_normalize_with_ignore_keys:
+.. _whatsnew_0250.enhancements.json_normalize_with_use_key:
 
 Json normalize with use_key param support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`json_normalize` normalizes all keys of a given nested dictionary.
- The new ignore_key parameter provides more control over
+The new ignore_key parameter provides more control over
 which keys to exclude while normalizing (:issue:`27241`):
 
 The repr now looks like this:
