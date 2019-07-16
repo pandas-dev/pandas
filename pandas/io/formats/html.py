@@ -519,9 +519,7 @@ class HTMLFormatter(TableFormatter):
 
                 row.extend(fmt_values[j][i] for j in range(self.ncols))
                 if truncate_h:
-                    row.insert(
-                        self.row_levels - sparse_offset + truncate_h, "..."
-                    )
+                    row.insert(self.row_levels - sparse_offset + truncate_h, "...")
                 self.write_tr(
                     row,
                     indent,
