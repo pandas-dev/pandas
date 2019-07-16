@@ -45,7 +45,7 @@ do
         NUM_JOBS=2
     fi
 
-    PYTEST_CMD="pytest -m \"$TYPE_PATTERN$PATTERN\" -n $NUM_JOBS -s --strict --durations=10 --junitxml=test-data-$TYPE.xml $TEST_ARGS $COVERAGE pandas"
+    PYTEST_CMD="pytest -m \"$TYPE_PATTERN$PATTERN\" -n $NUM_JOBS -s --strict --durations=10 --junitxml=test-data-$TYPE.xml -v $TEST_ARGS $COVERAGE pandas"
     echo $PYTEST_CMD
     # if no tests are found (the case of "single and slow"), pytest exits with code 5, and would make the script fail, if not for the below code
     sh -c "$PYTEST_CMD; ret=\$?; [ \$ret = 5 ] && exit 0 || exit \$ret"
