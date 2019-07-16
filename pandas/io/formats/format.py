@@ -204,7 +204,7 @@ class SeriesFormatter:
         dtype: bool = True,
         max_rows: Optional[int] = None,
         min_rows: Optional[int] = None,
-    ) -> None:
+    ):
         self.series = series
         self.buf = buf if buf is not None else StringIO()
         self.name = name
