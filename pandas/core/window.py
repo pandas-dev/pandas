@@ -5,7 +5,7 @@ similar to how we have a Groupby object.
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
-from typing import List, Optional, Set, Union
+from typing import List, Optional, Set
 import warnings
 
 import numpy as np
