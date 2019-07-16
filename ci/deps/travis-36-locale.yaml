@@ -34,7 +34,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest>=4.0.2,<5.0.0
+  - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
   - pip
