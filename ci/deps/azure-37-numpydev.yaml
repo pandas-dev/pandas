@@ -6,7 +6,7 @@ dependencies:
   - pytz
   - Cython>=0.28.2
   # universal
-  - pytest>=4.0.2
+  - pytest>=4.0.2,<5.0.0
   - pytest-xdist
   - pytest-mock
   - hypothesis>=3.58.0
