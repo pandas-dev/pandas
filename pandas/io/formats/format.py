@@ -180,18 +180,14 @@ class CategoricalFormatter:
             else:
                 return ""
 
-        fmt_values = self._get_formatted_values()
-
-        result = ["{i}".format(i=i) for i in fmt_values]  # type: Union[str, List[str]]
-        result = [i.strip() for i in result]
-        result = ", ".join(result)
-        result = ["[" + result + "]"]
+        values = ["{i}".format(i=i.strip()) for i in self._get_formatted_values()]
+        lines = ["[" + ", ".join(values) + "]"]
         if self.footer:
             footer = self._get_footer()
             if footer:
-                result.append(footer)
+                lines.append(footer)
 
-        return str("\n".join(result))
+        return str("\n".join(lines))
 
 
 class SeriesFormatter:
