@@ -6,7 +6,7 @@ and latex files. This module also applies to display formatting.
 from functools import partial
 from io import StringIO
 from shutil import get_terminal_size
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, TextIO, Tuple, Union
 from unicodedata import east_asian_width
 
 import numpy as np
@@ -135,7 +135,7 @@ class CategoricalFormatter:
     def __init__(
         self,
         categorical: ABCCategorical,
-        buf: Optional[StringIO] = None,
+        buf: Optional[TextIO] = None,
         length: bool = True,
         na_rep: str = "NaN",
         footer: bool = True,
@@ -194,7 +194,7 @@ class SeriesFormatter:
     def __init__(
         self,
         series: ABCSeries,
-        buf: Optional[StringIO] = None,
+        buf: Optional[TextIO] = None,
         length: bool = True,
         header: bool = True,
         index: bool = True,
