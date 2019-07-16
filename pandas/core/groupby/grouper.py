@@ -41,9 +41,8 @@ class Grouper:
     level and/or axis parameters are given, a level of the index of the target
     object.
 
-    These are local specifications and will override 'global' settings,
-    that is the parameters axis and level which are passed to the groupby
-    itself.
+    If `axis` and/or `level` are passed as keywords to both `Grouper` and
+    `groupby`, the values passed to `Grouper` take precedence.
 
     Parameters
     ----------
