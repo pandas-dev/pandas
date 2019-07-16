@@ -365,8 +365,8 @@ cdef class WindowIterator:
         self.values = values
         self.i = 0
 
-        self.start, self.end, self.N,
-        self.win, self.minp, self.is_variable = get_window_indexer(
+        self.start, self.end, self.N, self.win, \
+        self.minp, self.is_variable = get_window_indexer(
             np.asarray(values), win, minp, index, closed
         )
 
