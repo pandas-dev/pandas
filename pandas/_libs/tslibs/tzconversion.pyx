@@ -65,7 +65,7 @@ timedelta-like}
     """
     cdef:
         int64_t[:] deltas, idx_shifted, idx_shifted_left, idx_shifted_right
-        npy_bool[:] ambiguous_array, both_nat, both_eq
+        ndarray[uint8_t, cast=True] ambiguous_array, both_nat, both_eq
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
         Py_ssize_t delta_idx_offset, delta_idx, pos_left, pos_right
         int64_t *tdata
@@ -80,8 +80,6 @@ timedelta-like}
         bint fill_nonexist = False
         list trans_grp
         str stamp
-
-    dst_hours = np.empty(0, dtype=np.int64) # silence false-positive compiler warning
 
     # Vectorized version of DstTzInfo.localize
     if is_utc(tz) or tz is None:
@@ -98,6 +96,8 @@ timedelta-like}
                 result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=True)
         return result
 
+    # silence false-positive compiler warning
+    ambiguous_array = np.empty(0, dtype=bool)
     if isinstance(ambiguous, str):
         if ambiguous == 'infer':
             infer_dst = True
@@ -161,6 +161,8 @@ timedelta-like}
         if v_right + deltas[pos_right] == val:
             result_b[i] = v_right
 
+    # silence false-positive compiler warning
+    dst_hours = np.empty(0, dtype=np.int64)
     if infer_dst:
         dst_hours = np.empty(n, dtype=np.int64)
         dst_hours[:] = NPY_NAT
