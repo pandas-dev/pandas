@@ -541,6 +541,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         cls.__rsub__ = __rsub__
 
+    __pow__ = _make_wrapped_arith_op("__pow__")
+    __rpow__ = _make_wrapped_arith_op("__rpow__")
     __mul__ = _make_wrapped_arith_op("__mul__")
     __rmul__ = _make_wrapped_arith_op("__rmul__")
     __floordiv__ = _make_wrapped_arith_op("__floordiv__")
