@@ -1087,7 +1087,6 @@ I/O
 - Bug in :meth:`DataFrame.to_html` where header numbers would ignore display options when rounding (:issue:`17280`)
 - Bug in :func:`read_hdf` where reading a table from an HDF5 file written directly with PyTables fails with a ``ValueError`` when using a sub-selection via the ``start`` or ``stop`` arguments (:issue:`11188`)
 - Bug in :func:`read_hdf` not properly closing store after a ``KeyError`` is raised (:issue:`25766`)
-- Bug in ``read_csv`` which would not raise ``ValueError`` if a column index in ``usecols`` was out of bounds (:issue:`25623`)
 - Improved the explanation for the failure when value labels are repeated in Stata dta files and suggested work-arounds (:issue:`25772`)
 - Improved :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` to read incorrectly formatted 118 format files saved by Stata (:issue:`25960`)
 - Improved the ``col_space`` parameter in :meth:`DataFrame.to_html` to accept a string so CSS length values can be set correctly (:issue:`25941`)
