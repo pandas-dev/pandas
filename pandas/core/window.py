@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.window as libwindow
+from pandas._typing import Axis, FrameOrSeries
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -73,14 +74,13 @@ class _Window(PandasObject, SelectionMixin):
         min_periods: Optional[int] = None,
         center: Optional[bool] = False,
         win_type: Optional[str] = None,
-        axis: Union[str, int] = 0,
+        axis: Axis = 0,
         on: Optional[str] = None,
         closed: Optional[str] = None,
         **kwargs
     ):
 
         self.__dict__.update(kwargs)
-        self.blocks = []
         self.obj = obj
         self.on = on
         self.closed = closed
@@ -240,9 +240,7 @@ class _Window(PandasObject, SelectionMixin):
 
         return values
 
-    def _wrap_result(
-        self, result, block=None, obj=None
-    ) -> Union[ABCSeries, ABCDataFrame]:
+    def _wrap_result(self, result, block=None, obj=None) -> FrameOrSeries:
         """
         Wrap a single result.
         """
@@ -270,9 +268,7 @@ class _Window(PandasObject, SelectionMixin):
             return type(obj)(result, index=index, columns=block.columns)
         return result
 
-    def _wrap_results(
-        self, results, blocks, obj, exclude=None
-    ) -> Union[ABCSeries, ABCDataFrame]:
+    def _wrap_results(self, results, blocks, obj, exclude=None) -> FrameOrSeries:
         """
         Wrap the results.
 
