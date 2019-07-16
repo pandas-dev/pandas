@@ -5,7 +5,6 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO
 import os
-from typing import Any, Dict, Optional, Union
 import warnings
 from zipfile import ZipFile
 

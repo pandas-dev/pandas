@@ -6,7 +6,17 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Callable, Dict, FrozenSet, Hashable, List, Optional, Set, Sequence, Union
+from typing import (
+    Callable,
+    Dict,
+    FrozenSet,
+    Hashable,
+    List,
+    Optional,
+    Set,
+    Sequence,
+    Union,
+)
 import warnings
 import weakref
 
@@ -3090,7 +3100,7 @@ class NDFrame(PandasObject, SelectionMixin):
         header: Union[bool_t, List[str]] = True,
         index: bool_t = True,
         index_label: Optional[Union[bool_t, str, Sequence[Hashable]]] = None,
-        mode: str="w",
+        mode: str = "w",
         encoding: Optional[str] = None,
         compression: Optional[Union[str, Dict[str, str]]] = "infer",
         quoting: Optional[int] = None,
