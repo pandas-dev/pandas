@@ -171,8 +171,7 @@ timedelta-like}
         # where result_a != result_b and neither of them are NAT)
         both_nat = np.logical_and(result_a != NPY_NAT, result_b != NPY_NAT)
         both_eq = result_a == result_b
-        trans_idx = np.squeeze(np.nonzero(np.logical_and(both_nat,
-                                                        np.logical_not(both_eq))))
+        trans_idx = np.squeeze(np.nonzero(np.logical_and(both_nat, ~both_eq)))
         if trans_idx.size == 1:
             stamp = _render_tstamp(vals[trans_idx])
             raise pytz.AmbiguousTimeError(
