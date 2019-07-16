@@ -29,6 +29,6 @@ dependencies:
     - pytest-xdist
     - pytest-mock
     - hypothesis>=3.58.0
-    # https://github.com/pandas-dev/pandas/issues/27421 
+    # https://github.com/pandas-dev/pandas/issues/27421
     - pytest-azurepipelines<1.0.0
 
