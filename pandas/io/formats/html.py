@@ -37,7 +37,7 @@ class HTMLFormatter(TableFormatter):
         self,
         formatter: DataFrameFormatter,
         classes: Optional[Union[str, List, Tuple]] = None,
-        border: Optional[bool] = None,
+        border: Optional[int] = None,
     ) -> None:
         self.fmt = formatter
         self.classes = classes
@@ -252,7 +252,7 @@ class HTMLFormatter(TableFormatter):
             for lnum, (records, values) in enumerate(zip(level_lengths, levels)):
                 if truncate_h:
                     # modify the header lines
-                    ins_col = self.fmt.tr_col_num
+                    ins_col = truncate_h
                     if self.fmt.sparsify:
                         recs_new = {}
                         # Increment tags after ... col.
@@ -348,7 +348,7 @@ class HTMLFormatter(TableFormatter):
             align = self.fmt.justify
 
             if truncate_h:
-                ins_col = self.row_levels + self.fmt.tr_col_num
+                ins_col = self.row_levels + truncate_h
                 row.insert(ins_col, "...")
 
             self.write_tr(row, indent, self.indent_delta, header=True, align=align)
@@ -406,7 +406,7 @@ class HTMLFormatter(TableFormatter):
         row = []  # type: List[str]
         for i in range(nrows):
 
-            if truncate_v and i == (self.fmt.tr_row_num):
+            if truncate_v and i == truncate_v:
                 str_sep_row = ["..."] * len(row)
                 self.write_tr(
                     str_sep_row,
@@ -428,7 +428,7 @@ class HTMLFormatter(TableFormatter):
             row.extend(fmt_values[j][i] for j in range(self.ncols))
 
             if truncate_h:
-                dot_col_ix = self.fmt.tr_col_num + self.row_levels
+                dot_col_ix = truncate_h + self.row_levels
                 row.insert(dot_col_ix, "...")
             self.write_tr(
                 row, indent, self.indent_delta, tags=None, nindex_levels=self.row_levels
@@ -457,7 +457,7 @@ class HTMLFormatter(TableFormatter):
             if truncate_v:
                 # Insert ... row and adjust idx_values and
                 # level_lengths to take this into account.
-                ins_row = self.fmt.tr_row_num
+                ins_row = truncate_v
                 inserted = False
                 for lnum, records in enumerate(level_lengths):
                     rec_new = {}
@@ -520,7 +520,7 @@ class HTMLFormatter(TableFormatter):
                 row.extend(fmt_values[j][i] for j in range(self.ncols))
                 if truncate_h:
                     row.insert(
-                        self.row_levels - sparse_offset + self.fmt.tr_col_num, "..."
+                        self.row_levels - sparse_offset + truncate_h, "..."
                     )
                 self.write_tr(
                     row,
@@ -532,7 +532,7 @@ class HTMLFormatter(TableFormatter):
         else:
             row = []
             for i in range(len(frame)):
-                if truncate_v and i == (self.fmt.tr_row_num):
+                if truncate_v and i == truncate_v:
                     str_sep_row = ["..."] * len(row)
                     self.write_tr(
                         str_sep_row,
@@ -549,7 +549,7 @@ class HTMLFormatter(TableFormatter):
                 row.extend(idx_values[i])
                 row.extend(fmt_values[j][i] for j in range(self.ncols))
                 if truncate_h:
-                    row.insert(self.row_levels + self.fmt.tr_col_num, "...")
+                    row.insert(self.row_levels + truncate_h, "...")
                 self.write_tr(
                     row,
                     indent,
