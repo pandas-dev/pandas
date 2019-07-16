@@ -1107,6 +1107,31 @@ char *Series_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
 //=============================================================================
 // pandas DataFrame iteration functions
 //=============================================================================
+
+/* 
+ * Function: DataFrame_iterBegin
+ * -----------------------------
+ * Sets iteration state for dealing with DataFrame objects
+ *
+ * obj: JSON object being serialized (should be a DataFrame at Python level)
+ * tc: shared TypeContext for seralization
+ *
+ * Because various orientations are handling by the JSON parser this method
+ * is responsible for setting the appropriate iterator. 
+ * 
+ * Supported orient formats are:
+ *
+ *   SPLIT: {index -> [index], columns -> [columns], data -> [values]}
+ *   RECORDS: [{column -> value}, … , {column -> value}]
+ *   INDEX: {index -> {column -> value}}
+ *   COLUMNS: {column -> {index -> value}}
+ *   VALUES: [[value, value, ...], [value, value, ...], ...]
+ *
+ * The context of serialization here is dependent upon the orient.
+ * RECORDS, and VALUES orients would make the context of serialization here
+ * JT_ARRAY (essentially a sequence we iterate over) whereas the other orients
+ * require a JT_OBJECT context (whereby we extract keys and values from the DataFrame).
+ */
 void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
     Py_ssize_t n_cols;
@@ -1150,6 +1175,13 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
     PRINTMARK();
 }
 
+/* 
+ * Function: DataFrame_iterNext
+ * -----------------------------
+ * Provides instructions how to appropriately iterate the object.
+ *
+ * This is dependent on the orient as mentioned in DataFrame_iterBeing
+ */
 int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     Py_ssize_t n_cols;
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
@@ -1200,6 +1232,12 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     return 1;
 }
 
+/* 
+ * Function: DataFrame_iterEnd
+ * -----------------------------
+ * Callaback after DataFrame has been entirely iterated upon.
+ *
+ */
 void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   printf("done dataframe iteration\n");  
@@ -1213,6 +1251,12 @@ void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
   
 }
 
+/* 
+ * Function: DataFrame_iterGetValue
+ * -----------------------------
+ * Provides the value(s) for a particular iteration. This is valid whether
+ * the type context is JT_OBJECT or JT_ARRAY.
+ */
 JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
   printf("getting dataframe itervalue\n");
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;  
@@ -1224,6 +1268,12 @@ JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
   }
 }
 
+/* 
+ * Function: DataFrame_iterGetName
+ * -----------------------------
+ * Provides the name for a particular iteration. This is only called if 
+ * the type context is JT_OBJECT, which is dictated by the orient.
+ */
 char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   if (enc->outputFormat == SPLIT) {  
