@@ -883,13 +883,13 @@ class Window(_Window):
     @Appender(_shared_docs["sum"])
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
-        return self._apply("roll_window_sum", **kwargs)
+        return self._apply("roll_weighted_sum", **kwargs)
 
     @Substitution(name="window")
     @Appender(_shared_docs["mean"])
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
-        return self._apply("roll_window_mean", **kwargs)
+        return self._apply("roll_weighted_mean", **kwargs)
 
 
 class _GroupByMixin(GroupByMixin):

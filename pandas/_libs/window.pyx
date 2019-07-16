@@ -1679,21 +1679,21 @@ def roll_generic(object obj,
 # Rolling sum and mean for weighted window
 
 
-def roll_window_sum(ndarray[float64_t, ndim=1, cast=True] values,
-                    ndarray[float64_t, ndim=1, cast=True] weights,
-                    int minp):
-    return _roll_window_sum_mean(values, weights, minp, avg=0)
+def roll_weighted_sum(ndarray[float64_t, ndim=1, cast=True] values,
+                      ndarray[float64_t, ndim=1, cast=True] weights,
+                      int minp):
+    return _roll_weighted_sum_mean(values, weights, minp, avg=0)
 
 
-def roll_window_mean(ndarray[float64_t, ndim=1, cast=True] values,
-                     ndarray[float64_t, ndim=1, cast=True] weights,
-                     int minp):
-    return _roll_window_sum_mean(values, weights, minp, avg=1)
+def roll_weighted_mean(ndarray[float64_t, ndim=1, cast=True] values,
+                       ndarray[float64_t, ndim=1, cast=True] weights,
+                       int minp):
+    return _roll_weighted_sum_mean(values, weights, minp, avg=1)
 
 
-def _roll_window_sum_mean(ndarray[float64_t, ndim=1, cast=True] values,
-                          ndarray[float64_t, ndim=1, cast=True] weights,
-                          int minp, bint avg=True):
+def _roll_weighted_sum_mean(ndarray[float64_t, ndim=1, cast=True] values,
+                            ndarray[float64_t, ndim=1, cast=True] weights,
+                            int minp, bint avg=True):
     """
     Assume len(weights) << len(values)
     """
