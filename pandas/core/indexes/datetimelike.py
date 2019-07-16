@@ -62,6 +62,16 @@ def ea_passthrough(array_method):
     return method
 
 
+def _make_wrapped_arith_op(opname):
+    def method(self, other):
+        meth = getattr(self._data, opname)
+        result = meth(maybe_unwrap_index(other))
+        return wrap_arithmetic_op(self, other, result)
+
+    method.__name__ = opname
+    return method
+
+
 class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
@@ -530,6 +540,17 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             return wrap_arithmetic_op(self, other, result)
 
         cls.__rsub__ = __rsub__
+
+    __mul__ = _make_wrapped_arith_op("__mul__")
+    __rmul__ = _make_wrapped_arith_op("__rmul__")
+    __floordiv__ = _make_wrapped_arith_op("__floordiv__")
+    __rfloordiv__ = _make_wrapped_arith_op("__rfloordiv__")
+    __mod__ = _make_wrapped_arith_op("__mod__")
+    __rmod__ = _make_wrapped_arith_op("__rmod__")
+    __divmod__ = _make_wrapped_arith_op("__divmod__")
+    __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
+    __truediv__ = _make_wrapped_arith_op("__truediv__")
+    __rtruediv__ = _make_wrapped_arith_op("__rtruediv__")
 
     def isin(self, values, level=None):
         """
