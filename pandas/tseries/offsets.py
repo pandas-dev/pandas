@@ -390,6 +390,31 @@ class DateOffset(BaseOffset):
     def name(self):
         return self.rule_code
 
+    def _roll(self, dt, direction=1):
+        """
+        Roll provided date backwards or forwards dependent on direction 
+        (only if not on offset)
+
+        negative offsets 'rollforward' onto a previous date, positive offsets
+        'rollforward' onto a future date
+        
+        Parameters
+        ----------
+        direction : int, default 1.
+            Either 1 or -1. Going forward in time if positive, 
+            going back backward in time if negative
+
+        Returns
+        -------
+        TimeStamp
+            Rolled timestamp if not on offset, otherwise unchanged timestamp.
+        """
+        dt = as_timestamp(dt)
+        if not self.onOffset(dt):
+            sign = np.sign(direction * self.n)
+            dt += sign * self.__class__(1, normalize=self.normalize, **self.kwds)
+        return dt
+
     def rollback(self, dt):
         """
         Roll provided date backward to next offset only if not on offset.
@@ -399,10 +424,7 @@ class DateOffset(BaseOffset):
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
-        dt = as_timestamp(dt)
-        if not self.onOffset(dt):
-            dt = dt - self.__class__(1, normalize=self.normalize, **self.kwds)
-        return dt
+        return self._roll(dt, direction=-1)
 
     def rollforward(self, dt):
         """
@@ -413,10 +435,7 @@ class DateOffset(BaseOffset):
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
-        dt = as_timestamp(dt)
-        if not self.onOffset(dt):
-            dt = dt + self.__class__(1, normalize=self.normalize, **self.kwds)
-        return dt
+        return self._roll(dt)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
