@@ -225,7 +225,7 @@ class SeriesFormatter:
 
     @property
     def truncate_v(self) -> bool:
-        return hasattr(self, 'tr_row_num')
+        return hasattr(self, "tr_row_num")
 
     def _chk_truncate(self) -> None:
         from pandas.core.reshape.concat import concat
@@ -510,11 +510,11 @@ class DataFrameFormatter(TableFormatter):
 
     @property
     def truncate_v(self) -> bool:
-        return hasattr(self, 'tr_row_num')
+        return hasattr(self, "tr_row_num")
 
     @property
     def truncate_h(self) -> bool:
-        return hasattr(self, 'tr_col_num')
+        return hasattr(self, "tr_col_num")
 
     @property
     def is_truncated(self) -> bool:
