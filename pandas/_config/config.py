@@ -823,13 +823,21 @@ def is_one_of_factory(legal_values):
 
 def is_pos_int(value):
     """
-    Raises ValueError if type(x) is not equal to None or int, or if x is not
-    positive in the case of a int type.
-
+    Verifies that value is None or a positive int
 
     Parameters
     ----------
     value - the value to be checked
+
+    Returns
+    ----------
+    None
+
+    Raises
+    ----------
+    ValueError if value is not equal to None or int, or if value is not
+    positive in the case of a int type.
+
     """
 
     if not (value is None or isinstance(value, int)):
