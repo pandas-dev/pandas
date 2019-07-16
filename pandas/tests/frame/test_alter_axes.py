@@ -1158,73 +1158,34 @@ class TestDataFrameAlterAxes:
         )
         tm.assert_frame_equal(rs, xp)
 
-    def test_reset_index_multiindex_nan(self):
-        # GH6322, testing reset_index on MultiIndexes
-        # when we have a nan or all nan
-        df = DataFrame(
-            {"A": ["a", "b", "c"], "B": [0, 1, np.nan], "C": np.random.rand(3)}
-        )
-        rs = df.set_index(["A", "B"]).reset_index()
-        tm.assert_frame_equal(rs, df)
-
-        df = DataFrame(
-            {"A": [np.nan, "b", "c"], "B": [0, 1, 2], "C": np.random.rand(3)}
-        )
-        rs = df.set_index(["A", "B"]).reset_index()
-        tm.assert_frame_equal(rs, df)
-
-        df = DataFrame({"A": ["a", "b", "c"], "B": [0, 1, 2], "C": [np.nan, 1.1, 2.2]})
-        rs = df.set_index(["A", "B"]).reset_index()
-        tm.assert_frame_equal(rs, df)
-
-        df = DataFrame(
-            {
-                "A": ["a", "b", "c"],
-                "B": [np.nan, np.nan, np.nan],
-                "C": np.random.rand(3),
-            }
-        )
-        rs = df.set_index(["A", "B"]).reset_index()
-        tm.assert_frame_equal(rs, df)
-
-    def test_reset_index_multiindex_datetime_all_nan(self):
-        # GH 19602
-        df = DataFrame({0: DatetimeIndex([]), 1: []}, columns=[0, 1])
-        rs = df.set_index([0, 1]).reset_index()
-        tm.assert_frame_equal(rs, df)
-
-        idx = MultiIndex(
-            levels=[DatetimeIndex([]), DatetimeIndex(["2015-01-01 11:00:00"])],
-            codes=[[-1, -1], [0, -1]],
-            names=[0, 1],
-        )
-        df = DataFrame(index=idx).reset_index()
-
-        xp = DataFrame(
-            {
-                0: DatetimeIndex([np.nan, np.nan]),
-                1: DatetimeIndex(["2015-01-01 11:00:00", np.nan]),
-            },
-            columns=[0, 1],
-        )
-        tm.assert_frame_equal(df, xp)
-
-    def test_reset_index_multiindex_categorical_with_nan(self):
-        # GH 24206
-        idx = MultiIndex(
-            [CategoricalIndex(["A", "B"]), CategoricalIndex(["a", "b"])],
-            [[0, 0, 1, 1], [0, 1, 0, -1]],
-        )
-        df = DataFrame({"col": range(len(idx))}, index=idx).reset_index()
-        xp = DataFrame(
-            {
-                "level_0": CategoricalIndex(["A", "A", "B", "B"]),
-                "level_1": CategoricalIndex(["a", "b", "a", np.nan]),
-                "col": [0, 1, 2, 3],
-            },
-            columns=["level_0", "level_1", "col"],
-        )
-        tm.assert_frame_equal(df, xp)
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            [["a", "b", "c"], [0, 1, np.nan], np.random.rand(3)],
+            [[np.nan, "b", "c"], [0, 1, 2], np.random.rand(3)],
+            [["a", "b", "c"], [0, 1, 2], [np.nan, 1.1, 2.2]],
+            [["a", "b", "c"], [np.nan, np.nan, np.nan], np.random.rand(3)],
+            [
+                DatetimeIndex([np.nan, np.nan]),
+                DatetimeIndex(["2015-01-01 11:00:00", np.nan]),
+                np.random.rand(2),
+            ],
+            [
+                CategoricalIndex(["A", "A", "B", "B"]),
+                CategoricalIndex(["a", "b", "a", np.nan]),
+                np.random.rand(4),
+            ],
+            [DatetimeIndex([]), [], []],
+        ],
+    )
+    def test_reset_index_multiindex_nan(self, columns):
+        # GH6322, GH19602, GH24206: testing reset_index on MultiIndex
+        # with some nans or all nans
+        column_names = ["A", "B", "C"]
+        columns = dict(zip(column_names, columns))
+        df = DataFrame(columns, columns=column_names)
+        result = df.set_index(column_names[:2]).reset_index()
+        tm.assert_frame_equal(df, result)
 
     def test_reset_index_with_datetimeindex_cols(self):
         # GH5818
