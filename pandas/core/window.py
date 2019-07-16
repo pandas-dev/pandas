@@ -208,16 +208,23 @@ class _Window(PandasObject, SelectionMixin):
         minp = _use_window(self.min_periods, window)
 
         blocks, obj, index = self._create_blocks()
-        index, indexi = self._get_index(index)
+        _, indexi = self._get_index(index)
 
-        iterators = []
-
-        for i, values in enumerate(blocks):
-            iterators.append(
-                libwindow.WindowIterator(values, indexi, window, self.closed, minp)
+        for _, values in enumerate(blocks):
+            start, end, N, win, _minp, is_variable = libwindow.get_window_indexer(
+                np.asarray(values), window, minp, indexi, self.closed
             )
 
-        return (elem for iterator in iterators for elem in iterator)
+            for i in range(N):
+                if is_variable:
+                    s = start[i]
+                    e = end[i]
+                else:
+                    s = max(i - win + 1, 0)
+                    e = min(i + 1, N)
+
+                if e - s >= _minp:
+                    yield values.iloc[slice(s, e)]
 
     def _get_index(self, index=None):
         """
