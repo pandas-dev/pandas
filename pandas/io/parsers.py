@@ -2252,6 +2252,7 @@ class PythonParser(ParserBase):
         self.skipinitialspace = kwds["skipinitialspace"]
         self.lineterminator = kwds["lineterminator"]
         self.quoting = kwds["quoting"]
+        self.usecols, _ = _validate_usecols_arg(kwds["usecols"])
         self.skip_blank_lines = kwds["skip_blank_lines"]
 
         self.warn_bad_lines = kwds["warn_bad_lines"]
