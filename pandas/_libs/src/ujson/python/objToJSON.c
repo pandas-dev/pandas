@@ -1230,7 +1230,9 @@ char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
     *outLen = strlen(GET_TC(tc)->cStr);
     return GET_TC(tc)->cStr;
   } else {
-    return PyUnicode_AsUTF8(PyTuple_GetItem(GET_TC(tc)->itemValue, 0));
+    char *result = PyUnicode_AsUTF8(PyTuple_GetItem(GET_TC(tc)->itemValue, 0));
+    *outLen = strlen(result);
+    return result;    
   }
 }
 
