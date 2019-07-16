@@ -2762,22 +2762,25 @@ class TestNLargestNSmallest:
 
     def test_data_frame_value_counts(self):
         # Multi column data frame.
-        df = pd.DataFrame({'num_legs': [2, 4, 4], 'num_wings': [2, 0, 0]},
-                          index=['falcon', 'dog', 'cat'])
+        df = pd.DataFrame(
+            {"num_legs": [2, 4, 4], "num_wings": [2, 0, 0]},
+            index=["falcon", "dog", "cat"],
+        )
         actual = df.value_counts()
-        expected = pd.Series(data=[1, 2],
-                             index=pd.MultiIndex.from_arrays(
-                                 [(2, 4), (2, 0)],
-                                 names=['num_legs', 'num_wings']))
+        expected = pd.Series(
+            data=[1, 2],
+            index=pd.MultiIndex.from_arrays(
+                [(2, 4), (2, 0)], names=["num_legs", "num_wings"]
+            ),
+        )
         tm.assert_series_equal(actual, expected)
 
         # Single column data frame.
-        df_single_col = df[['num_legs']]
+        df_single_col = df[["num_legs"]]
         actual = df_single_col.value_counts()
-        expected = pd.Series(data=[1, 2],
-                             index=pd.Int64Index(
-                                 data=[2, 4],
-                                 name='num_legs'))
+        expected = pd.Series(
+            data=[1, 2], index=pd.Int64Index(data=[2, 4], name="num_legs")
+        )
         tm.assert_series_equal(actual, expected)
 
         # Empty data frame.
