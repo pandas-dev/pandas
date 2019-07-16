@@ -23,6 +23,7 @@ from urllib.parse import (  # noqa
 from urllib.request import pathname2url, urlopen
 import zipfile
 
+from pandas._typing import FilePathOrBuffer
 from pandas.errors import (  # noqa
     AbstractMethodError,
     DtypeWarning,
@@ -330,11 +331,11 @@ def _infer_compression(filepath_or_buffer, compression):
 
 def _get_handle(
     path_or_buf,
-    mode,
+    mode: str,
     encoding=None,
     compression: Optional[Union[str, Dict[str, Any]]] = None,
-    memory_map=False,
-    is_text=True,
+    memory_map: bool = False,
+    is_text: bool = True,
 ):
     """
     Get file handle for given path/buffer and mode.
@@ -487,16 +488,15 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     # GH 17778
     def __init__(
         self,
-        file,
-        mode,
-        compression=zipfile.ZIP_DEFLATED,
+        file: FilePathOrBuffer,
+        mode: str,
         archive_name: Optional[str] = None,
         **kwargs
     ):
         if mode in ["wb", "rb"]:
             mode = mode.replace("b", "")
         self.archive_name = archive_name
-        super().__init__(file, mode, compression, **kwargs)
+        super().__init__(file, mode, zipfile.ZIP_DEFLATED, **kwargs)
 
     def write(self, data):
         archive_name = self.filename

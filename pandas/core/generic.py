@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Callable, Dict, FrozenSet, List, Optional, Set, Union
+from typing import Callable, Dict, FrozenSet, Hashable, List, Optional, Set, Sequence, Union
 import warnings
 import weakref
 
@@ -15,6 +15,7 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import Timestamp, iNaT, properties
+from pandas._typing import FilePathOrBuffer
 from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -119,6 +120,9 @@ def _single_replace(self, to_replace, method, inplace, limit):
         return
 
     return result
+
+
+bool_t = bool  # Need alias because NDFrame has def bool:
 
 
 class NDFrame(PandasObject, SelectionMixin):
@@ -3078,26 +3082,26 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_csv(
         self,
-        path_or_buf=None,
-        sep=",",
-        na_rep="",
-        float_format=None,
-        columns=None,
-        header=True,
-        index=True,
-        index_label=None,
-        mode="w",
-        encoding=None,
+        path_or_buf: Optional[FilePathOrBuffer] = None,
+        sep: str = ",",
+        na_rep: str = "",
+        float_format: Optional[str] = None,
+        columns: Optional[Sequence[Hashable]] = None,
+        header: Union[bool_t, List[str]] = True,
+        index: bool_t = True,
+        index_label: Optional[Union[bool_t, str, Sequence[Hashable]]] = None,
+        mode: str="w",
+        encoding: Optional[str] = None,
         compression: Optional[Union[str, Dict[str, str]]] = "infer",
-        quoting=None,
-        quotechar='"',
-        line_terminator=None,
-        chunksize=None,
-        date_format=None,
-        doublequote=True,
-        escapechar=None,
-        decimal=".",
-    ):
+        quoting: Optional[int] = None,
+        quotechar: str = '"',
+        line_terminator: Optional[str] = None,
+        chunksize: Optional[int] = None,
+        date_format: Optional[str] = None,
+        doublequote: bool_t = True,
+        escapechar: Optional[str] = None,
+        decimal: Optional[str] = ".",
+    ) -> Optional[str]:
         r"""
         Write object to a comma-separated values (csv) file.
 
@@ -3242,6 +3246,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if path_or_buf is None:
             return formatter.path_or_buf.getvalue()
+
+        return None
 
     # ----------------------------------------------------------------------
     # Fancy Indexing
