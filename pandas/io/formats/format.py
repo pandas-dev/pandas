@@ -220,9 +220,12 @@ class SeriesFormatter:
         self.float_format = float_format
         self.dtype = dtype
         self.adj = _get_adjustment()
-        self.truncate_v = None  # type: Optional[int]
 
         self._chk_truncate()
+
+    @property
+    def truncate_v(self) -> bool:
+        return hasattr(self, 'tr_row_num')
 
     def _chk_truncate(self) -> None:
         from pandas.core.reshape.concat import concat
@@ -243,7 +246,7 @@ class SeriesFormatter:
             else:
                 row_num = max_rows // 2
                 series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
-            self.truncate_v = row_num
+            self.tr_row_num = row_num
 
         self.tr_series = series
 
@@ -317,7 +320,7 @@ class SeriesFormatter:
 
         if self.truncate_v:
             n_header_rows = 0
-            row_num = self.truncate_v
+            row_num = self.tr_row_num
             width = self.adj.len(fmt_values[row_num - 1])
             if width > 3:
                 dot_str = "..."
@@ -502,14 +505,20 @@ class DataFrameFormatter(TableFormatter):
         else:
             self.columns = frame.columns
 
-        self.truncate_h = None  # type: Optional[int]
-        self.truncate_v = None  # type: Optional[int]
         self._chk_truncate()
         self.adj = _get_adjustment()
 
     @property
+    def truncate_v(self) -> bool:
+        return hasattr(self, 'tr_row_num')
+
+    @property
+    def truncate_h(self) -> bool:
+        return hasattr(self, 'tr_col_num')
+
+    @property
     def is_truncated(self) -> bool:
-        return bool(self.truncate_h or self.truncate_v)
+        return self.truncate_h or self.truncate_v
 
     def _chk_truncate(self):
         """
@@ -565,7 +574,7 @@ class DataFrameFormatter(TableFormatter):
                 frame = concat(
                     (frame.iloc[:, :col_num], frame.iloc[:, -col_num:]), axis=1
                 )
-            self.truncate_h = col_num
+            self.tr_col_num = col_num
 
         if max_rows_adj and (len(frame) > max_rows_adj):
             if max_rows_adj == 1:
@@ -574,7 +583,7 @@ class DataFrameFormatter(TableFormatter):
             else:
                 row_num = max_rows_adj // 2
                 frame = concat((frame.iloc[:row_num, :], frame.iloc[-row_num:, :]))
-            self.truncate_v = row_num
+            self.tr_row_num = row_num
 
         self.tr_frame = frame
 
@@ -641,11 +650,11 @@ class DataFrameFormatter(TableFormatter):
         truncate_v = self.truncate_v
 
         if truncate_h:
-            col_num = truncate_h
+            col_num = self.tr_col_num
             strcols.insert(col_num + 1, [" ..."] * (len(str_index)))
         if truncate_v:
             n_header_rows = len(str_index) - len(frame)
-            row_num = truncate_v
+            row_num = self.tr_row_num
             for ix, col in enumerate(strcols):
                 # infer from above row
                 cwidth = self.adj.len(strcols[ix][row_num])
