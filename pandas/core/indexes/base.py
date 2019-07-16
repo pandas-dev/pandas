@@ -127,9 +127,6 @@ def _make_arithmetic_op(op, cls):
     def index_arithmetic_method(self, other):
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCTimedeltaIndex)):
             return NotImplemented
-        elif isinstance(other, ABCTimedeltaIndex):
-            # Defer to subclass implementation
-            return NotImplemented
 
         from pandas import Series
 
