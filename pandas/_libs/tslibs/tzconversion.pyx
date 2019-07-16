@@ -13,7 +13,7 @@ from dateutil.tz import tzutc
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, uint8_t, intp_t, npy_bool
+from numpy cimport ndarray, int64_t, uint8_t, intp_t
 cnp.import_array()
 
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS, HOUR_SECONDS
