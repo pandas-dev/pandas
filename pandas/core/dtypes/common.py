@@ -1463,60 +1463,6 @@ def is_datetimelike_v_numeric(a, b):
     )
 
 
-def is_datetimelike_v_object(a, b):
-    """
-    Check if we are comparing a datetime-like object to an object instance.
-
-    Parameters
-    ----------
-    a : array-like, scalar
-        The first object to check.
-    b : array-like, scalar
-        The second object to check.
-
-    Returns
-    -------
-    boolean
-        Whether we return a comparing a datetime-like to an object instance.
-
-    Examples
-    --------
-    >>> obj = object()
-    >>> dt = np.datetime64(pd.datetime(2017, 1, 1))
-    >>>
-    >>> is_datetimelike_v_object(obj, obj)
-    False
-    >>> is_datetimelike_v_object(dt, dt)
-    False
-    >>> is_datetimelike_v_object(obj, dt)
-    True
-    >>> is_datetimelike_v_object(dt, obj)  # symmetric check
-    True
-    >>> is_datetimelike_v_object(np.array([dt]), obj)
-    True
-    >>> is_datetimelike_v_object(np.array([obj]), dt)
-    True
-    >>> is_datetimelike_v_object(np.array([dt]), np.array([obj]))
-    True
-    >>> is_datetimelike_v_object(np.array([obj]), np.array([obj]))
-    False
-    >>> is_datetimelike_v_object(np.array([dt]), np.array([1]))
-    False
-    >>> is_datetimelike_v_object(np.array([dt]), np.array([dt]))
-    False
-    """
-
-    if not hasattr(a, "dtype"):
-        a = np.asarray(a)
-    if not hasattr(b, "dtype"):
-        b = np.asarray(b)
-
-    is_datetimelike = needs_i8_conversion
-    return (is_datetimelike(a) and is_object_dtype(b)) or (
-        is_datetimelike(b) and is_object_dtype(a)
-    )
-
-
 def needs_i8_conversion(arr_or_dtype):
     """
     Check whether the array or dtype should be converted to int64.
