@@ -122,7 +122,7 @@ class TestExpanding(Base):
     def test_iterator_dataframe(self, dataframe, expected, window):
         expected = [DataFrame(values, index=index) for (values, index) in expected]
 
-        for (expected, actual) in zip(expected, dataframe.expanding(window)):
+        for (expected, actual) in zip(expected, dataframe.expanding(min_periods=window)):
             tm.assert_frame_equal(actual, expected)
 
     @pytest.mark.parametrize(
@@ -142,7 +142,7 @@ class TestExpanding(Base):
     def test_iterator_series(self, series, expected, window):
         expected = [Series(values, index=index) for (values, index) in expected]
 
-        for (expected, actual) in zip(expected, series.expanding(window)):
+        for (expected, actual) in zip(expected, series.expanding(min_periods=window)):
             tm.assert_series_equal(actual, expected)
 
     def test_expanding_axis(self, axis_frame):

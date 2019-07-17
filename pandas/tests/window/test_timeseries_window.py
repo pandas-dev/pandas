@@ -739,3 +739,54 @@ class TestRollingTS:
 
         for (expected, actual) in zip(expected, series.rolling(window)):
             tm.assert_series_equal(actual, expected)
+
+    @pytest.mark.parametrize(
+        "series,expected,window,minp",
+        [
+            (
+                Series(
+                    range(5),
+                    index=date_range(start="2016-01-01 09:30:00", periods=5, freq="s"),
+                ),
+                [],
+                "1s",
+                2
+            ),
+            (
+                Series(
+                    range(5),
+                    index=date_range(start="2016-01-01 09:30:00", periods=5, freq="s"),
+                ),
+                [
+                    ([0, 1], [0, 1]),
+                    ([1, 2], [1, 2]),
+                    ([2, 3], [2, 3]),
+                    ([3, 4], [3, 4]),
+                ],
+                "2S",
+                2
+            ),
+            (
+                Series(
+                    range(5),
+                    index=date_range(start="2016-01-01 09:30:00", periods=5, freq="s"),
+                ),
+                [
+                    ([0], [0]),
+                    ([0, 1], [0, 1]),
+                    ([0, 1, 2], [0, 1, 2]),
+                    ([1, 2, 3], [1, 2, 3]),
+                    ([2, 3, 4], [2, 3, 4]),
+                ],
+                "3S",
+                1
+            ),
+        ],
+    )
+    def test_iterator_series_rolling_min_periods(self, series, expected, window, minp):
+        expected = [
+            Series(values, index=series.index[index]) for (values, index) in expected
+        ]
+
+        for (expected, actual) in zip(expected, series.rolling(window, min_periods=minp)):
+            tm.assert_series_equal(actual, expected)
