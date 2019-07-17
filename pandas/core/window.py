@@ -182,7 +182,7 @@ class _Window(PandasObject, SelectionMixin):
     def _dir_additions(self):
         return self.obj._dir_additions()
 
-    def _get_window(self, other=None):
+    def _get_window(self, other=None, **kwargs):
         return self.window
 
     @property
@@ -354,6 +354,27 @@ class _Window(PandasObject, SelectionMixin):
                 result = np.copy(result[tuple(lead_indexer)])
         return result
 
+    def _get_roll(self, func, check_minp, index, **kwargs):
+
+        cfunc = getattr(libwindow, func, None)
+        if cfunc is None:
+            raise ValueError(
+                "we do not support this function "
+                "in libwindow.{func}".format(func=func)
+            )
+
+        def func(arg, window, min_periods=None, closed=None):
+            minp = check_minp(min_periods, window)
+            # ensure we are only rolling on floats
+            arg = ensure_float64(arg)
+
+            return cfunc(arg, window, minp, index, closed, **kwargs)
+
+        return func
+
+    def _apply_roll(self, func, values):
+        return np.apply_along_axis(func, self.axis, values)
+
     def _apply(
         self, func, name=None, window=None, center=None, check_minp=None, **kwargs
     ):
@@ -381,16 +402,12 @@ class _Window(PandasObject, SelectionMixin):
         if check_minp is None:
             check_minp = _use_window
 
+        if window is None:
+            window = self._get_window(**kwargs)
+
         blocks, obj, index = self._create_blocks()
         block_list = list(blocks)
-
-        is_window = isinstance(self, Window)
-
-        if is_window:
-            window = self._prep_window(**kwargs)
-        else:
-            window = self._get_window()
-            index, indexi = self._get_index(index=index)
+        index, indexi = self._get_index(index=index)
 
         results = []
         exclude = []
@@ -412,24 +429,7 @@ class _Window(PandasObject, SelectionMixin):
 
             # if we have a string function name, wrap it
             if isinstance(func, str):
-                cfunc = getattr(libwindow, func, None)
-                if cfunc is None:
-                    raise ValueError(
-                        "we do not support this function "
-                        "in libwindow.{func}".format(func=func)
-                    )
-
-                def func(arg, window, min_periods=None, closed=None):
-                    # ensure we are only rolling on floats
-                    arg = ensure_float64(arg)
-
-                    if is_window:
-                        minp = check_minp(min_periods, len(window))
-                        return cfunc(arg, window, minp)
-
-                    else:
-                        minp = check_minp(min_periods, window)
-                        return cfunc(arg, window, minp, indexi, closed, **kwargs)
+                func = self._get_roll(func, check_minp, indexi, **kwargs)
 
             # calculation function
             if center:
@@ -451,11 +451,7 @@ class _Window(PandasObject, SelectionMixin):
                         x, window, min_periods=self.min_periods, closed=self.closed
                     )
 
-            with np.errstate(all="ignore"):
-                if values.ndim > 1 or is_window:
-                    result = np.apply_along_axis(calc, self.axis, values)
-                else:
-                    result = calc(values)
+            result = self._apply_roll(calc, values)
 
             if center:
                 result = self._center_window(result, window)
@@ -771,13 +767,13 @@ class Window(_Window):
         else:
             raise ValueError("Invalid window {0}".format(window))
 
-    def _prep_window(self, **kwargs):
+    def _get_window(self, **kwargs):
         """
         Provide validation for our window type, return the window
         we have already been validated.
         """
 
-        window = self._get_window()
+        window = self.window
         if isinstance(window, (list, tuple, np.ndarray)):
             return com.asarray_tuplesafe(window).astype(float)
         elif is_integer(window):
@@ -816,6 +812,21 @@ class Window(_Window):
             win_type = _validate_win_type(self.win_type, kwargs)
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
+
+    def _get_roll(self, func, check_minp, *args, **kwargs):
+
+        cfunc = getattr(libwindow, func, None)
+        if cfunc is None:
+            raise ValueError(
+                "we do not support this function "
+                "in libwindow.{func}".format(func=func)
+            )
+
+        def func(arg, window, min_periods=None, closed=None):
+            minp = check_minp(min_periods, len(window))
+            return cfunc(arg, window, minp)
+
+        return func
 
     _agg_see_also_doc = dedent(
         """
@@ -934,6 +945,16 @@ class _Rolling(_Window):
     @property
     def _constructor(self):
         return Rolling
+
+    def _apply_roll(self, func, values):
+
+        with np.errstate(all="ignore"):
+            if values.ndim > 1:
+                result = np.apply_along_axis(func, self.axis, values)
+            else:
+                result = func(values)
+
+        return result
 
 
 class _Rolling_and_Expanding(_Rolling):
@@ -1986,7 +2007,7 @@ class Expanding(_Rolling_and_Expanding):
     def _constructor(self):
         return Expanding
 
-    def _get_window(self, other=None):
+    def _get_window(self, other=None, **kwargs):
         """
         Get the window length over which to perform some operation.
 
