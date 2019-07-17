@@ -1036,6 +1036,7 @@ Timezones
 - Bug in :func:`DataFrame.join` where joining a timezone aware index with a timezone aware column would result in a column of ``NaN`` (:issue:`26335`)
 - Bug in :func:`date_range` where ambiguous or nonexistent start or end times were not handled by the ``ambiguous`` or ``nonexistent`` keywords respectively (:issue:`27088`)
 - Bug in :meth:`DatetimeIndex.union` when combining a timezone aware and timezone unaware :class:`DatetimeIndex` (:issue:`21671`)
+- Bug when applying a numpy reduction function (e.g. :meth:`numpy.minimum`) to a timezone aware :class:`Series` (:issue:`15552`)
 
 Numeric
 ^^^^^^^
@@ -1096,7 +1097,7 @@ Indexing
 - Bug in setting a new value in a :class:`Series` with a :class:`Timedelta` object incorrectly casting the value to an integer (:issue:`22717`)
 - Bug in :class:`Series` setting a new key (``__setitem__``) with a timezone-aware datetime incorrectly raising ``ValueError`` (:issue:`12862`)
 - Bug in :meth:`DataFrame.iloc` when indexing with a read-only indexer (:issue:`17192`)
--
+- Bug in :class:`Series` setting an existing tuple key (``__setitem__``) with timezone-aware datetime values incorrectly raising ``TypeError`` (:issue:`20441`)
 
 Missing
 ^^^^^^^
@@ -1153,7 +1154,7 @@ Plotting
 - Bug in an error message in :meth:`DataFrame.plot`. Improved the error message if non-numerics are passed to :meth:`DataFrame.plot` (:issue:`25481`)
 - Bug in incorrect ticklabel positions when plotting an index that are non-numeric / non-datetime (:issue:`7612`, :issue:`15912`, :issue:`22334`)
 - Fixed bug causing plots of :class:`PeriodIndex` timeseries to fail if the frequency is a multiple of the frequency rule code (:issue:`14763`)
--
+- Fixed bug when plotting a :class:`DatetimeIndex` with ``datetime.timezone.utc`` timezone (:issue:`17173`)
 -
 -
 
