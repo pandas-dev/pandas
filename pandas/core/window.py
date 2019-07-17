@@ -204,26 +204,46 @@ class _Window(PandasObject, SelectionMixin):
         )
 
     def __iter__(self):
+        closed = self.closed
         window = self._get_window()
         minp = _use_window(self.min_periods, window)
+        offset = _offset(window, self.center)
 
         blocks, obj, index = self._create_blocks()
         _, indexi = self._get_index(index)
 
         for values in blocks:
+            arr = np.asarray(values)
+
             start, end, N, win, _minp, is_variable = libwindow.get_window_indexer(
-                np.asarray(values), window, minp, indexi, self.closed
+                arr, window, minp, indexi, closed
             )
 
-            for i in range(N):
-                if is_variable:
-                    s = start[i]
-                    e = end[i]
-                else:
-                    s = max(i - win + 1, 0)
-                    e = min(i + 1, N)
+            if arr.ndim == 1:
+                arr = np.expand_dims(arr, axis=1)
 
-                if e - s >= _minp:
+            counts = libwindow.roll_sum(
+                np.concatenate(
+                    [
+                        np.isfinite(arr).all(axis=1).astype(float),
+                        np.array([0.0] * offset),
+                    ]
+                ),
+                win,
+                minp,
+                index,
+                closed,
+            )[offset:]
+
+            for i in range(N):
+                if counts[i] >= _minp:
+                    if is_variable:
+                        s = start[i]
+                        e = end[i]
+                    else:
+                        s = max(i - win + offset + 1, 0)
+                        e = min(i + offset + 1, N)
+
                     yield values.iloc[slice(s, e)]
 
     def _get_index(self, index=None):

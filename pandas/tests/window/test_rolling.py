@@ -187,6 +187,42 @@ class TestRolling(Base):
         ):
             tm.assert_series_equal(actual, expected)
 
+    @pytest.mark.parametrize(
+        "expected,window,minp",
+        [
+            ([([1.0, np.nan, 3.0], [0, 1, 2]), ([np.nan, 3.0, 4.0], [1, 2, 3])], 3, 2),
+            ([([1.0, np.nan, 3.0, 4.0], [0, 1, 2, 3])], 4, 3),
+            ([], 4, 4),
+        ],
+    )
+    def test_iterator_series_min_periods_nan(self, expected, window, minp):
+        series = Series([1, np.nan, 3, 4])
+
+        expected = [Series(values, index=index) for (values, index) in expected]
+
+        for (expected, actual) in zip(
+            expected, series.rolling(window, min_periods=minp)
+        ):
+            tm.assert_series_equal(actual, expected)
+
+    @pytest.mark.parametrize(
+        "expected,window,minp",
+        [
+            ([({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}, [0, 1, 2])], 3, 2),
+            ([], 2, 2),
+            ([], 3, 4),
+        ],
+    )
+    def test_iterator_series_min_periods_nan(self, expected, window, minp):
+        dataframe = DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]})
+
+        expected = [DataFrame(values, index=index) for (values, index) in expected]
+
+        for (expected, actual) in zip(
+            expected, dataframe.rolling(window, min_periods=minp)
+        ):
+            tm.assert_frame_equal(actual, expected)
+
     @pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
     def test_numpy_compat(self, method):
         # see gh-12811
