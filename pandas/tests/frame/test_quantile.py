@@ -476,5 +476,5 @@ class TestDataFrameQuantile:
         tm.assert_series_equal(result, expected)
 
         result = df.quantile([0.5])
-        expected = pd.DataFrame([], index=[], columns=[0.5])
+        expected = pd.DataFrame([], index=[0.5], columns=[])
         tm.assert_frame_equal(result, expected)
