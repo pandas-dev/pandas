@@ -655,6 +655,36 @@ def test_timedelta_assignment():
 
 
 @pytest.mark.parametrize(
+    "nat_val,should_cast",
+    [
+        (pd.NaT, True),
+        (np.timedelta64("NaT", "ns"), True),
+        (np.datetime64("NaT", "ns"), False),
+    ],
+)
+def test_td64_series_assign_nat(nat_val, should_cast):
+    # some nat-like values should be cast to timedelta64 when inserting
+    #  into a timedelta64 series.  Others should coerce to object
+    #  and retain their dtypes.
+    base = pd.Series([0, 1, 2], dtype="m8[ns]")
+    expected = pd.Series([pd.NaT, 1, 2], dtype="m8[ns]")
+    if not should_cast:
+        expected = expected.astype(object)
+
+    ser = base.copy(deep=True)
+    ser[0] = nat_val
+    tm.assert_series_equal(ser, expected)
+
+    ser = base.copy(deep=True)
+    ser.loc[0] = nat_val
+    tm.assert_series_equal(ser, expected)
+
+    ser = base.copy(deep=True)
+    ser.iloc[0] = nat_val
+    tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
     "td",
     [
         pd.Timedelta("9 days"),
