@@ -3,6 +3,7 @@ python-dateutil>=2.6.1
 pytz
 asv
 cython>=0.28.2
+black
 cpplint
 flake8
 flake8-comprehensions
@@ -53,3 +54,4 @@ xarray
 xlrd
 xlsxwriter
 xlwt
+pyreadstat

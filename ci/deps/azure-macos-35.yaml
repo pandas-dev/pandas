@@ -23,8 +23,12 @@ dependencies:
   - xlsxwriter
   - xlwt
   - pip:
+    - pyreadstat
     # universal
     - pytest==4.5.0
     - pytest-xdist
     - pytest-mock
     - hypothesis>=3.58.0
+    # https://github.com/pandas-dev/pandas/issues/27421
+    - pytest-azurepipelines<1.0.0
+

@@ -11,7 +11,7 @@ _BACKTICK_QUOTED_STRING = 100
 def _ensure_decoded(s):
     """ if we have bytes, decode them to unicode """
     if isinstance(s, (np.bytes_, bytes)):
-        s = s.decode(pd.get_option('display.encoding'))
+        s = s.decode(pd.get_option("display.encoding"))
     return s
 
 

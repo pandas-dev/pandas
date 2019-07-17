@@ -4,12 +4,12 @@ import pandas.util.testing as tm
 
 def test_getitem_callable():
     # GH 12533
-    s = pd.Series(4, index=list('ABCD'))
-    result = s[lambda x: 'A']
-    assert result == s.loc['A']
+    s = pd.Series(4, index=list("ABCD"))
+    result = s[lambda x: "A"]
+    assert result == s.loc["A"]
 
-    result = s[lambda x: ['A', 'B']]
-    tm.assert_series_equal(result, s.loc[['A', 'B']])
+    result = s[lambda x: ["A", "B"]]
+    tm.assert_series_equal(result, s.loc[["A", "B"]])
 
     result = s[lambda x: [True, False, True, True]]
     tm.assert_series_equal(result, s.iloc[[0, 2, 3]])
@@ -17,9 +17,9 @@ def test_getitem_callable():
 
 def test_setitem_callable():
     # GH 12533
-    s = pd.Series([1, 2, 3, 4], index=list('ABCD'))
-    s[lambda x: 'A'] = -1
-    tm.assert_series_equal(s, pd.Series([-1, 2, 3, 4], index=list('ABCD')))
+    s = pd.Series([1, 2, 3, 4], index=list("ABCD"))
+    s[lambda x: "A"] = -1
+    tm.assert_series_equal(s, pd.Series([-1, 2, 3, 4], index=list("ABCD")))
 
 
 def test_setitem_other_callable():

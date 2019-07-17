@@ -1099,6 +1099,10 @@ def roll_median_c(ndarray[float64_t] values, int64_t win, int64_t minp,
         use_mock=False)
     output = np.empty(N, dtype=float)
 
+    if win == 0:
+        output[:] = NaN
+        return output
+
     sl = skiplist_init(<int>win)
     if sl == NULL:
         raise MemoryError("skiplist_init failed")
@@ -1112,21 +1116,15 @@ def roll_median_c(ndarray[float64_t] values, int64_t win, int64_t minp,
             if i == 0:
 
                 # setup
-                val = values[i]
-                if notnan(val):
-                    nobs += 1
-                    err = skiplist_insert(sl, val) != 1
-                    if err:
-                        break
-
-            else:
-
-                # calculate deletes
-                for j in range(start[i - 1], s):
+                for j in range(s, e):
                     val = values[j]
                     if notnan(val):
-                        skiplist_remove(sl, val)
-                        nobs -= 1
+                        nobs += 1
+                        err = skiplist_insert(sl, val) != 1
+                        if err:
+                            break
+
+            else:
 
                 # calculate adds
                 for j in range(end[i - 1], e):
@@ -1136,6 +1134,13 @@ def roll_median_c(ndarray[float64_t] values, int64_t win, int64_t minp,
                         err = skiplist_insert(sl, val) != 1
                         if err:
                             break
+
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = values[j]
+                    if notnan(val):
+                        skiplist_remove(sl, val)
+                        nobs -= 1
 
             if nobs >= minp:
                 midpoint = <int>(nobs / 2)
@@ -1308,9 +1313,11 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
 
         # if right is open then the first window is empty
         close_offset = 0 if endi[0] > starti[0] else 1
+        # first window's size
+        curr_win_size = endi[0] - starti[0]
 
         for i in range(endi[0], endi[N-1]):
-            if not Q.empty():
+            if not Q.empty() and curr_win_size > 0:
                 output[i-1+close_offset] = calc_mm(
                     minp, nobs, values[Q.front()])
             else:
@@ -1339,7 +1346,7 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
             Q.push_back(i)
             W.push_back(i)
 
-        if not Q.empty():
+        if not Q.empty() and curr_win_size > 0:
             output[N-1] = calc_mm(minp, nobs, values[Q.front()])
         else:
             output[N-1] = NaN
@@ -1486,6 +1493,11 @@ def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
         minp, index, closed,
         use_mock=False)
     output = np.empty(N, dtype=float)
+
+    if win == 0:
+        output[:] = NaN
+        return output
+
     skiplist = skiplist_init(<int>win)
     if skiplist == NULL:
         raise MemoryError("skiplist_init failed")
@@ -1498,19 +1510,13 @@ def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
             if i == 0:
 
                 # setup
-                val = values[i]
-                if notnan(val):
-                    nobs += 1
-                    skiplist_insert(skiplist, val)
-
-            else:
-
-                # calculate deletes
-                for j in range(start[i - 1], s):
+                for j in range(s, e):
                     val = values[j]
                     if notnan(val):
-                        skiplist_remove(skiplist, val)
-                        nobs -= 1
+                        nobs += 1
+                        skiplist_insert(skiplist, val)
+
+            else:
 
                 # calculate adds
                 for j in range(end[i - 1], e):
@@ -1518,6 +1524,13 @@ def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
                     if notnan(val):
                         nobs += 1
                         skiplist_insert(skiplist, val)
+
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = values[j]
+                    if notnan(val):
+                        skiplist_remove(skiplist, val)
+                        nobs -= 1
 
             if nobs >= minp:
                 if nobs == 1:
@@ -1669,8 +1682,8 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] values,
     Assume len(weights) << len(values)
     """
     cdef:
-        ndarray[float64_t] output, tot_wgt, counts
-        Py_ssize_t in_i, win_i, win_n, win_k, in_n, in_k
+        float64_t[:] output, tot_wgt, counts
+        Py_ssize_t in_i, win_i, win_n, in_n
         float64_t val_in, val_win, c, w
 
     in_n = len(values)

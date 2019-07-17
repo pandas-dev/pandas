@@ -3,7 +3,7 @@
 {{ header }}
 
 ==============================
- Essential Basic Functionality
+ Essential basic functionality
 ==============================
 
 Here we discuss a lot of the essential functionality common to the pandas data
@@ -19,7 +19,7 @@ the previous section:
 
 .. _basics.head_tail:
 
-Head and Tail
+Head and tail
 -------------
 
 To view a small sample of a Series or DataFrame object, use the
@@ -34,7 +34,7 @@ of elements to display is five, but you may pass a custom number.
 
 .. _basics.attrs:
 
-Attributes and Underlying Data
+Attributes and underlying data
 ------------------------------
 
 pandas objects have a number of attributes enabling you to access the metadata
@@ -286,7 +286,7 @@ using ``fillna`` if you wish).
 
 .. _basics.compare:
 
-Flexible Comparisons
+Flexible comparisons
 ~~~~~~~~~~~~~~~~~~~~
 
 Series and DataFrame have the binary comparison methods ``eq``, ``ne``, ``lt``, ``gt``,
@@ -304,7 +304,7 @@ indexing operations, see the section on :ref:`Boolean indexing<indexing.boolean>
 
 .. _basics.reductions:
 
-Boolean Reductions
+Boolean reductions
 ~~~~~~~~~~~~~~~~~~
 
 You can apply the reductions: :attr:`~DataFrame.empty`, :meth:`~DataFrame.any`,
@@ -468,7 +468,7 @@ which we illustrate:
    df2
    df1.combine_first(df2)
 
-General DataFrame Combine
+General DataFrame combine
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~DataFrame.combine_first` method above calls the more general
@@ -643,7 +643,7 @@ there for details about accepted inputs.
 
 .. _basics.idxmin:
 
-Index of Min/Max Values
+Index of min/max values
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~DataFrame.idxmin` and :meth:`~DataFrame.idxmax` functions on Series
@@ -677,7 +677,7 @@ matching index:
 
 .. _basics.discretization:
 
-Value counts (histogramming) / Mode
+Value counts (histogramming) / mode
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~Series.value_counts` Series method and top-level function computes a histogram
@@ -752,7 +752,7 @@ on an entire ``DataFrame`` or ``Series``, row- or column-wise, or elementwise.
 
 .. _basics.pipe:
 
-Tablewise Function Application
+Tablewise function application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``DataFrames`` and ``Series`` can of course just be passed into functions.
@@ -784,6 +784,7 @@ In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
 For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.ols, 'data')`` to ``pipe``:
 
 .. ipython:: python
+   :okwarning:
 
    import statsmodels.formula.api as sm
 
@@ -806,7 +807,7 @@ We encourage you to view the source code of :meth:`~DataFrame.pipe`.
 .. _R: https://www.r-project.org
 
 
-Row or Column-wise Function Application
+Row or column-wise function application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Arbitrary functions can be applied along the axes of a DataFrame
@@ -987,7 +988,7 @@ not noted for a particular column will be ``NaN``:
 
 .. _basics.aggregation.mixed_dtypes:
 
-Mixed Dtypes
+Mixed dtypes
 ++++++++++++
 
 When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
@@ -1106,7 +1107,7 @@ selective transforms.
 
 .. _basics.elementwise:
 
-Applying Elementwise Functions
+Applying elementwise functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since not all functions can be vectorized (accept NumPy arrays and return
@@ -1474,7 +1475,7 @@ Thus, for example, iterating over a DataFrame gives you the column names:
        print(col)
 
 
-Pandas objects also have the dict-like :meth:`~DataFrame.iteritems` method to
+Pandas objects also have the dict-like :meth:`~DataFrame.items` method to
 iterate over the (key, value) pairs.
 
 To iterate over the rows of a DataFrame, you can use the following methods:
@@ -1523,10 +1524,10 @@ To iterate over the rows of a DataFrame, you can use the following methods:
 
     df
 
-iteritems
-~~~~~~~~~
+items
+~~~~~
 
-Consistent with the dict-like interface, :meth:`~DataFrame.iteritems` iterates
+Consistent with the dict-like interface, :meth:`~DataFrame.items` iterates
 through key-value pairs:
 
 * **Series**: (index, scalar value) pairs
@@ -1536,7 +1537,7 @@ For example:
 
 .. ipython:: python
 
-   for label, ser in df.iteritems():
+   for label, ser in df.items():
        print(label)
        print(ser)
 
@@ -1726,7 +1727,7 @@ sorting by column values, and sorting by a combination of both.
 
 .. _basics.sort_index:
 
-By Index
+By index
 ~~~~~~~~
 
 The :meth:`Series.sort_index` and :meth:`DataFrame.sort_index` methods are
@@ -1753,7 +1754,7 @@ used to sort a pandas object by its index levels.
 
 .. _basics.sort_values:
 
-By Values
+By values
 ~~~~~~~~~
 
 The :meth:`Series.sort_values` method is used to sort a `Series` by its values. The
@@ -1785,7 +1786,7 @@ argument:
 
 .. _basics.sort_indexes_and_values:
 
-By Indexes and Values
+By indexes and values
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.23.0
@@ -1968,11 +1969,11 @@ dtype of the column will be chosen to accommodate all of the data types
    pd.Series([1, 2, 3, 6., 'foo'])
 
 The number of columns of each type in a ``DataFrame`` can be found by calling
-:meth:`~DataFrame.get_dtype_counts`.
+``DataFrame.dtypes.value_counts()``.
 
 .. ipython:: python
 
-   dft.get_dtype_counts()
+   dft.dtypes.value_counts()
 
 Numeric dtypes will propagate and can coexist in DataFrames.
 If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``,

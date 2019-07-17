@@ -21,7 +21,9 @@ jobs:
       displayName: 'Add conda to PATH'
     - script: conda update -q -n base conda
       displayName: Update conda
-    - script: conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
+    - script: |
+        call activate
+        conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
       displayName: 'Create anaconda environment'
     - script: |
         call activate pandas-dev

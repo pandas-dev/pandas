@@ -16,6 +16,7 @@ dependencies:
   - cython>=0.28.2
 
   # code checks
+  - black
   - cpplint
   - flake8
   - flake8-comprehensions  # used by flake8, linting of unnecessary comprehensions
@@ -79,3 +80,4 @@ dependencies:
   - xlrd  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlsxwriter  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlwt  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
+  - pyreadstat  # pandas.read_spss

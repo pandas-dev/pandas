@@ -5,12 +5,13 @@
 Computational tools
 ===================
 
-Statistical Functions
+
+Statistical functions
 ---------------------
 
 .. _computation.pct_change:
 
-Percent Change
+Percent change
 ~~~~~~~~~~~~~~
 
 ``Series`` and ``DataFrame`` have a method
@@ -294,7 +295,7 @@ sugar for applying the moving window operator to all of the DataFrame's columns:
 
 .. _stats.summary:
 
-Method Summary
+Method summary
 ~~~~~~~~~~~~~~
 
 We provide a number of common statistical functions:
@@ -335,7 +336,7 @@ compute the mean absolute deviation on a rolling basis:
 
 .. _stats.rolling_window:
 
-Rolling Windows
+Rolling windows
 ~~~~~~~~~~~~~~~
 
 Passing ``win_type`` to ``.rolling`` generates a generic rolling window computation, that is weighted according the ``win_type``.
@@ -404,7 +405,7 @@ For some windowing functions, additional parameters must be specified:
 
 .. _stats.moments.ts:
 
-Time-aware Rolling
+Time-aware rolling
 ~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.19.0
@@ -469,7 +470,7 @@ default of the index) in a DataFrame.
 
 .. _stats.rolling_window.endpoints:
 
-Rolling Window Endpoints
+Rolling window endpoints
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.20.0
@@ -511,7 +512,7 @@ For fixed windows, the closed parameter cannot be set and the rolling window wil
 
 .. _stats.moments.ts-versus-resampling:
 
-Time-aware Rolling vs. Resampling
+Time-aware rolling vs. resampling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Using ``.rolling()`` with a time-based index is quite similar to :ref:`resampling <timeseries.resampling>`. They
@@ -529,7 +530,7 @@ will have the shape of a regular frequency between the min and the max of the or
 
 To summarize, ``.rolling()`` is a time-based window operation, while ``.resample()`` is a frequency-based window operation.
 
-Centering Windows
+Centering windows
 ~~~~~~~~~~~~~~~~~
 
 By default the labels are set to the right edge of the window, but a
@@ -542,7 +543,7 @@ By default the labels are set to the right edge of the window, but a
 
 .. _stats.moments.binary:
 
-Binary Window Functions
+Binary window functions
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 :meth:`~Rolling.cov` and :meth:`~Rolling.corr` can compute moving window statistics about
@@ -695,7 +696,7 @@ Furthermore you can pass a nested dict to indicate different aggregations on dif
 
 .. _stats.moments.expanding:
 
-Expanding Windows
+Expanding windows
 -----------------
 
 A common alternative to rolling statistics is to use an *expanding* window,
@@ -716,7 +717,7 @@ they are implemented in pandas such that the following two calls are equivalent:
 
 These have a similar set of methods to ``.rolling`` methods.
 
-Method Summary
+Method summary
 ~~~~~~~~~~~~~~
 
 .. currentmodule:: pandas.core.window
@@ -798,7 +799,7 @@ relative impact of an individual data point. As an example, here is the
 
 .. _stats.moments.exponentially_weighted:
 
-Exponentially Weighted Windows
+Exponentially weighted windows
 ------------------------------
 
 .. currentmodule:: pandas.core.window
