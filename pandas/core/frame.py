@@ -314,8 +314,12 @@ class DataFrame(NDFrame):
         Dict can contain Series, arrays, constants, or list-like objects
 
         .. versionchanged :: 0.23.0
-           If data is a dict, argument order is maintained for Python 3.6
-           and later.
+           If data is a dict, column order follows insertion-order for
+           Python 3.6 and later.
+
+        .. versionchanged :: 0.25.0
+           If data is a list of dicts, column order follows insertion-order
+           Python 3.6 and later.
 
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
