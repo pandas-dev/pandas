@@ -708,20 +708,6 @@ class Block(PandasObject):
         # may need to change the dtype here
         return maybe_downcast_to_dtype(result, dtype)
 
-    def _coerce_values(self, values):
-        """
-        Coerce values (usually derived from self.values) for an operation.
-
-        Parameters
-        ----------
-        values : ndarray or ExtensionArray
-
-        Returns
-        -------
-        ndarray or ExtensionArray
-        """
-        return _block_shape(values, ndim=self.ndim)
-
     def _try_coerce_args(self, other):
         """ provide coercion to our input arguments """
 
@@ -784,7 +770,7 @@ class Block(PandasObject):
 
         # try to replace, if we raise an error, convert to ObjectBlock and
         # retry
-        values = self._coerce_values(self.values)
+        values = self.values
         try:
             to_replace = self._try_coerce_args(to_replace)
         except (TypeError, ValueError):
@@ -891,7 +877,6 @@ class Block(PandasObject):
                     b = self.astype(dtype)
                     return b.setitem(indexer, value)
         else:
-            values = self._coerce_values(values)
             # can keep its own dtype
             if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
                 dtype = self.dtype
@@ -1216,7 +1201,6 @@ class Block(PandasObject):
                     return [self.copy()]
 
         values = self.values if inplace else self.values.copy()
-        values = self._coerce_values(values)
         fill_value = self._try_coerce_args(fill_value)
         values = missing.interpolate_2d(
             values,
@@ -1424,7 +1408,6 @@ class Block(PandasObject):
         else:
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
-            values = self._coerce_values(values)
             try:
                 result = func(cond, values, other)
             except TypeError:
@@ -1535,7 +1518,6 @@ class Block(PandasObject):
             values = values[None, :]
         else:
             values = self.get_values()
-            values = self._coerce_values(values)
 
         is_empty = values.shape[axis] == 0
         orig_scalar = not is_list_like(qs)
@@ -1700,7 +1682,6 @@ class NonConsolidatableMixIn:
         # use block's copy logic.
         # .values may be an Index which does shallow copy by default
         new_values = self.values if inplace else self.copy().values
-        new_values = self._coerce_values(new_values)
         new = self._try_coerce_args(new)
 
         if isinstance(new, np.ndarray) and len(new) == len(mask):
@@ -2405,7 +2386,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """
         values = self.values
         if is_object_dtype(dtype):
-            values = values._box_values(values._data)
+            values = values.astype(object)
 
         values = np.asarray(values)
 
