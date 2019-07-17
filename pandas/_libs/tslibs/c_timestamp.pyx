@@ -55,6 +55,9 @@ def maybe_integer_op_deprecated(obj):
 
 cdef class _Timestamp(datetime):
 
+    # higher than np.ndarray and np.matrix
+    __array_priority__ = 100
+
     def __hash__(_Timestamp self):
         if self.nanosecond:
             return hash(self.value)
@@ -84,6 +87,15 @@ cdef class _Timestamp(datetime):
             if ndim != -1:
                 if ndim == 0:
                     if is_datetime64_object(other):
+                        other = self.__class__(other)
+                    elif is_array(other):
+                        # zero-dim array, occurs if try comparison with
+                        #  datetime64 scalar on the left hand side
+                        # Unfortunately, for datetime64 values, other.item()
+                        #  incorrectly returns an integer, so we need to use
+                        #  the numpy C api to extract it.
+                        other = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other),
+                                                     other)
                         other = self.__class__(other)
                     else:
                         return NotImplemented
@@ -201,7 +213,7 @@ cdef class _Timestamp(datetime):
 
     def __add__(self, other):
         cdef:
-            int64_t other_int, nanos
+            int64_t other_int, nanos = 0
 
         if is_timedelta64_object(other):
             other_int = other.astype('timedelta64[ns]').view('i8')

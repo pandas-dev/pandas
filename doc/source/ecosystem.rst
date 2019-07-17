@@ -3,7 +3,7 @@
 {{ header }}
 
 ****************
-pandas Ecosystem
+Pandas ecosystem
 ****************
 
 Increasingly, packages are being built on top of pandas to address specific needs
@@ -26,7 +26,7 @@ substantial projects that you feel should be on this list, please let us know.
 
 .. _ecosystem.stats:
 
-Statistics and Machine Learning
+Statistics and machine learning
 -------------------------------
 
 `Statsmodels <https://www.statsmodels.org/>`__
@@ -243,7 +243,7 @@ you can obtain for free on the FRED website.
 
 .. _ecosystem.domain:
 
-Domain Specific
+Domain specific
 ---------------
 
 `Geopandas <https://github.com/kjordahl/geopandas>`__
@@ -332,7 +332,7 @@ and check that they're *actually* true.
 
 .. _ecosystem.extensions:
 
-Extension Data Types
+Extension data types
 --------------------
 
 Pandas provides an interface for defining
@@ -363,4 +363,5 @@ Library        Accessor   Classes
 ============== ========== =========================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
-.. _pdvega: https://jakevdp.github.io/pdvega/
+.. _pdvega: https://altair-viz.github.io/pdvega/
+

@@ -33,6 +33,12 @@ jobs:
           PATTERN: "not slow and not network"
           LOCALE_OVERRIDE: "it_IT.UTF-8"
 
+        py36_32bit:
+          ENV_FILE: ci/deps/azure-36-32bit.yaml
+          CONDA_PY: "36"
+          PATTERN: "not slow and not network"
+          BITS32: "yes"
+
         py37_locale:
           ENV_FILE: ci/deps/azure-37-locale.yaml
           CONDA_PY: "37"
@@ -89,4 +95,9 @@ jobs:
           # note that this will produce $LASTEXITCODE=1
           Write-Error "$($matches[1]) tests failed"
         }
-      displayName: Check for test failures
+      displayName: 'Check for test failures'
+    - script: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        python ci/print_skipped.py
+      displayName: 'Print skipped tests'

@@ -56,7 +56,6 @@ Conversion
 
    Series.astype
    Series.infer_objects
-   Series.convert_objects
    Series.copy
    Series.bool
    Series.to_numpy
@@ -77,8 +76,8 @@ Indexing, iteration
    Series.loc
    Series.iloc
    Series.__iter__
-   Series.iteritems
    Series.items
+   Series.iteritems
    Series.keys
    Series.pop
    Series.item
@@ -120,7 +119,7 @@ Binary operator functions
    Series.product
    Series.dot
 
-Function application, GroupBy & Window
+Function application, groupby & window
 --------------------------------------
 .. autosummary::
    :toctree: api/
@@ -138,7 +137,7 @@ Function application, GroupBy & Window
 
 .. _api.series.stats:
 
-Computations / Descriptive Stats
+Computations / descriptive stats
 --------------------------------
 .. autosummary::
    :toctree: api/
@@ -189,7 +188,7 @@ Computations / Descriptive Stats
    Series.value_counts
    Series.compound
 
-Reindexing / Selection / Label manipulation
+Reindexing / selection / label manipulation
 -------------------------------------------
 .. autosummary::
    :toctree: api/
@@ -212,7 +211,6 @@ Reindexing / Selection / Label manipulation
    Series.rename_axis
    Series.reset_index
    Series.sample
-   Series.select
    Series.set_axis
    Series.take
    Series.tail
@@ -298,14 +296,14 @@ Sparse                      :ref:`sparse <api.series.sparse>`
 
 .. _api.series.dt:
 
-Datetimelike Properties
+Datetimelike properties
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 ``Series.dt`` can be used to access the values of the series as
 datetimelike and return several properties.
 These can be accessed like ``Series.dt.<property>``.
 
-Datetime Properties
+Datetime properties
 ^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
@@ -341,7 +339,7 @@ Datetime Properties
    Series.dt.tz
    Series.dt.freq
 
-Datetime Methods
+Datetime methods
 ^^^^^^^^^^^^^^^^
 
 .. autosummary::
@@ -360,7 +358,7 @@ Datetime Methods
    Series.dt.month_name
    Series.dt.day_name
 
-Period Properties
+Period properties
 ^^^^^^^^^^^^^^^^^
 
 .. autosummary::
@@ -371,7 +369,7 @@ Period Properties
    Series.dt.start_time
    Series.dt.end_time
 
-Timedelta Properties
+Timedelta properties
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
@@ -384,7 +382,7 @@ Timedelta Properties
    Series.dt.nanoseconds
    Series.dt.components
 
-Timedelta Methods
+Timedelta methods
 ^^^^^^^^^^^^^^^^^
 
 .. autosummary::
@@ -474,11 +472,13 @@ strings and apply several methods to it. These can be accessed like
        Series.str
        Series.cat
        Series.dt
+       Series.sparse
+       DataFrame.sparse
        Index.str
 
 .. _api.series.cat:
 
-Categorical Accessor
+Categorical accessor
 ~~~~~~~~~~~~~~~~~~~~
 
 Categorical-dtype specific methods and attributes are available under
@@ -508,7 +508,7 @@ the ``Series.cat`` accessor.
 
 .. _api.series.sparse:
 
-Sparse Accessor
+Sparse accessor
 ~~~~~~~~~~~~~~~
 
 Sparse-dtype specific methods and attributes are provided under the
@@ -560,7 +560,7 @@ specific plotting methods of the form ``Series.plot.<kind>``.
 
    Series.hist
 
-Serialization / IO / Conversion
+Serialization / IO / conversion
 -------------------------------
 .. autosummary::
    :toctree: api/
