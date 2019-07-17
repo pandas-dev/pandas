@@ -352,12 +352,19 @@ def read_json(
 
     Parameters
     ----------
-    path_or_buf : a valid JSON string or file-like, default None
-        The string could be a URL. Valid URL schemes include http, ftp, s3,
-        gcs, and file. For file URLs, a host is expected. For instance, a local
-        file could be ``file://localhost/path/to/table.json``.
+    path_or_buf : a valid JSON str, path object or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be:
+        ``file://localhost/path/to/table.json``.
 
-    orient : str, optional
+        If you want to pass in a path object, pandas accepts any
+        ``os.PathLike``.
+
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function)
+        or ``StringIO``.
+    orient : string,
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
         corresponding orient value.
@@ -1093,9 +1100,15 @@ class FrameParser(Parser):
             self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
-            self.obj = DataFrame(
-                loads(json, precise_float=self.precise_float), dtype=None
-            ).T
+            self.obj = (
+                DataFrame.from_dict(
+                    loads(json, precise_float=self.precise_float),
+                    dtype=None,
+                    orient="index",
+                )
+                .sort_index(axis="columns")
+                .sort_index(axis="index")
+            )
         elif orient == "table":
             self.obj = parse_table_schema(json, precise_float=self.precise_float)
         else:
@@ -1113,7 +1126,7 @@ class FrameParser(Parser):
 
         needs_new_obj = False
         new_obj = dict()
-        for i, (col, c) in enumerate(self.obj.iteritems()):
+        for i, (col, c) in enumerate(self.obj.items()):
             if filt(col, c):
                 new_data, result = f(col, c)
                 if result:

@@ -698,7 +698,7 @@ class SparseDataFrame(DataFrame):
         need_mask = mask.any()
 
         new_series = {}
-        for col, series in self.iteritems():
+        for col, series in self.items():
             if mask.all():
                 continue
 

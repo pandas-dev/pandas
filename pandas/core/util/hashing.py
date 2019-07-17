@@ -113,7 +113,7 @@ def hash_pandas_object(
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCDataFrame):
-        hashes = (hash_array(series.values) for _, series in obj.iteritems())
+        hashes = (hash_array(series.values) for _, series in obj.items())
         num_items = len(obj.columns)
         if index:
             index_hash_generator = (

@@ -314,9 +314,16 @@ class SelectionMixin:
 
         f = getattr(np, arg, None)
         if f is not None:
-            return f(self, *args, **kwargs)
+            try:
+                return f(self, *args, **kwargs)
 
-        raise ValueError("{arg} is an unknown string function".format(arg=arg))
+            except (AttributeError, TypeError):
+                pass
+
+        raise AttributeError(
+            "'{arg}' is not a valid function for "
+            "'{cls}' object".format(arg=arg, cls=type(self).__name__)
+        )
 
     def _aggregate(self, arg, *args, **kwargs):
         """

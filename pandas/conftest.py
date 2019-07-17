@@ -25,7 +25,6 @@ hypothesis.settings.register_profile(
     # if it really is slow add `@settings(deadline=...)` with a working value,
     # or `deadline=None` to entirely disable timeouts for that test.
     deadline=500,
-    timeout=hypothesis.unlimited,
     suppress_health_check=(hypothesis.HealthCheck.too_slow,),
 )
 hypothesis.settings.load_profile("ci")

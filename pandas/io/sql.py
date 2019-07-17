@@ -108,7 +108,7 @@ def _parse_date_columns(data_frame, parse_dates):
     # we want to coerce datetime64_tz dtypes for now to UTC
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
-    for col_name, df_col in data_frame.iteritems():
+    for col_name, df_col in data_frame.items():
         if is_datetime64tz_dtype(df_col) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]

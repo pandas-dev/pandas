@@ -380,7 +380,7 @@ class TestReadHtml:
         dfs = self.read_html(macau_data, index_col=0, attrs={"class": "style1"})
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isna().any() for _, s in df.iteritems())
+        assert not any(s.isna().any() for _, s in df.items())
 
     @pytest.mark.slow
     def test_thousands_macau_index_col(self, datapath):
@@ -389,7 +389,7 @@ class TestReadHtml:
         dfs = self.read_html(macau_data, index_col=0, header=0)
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isna().any() for _, s in df.iteritems())
+        assert not any(s.isna().any() for _, s in df.items())
 
     def test_empty_tables(self):
         """

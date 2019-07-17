@@ -618,7 +618,9 @@ class TestNDFrame:
             df.sample(n=1, weights="weight_column", axis=1)
 
         # Check weighting key error
-        with pytest.raises(KeyError):
+        with pytest.raises(
+            KeyError, match="'String passed to weights not a valid column'"
+        ):
             df.sample(n=3, weights="not_a_real_column_name")
 
         # Check that re-normalizes weights that don't sum to one.

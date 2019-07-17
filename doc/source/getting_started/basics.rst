@@ -1475,7 +1475,7 @@ Thus, for example, iterating over a DataFrame gives you the column names:
        print(col)
 
 
-Pandas objects also have the dict-like :meth:`~DataFrame.iteritems` method to
+Pandas objects also have the dict-like :meth:`~DataFrame.items` method to
 iterate over the (key, value) pairs.
 
 To iterate over the rows of a DataFrame, you can use the following methods:
@@ -1524,10 +1524,10 @@ To iterate over the rows of a DataFrame, you can use the following methods:
 
     df
 
-iteritems
-~~~~~~~~~
+items
+~~~~~
 
-Consistent with the dict-like interface, :meth:`~DataFrame.iteritems` iterates
+Consistent with the dict-like interface, :meth:`~DataFrame.items` iterates
 through key-value pairs:
 
 * **Series**: (index, scalar value) pairs
@@ -1537,7 +1537,7 @@ For example:
 
 .. ipython:: python
 
-   for label, ser in df.iteritems():
+   for label, ser in df.items():
        print(label)
        print(ser)
 
