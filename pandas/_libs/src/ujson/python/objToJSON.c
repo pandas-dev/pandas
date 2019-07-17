@@ -80,7 +80,6 @@ typedef struct __NpyArrContext {
 
 typedef struct __PdFrameContext {
   PyObject *iterable;
-  PyObject *currItem;
   
 }  PdFrameContext;
 
@@ -140,7 +139,7 @@ inline TypeContext* GET_TC(JSONTypeContext * __ptrtc) {
 
 enum PANDAS_FORMAT { SPLIT, RECORDS, INDEX, COLUMNS, VALUES };
 
-#define PRINTMARK()
+#define PRINTMARK() printf("%d\n", __LINE__)
 
 void *initObjToJSON(void)
 {
@@ -1143,7 +1142,7 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
         if (!GET_TC(tc)->cStr) {
 	  PyErr_NoMemory();
         }
-    } else if (enc->outputFormat == COLUMNS || enc->outputFormat == RECORDS) {
+    } else if (enc->outputFormat == COLUMNS) {
       // Iterate over a frame's columns
       PyObject *iter = PyObject_CallMethod(obj, "items", NULL);
       
@@ -1161,7 +1160,7 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
       
       frameCtxt->iterable = iter;
       GET_TC(tc)->frame = frameCtxt;
-    } else if (enc->outputFormat == VALUES) {
+    } else if (enc->outputFormat == RECORDS || enc->outputFormat == VALUES || enc->outputFormat == INDEX) {
       // Iterate over a frame's rows
       PyObject *iter = PyObject_CallMethod(obj, "iterrows", NULL);
       
@@ -1179,6 +1178,13 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
       
       frameCtxt->iterable = iter;
       GET_TC(tc)->frame = frameCtxt;
+
+      // The RECORDS format essentially generates a JSON array of Series in the
+      // INDEX format, so set that context during serialization
+      /*
+      if (enc->outputFormat == RECORDS)
+	enc->outputFormat = INDEX;
+      */
     }      
 
     PRINTMARK();
@@ -1222,7 +1228,7 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
         PRINTMARK();
         return 0;
       }
-    } else if (enc->outputFormat == COLUMNS || enc->outputFormat == RECORDS || enc->outputFormat == VALUES) {
+    } else {
       // free previous entry
       if (GET_TC(tc)->itemValue) {
         Py_DECREF(GET_TC(tc)->itemValue);
@@ -1234,6 +1240,12 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
 	return 0;
 
       GET_TC(tc)->itemValue = tmp;
+
+      // RECORDS orient is essentially creating an array of INDEX
+      // oriented Series objects so set that here
+      // state should be reset in DataFrame_iterEnd
+      if (enc->outputFormat == RECORDS)
+	enc->outputFormat = INDEX;
     }
 
     PRINTMARK();
@@ -1250,7 +1262,7 @@ void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
   printf("DataFrame_iterEnd\n");
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   
-  if (enc->outputFormat == COLUMNS || enc->outputFormat == RECORDS || enc->outputFormat == VALUES)
+  if (enc->outputFormat != SPLIT)
     Py_DECREF(GET_TC(tc)->frame->iterable);
   
   enc->outputFormat = enc->originalOutputFormat;
@@ -1268,7 +1280,7 @@ JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;  
   if (enc->outputFormat == SPLIT) {  
     return GET_TC(tc)->itemValue;
-  } else if (enc->outputFormat == COLUMNS || enc->outputFormat == RECORDS || enc->outputFormat == VALUES) {
+  } else {
     // Borrowed ref
     return PyTuple_GetItem(GET_TC(tc)->itemValue, 1);
   }
@@ -1283,7 +1295,7 @@ JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
 char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
   printf("DataFrame_iterGetName\n");
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
-  if (enc->outputFormat == COLUMNS || enc->outputFormat == RECORDS) {
+  if (enc->outputFormat == COLUMNS || enc->outputFormat == RECORDS || enc->outputFormat == INDEX) {
     GET_TC(tc)->cStr = PyUnicode_AsUTF8(PyTuple_GetItem(GET_TC(tc)->itemValue, 0));
   }
   *outLen = strlen(GET_TC(tc)->cStr);
