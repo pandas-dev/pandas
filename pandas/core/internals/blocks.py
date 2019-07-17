@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, lib, tslib, tslibs
+from pandas._libs import NaT, lib, tslib, tslibs, Timestamp
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -2272,8 +2272,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if is_valid_nat_for_dtype(other, self.dtype):
             other = np.datetime64("NaT", "ns")
         elif isinstance(other, (datetime, np.datetime64, date)):
-            other = self._box_func(other)
-            if getattr(other, "tz") is not None:
+            other = Timestamp(other)
+            if other.tz is not None:
                 raise TypeError("cannot coerce a Timestamp with a tz on a naive Block")
             other = other.asm8
         elif hasattr(other, "dtype") and is_datetime64_dtype(other):
@@ -2292,10 +2292,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             # needed for _interpolate_with_ffill
             result = result.view("M8[ns]")
         return result
-
-    @property
-    def _box_func(self):
-        return tslibs.Timestamp
 
     def to_native_types(
         self, slicer=None, na_rep=None, date_format=None, quoting=None, **kwargs
@@ -2450,9 +2446,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         if isinstance(other, ABCSeries):
             other = self._holder(other)
 
-        if isinstance(other, bool):
-            raise TypeError
-        elif is_datetime64_dtype(other):
+        if is_datetime64_dtype(other):
             # add the tz back
             other = self._holder(other, dtype=self.dtype)
 
@@ -2588,10 +2582,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     @property
     def _holder(self):
         return TimedeltaArray
-
-    @property
-    def _box_func(self):
-        return lambda x: Timedelta(x, unit="ns")
 
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
