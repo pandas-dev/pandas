@@ -8,6 +8,8 @@ import weakref
 import numpy as np
 import pytest
 
+from pandas.compat import PY36
+
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
@@ -228,8 +230,10 @@ class TestFancy(Base):
         assert df["c"].dtype == np.float64
 
         df.loc[0, "c"] = "foo"
-        expected = DataFrame([{"a": 1, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}])
-        tm.assert_frame_equal(df, expected)
+        expected = DataFrame(
+            [{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}]
+        )
+        tm.assert_frame_equal(df, expected, check_like=not PY36)
 
         # GH10280
         df = DataFrame(

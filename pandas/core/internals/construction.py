@@ -10,7 +10,7 @@ import numpy.ma as ma
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
 import pandas.compat as compat
-from pandas.compat import raise_with_traceback
+from pandas.compat import PY36, raise_with_traceback
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -536,9 +536,30 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 
 def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
+    """Convert list of dicts to numpy arrays
+
+    if `columns` is not passed, column names are inferred from the records
+    - for OrderedDict and (on Python>=3.6) dicts, the column names match
+      the key insertion-order from the first record to the last.
+    - For other kinds of dict-likes, the keys are lexically sorted.
+
+    Parameters
+    ----------
+    data : iterable
+        collection of records (OrderedDict, dict)
+    columns: iterables or None
+    coerce_float : bool
+    dtype : np.dtype
+
+    Returns
+    -------
+    tuple
+        arrays, columns
+    """
     if columns is None:
         gen = (list(x.keys()) for x in data)
-        sort = not any(isinstance(d, OrderedDict) for d in data)
+        types = (dict, OrderedDict) if PY36 else OrderedDict
+        sort = not any(isinstance(d, types) for d in data)
         columns = lib.fast_unique_multiple_list_gen(gen, sort=sort)
 
     # assure that they are of the base dict class and not of derived
