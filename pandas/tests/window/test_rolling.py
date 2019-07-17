@@ -156,36 +156,35 @@ class TestRolling(Base):
                 DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
                 [
                     ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
-                    ({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2])
+                    ({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2]),
                 ],
                 3,
-                2
+                2,
             ),
-            (
-                DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
-                [],
-                3,
-                4
-            ),
+            (DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}), [], 3, 4),
         ],
     )
     def test_iterator_dataframe_min_periods(self, dataframe, expected, window, minp):
         expected = [DataFrame(values, index=index) for (values, index) in expected]
 
-        for (expected, actual) in zip(expected, dataframe.rolling(window, min_periods=minp)):
+        for (expected, actual) in zip(
+            expected, dataframe.rolling(window, min_periods=minp)
+        ):
             tm.assert_frame_equal(actual, expected)
 
     @pytest.mark.parametrize(
         "series,expected,window,minp",
         [
             (Series([1, 2, 3]), [([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])], 3, 2),
-            (Series([1, 2, 3]), [], 3, 4)
+            (Series([1, 2, 3]), [], 3, 4),
         ],
     )
     def test_iterator_series_min_periods(self, series, expected, window, minp):
         expected = [Series(values, index=index) for (values, index) in expected]
 
-        for (expected, actual) in zip(expected, series.rolling(window, min_periods=minp)):
+        for (expected, actual) in zip(
+            expected, series.rolling(window, min_periods=minp)
+        ):
             tm.assert_series_equal(actual, expected)
 
     @pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])

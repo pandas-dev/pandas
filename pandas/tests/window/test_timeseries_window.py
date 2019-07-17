@@ -750,7 +750,7 @@ class TestRollingTS:
                 ),
                 [],
                 "1s",
-                2
+                2,
             ),
             (
                 Series(
@@ -764,7 +764,7 @@ class TestRollingTS:
                     ([3, 4], [3, 4]),
                 ],
                 "2S",
-                2
+                2,
             ),
             (
                 Series(
@@ -779,7 +779,7 @@ class TestRollingTS:
                     ([2, 3, 4], [2, 3, 4]),
                 ],
                 "3S",
-                1
+                1,
             ),
         ],
     )
@@ -788,5 +788,7 @@ class TestRollingTS:
             Series(values, index=series.index[index]) for (values, index) in expected
         ]
 
-        for (expected, actual) in zip(expected, series.rolling(window, min_periods=minp)):
+        for (expected, actual) in zip(
+            expected, series.rolling(window, min_periods=minp)
+        ):
             tm.assert_series_equal(actual, expected)
