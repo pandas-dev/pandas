@@ -478,7 +478,7 @@ def _unstack_extension_series(series, level, fill_value):
     out = []
     values = extract_array(series, extract_numpy=False)
 
-    for col, indices in result.iteritems():
+    for col, indices in result.items():
         out.append(
             Series(
                 values.take(indices.values, allow_fill=True, fill_value=fill_value),
@@ -544,7 +544,7 @@ def stack(frame, level=-1, dropna=True):
         if is_extension_array_dtype(dtype):
             arr = dtype.construct_array_type()
             new_values = arr._concat_same_type(
-                [col._values for _, col in frame.iteritems()]
+                [col._values for _, col in frame.items()]
             )
             new_values = _reorder_for_extension_array_stack(new_values, N, K)
         else:
@@ -695,7 +695,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
                 subset = this[this.columns[loc]]
 
                 value_slice = dtype.construct_array_type()._concat_same_type(
-                    [x._values for _, x in subset.iteritems()]
+                    [x._values for _, x in subset.items()]
                 )
                 N, K = this.shape
                 idx = np.arange(N * K).reshape(K, N).T.ravel()
@@ -909,7 +909,7 @@ def get_dummies(
             # columns to prepend to result.
             with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
 
-        for (col, pre, sep) in zip(data_to_encode.iteritems(), prefix, prefix_sep):
+        for (col, pre, sep) in zip(data_to_encode.items(), prefix, prefix_sep):
             # col is (column_name, column), use just column data here
             dummy = _get_dummies_1d(
                 col[1],

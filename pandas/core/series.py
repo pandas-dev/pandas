@@ -66,12 +66,13 @@ from pandas.core.index import (
     MultiIndex,
     ensure_index,
 )
+from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
+from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
 from pandas.core.internals.construction import sanitize_array
 from pandas.core.strings import StringMethods
@@ -1027,38 +1028,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return [self.index]
 
-    def _ixs(self, i, axis=0):
+    def _ixs(self, i: int, axis: int = 0):
         """
         Return the i-th value or values in the Series by location.
 
         Parameters
         ----------
-        i : int, slice, or sequence of integers
+        i : int
 
         Returns
         -------
         scalar (int) or Series (slice, sequence)
         """
-        try:
 
-            # dispatch to the values if we need
-            values = self._values
-            if isinstance(values, np.ndarray):
-                return libindex.get_value_at(values, i)
-            else:
-                return values[i]
-        except IndexError:
-            raise
-        except Exception:
-            if isinstance(i, slice):
-                indexer = self.index._convert_slice_indexer(i, kind="iloc")
-                return self._get_values(indexer)
-            else:
-                label = self.index[i]
-                if isinstance(label, Index):
-                    return self.take(i, axis=axis, convert=True)
-                else:
-                    return libindex.get_value_at(self, i)
+        # dispatch to the values if we need
+        values = self._values
+        if isinstance(values, np.ndarray):
+            return libindex.get_value_at(values, i)
+        else:
+            return values[i]
 
     @property
     def _is_mixed_type(self):
@@ -1248,6 +1236,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _set_with_engine(self, key, value):
         values = self._values
+        if is_extension_array_dtype(values.dtype):
+            # The cython indexing engine does not support ExtensionArrays.
+            values[self.index.get_loc(key)] = value
+            return
         try:
             self.index._engine.set_value(values, key, value)
             return
@@ -1266,6 +1258,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     self._set_values(key, value)
                 except Exception:
                     pass
+
+            if is_scalar(key) and not is_integer(key) and key not in self.index:
+                # GH#12862 adding an new key to the Series
+                # Note: have to exclude integers because that is ambiguously
+                #  position-based
+                self.loc[key] = value
+                return
 
             if is_scalar(key):
                 key = [key]
@@ -1692,13 +1691,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
 
-    def iteritems(self):
+    def items(self):
         """
         Lazily iterate over (index, value) tuples.
 
         This method returns an iterable tuple (index, value). This is
-        convenient if you want to create a lazy iterator. Note that the
-        methods Series.items and Series.iteritems are the same methods.
+        convenient if you want to create a lazy iterator.
 
         Returns
         -------
@@ -1708,12 +1706,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.iteritems : Equivalent to Series.iteritems for DataFrame.
+        DataFrame.items : Equivalent to Series.items for DataFrame.
 
         Examples
         --------
         >>> s = pd.Series(['A', 'B', 'C'])
-        >>> for index, value in s.iteritems():
+        >>> for index, value in s.items():
         ...     print("Index : {}, Value : {}".format(index, value))
         Index : 0, Value : A
         Index : 1, Value : B
@@ -1721,7 +1719,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return zip(iter(self.index), iter(self))
 
-    items = iteritems
+    @Appender(items.__doc__)
+    def iteritems(self):
+        return self.items()
 
     # ----------------------------------------------------------------------
     # Misc public methods
@@ -4362,8 +4362,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             v += self.index.memory_usage(deep=deep)
         return v
 
-    @Appender(generic.NDFrame._take.__doc__)
-    def _take(self, indices, axis=0, is_copy=False):
+    @Appender(generic.NDFrame.take.__doc__)
+    def take(self, indices, axis=0, is_copy=False, **kwargs):
+        nv.validate_take(tuple(), kwargs)
 
         indices = ensure_platform_int(indices)
         new_index = self.index.take(indices)
