@@ -391,8 +391,9 @@ class Block(PandasObject):
         with np.errstate(all="ignore"):
             result = func(self.values, **kwargs)
         if not isinstance(result, Block):
+            # TODO: do we need this condition?  It could only fail if the user
+            #  passed a `func` that itself returned a Block
             result = self.make_block(values=_block_shape(result, ndim=self.ndim))
-
         return result
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
@@ -2442,15 +2443,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         -------
         base-type other
         """
-
-        if isinstance(other, ABCSeries):
-            other = self._holder(other)
-
-        if is_datetime64_dtype(other):
-            # add the tz back
-            other = self._holder(other, dtype=self.dtype)
-
-        elif is_valid_nat_for_dtype(other, self.dtype):
+        if is_valid_nat_for_dtype(other, self.dtype):
             other = np.datetime64("NaT", "ns")
         elif isinstance(other, self._holder):
             if not tz_compare(other.tz, self.values.tz):
