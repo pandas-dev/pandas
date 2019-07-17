@@ -48,7 +48,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import (
     is_valid_nat_for_dtype,
     isna,
-    is_valid_nat_for_dtype,
     na_value_for_dtype,
     notna,
     remove_na_arraylike,

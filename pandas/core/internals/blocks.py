@@ -2478,6 +2478,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         elif is_datetime64_dtype(other):
             # add the tz back
             other = self._holder(other, dtype=self.dtype)
+
         elif is_valid_nat_for_dtype(other, self.dtype):
             other = tslibs.iNaT
         elif is_integer(other) and other == tslibs.iNaT:
