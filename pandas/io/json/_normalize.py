@@ -32,7 +32,7 @@ def nested_to_record(
     sep: str = ".",
     level: int = 0,
     max_level: Optional[int] = None,
-    usecols: Optional[Callable] = None,
+    use_keys: Optional[Callable] = None,
 ):
     """
     A simplified json_normalize
@@ -58,7 +58,7 @@ def nested_to_record(
 
         .. versionadded:: 0.25.0
 
-    usecols : Callable, optional, default: None
+    use_keys : Callable, optional, default: None
         Returns true or false depending on whether to include or exclude a key
 
         .. versionadded:: 0.25.0
@@ -103,8 +103,8 @@ def nested_to_record(
             # only at level>1 do we rename the rest of the keys
 
             if (
-                usecols
-                and not usecols(k)
+                use_keys
+                and not use_keys(k)
                 or (not isinstance(v, dict))
                 or (max_level is not None and level >= max_level)
             ):
@@ -115,7 +115,7 @@ def nested_to_record(
             else:
                 v = new_d.pop(k)
                 new_d.update(
-                    nested_to_record(v, newkey, sep, level + 1, max_level, usecols)
+                    nested_to_record(v, newkey, sep, level + 1, max_level, use_keys)
                 )
         new_ds.append(new_d)
 
@@ -133,7 +133,7 @@ def json_normalize(
     errors: Optional[str] = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
-    usecols: Optional[Union[Callable, str, List]] = None,
+    use_keys: Optional[Union[Callable, str, List]] = None,
 ):
     """
     Normalize semi-structured JSON data into a flat table.
@@ -175,8 +175,8 @@ def json_normalize(
 
         .. versionadded:: 0.25.0
 
-    usecols : str or a list of str, callable, optional, default None
-        Includes or excludes a given key based on a given condition
+    use_keys : str or a list of str, callable, optional, default None
+        Includes or excludes a given key based on a given condition.
 
         .. versionadded:: 0.25.0
 
@@ -237,7 +237,7 @@ def json_normalize(
     ...          'fitness': {'height': 130, 'weight': 60}},
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
-    >>> json_normalize(data, usecols=lambda key: key in ["fitness"])
+    >>> json_normalize(data, use_keys=lambda key: key not in ["fitness"])
                 fitness                 id        name
     0   {'height': 130, 'weight': 60}  1.0   Cole Volk
     1   {'height': 130, 'weight': 60}  NaN    Mose Reg
@@ -292,14 +292,14 @@ def json_normalize(
     if isinstance(data, dict):
         data = [data]
 
-    if isinstance(usecols, list):
-        use_key = lambda x: x in usecols
-    elif isinstance(usecols, str):
-        use_key = lambda x: x == usecols
-    elif not usecols:
+    if isinstance(use_keys, list):
+        use_key = lambda x: x in use_keys
+    elif isinstance(use_keys, str):
+        use_key = lambda x: x == use_keys
+    elif not use_keys:
         use_key = lambda x: True
     else:
-        use_key = usecols
+        use_key = use_keys
 
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):
@@ -311,7 +311,7 @@ def json_normalize(
             # TODO: handle record value which are lists, at least error
             #       reasonably
             data = nested_to_record(
-                ds=data, sep=sep, max_level=max_level, usecols=use_key
+                ds=data, sep=sep, max_level=max_level, use_keys=use_key
             )
         return DataFrame(data)
     elif not isinstance(record_path, list):
@@ -348,7 +348,7 @@ def json_normalize(
                 recs = _pull_field(obj, path[0])
                 recs = [
                     nested_to_record(
-                        ds=r, sep=sep, max_level=max_level, usecols=use_key
+                        ds=r, sep=sep, max_level=max_level, use_keys=use_key
                     )
                     if isinstance(r, dict)
                     else r

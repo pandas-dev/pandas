@@ -181,10 +181,10 @@ The repr now looks like this:
     }]
     json_normalize(data, max_level=1)
 
-.. _whatsnew_0250.enhancements.json_normalize_with_usecols:
+.. _whatsnew_0250.enhancements.json_normalize_with_use_keys:
 
-Json normalize with usecols param support
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Json normalize with use_keys param support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`json_normalize` normalizes all keys of a given nested dictionary.
 The new ignore_key parameter provides more control over
@@ -201,7 +201,7 @@ The repr now looks like this:
                    'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
         'Image': {'a': 'b'}
     }]
-    json_normalize(data, usecols=lambda key: key not in ["Image"])
+    json_normalize(data, use_keys=lambda key: key not in ["Image"])
 
 .. _whatsnew_0250.enhancements.other:
 
