@@ -279,27 +279,29 @@ def _get_compression_method(
     return compression, compression_args
 
 
-def _infer_compression(filepath_or_buffer, compression):
+def _infer_compression(filepath_or_buffer, compression) -> Optional[str]:
     """
     Get the compression method for filepath_or_buffer. If compression='infer',
     the inferred compression method is returned. Otherwise, the input
     compression method is returned unchanged, unless it's invalid, in which
     case an error is raised.
+
     Parameters
     ----------
-    filepath_or_buffer :
-        a path (str) or buffer
+    filepath_or_buffer : str or file handle
+        File path or object.
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
         If 'infer' and `filepath_or_buffer` is path-like, then detect
         compression from the following extensions: '.gz', '.bz2', '.zip',
         or '.xz' (otherwise no compression).
+
     Returns
     -------
-    string or None :
-        compression method
+    string or None
+
     Raises
     ------
-    ValueError on invalid compression specified
+    ValueError on invalid compression specified.
     """
 
     # No compression has been explicitly specified
@@ -343,11 +345,12 @@ def _get_handle(
 
     Parameters
     ----------
-    path_or_buf :
-        a path (str) or buffer
+    path_or_buf : str or file handle
+        File path or object.
     mode : str
-        mode to open path_or_buf with
+        Mode to open path_or_buf with.
     encoding : str or None
+        Encoding to use.
     compression : str or dict, default None
         If string, specifies compression mode. If dict, value at key 'method'
         specifies compression mode. Compression mode must be one of {'infer',
@@ -367,12 +370,12 @@ def _get_handle(
         See parsers._parser_params for more information.
     is_text : boolean, default True
         whether file/buffer is in text format (csv, json, etc.), or in binary
-        mode (pickle, etc.)
+        mode (pickle, etc.).
 
     Returns
     -------
     f : file-like
-        A file-like object
+        A file-like object.
     handles : list of file-like objects
         A list of file-like object that were opened in this function.
     """
