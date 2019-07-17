@@ -400,7 +400,7 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
 .. _whatsnew_0250.api_breaking.groupby_categorical:
 
 Categorical dtypes are preserved during groupby
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously, columns that were categorical, but not the groupby key(s) would be converted to ``object`` dtype during groupby operations. Pandas now will preserve these dtypes. (:issue:`18502`)
 
@@ -739,6 +739,47 @@ consistent with NumPy and the rest of pandas (:issue:`21801`).
 
    cat.argsort()
    cat[cat.argsort()]
+
+.. _whatsnew_0250.api_breaking.list_of_dict:
+
+Column order is preserved when passing a list of dicts to DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Starting with Python 3.7 the key-order of ``dict`` is `guaranteed <https://mail.python.org/pipermail/python-dev/2017-December/151283.html>`_. In practice, this has been true since
+Python 3.6. The :class:`DataFrame` constructor now treats a list of dicts in the same way as
+it does a list of ``OrderedDict``, i.e. preserving the order of the dicts.
+This change applies only when pandas is running on Python>=3.6 (:issue:`27309`).
+
+.. ipython:: python
+
+   data = [
+       {'name': 'Joe', 'state': 'NY', 'age': 18},
+       {'name': 'Jane', 'state': 'KY', 'age': 19, 'hobby': 'Minecraft'},
+       {'name': 'Jean', 'state': 'OK', 'age': 20, 'finances': 'good'}
+   ]
+
+*Previous Behavior*:
+
+The columns were lexicographically sorted previously,
+
+.. code-block:: python
+
+   In [1]: pd.DataFrame(data)
+   Out[1]:
+      age finances      hobby  name state
+   0   18      NaN        NaN   Joe    NY
+   1   19      NaN  Minecraft  Jane    KY
+   2   20     good        NaN  Jean    OK
+
+*New Behavior*:
+
+The column order now matches the insertion-order of the keys in the ``dict``,
+considering all the records from top to bottom. As a consequence, the column
+order of the resulting DataFrame has changed compared to previous pandas verisons.
+
+.. ipython:: python
+
+   pd.DataFrame(data)
 
 .. _whatsnew_0250.api_breaking.deps:
 
