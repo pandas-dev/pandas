@@ -692,21 +692,10 @@ class TestRollingTS:
         tm.assert_series_equal(result, expected2)
 
     @pytest.mark.parametrize(
-        "series,expected,window",
+        "expected,window",
         [
+            ([([0], [0]), ([1], [1]), ([2], [2]), ([3], [3]), ([4], [4])], "1s"),
             (
-                Series(
-                    range(5),
-                    index=date_range(start="2016-01-01 09:30:00", periods=5, freq="s"),
-                ),
-                [([0], [0]), ([1], [1]), ([2], [2]), ([3], [3]), ([4], [4])],
-                "1s",
-            ),
-            (
-                Series(
-                    range(5),
-                    index=date_range(start="2016-01-01 09:30:00", periods=5, freq="s"),
-                ),
                 [
                     ([0], [0]),
                     ([0, 1], [0, 1]),
@@ -717,10 +706,6 @@ class TestRollingTS:
                 "2S",
             ),
             (
-                Series(
-                    range(5),
-                    index=date_range(start="2016-01-01 09:30:00", periods=5, freq="s"),
-                ),
                 [
                     ([0], [0]),
                     ([0, 1], [0, 1]),
@@ -732,7 +717,11 @@ class TestRollingTS:
             ),
         ],
     )
-    def test_iterator_series_rolling(self, series, expected, window):
+    def test_iterator_series_rolling(self, expected, window):
+        series = Series(
+            range(5), index=date_range(start="2016-01-01 09:30:00", periods=5, freq="s")
+        )
+
         expected = [
             Series(values, index=series.index[index]) for (values, index) in expected
         ]
@@ -741,22 +730,10 @@ class TestRollingTS:
             tm.assert_series_equal(actual, expected)
 
     @pytest.mark.parametrize(
-        "series,expected,window,minp",
+        "expected,window,minp",
         [
+            ([], "1s", 2),
             (
-                Series(
-                    range(5),
-                    index=date_range(start="2016-01-01 09:30:00", periods=5, freq="s"),
-                ),
-                [],
-                "1s",
-                2,
-            ),
-            (
-                Series(
-                    range(5),
-                    index=date_range(start="2016-01-01 09:30:00", periods=5, freq="s"),
-                ),
                 [
                     ([0, 1], [0, 1]),
                     ([1, 2], [1, 2]),
@@ -767,10 +744,6 @@ class TestRollingTS:
                 2,
             ),
             (
-                Series(
-                    range(5),
-                    index=date_range(start="2016-01-01 09:30:00", periods=5, freq="s"),
-                ),
                 [
                     ([0], [0]),
                     ([0, 1], [0, 1]),
@@ -783,7 +756,11 @@ class TestRollingTS:
             ),
         ],
     )
-    def test_iterator_series_rolling_min_periods(self, series, expected, window, minp):
+    def test_iterator_series_rolling_min_periods(self, expected, window, minp):
+        series = Series(
+            range(5), index=date_range(start="2016-01-01 09:30:00", periods=5, freq="s")
+        )
+
         expected = [
             Series(values, index=series.index[index]) for (values, index) in expected
         ]
