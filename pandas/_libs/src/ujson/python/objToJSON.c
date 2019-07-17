@@ -1723,7 +1723,6 @@ ISITERABLE:
             return;
         }
 
-	printf("getting values\n");
         pc->newObj = get_values(obj);
         if (pc->newObj) {
             PRINTMARK();
@@ -1734,7 +1733,6 @@ ISITERABLE:
             pc->iterGetValue = NpyArr_iterGetValue;
             pc->iterGetName = NpyArr_iterGetName;
         } else {
-	  printf("fudge\n");
             goto INVALID;
         }
 

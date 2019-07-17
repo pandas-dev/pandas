@@ -449,6 +449,7 @@ class TestPandasContainer:
         )
 
         # time series data
+        breakpoint()
         _check_all_orients(self.tsframe)
 
         # mixed data
