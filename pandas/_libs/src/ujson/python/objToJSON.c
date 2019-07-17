@@ -1134,15 +1134,8 @@ char *Series_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
  */
 void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
-    printf("call to dataframe iterbegin\n");
-
-    if (enc->outputFormat == RECORDS || enc->outputFormat == VALUES)
-      tc->type = JT_ARRAY;
-    else
-      tc->type = JT_OBJECT;
-
+    printf("DataFrame_iterBegin\n");
     // For SPLIT format the index tracks columns->index->data progression
-    // all other formats use this to index by column
     if (enc->outputFormat == SPLIT) {
         PRINTMARK();
         GET_TC(tc)->cStr = PyObject_Malloc(20 * sizeof(char));
@@ -1150,27 +1143,42 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
         if (!GET_TC(tc)->cStr) {
 	  PyErr_NoMemory();
         }
-    } else if (enc->outputFormat == COLUMNS) {
-      // Begin iteration over a dataframe's columns
-      printf("beginning frame iteration\n");
-      PyObject *tmp = PyObject_CallMethod(obj, "items", NULL);
+    } else if (enc->outputFormat == COLUMNS || enc->outputFormat == RECORDS) {
+      // Iterate over a frame's columns
+      PyObject *iter = PyObject_CallMethod(obj, "items", NULL);
       
-      if (tmp == 0) {
+      if (iter == 0) {
 	return;
       }
 
       PdFrameContext *frameCtxt = (PdFrameContext *)PyObject_Malloc(sizeof(PdFrameContext));
       if (!frameCtxt) {
-	Py_DECREF(tmp);
+	Py_DECREF(iter);
 	PyErr_NoMemory();
 	GET_TC(tc)->iterNext = NpyArr_iterNextNone;
 	return;
       }
       
-      printf("setting frame iteration context\n");
-      frameCtxt->iterable = tmp;
+      frameCtxt->iterable = iter;
       GET_TC(tc)->frame = frameCtxt;
-      printf("set frame iteration context!\n");
+    } else if (enc->outputFormat == VALUES) {
+      // Iterate over a frame's rows
+      PyObject *iter = PyObject_CallMethod(obj, "iterrows", NULL);
+      
+      if (iter == 0) {
+	return;
+      }
+
+      PdFrameContext *frameCtxt = (PdFrameContext *)PyObject_Malloc(sizeof(PdFrameContext));
+      if (!frameCtxt) {
+	Py_DECREF(iter);
+	PyErr_NoMemory();
+	GET_TC(tc)->iterNext = NpyArr_iterNextNone;
+	return;
+      }
+      
+      frameCtxt->iterable = iter;
+      GET_TC(tc)->frame = frameCtxt;
     }      
 
     PRINTMARK();
@@ -1181,9 +1189,10 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
  * -----------------------------
  * Provides instructions how to appropriately iterate the object.
  *
- * This is dependent on the orient as mentioned in DataFrame_iterBeing
+ * This is dependent on the orient as mentioned in DataFrame_iterBegin
  */
 int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
+  printf("DataFrame_iterNext\n");
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
 
     if (enc->outputFormat == SPLIT) {
@@ -1213,8 +1222,7 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
         PRINTMARK();
         return 0;
       }
-    } else if (enc->outputFormat == COLUMNS) {
-      printf("iterating over dataframe\n");
+    } else if (enc->outputFormat == COLUMNS || enc->outputFormat == RECORDS || enc->outputFormat == VALUES) {
       // free previous entry
       if (GET_TC(tc)->itemValue) {
         Py_DECREF(GET_TC(tc)->itemValue);
@@ -1239,15 +1247,13 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
  *
  */
 void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
+  printf("DataFrame_iterEnd\n");
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
-  printf("done dataframe iteration\n");  
   
-  if (enc->outputFormat == SPLIT) {
-    PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
-  } else if (enc->outputFormat == COLUMNS) {
+  if (enc->outputFormat == COLUMNS || enc->outputFormat == RECORDS || enc->outputFormat == VALUES)
     Py_DECREF(GET_TC(tc)->frame->iterable);
-  }
-    enc->outputFormat = enc->originalOutputFormat;
+  
+  enc->outputFormat = enc->originalOutputFormat;
   
 }
 
@@ -1258,11 +1264,11 @@ void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
  * the type context is JT_OBJECT or JT_ARRAY.
  */
 JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
-  printf("getting dataframe itervalue\n");
+  printf("DataFrame_iterGetValue\n");
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;  
   if (enc->outputFormat == SPLIT) {  
     return GET_TC(tc)->itemValue;
-  } else if (enc->outputFormat == COLUMNS) {
+  } else if (enc->outputFormat == COLUMNS || enc->outputFormat == RECORDS || enc->outputFormat == VALUES) {
     // Borrowed ref
     return PyTuple_GetItem(GET_TC(tc)->itemValue, 1);
   }
@@ -1275,15 +1281,14 @@ JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
  * the type context is JT_OBJECT, which is dictated by the orient.
  */
 char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
+  printf("DataFrame_iterGetName\n");
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
-  if (enc->outputFormat == SPLIT) {  
-    *outLen = strlen(GET_TC(tc)->cStr);
-    return GET_TC(tc)->cStr;
-  } else if (enc->outputFormat == COLUMNS) {
-    char *result = PyUnicode_AsUTF8(PyTuple_GetItem(GET_TC(tc)->itemValue, 0));
-    *outLen = strlen(result);
-    return result;    
+  if (enc->outputFormat == COLUMNS || enc->outputFormat == RECORDS) {
+    GET_TC(tc)->cStr = PyUnicode_AsUTF8(PyTuple_GetItem(GET_TC(tc)->itemValue, 0));
   }
+  *outLen = strlen(GET_TC(tc)->cStr);
+  printf("%s\n", GET_TC(tc)->cStr);
+  return GET_TC(tc)->cStr;  
 }
 
 //=============================================================================
@@ -1787,8 +1792,11 @@ ISITERABLE:
         pc->iterGetName = NpyArr_iterGetName;
         return;
     } else if (PyObject_TypeCheck(obj, cls_dataframe)) {
-      printf("got a frame\n");
-      tc->type = JT_OBJECT;
+      if (enc->outputFormat == RECORDS || enc->outputFormat == VALUES)
+	tc->type = JT_ARRAY;
+      else
+	tc->type = JT_OBJECT;
+      
         pc->iterBegin = DataFrame_iterBegin;
         pc->iterEnd = DataFrame_iterEnd;
         pc->iterNext = DataFrame_iterNext;
