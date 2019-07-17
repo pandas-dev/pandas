@@ -1825,6 +1825,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values = values.reshape((1,) + values.shape)
         return values
 
+    # TODO: should this reshape?
     def to_dense(self):
         return np.asarray(self.values)
 
@@ -2402,6 +2403,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             values = values.reshape(1, -1)
         return values
 
+    # TODO: should this reshape?
     def to_dense(self):
         # we request M8[ns] dtype here, even though it discards tzinfo,
         # as lots of code (e.g. anything using values_from_object)
