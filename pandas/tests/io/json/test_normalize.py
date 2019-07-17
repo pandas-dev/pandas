@@ -455,10 +455,10 @@ class TestJSONNormalize:
         expected_df = DataFrame(data=expected, columns=result.columns.values)
         tm.assert_equal(expected_df, result)
 
-    def test_ignore_keys(self, nested_input_data):
+    def test_usecols(self, nested_input_data):
         # GH 27241 ignore specific keys from normalization
         result = json_normalize(
-            nested_input_data, use_key=lambda key: key not in ["Image"]
+            nested_input_data, usecols=lambda key: key not in ["Image"]
         )
         expected = [
             {
@@ -472,14 +472,46 @@ class TestJSONNormalize:
         expected_df = DataFrame(data=expected)
         tm.assert_equal(result, expected_df)
 
-    def test_ignore_keys_with_meta(self, nested_input_data):
+    def test_usecols_with_list(self, nested_input_data):
+        # GH 27241 ignore specific keys from normalization
+        result = json_normalize(nested_input_data, usecols=["Image"])
+        expected = [
+            {
+                "CreatedBy": {"Name": "User001"},
+                "Lookup": {
+                    "TextField": "Some text",
+                    "UserField": {"Id": "ID001", "Name": "Name001"},
+                },
+                "Image.a": "b",
+            }
+        ]
+        expected_df = DataFrame(data=expected)
+        tm.assert_equal(result, expected_df)
+
+    def test_usecols_with_string(self, nested_input_data):
+        # GH 27241 ignore specific keys from normalization
+        result = json_normalize(nested_input_data, usecols="Image")
+        expected = [
+            {
+                "CreatedBy": {"Name": "User001"},
+                "Lookup": {
+                    "TextField": "Some text",
+                    "UserField": {"Id": "ID001", "Name": "Name001"},
+                },
+                "Image.a": "b",
+            }
+        ]
+        expected_df = DataFrame(data=expected)
+        tm.assert_equal(result, expected_df)
+
+    def test_usecols_with_meta(self, nested_input_data):
         # GH 27241 ignore specific keys from normalization
         nested_input_data[0]["Tags"] = ["a", "b", "c"]
         result = json_normalize(
             data=nested_input_data,
             record_path="Tags",
             meta=["Image"],
-            use_key=lambda key: key not in ["Image"],
+            usecols=lambda key: key not in ["Image"],
         )
         expected = json_normalize(
             data=nested_input_data, record_path="Tags", meta=["Image"]
@@ -721,10 +753,10 @@ class TestNestedToRecord:
         output = nested_to_record(input_data, max_level=max_level)
         assert output == expected
 
-    def test_use_keys(self, nested_input_data):
+    def test_usecols(self, nested_input_data):
         # GH 27241 ignore specific keys from flattening
-        use_key = lambda key: key not in ["Image"]
-        output = nested_to_record(nested_input_data, use_key=use_key)
+        usecols = lambda key: key not in ["Image"]
+        output = nested_to_record(nested_input_data, usecols=usecols)
         expected = [
             {
                 "CreatedBy.Name": "User001",
