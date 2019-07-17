@@ -23,7 +23,6 @@ from urllib.parse import (  # noqa
 from urllib.request import pathname2url, urlopen
 import zipfile
 
-from pandas._typing import FilePathOrBuffer
 from pandas.errors import (  # noqa
     AbstractMethodError,
     DtypeWarning,
@@ -33,6 +32,8 @@ from pandas.errors import (  # noqa
 )
 
 from pandas.core.dtypes.common import is_file_like
+
+from pandas._typing import FilePathOrBuffer
 
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
