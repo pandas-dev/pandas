@@ -288,7 +288,7 @@ complex changes to the documentation as well.
 Some other important things to know about the docs:
 
 * The *pandas* documentation consists of two parts: the docstrings in the code
-  itself and the docs in this folder ``pandas/doc/``.
+  itself and the docs in this folder ``doc/``.
 
   The docstrings provide a clear explanation of the usage of the individual
   functions, while the documentation in this folder consists of tutorial-like
@@ -404,11 +404,11 @@ Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 So how do you build the docs? Navigate to your local
-``pandas/doc/`` directory in the console and run::
+``doc/`` directory in the console and run::
 
     python make.py html
 
-Then you can find the HTML output in the folder ``pandas/doc/build/html/``.
+Then you can find the HTML output in the folder ``doc/build/html/``.
 
 The first time you build the docs, it will take quite a while because it has to run
 all the code examples and build all the generated docstring pages. In subsequent
@@ -448,7 +448,7 @@ You can also specify to use multiple cores to speed up the documentation build::
 Open the following file in a web browser to see the full documentation you
 just built::
 
-    pandas/docs/build/html/index.html
+    doc/build/html/index.html
 
 And you'll have the satisfaction of seeing your new and improved documentation!
 
