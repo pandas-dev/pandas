@@ -1215,7 +1215,7 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     // free previous entry
     if (GET_TC(tc)->itemValue) {
       Py_DECREF(GET_TC(tc)->itemValue);
-    }    
+    }
 
     // Check the original output format as this may have been modified for
     // underlying series'
@@ -1242,18 +1242,23 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
       }
 
       GET_TC(tc)->index++;      
-    } else {
+    } else {    
       PyObject *tmp = PyIter_Next(GET_TC(tc)->frame->iterable);
       if (tmp == 0)
 	return 0;
 
-      GET_TC(tc)->itemValue = tmp;
+      GET_TC(tc)->itemValue = PySequence_GetItem(tmp, 1);
 
-      // RECORDS orient is essentially creating an array of INDEX
-      // oriented Series objects so set that here
-      // state should be reset in DataFrame_iterEnd
-      if (enc->originalOutputFormat == RECORDS)
-	enc->outputFormat = INDEX;
+      if (enc->originalOutputFormat != VALUES) {
+	// TODO: align extension usage of itemValue and cStr
+	if (GET_TC(tc)->itemValue) {
+	  Py_DECREF(GET_TC(tc)->itemValue);
+	}
+
+	GET_TC(tc)->itemValue = PySequence_GetItem(tmp, 0);
+      }
+
+      Py_DECREF(tmp);
     }
 
     PRINTMARK();
@@ -1285,13 +1290,7 @@ void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
  */
 JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
   printf("DataFrame_iterGetValue\n");
-  PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;  
-  if (enc->originalOutputFormat == SPLIT) {  
-    return GET_TC(tc)->itemValue;
-  } else {
-    // Borrowed ref
-    return PyTuple_GetItem(GET_TC(tc)->itemValue, 1);
-  }
+  return GET_TC(tc)->itemValue;
 }
 
 /* 
@@ -1302,13 +1301,14 @@ JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
  */
 char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
   printf("DataFrame_iterGetName\n");
-  PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
-  if (enc->originalOutputFormat == COLUMNS || enc->originalOutputFormat == RECORDS || enc->originalOutputFormat == INDEX) {
-    GET_TC(tc)->cStr = PyUnicode_AsUTF8(PyTuple_GetItem(GET_TC(tc)->itemValue, 0));
+  PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;  
+  if (enc->originalOutputFormat == SPLIT) {
+    *outLen = strlen(GET_TC(tc)->cStr);
+    return GET_TC(tc)->cStr;
+  } else if (enc->originalOutputFormat != VALUES) {
+    *outLen = PyBytes_GET_SIZE(GET_TC(tc)->itemName);
+    return PyBytes_AS_STRING(GET_TC(tc)->itemName);    
   }
-  *outLen = strlen(GET_TC(tc)->cStr);
-  printf("%s\n", GET_TC(tc)->cStr);
-  return GET_TC(tc)->cStr;  
 }
 
 //=============================================================================
