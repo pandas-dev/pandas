@@ -46,6 +46,7 @@ from pandas.core.dtypes.generic import (
     ABCSparseSeries,
 )
 from pandas.core.dtypes.missing import (
+    is_valid_nat_for_dtype,
     isna,
     is_valid_nat_for_dtype,
     na_value_for_dtype,
@@ -1239,6 +1240,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _set_with_engine(self, key, value):
         values = self._values
+        if is_extension_array_dtype(values.dtype):
+            # The cython indexing engine does not support ExtensionArrays.
+            values[self.index.get_loc(key)] = value
+            return
         try:
             self.index._engine.set_value(values, key, value)
             return
