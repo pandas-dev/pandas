@@ -6038,6 +6038,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         converted : same as input object
         """
+        validate_bool_kwarg(datetime, "datetime")
+        validate_bool_kwarg(numeric, "numeric")
+        validate_bool_kwarg(timedelta, "timedelta")
+        validate_bool_kwarg(coerce, "coerce")
+        validate_bool_kwarg(copy, "copy")
         return self._constructor(
             self._data.convert(
                 datetime=datetime,

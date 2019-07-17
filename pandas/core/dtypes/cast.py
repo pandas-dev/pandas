@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
+from pandas.util._validators import validate_bool_kwarg
 
 from .common import (
     _INT64_DTYPE,
@@ -708,9 +709,7 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
     elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
 
         if not np.isfinite(arr).all():
-            raise ValueError(
-                "Cannot convert non-finite values (NA or inf) to " "integer"
-            )
+            raise ValueError("Cannot convert non-finite values (NA or inf) to integer")
 
     elif is_object_dtype(arr):
 
@@ -731,9 +730,7 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
             return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
 
     if dtype.name in ("datetime64", "timedelta64"):
-        msg = (
-            "The '{dtype}' dtype has no unit. " "Please pass in '{dtype}[ns]' instead."
-        )
+        msg = "The '{dtype}' dtype has no unit. Please pass in '{dtype}[ns]' instead."
         raise ValueError(msg.format(dtype=dtype.name))
 
     if copy or is_object_dtype(arr) or is_object_dtype(dtype):
@@ -744,46 +741,25 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
 
 
 def maybe_convert_objects(
-    values, convert_dates=True, convert_numeric=True, convert_timedeltas=True, copy=True
+    values: np.ndarray,
+    convert_dates: bool = True,
+    convert_numeric: bool = True,
+    convert_timedeltas: bool = True,
+    copy: bool = True,
 ):
     """ if we have an object dtype, try to coerce dates and/or numbers """
-
-    # if we have passed in a list or scalar
-    if isinstance(values, (list, tuple)):
-        values = np.array(values, dtype=np.object_)
-    if not hasattr(values, "dtype"):
-        values = np.array([values], dtype=np.object_)
+    validate_bool_kwarg(convert_dates, "convert_dates")
+    validate_bool_kwarg(convert_numeric, "convert_numeric")
+    validate_bool_kwarg(convert_timedeltas, "convert_timedeltas")
+    validate_bool_kwarg(copy, "copy")
 
     # convert dates
     if convert_dates and values.dtype == np.object_:
-
-        # we take an aggressive stance and convert to datetime64[ns]
-        if convert_dates == "coerce":
-            new_values = maybe_cast_to_datetime(values, "M8[ns]", errors="coerce")
-
-            # if we are all nans then leave me alone
-            if not isna(new_values).all():
-                values = new_values
-
-        else:
-            values = lib.maybe_convert_objects(values, convert_datetime=convert_dates)
+        values = lib.maybe_convert_objects(values, convert_datetime=True)
 
     # convert timedeltas
     if convert_timedeltas and values.dtype == np.object_:
-
-        if convert_timedeltas == "coerce":
-            from pandas.core.tools.timedeltas import to_timedelta
-
-            new_values = to_timedelta(values, errors="coerce")
-
-            # if we are all nans then leave me alone
-            if not isna(new_values).all():
-                values = new_values
-
-        else:
-            values = lib.maybe_convert_objects(
-                values, convert_timedelta=convert_timedeltas
-            )
+        values = lib.maybe_convert_objects(values, convert_timedelta=True)
 
     # convert to numeric
     if values.dtype == np.object_:
@@ -809,27 +785,32 @@ def maybe_convert_objects(
 
 
 def soft_convert_objects(
-    values, datetime=True, numeric=True, timedelta=True, coerce=False, copy=True
+    values: np.ndarray,
+    datetime: bool = True,
+    numeric: bool = True,
+    timedelta: bool = True,
+    coerce: bool = False,
+    copy: bool = True,
 ):
     """ if we have an object dtype, try to coerce dates and/or numbers """
 
+    validate_bool_kwarg(datetime, "datetime")
+    validate_bool_kwarg(numeric, "numeric")
+    validate_bool_kwarg(timedelta, "timedelta")
+    validate_bool_kwarg(coerce, "coerce")
+    validate_bool_kwarg(copy, "copy")
+    assert not coerce  # we're only called from one place in internals.blocks
+
     conversion_count = sum((datetime, numeric, timedelta))
     if conversion_count == 0:
-        raise ValueError(
-            "At least one of datetime, numeric or timedelta must " "be True."
-        )
+        raise ValueError("At least one of datetime, numeric or timedelta must be True.")
     elif conversion_count > 1 and coerce:
         raise ValueError(
             "Only one of 'datetime', 'numeric' or "
             "'timedelta' can be True when when coerce=True."
         )
 
-    if isinstance(values, (list, tuple)):
-        # List or scalar
-        values = np.array(values, dtype=np.object_)
-    elif not hasattr(values, "dtype"):
-        values = np.array([values], dtype=np.object_)
-    elif not is_object_dtype(values.dtype):
+    if not is_object_dtype(values.dtype):
         # If not object, do not attempt conversion
         values = values.copy() if copy else values
         return values
@@ -855,13 +836,13 @@ def soft_convert_objects(
         # GH 20380, when datetime is beyond year 2262, hence outside
         # bound of nanosecond-resolution 64-bit integers.
         try:
-            values = lib.maybe_convert_objects(values, convert_datetime=datetime)
+            values = lib.maybe_convert_objects(values, convert_datetime=True)
         except OutOfBoundsDatetime:
             pass
 
     if timedelta and is_object_dtype(values.dtype):
         # Object check to ensure only run if previous did not convert
-        values = lib.maybe_convert_objects(values, convert_timedelta=timedelta)
+        values = lib.maybe_convert_objects(values, convert_timedelta=True)
 
     if numeric and is_object_dtype(values.dtype):
         try:
@@ -1380,7 +1361,7 @@ def maybe_cast_to_integer_array(arr, dtype, copy=False):
     arr = np.asarray(arr)
 
     if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
-        raise OverflowError("Trying to coerce negative values " "to unsigned integers")
+        raise OverflowError("Trying to coerce negative values to unsigned integers")
 
     if is_integer_dtype(dtype) and (is_float_dtype(arr) or is_object_dtype(arr)):
         raise ValueError("Trying to coerce float values to integers")
