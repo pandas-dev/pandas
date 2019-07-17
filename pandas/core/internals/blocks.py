@@ -2633,8 +2633,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     def _try_coerce_args(self, other):
         """
-        Coerce values and other to int64, with null values converted to
-        iNaT. values is always ndarray-like, other may not be
+        Coerce values and other to datetime64[ns], with null values
+        converted to datetime64("NaT", "ns").
 
         Parameters
         ----------
