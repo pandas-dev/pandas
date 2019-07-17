@@ -1134,6 +1134,8 @@ char *Series_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
 void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
     printf("DataFrame_iterBegin\n");
+    enc->originalOutputFormat = enc->outputFormat;
+    
     // For SPLIT format the index tracks columns->index->data progression
     if (enc->outputFormat == SPLIT) {
         PRINTMARK();
@@ -1149,30 +1151,14 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 	GET_TC(tc)->index = 0;
 
 	return;  // always return if modifying outputFormat
-    } else if (enc->outputFormat == COLUMNS) {
-      // Iterate over a frame's columns
-      PyObject *iter = PyObject_CallMethod(obj, "items", NULL);
-      
-      if (iter == 0) {
-	return;
-      }
+    } else {
+      char *method;
+      if (enc->outputFormat == COLUMNS)
+	method = "items";
+      else
+	method = "iterrows";
 
-      PdFrameContext *frameCtxt = (PdFrameContext *)PyObject_Malloc(sizeof(PdFrameContext));
-      if (!frameCtxt) {
-	Py_DECREF(iter);
-	PyErr_NoMemory();
-	GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-	return;
-      }
-      
-      frameCtxt->iterable = iter;
-      GET_TC(tc)->frame = frameCtxt;
-
-      return;
-    } else if (enc->outputFormat == RECORDS || enc->outputFormat == VALUES || enc->outputFormat == INDEX) {
-      // Iterate over a frame's rows
-      // Must be freed in DataFrame_iterEnd
-      PyObject *iter = PyObject_CallMethod(obj, "iterrows", NULL);
+      PyObject *iter = PyObject_CallMethod(obj, method, NULL);
       
       if (iter == 0) {
 	return;
@@ -1192,8 +1178,9 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
       // The RECORDS format essentially generates a JSON array of Series in the
       // INDEX format, so set that context during serialization
       
-      if (enc->outputFormat == RECORDS)
+      if (enc->outputFormat == RECORDS) {
 	enc->outputFormat = INDEX;
+      }
 
       return;
     }      
@@ -1222,7 +1209,6 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     if (enc->originalOutputFormat == SPLIT) {
       Py_ssize_t index;
       index = GET_TC(tc)->index;
-      printf("the index is %d\n", index);
       if (index == 0) {
         memcpy(GET_TC(tc)->cStr, "columns", sizeof(char) * 8);
 	PRINTMARK();
@@ -1242,20 +1228,22 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
       }
 
       GET_TC(tc)->index++;      
-    } else {    
+    } else {
+      if (enc->originalOutputFormat == COLUMNS || enc->originalOutputFormat == INDEX) {
+	// TODO: align extension usage of itemName and cStr
+	if (GET_TC(tc)->itemName) {
+	  Py_DECREF(GET_TC(tc)->itemName);
+	}
+      }
+      
       PyObject *tmp = PyIter_Next(GET_TC(tc)->frame->iterable);
       if (tmp == 0)
 	return 0;
 
       GET_TC(tc)->itemValue = PySequence_GetItem(tmp, 1);
 
-      if (enc->originalOutputFormat != VALUES) {
-	// TODO: align extension usage of itemValue and cStr
-	if (GET_TC(tc)->itemValue) {
-	  Py_DECREF(GET_TC(tc)->itemValue);
-	}
-
-	GET_TC(tc)->itemValue = PySequence_GetItem(tmp, 0);
+      if (enc->originalOutputFormat == COLUMNS || enc->originalOutputFormat == INDEX) {
+	GET_TC(tc)->itemName = PySequence_GetItem(tmp, 0);
       }
 
       Py_DECREF(tmp);
@@ -1275,8 +1263,10 @@ void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
   printf("DataFrame_iterEnd\n");
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   
-  if (enc->originalOutputFormat != SPLIT)
+  if (enc->originalOutputFormat != SPLIT) {
     Py_DECREF(GET_TC(tc)->frame->iterable);
+    Py_DECREF(GET_TC(tc)->frame);
+  }
   
   enc->outputFormat = enc->originalOutputFormat;
   
@@ -1305,9 +1295,10 @@ char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
   if (enc->originalOutputFormat == SPLIT) {
     *outLen = strlen(GET_TC(tc)->cStr);
     return GET_TC(tc)->cStr;
-  } else if (enc->originalOutputFormat != VALUES) {
-    *outLen = PyBytes_GET_SIZE(GET_TC(tc)->itemName);
-    return PyBytes_AS_STRING(GET_TC(tc)->itemName);    
+  } else if (enc->originalOutputFormat == COLUMNS || enc->originalOutputFormat == INDEX) {
+    const char * cStr = PyUnicode_AsUTF8(GET_TC(tc)->itemName);
+    *outLen = strlen(cStr);
+    return cStr;
   }
 }
 
