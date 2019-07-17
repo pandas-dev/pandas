@@ -213,7 +213,7 @@ class TestRolling(Base):
             ([], 3, 4),
         ],
     )
-    def test_iterator_series_min_periods_nan(self, expected, window, minp):
+    def test_iterator_dataframe_min_periods_nan(self, expected, window, minp):
         dataframe = DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]})
 
         expected = [DataFrame(values, index=index) for (values, index) in expected]
