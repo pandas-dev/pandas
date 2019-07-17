@@ -980,6 +980,7 @@ Performance improvements
 - Improved performance by removing the need for a garbage collect when checking for ``SettingWithCopyWarning`` (:issue:`27031`)
 - For :meth:`to_datetime` changed default value of cache parameter to ``True`` (:issue:`26043`)
 - Improved performance of :class:`DatetimeIndex` and :class:`PeriodIndex` slicing given non-unique, monotonic data (:issue:`27136`).
+- Improved performance of :meth:`pd.read_json` for index-oriented data. (:issue:`26773`)
 
 .. _whatsnew_0250.bug_fixes:
 
