@@ -31,5 +31,9 @@ FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
 # Type for index and columns of DataFrame
 Axes = Iterable[Union[ABCIndexClass, Iterable[str]]]
+
+# Type for data of DataFrame
+Data = TypeVar("Data", ABCDataFrame, dict, np.ndarray)
+
 FrameOrSeries = TypeVar("FrameOrSeries", ABCSeries, ABCDataFrame)
 Scalar = Union[str, int, float]

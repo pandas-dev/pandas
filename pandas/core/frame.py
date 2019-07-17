@@ -80,7 +80,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import Axes, Dtype
+from pandas._typing import Axes, Data, Dtype
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -391,7 +391,7 @@ class DataFrame(NDFrame):
     # Constructors
 
     def __init__(self,
-                 data=None,
+                 data: Optional[Data] = None,
                  index: Optional[Axes] = None,
                  columns: Optional[Axes] = None,
                  dtype: Optional[Dtype] = None,
