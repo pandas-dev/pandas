@@ -2094,7 +2094,7 @@ class MultiIndex(Index):
         return MultiIndex(
             levels=self.levels,
             codes=[
-                level_codes.view(np.ndarray).repeat(repeats)
+                level_codes.view(np.ndarray).astype(np.intp).repeat(repeats)
                 for level_codes in self.codes
             ],
             names=self.names,
