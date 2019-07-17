@@ -139,7 +139,7 @@ inline TypeContext* GET_TC(JSONTypeContext * __ptrtc) {
 
 enum PANDAS_FORMAT { SPLIT, RECORDS, INDEX, COLUMNS, VALUES };
 
-#define PRINTMARK() printf("%d\n", __LINE__)
+#define PRINTMARK()
 
 void *initObjToJSON(void)
 {
@@ -1138,10 +1138,17 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
     if (enc->outputFormat == SPLIT) {
         PRINTMARK();
         GET_TC(tc)->cStr = PyObject_Malloc(20 * sizeof(char));
+
+	// TODO: changing the outputFormat was in place when this method only dealt with
+	// the SPLIT orient. Now that this handles quite a few we should probably use
+	// another method for changing the outputFormat of underlying objects (maybe tc->prv)
         enc->outputFormat = VALUES;  // for contained series & index
         if (!GET_TC(tc)->cStr) {
 	  PyErr_NoMemory();
         }
+	GET_TC(tc)->index = 0;
+
+	return;  // always return if modifying outputFormat
     } else if (enc->outputFormat == COLUMNS) {
       // Iterate over a frame's columns
       PyObject *iter = PyObject_CallMethod(obj, "items", NULL);
@@ -1160,8 +1167,11 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
       
       frameCtxt->iterable = iter;
       GET_TC(tc)->frame = frameCtxt;
+
+      return;
     } else if (enc->outputFormat == RECORDS || enc->outputFormat == VALUES || enc->outputFormat == INDEX) {
       // Iterate over a frame's rows
+      // Must be freed in DataFrame_iterEnd
       PyObject *iter = PyObject_CallMethod(obj, "iterrows", NULL);
       
       if (iter == 0) {
@@ -1181,10 +1191,11 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 
       // The RECORDS format essentially generates a JSON array of Series in the
       // INDEX format, so set that context during serialization
-      /*
+      
       if (enc->outputFormat == RECORDS)
 	enc->outputFormat = INDEX;
-      */
+
+      return;
     }      
 
     PRINTMARK();
@@ -1201,17 +1212,20 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
   printf("DataFrame_iterNext\n");
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
 
-    if (enc->outputFormat == SPLIT) {
-      Py_ssize_t index;
-      
-      if (!GET_TC(tc)->cStr) {
-        return 0;
-      }
+    // free previous entry
+    if (GET_TC(tc)->itemValue) {
+      Py_DECREF(GET_TC(tc)->itemValue);
+    }    
 
+    // Check the original output format as this may have been modified for
+    // underlying series'
+    if (enc->originalOutputFormat == SPLIT) {
+      Py_ssize_t index;
       index = GET_TC(tc)->index;
-      Py_XDECREF(GET_TC(tc)->itemValue);
+      printf("the index is %d\n", index);
       if (index == 0) {
         memcpy(GET_TC(tc)->cStr, "columns", sizeof(char) * 8);
+	PRINTMARK();
         GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "columns");
       } else if (index == 1) {
         memcpy(GET_TC(tc)->cStr, "index", sizeof(char) * 6);
@@ -1222,19 +1236,13 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
 	if (!GET_TC(tc)->itemValue) {
 	  return 0;
 	}
-	
-	GET_TC(tc)->index++;
       } else {
         PRINTMARK();
         return 0;
       }
+
+      GET_TC(tc)->index++;      
     } else {
-      // free previous entry
-      if (GET_TC(tc)->itemValue) {
-        Py_DECREF(GET_TC(tc)->itemValue);
-        GET_TC(tc)->itemValue = NULL;
-      }
-      
       PyObject *tmp = PyIter_Next(GET_TC(tc)->frame->iterable);
       if (tmp == 0)
 	return 0;
@@ -1244,7 +1252,7 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
       // RECORDS orient is essentially creating an array of INDEX
       // oriented Series objects so set that here
       // state should be reset in DataFrame_iterEnd
-      if (enc->outputFormat == RECORDS)
+      if (enc->originalOutputFormat == RECORDS)
 	enc->outputFormat = INDEX;
     }
 
@@ -1262,7 +1270,7 @@ void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
   printf("DataFrame_iterEnd\n");
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   
-  if (enc->outputFormat != SPLIT)
+  if (enc->originalOutputFormat != SPLIT)
     Py_DECREF(GET_TC(tc)->frame->iterable);
   
   enc->outputFormat = enc->originalOutputFormat;
@@ -1278,7 +1286,7 @@ void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
 JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
   printf("DataFrame_iterGetValue\n");
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;  
-  if (enc->outputFormat == SPLIT) {  
+  if (enc->originalOutputFormat == SPLIT) {  
     return GET_TC(tc)->itemValue;
   } else {
     // Borrowed ref
@@ -1295,7 +1303,7 @@ JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
 char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
   printf("DataFrame_iterGetName\n");
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
-  if (enc->outputFormat == COLUMNS || enc->outputFormat == RECORDS || enc->outputFormat == INDEX) {
+  if (enc->originalOutputFormat == COLUMNS || enc->originalOutputFormat == RECORDS || enc->originalOutputFormat == INDEX) {
     GET_TC(tc)->cStr = PyUnicode_AsUTF8(PyTuple_GetItem(GET_TC(tc)->itemValue, 0));
   }
   *outLen = strlen(GET_TC(tc)->cStr);
