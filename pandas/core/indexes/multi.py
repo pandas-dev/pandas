@@ -2091,6 +2091,7 @@ class MultiIndex(Index):
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
         nv.validate_repeat(tuple(), dict(axis=axis))
+        repeats = ensure_platform_int(repeats)
         return MultiIndex(
             levels=self.levels,
             codes=[
