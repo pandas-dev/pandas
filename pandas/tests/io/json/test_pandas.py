@@ -416,6 +416,7 @@ class TestPandasContainer:
         _check_all_orients(self.intframe, dtype=self.intframe.values.dtype)
         _check_all_orients(self.intframe, dtype=False)
 
+        breakpoint()
         # big one
         # index and columns are strings as all unserialised JSON object keys
         # are assumed to be strings

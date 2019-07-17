@@ -1133,7 +1133,6 @@ char *Series_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
  */
 void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
-    printf("DataFrame_iterBegin\n");
     enc->originalOutputFormat = enc->outputFormat;
     
     // For SPLIT format the index tracks columns->index->data progression
@@ -1196,7 +1195,6 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
  * This is dependent on the orient as mentioned in DataFrame_iterBegin
  */
 int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
-  printf("DataFrame_iterNext\n");
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
 
     // free previous entry
@@ -1260,7 +1258,6 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
  *
  */
 void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
-  printf("DataFrame_iterEnd\n");
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   
   if (enc->originalOutputFormat != SPLIT) {
@@ -1279,7 +1276,6 @@ void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
  * the type context is JT_OBJECT or JT_ARRAY.
  */
 JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
-  printf("DataFrame_iterGetValue\n");
   return GET_TC(tc)->itemValue;
 }
 
@@ -1290,7 +1286,6 @@ JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
  * the type context is JT_OBJECT, which is dictated by the orient.
  */
 char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
-  printf("DataFrame_iterGetName\n");
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;  
   if (enc->originalOutputFormat == SPLIT) {
     *outLen = strlen(GET_TC(tc)->cStr);
