@@ -15,7 +15,7 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Set, Type, Union
+from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -6237,7 +6237,7 @@ class DataFrame(NDFrame):
         else:
             return stack(self, level, dropna=dropna)
 
-    def explode(self, column: str) -> "DataFrame":
+    def explode(self, column: Union[str, Tuple]) -> "DataFrame":
         """
         Transform each element of a list-like to a row, replicating the
         index values.
@@ -6246,7 +6246,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        column : str
+        column : str or tuple
 
         Returns
         -------
@@ -6294,7 +6294,7 @@ class DataFrame(NDFrame):
         3    4  1
         """
 
-        if not is_scalar(column):
+        if not (is_scalar(column) or isinstance(column, tuple)):
             raise ValueError("column must be a scalar")
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")

@@ -33,7 +33,7 @@ def test_basic():
     tm.assert_frame_equal(result, expected)
 
 
-def test_multi_index():
+def test_multi_index_rows():
     df = pd.DataFrame(
         {"A": np.array([[0, 1, 2], np.nan, [], (3, 4)], dtype=object), "B": 1},
         index=pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1), ("b", 2)]),
@@ -58,6 +58,25 @@ def test_multi_index():
                 dtype=object,
             ),
             "B": 1,
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_multi_index_columns():
+    df = pd.DataFrame(
+        {("A", 1): np.array([[0, 1, 2], np.nan, [], (3, 4)], dtype=object), ("A", 2): 1}
+    )
+
+    result = df.explode(("A", 1))
+    expected = pd.DataFrame(
+        {
+            ("A", 1): pd.Series(
+                [0, 1, 2, np.nan, np.nan, 3, 4],
+                index=pd.Index([0, 0, 0, 1, 2, 3, 3]),
+                dtype=object,
+            ),
+            ("A", 2): 1,
         }
     )
     tm.assert_frame_equal(result, expected)
