@@ -719,7 +719,7 @@ class Block(PandasObject):
         -------
         ndarray or ExtensionArray
         """
-        return values
+        return _block_shape(values, ndim=self.ndim)
 
     def _try_coerce_args(self, other):
         """ provide coercion to our input arguments """
@@ -1527,7 +1527,7 @@ class Block(PandasObject):
             # We need to operate on i8 values for datetimetz
             # but `Block.get_values()` returns an ndarray of objects
             # right now. We need an API for "values to do numeric-like ops on"
-            values = self.values.asi8
+            values = self.values.view("M8[ns]")
 
             # TODO: NonConsolidatableMixin shape
             # Usual shape inconsistencies for ExtensionBlocks
@@ -1898,12 +1898,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         result could also be an EA Array itself, in which case it
         is already a 1-D array
         """
-        try:
-
-            result = self._holder._from_sequence(result.ravel(), dtype=dtype)
-        except Exception:
-            pass
-
         return result
 
     def formatting_values(self):
@@ -2294,12 +2288,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray):
-            if result.dtype.kind in ["i", "f"]:
-                result = result.astype("M8[ns]")
-
-        elif isinstance(result, (np.integer, np.float, np.datetime64)):
-            result = self._box_func(result)
+        if isinstance(result, np.ndarray) and result.dtype.kind == "i":
+            # needed for _interpolate_with_ffill
+            result = result.view("M8[ns]")
         return result
 
     @property
@@ -2361,6 +2352,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     is_extension = True
 
     _can_hold_element = DatetimeBlock._can_hold_element
+    fill_value = np.datetime64("NaT", "ns")
 
     @property
     def _holder(self):
@@ -2442,9 +2434,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             return self.values[loc]
         return self.values[slicer]
 
-    def _coerce_values(self, values):
-        return _block_shape(values, ndim=self.ndim)
-
     def _try_coerce_args(self, other):
         """
         localize and return i8 for the values
@@ -2487,22 +2476,22 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
         if isinstance(result, np.ndarray):
-            if result.dtype.kind in ["i", "f"]:
-                result = result.astype("M8[ns]")
+            if result.ndim == 2:
+                result = result[0, :]
+            if result.dtype == np.float64:
+                # needed for post-groupby.median
+                result = self._holder._from_sequence(
+                    result.astype(np.int64), freq=None, dtype=self.values.dtype
+                )
+            elif result.dtype == "M8[ns]":
+                # otherwise we get here via quantile and already have M8[ns]
+                result = self._holder._simple_new(
+                    result, freq=None, dtype=self.values.dtype
+                )
 
-        elif isinstance(result, (np.integer, np.float, np.datetime64)):
+        elif isinstance(result, np.datetime64):
+            # also for post-quantile
             result = self._box_func(result)
-
-        if isinstance(result, np.ndarray):
-            # allow passing of > 1dim if its trivial
-
-            if result.ndim > 1:
-                result = result.reshape(np.prod(result.shape))
-            # GH#24096 new values invalidates a frequency
-            result = self._holder._simple_new(
-                result, freq=None, dtype=self.values.dtype
-            )
-
         return result
 
     @property
@@ -2661,15 +2650,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args / try_operate """
-        if isinstance(result, np.ndarray):
-            mask = isna(result)
-            if result.dtype.kind in ["i", "f"]:
-                result = result.astype("m8[ns]")
-            result[mask] = np.timedelta64("NaT", "ns")
-
-        elif isinstance(result, (np.integer, np.float)):
-            result = self._box_func(result)
-
         return result
 
     def should_store(self, value):

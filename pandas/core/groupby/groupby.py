@@ -34,6 +34,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.generic import ABCDatetimeArray
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.api.types import is_datetime64_dtype, is_integer_dtype, is_object_dtype
@@ -803,8 +804,12 @@ b  2""",
                 # Prior results _may_ have been generated in UTC.
                 # Ensure we localize to UTC first before converting
                 # to the target timezone
+                if isinstance(obj, ABCDatetimeArray):
+                    arr = obj
+                else:
+                    arr = obj._values
                 try:
-                    result = obj._values._from_sequence(
+                    result = arr._from_sequence(
                         result, dtype="datetime64[ns, UTC]"
                     )
                     result = result.astype(dtype)
