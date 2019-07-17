@@ -654,104 +654,36 @@ def test_timedelta_assignment():
     tm.assert_series_equal(s, expected)
 
 
-def test_timedelta_nat_assignment_series():
-    tdi = pd.timedelta_range("1s", periods=3, freq="s")
-    base = pd.Series(tdi)
-    expected = pd.Series([pd.NaT, tdi[1], tdi[2]], dtype="m8[ns]")
-
-    casting_nas = [pd.NaT, np.timedelta64("NaT", "ns")]
-    for nat in casting_nas:
-        ser = base.copy(deep=True)
-        ser[0] = nat
-        tm.assert_series_equal(ser, expected)
-
-        ser = base.copy(deep=True)
-        ser.loc[0] = nat
-        tm.assert_series_equal(ser, expected)
-
-        df = base.copy(deep=True).to_frame()
-        df.loc[0, 0] = nat
-        tm.assert_frame_equal(df, expected.to_frame())
-
-        df = base.copy(deep=True).to_frame()
-        df.iloc[0, 0] = nat
-        tm.assert_frame_equal(df, expected.to_frame())
-
-    # a specifically-datetime NaT should not be coerced to timedelta
-    expected = expected.astype(object)
-    non_casting_nas = [np.datetime64("NaT", "ns")]
-    for nat in non_casting_nas:
-        ser = base.copy(deep=True)
-        ser[0] = nat
-        tm.assert_series_equal(ser, expected)
-
-        ser = base.copy(deep=True)
-        ser.loc[0] = nat
-        tm.assert_series_equal(ser, expected)
-
-        ser = base.copy(deep=True)
-        ser.iloc[0] = nat
-        tm.assert_series_equal(ser, expected)
-
-        df = base.copy(deep=True).to_frame()
-        df.loc[0, 0] = nat
-        tm.assert_frame_equal(df, pd.DataFrame(expected, dtype=object))
-
-        df = base.copy(deep=True).to_frame()
-        df.iloc[0, 0] = nat
-        tm.assert_frame_equal(df, pd.DataFrame(expected, dtype=object))
-
-
-@pytest.mark.parametrize("tz", [None, "US/Pacific"])
-def test_datetime_nat_assignment_series(tz):
+@pytest.mark.parametrize(
+    "nat_val,should_cast",
+    [
+        (pd.NaT, True),
+        (np.timedelta64("NaT", "ns"), False),
+        (np.datetime64("NaT", "ns"), True),
+    ],
+)
+@pytest.mark.parametrize("tz", [None, "UTC"])
+def test_dt64_series_assign_nat(nat_val, should_cast, tz):
+    # some nat-like values should be cast to datetime64 when inserting
+    #  into a datetime64 series.  Others should coerce to object
+    #  and retain their dtypes.
     dti = pd.date_range("2016-01-01", periods=3, tz=tz)
     base = pd.Series(dti)
-    expected = pd.Series([pd.NaT, dti[1], dti[2]], dtype=dti.dtype)
+    expected = pd.Series([pd.NaT] + list(dti[1:]), dtype=dti.dtype)
+    if not should_cast:
+        expected = expected.astype(object)
 
-    casting_nas = [pd.NaT, np.datetime64("NaT", "ns")]
-    for nat in casting_nas:
-        ser = base.copy(deep=True)
-        ser[0] = nat
-        tm.assert_series_equal(ser, expected)
+    ser = base.copy(deep=True)
+    ser[0] = nat_val
+    tm.assert_series_equal(ser, expected)
 
-        ser = base.copy(deep=True)
-        ser.loc[0] = nat
-        tm.assert_series_equal(ser, expected)
+    ser = base.copy(deep=True)
+    ser.loc[0] = nat_val
+    tm.assert_series_equal(ser, expected)
 
-        df = base.copy(deep=True).to_frame()
-        df.loc[0, 0] = nat
-        tm.assert_frame_equal(df, expected.to_frame())
-
-        df = base.copy(deep=True).to_frame()
-        df.iloc[0, 0] = nat
-        tm.assert_frame_equal(df, expected.to_frame())
-
-    # a specifically-timedelta NaT should not be coerced to datetime
-    expected = expected.astype(object)
-    non_casting_nas = [np.timedelta64("NaT", "ns")]
-    for nat in non_casting_nas:
-        expected[0] = nat
-        assert expected[0] is nat
-
-        ser = base.copy(deep=True)
-        ser[0] = nat
-        tm.assert_series_equal(ser, expected)
-
-        ser = base.copy(deep=True)
-        ser.loc[0] = nat
-        tm.assert_series_equal(ser, expected)
-
-        ser = base.copy(deep=True)
-        ser.iloc[0] = nat
-        tm.assert_series_equal(ser, expected)
-
-        df = base.copy(deep=True).to_frame()
-        df.loc[0, 0] = nat
-        tm.assert_frame_equal(df, pd.DataFrame(expected, dtype=object))
-
-        df = base.copy(deep=True).to_frame()
-        df.iloc[0, 0] = nat
-        tm.assert_frame_equal(df, pd.DataFrame(expected, dtype=object))
+    ser = base.copy(deep=True)
+    ser.iloc[0] = nat_val
+    tm.assert_series_equal(ser, expected)
 
 
 @pytest.mark.parametrize(
