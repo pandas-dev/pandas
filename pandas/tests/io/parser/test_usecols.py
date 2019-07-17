@@ -22,25 +22,6 @@ _msg_validate_usecols_names = (
 )
 
 
-@pytest.mark.parametrize(
-    "names,usecols,missing",
-    [
-        (None, [0, 3], r"\[3\]"),
-        (["a", "b", "c"], [0, -1, 2], r"\[-1\]"),
-        (None, [3], r"\[3\]"),
-        (["a"], [3], r"\[3\]"),
-    ],
-)
-def test_usecols_out_of_bounds(all_parsers, names, usecols, missing):
-    # See gh-25623
-    data = "a,b,c\n1,2,3\n4,5,6"
-    parser = all_parsers
-
-    mssg = _msg_validate_usecols_names.format(missing)
-    with pytest.raises(ValueError, match=mssg):
-        parser.read_csv(StringIO(data), usecols=usecols, names=names)
-
-
 def test_raise_on_mixed_dtype_usecols(all_parsers):
     # See gh-12678
     data = """a,b,c
