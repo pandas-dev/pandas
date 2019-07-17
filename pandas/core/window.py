@@ -210,7 +210,7 @@ class _Window(PandasObject, SelectionMixin):
         blocks, obj, index = self._create_blocks()
         _, indexi = self._get_index(index)
 
-        for _, values in enumerate(blocks):
+        for values in blocks:
             start, end, N, win, _minp, is_variable = libwindow.get_window_indexer(
                 np.asarray(values), window, minp, indexi, self.closed
             )
