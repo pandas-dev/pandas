@@ -2779,24 +2779,32 @@ class ObjectBlock(Block):
         return lib.is_bool_array(self.values.ravel())
 
     # TODO: Refactor when convert_objects is removed since there will be 1 path
-    def convert(self, **kwargs):
+    def convert(
+        self,
+        by_item: bool = True,
+        datetime: bool = True,
+        numeric: bool = True,
+        timedelta: bool = True,
+        coerce: bool = False,
+        copy: bool = True,
+    ):
         """ attempt to coerce any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
 
         can return multiple blocks!
         """
-        by_item = kwargs.pop("by_item", True)
-
-        fn_inputs = ["coerce", "datetime", "numeric", "timedelta", "copy"]
-
-        fn_kwargs = {key: kwargs.pop(key) for key in fn_inputs if key in kwargs}
-        if kwargs:
-            raise ValueError("Unrecognized keywords: {kwargs}".format(kwargs=kwargs))
 
         # operate column-by-column
         def f(m, v, i):
             shape = v.shape
-            values = soft_convert_objects(v.ravel(), **fn_kwargs)
+            values = soft_convert_objects(
+                v.ravel(),
+                datetime=datetime,
+                numeric=numeric,
+                timedelta=timedelta,
+                coerce=coerce,
+                copy=copy,
+            )
             if isinstance(values, np.ndarray):
                 # TODO: allow EA once reshape is supported
                 values = values.reshape(shape)
@@ -2804,7 +2812,7 @@ class ObjectBlock(Block):
             values = _block_shape(values, ndim=self.ndim)
             return values
 
-        if by_item and not self._is_single_block:
+        if by_item and self.ndim == 2:
             blocks = self.split_and_operate(None, f, False)
         else:
             values = f(None, self.values.ravel(), None)
