@@ -159,6 +159,15 @@ class TestReductions:
         expected = df[expected_col].rename(None)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("func", ["maximum", "minimum"])
+    def test_numpy_reduction_with_tz_aware_dtype(self, tz_aware_fixture, func):
+        # GH 15552
+        tz = tz_aware_fixture
+        arg = pd.to_datetime(["2019"]).tz_localize(tz)
+        expected = Series(arg)
+        result = getattr(np, func)(expected, expected)
+        tm.assert_series_equal(result, expected)
+
 
 class TestIndexReductions:
     # Note: the name TestIndexReductions indicates these tests

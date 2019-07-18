@@ -15,7 +15,7 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Set, Type, Union
+from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -314,8 +314,12 @@ class DataFrame(NDFrame):
         Dict can contain Series, arrays, constants, or list-like objects
 
         .. versionchanged :: 0.23.0
-           If data is a dict, argument order is maintained for Python 3.6
-           and later.
+           If data is a dict, column order follows insertion-order for
+           Python 3.6 and later.
+
+        .. versionchanged :: 0.25.0
+           If data is a list of dicts, column order follows insertion-order
+           Python 3.6 and later.
 
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
@@ -6233,6 +6237,75 @@ class DataFrame(NDFrame):
         else:
             return stack(self, level, dropna=dropna)
 
+    def explode(self, column: Union[str, Tuple]) -> "DataFrame":
+        """
+        Transform each element of a list-like to a row, replicating the
+        index values.
+
+        .. versionadded:: 0.25.0
+
+        Parameters
+        ----------
+        column : str or tuple
+
+        Returns
+        -------
+        DataFrame
+            Exploded lists to rows of the subset columns;
+            index will be duplicated for these rows.
+
+        Raises
+        ------
+        ValueError :
+            if columns of the frame are not unique.
+
+        See Also
+        --------
+        DataFrame.unstack : Pivot a level of the (necessarily hierarchical)
+            index labels
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format
+        Series.explode : Explode a DataFrame from list-like columns to long format.
+
+        Notes
+        -----
+        This routine will explode list-likes including lists, tuples,
+        Series, and np.ndarray. The result dtype of the subset rows will
+        be object. Scalars will be returned unchanged. Empty list-likes will
+        result in a np.nan for that row.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [[1, 2, 3], 'foo', [], [3, 4]], 'B': 1})
+        >>> df
+                   A  B
+        0  [1, 2, 3]  1
+        1        foo  1
+        2         []  1
+        3     [3, 4]  1
+
+        >>> df.explode('A')
+             A  B
+        0    1  1
+        0    2  1
+        0    3  1
+        1  foo  1
+        2  NaN  1
+        3    3  1
+        3    4  1
+        """
+
+        if not (is_scalar(column) or isinstance(column, tuple)):
+            raise ValueError("column must be a scalar")
+        if not self.columns.is_unique:
+            raise ValueError("columns must be unique")
+
+        result = self[column].explode()
+        return (
+            self.drop([column], axis=1)
+            .join(result)
+            .reindex(columns=self.columns, copy=False)
+        )
+
     def unstack(self, level=-1, fill_value=None):
         """
         Pivot a level of the (necessarily hierarchical) index labels, returning
@@ -6335,6 +6408,7 @@ class DataFrame(NDFrame):
     %(other)s
     pivot_table
     DataFrame.pivot
+    Series.explode
 
     Examples
     --------

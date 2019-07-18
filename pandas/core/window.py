@@ -5,7 +5,7 @@ similar to how we have a Groupby object.
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
-from typing import Set
+from typing import List, Optional, Set
 import warnings
 
 import numpy as np
@@ -35,6 +35,7 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 
+from pandas._typing import Axis, FrameOrSeries
 from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.generic import _shared_docs
@@ -63,24 +64,23 @@ class _Window(PandasObject, SelectionMixin):
         "axis",
         "on",
         "closed",
-    ]
+    ]  # type: List[str]
     exclusions = set()  # type: Set[str]
 
     def __init__(
         self,
         obj,
         window=None,
-        min_periods=None,
-        center=False,
-        win_type=None,
-        axis=0,
-        on=None,
-        closed=None,
+        min_periods: Optional[int] = None,
+        center: Optional[bool] = False,
+        win_type: Optional[str] = None,
+        axis: Axis = 0,
+        on: Optional[str] = None,
+        closed: Optional[str] = None,
         **kwargs
     ):
 
         self.__dict__.update(kwargs)
-        self.blocks = []
         self.obj = obj
         self.on = on
         self.closed = closed
@@ -97,7 +97,7 @@ class _Window(PandasObject, SelectionMixin):
         return Window
 
     @property
-    def is_datetimelike(self):
+    def is_datetimelike(self) -> Optional[bool]:
         return None
 
     @property
@@ -105,7 +105,7 @@ class _Window(PandasObject, SelectionMixin):
         return None
 
     @property
-    def is_freq_type(self):
+    def is_freq_type(self) -> bool:
         return self.win_type == "freq"
 
     def validate(self):
@@ -121,22 +121,12 @@ class _Window(PandasObject, SelectionMixin):
         ]:
             raise ValueError("closed must be 'right', 'left', 'both' or " "'neither'")
 
-    def _convert_freq(self):
-        """
-        Resample according to the how, return a new object.
-        """
-        obj = self._selected_obj
-        index = None
-        return obj, index
-
     def _create_blocks(self):
         """
         Split data into blocks & return conformed data.
         """
 
-        obj, index = self._convert_freq()
-        if index is not None:
-            index = self._on
+        obj = self._selected_obj
 
         # filter out the on from the object
         if self.on is not None:
@@ -144,7 +134,7 @@ class _Window(PandasObject, SelectionMixin):
                 obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
         blocks = obj._to_dict_of_blocks(copy=False).values()
 
-        return blocks, obj, index
+        return blocks, obj
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -186,10 +176,10 @@ class _Window(PandasObject, SelectionMixin):
         return self.window
 
     @property
-    def _window_type(self):
+    def _window_type(self) -> str:
         return self.__class__.__name__
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Provide a nice str repr of our rolling object.
         """
@@ -207,23 +197,21 @@ class _Window(PandasObject, SelectionMixin):
         url = "https://github.com/pandas-dev/pandas/issues/11704"
         raise NotImplementedError("See issue #11704 {url}".format(url=url))
 
-    def _get_index(self, index=None):
+    def _get_index(self) -> Optional[np.ndarray]:
         """
-        Return index as ndarrays.
+        Return index as an ndarray.
 
         Returns
         -------
-        tuple of (index, index_as_ndarray)
+        None or ndarray
         """
 
         if self.is_freq_type:
-            if index is None:
-                index = self._on
-            return index, index.asi8
-        return index, index
+            return self._on.asi8
+        return None
 
-    def _prep_values(self, values=None, kill_inf=True):
-
+    def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
+        """Convert input to numpy arrays for Cython routines"""
         if values is None:
             values = getattr(self._selected_obj, "values", self._selected_obj)
 
@@ -247,13 +235,12 @@ class _Window(PandasObject, SelectionMixin):
                     "cannot handle this type -> {0}" "".format(values.dtype)
                 )
 
-        if kill_inf:
-            values = values.copy()
-            values[np.isinf(values)] = np.NaN
+        # Always convert inf to nan
+        values[np.isinf(values)] = np.NaN
 
         return values
 
-    def _wrap_result(self, result, block=None, obj=None):
+    def _wrap_result(self, result, block=None, obj=None) -> FrameOrSeries:
         """
         Wrap a single result.
         """
@@ -281,7 +268,7 @@ class _Window(PandasObject, SelectionMixin):
             return type(obj)(result, index=index, columns=block.columns)
         return result
 
-    def _wrap_results(self, results, blocks, obj, exclude=None):
+    def _wrap_results(self, results, blocks, obj, exclude=None) -> FrameOrSeries:
         """
         Wrap the results.
 
@@ -335,7 +322,7 @@ class _Window(PandasObject, SelectionMixin):
             return obj.astype("float64")
         return concat(final, axis=1).reindex(columns=columns, copy=False)
 
-    def _center_window(self, result, window):
+    def _center_window(self, result, window) -> np.ndarray:
         """
         Center the result in the window.
         """
@@ -405,9 +392,9 @@ class _Window(PandasObject, SelectionMixin):
         if window is None:
             window = self._get_window(**kwargs)
 
-        blocks, obj, index = self._create_blocks()
+        blocks, obj = self._create_blocks()
         block_list = list(blocks)
-        index, indexi = self._get_index(index=index)
+        index_as_array = self._get_index()
 
         results = []
         exclude = []
@@ -429,7 +416,7 @@ class _Window(PandasObject, SelectionMixin):
 
             # if we have a string function name, wrap it
             if isinstance(func, str):
-                func = self._get_roll(func, check_minp, indexi, **kwargs)
+                func = self._get_roll(func, check_minp, index_as_array, **kwargs)
 
             # calculation function
             if center:
@@ -1001,9 +988,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     def count(self):
 
-        blocks, obj, index = self._create_blocks()
+        blocks, obj = self._create_blocks()
         # Validate the index
-        self._get_index(index=index)
+        self._get_index()
 
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
@@ -1062,11 +1049,10 @@ class _Rolling_and_Expanding(_Rolling):
     def apply(self, func, raw=None, args=(), kwargs={}):
         from pandas import Series
 
-        # TODO: _level is unused?
-        _level = kwargs.pop("_level", None)  # noqa
+        kwargs.pop("_level", None)
         window = self._get_window()
         offset = _offset(window, self.center)
-        index, indexi = self._get_index()
+        index_as_array = self._get_index()
 
         # TODO: default is for backward compat
         # change to False in the future
@@ -1087,7 +1073,16 @@ class _Rolling_and_Expanding(_Rolling):
             if not raw:
                 arg = Series(arg, index=self.obj.index)
             return libwindow.roll_generic(
-                arg, window, minp, indexi, closed, offset, func, raw, args, kwargs
+                arg,
+                window,
+                minp,
+                index_as_array,
+                closed,
+                offset,
+                func,
+                raw,
+                args,
+                kwargs,
             )
 
         return self._apply(f, func, args=args, kwargs=kwargs, center=False, raw=raw)
@@ -1259,12 +1254,12 @@ class _Rolling_and_Expanding(_Rolling):
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
         window = self._get_window()
-        index, indexi = self._get_index()
+        index_as_array = self._get_index()
 
         def f(arg, *args, **kwargs):
             minp = _require_min_periods(1)(self.min_periods, window)
             return _zsqrt(
-                libwindow.roll_var(arg, window, minp, indexi, self.closed, ddof)
+                libwindow.roll_var(arg, window, minp, index_as_array, self.closed, ddof)
             )
 
         return self._apply(
@@ -1448,17 +1443,27 @@ class _Rolling_and_Expanding(_Rolling):
 
     def quantile(self, quantile, interpolation="linear", **kwargs):
         window = self._get_window()
-        index, indexi = self._get_index()
+        index_as_array = self._get_index()
 
         def f(arg, *args, **kwargs):
             minp = _use_window(self.min_periods, window)
             if quantile == 1.0:
-                return libwindow.roll_max(arg, window, minp, indexi, self.closed)
+                return libwindow.roll_max(
+                    arg, window, minp, index_as_array, self.closed
+                )
             elif quantile == 0.0:
-                return libwindow.roll_min(arg, window, minp, indexi, self.closed)
+                return libwindow.roll_min(
+                    arg, window, minp, index_as_array, self.closed
+                )
             else:
                 return libwindow.roll_quantile(
-                    arg, window, minp, indexi, self.closed, quantile, interpolation
+                    arg,
+                    window,
+                    minp,
+                    index_as_array,
+                    self.closed,
+                    quantile,
+                    interpolation,
                 )
 
         return self._apply(f, "quantile", quantile=quantile, **kwargs)
@@ -2424,7 +2429,7 @@ class EWM(_Rolling):
         -------
         y : same type as input argument
         """
-        blocks, obj, index = self._create_blocks()
+        blocks, obj = self._create_blocks()
         block_list = list(blocks)
 
         results = []
