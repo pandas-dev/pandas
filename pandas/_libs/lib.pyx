@@ -2056,7 +2056,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                             return timedeltas
                     elif seen.nat_:
                         if not seen.numeric_:
-                            if convert_datetime:
+                            if convert_datetime and convert_timedelta:
+                                # TODO: array full of NaT ambiguity resolve here needed
+                                pass
+                            elif convert_datetime:
                                 return datetimes
                             elif convert_timedelta:
                                 return timedeltas
@@ -2093,7 +2096,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                             return timedeltas
                     elif seen.nat_:
                         if not seen.numeric_:
-                            if convert_datetime:
+                            if convert_datetime and convert_timedelta:
+                                # TODO: array full of NaT ambiguity resolve here needed
+                                pass
+                            elif convert_datetime:
                                 return datetimes
                             elif convert_timedelta:
                                 return timedeltas
