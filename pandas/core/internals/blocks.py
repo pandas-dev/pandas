@@ -2779,21 +2779,15 @@ class ObjectBlock(Block):
         return lib.is_bool_array(self.values.ravel())
 
     # TODO: Refactor when convert_objects is removed since there will be 1 path
-    def convert(self, *args, **kwargs):
+    def convert(self, **kwargs):
         """ attempt to coerce any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
 
         can return multiple blocks!
         """
-
-        if args:
-            raise NotImplementedError
         by_item = kwargs.pop("by_item", True)
 
-        new_inputs = ["coerce", "datetime", "numeric", "timedelta"]
-
-        fn_inputs = new_inputs
-        fn_inputs += ["copy"]
+        fn_inputs = ["coerce", "datetime", "numeric", "timedelta", "copy"]
 
         fn_kwargs = {key: kwargs.pop(key) for key in fn_inputs if key in kwargs}
         if kwargs:
