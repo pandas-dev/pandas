@@ -5,7 +5,7 @@ similar to how we have a Groupby object.
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
-from typing import List, Optional, Set
+from typing import Callable, List, Optional, Set
 import warnings
 
 import numpy as np
@@ -199,7 +199,7 @@ class _Window(PandasObject, SelectionMixin):
 
     def _get_index(self) -> Optional[np.ndarray]:
         """
-        Return index as an ndarray.
+        Return integer representations as an ndarray if index is frequency.
 
         Returns
         -------
@@ -341,14 +341,19 @@ class _Window(PandasObject, SelectionMixin):
                 result = np.copy(result[tuple(lead_indexer)])
         return result
 
-    def _get_roll(self, func, check_minp, index, **kwargs):
+    def _wrap_roll(self, cfunc, check_minp, index, **kwargs) -> Callable:
+        """
+        Wrap rolling function.
 
-        cfunc = getattr(libwindow, func, None)
-        if cfunc is None:
-            raise ValueError(
-                "we do not support this function "
-                "in libwindow.{func}".format(func=func)
-            )
+        Parameters
+        ----------
+        cfunc : callable
+            Cython function used to calculate rolling statistics
+        check_minp : callable
+            function to check minimum period parameter
+        index : ndarray
+            used for variable window
+        """
 
         def func(arg, window, min_periods=None, closed=None):
             minp = check_minp(min_periods, window)
@@ -359,7 +364,10 @@ class _Window(PandasObject, SelectionMixin):
 
         return func
 
-    def _apply_roll(self, func, values):
+    def _apply_roll(self, func, values) -> np.ndarray:
+        """
+        Apply rolling function to block of values.
+        """
         return np.apply_along_axis(func, self.axis, values)
 
     def _apply(
@@ -416,7 +424,14 @@ class _Window(PandasObject, SelectionMixin):
 
             # if we have a string function name, wrap it
             if isinstance(func, str):
-                func = self._get_roll(func, check_minp, index_as_array, **kwargs)
+                cfunc = getattr(libwindow, func, None)
+                if cfunc is None:
+                    raise ValueError(
+                        "we do not support this function "
+                        "in libwindow.{func}".format(func=func)
+                    )
+
+                func = self._wrap_roll(cfunc, check_minp, index_as_array, **kwargs)
 
             # calculation function
             if center:
@@ -756,8 +771,13 @@ class Window(_Window):
 
     def _get_window(self, **kwargs):
         """
-        Provide validation for our window type, return the window
-        we have already been validated.
+        Provide validation for the window type, return the window
+        which has already been validated.
+
+        Returns
+        -------
+        window : ndarray
+            The window, weights
         """
 
         window = self.window
@@ -800,15 +820,7 @@ class Window(_Window):
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
 
-    def _get_roll(self, func, check_minp, *args, **kwargs):
-
-        cfunc = getattr(libwindow, func, None)
-        if cfunc is None:
-            raise ValueError(
-                "we do not support this function "
-                "in libwindow.{func}".format(func=func)
-            )
-
+    def _wrap_roll(self, cfunc, check_minp, *args, **kwargs):
         def func(arg, window, min_periods=None, closed=None):
             minp = check_minp(min_periods, len(window))
             return cfunc(arg, window, minp)
