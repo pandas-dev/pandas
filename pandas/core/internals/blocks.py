@@ -668,7 +668,14 @@ class Block(PandasObject):
                 )
         return newb
 
-    def convert(self, copy=True, **kwargs):
+    def convert(
+        self,
+        copy: bool = True,
+        datetime: bool = True,
+        numeric: bool = True,
+        timedelta: bool = True,
+        coerce: bool = False,
+    ):
         """ attempt to coerce any object types to better types return a copy
         of the block (if copy = True) by definition we are not an ObjectBlock
         here!
@@ -2779,11 +2786,11 @@ class ObjectBlock(Block):
     # TODO: Refactor when convert_objects is removed since there will be 1 path
     def convert(
         self,
+        copy: bool = True,
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
         coerce: bool = False,
-        copy: bool = True,
     ):
         """ attempt to coerce any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
