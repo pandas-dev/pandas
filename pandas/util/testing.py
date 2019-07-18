@@ -33,8 +33,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike_v_numeric,
-    is_datetimelike_v_object,
     is_extension_array_dtype,
     is_interval_dtype,
     is_list_like,
@@ -1172,12 +1170,7 @@ def assert_series_equal(
         # we want to check only if we have compat dtypes
         # e.g. integer and M|m are NOT compat, but we can simply check
         # the values in that case
-        if (
-            is_datetimelike_v_numeric(left, right)
-            or is_datetimelike_v_object(left, right)
-            or needs_i8_conversion(left)
-            or needs_i8_conversion(right)
-        ):
+        if needs_i8_conversion(left) or needs_i8_conversion(right):
 
             # datetimelike may have different objects (e.g. datetime.datetime
             # vs Timestamp) but will compare equal

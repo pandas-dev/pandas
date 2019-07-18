@@ -571,18 +571,6 @@ def maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
     return values, fill_value
 
 
-def maybe_cast_item(obj, item, dtype):
-    chunk = obj[item]
-
-    if chunk.values.dtype != dtype:
-        if dtype in (np.object_, np.bool_):
-            obj[item] = chunk.astype(np.object_)
-        elif not issubclass(dtype, (np.integer, np.bool_)):  # pragma: no cover
-            raise ValueError(
-                "Unexpected dtype encountered: {dtype}".format(dtype=dtype)
-            )
-
-
 def invalidate_string_dtypes(dtype_set):
     """Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
