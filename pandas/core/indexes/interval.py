@@ -406,11 +406,6 @@ class IntervalIndex(IntervalMixin, Index):
         return self._data.size
 
     @property
-    def shape(self):
-        # Avoid materializing ndarray[Interval]
-        return self._data.shape
-
-    @property
     def itemsize(self):
         msg = (
             "IntervalIndex.itemsize is deprecated and will be removed in "
