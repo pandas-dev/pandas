@@ -50,7 +50,14 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
-from pandas.core.algorithms import factorize, take, take_1d, unique1d
+from pandas.core.algorithms import (
+    factorize,
+    take,
+    take_1d,
+    unique1d,
+    _get_data_algo,
+    _hashtables,
+)
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
@@ -2666,8 +2673,6 @@ def _get_codes_for_values(values, categories):
     """
     utility routine to turn values into codes given the specified categories
     """
-    from pandas.core.algorithms import _get_data_algo, _hashtables
-
     dtype_equal = is_dtype_equal(values.dtype, categories.dtype)
 
     if dtype_equal:
