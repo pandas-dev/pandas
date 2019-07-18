@@ -12,7 +12,7 @@ from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
 
 from .base import ExtensionDtype
-from .inference import is_list_like
+from .inference import is_list_like, is_bool
 
 str_type = str
 
@@ -490,8 +490,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         TypeError
             If 'ordered' is not a boolean.
         """
-        from pandas.core.dtypes.common import is_bool
-
         if not is_bool(ordered):
             raise TypeError("'ordered' must either be 'True' or 'False'")
 
