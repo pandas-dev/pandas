@@ -1,6 +1,6 @@
 .. _whatsnew_0250:
 
-What's new in 0.25.0 (April XX, 2019)
+What's new in 0.25.0 (July 18, 2019)
 -------------------------------------
 
 .. warning::
@@ -1267,4 +1267,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.24.x..HEAD
+.. contributors:: 0.24.x..HEAD
