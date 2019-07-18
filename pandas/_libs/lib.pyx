@@ -157,13 +157,13 @@ def is_scalar(val: object) -> bool:
 
     return (cnp.PyArray_IsAnyScalar(val)
             # PyArray_IsAnyScalar is always False for bytearrays on Py3
-            or isinstance(val, (Fraction, Number))
-            # We differ from numpy, which claims that None is not scalar;
-            # see np.isscalar
-            or val is None
             or PyDate_Check(val)
             or PyDelta_Check(val)
             or PyTime_Check(val)
+            # We differ from numpy, which claims that None is not scalar;
+            # see np.isscalar
+            or val is None
+            or isinstance(val, (Fraction, Number))
             or util.is_period_object(val)
             or is_decimal(val)
             or is_interval(val)
