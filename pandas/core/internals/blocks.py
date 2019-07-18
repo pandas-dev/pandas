@@ -826,9 +826,7 @@ class Block(PandasObject):
                 convert=convert,
             )
         if convert:
-            blocks = [
-                b.convert(numeric=False, copy=not inplace) for b in blocks
-            ]
+            blocks = [b.convert(numeric=False, copy=not inplace) for b in blocks]
         return blocks
 
     def _replace_single(self, *args, **kwargs):
@@ -3074,9 +3072,7 @@ class ObjectBlock(Block):
                 mask=mask,
             )
             if convert:
-                block = [
-                    b.convert(numeric=False, copy=True) for b in block
-                ]
+                block = [b.convert(numeric=False, copy=True) for b in block]
             return block
         return self
 
