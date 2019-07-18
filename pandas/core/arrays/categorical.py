@@ -2717,8 +2717,6 @@ def _recode_for_categories(codes, old_categories, new_categories):
     >>> _recode_for_categories(codes, old_cat, new_cat)
     array([ 1,  0,  0, -1])
     """
-    from pandas.core.algorithms import take_1d
-
     if len(old_categories) == 0:
         # All null anyway, so just retain the nulls
         return codes.copy()
