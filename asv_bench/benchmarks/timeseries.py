@@ -293,7 +293,7 @@ class ToDatetimeYYYYMMDD:
         to_datetime(self.stringsD, format="%Y%m%d")
 
 
-class ToDatetimeCacheSmallCount(object):
+class ToDatetimeCacheSmallCount:
 
     params = ([True, False], [50, 500, 5000, 100000])
     param_names = ["cache", "count"]

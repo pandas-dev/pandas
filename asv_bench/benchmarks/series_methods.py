@@ -219,7 +219,7 @@ class SeriesGetattr:
         getattr(self.s, "a", None)
 
 
-class All(object):
+class All:
 
     params = [[10 ** 3, 10 ** 6], ["fast", "slow"]]
     param_names = ["N", "case"]
@@ -232,7 +232,7 @@ class All(object):
         self.s.all()
 
 
-class Any(object):
+class Any:
 
     params = [[10 ** 3, 10 ** 6], ["fast", "slow"]]
     param_names = ["N", "case"]
@@ -245,7 +245,7 @@ class Any(object):
         self.s.any()
 
 
-class NanOps(object):
+class NanOps:
 
     params = [
         [

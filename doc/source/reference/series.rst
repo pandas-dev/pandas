@@ -245,6 +245,7 @@ Reshaping, sorting
    Series.sort_index
    Series.swaplevel
    Series.unstack
+   Series.explode
    Series.searchsorted
    Series.ravel
    Series.repeat
@@ -590,4 +591,3 @@ Sparse
 
    SparseSeries.to_coo
    SparseSeries.from_coo
-
