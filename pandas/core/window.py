@@ -199,12 +199,12 @@ class _Window(PandasObject, SelectionMixin):
         minp = _use_window(self.min_periods, window)
         offset = _offset(window, self.center)
 
-        blocks, obj, index = self._create_blocks()
-        _, indexi = self._get_index(index)
+        blocks, obj = self._create_blocks()
+        index = self._get_index()
 
         for values in blocks:
             start, end, N, win, _minp, is_variable = libwindow.get_window_indexer(
-                np.asarray(values), window, minp, indexi, closed
+                np.asarray(values), window, minp, index, closed
             )
 
             for i in range(N):
