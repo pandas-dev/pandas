@@ -4818,7 +4818,8 @@ class NDFrame(PandasObject, SelectionMixin):
         frac : float, optional
             Fraction of axis items to return. Cannot be used with `n`.
         replace : bool, default False
-            Sample with or without replacement.
+            Sample with or without replacement. Setting this to `True` means that a record
+            in the original data can appear multiple times in the sampled data.
         weights : str or ndarray-like, optional
             Default 'None' results in equal probability weighting.
             If passed a Series, will align with target object on index. Index
@@ -4957,6 +4958,8 @@ class NDFrame(PandasObject, SelectionMixin):
             n = 1
         elif n is not None and frac is None and n % 1 != 0:
             raise ValueError("Only integers accepted as `n` values")
+        elif n is None and frac is not None and frac <= 0:
+            raise ValueError("Only positive floats accepted as `frac` values")
         elif n is None and frac is not None:
             n = int(round(frac * axis_length))
         elif n is not None and frac is not None:
