@@ -357,18 +357,9 @@ class _Window(PandasObject, SelectionMixin):
 
         def func(arg, window, min_periods=None, closed=None):
             minp = check_minp(min_periods, window)
-            # ensure we are only rolling on floats
-            arg = ensure_float64(arg)
-
             return cfunc(arg, window, minp, index, closed, **kwargs)
 
         return func
-
-    def _apply_roll(self, func, values) -> np.ndarray:
-        """
-        Apply rolling function to block of values.
-        """
-        return np.apply_along_axis(func, self.axis, values)
 
     def _apply(
         self, func, name=None, window=None, center=None, check_minp=None, **kwargs
@@ -453,7 +444,11 @@ class _Window(PandasObject, SelectionMixin):
                         x, window, min_periods=self.min_periods, closed=self.closed
                     )
 
-            result = self._apply_roll(calc, values)
+            with np.errstate(all="ignore"):
+                if values.ndim > 1:
+                    result = np.apply_along_axis(calc, self.axis, values)
+                else:
+                    result = calc(values)
 
             if center:
                 result = self._center_window(result, window)
@@ -944,16 +939,6 @@ class _Rolling(_Window):
     @property
     def _constructor(self):
         return Rolling
-
-    def _apply_roll(self, func, values):
-
-        with np.errstate(all="ignore"):
-            if values.ndim > 1:
-                result = np.apply_along_axis(func, self.axis, values)
-            else:
-                result = func(values)
-
-        return result
 
 
 class _Rolling_and_Expanding(_Rolling):
