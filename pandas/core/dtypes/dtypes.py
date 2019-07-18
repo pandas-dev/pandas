@@ -406,6 +406,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # but same order is not necessary.  There is no distinction between
             # ordered=False and ordered=None: CDT(., False) and CDT(., None)
             # will be equal if they have the same categories.
+            if (
+                self.categories.dtype == other.categories.dtype
+                and self.categories.equals(other.categories)
+            ):
+                # Check and see if they happen to be identical categories
+                return True
             return hash(self) == hash(other)
 
     def __repr__(self):
