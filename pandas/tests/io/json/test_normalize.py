@@ -3,6 +3,8 @@ import json
 import numpy as np
 import pytest
 
+from pandas.compat import PY36
+
 from pandas import DataFrame, Index
 import pandas.util.testing as tm
 
@@ -351,9 +353,9 @@ class TestJSONNormalize:
         ).decode("utf8")
 
         testdata = {
+            b"\xc3\x9cnic\xc3\xb8de".decode("utf8"): [0, 1],
             "sub.A": [1, 3],
             "sub.B": [2, 4],
-            b"\xc3\x9cnic\xc3\xb8de".decode("utf8"): [0, 1],
         }
         expected = DataFrame(testdata)
 
@@ -366,21 +368,21 @@ class TestJSONNormalize:
         ex_data = [
             {
                 "info": np.nan,
-                "author_name.first": np.nan,
-                "author_name.last_name": np.nan,
                 "info.created_at": np.nan,
                 "info.last_updated": np.nan,
+                "author_name.first": np.nan,
+                "author_name.last_name": np.nan,
             },
             {
                 "info": None,
-                "author_name.first": "Jane",
-                "author_name.last_name": "Doe",
                 "info.created_at": "11/08/1993",
                 "info.last_updated": "26/05/2012",
+                "author_name.first": "Jane",
+                "author_name.last_name": "Doe",
             },
         ]
         expected = DataFrame(ex_data)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_like=not PY36)
 
     @pytest.mark.parametrize(
         "max_level,expected",
@@ -508,12 +510,13 @@ class TestNestedToRecord:
             data=missing_metadata, record_path="addresses", meta="name", errors="ignore"
         )
         ex_data = [
-            ["Massillon", 9562, "OH", "Morris St.", 44646, "Alice"],
-            ["Elizabethton", 8449, "TN", "Spring St.", 37643, np.nan],
+            [9562, "Morris St.", "Massillon", "OH", 44646, "Alice"],
+            [8449, "Spring St.", "Elizabethton", "TN", 37643, np.nan],
         ]
         columns = ["city", "number", "state", "street", "zip", "name"]
+        columns = ["number", "street", "city", "state", "zip", "name"]
         expected = DataFrame(ex_data, columns=columns)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_like=not PY36)
 
     def test_donot_drop_nonevalues(self):
         # GH21356
