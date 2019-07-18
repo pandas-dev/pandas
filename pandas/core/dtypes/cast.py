@@ -740,25 +740,18 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
     return arr.view(dtype)
 
 
-def maybe_convert_objects(
-    values: np.ndarray,
-    convert_dates: bool = True,
-    convert_numeric: bool = True,
-    convert_timedeltas: bool = True,
-    copy: bool = True,
-):
+def maybe_convert_objects(values: np.ndarray, convert_numeric: bool = True):
     """ if we have an object dtype, try to coerce dates and/or numbers """
-    validate_bool_kwarg(convert_dates, "convert_dates")
     validate_bool_kwarg(convert_numeric, "convert_numeric")
-    validate_bool_kwarg(convert_timedeltas, "convert_timedeltas")
-    validate_bool_kwarg(copy, "copy")
+
+    orig_values = values
 
     # convert dates
-    if convert_dates and values.dtype == np.object_:
+    if values.dtype == np.object_:
         values = lib.maybe_convert_objects(values, convert_datetime=True)
 
     # convert timedeltas
-    if convert_timedeltas and values.dtype == np.object_:
+    if values.dtype == np.object_:
         values = lib.maybe_convert_objects(values, convert_timedelta=True)
 
     # convert to numeric
@@ -779,7 +772,8 @@ def maybe_convert_objects(
             # soft-conversion
             values = lib.maybe_convert_objects(values)
 
-    values = values.copy() if copy else values
+    if values is orig_values:
+        values = values.copy()
 
     return values
 
@@ -799,7 +793,6 @@ def soft_convert_objects(
     validate_bool_kwarg(timedelta, "timedelta")
     validate_bool_kwarg(coerce, "coerce")
     validate_bool_kwarg(copy, "copy")
-    assert not coerce  # we're only called from one place in internals.blocks
 
     conversion_count = sum((datetime, numeric, timedelta))
     if conversion_count == 0:

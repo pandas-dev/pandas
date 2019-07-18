@@ -18,7 +18,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     infer_dtype_from_scalar,
-    maybe_convert_objects,
     maybe_downcast_to_dtype,
     maybe_infer_dtype_type,
     maybe_promote,
@@ -2789,27 +2788,21 @@ class ObjectBlock(Block):
 
         if args:
             raise NotImplementedError
-        by_item = kwargs.get("by_item", True)
+        by_item = kwargs.pop("by_item", True)
 
         new_inputs = ["coerce", "datetime", "numeric", "timedelta"]
-        new_style = False
-        for kw in new_inputs:
-            new_style |= kw in kwargs
 
-        if new_style:
-            fn = soft_convert_objects
-            fn_inputs = new_inputs
-        else:
-            fn = maybe_convert_objects
-            fn_inputs = ["convert_dates", "convert_numeric", "convert_timedeltas"]
+        fn_inputs = new_inputs
         fn_inputs += ["copy"]
 
-        fn_kwargs = {key: kwargs[key] for key in fn_inputs if key in kwargs}
+        fn_kwargs = {key: kwargs.pop(key) for key in fn_inputs if key in kwargs}
+        if kwargs:
+            raise ValueError("Unrecognized keywords: {kwargs}".format(kwargs=kwargs))
 
         # operate column-by-column
         def f(m, v, i):
             shape = v.shape
-            values = fn(v.ravel(), **fn_kwargs)
+            values = soft_convert_objects(v.ravel(), **fn_kwargs)
             if isinstance(values, np.ndarray):
                 # TODO: allow EA once reshape is supported
                 values = values.reshape(shape)
