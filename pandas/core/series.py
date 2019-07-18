@@ -341,9 +341,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             keys, values = zip(*data.items())
             values = list(values)
         elif index is not None:
-            # fastpath for Series(data=None). Just use broadcasting a scalar
-            # instead of reindexing.
-            values = na_value_for_dtype(dtype)
+            if data is None:
+                # fastpath for Series(data=None). Just use broadcasting a scalar
+                # instead of reindexing.
+                values = na_value_for_dtype(dtype)
+            else:
+                values = []
             keys = index
         else:
             keys, values = [], []
