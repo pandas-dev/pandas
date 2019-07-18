@@ -827,7 +827,7 @@ class Block(PandasObject):
             )
         if convert:
             blocks = [
-                b.convert(by_item=True, numeric=False, copy=not inplace) for b in blocks
+                b.convert(numeric=False, copy=not inplace) for b in blocks
             ]
         return blocks
 
@@ -2781,7 +2781,6 @@ class ObjectBlock(Block):
     # TODO: Refactor when convert_objects is removed since there will be 1 path
     def convert(
         self,
-        by_item: bool = True,
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
@@ -2812,7 +2811,7 @@ class ObjectBlock(Block):
             values = _block_shape(values, ndim=self.ndim)
             return values
 
-        if by_item and self.ndim == 2:
+        if self.ndim == 2:
             blocks = self.split_and_operate(None, f, False)
         else:
             values = f(None, self.values.ravel(), None)
@@ -3036,7 +3035,7 @@ class ObjectBlock(Block):
         # convert
         block = self.make_block(new_values)
         if convert:
-            block = block.convert(by_item=True, numeric=False)
+            block = block.convert(numeric=False)
         return block
 
     def _replace_coerce(
@@ -3076,7 +3075,7 @@ class ObjectBlock(Block):
             )
             if convert:
                 block = [
-                    b.convert(by_item=True, numeric=False, copy=True) for b in block
+                    b.convert(numeric=False, copy=True) for b in block
                 ]
             return block
         return self
