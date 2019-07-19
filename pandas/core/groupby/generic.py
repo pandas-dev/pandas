@@ -576,8 +576,8 @@ class NDFrameGroupBy(GroupBy):
 
         if isinstance(func, str):
             if not (func in base.transform_recognized_functions):
-                msg = "'%s' is not a valid function name for transform(name)"
-                raise ValueError(msg % func)
+                msg = "'{func}' is not a valid function name for transform(name)"
+                raise ValueError(msg.format(func=func))
             if func in base.cythonized_kernels:
                 # cythonized transformation or canned "reduction+broadcast"
                 return getattr(self, func)(*args, **kwargs)
@@ -1014,8 +1014,8 @@ class SeriesGroupBy(GroupBy):
 
         if isinstance(func, str):
             if not (func in base.transform_recognized_functions):
-                msg = "'%s' is not a valid function name for transform(name)"
-                raise ValueError(msg % func)
+                msg = "'{func}' is not a valid function name for transform(name)"
+                raise ValueError(msg.format(func=func))
             if func in base.cythonized_kernels:
                 # cythonized transform or canned "agg+broadcast"
                 return getattr(self, func)(*args, **kwargs)
