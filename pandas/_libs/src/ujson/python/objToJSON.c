@@ -1306,11 +1306,20 @@ char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
     *outLen = strlen(GET_TC(tc)->cStr);
     return GET_TC(tc)->cStr;
   } else if (enc->originalOutputFormat == COLUMNS || enc->originalOutputFormat == INDEX) {
-    printf("Current index is %d\n", GET_TC(tc)->index);
     // TODO: index is incremented before iteration completes which is unfortunate
     // Need to align with SPLIT format and then can maybe increment here for clarity
-    const char * cStr = GET_TC(tc)->columnLabels[GET_TC(tc)->index - 1];
-    *outLen = strlen(cStr);
+    int index = GET_TC(tc)->index - 1;
+    char * cStr = GET_TC(tc)->columnLabels[index];
+    
+    // TODO: we are manually removing quotes and a trailing colon because ujson will add as required
+    // but we already have them from the NpyArr_encodeLabels call. Should comprehensively
+    // refactor to get rid of that method entirely so as not to do this
+    int len = strlen(cStr);
+    // increment pointer to next character and remove trailing quote
+    cStr++;
+    cStr[len - 3] = 0;
+    *outLen = len - 3;
+
     return cStr;
   }
 }
@@ -1403,7 +1412,7 @@ void NpyArr_freeLabels(char **labels, npy_intp len) {
  * TODO: refactor this to fit better into ujson iteration model
  */
 char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
-                           npy_intp num, int should_quote) {
+                           npy_intp num) {
     // NOTE this function steals a reference to labels.
     PyObjectEncoder *pyenc = (PyObjectEncoder *)enc;
     PyObject *item = NULL;
@@ -1474,9 +1483,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
             break;
         }
 
-        need_quotes = should_quote && ((*cLabel) != '"');
-	printf("need_quotes is %d\n", need_quotes);
-	printf("result is %s\n", cLabel);
+        need_quotes = ((*cLabel) != '"');
         len = enc->offset - cLabel + 1 + 2 * need_quotes;
         ret[i] = PyObject_Malloc(sizeof(char) * len);
 
@@ -1799,7 +1806,7 @@ ISITERABLE:
             pc->columnLabelsLen = PyArray_DIM(pc->newObj, 0);
             pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values,
                                                    (JSONObjectEncoder *)enc,
-                                                   pc->columnLabelsLen, 1);
+                                                   pc->columnLabelsLen);
             if (!pc->columnLabels) {
                 goto INVALID;
             }
@@ -1858,9 +1865,7 @@ ISITERABLE:
 	pc->columnLabelsLen = PyArray_DIM(values, 0);
 	pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values,
 					       (JSONObjectEncoder *)enc,
-					       pc->columnLabelsLen, 0);
-	printf("first item is %s\n", pc->columnLabels[0]);
-	printf("second item is %s\n", pc->columnLabels[1]);
+					       pc->columnLabelsLen);
 	if (!pc->columnLabels) {
 	  goto INVALID;
 	}
