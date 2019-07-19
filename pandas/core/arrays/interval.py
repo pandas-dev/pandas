@@ -1101,10 +1101,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right_repeat = self.right.repeat(repeats)
         return self._shallow_copy(left=left_repeat, right=right_repeat)
 
-
     _interval_shared_docs[
         "contains"
-    ] = """
+    ] = textwrap.dedent("""
         Check elementwise if the Intervals contain the value.
 
         Return a boolean mask whether the value is contained in the Intervals
@@ -1129,16 +1128,21 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Examples
         --------
-        >>> intervals = pd.%(qualname)s.from_tuples([(0, 1), (1, 3), (2, 4)])
+        %(examples)s
+    """)
+
+    @Appender(_interval_shared_docs["contains"] % dict(
+        klass="IntervalArray",
+        examples=textwrap.dedent("""
+        >>> intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 3), (2, 4)])
         >>> intervals
-        %(klass)s([(0, 1], (1, 3], (2, 4]],
-              closed='right',
-              dtype='interval[int64]')
+        <IntervalArray>
+        [(0, 1], (1, 3], (2, 4]]
+        Length: 3, closed: right, dtype: interval[int64]
         >>> intervals.contains(0.5)
         array([ True, False, False])
-    """
-
-    @Appender(_interval_shared_docs["contains"] % _shared_docs_kwargs)
+        """),
+    ))
     def contains(self, other):
         if isinstance(other, Interval):
             raise NotImplementedError("contains not implemented for two intervals")

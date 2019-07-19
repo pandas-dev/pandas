@@ -1230,12 +1230,23 @@ class IntervalIndex(IntervalMixin, Index):
             and self.closed == other.closed
         )
 
-    @Appender(_interval_shared_docs["contains"] % _index_doc_kwargs)
+    @Appender(_interval_shared_docs["contains"] % dict(
+        klass="IntervalIndex",
+        examples=textwrap.dedent("""\
+        >>> intervals = pd.IntervalIndex.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals
+        IntervalIndex([(0, 1], (1, 3], (2, 4]],
+                  closed='right',
+                  dtype='interval[int64]')
+        >>> intervals.contains(0.5)
+        array([ True, False, False])
+        """),
+    ))
     def contains(self, other):
         return self._data.contains(other)
 
     @Appender(_interval_shared_docs["overlaps"] % dict(
-        klass='IntervalIndex',
+        klass="IntervalIndex",
         examples=textwrap.dedent("""\
         >>> intervals = pd.IntervalIndex.from_tuples([(0, 1), (1, 3), (2, 4)])
         >>> intervals
