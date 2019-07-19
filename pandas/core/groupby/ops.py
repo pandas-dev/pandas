@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
     ensure_int_or_float,
-    ensure_object,
     ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
@@ -567,15 +566,8 @@ class BaseGrouper:
                 result[mask] = np.nan
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
-            if result.ndim == 2:
-                try:
-                    result = lib.row_bool_subset(result, (counts > 0).view(np.uint8))
-                except ValueError:
-                    result = lib.row_bool_subset_object(
-                        ensure_object(result), (counts > 0).view(np.uint8)
-                    )
-            else:
-                result = result[counts > 0]
+            assert result.ndim != 2
+            result = result[counts > 0]
 
         if vdim == 1 and arity == 1:
             result = result[:, 0]
