@@ -223,10 +223,6 @@ class SeriesFormatter:
 
         self._chk_truncate()
 
-    @property
-    def truncate_v(self) -> bool:
-        return hasattr(self, "tr_row_num")
-
     def _chk_truncate(self) -> None:
         from pandas.core.reshape.concat import concat
 
@@ -234,6 +230,7 @@ class SeriesFormatter:
         max_rows = self.max_rows
         # truncation determined by max_rows, actual truncated number of rows
         # used below by min_rows
+        self.truncate_v = False
         series = self.series
         if max_rows and (len(series) > max_rows):
             if min_rows:
@@ -247,6 +244,7 @@ class SeriesFormatter:
                 row_num = max_rows // 2
                 series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
             self.tr_row_num = row_num
+            self.truncate_v = True
 
         self.tr_series = series
 
@@ -508,19 +506,7 @@ class DataFrameFormatter(TableFormatter):
         self._chk_truncate()
         self.adj = _get_adjustment()
 
-    @property
-    def truncate_v(self) -> bool:
-        return hasattr(self, "tr_row_num")
-
-    @property
-    def truncate_h(self) -> bool:
-        return hasattr(self, "tr_col_num")
-
-    @property
-    def is_truncated(self) -> bool:
-        return self.truncate_h or self.truncate_v
-
-    def _chk_truncate(self):
+    def _chk_truncate(self) -> None:
         """
         Checks whether the frame should be truncated. If so, slices
         the frame up.
@@ -564,6 +550,8 @@ class DataFrameFormatter(TableFormatter):
         max_cols_adj = self.max_cols_adj
         max_rows_adj = self.max_rows_adj
 
+        self.truncate_h = False
+        self.truncate_v = False
         frame = self.frame
         if max_cols_adj and (len(self.columns) > max_cols_adj):
             if max_cols_adj == 1:
@@ -575,6 +563,7 @@ class DataFrameFormatter(TableFormatter):
                     (frame.iloc[:, :col_num], frame.iloc[:, -col_num:]), axis=1
                 )
             self.tr_col_num = col_num
+            self.truncate_h = True
 
         if max_rows_adj and (len(frame) > max_rows_adj):
             if max_rows_adj == 1:
@@ -584,8 +573,10 @@ class DataFrameFormatter(TableFormatter):
                 row_num = max_rows_adj // 2
                 frame = concat((frame.iloc[:row_num, :], frame.iloc[-row_num:, :]))
             self.tr_row_num = row_num
+            self.truncate_v = True
 
         self.tr_frame = frame
+        self.is_truncated = self.truncate_h or self.truncate_v
 
     def _to_str_columns(self) -> List[List[str]]:
         """
