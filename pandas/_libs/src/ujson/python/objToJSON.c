@@ -100,7 +100,6 @@ typedef struct __TypeContext {
 
     char *cStr;
     NpyArrContext *npyarr;
-    int transpose;
     char **rowLabels;
     char **columnLabels;
     npy_intp rowLabelsLen;
@@ -190,7 +189,6 @@ static TypeContext *createTypeContext(void) {
     pc->npyarr = NULL;
     pc->rowLabels = NULL;
     pc->columnLabels = NULL;
-    pc->transpose = 0;
     pc->rowLabelsLen = 0;
     pc->columnLabelsLen = 0;
 
@@ -639,19 +637,11 @@ void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     npyarr->curdim = 0;
     npyarr->type_num = PyArray_DESCR(obj)->type_num;
 
-    if (GET_TC(tc)->transpose) {
-      npyarr->dim = PyArray_DIM(obj, npyarr->ndim);
-      npyarr->stride = PyArray_STRIDE(obj, npyarr->ndim);
-      npyarr->stridedim = npyarr->ndim;
-      npyarr->index[npyarr->ndim] = 0;
-      npyarr->inc = -1;
-    } else {
-      npyarr->dim = PyArray_DIM(obj, 0);
-      npyarr->stride = PyArray_STRIDE(obj, 0);
-      npyarr->stridedim = 0;
-      npyarr->index[0] = 0;
-      npyarr->inc = 1;
-    }
+    npyarr->dim = PyArray_DIM(obj, 0);
+    npyarr->stride = PyArray_STRIDE(obj, 0);
+    npyarr->stridedim = 0;
+    npyarr->index[0] = 0;
+    npyarr->inc = 1;
 
     npyarr->columnLabels = GET_TC(tc)->columnLabels;
     npyarr->rowLabels = GET_TC(tc)->rowLabels;
