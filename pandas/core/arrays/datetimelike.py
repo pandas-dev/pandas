@@ -34,7 +34,12 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndexClass,
+    ABCPeriodArray,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
@@ -1664,11 +1669,10 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
     i8 1d array
     """
     from pandas import Index
-    from pandas.core.arrays import PeriodArray
 
     if lib.is_scalar(other) and isna(other):
         return iNaT
-    elif isinstance(other, (PeriodArray, ABCIndexClass, DatetimeLikeArrayMixin)):
+    elif isinstance(other, (ABCPeriodArray, ABCIndexClass, DatetimeLikeArrayMixin)):
         # convert tz if needed
         if getattr(other, "tz", None) is not None:
             if to_utc:
