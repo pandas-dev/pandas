@@ -1177,7 +1177,7 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
 	  Py_DECREF(GET_TC(tc)->itemName);
 	}
       }
-      
+
       PyObject *tmp = PyIter_Next(GET_TC(tc)->iterator);
       if (tmp == 0)
 	return 0;
@@ -1191,30 +1191,30 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
       Py_DECREF(tmp);
     }
 
-    GET_TC(tc)->index++;      
+    GET_TC(tc)->index++;
     PRINTMARK();
     return 1;
 }
 
-/* 
+/*
  * Function: DataFrame_iterEnd
  * -----------------------------
  * Callaback after DataFrame has been entirely iterated upon.
  *
  */
 void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
-  PRINTMARK();  
+  PRINTMARK();
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
-  
+
   if (enc->originalOutputFormat != SPLIT) {
     Py_DECREF(GET_TC(tc)->iterator);
   }
-  
+
   enc->outputFormat = enc->originalOutputFormat;
-  
+
 }
 
-/* 
+/*
  * Function: DataFrame_iterGetValue
  * -----------------------------
  * Provides the value(s) for a particular iteration. This is valid whether
@@ -1225,15 +1225,15 @@ JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
   return GET_TC(tc)->itemValue;
 }
 
-/* 
+/*
  * Function: DataFrame_iterGetName
  * -----------------------------
- * Provides the name for a particular iteration. This is only called if 
+ * Provides the name for a particular iteration. This is only called if
  * the type context is JT_OBJECT, which is dictated by the orient.
  */
 char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
   PRINTMARK();
-  PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;  
+  PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   if (enc->originalOutputFormat == SPLIT) {
     *outLen = strlen(GET_TC(tc)->cStr);
     return GET_TC(tc)->cStr;
@@ -1803,13 +1803,13 @@ ISITERABLE:
 	  goto INVALID;
 	}
       }
-      
+
       pc->iterBegin = DataFrame_iterBegin;
       pc->iterEnd = DataFrame_iterEnd;
       pc->iterNext = DataFrame_iterNext;
       pc->iterGetValue = DataFrame_iterGetValue;
       pc->iterGetName = DataFrame_iterGetName;
-	
+
       return;
     } else if (PyDict_Check(obj)) {
         PRINTMARK();
