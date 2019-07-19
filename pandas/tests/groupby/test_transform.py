@@ -1004,6 +1004,7 @@ def test_ffill_not_in_axis(func, key, val):
 
 
 def test_transform_invalid_name_raises():
+    # GH#27486
     df = DataFrame(dict(a=[0, 1, 1, 2]))
     g = df.groupby(["a", "b", "b", "c"])
     with pytest.raises(ValueError, match="not a valid function name"):
