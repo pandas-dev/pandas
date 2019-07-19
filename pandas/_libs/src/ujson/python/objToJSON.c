@@ -78,10 +78,6 @@ typedef struct __NpyArrContext {
     char **columnLabels;
 } NpyArrContext;
 
-typedef struct __PdFrameContext {
-  PyObject *iterable;
-  
-}  PdFrameContext;
 
 typedef struct __TypeContext {
     JSPFN_ITERBEGIN iterBegin;
@@ -104,7 +100,6 @@ typedef struct __TypeContext {
 
     char *cStr;
     NpyArrContext *npyarr;
-    PdFrameContext *frame;
     int transpose;
     char **rowLabels;
     char **columnLabels;
@@ -193,7 +188,6 @@ static TypeContext *createTypeContext(void) {
     pc->doubleValue = 0.0;
     pc->cStr = NULL;
     pc->npyarr = NULL;
-    pc->frame = NULL;
     pc->rowLabels = NULL;
     pc->columnLabels = NULL;
     pc->transpose = 0;
@@ -1174,16 +1168,7 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 	return;
       }
 
-      PdFrameContext *frameCtxt = (PdFrameContext *)PyObject_Malloc(sizeof(PdFrameContext));
-      if (!frameCtxt) {
-	Py_DECREF(iter);
-	PyErr_NoMemory();
-	GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-	return;
-      }
-      
-      frameCtxt->iterable = iter;
-      GET_TC(tc)->frame = frameCtxt;
+      GET_TC(tc)->iterator = iter;
 
       // The RECORDS format essentially generates a JSON array of Series in the
       // INDEX format, so set that context during serialization
@@ -1245,7 +1230,7 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
 	}
       }
       
-      PyObject *tmp = PyIter_Next(GET_TC(tc)->frame->iterable);
+      PyObject *tmp = PyIter_Next(GET_TC(tc)->iterator);
       if (tmp == 0)
 	return 0;
 
@@ -1274,8 +1259,7 @@ void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   
   if (enc->originalOutputFormat != SPLIT) {
-    Py_DECREF(GET_TC(tc)->frame->iterable);
-    Py_DECREF(GET_TC(tc)->frame);
+    Py_DECREF(GET_TC(tc)->iterator);
   }
   
   enc->outputFormat = enc->originalOutputFormat;
