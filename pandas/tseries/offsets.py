@@ -9,6 +9,7 @@ import numpy as np
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
+    Period,
     Timedelta,
     Timestamp,
     ccalendar,
@@ -33,7 +34,6 @@ from pandas._libs.tslibs.offsets import (
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
-from pandas.core.dtypes.generic import ABCPeriod
 from pandas.core.dtypes.inference import is_list_like
 
 from pandas.core.tools.datetimes import to_datetime
@@ -2539,7 +2539,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 return type(self)(self.n + other.n)
             else:
                 return _delta_to_tick(self.delta + other.delta)
-        elif isinstance(other, ABCPeriod):
+        elif isinstance(other, Period):
             return other + self
         try:
             return self.apply(other)
