@@ -276,6 +276,25 @@ class LatexFormatter(TableFormatter):
 
         buf.write('\\begin{{tabular}}{{{fmt}}}\n'.format(fmt=column_format))
 
+    def _write_tabular_end(self, buf):
+        """
+        Write the end of a tabular environment or nested table/tabular
+        environment.
+
+        Parameters
+        ----------
+        buf : string or file handle
+            File path or object. If not specified, the result is returned as
+            a string.
+
+        """
+        buf.write('\\bottomrule\n')
+        buf.write('\\end{tabular}\n')
+        if self.caption is None and self.label is None:
+            pass
+        else:
+            buf.write('\\end{table}\n')
+
     def _write_longtable_begin(self, buf, column_format):
         """
         Write the beginning of a longtable environment including caption and
@@ -311,25 +330,6 @@ class LatexFormatter(TableFormatter):
             # as discussed here:
             # https://tex.stackexchange.com/questions/219138
             buf.write('\\\\\n')
-
-    def _write_tabular_end(self, buf):
-        """
-        Write the end of a tabular environment or nested table/tabular
-        environment.
-
-        Parameters
-        ----------
-        buf : string or file handle
-            File path or object. If not specified, the result is returned as
-            a string.
-
-        """
-        buf.write('\\bottomrule\n')
-        buf.write('\\end{tabular}\n')
-        if self.caption is None and self.label is None:
-            pass
-        else:
-            buf.write('\\end{table}\n')
 
     @staticmethod
     def _write_longtable_end(buf):
