@@ -784,6 +784,7 @@ In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
 For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.ols, 'data')`` to ``pipe``:
 
 .. ipython:: python
+   :okwarning:
 
    import statsmodels.formula.api as sm
 
@@ -1474,7 +1475,7 @@ Thus, for example, iterating over a DataFrame gives you the column names:
        print(col)
 
 
-Pandas objects also have the dict-like :meth:`~DataFrame.iteritems` method to
+Pandas objects also have the dict-like :meth:`~DataFrame.items` method to
 iterate over the (key, value) pairs.
 
 To iterate over the rows of a DataFrame, you can use the following methods:
@@ -1523,10 +1524,10 @@ To iterate over the rows of a DataFrame, you can use the following methods:
 
     df
 
-iteritems
-~~~~~~~~~
+items
+~~~~~
 
-Consistent with the dict-like interface, :meth:`~DataFrame.iteritems` iterates
+Consistent with the dict-like interface, :meth:`~DataFrame.items` iterates
 through key-value pairs:
 
 * **Series**: (index, scalar value) pairs
@@ -1536,7 +1537,7 @@ For example:
 
 .. ipython:: python
 
-   for label, ser in df.iteritems():
+   for label, ser in df.items():
        print(label)
        print(ser)
 
@@ -1968,11 +1969,11 @@ dtype of the column will be chosen to accommodate all of the data types
    pd.Series([1, 2, 3, 6., 'foo'])
 
 The number of columns of each type in a ``DataFrame`` can be found by calling
-:meth:`~DataFrame.get_dtype_counts`.
+``DataFrame.dtypes.value_counts()``.
 
 .. ipython:: python
 
-   dft.get_dtype_counts()
+   dft.dtypes.value_counts()
 
 Numeric dtypes will propagate and can coexist in DataFrames.
 If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``,

@@ -352,10 +352,10 @@ cdef class IndexEngine:
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     cdef:
-        Py_ssize_t mid, lo = 0, hi = len(values) - 1
+        Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
         object pval
 
-    if hi >= 0 and val > util.get_value_at(values, hi):
+    if hi == 0 or (hi > 0 and val > util.get_value_at(values, hi)):
         return len(values)
 
     while lo < hi:
@@ -544,6 +544,10 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif isinstance(value, timedelta):
             return Timedelta(value).value
+        elif util.is_datetime64_object(value):
+            # exclude np.datetime64("NaT") which would otherwise be picked up
+            #  by the `value != value check below
+            pass
         elif value is None or value != value:
             return NPY_NAT
         elif isinstance(value, str):

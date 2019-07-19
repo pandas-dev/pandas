@@ -105,7 +105,7 @@ pandas objects provide compatibility between ``NaT`` and ``NaN``.
    df2
    df2.loc[['a', 'c', 'h'], ['one', 'timestamp']] = np.nan
    df2
-   df2.get_dtype_counts()
+   df2.dtypes.value_counts()
 
 .. _missing.inserting:
 
@@ -458,7 +458,6 @@ You can mix pandas' ``reindex`` and ``interpolate`` methods to interpolate
 at the new values.
 
 .. ipython:: python
-   :okexcept:
 
    ser = pd.Series(np.sort(np.random.uniform(size=100)))
 

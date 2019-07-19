@@ -61,8 +61,8 @@ of multi-axis indexing.
     * A list or array of labels ``['a', 'b', 'c']``.
     * A slice object with labels ``'a':'f'`` (Note that contrary to usual python
       slices, **both** the start and the stop are included, when present in the
-      index! See :ref:`Slicing with labels
-      <indexing.slicing_with_labels>`.).
+      index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
+      and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
     * A boolean array
     * A ``callable`` function with one argument (the calling Series or DataFrame) and
       that returns valid output for indexing (one of the above).
@@ -335,8 +335,7 @@ The ``.loc`` attribute is the primary access method. The following are valid inp
 * A list or array of labels ``['a', 'b', 'c']``.
 * A slice object with labels ``'a':'f'`` (Note that contrary to usual python
   slices, **both** the start and the stop are included, when present in the
-  index! See :ref:`Slicing with labels
-  <indexing.slicing_with_labels>`.).
+  index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`.
 * A boolean array.
 * A ``callable``, see :ref:`Selection By Callable <indexing.callable>`.
 
@@ -417,6 +416,9 @@ However, if at least one of the two is absent *and* the index is not sorted, an
 error will be raised (since doing otherwise would be computationally expensive,
 as well as potentially ambiguous for mixed type indexes). For instance, in the
 above example, ``s.loc[1:6]`` would raise ``KeyError``.
+
+For the rationale behind this behavior, see
+:ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.
 
 .. _indexing.integer:
 

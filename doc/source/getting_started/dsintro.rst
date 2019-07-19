@@ -731,28 +731,67 @@ DataFrame interoperability with NumPy functions
 .. _dsintro.numpy_interop:
 
 Elementwise NumPy ufuncs (log, exp, sqrt, ...) and various other NumPy functions
-can be used with no issues on DataFrame, assuming the data within are numeric:
+can be used with no issues on Series and DataFrame, assuming the data within
+are numeric:
 
 .. ipython:: python
 
    np.exp(df)
    np.asarray(df)
 
-The dot method on DataFrame implements matrix multiplication:
-
-.. ipython:: python
-
-   df.T.dot(df)
-
-Similarly, the dot method on Series implements dot product:
-
-.. ipython:: python
-
-   s1 = pd.Series(np.arange(5, 10))
-   s1.dot(s1)
-
 DataFrame is not intended to be a drop-in replacement for ndarray as its
-indexing semantics are quite different in places from a matrix.
+indexing semantics and data model are quite different in places from an n-dimensional
+array.
+
+:class:`Series` implements ``__array_ufunc__``, which allows it to work with NumPy's
+`universal functions <https://docs.scipy.org/doc/numpy/reference/ufuncs.html>`_.
+
+The ufunc is applied to the underlying array in a Series.
+
+.. ipython:: python
+
+   ser = pd.Series([1, 2, 3, 4])
+   np.exp(ser)
+
+.. versionchanged:: 0.25.0
+
+   When multiple ``Series`` are passed to a ufunc, they are aligned before
+   performing the operation.
+
+Like other parts of the library, pandas will automatically align labeled inputs
+as part of a ufunc with multiple inputs. For example, using :meth:`numpy.remainder`
+on two :class:`Series` with differently ordered labels will align before the operation.
+
+.. ipython:: python
+
+   ser1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+   ser2 = pd.Series([1, 3, 5], index=['b', 'a', 'c'])
+   ser1
+   ser2
+   np.remainder(ser1, ser2)
+
+As usual, the union of the two indices is taken, and non-overlapping values are filled
+with missing values.
+
+.. ipython:: python
+
+   ser3 = pd.Series([2, 4, 6], index=['b', 'c', 'd'])
+   ser3
+   np.remainder(ser1, ser3)
+
+When a binary ufunc is applied to a :class:`Series` and :class:`Index`, the Series
+implementation takes precedence and a Series is returned.
+
+.. ipython:: python
+
+   ser = pd.Series([1, 2, 3])
+   idx = pd.Index([4, 5, 6])
+
+   np.maximum(ser, idx)
+
+NumPy ufuncs are safe to apply to :class:`Series` backed by non-ndarray arrays,
+for example :class:`SparseArray` (see :ref:`sparse.calculation`). If possible,
+the ufunc is applied without converting the underlying data to an ndarray.
 
 Console display
 ~~~~~~~~~~~~~~~

@@ -159,7 +159,7 @@ def float_string_frame():
     [30 rows x 5 columns]
     """
     df = DataFrame(tm.getSeriesData())
-    df['foo'] = 'bar'
+    df["foo"] = "bar"
     return df
 
 
@@ -190,10 +190,10 @@ def mixed_float_frame():
     [30 rows x 4 columns]
     """
     df = DataFrame(tm.getSeriesData())
-    df.A = df.A.astype('float32')
-    df.B = df.B.astype('float32')
-    df.C = df.C.astype('float16')
-    df.D = df.D.astype('float64')
+    df.A = df.A.astype("float32")
+    df.B = df.B.astype("float32")
+    df.C = df.C.astype("float16")
+    df.D = df.D.astype("float64")
     return df
 
 
@@ -224,10 +224,10 @@ def mixed_int_frame():
     [30 rows x 4 columns]
     """
     df = DataFrame({k: v.astype(int) for k, v in tm.getSeriesData().items()})
-    df.A = df.A.astype('int32')
-    df.B = np.ones(len(df.B), dtype='uint64')
-    df.C = df.C.astype('uint8')
-    df.D = df.C.astype('int64')
+    df.A = df.A.astype("int32")
+    df.B = np.ones(len(df.B), dtype="uint64")
+    df.C = df.C.astype("uint8")
+    df.D = df.C.astype("int64")
     return df
 
 
@@ -237,10 +237,16 @@ def mixed_type_frame():
     Fixture for DataFrame of float/int/string columns with RangeIndex
     Columns are ['a', 'b', 'c', 'float32', 'int32'].
     """
-    return DataFrame({'a': 1., 'b': 2, 'c': 'foo',
-                      'float32': np.array([1.] * 10, dtype='float32'),
-                      'int32': np.array([1] * 10, dtype='int32')},
-                     index=np.arange(10))
+    return DataFrame(
+        {
+            "a": 1.0,
+            "b": 2,
+            "c": "foo",
+            "float32": np.array([1.0] * 10, dtype="float32"),
+            "int32": np.array([1] * 10, dtype="int32"),
+        },
+        index=np.arange(10),
+    )
 
 
 @pytest.fixture
@@ -255,11 +261,13 @@ def timezone_frame():
     1 2013-01-02                       NaT                       NaT
     2 2013-01-03 2013-01-03 00:00:00-05:00 2013-01-03 00:00:00+01:00
     """
-    df = DataFrame({'A': date_range('20130101', periods=3),
-                    'B': date_range('20130101', periods=3,
-                                    tz='US/Eastern'),
-                    'C': date_range('20130101', periods=3,
-                                    tz='CET')})
+    df = DataFrame(
+        {
+            "A": date_range("20130101", periods=3),
+            "B": date_range("20130101", periods=3, tz="US/Eastern"),
+            "C": date_range("20130101", periods=3, tz="CET"),
+        }
+    )
     df.iloc[1, 1] = NaT
     df.iloc[1, 2] = NaT
     return df
@@ -272,8 +280,9 @@ def uint64_frame():
 
     Columns are ['A', 'B']
     """
-    return DataFrame({'A': np.arange(3), 'B': [2**63, 2**63 + 5, 2**63 + 10]},
-                     dtype=np.uint64)
+    return DataFrame(
+        {"A": np.arange(3), "B": [2 ** 63, 2 ** 63 + 5, 2 ** 63 + 10]}, dtype=np.uint64
+    )
 
 
 @pytest.fixture
@@ -288,12 +297,9 @@ def simple_frame():
     b  4.0  5.0    6.0
     c  7.0  8.0    9.0
     """
-    arr = np.array([[1., 2., 3.],
-                    [4., 5., 6.],
-                    [7., 8., 9.]])
+    arr = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
 
-    return DataFrame(arr, columns=['one', 'two', 'three'],
-                     index=['a', 'b', 'c'])
+    return DataFrame(arr, columns=["one", "two", "three"], index=["a", "b", "c"])
 
 
 @pytest.fixture
@@ -311,10 +317,14 @@ def frame_of_index_cols():
     3  bar    one  d  0.234246  1.085675            0.718445
     4  bar    two  e  0.533841 -0.005702           -3.533912
     """
-    df = DataFrame({'A': ['foo', 'foo', 'foo', 'bar', 'bar'],
-                    'B': ['one', 'two', 'three', 'one', 'two'],
-                    'C': ['a', 'b', 'c', 'd', 'e'],
-                    'D': np.random.randn(5),
-                    'E': np.random.randn(5),
-                    ('tuple', 'as', 'label'): np.random.randn(5)})
+    df = DataFrame(
+        {
+            "A": ["foo", "foo", "foo", "bar", "bar"],
+            "B": ["one", "two", "three", "one", "two"],
+            "C": ["a", "b", "c", "d", "e"],
+            "D": np.random.randn(5),
+            "E": np.random.randn(5),
+            ("tuple", "as", "label"): np.random.randn(5),
+        }
+    )
     return df

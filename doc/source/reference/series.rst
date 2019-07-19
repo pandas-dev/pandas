@@ -76,8 +76,8 @@ Indexing, iteration
    Series.loc
    Series.iloc
    Series.__iter__
-   Series.iteritems
    Series.items
+   Series.iteritems
    Series.keys
    Series.pop
    Series.item
@@ -245,6 +245,7 @@ Reshaping, sorting
    Series.sort_index
    Series.swaplevel
    Series.unstack
+   Series.explode
    Series.searchsorted
    Series.ravel
    Series.repeat
@@ -590,4 +591,3 @@ Sparse
 
    SparseSeries.to_coo
    SparseSeries.from_coo
-

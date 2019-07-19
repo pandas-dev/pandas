@@ -1,7 +1,6 @@
-tseries: pandas/_libs/lib.pyx pandas/_libs/tslib.pyx pandas/_libs/hashtable.pyx
-	python setup.py build_ext --inplace
+.PHONY : develop build clean clean_pyc doc lint-diff black
 
-.PHONY : develop build clean clean_pyc tseries doc
+all: develop
 
 clean:
 	-python setup.py clean
@@ -15,8 +14,11 @@ build: clean_pyc
 lint-diff:
 	git diff upstream/master --name-only -- "*.py" | xargs flake8
 
+black:
+	black . --exclude '(asv_bench/env|\.egg|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist)'
+
 develop: build
-	-python setup.py develop
+	python setup.py develop
 
 doc:
 	-rm -rf doc/build doc/source/generated

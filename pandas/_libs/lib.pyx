@@ -1,3 +1,4 @@
+from collections import abc
 from decimal import Decimal
 from fractions import Fraction
 from numbers import Number
@@ -76,7 +77,10 @@ def values_from_object(obj: object):
     """ return my values or the object if we are say an ndarray """
     func: object
 
-    func = getattr(obj, 'get_values', None)
+    if getattr(obj, '_typ', '') == 'dataframe':
+        return obj.values
+
+    func = getattr(obj, '_internal_get_values', None)
     if func is not None:
         obj = func()
 
@@ -477,7 +481,7 @@ def maybe_indices_to_slice(ndarray[int64_t] indices, int max_len):
 def maybe_booleans_to_slice(ndarray[uint8_t] mask):
     cdef:
         Py_ssize_t i, n = len(mask)
-        Py_ssize_t start, end
+        Py_ssize_t start = 0, end = 0
         bint started = 0, finished = 0
 
     for i in range(n):
@@ -881,6 +885,60 @@ cpdef bint is_interval(object obj):
 def is_period(val: object) -> bool:
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
+
+
+def is_list_like(obj: object, allow_sets: bool = True):
+    """
+    Check if the object is list-like.
+
+    Objects that are considered list-like are for example Python
+    lists, tuples, sets, NumPy arrays, and Pandas Series.
+
+    Strings and datetime objects, however, are not considered list-like.
+
+    Parameters
+    ----------
+    obj : The object to check
+    allow_sets : boolean, default True
+        If this parameter is False, sets will not be considered list-like
+
+        .. versionadded:: 0.24.0
+
+    Returns
+    -------
+    is_list_like : bool
+        Whether `obj` has list-like properties.
+
+    Examples
+    --------
+    >>> is_list_like([1, 2, 3])
+    True
+    >>> is_list_like({1, 2, 3})
+    True
+    >>> is_list_like(datetime(2017, 1, 1))
+    False
+    >>> is_list_like("foo")
+    False
+    >>> is_list_like(1)
+    False
+    >>> is_list_like(np.array([2]))
+    True
+    >>> is_list_like(np.array(2)))
+    False
+    """
+    return c_is_list_like(obj, allow_sets)
+
+
+cdef inline bint c_is_list_like(object obj, bint allow_sets):
+    return (
+        isinstance(obj, abc.Iterable)
+        # we do not count strings/unicode/bytes as list-like
+        and not isinstance(obj, (str, bytes))
+        # exclude zero-dimensional numpy arrays, effectively scalars
+        and not (util.is_array(obj) and obj.ndim == 0)
+        # exclude sets if allow_sets is False
+        and not (allow_sets is False and isinstance(obj, abc.Set))
+    )
 
 
 _TYPE_MAP = {
@@ -1631,7 +1689,7 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
     Doesn't check values are datetime-like types.
     """
     cdef:
-        Py_ssize_t i, j, n = len(values)
+        Py_ssize_t i = 0, j, n = len(values)
         object base_val, base_tz, val, tz
 
     if n == 0:
@@ -1913,8 +1971,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         ndarray[int64_t] ints
         ndarray[uint64_t] uints
         ndarray[uint8_t] bools
-        ndarray[int64_t] idatetimes
-        ndarray[int64_t] itimedeltas
+        int64_t[:]  idatetimes
+        int64_t[:] itimedeltas
         Seen seen = Seen()
         object val
         float64_t fval, fnan
@@ -1952,6 +2010,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                 seen.timedelta_ = 1
             if not (convert_datetime or convert_timedelta):
                 seen.object_ = 1
+                break
         elif util.is_bool_object(val):
             seen.bool_ = 1
             bools[i] = val
