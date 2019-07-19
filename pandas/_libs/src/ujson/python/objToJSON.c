@@ -1142,9 +1142,11 @@ char *Series_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
  * require a JT_OBJECT context (whereby we extract keys and values from the DataFrame).
  */
 void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
+    PRINTMARK();
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
     enc->originalOutputFormat = enc->outputFormat;
-    
+
+    GET_TC(tc)->index = 0;    
     // For SPLIT format the index tracks columns->index->data progression
     if (enc->outputFormat == SPLIT) {
         PRINTMARK();
@@ -1157,7 +1159,6 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
         if (!GET_TC(tc)->cStr) {
 	  PyErr_NoMemory();
         }
-	GET_TC(tc)->index = 0;
 
 	return;  // always return if modifying outputFormat
     } else {
@@ -1205,6 +1206,7 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
  * This is dependent on the orient as mentioned in DataFrame_iterBegin
  */
 int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
+    PRINTMARK();
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
 
     // free previous entry
@@ -1235,7 +1237,6 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
         return 0;
       }
 
-      GET_TC(tc)->index++;      
     } else {
       if (enc->originalOutputFormat == COLUMNS || enc->originalOutputFormat == INDEX) {
 	// TODO: align extension usage of itemName and cStr
@@ -1257,6 +1258,7 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
       Py_DECREF(tmp);
     }
 
+    GET_TC(tc)->index++;      
     PRINTMARK();
     return 1;
 }
@@ -1268,6 +1270,7 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
  *
  */
 void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
+  PRINTMARK();  
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   
   if (enc->originalOutputFormat != SPLIT) {
@@ -1286,6 +1289,7 @@ void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
  * the type context is JT_OBJECT or JT_ARRAY.
  */
 JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
+  PRINTMARK();
   return GET_TC(tc)->itemValue;
 }
 
@@ -1296,12 +1300,16 @@ JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
  * the type context is JT_OBJECT, which is dictated by the orient.
  */
 char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
+  PRINTMARK();
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;  
   if (enc->originalOutputFormat == SPLIT) {
     *outLen = strlen(GET_TC(tc)->cStr);
     return GET_TC(tc)->cStr;
   } else if (enc->originalOutputFormat == COLUMNS || enc->originalOutputFormat == INDEX) {
-    const char * cStr = PyUnicode_AsUTF8(GET_TC(tc)->itemName);
+    printf("Current index is %d\n", GET_TC(tc)->index);
+    // TODO: index is incremented before iteration completes which is unfortunate
+    // Need to align with SPLIT format and then can maybe increment here for clarity
+    const char * cStr = GET_TC(tc)->columnLabels[GET_TC(tc)->index - 1];
     *outLen = strlen(cStr);
     return cStr;
   }
@@ -1374,8 +1382,28 @@ void NpyArr_freeLabels(char **labels, npy_intp len) {
     }
 }
 
+
+/* function NpyArr_encodeLabels
+ * ----------------------------
+ *
+ * labels: a list-like object of labels to encode
+ * enc: JSON encoder
+ * num: number of labels
+ * should_quote: bool as to whether or not quoting should be done here
+ *
+ * This function takes care of encoding labels in one pass and is
+ * typically used for the columns or labels when a DataFrame or Series.
+ * It is particularly useful for items whose str repr is not what should
+ * be written out as a label (ex: Timestamp)
+ *
+ * However, it's usage here is rather non-idiomatic as it would be better
+ * to simply define a iterGetName method for the appropriate objects which
+ * converts the labels into the appropriate string.
+ *
+ * TODO: refactor this to fit better into ujson iteration model
+ */
 char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
-                           npy_intp num) {
+                           npy_intp num, int should_quote) {
     // NOTE this function steals a reference to labels.
     PyObjectEncoder *pyenc = (PyObjectEncoder *)enc;
     PyObject *item = NULL;
@@ -1446,7 +1474,9 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
             break;
         }
 
-        need_quotes = ((*cLabel) != '"');
+        need_quotes = should_quote && ((*cLabel) != '"');
+	printf("need_quotes is %d\n", need_quotes);
+	printf("result is %s\n", cLabel);
         len = enc->offset - cLabel + 1 + 2 * need_quotes;
         ret[i] = PyObject_Malloc(sizeof(char) * len);
 
@@ -1769,7 +1799,7 @@ ISITERABLE:
             pc->columnLabelsLen = PyArray_DIM(pc->newObj, 0);
             pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values,
                                                    (JSONObjectEncoder *)enc,
-                                                   pc->columnLabelsLen);
+                                                   pc->columnLabelsLen, 1);
             if (!pc->columnLabels) {
                 goto INVALID;
             }
@@ -1812,14 +1842,37 @@ ISITERABLE:
 	tc->type = JT_ARRAY;
       else
 	tc->type = JT_OBJECT;
+
+      if (enc->outputFormat == INDEX || enc->outputFormat == COLUMNS) {
+	PRINTMARK();
+	tc->type = JT_OBJECT;
+	tmpObj = PyObject_GetAttrString(obj, "columns");
+	if (!tmpObj) {
+	  goto INVALID;
+	}
+	values = get_values(tmpObj);
+	Py_DECREF(tmpObj);
+	if (!values) {
+	  goto INVALID;
+	}
+	pc->columnLabelsLen = PyArray_DIM(values, 0);
+	pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values,
+					       (JSONObjectEncoder *)enc,
+					       pc->columnLabelsLen, 0);
+	printf("first item is %s\n", pc->columnLabels[0]);
+	printf("second item is %s\n", pc->columnLabels[1]);
+	if (!pc->columnLabels) {
+	  goto INVALID;
+	}
+      }
       
-        pc->iterBegin = DataFrame_iterBegin;
-        pc->iterEnd = DataFrame_iterEnd;
-        pc->iterNext = DataFrame_iterNext;
-        pc->iterGetValue = DataFrame_iterGetValue;
-        pc->iterGetName = DataFrame_iterGetName;
+      pc->iterBegin = DataFrame_iterBegin;
+      pc->iterEnd = DataFrame_iterEnd;
+      pc->iterNext = DataFrame_iterNext;
+      pc->iterGetValue = DataFrame_iterGetValue;
+      pc->iterGetName = DataFrame_iterGetName;
 	
-	return;
+      return;
     } else if (PyDict_Check(obj)) {
         PRINTMARK();
         tc->type = JT_OBJECT;
