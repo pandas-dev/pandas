@@ -772,7 +772,7 @@ class Window(_Window):
         Returns
         -------
         window : ndarray
-            The window, weights
+            the window, weights
         """
 
         window = self.window
