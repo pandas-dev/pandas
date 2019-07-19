@@ -2202,7 +2202,7 @@ With use_key the following snippet normalizes all keys except "Image".
                                       'Name': 'Name001'}},
              'Image': {'a': 'b'}
              }]
-    json_normalize(data, use_key=lambda key: key not in ["Image"])
+    json_normalize(data, use_keys=lambda key: key not in ["Image"])
 
 .. _io.jsonl:
 

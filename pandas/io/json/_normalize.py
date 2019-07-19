@@ -26,13 +26,31 @@ def convert_to_line_delimits(s):
     return convert_json_to_lines(s)
 
 
+def __parse_use_keys(use_keys: Optional[Union[str, List[str], Callable]] = None):
+    """
+    Converts different types of use_keys into a callable
+    :param use_keys:
+    :return:
+    """
+    use_key = None
+    if isinstance(use_keys, list):
+        use_key = lambda x: x in use_keys
+    elif isinstance(use_keys, str):
+        use_key = lambda x: x == use_keys
+    elif not use_keys:
+        use_key = lambda x: True
+    elif callable(use_keys):
+        use_key = use_keys
+    return use_key
+
+
 def nested_to_record(
     ds,
     prefix: str = "",
     sep: str = ".",
     level: int = 0,
     max_level: Optional[int] = None,
-    use_keys: Optional[Callable] = None,
+    use_keys: Optional[Union[str, List[str], Callable]] = None,
 ):
     """
     A simplified json_normalize
@@ -58,7 +76,7 @@ def nested_to_record(
 
         .. versionadded:: 0.25.0
 
-    use_keys : Callable, optional, default: None
+    use_keys : Str, List or Callable, optional, default: None
         Returns true or false depending on whether to include or exclude a key
 
         .. versionadded:: 0.25.0
@@ -85,6 +103,8 @@ def nested_to_record(
         ds = [ds]
         singleton = True
 
+    use_key = __parse_use_keys(use_keys)
+
     new_ds = []
     for d in ds:
         new_d = copy.deepcopy(d)
@@ -103,8 +123,8 @@ def nested_to_record(
             # only at level>1 do we rename the rest of the keys
 
             if (
-                use_keys
-                and not use_keys(k)
+                use_key
+                and not use_key(k)
                 or (not isinstance(v, dict))
                 or (max_level is not None and level >= max_level)
             ):
@@ -133,7 +153,7 @@ def json_normalize(
     errors: Optional[str] = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
-    use_keys: Optional[Union[Callable, str, List]] = None,
+    use_keys: Optional[Union[Callable, str, List[str]]] = None,
 ):
     """
     Normalize semi-structured JSON data into a flat table.
@@ -292,14 +312,7 @@ def json_normalize(
     if isinstance(data, dict):
         data = [data]
 
-    if isinstance(use_keys, list):
-        use_key = lambda x: x in use_keys
-    elif isinstance(use_keys, str):
-        use_key = lambda x: x == use_keys
-    elif not use_keys:
-        use_key = lambda x: True
-    else:
-        use_key = use_keys
+    use_key = __parse_use_keys(use_keys)
 
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):

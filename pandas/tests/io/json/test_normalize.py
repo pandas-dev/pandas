@@ -455,53 +455,53 @@ class TestJSONNormalize:
         expected_df = DataFrame(data=expected, columns=result.columns.values)
         tm.assert_equal(expected_df, result)
 
-    def test_use_keys(self, nested_input_data):
+    @pytest.mark.parametrize(
+        "use_keys, expected",
+        [
+            (
+                lambda key: key not in ["Image"],
+                [
+                    {
+                        "CreatedBy.Name": "User001",
+                        "Lookup.TextField": "Some text",
+                        "Lookup.UserField.Id": "ID001",
+                        "Lookup.UserField.Name": "Name001",
+                        "Image": {"a": "b"},
+                    }
+                ],
+            ),
+            (
+                ["Image"],
+                [
+                    {
+                        "CreatedBy": {"Name": "User001"},
+                        "Lookup": {
+                            "TextField": "Some text",
+                            "UserField": {"Id": "ID001", "Name": "Name001"},
+                        },
+                        "Image.a": "b",
+                    }
+                ],
+            ),
+            (
+                "Image",
+                [
+                    {
+                        "CreatedBy": {"Name": "User001"},
+                        "Lookup": {
+                            "TextField": "Some text",
+                            "UserField": {"Id": "ID001", "Name": "Name001"},
+                        },
+                        "Image.a": "b",
+                    }
+                ],
+            ),
+        ],
+    )
+    def test_use_keys(self, nested_input_data, use_keys, expected):
         # GH 27241 ignore specific keys from normalization
-        result = json_normalize(
-            nested_input_data, use_keys=lambda key: key not in ["Image"]
-        )
-        expected = [
-            {
-                "CreatedBy.Name": "User001",
-                "Lookup.TextField": "Some text",
-                "Lookup.UserField.Id": "ID001",
-                "Lookup.UserField.Name": "Name001",
-                "Image": {"a": "b"},
-            }
-        ]
-        expected_df = DataFrame(data=expected)
-        tm.assert_equal(result, expected_df)
-
-    def test_use_keys_with_list(self, nested_input_data):
-        # GH 27241 ignore specific keys from normalization
-        result = json_normalize(nested_input_data, use_keys=["Image"])
-        expected = [
-            {
-                "CreatedBy": {"Name": "User001"},
-                "Lookup": {
-                    "TextField": "Some text",
-                    "UserField": {"Id": "ID001", "Name": "Name001"},
-                },
-                "Image.a": "b",
-            }
-        ]
-        expected_df = DataFrame(data=expected)
-        tm.assert_equal(result, expected_df)
-
-    def test_use_keys_with_string(self, nested_input_data):
-        # GH 27241 ignore specific keys from normalization
-        result = json_normalize(nested_input_data, use_keys="Image")
-        expected = [
-            {
-                "CreatedBy": {"Name": "User001"},
-                "Lookup": {
-                    "TextField": "Some text",
-                    "UserField": {"Id": "ID001", "Name": "Name001"},
-                },
-                "Image.a": "b",
-            }
-        ]
-        expected_df = DataFrame(data=expected)
+        result = json_normalize(nested_input_data, use_keys=use_keys)
+        expected_df = DataFrame(data=expected, columns=result.columns)
         tm.assert_equal(result, expected_df)
 
     def test_use_keys_with_meta(self, nested_input_data):
