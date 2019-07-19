@@ -145,9 +145,14 @@ class ToJSON(BaseIO):
 class ToJSONMem:
     def setup_cache(self):
         df = DataFrame([[1]])
-        frames = {"int": df, "float": df.astype(float)}
+        wide = DataFrame(np.ones((10_000, 10_000)))
+        frames = {"int": df, "float": df.astype(float), "wide": wide}
 
         return frames
+
+    def mem_int(self, frames):
+        df = frames["wide"]
+        wide.to_json()
 
     def peakmem_int(self, frames):
         df = frames["int"]
