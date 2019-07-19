@@ -1,11 +1,11 @@
-
 .. _roadmap:
 
 =======
 Roadmap
 =======
 
-This page provides an overview of the major themes pandas' development.
+This page provides an overview of the major themes pandas' development. Implementation
+of these goals may be hastened with dedicated funding.
 
 Extensibility
 -------------
@@ -14,11 +14,11 @@ Pandas Extension Arrays provide 3rd party libraries the ability to
 extend pandas' supported types. In theory, these 3rd party types can do
 everything one of pandas. In practice, many places in pandas will unintentionally
 convert the ExtensionArray to a NumPy array of Python objects, causing
-performance issues and the loss of type information.
+performance issues and the loss of type information. These problems are especially
+pronounced for nested data.
 
-Additionally, there are known issues when the scalar type of an ExtensionArray
-is actual a sequence (nested data). Developing APIs for working with nested data,
-and ensuring that pandas' internal routines can handled it, will be a major effort.
+We'd like to improve the handling of extension arrays throughout the library,
+making their behavior more consistent with the handling of NumPy arrays.
 
 String Dtype
 ------------
@@ -28,7 +28,7 @@ Each array stores Python strings. While pragmatic, since we rely on NumPy
 for storage and Python for string operations, this is memory inefficient
 and slow. We'd like to provide a native string type for pandas.
 
-The most obvious candidate is Apache Arrow. Currently, Arrow provides
+The most obvious alternative is Apache Arrow. Currently, Arrow provides
 storage for string data. We can work with the Arrow developers to implement
 the operations needed for pandas users (for example, ``Series.str.upper``).
 
@@ -39,22 +39,24 @@ Apache Arrow Interoperability
 platform for in-memory data. The Arrow logical types are closely aligned with
 typical pandas use cases (for example, support for nullable integers).
 
-We'd like have a pandas DataFrame be backed by a collection of Apache Arrow
-arrays. This should simplify pandas internals and ensure more consistent
+We'd like have a pandas DataFrame be backed by Arrow memory and data types
+by default. This should simplify pandas internals and ensure more consistent
 handling of data types through operations.
 
 Block Manager Rewrite
 ---------------------
+
+We'd like to replace pandas current internal data structures (a collection of
+1 or 2-D arrays) with a simpler collection of 1-D arrays.
 
 Pandas internal data model is quite complex. A DataFrame is made up of
 one or more 2-dimension "blocks", with one or more blocks per dtype. This
 collection of 2-D arrays is managed by the BlockManager.
 
 The primary benefit of the BlockManager is improved performance on certain
-operations, especially for wide DataFrames. Consider summing a table with ``P``
-columns. When stored as a 2-D array, this results in a single call to
-``numpy.sum``. If this were stored as ``P`` arrays, we'd have a Python for loop
-going calling ``numpy.sum`` P times.
+operations (construction from a 2D array, binary operations, reductions across the columns),
+especially for wide DataFrames. However, the BlockManager substantially increases the
+complexity and maintenance burden of pandas'.
 
 By replacing the BlockManager we hope to achieve
 
@@ -62,6 +64,7 @@ By replacing the BlockManager we hope to achieve
 * Easier extensibility with new logical types
 * Better user control over memory use and layout
 * Improved microperformance
+* Option to provide a C / Cython API to pandas' internals
 
 See `these design documents <https://dev.pandas.io/pandas2/internal-architecture.html#removal-of-blockmanager-new-dataframe-internals>`__
 for more.
