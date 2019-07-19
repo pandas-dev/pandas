@@ -85,13 +85,12 @@ Additional help can be found in the online docs for
 
 Parameters
 ----------
-filepath_or_buffer : str, path object, or file-like object
+filepath_or_buffer : str, path object or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
     URL schemes include http, ftp, s3, and file. For file URLs, a host is
     expected. A local file could be: file://localhost/path/to/table.csv.
 
-    If you want to pass in a path object, pandas accepts either
-    ``pathlib.Path`` or ``py._path.local.LocalPath``.
+    If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
     By file-like object, we refer to objects with a ``read()`` method, such as
     a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
@@ -728,13 +727,14 @@ def read_fwf(
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object, or file-like object
+    filepath_or_buffer : str, path object or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
-        expected. A local file could be: file://localhost/path/to/table.csv.
+        expected. A local file could be:
+        ``file://localhost/path/to/table.csv``.
 
-        If you want to pass in a path object, pandas accepts either
-        ``pathlib.Path`` or ``py._path.local.LocalPath``.
+        If you want to pass in a path object, pandas accepts any
+        ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
@@ -1947,12 +1947,6 @@ class CParserWrapper(ParserBase):
             ):
                 _validate_usecols_names(usecols, self.orig_names)
 
-            # GH 25623
-            # validate that column indices in usecols are not out of bounds
-            elif self.usecols_dtype == "integer":
-                indices = range(self._reader.table_width)
-                _validate_usecols_names(usecols, indices)
-
             if len(self.names) > len(usecols):
                 self.names = [
                     n
@@ -2258,7 +2252,7 @@ class PythonParser(ParserBase):
         self.skipinitialspace = kwds["skipinitialspace"]
         self.lineterminator = kwds["lineterminator"]
         self.quoting = kwds["quoting"]
-        self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
+        self.usecols, _ = _validate_usecols_arg(kwds["usecols"])
         self.skip_blank_lines = kwds["skip_blank_lines"]
 
         self.warn_bad_lines = kwds["warn_bad_lines"]
@@ -2665,13 +2659,6 @@ class PythonParser(ParserBase):
             if clear_buffer:
                 self._clear_buffer()
 
-            # GH 25623
-            # validate that column indices in usecols are not out of bounds
-            if self.usecols_dtype == "integer":
-                for col in columns:
-                    indices = range(len(col))
-                    _validate_usecols_names(self.usecols, indices)
-
             if names is not None:
                 if (self.usecols is not None and len(names) != len(self.usecols)) or (
                     self.usecols is None and len(names) != len(columns[0])
@@ -2705,11 +2692,6 @@ class PythonParser(ParserBase):
 
             ncols = len(line)
             num_original_columns = ncols
-
-            # GH 25623
-            # validate that column indices in usecols are not out of bounds
-            if self.usecols_dtype == "integer":
-                _validate_usecols_names(self.usecols, range(ncols))
 
             if not names:
                 if self.prefix:
