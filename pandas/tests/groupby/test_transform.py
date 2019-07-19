@@ -1001,3 +1001,49 @@ def test_ffill_not_in_axis(func, key, val):
     expected = df
 
     assert_frame_equal(result, expected)
+
+
+def test_transform_invalid_name_raises():
+    df = DataFrame(dict(a=[0, 1, 1, 2]))
+    g = df.groupby(["a", "b", "b", "c"])
+    with pytest.raises(ValueError, match="not a valid function name"):
+        g.transform("some_arbitrary_name")
+
+    # method exists on the object, but is not a valid transformation/agg
+    with pytest.raises(ValueError, match="not a valid function name"):
+        g.transform("aggregate")
+
+    # Test SeriesGroupBy
+    g = df["a"].groupby(["a", "b", "b", "c"])
+    with pytest.raises(ValueError, match="not a valid function name"):
+        g.transform("some_arbitrary_name")
+
+    # method exists on the object, but is not a valid transformation/agg
+    with pytest.raises(ValueError, match="not a valid function name"):
+        g.transform("aggregate")
+
+
+from pandas.core.groupby.base import reduction_functions
+
+
+@pytest.mark.parametrize("func", reduction_functions)
+def test_transform_agg_by_name(func):
+
+    df = DataFrame(dict(a=[0, 0, 0, 1, 1, 1], b=range(6)))
+    g = df.groupby(np.repeat([0, 1], 3))
+
+    if func == "ngroup":  # GH#27468
+        pytest.xfail("TODO: g.transform('ngroup') doesn't work")
+    if func == "size":  # GH#27469
+        pytest.xfail("TODO: g.transform('size') doesn't work")
+    if func == "corr":
+        pytest.xfail("corr returns multiindex, excluded from transform for now")
+
+    args = {"nth": [0], "quantile": [0.5]}.get(func, [])
+
+    print(func)
+    result = g.transform(func, *args)
+    tm.assert_index_equal(result.index, df.index)
+
+    # check values replicated broadcasted across group
+    assert len(set(result.iloc[-3:, 1])) == 1
