@@ -582,7 +582,9 @@ class NDFrameGroupBy(GroupBy):
                 # cythonized transformation or canned "reduction+broadcast"
                 return getattr(self, func)(*args, **kwargs)
             else:
-                # cythonized aggregation and merge
+                # If func is a reduction, we need to broadcast the
+                # result to the whole group. Compute func result
+                # and deal with possible broadcasting below.
                 result = getattr(self, func)(*args, **kwargs)
         else:
             return self._transform_general(func, *args, **kwargs)
@@ -1010,7 +1012,6 @@ class SeriesGroupBy(GroupBy):
     def transform(self, func, *args, **kwargs):
         func = self._get_cython_func(func) or func
 
-        # if string function
         if isinstance(func, str):
             if not (func in base.transform_recognized_functions):
                 msg = "'%s' is not a valid function name for transform(name)"
@@ -1019,7 +1020,9 @@ class SeriesGroupBy(GroupBy):
                 # cythonized transform or canned "agg+broadcast"
                 return getattr(self, func)(*args, **kwargs)
             else:
-                # cythonized aggregation and merge
+                # If func is a reduction, we need to broadcast the
+                # result to the whole group. Compute func result
+                # and deal with possible broadcasting below.
                 return self._transform_fast(
                     lambda: getattr(self, func)(*args, **kwargs), func
                 )
