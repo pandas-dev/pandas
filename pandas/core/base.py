@@ -5,6 +5,7 @@ import builtins
 from collections import OrderedDict
 import textwrap
 import warnings
+from typing import Optional
 
 import numpy as np
 
@@ -652,7 +653,7 @@ class SelectionMixin:
                 kwargs[attr] = getattr(self, attr)
         return obj_type(obj, **kwargs)
 
-    def _get_cython_func(self, arg):
+    def _get_cython_func(self, arg: str) -> Optional[str]:
         """
         if we define an internal function for this argument, return it
         """
