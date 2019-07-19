@@ -98,6 +98,68 @@ series_apply_whitelist = (
 
 dataframe_apply_whitelist = common_apply_whitelist | frozenset(["dtypes", "corrwith"])
 
-cython_transforms = frozenset(["cumprod", "cumsum", "shift", "cummin", "cummax"])
+# cythonized transformations or canned "agg+broadcast", which do not
+# require postprocessing of the result by transform.
+cythonized_kernels = frozenset(["cumprod", "cumsum", "shift", "cummin", "cummax"])
 
 cython_cast_blacklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
+
+# List of aggregation/reduction functions.
+# These map each series/column to a single value
+reduction_functions = frozenset(
+    [
+        "sum",
+        "first",
+        "mean",
+        "all",
+        "any",
+        "bfill",
+        "corr",
+        "count",
+        "cov",
+        "idxmax",
+        "idxmin",
+        "last",
+        "mad",
+        "max",
+        "median",
+        "min",
+        "ngroup",
+        "nth",
+        "nunique",
+        "prod",
+        "quantile",
+        "sem",
+        "size",
+        "skew",
+        "std",
+        "var",
+    ]
+)
+
+# List of transformation functions.
+# These map each object to a like-indexed result object
+transformation_functions = frozenset(
+    [
+        "backfill",
+        "corrwith",
+        "cumcount",
+        "cummax",
+        "cummin",
+        "cumprod",
+        "cumsum",
+        "diff",
+        "ffill",
+        "fillna",
+        "rank",
+        "pad",
+        "pct_change",
+        "shift",
+        "tshift",
+    ]
+)
+
+# Valid values  of `name` for `groupby.transform(name)`
+transform_recognized_functions = reduction_functions | transformation_functions
+transform_recognized_functions -= \
+    {"corr"} # returns multindex, exclude from transform(name) for now.

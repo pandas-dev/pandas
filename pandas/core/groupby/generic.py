@@ -575,8 +575,11 @@ class NDFrameGroupBy(GroupBy):
         func = self._get_cython_func(func) or func
 
         if isinstance(func, str):
-            if func in base.cython_transforms:
-                # cythonized transform
+            if not (func in base.transform_recognized_functions):
+                msg = "'%s' is not a valid function name for transform(name)"
+                raise ValueError(msg % func)
+            if func in base.cythonized_kernels:
+                # cythonized transformation or canned "reduction+broadcast"
                 return getattr(self, func)(*args, **kwargs)
             else:
                 # cythonized aggregation and merge
@@ -1009,8 +1012,11 @@ class SeriesGroupBy(GroupBy):
 
         # if string function
         if isinstance(func, str):
-            if func in base.cython_transforms:
-                # cythonized transform
+            if not (func in base.transform_recognized_functions):
+                msg = "'%s' is not a valid function name for transform(name)"
+                raise ValueError(msg % func)
+            if func in base.cythonized_kernels:
+                # cythonized transform or canned "agg+broadcast"
                 return getattr(self, func)(*args, **kwargs)
             else:
                 # cythonized aggregation and merge
