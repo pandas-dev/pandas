@@ -25,7 +25,7 @@ Other enhancements
 Deprecations
 ~~~~~~~~~~~~
 
-- 
+-
 -
 
 .. _whatsnew_0260.prior_deprecations:
