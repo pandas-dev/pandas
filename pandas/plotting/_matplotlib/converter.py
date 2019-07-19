@@ -44,14 +44,7 @@ _mpl_units = {}  # Cache for units overwritten by us
 
 
 def get_pairs():
-    pairs = [
-        (tslibs.Timestamp, DatetimeConverter),
-        (Period, PeriodConverter),
-        (pydt.datetime, DatetimeConverter),
-        (pydt.date, DatetimeConverter),
-        (pydt.time, TimeConverter),
-        (np.datetime64, DatetimeConverter),
-    ]
+    pairs = [(tslibs.Timestamp, DatetimeConverter), (Period, PeriodConverter)]
     return pairs
 
 
