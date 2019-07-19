@@ -31,6 +31,9 @@ and slow. We'd like to provide a native string type for pandas.
 The most obvious alternative is Apache Arrow. Currently, Arrow provides
 storage for string data. We can work with the Arrow developers to implement
 the operations needed for pandas users (for example, ``Series.str.upper``).
+These operations could be implemented in Numba (
+as prototyped in `Fletcher <https://github.com/xhochy/fletcher>`__)
+or in the Apache Arrow C++ library.
 
 Apache Arrow Interoperability
 -----------------------------
@@ -78,6 +81,19 @@ etc.), possibly with an API similar to `DataFrame.groupby`.
 
 See https://github.com/pandas-dev/pandas/issues/10030 for more.
 
+Documentation Improvements
+--------------------------
+
+We'd like to improve the content, structure, and presentation of pandas documentation.
+Some specific goals include
+
+* Overhaul the HTML theme with a modern, responsive design.
+* Improve the "Getting Started" documentation, designing and writing learning paths
+  for users different backgrounds (e.g. brand new to programming, familiar with
+  other languages like R, already familiar with Python).
+* Improve the overall organization of the documentation and specific subsections
+  of the documentation to make navigation and finding content easier.
+
 Package Docstring Validation
 ----------------------------
 
@@ -87,7 +103,7 @@ https://github.com/pandas-dev/pandas/blob/master/scripts/validate_docstrings.py
 contains the checks.
 
 Like many other projects, pandas uses the
-[numpydoc](https://numpydoc.readthedocs.io/en/latest/) style for writing
+`numpydoc <https://numpydoc.readthedocs.io/en/latest/>`__ style for writing
 docstrings. With the collaboration of the numpydoc maintainers, we'd like to
 move the checks to a package other than pandas so that other projects can easily
 use them as well.
@@ -95,11 +111,11 @@ use them as well.
 Performance Monitoring
 ----------------------
 
-Pandas uses [airspeed velocity](https://asv.readthedocs.io/en/stable/) to
+Pandas uses `airspeed velocity <https://asv.readthedocs.io/en/stable/>`__ to
 monitor for performance regressions. ASV itself is a fabulous tool, but requires
 some additional work to be integrated into an open source project's workflow.
 
-The [asv-runner](https://github.com/asv-runner) organization, currently made up
+The `asv-runner <https://github.com/asv-runner>`__ organization, currently made up
 of pandas maintainers, provides tools built on top of ASV. We have a physical
 machine for running a number of project's benchmarks, and tools managing the
 benchmark runs and reporting on results.
@@ -112,4 +128,3 @@ We'd like to fund improvements and maintenance of these tools to
   https://pyperf.readthedocs.io/en/latest/system.html
 * Build a GitHub bot to request ASV runs *before* a PR is merged. Currently, the
   benchmarks are only run nightly.
-
