@@ -565,7 +565,7 @@ class SelectionMixin:
         else:
             result = None
 
-        f = self._is_cython_func(arg)
+        f = self._get_cython_func(arg)
         if f and not args and not kwargs:
             return getattr(self, f)(), None
 
@@ -652,7 +652,7 @@ class SelectionMixin:
                 kwargs[attr] = getattr(self, attr)
         return obj_type(obj, **kwargs)
 
-    def _is_cython_func(self, arg):
+    def _get_cython_func(self, arg):
         """
         if we define an internal function for this argument, return it
         """

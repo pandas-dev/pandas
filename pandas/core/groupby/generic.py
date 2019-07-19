@@ -572,7 +572,8 @@ class NDFrameGroupBy(GroupBy):
     def transform(self, func, *args, **kwargs):
 
         # optimized transforms
-        func = self._is_cython_func(func) or func
+        func = self._get_cython_func(func) or func
+
         if isinstance(func, str):
             if func in base.cython_transforms:
                 # cythonized transform
@@ -852,7 +853,7 @@ class SeriesGroupBy(GroupBy):
             if relabeling:
                 ret.columns = columns
         else:
-            cyfunc = self._is_cython_func(func_or_funcs)
+            cyfunc = self._get_cython_func(func_or_funcs)
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
@@ -1004,7 +1005,7 @@ class SeriesGroupBy(GroupBy):
     @Substitution(klass="Series", selected="A.")
     @Appender(_transform_template)
     def transform(self, func, *args, **kwargs):
-        func = self._is_cython_func(func) or func
+        func = self._get_cython_func(func) or func
 
         # if string function
         if isinstance(func, str):
