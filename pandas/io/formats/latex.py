@@ -254,10 +254,7 @@ class LatexFormatter(TableFormatter):
             for 3 columns
 
         """
-        if self.caption is None and self.label is None:
-            # then write output only in a tabular environment
-            pass
-        else:
+        if self.caption is not None or self.label is not None:
             # then write output in a nested table/tabular environment
             if self.caption is None:
                 caption_ = ''
@@ -273,6 +270,9 @@ class LatexFormatter(TableFormatter):
                 caption_,
                 label_
             ))
+        else:
+            # then write output only in a tabular environment
+            pass
 
         buf.write('\\begin{{tabular}}{{{fmt}}}\n'.format(fmt=column_format))
 
@@ -290,10 +290,10 @@ class LatexFormatter(TableFormatter):
         """
         buf.write('\\bottomrule\n')
         buf.write('\\end{tabular}\n')
-        if self.caption is None and self.label is None:
-            pass
-        else:
+        if self.caption is not None or self.label is not None:
             buf.write('\\end{table}\n')
+        else:
+            pass
 
     def _write_longtable_begin(self, buf, column_format):
         """
@@ -313,9 +313,7 @@ class LatexFormatter(TableFormatter):
         """
         buf.write('\\begin{{longtable}}{{{fmt}}}\n'.format(fmt=column_format))
 
-        if self.caption is None and self.label is None:
-            pass
-        else:
+        if self.caption is not None or self.label is not None:
             if self.caption is None:
                 pass
             else:
@@ -330,6 +328,8 @@ class LatexFormatter(TableFormatter):
             # as discussed here:
             # https://tex.stackexchange.com/questions/219138
             buf.write('\\\\\n')
+        else:
+            pass
 
     @staticmethod
     def _write_longtable_end(buf):
