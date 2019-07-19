@@ -480,8 +480,6 @@ def crosstab(
         - If passed 'columns' will normalize over each column.
         - If margins is `True`, will also normalize margin values.
 
-        .. versionadded:: 0.18.1
-
     Returns
     -------
     DataFrame
