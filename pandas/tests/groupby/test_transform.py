@@ -18,6 +18,7 @@ from pandas import (
     concat,
     date_range,
 )
+from pandas.core.groupby.base import reduction_functions
 from pandas.core.groupby.groupby import DataError
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -1010,6 +1011,7 @@ def test_transform_invalid_name_raises():
         g.transform("some_arbitrary_name")
 
     # method exists on the object, but is not a valid transformation/agg
+    assert hasattr(g, "aggregate")  # make sure the method exists
     with pytest.raises(ValueError, match="not a valid function name"):
         g.transform("aggregate")
 
@@ -1021,9 +1023,6 @@ def test_transform_invalid_name_raises():
     # method exists on the object, but is not a valid transformation/agg
     with pytest.raises(ValueError, match="not a valid function name"):
         g.transform("aggregate")
-
-
-from pandas.core.groupby.base import reduction_functions
 
 
 @pytest.mark.parametrize("func", reduction_functions)

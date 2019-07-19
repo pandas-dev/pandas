@@ -161,5 +161,6 @@ transformation_functions = frozenset(
 
 # Valid values  of `name` for `groupby.transform(name)`
 transform_recognized_functions = reduction_functions | transformation_functions
-transform_recognized_functions -= \
-    {"corr"} # returns multindex, exclude from transform(name) for now.
+transform_recognized_functions -= {
+    "corr"
+}  # returns multindex, exclude from transform(name) for now.
