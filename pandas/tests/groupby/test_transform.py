@@ -1025,7 +1025,7 @@ def test_transform_invalid_name_raises():
         g.transform("aggregate")
 
 
-@pytest.mark.parametrize("func", reduction_functions)
+@pytest.mark.parametrize("func", sorted(reduction_functions))
 def test_transform_agg_by_name(func):
 
     df = DataFrame(dict(a=[0, 0, 0, 1, 1, 1], b=range(6)))
