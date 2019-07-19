@@ -1398,7 +1398,6 @@ void NpyArr_freeLabels(char **labels, npy_intp len) {
  * labels: a list-like object of labels to encode
  * enc: JSON encoder
  * num: number of labels
- * should_quote: bool as to whether or not quoting should be done here
  *
  * This function takes care of encoding labels in one pass and is
  * typically used for the columns or labels when a DataFrame or Series.
