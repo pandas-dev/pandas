@@ -1148,6 +1148,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Examples
         --------
         %(examples)s
+        >>> intervals.contains(0.5)
+        array([ True, False, False])
     """
     )
 
@@ -1156,14 +1158,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         % dict(
             klass="IntervalArray",
             examples=textwrap.dedent(
-                """
+                """\
         >>> intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 3), (2, 4)])
         >>> intervals
         <IntervalArray>
         [(0, 1], (1, 3], (2, 4]]
         Length: 3, closed: right, dtype: interval[int64]
-        >>> intervals.contains(0.5)
-        array([ True, False, False])
         """
             ),
         )
