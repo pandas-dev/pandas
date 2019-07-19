@@ -1241,18 +1241,10 @@ char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
     // TODO: index is incremented before iteration completes which is unfortunate
     // Need to align with SPLIT format and then can maybe increment here for clarity
     int index = GET_TC(tc)->index - 1;
-    char * cStr = GET_TC(tc)->columnLabels[index];
-    
-    // TODO: we are manually removing quotes and a trailing colon because ujson will add as required
-    // but we already have them from the NpyArr_encodeLabels call. Should comprehensively
-    // refactor to get rid of that method entirely so as not to do this
-    int len = strlen(cStr);
-    // increment pointer to next character and remove trailing quote
-    cStr++;
-    cStr[len - 3] = 0;
-    *outLen = len - 3;
 
-    return cStr;
+    // Also TODO: return a value here rather than having NpyArr_getLabel modify output buf
+    NpyArr_getLabel(obj, tc, outLen, index, GET_TC(tc)->columnLabels);
+    return NULL;
   }
 }
 

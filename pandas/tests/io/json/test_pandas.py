@@ -82,7 +82,6 @@ class TestPandasContainer:
         del self.tsframe
         del self.mixed_frame
 
-    @pytest.mark.skip("Need to change JSON approach")
     def test_frame_double_encoded_labels(self):
         df = DataFrame(
             [["a", "b"], ["c", "d"]],
