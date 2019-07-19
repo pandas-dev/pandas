@@ -82,6 +82,7 @@ class TestPandasContainer:
         del self.tsframe
         del self.mixed_frame
 
+    @pytest.mark.skip("Need to change JSON approach")
     def test_frame_double_encoded_labels(self):
         df = DataFrame(
             [["a", "b"], ["c", "d"]],
@@ -144,6 +145,7 @@ class TestPandasContainer:
                 df.to_json(orient="split"), orient="split", convert_dates=["x"]
             )
             assert_frame_equal(result, df)
+
 
         for o in [
             [["a", "b"], ["c", "d"]],
@@ -449,7 +451,6 @@ class TestPandasContainer:
         )
 
         # time series data
-        breakpoint()
         _check_all_orients(self.tsframe)
 
         # mixed data

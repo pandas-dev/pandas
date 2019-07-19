@@ -1856,7 +1856,14 @@ ISITERABLE:
       if (enc->outputFormat == INDEX || enc->outputFormat == COLUMNS) {
 	PRINTMARK();
 	tc->type = JT_OBJECT;
-	tmpObj = PyObject_GetAttrString(obj, "columns");
+
+	char *attr;
+	if (enc->outputFormat == INDEX)
+	  attr = "index";
+	else
+	  attr = "columns";
+
+	tmpObj = PyObject_GetAttrString(obj, attr);
 	if (!tmpObj) {
 	  goto INVALID;
 	}
