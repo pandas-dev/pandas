@@ -240,8 +240,19 @@ class LatexFormatter(TableFormatter):
 
     def _write_tabular_begin(self, buf, column_format):
         """
-        write the beginning of a tabular environment or
-        nested table/tabular environments including caption and label
+        Write the beginning of a tabular environment or
+        nested table/tabular environments including caption and label.
+
+        Parameters
+        ----------
+        buf : string or file handle
+            File path or object. If not specified, the result is returned as
+            a string.
+        column_format : str, default None
+            The columns format as specified in `LaTeX table format
+            <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
+            for 3 columns
+
         """
         if self.caption is None and self.label is None:
             # then write output only in a tabular environment
@@ -267,8 +278,19 @@ class LatexFormatter(TableFormatter):
 
     def _write_longtable_begin(self, buf, column_format):
         """
-        write the beginning of a longtable environment including caption and
-        label if provided by user
+        Write the beginning of a longtable environment including caption and
+        label if provided by user.
+
+        Parameters
+        ----------
+        buf : string or file handle
+            File path or object. If not specified, the result is returned as
+            a string.
+        column_format : str, default None
+            The columns format as specified in `LaTeX table format
+            <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
+            for 3 columns
+
         """
         buf.write('\\begin{{longtable}}{{{fmt}}}\n'.format(fmt=column_format))
 
@@ -292,8 +314,15 @@ class LatexFormatter(TableFormatter):
 
     def _write_tabular_end(self, buf):
         """
-        write the end of a tabular environment or nested table/tabular
-        environment
+        Write the end of a tabular environment or nested table/tabular
+        environment.
+
+        Parameters
+        ----------
+        buf : string or file handle
+            File path or object. If not specified, the result is returned as
+            a string.
+
         """
         buf.write('\\bottomrule\n')
         buf.write('\\end{tabular}\n')
@@ -305,6 +334,13 @@ class LatexFormatter(TableFormatter):
     @staticmethod
     def _write_longtable_end(buf):
         """
-        write the end of a longtable environment
+        Write the end of a longtable environment.
+
+        Parameters
+        ----------
+        buf : string or file handle
+            File path or object. If not specified, the result is returned as
+            a string.
+
         """
         buf.write('\\end{longtable}\n')
