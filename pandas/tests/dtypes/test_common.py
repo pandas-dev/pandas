@@ -527,23 +527,6 @@ def test_is_datetimelike_v_numeric():
     assert com.is_datetimelike_v_numeric(np.array([dt]), np.array([1]))
 
 
-def test_is_datetimelike_v_object():
-    obj = object()
-    dt = np.datetime64(pd.datetime(2017, 1, 1))
-
-    assert not com.is_datetimelike_v_object(dt, dt)
-    assert not com.is_datetimelike_v_object(obj, obj)
-    assert not com.is_datetimelike_v_object(np.array([dt]), np.array([1]))
-    assert not com.is_datetimelike_v_object(np.array([dt]), np.array([dt]))
-    assert not com.is_datetimelike_v_object(np.array([obj]), np.array([obj]))
-
-    assert com.is_datetimelike_v_object(dt, obj)
-    assert com.is_datetimelike_v_object(obj, dt)
-    assert com.is_datetimelike_v_object(np.array([dt]), obj)
-    assert com.is_datetimelike_v_object(np.array([obj]), dt)
-    assert com.is_datetimelike_v_object(np.array([dt]), np.array([obj]))
-
-
 def test_needs_i8_conversion():
     assert not com.needs_i8_conversion(str)
     assert not com.needs_i8_conversion(np.int64)

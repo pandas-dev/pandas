@@ -254,6 +254,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         return cls(ordinals, freq=freq)
 
     @classmethod
+    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+        return cls._from_sequence(strings, dtype, copy)
+
+    @classmethod
     def _from_datetime64(cls, data, freq, tz=None):
         """
         Construct a PeriodArray from a datetime64 array

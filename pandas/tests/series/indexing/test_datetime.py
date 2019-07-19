@@ -764,3 +764,14 @@ def test_round_nat(method, freq):
     expected = Series(pd.NaT)
     round_method = getattr(s.dt, method)
     assert_series_equal(round_method(freq), expected)
+
+
+def test_setitem_tuple_with_datetimetz():
+    # GH 20441
+    arr = date_range("2017", periods=4, tz="US/Eastern")
+    index = [(0, 1), (0, 2), (0, 3), (0, 4)]
+    result = Series(arr, index=index)
+    expected = result.copy()
+    result[(0, 1)] = np.nan
+    expected.iloc[0] = np.nan
+    assert_series_equal(result, expected)

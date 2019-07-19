@@ -76,7 +76,8 @@ cdef inline bint is_integer_object(object obj) nogil:
     -----
     This counts np.timedelta64 objects as integers.
     """
-    return not PyBool_Check(obj) and PyArray_IsIntegerScalar(obj)
+    return (not PyBool_Check(obj) and PyArray_IsIntegerScalar(obj)
+            and not is_timedelta64_object(obj))
 
 
 cdef inline bint is_float_object(object obj) nogil:

@@ -963,6 +963,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
+        repeats = ensure_platform_int(repeats)
         nv.validate_repeat(tuple(), dict(axis=axis))
         return self._shallow_copy(self._values.repeat(repeats))
 
@@ -5638,6 +5639,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         cls.all = make_invalid_op("all")
         cls.any = make_invalid_op("any")
+
+    @property
+    def shape(self):
+        """
+        Return a tuple of the shape of the underlying data.
+        """
+        return (len(self),)
 
 
 Index._add_numeric_methods_disabled()
