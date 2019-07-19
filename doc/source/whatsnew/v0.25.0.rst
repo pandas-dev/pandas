@@ -1,7 +1,7 @@
 .. _whatsnew_0250:
 
-What's new in 0.25.0 (April XX, 2019)
--------------------------------------
+What's new in 0.25.0 (July 18, 2019)
+------------------------------------
 
 .. warning::
 
@@ -181,6 +181,28 @@ The repr now looks like this:
     }]
     json_normalize(data, max_level=1)
 
+
+.. _whatsnew_0250.enhancements.explode:
+
+Series.explode to split list-like values to rows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Series` and :class:`DataFrame` have gained the :meth:`DataFrame.explode` methods to transform list-likes to individual rows. See :ref:`section on Exploding list-like column <reshaping.explode>` in docs for more information (:issue:`16538`, :issue:`10511`)
+
+
+Here is a typical usecase. You have comma separated string in a column.
+
+.. ipython:: python
+
+    df = pd.DataFrame([{'var1': 'a,b,c', 'var2': 1},
+                       {'var1': 'd,e,f', 'var2': 2}])
+    df
+
+Creating a long form ``DataFrame`` is now straightforward using chained operations
+
+.. ipython:: python
+
+    df.assign(var1=df.var1.str.split(',')).explode('var1')
 
 .. _whatsnew_0250.enhancements.other:
 
@@ -981,6 +1003,7 @@ Performance improvements
 - For :meth:`to_datetime` changed default value of cache parameter to ``True`` (:issue:`26043`)
 - Improved performance of :class:`DatetimeIndex` and :class:`PeriodIndex` slicing given non-unique, monotonic data (:issue:`27136`).
 - Improved performance of :meth:`pd.read_json` for index-oriented data. (:issue:`26773`)
+- Improved performance of :meth:`MultiIndex.shape` (:issue:`27384`).
 
 .. _whatsnew_0250.bug_fixes:
 
@@ -1244,4 +1267,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.24.x..HEAD
+.. contributors:: 0.24.x..HEAD
