@@ -4874,12 +4874,21 @@ class NDFrame(PandasObject, SelectionMixin):
         falcon    2
         Name: num_legs, dtype: int64
 
-        A random 50% sample of the ``DataFrame`` with replacement:
+        A random 50% sample of the ``DataFrame``:
 
-        >>> df.sample(frac=0.5, replace=True, random_state=1)
+        >>> df.sample(frac=0.5, random_state=1)
               num_legs  num_wings  num_specimen_seen
         dog          4          0                  2
         fish         0          0                  8
+
+        Extract 4 random elements with replacement:
+
+        >>> df.sample(n=4, replace=True, random_state=1)
+                num_legs  num_wings  num_specimen_seen
+        dog            4          0                  2
+        fish           0          0                  8
+        falcon         2          2                 10
+        falcon         2          2                 10
 
         Using a DataFrame column as weights. Rows with larger value in the
         `num_specimen_seen` column are more likely to be sampled.
