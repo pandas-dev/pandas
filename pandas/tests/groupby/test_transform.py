@@ -18,7 +18,6 @@ from pandas import (
     concat,
     date_range,
 )
-from pandas.core.groupby.base import reduction_functions
 from pandas.core.groupby.groupby import DataError
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -1025,9 +1024,8 @@ def test_transform_invalid_name_raises():
         g.transform("aggregate")
 
 
-@pytest.mark.parametrize("func", sorted(reduction_functions))
-def test_transform_agg_by_name(func):
-
+def test_transform_agg_by_name(reduction_func):
+    func = reduction_func
     df = DataFrame(dict(a=[0, 0, 0, 1, 1, 1], b=range(6)))
     g = df.groupby(np.repeat([0, 1], 3))
 

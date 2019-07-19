@@ -102,3 +102,10 @@ def three_group():
             "F": np.random.randn(11),
         }
     )
+
+
+from pandas.core.groupby.base import reduction_functions
+
+@pytest.fixture(params=sorted(reduction_functions))
+def reduction_func(request):
+    return request.param
