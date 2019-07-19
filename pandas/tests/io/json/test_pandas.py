@@ -146,7 +146,6 @@ class TestPandasContainer:
             )
             assert_frame_equal(result, df)
 
-
         for o in [
             [["a", "b"], ["c", "d"]],
             [[1.5, 2.5], [3.5, 4.5]],
