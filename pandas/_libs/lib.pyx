@@ -1236,7 +1236,9 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         # e.g. categoricals
         try:
             values = getattr(value, '_values', getattr(value, 'values', value))
-        except:
+        except TypeError:
+            # This gets hit if we have an EA, since cython expects `values`
+            #  to be an ndarray
             value = _try_infer_map(value)
             if value is not None:
                 return value
@@ -1251,8 +1253,6 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         from pandas.core.dtypes.cast import (
             construct_1d_object_array_from_listlike)
         values = construct_1d_object_array_from_listlike(value)
-
-    values = getattr(values, 'values', values)
 
     # make contiguous
     values = values.ravel()

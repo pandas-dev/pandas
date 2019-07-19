@@ -149,7 +149,7 @@ class PandasExtensionDtype(ExtensionDtype):
         return str(self)
 
     def __hash__(self) -> int:
-        raise NotImplementedError("sub-classes should implement an __hash__ " "method")
+        raise NotImplementedError("sub-classes should implement an __hash__ method")
 
     def __getstate__(self) -> Dict[str_type, Any]:
         # pickle support; we don't want to pickle the cache
@@ -320,7 +320,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                     raise ValueError(msg.format(dtype=dtype))
             elif categories is not None or ordered is not None:
                 raise ValueError(
-                    "Cannot specify `categories` or `ordered` " "together with `dtype`."
+                    "Cannot specify `categories` or `ordered` together with `dtype`."
                 )
         elif is_categorical(values):
             # If no "dtype" was passed, use the one from "values", but honor
