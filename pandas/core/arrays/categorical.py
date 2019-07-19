@@ -51,12 +51,12 @@ from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import (
+    _get_data_algo,
+    _hashtables,
     factorize,
     take,
     take_1d,
     unique1d,
-    _get_data_algo,
-    _hashtables,
 )
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com

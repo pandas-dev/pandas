@@ -12,7 +12,7 @@ from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
 
 from .base import ExtensionDtype
-from .inference import is_list_like, is_bool
+from .inference import is_bool, is_list_like
 
 str_type = str
 
