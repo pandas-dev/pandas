@@ -1850,6 +1850,9 @@ ISITERABLE:
       else
 	tc->type = JT_OBJECT;
 
+      // TODO: calling these columnLabels with INDEX formatting is confusing,
+      // but there's not really a need to have both columnLabels and rowLabels
+      // anyway; subsequent refactor should just make these labels
       if (enc->outputFormat == INDEX || enc->outputFormat == COLUMNS) {
 	PRINTMARK();
 	tc->type = JT_OBJECT;
