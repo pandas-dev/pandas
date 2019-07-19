@@ -590,7 +590,7 @@ class NDFrameGroupBy(GroupBy):
 
         obj = self._obj_with_exclusions
 
-        # nuiscance columns
+        # nuisance columns
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)
 
