@@ -1040,7 +1040,6 @@ def test_transform_agg_by_name(func):
 
     args = {"nth": [0], "quantile": [0.5]}.get(func, [])
 
-    print(func)
     result = g.transform(func, *args)
     tm.assert_index_equal(result.index, df.index)
 
