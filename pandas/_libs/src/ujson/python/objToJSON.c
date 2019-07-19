@@ -254,6 +254,7 @@ static PyObject *get_values(PyObject *obj) {
         }
     }
 
+    // For Categorical et al
     if (!values && PyObject_HasAttrString(obj, "_internal_get_values")) {
         PRINTMARK();
         values = PyObject_CallMethod(obj, "_internal_get_values", NULL);
@@ -287,36 +288,6 @@ static PyObject *get_values(PyObject *obj) {
     return values;
 }
 
-static PyObject *get_sub_attr(PyObject *obj, char *attr, char *subAttr) {
-    PyObject *tmp = PyObject_GetAttrString(obj, attr);
-    PyObject *ret;
-
-    if (tmp == 0) {
-        return 0;
-    }
-    ret = PyObject_GetAttrString(tmp, subAttr);
-    Py_DECREF(tmp);
-
-    return ret;
-}
-
-static Py_ssize_t get_attr_length(PyObject *obj, char *attr) {
-    PyObject *tmp = PyObject_GetAttrString(obj, attr);
-    Py_ssize_t ret;
-
-    if (tmp == 0) {
-        return 0;
-    }
-    ret = PyObject_Length(tmp);
-    Py_DECREF(tmp);
-
-    if (ret == -1) {
-        return 0;
-    }
-
-    return ret;
-}
-
 static npy_int64 get_long_attr(PyObject *o, const char *attr) {
   npy_int64 long_val;
   PyObject *value = PyObject_GetAttrString(o, attr);
@@ -332,19 +303,6 @@ static npy_float64 total_seconds(PyObject *td) {
   double_val = PyFloat_AS_DOUBLE(value);
   Py_DECREF(value);
   return double_val;
-}
-
-static PyObject *get_item(PyObject *obj, Py_ssize_t i) {
-    PyObject *tmp = PyLong_FromSsize_t(i);
-    PyObject *ret;
-
-    if (tmp == 0) {
-        return 0;
-    }
-    ret = PyObject_GetItem(obj, tmp);
-    Py_DECREF(tmp);
-
-    return ret;
 }
 
 static void *CDouble(JSOBJ obj, JSONTypeContext *tc, void *outValue,
