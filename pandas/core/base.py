@@ -4,8 +4,8 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
-import warnings
 from typing import Optional
+import warnings
 
 import numpy as np
 

@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, MultiIndex
+from pandas.core.groupby.base import reduction_functions
 from pandas.util import testing as tm
 
 
@@ -103,8 +104,6 @@ def three_group():
         }
     )
 
-
-from pandas.core.groupby.base import reduction_functions
 
 @pytest.fixture(params=sorted(reduction_functions))
 def reduction_func(request):
