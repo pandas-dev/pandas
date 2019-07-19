@@ -1533,7 +1533,10 @@ class PlotAccessor(PandasObject):
         return self(kind="hexbin", x=x, y=y, C=C, **kwargs)
 
 
-def _get_plot_backend(backend=None):
+_backends = {}
+
+
+def _get_plot_backend(backend="matplotlib"):
     """
     Return the plotting backend to use (e.g. `pandas.plotting._matplotlib`).
 
@@ -1546,7 +1549,23 @@ def _get_plot_backend(backend=None):
     The backend is imported lazily, as matplotlib is a soft dependency, and
     pandas can be used without it being installed.
     """
-    backend_str = backend or pandas.get_option("plotting.backend")
-    if backend_str == "matplotlib":
-        backend_str = "pandas.plotting._matplotlib"
-    return importlib.import_module(backend_str)
+    import pkg_resources  # Delay import for performance.
+
+    if backend in _backends:
+        return _backends[backend]
+
+    for entry_point in pkg_resources.iter_entry_points("pandas_plotting_backends"):
+        _backends[entry_point.name] = entry_point.load()
+
+    try:
+        return _backends[backend]
+    except KeyError:
+        try:
+            module = importlib.import_module(backend)
+        except ImportError:
+            pass
+        else:
+            _backends[backend] = module
+            return module
+
+    raise ValueError("No backend {}".format(backend))
