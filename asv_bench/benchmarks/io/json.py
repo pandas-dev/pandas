@@ -152,7 +152,7 @@ class ToJSONMem:
 
     def mem_int(self, frames):
         df = frames["wide"]
-        wide.to_json()
+        df.to_json()
 
     def peakmem_int(self, frames):
         df = frames["int"]
