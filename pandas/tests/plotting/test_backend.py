@@ -74,4 +74,12 @@ def test_register_import():
 
 
 def test_no_matplotlib_ok():
-    pass
+    try:
+        import matplotlib  # noqa
+    except ImportError:
+        pass
+    else:
+        raise pytest.skip("matplotlib installed.")
+
+    with pytest.raises(ImportError):
+        pandas.plotting._core._get_plot_backend("matplotlib")

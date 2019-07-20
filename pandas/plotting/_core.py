@@ -1554,6 +1554,12 @@ def _get_plot_backend(backend="matplotlib"):
     if backend in _backends:
         return _backends[backend]
 
+    if backend == "matplotlib":
+        # Because matplotlib is an optional dependency and first party backend,
+        # we need to attempt an import here. Without this import, we get an
+        # AttributeError raised by pkg_resources.
+        import matplotlib  # noqa
+
     for entry_point in pkg_resources.iter_entry_points("pandas_plotting_backends"):
         _backends[entry_point.name] = entry_point.load()
 
