@@ -537,7 +537,8 @@ class TestInference:
         arr[0] = np.datetime64('2000-01-01')
         arr[1] = np.timedelta64(1, 's')
         exp = arr.copy()
-        tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
+        out = lib.maybe_convert_objects(arr, 1, 1, 1, 1)
+        tm.assert_numpy_array_equal(out, exp)
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956

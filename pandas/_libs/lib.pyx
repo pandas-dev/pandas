@@ -2049,7 +2049,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             else:
                 if not seen.bool_:
                     if seen.datetime_:
-                        if not seen.numeric and _not seen.timedelta_:
+                        if not seen.numeric_ and not seen.timedelta_:
                             return datetimes
                     elif seen.timedelta_:
                         if not seen.numeric_:
