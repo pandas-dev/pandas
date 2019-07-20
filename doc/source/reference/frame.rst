@@ -239,6 +239,7 @@ Reshaping, sorting, transposing
    DataFrame.unstack
    DataFrame.swapaxes
    DataFrame.melt
+   DataFrame.explode
    DataFrame.squeeze
    DataFrame.to_xarray
    DataFrame.T
