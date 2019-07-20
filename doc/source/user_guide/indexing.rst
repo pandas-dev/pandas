@@ -67,8 +67,6 @@ of multi-axis indexing.
     * A ``callable`` function with one argument (the calling Series or DataFrame) and
       that returns valid output for indexing (one of the above).
 
-      .. versionadded:: 0.18.1
-
   See more at :ref:`Selection by Label <indexing.label>`.
 
 * ``.iloc`` is primarily integer position based (from ``0`` to
@@ -537,8 +535,6 @@ A list of indexers where any element is out of bounds will raise an
 
 Selection by callable
 ---------------------
-
-.. versionadded:: 0.18.1
 
 ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer.
 The ``callable`` must be a function with one argument (the calling Series or DataFrame) that returns valid output for indexing.
