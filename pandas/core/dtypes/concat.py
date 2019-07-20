@@ -142,12 +142,12 @@ def concat_compat(to_concat, axis=0):
     _contains_period = any(typ.startswith("period") for typ in typs)
 
     if "category" in typs:
-        # this must be prior to _concat_datetime,
+        # this must be prior to concat_datetime,
         # to support Categorical + datetime-like
         return concat_categorical(to_concat, axis=axis)
 
     elif _contains_datetime or "timedelta" in typs or _contains_period:
-        return _concat_datetime(to_concat, axis=axis, typs=typs)
+        return concat_datetime(to_concat, axis=axis, typs=typs)
 
     # these are mandated to handle empties as well
     elif "sparse" in typs:
@@ -404,7 +404,7 @@ def _concatenate_2d(to_concat, axis):
     return np.concatenate(to_concat, axis=axis)
 
 
-def _concat_datetime(to_concat, axis=0, typs=None):
+def concat_datetime(to_concat, axis=0, typs=None):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
     single M8[ns], datetimet64[ns, tz] or m8[ns] dtype
