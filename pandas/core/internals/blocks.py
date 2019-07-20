@@ -2783,7 +2783,6 @@ class ObjectBlock(Block):
         """
         return lib.is_bool_array(self.values.ravel())
 
-    # TODO: Refactor when convert_objects is removed since there will be 1 path
     def convert(
         self,
         copy: bool = True,
