@@ -9,7 +9,7 @@ from typing import Any, Callable
 
 import numpy as np
 
-from pandas._libs import Timedelta, Timestamp, lib, ops as libops
+from pandas._libs import Timedelta, lib, ops as libops
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
