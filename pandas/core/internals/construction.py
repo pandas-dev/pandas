@@ -34,6 +34,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
+    is_named_tuple,
     is_object_dtype,
     pandas_dtype,
 )
@@ -460,12 +461,12 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
             if columns is not None:
                 return [[]] * len(columns), columns
         return [], []  # columns if columns is not None else []
-    if isinstance(data[0], (list, tuple)):
-        return _list_to_arrays(data, columns, coerce_float=coerce_float, dtype=dtype)
-    elif isinstance(data[0], abc.Mapping):
-        return _list_of_dict_to_arrays(
+    if isinstance(data[0], abc.Mapping) or is_named_tuple(data[0]):
+        return _list_of_records_to_arrays(
             data, columns, coerce_float=coerce_float, dtype=dtype
         )
+    elif isinstance(data[0], (list, tuple)):
+        return _list_to_arrays(data, columns, coerce_float=coerce_float, dtype=dtype)
     elif isinstance(data[0], ABCSeries):
         return _list_of_series_to_arrays(
             data, columns, coerce_float=coerce_float, dtype=dtype
@@ -535,8 +536,8 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
         return values.T, columns
 
 
-def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
-    """Convert list of dicts to numpy arrays
+def _list_of_records_to_arrays(data, columns, coerce_float=False, dtype=None):
+    """Convert list of OrderedDict to numpy array
 
     if `columns` is not passed, column names are inferred from the records
     - for OrderedDict and (on Python>=3.6) dicts, the column names match
@@ -556,17 +557,19 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     tuple
         arrays, columns
     """
-    if columns is None:
-        gen = (list(x.keys()) for x in data)
-        types = (dict, OrderedDict) if PY36 else OrderedDict
-        sort = not any(isinstance(d, types) for d in data)
+    if not PY36 and columns is None:
+        gen = (list(x.keys() if hasattr(x, "keys") else x._fields) for x in data)
+        sort = not any(isinstance(d, OrderedDict) or is_named_tuple(d) for d in data)
         columns = lib.fast_unique_multiple_list_gen(gen, sort=sort)
+    else:
+        columns = list(columns) if columns is not None else []
 
     # assure that they are of the base dict class and not of derived
     # classes
-    data = [(type(d) is dict) and d or dict(d) for d in data]
-
-    content = list(lib.dicts_to_array(data, list(columns)).T)
+    data = [
+        ((type(d) is dict) and d) or (is_named_tuple(d) and d) or dict(d) for d in data
+    ]
+    columns, content = lib.dicts_to_array(data, columns)
     return _convert_object_array(
         content, columns, dtype=dtype, coerce_float=coerce_float
     )

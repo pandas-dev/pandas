@@ -3,7 +3,7 @@
 from collections import abc
 from numbers import Number
 import re
-from typing import Pattern
+from typing import NamedTuple, Pattern
 
 import numpy as np
 
@@ -380,7 +380,9 @@ def is_named_tuple(obj):
     False
     """
 
-    return isinstance(obj, tuple) and hasattr(obj, "_fields")
+    return isinstance(obj, NamedTuple) or (
+        isinstance(obj, tuple) and hasattr(obj, "_fields")
+    )
 
 
 def is_hashable(obj):
