@@ -181,14 +181,18 @@ class CategoricalFormatter:
             else:
                 return ""
 
-        values = [i.strip() for i in self._get_formatted_values()]
-        lines = ["[" + ", ".join(values) + "]"]
+        fmt_values = self._get_formatted_values()
+
+        fmt_values = ["{i}".format(i=i) for i in fmt_values]
+        fmt_values = [i.strip() for i in fmt_values]
+        values = ", ".join(fmt_values)
+        result = ["[" + values + "]"]
         if self.footer:
             footer = self._get_footer()
             if footer:
-                lines.append(footer)
+                result.append(footer)
 
-        return str("\n".join(lines))
+        return str("\n".join(result))
 
 
 class SeriesFormatter:
@@ -956,11 +960,13 @@ class DataFrameFormatter(TableFormatter):
             return adjoined
 
     def _get_column_name_list(self) -> List[str]:
+        names = []  # type: List[str]
         columns = self.frame.columns
         if isinstance(columns, ABCMultiIndex):
-            return ["" if name is None else name for name in columns.names]
+            names.extend("" if name is None else name for name in columns.names)
         else:
-            return ["" if columns.name is None else columns.name]
+            names.append("" if columns.name is None else columns.name)
+        return names
 
 
 # ----------------------------------------------------------------------
