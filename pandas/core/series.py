@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import iNaT, index as libindex, lib, tslibs
+from pandas._libs import iNaT, index as libindex, lib, reshape, tslibs
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_iterator,
     is_list_like,
+    is_object_dtype,
     is_scalar,
     is_string_like,
     is_timedelta64_dtype,
@@ -46,6 +47,7 @@ from pandas.core.dtypes.generic import (
     ABCSparseSeries,
 )
 from pandas.core.dtypes.missing import (
+    is_valid_nat_for_dtype,
     isna,
     na_value_for_dtype,
     notna,
@@ -1198,13 +1200,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     pass
                 elif is_timedelta64_dtype(self.dtype):
                     # reassign a null value to iNaT
-                    if isna(value):
+                    if is_valid_nat_for_dtype(value, self.dtype):
+                        # exclude np.datetime64("NaT")
                         value = iNaT
 
                         try:
                             self.index._engine.set_value(self._values, key, value)
                             return
-                        except TypeError:
+                        except (TypeError, ValueError):
+                            # ValueError appears in only some builds in CI
                             pass
 
                 self.loc[key] = value
@@ -2007,7 +2011,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        Generate an Series with duplicated entries.
+        Generate a Series with duplicated entries.
 
         >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'],
         ...               name='animal')
@@ -2346,8 +2350,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         q : float or array-like, default 0.5 (50% quantile)
             0 <= q <= 1, the quantile(s) to compute.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
-            .. versionadded:: 0.18.0
-
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
@@ -3635,6 +3637,62 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result.index = result.index.reorder_levels(order)
         return result
 
+    def explode(self) -> "Series":
+        """
+        Transform each element of a list-like to a row, replicating the
+        index values.
+
+        .. versionadded:: 0.25.0
+
+        Returns
+        -------
+        Series
+            Exploded lists to rows; index will be duplicated for these rows.
+
+        See Also
+        --------
+        Series.str.split : Split string values on specified separator.
+        Series.unstack : Unstack, a.k.a. pivot, Series with MultiIndex
+            to produce DataFrame.
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format
+        DataFrame.explode : Explode a DataFrame from list-like
+            columns to long format.
+
+        Notes
+        -----
+        This routine will explode list-likes including lists, tuples,
+        Series, and np.ndarray. The result dtype of the subset rows will
+        be object. Scalars will be returned unchanged. Empty list-likes will
+        result in a np.nan for that row.
+
+        Examples
+        --------
+        >>> s = pd.Series([[1, 2, 3], 'foo', [], [3, 4]])
+        >>> s
+        0    [1, 2, 3]
+        1          foo
+        2           []
+        3       [3, 4]
+        dtype: object
+
+        >>> s.explode()
+        0      1
+        0      2
+        0      3
+        1    foo
+        2    NaN
+        3      3
+        3      4
+        dtype: object
+        """
+        if not len(self) or not is_object_dtype(self):
+            return self.copy()
+
+        values, counts = reshape.explode(np.asarray(self.array))
+
+        result = Series(values, index=self.index.repeat(counts), name=self.name)
+        return result
+
     def unstack(self, level=-1, fill_value=None):
         """
         Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
@@ -3646,8 +3704,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Level(s) to unstack, can pass level name.
         fill_value : scalar value, default None
             Value to use when replacing NaN values.
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------
