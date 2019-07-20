@@ -827,13 +827,10 @@ and that the transformed data contains no NAs.
 
 .. _groupby.transform.window_resample:
 
-New syntax to window and resample operations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. versionadded:: 0.18.1
+Window and resample operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Working with the resample, expanding or rolling operations on the groupby
-level used to require the application of helper functions. However,
-now it is possible to use ``resample()``, ``expanding()`` and
+It is possible to use ``resample()``, ``expanding()`` and
 ``rolling()`` as methods on groupbys.
 
 The example below will apply the ``rolling()`` method on the samples of
