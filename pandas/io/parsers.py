@@ -277,9 +277,6 @@ compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
     following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
     decompression). If using 'zip', the ZIP file must contain only one data
     file to be read in. Set to None for no decompression.
-
-    .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
-
 thousands : str, optional
     Thousands separator.
 decimal : str, default '.'

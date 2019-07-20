@@ -3055,8 +3055,6 @@ class DataFrame(NDFrame):
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by :meth:`DataFrame.query`.
 
-            .. versionadded:: 0.18.0
-
         Returns
         -------
         DataFrame
@@ -5271,11 +5269,6 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
-
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
         """
         result = self.copy()
 
@@ -8180,8 +8173,6 @@ class DataFrame(NDFrame):
             * higher: `j`.
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------
