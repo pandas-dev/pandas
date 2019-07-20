@@ -194,7 +194,7 @@ Other
 ^^^^^
 
 
-.. _whatsnew_0.250.contributors:
+.. _whatsnew_1000.contributors:
 
 Contributors
 ~~~~~~~~~~~~
