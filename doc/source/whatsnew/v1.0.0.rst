@@ -193,6 +193,7 @@ ExtensionArray
 Other
 ^^^^^
 
+- Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
 
 .. _whatsnew_1000.contributors:
 
