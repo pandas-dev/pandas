@@ -647,13 +647,9 @@ class TestFrameArithmetic:
         # GH#27415
         op = all_arithmetic_operators
         ind = pd.CategoricalIndex(pd.interval_range(start=0.0, end=2.0))
-
-        df = pd.DataFrame([[1, 2]], columns=ind)
-        num = 100
-        try:
-            getattr(df, op)(num)
-        except TypeError:
-            pytest.fail(
-                "Unexpected TypeError for operations on DataFrame\
-                 with interval categories as index"
-            )
+        data = [1, 2]
+        df = pd.DataFrame([data], columns=ind)
+        num = 10
+        result = getattr(df, op)(num)
+        expected = pd.DataFrame([[getattr(n, op)(num) for n in data]], columns=ind)
+        tm.assert_frame_equal(result, expected)
