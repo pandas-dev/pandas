@@ -781,9 +781,6 @@ def get_dummies(
     drop_first : bool, default False
         Whether to get k-1 dummies out of k categorical levels by removing the
         first level.
-
-        .. versionadded:: 0.18.0
-
     dtype : dtype, default np.uint8
         Data type for new columns. Only a single dtype is allowed.
 
