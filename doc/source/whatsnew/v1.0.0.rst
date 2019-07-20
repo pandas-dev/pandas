@@ -1,7 +1,7 @@
-.. _whatsnew_0260:
+.. _whatsnew_1000:
 
-What's new in 0.26.0 (??)
--------------------------
+What's new in 1.0.0 (??)
+------------------------
 
 .. warning::
 
@@ -14,45 +14,65 @@ What's new in 0.26.0 (??)
 
 {{ header }}
 
-These are the changes in pandas 0.26.0. See :ref:`release` for a full changelog
+These are the changes in pandas 1.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
 
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_0260.enhancements.other:
+.. _whatsnew_1000.enhancements.other:
+
+-
+-
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-.. _whatsnew_0260.api_breaking:
+.. _whatsnew_1000.api_breaking:
+
+-
+-
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_0260.api.other:
+.. _whatsnew_1000.api.other:
+
+-
+-
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
-.. _whatsnew_0260.deprecations:
+-
+-
+
+.. _whatsnew_1000.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
 
-.. _whatsnew_0260.prior_deprecations:
+-
+-
+
+.. _whatsnew_1000.prior_deprecations:
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_0260.performance:
+-
+-
+
+.. _whatsnew_1000.performance:
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+-
+-
 
-.. _whatsnew_0260.bug_fixes:
+.. _whatsnew_1000.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
@@ -60,12 +80,14 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
+
 -
 -
 
 
 Datetimelike
 ^^^^^^^^^^^^
+
 -
 -
 
@@ -78,6 +100,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
+
 -
 -
 
