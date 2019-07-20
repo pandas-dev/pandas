@@ -9,6 +9,7 @@ from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
+    Components,
     array_to_timedelta64,
     parse_timedelta_unit,
     precision_from_unit,
@@ -901,7 +902,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
             def f(x):
                 if isna(x):
-                    return [np.nan] * len(columns)
+                    return Components(
+                        np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+                    )
                 return x.components
 
         else:

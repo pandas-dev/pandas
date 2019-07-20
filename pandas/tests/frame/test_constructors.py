@@ -1336,8 +1336,36 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
         # with columns
-        expected = DataFrame({"y": [1, 2], "z": [3, 4]})
-        result = DataFrame(tuples, columns=["y", "z"])
+        # namedtuples now behave like records, so columns
+        # act like lookups, not rename
+        expected = DataFrame({"a": [1, 2], "x": [np.nan, np.nan]})
+        result = DataFrame(tuples, columns=["a", "x"])
+        tm.assert_frame_equal(result, expected)
+
+        # new-style NamedTuple
+        # NOTE: Enable after py3.5 support is dropped
+        # from typing import NamedTuple
+        # class named_tuple3(NamedTuple):
+        #     a: int
+        #     b: int
+        # named_tuple3 = namedtuple("named_tuple3", list("ab"))
+        # tuples = [named_tuple3(1, 3), named_tuple3(2, 4)]
+        # expected = DataFrame({"a": [1, 2], "b": [3, 4]})
+        # result = DataFrame(tuples)
+        # tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame({"a": [1, 2], "b": [3, 4]})
+        result = DataFrame(tuples, columns=["a", "b"])
+        tm.assert_frame_equal(result, expected)
+
+        # hetero columns
+        named_tuple1 = namedtuple("Pandas", list("ab"))
+        named_tuple2 = namedtuple("sandaP", list("yabx"))
+        tuples = [named_tuple1(1, 2), named_tuple2(3, 4, 5, 6)]
+        result = DataFrame(tuples)
+        expected = pd.DataFrame(
+            {"a": [1, 4], "b": [2, 5], "y": [np.nan, 3.0], "x": [np.nan, 6.0]}
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_dict_order(self):
