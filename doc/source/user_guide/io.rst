@@ -87,8 +87,6 @@ delim_whitespace : boolean, default False
   If this option is set to ``True``, nothing should be passed in for the
   ``delimiter`` parameter.
 
-  .. versionadded:: 0.18.1 support for the Python parser.
-
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
 

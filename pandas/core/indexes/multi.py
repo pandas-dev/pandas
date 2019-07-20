@@ -2197,11 +2197,6 @@ class MultiIndex(Index):
         MultiIndex
             A new MultiIndex.
 
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
-
         See Also
         --------
         Series.swaplevel : Swap levels i and j in a MultiIndex.

@@ -837,8 +837,6 @@ def str_extract(arr, pat, flags=0, expand=True):
         If False, return a Series/Index if there is one capture group
         or DataFrame if there are multiple capture groups.
 
-        .. versionadded:: 0.18.0
-
     Returns
     -------
     DataFrame or Series or Index

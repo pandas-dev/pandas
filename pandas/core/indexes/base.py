@@ -4904,11 +4904,6 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         values : set or list-like
             Sought values.
-
-            .. versionadded:: 0.18.1
-
-               Support for values as a set.
-
         level : str or int, optional
             Name or position of the index level to use (if the index is a
             `MultiIndex`).

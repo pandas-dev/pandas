@@ -560,8 +560,6 @@ For example if they are separated by a ``'|'``:
 
 String ``Index`` also supports ``get_dummies`` which returns a ``MultiIndex``.
 
-.. versionadded:: 0.18.1
-
 .. ipython:: python
 
     idx = pd.Index(['a', 'a|b', np.nan, 'a|c'])

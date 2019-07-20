@@ -577,9 +577,6 @@ def to_datetime(
     Parameters
     ----------
     arg : integer, float, string, datetime, list, tuple, 1-d array, Series
-
-        .. versionadded:: 0.18.1
-
            or DataFrame/dict-like
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'

@@ -102,8 +102,6 @@ common_docstring = """
             Display DataFrame dimensions (number of rows by number of columns).
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
-
-            .. versionadded:: 0.18.0
     """
 
 _VALID_JUSTIFY_PARAMETERS = (

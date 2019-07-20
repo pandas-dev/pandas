@@ -1075,8 +1075,6 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
 class CustomBusinessHour(_CustomMixin, BusinessHourMixin, SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n custom business days.
-
-    .. versionadded:: 0.18.1
     """
 
     _prefix = "CBH"
