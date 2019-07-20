@@ -1365,7 +1365,7 @@ class TestDataFrameConstructors:
         result = DataFrame(tuples)
         expected = pd.DataFrame(
             {"a": [1, 4], "b": [2, 5], "y": [np.nan, 3.0], "x": [np.nan, 6.0]}
-        )
+        )[["a", "b", "y", "x"]]
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_dict_order(self):
