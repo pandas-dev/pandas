@@ -25,7 +25,6 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass,
     ABCPeriodIndex,
     ABCRangeIndex,
-    ABCSparseDataFrame,
     ABCTimedeltaIndex,
 )
 
@@ -69,40 +68,6 @@ def get_dtype_kinds(l):
             typ = dtype.kind
         typs.add(typ)
     return typs
-
-
-def _get_series_result_type(result, objs=None):
-    """
-    return appropriate class of Series concat
-    input is either dict or array-like
-    """
-    from pandas import SparseSeries, SparseDataFrame, DataFrame
-
-    # concat Series with axis 1
-    if isinstance(result, dict):
-        # concat Series with axis 1
-        if all(isinstance(c, (SparseSeries, SparseDataFrame)) for c in result.values()):
-            return SparseDataFrame
-        else:
-            return DataFrame
-
-    # otherwise it is a SingleBlockManager (axis = 0)
-    return objs[0]._constructor
-
-
-def _get_frame_result_type(result, objs):
-    """
-    return appropriate class of DataFrame-like concat
-    if all blocks are sparse, return SparseDataFrame
-    otherwise, return 1st obj
-    """
-
-    if result.blocks and (any(isinstance(obj, ABCSparseDataFrame) for obj in objs)):
-        from pandas.core.sparse.api import SparseDataFrame
-
-        return SparseDataFrame
-    else:
-        return next(obj for obj in objs if not isinstance(obj, ABCSparseDataFrame))
 
 
 def concat_compat(to_concat, axis=0):
