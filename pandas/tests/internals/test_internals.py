@@ -584,10 +584,6 @@ class TestBlockManager:
         new_mgr = mgr.convert()
         _compare(mgr, new_mgr)
 
-        mgr = create_mgr("a, b: object; f: i8; g: f8")
-        new_mgr = mgr.convert()
-        _compare(mgr, new_mgr)
-
         # convert
         mgr = create_mgr("a,b,foo: object; f: i8; g: f8")
         mgr.set("a", np.array(["1"] * N, dtype=np.object_))

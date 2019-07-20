@@ -5,9 +5,8 @@ from pandas.core.dtypes.cast import maybe_convert_objects
 
 
 @pytest.mark.parametrize("data", [[1, 2], ["apply", "banana"]])
-@pytest.mark.parametrize("copy", [True, False])
-def test_maybe_convert_objects_copy(data, copy):
+def test_maybe_convert_objects_copy(data):
     arr = np.array(data)
-    out = maybe_convert_objects(arr, copy=copy)
+    out = maybe_convert_objects(arr)
 
-    assert (arr is out) is (not copy)
+    assert arr is not out
