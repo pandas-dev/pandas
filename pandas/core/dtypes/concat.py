@@ -105,7 +105,7 @@ def _get_frame_result_type(result, objs):
         return next(obj for obj in objs if not isinstance(obj, ABCSparseDataFrame))
 
 
-def _concat_compat(to_concat, axis=0):
+def concat_compat(to_concat, axis=0):
     """
     provide concatenation of an array of arrays each of which is a single
     'normalized' dtypes (in that for example, if it's object, then it is a
@@ -214,7 +214,7 @@ def _concat_categorical(to_concat, axis=0):
         else np.asarray(x.astype(object))
         for x in to_concat
     ]
-    result = _concat_compat(to_concat)
+    result = concat_compat(to_concat)
     if axis == 1:
         result = result.reshape(1, len(result))
     return result

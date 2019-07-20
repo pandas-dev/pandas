@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
@@ -487,7 +487,7 @@ class TimedeltaIndex(
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
             right_chunk = right.values[loc:]
-            dates = _concat._concat_compat((left.values, right_chunk))
+            dates = concat_compat((left.values, right_chunk))
             return self._shallow_copy(dates)
         else:
             return left

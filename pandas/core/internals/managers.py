@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_sparse,
 )
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -532,7 +532,7 @@ class BlockManager(PandasObject):
             return self.__class__(blocks, new_axes)
 
         # single block, i.e. ndim == {1}
-        values = _concat._concat_compat([b.values for b in blocks])
+        values = concat_compat([b.values for b in blocks])
 
         # compute the orderings of our original data
         if len(self.blocks) > 1:
@@ -1648,11 +1648,11 @@ class SingleBlockManager(BlockManager):
                 new_block = blocks[0].concat_same_type(blocks)
             else:
                 values = [x.values for x in blocks]
-                values = _concat._concat_compat(values)
+                values = concat_compat(values)
                 new_block = make_block(values, placement=slice(0, len(values), 1))
         else:
             values = [x._block.values for x in to_concat]
-            values = _concat._concat_compat(values)
+            values = concat_compat(values)
             new_block = make_block(values, placement=slice(0, len(values), 1))
 
         mgr = SingleBlockManager(new_block, new_axis)
