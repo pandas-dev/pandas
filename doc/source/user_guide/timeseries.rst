@@ -255,8 +255,6 @@ option, see the Python `datetime documentation`_.
 Assembling datetime from multiple DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.18.1
-
 You can also pass a ``DataFrame`` of integer or string columns to assemble into a ``Series`` of ``Timestamps``.
 
 .. ipython:: python
@@ -1164,8 +1162,6 @@ following subsection.
 
 Custom business hour
 ~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.18.1
 
 The ``CustomBusinessHour`` is a mixture of ``BusinessHour`` and ``CustomBusinessDay`` which
 allows you to specify arbitrary holidays. ``CustomBusinessHour`` works as the same
