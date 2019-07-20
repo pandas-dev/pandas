@@ -729,21 +729,32 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
 
 
 def maybe_convert_objects(values: np.ndarray, convert_numeric: bool = True):
-    """ if we have an object dtype, try to coerce dates and/or numbers """
+    """
+    If we have an object dtype array, try to coerce dates and/or numbers.
+
+    Parameters
+    ----------
+    values : ndarray
+    convert_numeric : bool, default True
+
+    Returns
+    -------
+    ndarray or DatetimeIndex
+    """
     validate_bool_kwarg(convert_numeric, "convert_numeric")
 
     orig_values = values
 
     # convert dates
-    if values.dtype == np.object_:
+    if is_object_dtype(values.dtype):
         values = lib.maybe_convert_objects(values, convert_datetime=True)
 
     # convert timedeltas
-    if values.dtype == np.object_:
+    if is_object_dtype(values.dtype):
         values = lib.maybe_convert_objects(values, convert_timedelta=True)
 
     # convert to numeric
-    if values.dtype == np.object_:
+    if is_object_dtype(values.dtype):
         if convert_numeric:
             try:
                 new_values = lib.maybe_convert_numeric(
