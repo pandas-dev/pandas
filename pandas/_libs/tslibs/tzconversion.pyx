@@ -96,6 +96,8 @@ timedelta-like}
                 result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=True)
         return result
 
+    # silence false-positive compiler warning
+    ambiguous_array = np.empty(0, dtype=bool)
     if isinstance(ambiguous, str):
         if ambiguous == 'infer':
             infer_dst = True
@@ -159,6 +161,8 @@ timedelta-like}
         if v_right + deltas[pos_right] == val:
             result_b[i] = v_right
 
+    # silence false-positive compiler warning
+    dst_hours = np.empty(0, dtype=np.int64)
     if infer_dst:
         dst_hours = np.empty(n, dtype=np.int64)
         dst_hours[:] = NPY_NAT

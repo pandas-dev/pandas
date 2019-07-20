@@ -414,8 +414,6 @@ class Styler:
         """
         Format the text display value of cells.
 
-        .. versionadded:: 0.18.0
-
         Parameters
         ----------
         formatter : str, callable, or dict
