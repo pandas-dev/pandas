@@ -3092,7 +3092,7 @@ class CategoricalBlock(ExtensionBlock):
     is_categorical = True
     _verify_integrity = True
     _can_hold_na = True
-    _concatenator = staticmethod(_concat._concat_categorical)
+    _concatenator = staticmethod(_concat.concat_categorical)
 
     def __init__(self, values, placement, ndim=None):
         from pandas.core.arrays.categorical import _maybe_to_categorical

@@ -144,7 +144,7 @@ def concat_compat(to_concat, axis=0):
     if "category" in typs:
         # this must be prior to _concat_datetime,
         # to support Categorical + datetime-like
-        return _concat_categorical(to_concat, axis=axis)
+        return concat_categorical(to_concat, axis=axis)
 
     elif _contains_datetime or "timedelta" in typs or _contains_period:
         return _concat_datetime(to_concat, axis=axis, typs=typs)
@@ -174,7 +174,7 @@ def concat_compat(to_concat, axis=0):
     return np.concatenate(to_concat, axis=axis)
 
 
-def _concat_categorical(to_concat, axis=0):
+def concat_categorical(to_concat, axis=0):
     """Concatenate an object/categorical array of arrays, each of which is a
     single dtype
 

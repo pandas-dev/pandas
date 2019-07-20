@@ -2481,9 +2481,9 @@ class Categorical(ExtensionArray, PandasObject):
 
     @classmethod
     def _concat_same_type(self, to_concat):
-        from pandas.core.dtypes.concat import _concat_categorical
+        from pandas.core.dtypes.concat import concat_categorical
 
-        return _concat_categorical(to_concat)
+        return concat_categorical(to_concat)
 
     def isin(self, values):
         """
