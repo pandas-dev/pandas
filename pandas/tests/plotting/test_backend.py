@@ -4,6 +4,8 @@ import types
 import pkg_resources
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas
 
 
@@ -42,6 +44,7 @@ def test_backend_is_correct(monkeypatch):
         pass
 
 
+@td.skip_if_no_mpl
 def test_register_entrypoint():
     mod = types.ModuleType("my_backend")
     mod.plot = lambda *args, **kwargs: 1
@@ -60,6 +63,7 @@ def test_register_entrypoint():
     assert result is mod
 
 
+@td.skip_if_no_mpl
 def test_register_import():
     mod = types.ModuleType("my_backend2")
     mod.plot = lambda *args, **kwargs: 1
@@ -67,3 +71,7 @@ def test_register_import():
 
     result = pandas.plotting._core._get_plot_backend("my_backend2")
     assert result is mod
+
+
+def test_no_matplotlib_ok():
+    pass
