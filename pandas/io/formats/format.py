@@ -6,7 +6,7 @@ and latex files. This module also applies to display formatting.
 from functools import partial
 from io import StringIO
 from shutil import get_terminal_size
-from typing import TYPE_CHECKING, List, Optional, TextIO, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, TextIO, Tuple, Union, cast
 from unicodedata import east_asian_width
 
 import numpy as np
@@ -231,9 +231,10 @@ class SeriesFormatter:
         max_rows = self.max_rows
         # truncation determined by max_rows, actual truncated number of rows
         # used below by min_rows
-        self.truncate_v = False
+        truncate_v = max_rows and (len(self.series) > max_rows)
         series = self.series
-        if max_rows and (len(series) > max_rows):
+        if truncate_v:
+            max_rows = cast(int, max_rows)
             if min_rows:
                 # if min_rows is set (not None or 0), set max_rows to minimum
                 # of both
@@ -244,10 +245,11 @@ class SeriesFormatter:
             else:
                 row_num = max_rows // 2
                 series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
-            self.tr_row_num = row_num
-            self.truncate_v = True
-
+            self.tr_row_num = row_num  # type: Optional[int]
+        else:
+            self.tr_row_num = None
         self.tr_series = series
+        self.truncate_v = truncate_v
 
     def _get_footer(self) -> str:
         name = self.series.name
@@ -320,6 +322,7 @@ class SeriesFormatter:
         if self.truncate_v:
             n_header_rows = 0
             row_num = self.tr_row_num
+            row_num = cast(int, row_num)
             width = self.adj.len(fmt_values[row_num - 1])
             if width > 3:
                 dot_str = "..."
@@ -551,11 +554,14 @@ class DataFrameFormatter(TableFormatter):
         max_cols_adj = self.max_cols_adj
         max_rows_adj = self.max_rows_adj
 
-        self.truncate_h = False
-        self.truncate_v = False
+        truncate_h = max_cols_adj and (len(self.columns) > max_cols_adj)
+        truncate_v = max_rows_adj and (len(self.frame) > max_rows_adj)
+
         frame = self.frame
-        if max_cols_adj and (len(self.columns) > max_cols_adj):
-            if max_cols_adj == 1:
+        if truncate_h:
+            if max_cols_adj == 0:
+                col_num = len(frame.columns)
+            elif max_cols_adj == 1:
                 frame = frame.iloc[:, :max_cols]
                 col_num = max_cols
             else:
@@ -564,9 +570,7 @@ class DataFrameFormatter(TableFormatter):
                     (frame.iloc[:, :col_num], frame.iloc[:, -col_num:]), axis=1
                 )
             self.tr_col_num = col_num
-            self.truncate_h = True
-
-        if max_rows_adj and (len(frame) > max_rows_adj):
+        if truncate_v:
             if max_rows_adj == 1:
                 row_num = max_rows
                 frame = frame.iloc[:max_rows, :]
@@ -574,9 +578,12 @@ class DataFrameFormatter(TableFormatter):
                 row_num = max_rows_adj // 2
                 frame = concat((frame.iloc[:row_num, :], frame.iloc[-row_num:, :]))
             self.tr_row_num = row_num
-            self.truncate_v = True
+        else:
+            self.tr_row_num = None
 
         self.tr_frame = frame
+        self.truncate_h = truncate_h
+        self.truncate_v = truncate_v
         self.is_truncated = self.truncate_h or self.truncate_v
 
     def _to_str_columns(self) -> List[List[str]]:
@@ -643,7 +650,7 @@ class DataFrameFormatter(TableFormatter):
 
         if truncate_h:
             col_num = self.tr_col_num
-            strcols.insert(col_num + 1, [" ..."] * (len(str_index)))
+            strcols.insert(self.tr_col_num + 1, [" ..."] * (len(str_index)))
         if truncate_v:
             n_header_rows = len(str_index) - len(frame)
             row_num = self.tr_row_num
