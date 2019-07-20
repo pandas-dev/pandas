@@ -824,7 +824,9 @@ list of records. Meaning that any name given in `columns` which doesn't appear
 as a key in the record will be assigned a NaN value.
 
 Due to this change, The performance of constructing frames from a list
-of namedtuples is roughly 50% slower.
+of namedtuples is now roughly 50% slower.
+
+This change affects all supported python versions.
 
 .. ipython:: python
 
