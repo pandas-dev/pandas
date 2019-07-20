@@ -1079,9 +1079,12 @@ char *Series_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
  *   VALUES: [[value, value, ...], [value, value, ...], ...]
  *
  * The context of serialization here is dependent upon the orient.
- * RECORDS, and VALUES orients would make the context of serialization here
+ * RECORDS, would make the context of serialization here
  * JT_ARRAY (essentially a sequence we iterate over) whereas the other orients
  * require a JT_OBJECT context (whereby we extract keys and values from the DataFrame).
+ *
+ * VALUES orients actually shouldn't pass through here at all and can be dispatched
+ * directly to the NumPy array serialization, since they don't encode labels.
  */
 void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
     PRINTMARK();
@@ -1101,8 +1104,6 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
         if (!GET_TC(tc)->cStr) {
 	  PyErr_NoMemory();
         }
-
-	return;  // always return if modifying outputFormat
     } else {
       char *method;
       if (enc->outputFormat == COLUMNS)
@@ -1125,10 +1126,10 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 	enc->outputFormat = INDEX;
       }
 
-      return;
     }      
 
     PRINTMARK();
+    return;
 }
 
 /* 
@@ -1171,23 +1172,11 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
       }
 
     } else {
-      if (enc->originalOutputFormat == COLUMNS || enc->originalOutputFormat == INDEX) {
-	// TODO: align extension usage of itemName and cStr
-	if (GET_TC(tc)->itemName) {
-	  Py_DECREF(GET_TC(tc)->itemName);
-	}
-      }
-
       PyObject *tmp = PyIter_Next(GET_TC(tc)->iterator);
       if (tmp == 0)
 	return 0;
 
       GET_TC(tc)->itemValue = PySequence_GetItem(tmp, 1);
-
-      if (enc->originalOutputFormat == COLUMNS || enc->originalOutputFormat == INDEX) {
-	GET_TC(tc)->itemName = PySequence_GetItem(tmp, 0);
-      }
-
       Py_DECREF(tmp);
     }
 
@@ -1768,7 +1757,20 @@ ISITERABLE:
         pc->iterGetName = NpyArr_iterGetName;
         return;
     } else if (PyObject_TypeCheck(obj, cls_dataframe)) {
-      if (enc->outputFormat == RECORDS || enc->outputFormat == VALUES)
+      // VALUES doesn't encode labels, so can treat as numpy array
+      if (enc->outputFormat == VALUES) {
+        pc->newObj = get_values(obj);
+        if (!pc->newObj) {
+            goto INVALID;
+        }
+	tc->type = JT_ARRAY;
+        pc->iterBegin = NpyArr_iterBegin;
+        pc->iterEnd = NpyArr_iterEnd;
+        pc->iterNext = NpyArr_iterNext;
+        pc->iterGetValue = NpyArr_iterGetValue;
+        return;	
+      }
+      else if (enc->outputFormat == RECORDS)
 	tc->type = JT_ARRAY;
       else
 	tc->type = JT_OBJECT;
@@ -1777,9 +1779,6 @@ ISITERABLE:
       // but there's not really a need to have both columnLabels and rowLabels
       // anyway; subsequent refactor should just make these labels
       if (enc->outputFormat == INDEX || enc->outputFormat == COLUMNS) {
-	PRINTMARK();
-	tc->type = JT_OBJECT;
-
 	char *attr;
 	if (enc->outputFormat == INDEX)
 	  attr = "index";
