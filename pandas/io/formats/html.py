@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from pandas._config import get_option
 
-from pandas.core.dtypes.generic import ABCIndex, ABCMultiIndex
+from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import option_context
 
@@ -79,7 +79,7 @@ class HTMLFormatter(TableFormatter):
         # not showing (row) index
         return 0
 
-    def _get_columns_formatted_values(self) -> ABCIndex:
+    def _get_columns_formatted_values(self):
         return self.columns
 
     @property

@@ -6,7 +6,7 @@ and latex files. This module also applies to display formatting.
 from functools import partial
 from io import StringIO
 from shutil import get_terminal_size
-from typing import List, Optional, TextIO, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, TextIO, Tuple, Union
 from unicodedata import east_asian_width
 
 import numpy as np
@@ -33,8 +33,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import (
-    ABCCategorical,
-    ABCDataFrame,
     ABCIndexClass,
     ABCMultiIndex,
     ABCSeries,
@@ -49,6 +47,9 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
+
+if TYPE_CHECKING:
+    from pandas import Series, DataFrame, Categorical
 
 common_docstring = """
         Parameters
@@ -134,7 +135,7 @@ return_docstring = """
 class CategoricalFormatter:
     def __init__(
         self,
-        categorical: ABCCategorical,
+        categorical: "Categorical",
         buf: Optional[TextIO] = None,
         length: bool = True,
         na_rep: str = "NaN",
@@ -193,7 +194,7 @@ class CategoricalFormatter:
 class SeriesFormatter:
     def __init__(
         self,
-        series: ABCSeries,
+        series: "Series",
         buf: Optional[TextIO] = None,
         length: bool = True,
         header: bool = True,
@@ -851,7 +852,7 @@ class DataFrameFormatter(TableFormatter):
         else:
             raise TypeError("buf is not a file name and it has no write " " method")
 
-    def _get_formatted_column_labels(self, frame: ABCDataFrame) -> List[List[str]]:
+    def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
         from pandas.core.index import _sparsify
 
         columns = frame.columns
@@ -908,7 +909,7 @@ class DataFrameFormatter(TableFormatter):
     def show_col_idx_names(self) -> bool:
         return all((self.has_column_names, self.show_index_names, self.header))
 
-    def _get_formatted_index(self, frame: ABCDataFrame) -> List[str]:
+    def _get_formatted_index(self, frame: "DataFrame") -> List[str]:
         # Note: this is only used by to_string() and to_latex(), not by
         # to_html().
         index = frame.index
