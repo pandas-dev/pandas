@@ -108,20 +108,19 @@ cython_cast_blacklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 # These map each series/column to a single value
 reduction_functions = frozenset(
     [
-        "sum",
-        "first",
-        "mean",
         "all",
         "any",
         "bfill",
         "corr",
         "count",
         "cov",
+        "first",
         "idxmax",
         "idxmin",
         "last",
         "mad",
         "max",
+        "mean",
         "median",
         "min",
         "ngroup",
@@ -133,6 +132,7 @@ reduction_functions = frozenset(
         "size",
         "skew",
         "std",
+        "sum",
         "var",
     ]
 )
@@ -151,9 +151,9 @@ transformation_functions = frozenset(
         "diff",
         "ffill",
         "fillna",
-        "rank",
         "pad",
         "pct_change",
+        "rank",
         "shift",
         "tshift",
     ]
