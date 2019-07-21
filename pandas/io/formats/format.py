@@ -797,10 +797,10 @@ class DataFrameFormatter(TableFormatter):
                 )
             )
 
-    def _join_multiline(self, *strcols) -> str:
+    def _join_multiline(self, *args) -> str:
         lwidth = self.line_width
         adjoin_width = 1
-        strcols = list(strcols)
+        strcols = list(args)
         if self.index:
             idx = strcols.pop(0)
             lwidth -= np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
