@@ -159,4 +159,6 @@ transformation_kernels = frozenset(
 )
 
 # Valid values  of `name` for `groupby.transform(name)`
+# NOTE: do NOT edit this directly. New additions should be inserted
+# into the appropriate list above.
 transform_kernel_whitelist = reduction_kernels | transformation_kernels
