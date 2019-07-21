@@ -443,6 +443,9 @@ def _get_adjustment() -> Union[TextAdjustment, EastAsianTextAdjustment]:
 class TableFormatter:
 
     show_dimensions = None
+    is_truncated = None
+    formatters = None
+    columns = None
 
     @property
     def should_show_dimensions(self) -> Optional[bool]:
