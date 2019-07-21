@@ -499,8 +499,6 @@ class Window(_Window):
     """
     Provide rolling window calculations.
 
-    .. versionadded:: 0.18.0
-
     Parameters
     ----------
     window : int, or offset
@@ -2006,8 +2004,6 @@ class Expanding(_Rolling_and_Expanding):
     """
     Provide expanding transformations.
 
-    .. versionadded:: 0.18.0
-
     Parameters
     ----------
     min_periods : int, default 1
@@ -2292,8 +2288,6 @@ _pairwise_template = """
 class EWM(_Rolling):
     r"""
     Provide exponential weighted functions.
-
-    .. versionadded:: 0.18.0
 
     Parameters
     ----------

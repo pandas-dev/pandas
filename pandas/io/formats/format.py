@@ -6,6 +6,7 @@ and latex files. This module also applies to display formatting.
 from functools import partial
 from io import StringIO
 from shutil import get_terminal_size
+from typing import TYPE_CHECKING, List, Optional, TextIO, Tuple, Union, cast
 from unicodedata import east_asian_width
 
 import numpy as np
@@ -46,6 +47,9 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
+
+if TYPE_CHECKING:
+    from pandas import Series, DataFrame, Categorical
 
 common_docstring = """
         Parameters
@@ -102,8 +106,6 @@ common_docstring = """
             Display DataFrame dimensions (number of rows by number of columns).
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
-
-            .. versionadded:: 0.18.0
     """
 
 _VALID_JUSTIFY_PARAMETERS = (
@@ -129,14 +131,21 @@ return_docstring = """
 
 
 class CategoricalFormatter:
-    def __init__(self, categorical, buf=None, length=True, na_rep="NaN", footer=True):
+    def __init__(
+        self,
+        categorical: "Categorical",
+        buf: Optional[TextIO] = None,
+        length: bool = True,
+        na_rep: str = "NaN",
+        footer: bool = True,
+    ):
         self.categorical = categorical
         self.buf = buf if buf is not None else StringIO("")
         self.na_rep = na_rep
         self.length = length
         self.footer = footer
 
-    def _get_footer(self):
+    def _get_footer(self) -> str:
         footer = ""
 
         if self.length:
@@ -153,7 +162,7 @@ class CategoricalFormatter:
 
         return str(footer)
 
-    def _get_formatted_values(self):
+    def _get_formatted_values(self) -> List[str]:
         return format_array(
             self.categorical._internal_get_values(),
             None,
@@ -161,7 +170,7 @@ class CategoricalFormatter:
             na_rep=self.na_rep,
         )
 
-    def to_string(self):
+    def to_string(self) -> str:
         categorical = self.categorical
 
         if len(categorical) == 0:
@@ -172,10 +181,10 @@ class CategoricalFormatter:
 
         fmt_values = self._get_formatted_values()
 
-        result = ["{i}".format(i=i) for i in fmt_values]
-        result = [i.strip() for i in result]
-        result = ", ".join(result)
-        result = ["[" + result + "]"]
+        fmt_values = ["{i}".format(i=i) for i in fmt_values]
+        fmt_values = [i.strip() for i in fmt_values]
+        values = ", ".join(fmt_values)
+        result = ["[" + values + "]"]
         if self.footer:
             footer = self._get_footer()
             if footer:
@@ -187,17 +196,17 @@ class CategoricalFormatter:
 class SeriesFormatter:
     def __init__(
         self,
-        series,
-        buf=None,
-        length=True,
-        header=True,
-        index=True,
-        na_rep="NaN",
-        name=False,
-        float_format=None,
-        dtype=True,
-        max_rows=None,
-        min_rows=None,
+        series: "Series",
+        buf: Optional[TextIO] = None,
+        length: bool = True,
+        header: bool = True,
+        index: bool = True,
+        na_rep: str = "NaN",
+        name: bool = False,
+        float_format: Optional[str] = None,
+        dtype: bool = True,
+        max_rows: Optional[int] = None,
+        min_rows: Optional[int] = None,
     ):
         self.series = series
         self.buf = buf if buf is not None else StringIO()
@@ -217,7 +226,7 @@ class SeriesFormatter:
 
         self._chk_truncate()
 
-    def _chk_truncate(self):
+    def _chk_truncate(self) -> None:
         from pandas.core.reshape.concat import concat
 
         min_rows = self.min_rows
@@ -227,6 +236,7 @@ class SeriesFormatter:
         truncate_v = max_rows and (len(self.series) > max_rows)
         series = self.series
         if truncate_v:
+            max_rows = cast(int, max_rows)
             if min_rows:
                 # if min_rows is set (not None or 0), set max_rows to minimum
                 # of both
@@ -237,13 +247,13 @@ class SeriesFormatter:
             else:
                 row_num = max_rows // 2
                 series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
-            self.tr_row_num = row_num
+            self.tr_row_num = row_num  # type: Optional[int]
         else:
             self.tr_row_num = None
         self.tr_series = series
         self.truncate_v = truncate_v
 
-    def _get_footer(self):
+    def _get_footer(self) -> str:
         name = self.series.name
         footer = ""
 
@@ -281,7 +291,7 @@ class SeriesFormatter:
 
         return str(footer)
 
-    def _get_formatted_index(self):
+    def _get_formatted_index(self) -> Tuple[List[str], bool]:
         index = self.tr_series.index
         is_multi = isinstance(index, ABCMultiIndex)
 
@@ -293,13 +303,13 @@ class SeriesFormatter:
             fmt_index = index.format(name=True)
         return fmt_index, have_header
 
-    def _get_formatted_values(self):
+    def _get_formatted_values(self) -> List[str]:
         values_to_format = self.tr_series._formatting_values()
         return format_array(
             values_to_format, None, float_format=self.float_format, na_rep=self.na_rep
         )
 
-    def to_string(self):
+    def to_string(self) -> str:
         series = self.tr_series
         footer = self._get_footer()
 
@@ -314,6 +324,7 @@ class SeriesFormatter:
         if self.truncate_v:
             n_header_rows = 0
             row_num = self.tr_row_num
+            row_num = cast(int, row_num)
             width = self.adj.len(fmt_values[row_num - 1])
             if width > 3:
                 dot_str = "..."
@@ -501,7 +512,7 @@ class DataFrameFormatter(TableFormatter):
         self._chk_truncate()
         self.adj = _get_adjustment()
 
-    def _chk_truncate(self):
+    def _chk_truncate(self) -> None:
         """
         Checks whether the frame should be truncated. If so, slices
         the frame up.
@@ -577,7 +588,7 @@ class DataFrameFormatter(TableFormatter):
         self.truncate_v = truncate_v
         self.is_truncated = self.truncate_h or self.truncate_v
 
-    def _to_str_columns(self):
+    def _to_str_columns(self) -> List[List[str]]:
         """
         Render a DataFrame to a list of columns (as lists of strings).
         """
@@ -667,7 +678,7 @@ class DataFrameFormatter(TableFormatter):
                 strcols[ix].insert(row_num + n_header_rows, dot_str)
         return strcols
 
-    def to_string(self):
+    def to_string(self) -> None:
         """
         Render a DataFrame to a console-friendly tabular output.
         """
@@ -803,7 +814,7 @@ class DataFrameFormatter(TableFormatter):
         else:
             raise TypeError("buf is not a file name and it has no write " "method")
 
-    def _format_col(self, i):
+    def _format_col(self, i: int) -> List[str]:
         frame = self.tr_frame
         formatter = self._get_formatter(i)
         values_to_format = frame.iloc[:, i]._formatting_values()
@@ -816,7 +827,12 @@ class DataFrameFormatter(TableFormatter):
             decimal=self.decimal,
         )
 
-    def to_html(self, classes=None, notebook=False, border=None):
+    def to_html(
+        self,
+        classes: Optional[Union[str, List, Tuple]] = None,
+        notebook: bool = False,
+        border: Optional[int] = None,
+    ) -> None:
         """
         Render a DataFrame to a html table.
 
@@ -845,7 +861,7 @@ class DataFrameFormatter(TableFormatter):
         else:
             raise TypeError("buf is not a file name and it has no write " " method")
 
-    def _get_formatted_column_labels(self, frame):
+    def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
         from pandas.core.index import _sparsify
 
         columns = frame.columns
@@ -887,22 +903,22 @@ class DataFrameFormatter(TableFormatter):
         return str_columns
 
     @property
-    def has_index_names(self):
+    def has_index_names(self) -> bool:
         return _has_names(self.frame.index)
 
     @property
-    def has_column_names(self):
+    def has_column_names(self) -> bool:
         return _has_names(self.frame.columns)
 
     @property
-    def show_row_idx_names(self):
+    def show_row_idx_names(self) -> bool:
         return all((self.has_index_names, self.index, self.show_index_names))
 
     @property
-    def show_col_idx_names(self):
+    def show_col_idx_names(self) -> bool:
         return all((self.has_column_names, self.show_index_names, self.header))
 
-    def _get_formatted_index(self, frame):
+    def _get_formatted_index(self, frame: "DataFrame") -> List[str]:
         # Note: this is only used by to_string() and to_latex(), not by
         # to_html().
         index = frame.index
@@ -941,8 +957,8 @@ class DataFrameFormatter(TableFormatter):
         else:
             return adjoined
 
-    def _get_column_name_list(self):
-        names = []
+    def _get_column_name_list(self) -> List[str]:
+        names = []  # type: List[str]
         columns = self.frame.columns
         if isinstance(columns, ABCMultiIndex):
             names.extend("" if name is None else name for name in columns.names)

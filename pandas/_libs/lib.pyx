@@ -690,50 +690,6 @@ def generate_bins_dt64(ndarray[int64_t] values, const int64_t[:] binner,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def row_bool_subset(const float64_t[:, :] values,
-                    ndarray[uint8_t, cast=True] mask):
-    cdef:
-        Py_ssize_t i, j, n, k, pos = 0
-        ndarray[float64_t, ndim=2] out
-
-    n, k = (<object>values).shape
-    assert (n == len(mask))
-
-    out = np.empty((mask.sum(), k), dtype=np.float64)
-
-    for i in range(n):
-        if mask[i]:
-            for j in range(k):
-                out[pos, j] = values[i, j]
-            pos += 1
-
-    return out
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def row_bool_subset_object(ndarray[object, ndim=2] values,
-                           ndarray[uint8_t, cast=True] mask):
-    cdef:
-        Py_ssize_t i, j, n, k, pos = 0
-        ndarray[object, ndim=2] out
-
-    n, k = (<object>values).shape
-    assert (n == len(mask))
-
-    out = np.empty((mask.sum(), k), dtype=object)
-
-    for i in range(n):
-        if mask[i]:
-            for j in range(k):
-                out[pos, j] = values[i, j]
-            pos += 1
-
-    return out
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def get_level_sorter(const int64_t[:] label,
                      const int64_t[:] starts):
     """
