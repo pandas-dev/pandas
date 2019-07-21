@@ -575,7 +575,7 @@ class NDFrameGroupBy(GroupBy):
         func = self._get_cython_func(func) or func
 
         if isinstance(func, str):
-            if not (func in base.transform_recognized_functions):
+            if not (func in base.transform_kernel_whitelist):
                 msg = "'{func}' is not a valid function name for transform(name)"
                 raise ValueError(msg.format(func=func))
             if func in base.cythonized_kernels:
@@ -1013,7 +1013,7 @@ class SeriesGroupBy(GroupBy):
         func = self._get_cython_func(func) or func
 
         if isinstance(func, str):
-            if not (func in base.transform_recognized_functions):
+            if not (func in base.transform_kernel_whitelist):
                 msg = "'{func}' is not a valid function name for transform(name)"
                 raise ValueError(msg.format(func=func))
             if func in base.cythonized_kernels:

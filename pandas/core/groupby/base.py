@@ -106,7 +106,7 @@ cython_cast_blacklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
 # List of aggregation/reduction functions.
 # These map each series/column to a single value
-reduction_functions = frozenset(
+reduction_kernels = frozenset(
     [
         "all",
         "any",
@@ -139,7 +139,7 @@ reduction_functions = frozenset(
 
 # List of transformation functions.
 # These map each object to a like-indexed result object
-transformation_functions = frozenset(
+transformation_kernels = frozenset(
     [
         "backfill",
         "corrwith",
@@ -160,7 +160,7 @@ transformation_functions = frozenset(
 )
 
 # Valid values  of `name` for `groupby.transform(name)`
-transform_recognized_functions = reduction_functions | transformation_functions
-transform_recognized_functions -= {
+transform_kernel_whitelist = reduction_kernels | transformation_kernels
+transform_kernel_whitelist -= {
     "corr"
 }  # returns multindex, exclude from transform(name) for now.
