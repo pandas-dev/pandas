@@ -21,6 +21,28 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_1000.enhancements.json_normalize_with_use_keys:
+
+Json normalize with use_keys param support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`json_normalize` normalizes all keys of a given nested dictionary.
+The new ignore_key parameter provides more control over
+which keys to exclude while normalizing (:issue:`27241`):
+
+The repr now looks like this:
+
+.. ipython:: python
+
+    from pandas.io.json import json_normalize
+    data = [{
+        'CreatedBy': {'Name': 'User001'},
+        'Lookup': {'TextField': 'Some text',
+                   'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+        'Image': {'a': 'b'}
+    }]
+    json_normalize(data, use_keys=lambda key: key not in ["Image"])
+
 .. _whatsnew_1000.enhancements.other:
 
 -

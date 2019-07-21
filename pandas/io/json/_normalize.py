@@ -35,7 +35,7 @@ def _parse_use_keys(use_keys: Optional[Union[str, List[str], Callable]] = None):
     use_keys : Str, List or Callable, optional, default: None
         Returns true or false depending on whether to include or exclude a key
 
-        .. versionadded:: 1.0
+        .. versionadded:: 1.0.0
 
     Returns
     -------
@@ -90,7 +90,7 @@ def nested_to_record(
     use_keys : Str, List or Callable, optional, default: None
         Returns true or false depending on whether to include or exclude a key
 
-        .. versionadded:: 1.0
+        .. versionadded:: 1.0.0
 
     Returns
     -------
@@ -114,7 +114,7 @@ def nested_to_record(
         ds = [ds]
         singleton = True
 
-    use_key = __parse_use_keys(use_keys)
+    use_key = _parse_use_keys(use_keys)
 
     new_ds = []
     for d in ds:
@@ -209,7 +209,7 @@ def json_normalize(
     use_keys : str or a list of str, callable, optional, default None
         Includes or excludes a given key based on a given condition.
 
-        .. versionadded:: 1.0
+        .. versionadded:: 1.0.0
 
     Returns
     -------
@@ -323,7 +323,7 @@ def json_normalize(
     if isinstance(data, dict):
         data = [data]
 
-    use_key = __parse_use_keys(use_keys)
+    use_key = _parse_use_keys(use_keys)
 
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):
