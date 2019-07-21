@@ -709,6 +709,8 @@ class DataFrameFormatter(TableFormatter):
         if truncate_v:
             n_header_rows = len(str_index) - len(frame)
             row_num = self.tr_row_num
+            # cast here since if truncate_v is True, self.tr_row_num is not None
+            row_num = cast(int, row_num)
             for ix, col in enumerate(strcols):
                 # infer from above row
                 cwidth = self.adj.len(strcols[ix][row_num])
