@@ -18,7 +18,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     infer_dtype_from_scalar,
-    maybe_convert_objects,
     maybe_downcast_to_dtype,
     maybe_infer_dtype_type,
     maybe_promote,
@@ -669,7 +668,14 @@ class Block(PandasObject):
                 )
         return newb
 
-    def convert(self, copy=True, **kwargs):
+    def convert(
+        self,
+        copy: bool = True,
+        datetime: bool = True,
+        numeric: bool = True,
+        timedelta: bool = True,
+        coerce: bool = False,
+    ):
         """ attempt to coerce any object types to better types return a copy
         of the block (if copy = True) by definition we are not an ObjectBlock
         here!
@@ -827,9 +833,7 @@ class Block(PandasObject):
                 convert=convert,
             )
         if convert:
-            blocks = [
-                b.convert(by_item=True, numeric=False, copy=not inplace) for b in blocks
-            ]
+            blocks = [b.convert(numeric=False, copy=not inplace) for b in blocks]
         return blocks
 
     def _replace_single(self, *args, **kwargs):
@@ -2250,7 +2254,12 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
-            return is_dtype_equal(tipo, self.dtype)
+            if self.is_datetimetz:
+                # require exact match, since non-nano does not exist
+                return is_dtype_equal(tipo, self.dtype)
+
+            # GH#27419 if we get a non-nano datetime64 object
+            return is_datetime64_dtype(tipo)
         elif element is NaT:
             return True
         elif isinstance(element, datetime):
@@ -2774,37 +2783,31 @@ class ObjectBlock(Block):
         """
         return lib.is_bool_array(self.values.ravel())
 
-    # TODO: Refactor when convert_objects is removed since there will be 1 path
-    def convert(self, *args, **kwargs):
+    def convert(
+        self,
+        copy: bool = True,
+        datetime: bool = True,
+        numeric: bool = True,
+        timedelta: bool = True,
+        coerce: bool = False,
+    ):
         """ attempt to coerce any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
 
         can return multiple blocks!
         """
 
-        if args:
-            raise NotImplementedError
-        by_item = kwargs.get("by_item", True)
-
-        new_inputs = ["coerce", "datetime", "numeric", "timedelta"]
-        new_style = False
-        for kw in new_inputs:
-            new_style |= kw in kwargs
-
-        if new_style:
-            fn = soft_convert_objects
-            fn_inputs = new_inputs
-        else:
-            fn = maybe_convert_objects
-            fn_inputs = ["convert_dates", "convert_numeric", "convert_timedeltas"]
-        fn_inputs += ["copy"]
-
-        fn_kwargs = {key: kwargs[key] for key in fn_inputs if key in kwargs}
-
         # operate column-by-column
         def f(m, v, i):
             shape = v.shape
-            values = fn(v.ravel(), **fn_kwargs)
+            values = soft_convert_objects(
+                v.ravel(),
+                datetime=datetime,
+                numeric=numeric,
+                timedelta=timedelta,
+                coerce=coerce,
+                copy=copy,
+            )
             if isinstance(values, np.ndarray):
                 # TODO: allow EA once reshape is supported
                 values = values.reshape(shape)
@@ -2812,7 +2815,7 @@ class ObjectBlock(Block):
             values = _block_shape(values, ndim=self.ndim)
             return values
 
-        if by_item and not self._is_single_block:
+        if self.ndim == 2:
             blocks = self.split_and_operate(None, f, False)
         else:
             values = f(None, self.values.ravel(), None)
@@ -3036,7 +3039,7 @@ class ObjectBlock(Block):
         # convert
         block = self.make_block(new_values)
         if convert:
-            block = block.convert(by_item=True, numeric=False)
+            block = block.convert(numeric=False)
         return block
 
     def _replace_coerce(
@@ -3075,9 +3078,7 @@ class ObjectBlock(Block):
                 mask=mask,
             )
             if convert:
-                block = [
-                    b.convert(by_item=True, numeric=False, copy=True) for b in block
-                ]
+                block = [b.convert(numeric=False, copy=True) for b in block]
             return block
         return self
 
