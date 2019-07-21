@@ -65,7 +65,6 @@ import pandas.core.common as com
 from pandas.core.index import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.tests.io.test_common import CustomFSPath
 
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
@@ -479,7 +478,7 @@ class DataFrameFormatter(TableFormatter):
     def __init__(
         self,
         frame: DataFrame,
-        buf: Optional[Union[StringIO, LocalPath, str, CustomFSPath]] = None,
+        buf: Optional[Union[StringIO, LocalPath, str]] = None,
         columns: Optional[List[str]] = None,
         col_space: Optional[Union[str, int]] = None,
         header: Union[bool, List[str]] = True,
