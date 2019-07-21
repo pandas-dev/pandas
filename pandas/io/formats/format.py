@@ -576,7 +576,7 @@ class DataFrameFormatter(TableFormatter):
                 self.header = cast(bool, self.header)
                 n_add_rows = self.header + dot_row + show_dimension_rows + prompt_row
                 # rows available to fill with actual data
-                max_rows_adj = self.h - n_add_rows
+                max_rows_adj = self.h - n_add_rows  # type: Optional[int]
                 self.max_rows_adj = max_rows_adj
 
             # Format only rows and columns that could potentially fit the
