@@ -9,7 +9,7 @@ import numpy as np
 from pandas._libs import algos as libalgos, index as libindex, lib
 import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array
-from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
+from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
@@ -56,7 +56,6 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCPeriodIndex,
     ABCSeries,
-    ABCTimedeltaArray,
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import array_equivalent, isna
@@ -127,28 +126,8 @@ def _make_comparison_op(op, cls):
 
 def _make_arithmetic_op(op, cls):
     def index_arithmetic_method(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame)):
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCTimedeltaIndex)):
             return NotImplemented
-        elif isinstance(other, ABCTimedeltaIndex):
-            # Defer to subclass implementation
-            return NotImplemented
-        elif isinstance(
-            other, (np.ndarray, ABCTimedeltaArray)
-        ) and is_timedelta64_dtype(other):
-            # GH#22390; wrap in Series for op, this will in turn wrap in
-            # TimedeltaIndex, but will correctly raise TypeError instead of
-            # NullFrequencyError for add/sub ops
-            from pandas import Series
-
-            other = Series(other)
-            out = op(self, other)
-            return Index(out, name=self.name)
-
-        # handle time-based others
-        if isinstance(other, (ABCDateOffset, np.timedelta64, timedelta)):
-            return self._evaluate_with_timedelta_like(other, op)
-
-        other = self._validate_for_numeric_binop(other, op)
 
         from pandas import Series
 
@@ -4905,11 +4884,6 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         values : set or list-like
             Sought values.
-
-            .. versionadded:: 0.18.1
-
-               Support for values as a set.
-
         level : str or int, optional
             Name or position of the index level to use (if the index is a
             `MultiIndex`).
@@ -5337,32 +5311,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     # --------------------------------------------------------------------
     # Generated Arithmetic, Comparison, and Unary Methods
-
-    def _evaluate_with_timedelta_like(self, other, op):
-        # Timedelta knows how to operate with np.array, so dispatch to that
-        # operation and then wrap the results
-        if self._is_numeric_dtype and op.__name__ in ["add", "sub", "radd", "rsub"]:
-            raise TypeError(
-                "Operation {opname} between {cls} and {other} "
-                "is invalid".format(
-                    opname=op.__name__, cls=self.dtype, other=type(other).__name__
-                )
-            )
-
-        other = Timedelta(other)
-        values = self.values
-
-        with np.errstate(all="ignore"):
-            result = op(values, other)
-
-        attrs = self._get_attributes_dict()
-        attrs = self._maybe_update_attributes(attrs)
-        if op == divmod:
-            return Index(result[0], **attrs), Index(result[1], **attrs)
-        return Index(result, **attrs)
-
-    def _evaluate_with_datetime_like(self, other, op):
-        raise TypeError("can only perform ops with datetime like values")
 
     @classmethod
     def _add_comparison_methods(cls):

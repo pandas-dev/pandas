@@ -997,11 +997,6 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         swapped : same type as caller (new object)
-
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
         """
         axis = self._get_axis_number(axis)
         result = self.copy()
@@ -6038,6 +6033,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         converted : same as input object
         """
+        validate_bool_kwarg(datetime, "datetime")
+        validate_bool_kwarg(numeric, "numeric")
+        validate_bool_kwarg(timedelta, "timedelta")
+        validate_bool_kwarg(coerce, "coerce")
+        validate_bool_kwarg(copy, "copy")
         return self._constructor(
             self._data.convert(
                 datetime=datetime,
@@ -9140,10 +9140,6 @@ class NDFrame(PandasObject, SelectionMixin):
             If `cond` is callable, it is computed on the %(klass)s and
             should return boolean %(klass)s or array. The callable must
             not change input %(klass)s (though pandas doesn't check it).
-
-            .. versionadded:: 0.18.1
-                A callable can be used as cond.
-
         other : scalar, %(klass)s, or callable
             Entries where `cond` is %(cond_rev)s are replaced with
             corresponding value from `other`.
