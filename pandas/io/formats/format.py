@@ -1322,7 +1322,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
             if self.fixed_width:
                 float_format = partial(
                     "{value: .{digits:d}f}".format, digits=self.digits
-                )
+                )  # type: Optional[float_format_type]
             else:
                 float_format = self.float_format
         else:
