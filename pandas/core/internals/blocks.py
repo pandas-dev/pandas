@@ -2586,8 +2586,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             return super().setitem(indexer, value)
         except (ValueError, TypeError):
             obj_vals = self.values.astype(object)
-            if self.ndim == 2 and obj_vals.ndim == 1:
-                obj_vals = obj_vals.reshape(1, -1)
             newb = make_block(
                 obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
             )
