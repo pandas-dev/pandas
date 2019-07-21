@@ -75,6 +75,7 @@ if TYPE_CHECKING:
 formatters_type = Union[
     List[Callable], Tuple[Callable, ...], Dict[Union[str, int], Callable]
 ]
+float_format_type = Union[str, Callable[..., Any], "EngFormatter", Type[str]]
 
 common_docstring = """
         Parameters
@@ -1114,7 +1115,7 @@ class GenericArrayFormatter:
         formatter: Optional[Union[Callable, Type[str]]] = None,
         na_rep: str = "NaN",
         space: Union[str, int] = 12,
-        float_format: Optional[Union[str, Callable, "EngFormatter", Type[str]]] = None,
+        float_format: Optional[float_format_type] = None,
         justify: str = "right",
         decimal: str = ".",
         quoting: Optional[int] = None,
@@ -1221,7 +1222,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
     def _value_formatter(
         self,
-        float_format: Optional[Union[Callable, partial]] = None,
+        float_format: Optional[float_format_type] = None,
         threshold: Optional[Union[float, int]] = None,
     ) -> Callable:
         """Returns a function to be applied on each value to format it
