@@ -66,7 +66,6 @@ from pandas.core.frame import DataFrame
 from pandas.core.index import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.series import Series
 from pandas.tests.io.test_common import CustomFSPath
 
 from pandas.io.common import _expand_user, _stringify_path
