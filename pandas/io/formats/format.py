@@ -72,6 +72,10 @@ from pandas.io.formats.printing import adjoin, justify, pprint_thing
 if TYPE_CHECKING:
     from pandas import Series, DataFrame, Categorical
 
+formatters_type = Union[
+    List[Callable], Tuple[Callable, ...], Dict[Union[str, int], Callable]
+]
+
 common_docstring = """
         Parameters
         ----------
@@ -87,7 +91,7 @@ common_docstring = """
             Whether to print index (row) labels.
         na_rep : str, optional, default 'NaN'
             String representation of NAN to use.
-        formatters : list or dict of one-param. functions, optional
+        formatters : list, tuple or dict of one-param. functions, optional
             Formatter functions to apply to columns' elements by position or
             name.
             The result of each function must be a unicode string.
@@ -444,7 +448,7 @@ class TableFormatter:
 
     show_dimensions = None
     is_truncated = None
-    formatters = None
+    formatters = None  # type: formatters_type
     columns = None  # type: Index
 
     @property
@@ -456,6 +460,7 @@ class TableFormatter:
     def _get_formatter(self, i: Union[str, int]) -> Optional[Callable]:
         if isinstance(self.formatters, (list, tuple)):
             if is_integer(i):
+                i = cast(int, i)
                 return self.formatters[i]
             else:
                 return None
@@ -487,9 +492,7 @@ class DataFrameFormatter(TableFormatter):
         header: Union[bool, List[str]] = True,
         index: Union[bool, int] = True,
         na_rep: str = "NaN",
-        formatters: Optional[
-            Union[Tuple[Callable, Callable, Callable], Dict[str, Callable]]
-        ] = None,
+        formatters: Optional[formatters_type] = None,
         justify: Optional[str] = None,
         float_format: Optional[Union[str, Type[str]]] = None,
         sparsify: Optional[bool] = None,
