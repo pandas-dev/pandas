@@ -3,7 +3,10 @@ from typing import IO, TYPE_CHECKING, AnyStr, TypeVar, Union
 
 import numpy as np
 
-if TYPE_CHECKING:  # Use for any internal imports
+# To prevent import cycles place any internal imports in the branch below
+# and use a string literal forward reference to it in subsequent types
+# https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
+if TYPE_CHECKING:
     from pandas._libs import Period, Timedelta, Timestamp
 
     from pandas.core.arrays.base import ExtensionArray
