@@ -403,6 +403,28 @@ For some windowing functions, additional parameters must be specified:
     such that the weights are normalized with respect to each other. Weights
     of ``[1, 1, 1]`` and ``[2, 2, 2]`` yield the same result.
 
+Iterating over windows
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.0.0
+
+It is also possible to iterate over a series or dataframe with a window function. Currently ``rolling`` and ``expanding`` are supported.
+
+Iterating over a ``Series`` will yield ``Series`` objects for each window whereas iterating over a ``DataFrame`` object 
+will yield ``DataFrame`` objects.
+
+.. ipython:: python
+
+    s = pd.Series(np.random.randn(5)).rolling(2)
+    for x in s:
+        x
+
+.. ipython:: python
+
+    df = pd.DataFrame({ "A": [1, 2, 3], "B": [4, 5, 6]})
+    for x in df:
+        x
+
 .. _stats.moments.ts:
 
 Time-aware rolling
