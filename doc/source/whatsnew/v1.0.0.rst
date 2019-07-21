@@ -163,7 +163,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
+- Improved :class:`pandas.core.window.Rolling` and :class:`pandas.core.window.Window` it is now possible to iterate over a window object (:issue:`12537`)
 -
 
 Reshaping

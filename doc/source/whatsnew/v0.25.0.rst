@@ -1207,7 +1207,6 @@ Groupby/resample/rolling
 - Improved :class:`pandas.core.window.Rolling`, :class:`pandas.core.window.Window` and :class:`pandas.core.window.EWM` functions to exclude nuisance columns from results instead of raising errors and raise a ``DataError`` only if all columns are nuisance (:issue:`12537`)
 - Bug in :meth:`pandas.core.window.Rolling.max` and :meth:`pandas.core.window.Rolling.min` where incorrect results are returned with an empty variable window (:issue:`26005`)
 - Raise a helpful exception when an unsupported weighted window function is used as an argument of :meth:`pandas.core.window.Window.aggregate` (:issue:`26597`)
-- Improved :class:`pandas.core.window.Rolling` and :class:`pandas.core.window.Window` it is now possible to iterate over a window object (:issue:`12537`)
 
 Reshaping
 ^^^^^^^^^
