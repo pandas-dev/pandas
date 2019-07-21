@@ -618,6 +618,8 @@ class DataFrameFormatter(TableFormatter):
                 )
             self.tr_col_num = col_num
         if truncate_v:
+            # cast here since if truncate_v is True, max_rows_adj is not None
+            max_rows_adj = cast(int, max_rows_adj)
             if max_rows_adj == 1:
                 row_num = max_rows
                 frame = frame.iloc[:max_rows, :]
