@@ -364,6 +364,15 @@ Extracting substrings
 Extract first match in each subject (extract)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. warning::
+
+   Before version 0.23, argument ``expand`` of the ``extract`` method defaulted to
+   ``False``. When ``expand=False``, ``expand`` returns a ``Series``, ``Index``, or
+   ``DataFrame``, depending on the subject and regular expression
+   pattern. When ``expand=True``, it always returns a ``DataFrame``,
+   which is more consistent and less confusing from the perspective of a user.
+   ``expand=True`` has been the default since version 0.23.0.
+
 The ``extract`` method accepts a `regular expression
 <https://docs.python.org/3/library/re.html>`__ with at least one
 capture group.

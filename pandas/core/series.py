@@ -3593,12 +3593,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def swaplevel(self, i=-2, j=-1, copy=True):
         """
-        Swap levels i and j in a MultiIndex.
+        Swap levels i and j in a :class:`MultiIndex`.
+
+        Default is to swap the two innermost levels of the index.
 
         Parameters
         ----------
         i, j : int, str (can be mixed)
             Level of index to be swapped. Can pass level name as string.
+        copy : bool, default True
+            Whether to copy underlying data.
 
         Returns
         -------
