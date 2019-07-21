@@ -733,7 +733,7 @@ class Block(PandasObject):
                     type(self).__name__.lower().replace("Block", ""),
                 )
             )
-        if lib.is_scalar(other) and isna(other) and self.is_integer:
+        if np.any(isna(other)) and not self._can_hold_na:
             raise TypeError(
                 "cannot convert {} to an {}".format(
                     type(other).__name__,
@@ -1411,7 +1411,11 @@ class Block(PandasObject):
         # our where function
         def func(cond, values, other):
 
-            if not (self.is_integer and lib.is_scalar(other) and np.isnan(other)):
+            if not (
+                (self.is_integer or self.is_bool)
+                and lib.is_scalar(other)
+                and np.isnan(other)
+            ):
                 # np.where will cast integer array to floats in this case
                 other = self._try_coerce_args(other)
 
