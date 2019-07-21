@@ -477,7 +477,7 @@ class DataFrameFormatter(TableFormatter):
 
     def __init__(
         self,
-        frame: DataFrame,
+        frame: "DataFrame",
         buf: Optional[Union[StringIO, LocalPath, str]] = None,
         columns: Optional[List[str]] = None,
         col_space: Optional[Union[str, int]] = None,
