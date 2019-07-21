@@ -5,7 +5,7 @@ similar to how we have a Groupby object.
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
-from typing import Callable, List, Optional, Set
+from typing import Callable, List, Optional, Set, Union
 import warnings
 
 import numpy as np
@@ -172,7 +172,19 @@ class _Window(PandasObject, SelectionMixin):
     def _dir_additions(self):
         return self.obj._dir_additions()
 
-    def _get_window(self, other=None, **kwargs):
+    def _get_window(self, other=None, **kwargs) -> int:
+        """
+        Returns window lenght
+
+        Parameters
+        ----------
+        other:
+            ignored, exists for compatibility
+
+        Returns
+        -------
+        window : int
+        """
         return self.window
 
     @property
@@ -341,9 +353,11 @@ class _Window(PandasObject, SelectionMixin):
                 result = np.copy(result[tuple(lead_indexer)])
         return result
 
-    def _wrap_roll(self, cfunc, check_minp, index, **kwargs) -> Callable:
+    def _get_roll_func(
+        self, cfunc: Callable, check_minp: Callable, index: np.ndarray, **kwargs
+    ) -> Callable:
         """
-        Wrap rolling function.
+        Wrap rolling function to check values passed.
 
         Parameters
         ----------
@@ -353,6 +367,10 @@ class _Window(PandasObject, SelectionMixin):
             function to check minimum period parameter
         index : ndarray
             used for variable window
+
+        Returns
+        -------
+        func : callable
         """
 
         def func(arg, window, min_periods=None, closed=None):
@@ -362,8 +380,14 @@ class _Window(PandasObject, SelectionMixin):
         return func
 
     def _apply(
-        self, func, name=None, window=None, center=None, check_minp=None, **kwargs
-    ):
+        self,
+        func: Union[str, Callable],
+        name: Optional[str] = None,
+        window: Optional[Union[int, str]] = None,
+        center: Optional[bool] = None,
+        check_minp: Optional[Callable] = None,
+        **kwargs
+    ) -> FrameOrSeries:
         """
         Rolling statistical measure using supplied function.
 
@@ -374,9 +398,12 @@ class _Window(PandasObject, SelectionMixin):
         func : str/callable to apply
         name : str, optional
            name of this function
-        window : int/array, default to _get_window()
+        window : int/str, default to _get_window()
+            window lenght or offset
         center : bool, default to self.center
         check_minp : function, default to _use_window
+        **kwargs
+            additional arguments for rolling function and window function
 
         Returns
         -------
@@ -422,7 +449,7 @@ class _Window(PandasObject, SelectionMixin):
                         "in libwindow.{func}".format(func=func)
                     )
 
-                func = self._wrap_roll(cfunc, check_minp, index_as_array, **kwargs)
+                func = self._get_roll_func(cfunc, check_minp, index_as_array, **kwargs)
 
             # calculation function
             if center:
@@ -765,10 +792,15 @@ class Window(_Window):
         else:
             raise ValueError("Invalid window {0}".format(window))
 
-    def _get_window(self, **kwargs):
+    def _get_window(self, other=None, **kwargs) -> np.ndarray:
         """
         Provide validation for the window type, return the window
         which has already been validated.
+
+        Parameters
+        ----------
+        other:
+            ignored, exists for compatibility
 
         Returns
         -------
@@ -816,7 +848,9 @@ class Window(_Window):
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
 
-    def _wrap_roll(self, cfunc, check_minp, *args, **kwargs):
+    def _get_roll_func(
+        self, cfunc: Callable, check_minp: Callable, index: np.ndarray, **kwargs
+    ) -> Callable:
         def func(arg, window, min_periods=None, closed=None):
             minp = check_minp(min_periods, len(window))
             return cfunc(arg, window, minp)
