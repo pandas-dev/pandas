@@ -447,7 +447,7 @@ def _get_adjustment() -> Union[TextAdjustment, EastAsianTextAdjustment]:
 class TableFormatter:
 
     show_dimensions = None  # type: bool
-    is_truncated = None
+    is_truncated = None  # type: bool
     formatters = None  # type: formatters_type
     columns = None  # type: Index
 
@@ -633,7 +633,7 @@ class DataFrameFormatter(TableFormatter):
         self.tr_frame = frame
         self.truncate_h = truncate_h
         self.truncate_v = truncate_v
-        self.is_truncated = self.truncate_h or self.truncate_v
+        self.is_truncated = bool(self.truncate_h or self.truncate_v)
 
     def _to_str_columns(self) -> List[List[str]]:
         """
