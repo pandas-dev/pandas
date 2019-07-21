@@ -781,8 +781,6 @@ class Resampler(_GroupBy):
     ):
         """
         Interpolate values according to different methods.
-
-        .. versionadded:: 0.18.1
         """
         result = self._upsample(None)
         return result.interpolate(
@@ -1259,8 +1257,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 class PeriodIndexResamplerGroupby(_GroupByMixin, PeriodIndexResampler):
     """
     Provides a resample of a groupby implementation.
-
-    .. versionadded:: 0.18.1
     """
 
     @property
