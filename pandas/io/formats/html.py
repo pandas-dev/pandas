@@ -4,7 +4,7 @@ Module for formatting output data in HTML.
 
 from collections import OrderedDict
 from textwrap import dedent
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, cast
 
 from pandas._config import get_option
 
@@ -459,6 +459,8 @@ class HTMLFormatter(TableFormatter):
                 # Insert ... row and adjust idx_values and
                 # level_lengths to take this into account.
                 ins_row = self.fmt.tr_row_num
+                # cast here since if truncate_v is True, self.fmt.tr_row_num is not None
+                ins_row = cast(int, ins_row)
                 inserted = False
                 for lnum, records in enumerate(level_lengths):
                     rec_new = {}
