@@ -1068,7 +1068,7 @@ def format_array(
     """
 
     if is_datetime64_dtype(values.dtype):
-        fmt_klass = Datetime64Formatter
+        fmt_klass = Datetime64Formatter  # type: Type[GenericArrayFormatter]
     elif is_datetime64tz_dtype(values):
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
