@@ -445,7 +445,7 @@ class TableFormatter:
     show_dimensions = None
     is_truncated = None
     formatters = None
-    columns = None
+    columns = None  # type: Index
 
     @property
     def should_show_dimensions(self) -> Optional[bool]:
