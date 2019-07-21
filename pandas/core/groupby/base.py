@@ -111,7 +111,6 @@ reduction_kernels = frozenset(
         "all",
         "any",
         "bfill",
-        "corr",
         "count",
         "cov",
         "first",
@@ -161,6 +160,3 @@ transformation_kernels = frozenset(
 
 # Valid values  of `name` for `groupby.transform(name)`
 transform_kernel_whitelist = reduction_kernels | transformation_kernels
-transform_kernel_whitelist -= {
-    "corr"
-}  # returns multindex, exclude from transform(name) for now.
