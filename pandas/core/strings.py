@@ -914,8 +914,6 @@ def str_extractall(arr, pat, flags=0):
     Series has exactly one match, extractall(pat).xs(0, level='match')
     is the same as extract(pat).
 
-    .. versionadded:: 0.18.0
-
     Parameters
     ----------
     pat : str

@@ -3604,11 +3604,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         Series
             Series with levels swapped in MultiIndex.
-
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
         """
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
@@ -4458,10 +4453,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             The sequence of values to test. Passing in a single string will
             raise a ``TypeError``. Instead, turn a single string into a
             list of one element.
-
-            .. versionadded:: 0.18.1
-
-              Support for values as a set.
 
         Returns
         -------

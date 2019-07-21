@@ -296,7 +296,6 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``
   the ZIP file must contain only one data file to be read in.
   Set to ``None`` for no decompression.
 
-  .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
   .. versionchanged:: 0.24.0 'infer' option added and set to default.
 thousands : str, default ``None``
   Thousands separator.

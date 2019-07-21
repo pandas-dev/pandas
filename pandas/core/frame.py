@@ -3204,8 +3204,6 @@ class DataFrame(NDFrame):
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
             a new DataFrame is returned.
-
-            .. versionadded:: 0.18.0.
         kwargs : dict
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by
@@ -6316,8 +6314,6 @@ class DataFrame(NDFrame):
             Level(s) of index to unstack, can pass level name
         fill_value : replace NaN with this value if the unstack produces
             missing values
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------
