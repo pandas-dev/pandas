@@ -813,6 +813,8 @@ class DataFrameFormatter(TableFormatter):
         nbins = len(col_bins)
 
         if self.truncate_v:
+            # cast here since if truncate_v is True, max_rows_adj is not None
+            self.max_rows_adj = cast(int, self.max_rows_adj)
             nrows = self.max_rows_adj + 1
         else:
             nrows = len(self.frame)
