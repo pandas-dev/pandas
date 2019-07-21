@@ -4,18 +4,37 @@ and latex files. This module also applies to display formatting.
 """
 
 from functools import partial
-from io import StringIO
+from io import StringIO, TextIOWrapper
 from shutil import get_terminal_size
-from typing import TYPE_CHECKING, List, Optional, TextIO, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    TextIO,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 from unicodedata import east_asian_width
 
+from _pytest.capture import EncodedFile
+from dateutil.tz.tz import tzutc
+from dateutil.zoneinfo import tzfile
 import numpy as np
+from numpy import float64, int32, ndarray, str_
+from py._path.local import LocalPath
 
 from pandas._config.config import get_option, set_option
 
 from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
+from pandas._libs.tslibs.nattype import NaTType
+from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -40,30 +59,21 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core.arrays.datetimes import DatetimeArray
+from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core.frame import DataFrame
 from pandas.core.index import Index, ensure_index
+from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.series import Series
+from pandas.tests.io.test_common import CustomFSPath
 
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
-from io import StringIO, TextIOWrapper
-from _pytest.capture import EncodedFile
-from dateutil.tz.tz import tzutc
-from dateutil.zoneinfo import tzfile
-from numpy import float64, int32, ndarray, str_
-from pandas._libs.tslibs.nattype import NaTType
-from pandas._libs.tslibs.timestamps import Timestamp
-from pandas.core.arrays.datetimes import DatetimeArray
-from pandas.core.arrays.timedeltas import TimedeltaArray
-from pandas.core.frame import DataFrame
-from pandas.core.indexes.base import Index
-from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.series import Series
-from pandas.tests.io.test_common import CustomFSPath
-from py._path.local import LocalPath
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 if TYPE_CHECKING:
     from pandas import Series, DataFrame, Categorical
 
@@ -153,7 +163,7 @@ class CategoricalFormatter:
         buf: Optional[TextIO] = None,
         length: bool = True,
         na_rep: str = "NaN",
-        footer: bool = True
+        footer: bool = True,
     ) -> None:
         self.categorical = categorical
         self.buf = buf if buf is not None else StringIO("")
@@ -222,7 +232,7 @@ class SeriesFormatter:
         float_format: Optional[str] = None,
         dtype: bool = True,
         max_rows: Optional[int] = None,
-        min_rows: Optional[int] = None
+        min_rows: Optional[int] = None,
     ) -> None:
         self.series = series
         self.buf = buf if buf is not None else StringIO()
@@ -404,7 +414,17 @@ class EastAsianTextAdjustment(TextAdjustment):
             self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width) for c in text
         )
 
-    def justify(self, texts: Union[Tuple[str, str], List[str], Tuple[str, str, str, str, str], Tuple[str, str, str, str]], max_len: int, mode: str = "right") -> List[str]:
+    def justify(
+        self,
+        texts: Union[
+            Tuple[str, str],
+            List[str],
+            Tuple[str, str, str, str, str],
+            Tuple[str, str, str, str],
+        ],
+        max_len: int,
+        mode: str = "right",
+    ) -> List[str]:
         # re-calculate padding space per str considering East Asian Width
         def _get_pad(t):
             return max_len - self.len(t) + len(t)
@@ -469,7 +489,9 @@ class DataFrameFormatter(TableFormatter):
         header: Union[bool, List[str]] = True,
         index: Union[bool, int] = True,
         na_rep: str = "NaN",
-        formatters: Optional[Union[Tuple[Callable, Callable, Callable], Dict[str, Callable]]] = None,
+        formatters: Optional[
+            Union[Tuple[Callable, Callable, Callable], Dict[str, Callable]]
+        ] = None,
         justify: Optional[str] = None,
         float_format: Optional[Union[str, Type[str]]] = None,
         sparsify: Optional[bool] = None,
@@ -800,7 +822,7 @@ class DataFrameFormatter(TableFormatter):
         encoding: Optional[str] = None,
         multicolumn: bool = False,
         multicolumn_format: Optional[str] = None,
-        multirow: bool = False
+        multirow: bool = False,
     ) -> None:
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
@@ -847,7 +869,7 @@ class DataFrameFormatter(TableFormatter):
         self,
         classes: Optional[Union[str, List, Tuple]] = None,
         notebook: bool = False,
-        border: Optional[int] = None
+        border: Optional[int] = None,
     ) -> None:
         """
         Render a DataFrame to a html table.
@@ -996,7 +1018,7 @@ def format_array(
     space: Optional[Union[str, int]] = None,
     justify: str = "right",
     decimal: str = ".",
-    leading_space: Optional[bool] = None
+    leading_space: Optional[bool] = None,
 ) -> List[str]:
     """
     Format an array for printing.
@@ -1077,7 +1099,7 @@ class GenericArrayFormatter:
         decimal: str = ".",
         quoting: Optional[int] = None,
         fixed_width: bool = True,
-        leading_space: Optional[bool] = None
+        leading_space: Optional[bool] = None,
     ) -> None:
         self.values = values
         self.digits = digits
@@ -1177,7 +1199,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
                 self.formatter = self.float_format
                 self.float_format = None
 
-    def _value_formatter(self, float_format: Optional[Union[Callable, partial]] = None, threshold: Optional[Union[float, int]] = None) -> Callable:
+    def _value_formatter(
+        self,
+        float_format: Optional[Union[Callable, partial]] = None,
+        threshold: Optional[Union[float, int]] = None,
+    ) -> Callable:
         """Returns a function to be applied on each value to format it
         """
 
@@ -1328,7 +1354,13 @@ class IntArrayFormatter(GenericArrayFormatter):
 
 
 class Datetime64Formatter(GenericArrayFormatter):
-    def __init__(self, values: Union[ndarray, Series, DatetimeIndex, DatetimeArray], nat_rep: str = "NaT", date_format: None = None, **kwargs) -> None:
+    def __init__(
+        self,
+        values: Union[ndarray, Series, DatetimeIndex, DatetimeArray],
+        nat_rep: str = "NaT",
+        date_format: None = None,
+        **kwargs
+    ) -> None:
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
         self.date_format = date_format
@@ -1379,7 +1411,11 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
         return fmt_values
 
 
-def format_percentiles(percentiles: Union[ndarray, List[Union[int, float]], List[float], List[Union[str, float]]]) -> List[str]:
+def format_percentiles(
+    percentiles: Union[
+        ndarray, List[Union[int, float]], List[float], List[Union[str, float]]
+    ]
+) -> List[str]:
     """
     Outputs rounded and formatted percentiles.
 
@@ -1464,7 +1500,11 @@ def _is_dates_only(values: Union[ndarray, DatetimeArray, Index, DatetimeIndex]) 
     return False
 
 
-def _format_datetime64(x: Union[NaTType, Timestamp], tz: Optional[Union[tzfile, tzutc]] = None, nat_rep: str = "NaT") -> str:
+def _format_datetime64(
+    x: Union[NaTType, Timestamp],
+    tz: Optional[Union[tzfile, tzutc]] = None,
+    nat_rep: str = "NaT",
+) -> str:
     if x is None or (is_scalar(x) and isna(x)):
         return nat_rep
 
@@ -1477,7 +1517,9 @@ def _format_datetime64(x: Union[NaTType, Timestamp], tz: Optional[Union[tzfile, 
     return str(x)
 
 
-def _format_datetime64_dateonly(x: Union[NaTType, Timestamp], nat_rep: str = "NaT", date_format: None = None) -> str:
+def _format_datetime64_dateonly(
+    x: Union[NaTType, Timestamp], nat_rep: str = "NaT", date_format: None = None
+) -> str:
     if x is None or (is_scalar(x) and isna(x)):
         return nat_rep
 
@@ -1490,7 +1532,9 @@ def _format_datetime64_dateonly(x: Union[NaTType, Timestamp], nat_rep: str = "Na
         return x._date_repr
 
 
-def _get_format_datetime64(is_dates_only: bool, nat_rep: str = "NaT", date_format: None = None) -> Callable:
+def _get_format_datetime64(
+    is_dates_only: bool, nat_rep: str = "NaT", date_format: None = None
+) -> Callable:
 
     if is_dates_only:
         return lambda x, tz=None: _format_datetime64_dateonly(
@@ -1500,7 +1544,9 @@ def _get_format_datetime64(is_dates_only: bool, nat_rep: str = "NaT", date_forma
         return lambda x, tz=None: _format_datetime64(x, tz=tz, nat_rep=nat_rep)
 
 
-def _get_format_datetime64_from_values(values: Union[ndarray, DatetimeArray, DatetimeIndex], date_format: Optional[str]) -> Optional[str]:
+def _get_format_datetime64_from_values(
+    values: Union[ndarray, DatetimeArray, DatetimeIndex], date_format: Optional[str]
+) -> Optional[str]:
     """ given values and a date_format, return a string format """
 
     if isinstance(values, np.ndarray) and values.ndim > 1:
@@ -1529,7 +1575,13 @@ class Datetime64TZFormatter(Datetime64Formatter):
 
 
 class Timedelta64Formatter(GenericArrayFormatter):
-    def __init__(self, values: Union[ndarray, TimedeltaIndex], nat_rep: str = "NaT", box: bool = False, **kwargs) -> None:
+    def __init__(
+        self,
+        values: Union[ndarray, TimedeltaIndex],
+        nat_rep: str = "NaT",
+        box: bool = False,
+        **kwargs
+    ) -> None:
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
         self.box = box
@@ -1542,7 +1594,11 @@ class Timedelta64Formatter(GenericArrayFormatter):
         return fmt_values
 
 
-def _get_format_timedelta64(values: Union[ndarray, TimedeltaIndex, TimedeltaArray], nat_rep: str = "NaT", box: bool = False) -> Callable:
+def _get_format_timedelta64(
+    values: Union[ndarray, TimedeltaIndex, TimedeltaArray],
+    nat_rep: str = "NaT",
+    box: bool = False,
+) -> Callable:
     """
     Return a formatter function for a range of timedeltas.
     These will all have the same format argument
@@ -1583,7 +1639,12 @@ def _get_format_timedelta64(values: Union[ndarray, TimedeltaIndex, TimedeltaArra
     return _formatter
 
 
-def _make_fixed_width(strings: Union[ndarray, List[str], List[str_]], justify: str = "right", minimum: Optional[int] = None, adj: Optional[Union[TextAdjustment, EastAsianTextAdjustment]] = None) -> Union[ndarray, List[str]]:
+def _make_fixed_width(
+    strings: Union[ndarray, List[str], List[str_]],
+    justify: str = "right",
+    minimum: Optional[int] = None,
+    adj: Optional[Union[TextAdjustment, EastAsianTextAdjustment]] = None,
+) -> Union[ndarray, List[str]]:
 
     if len(strings) == 0 or justify == "all":
         return strings
@@ -1629,7 +1690,9 @@ def _trim_zeros_complex(str_complexes: ndarray, na_rep: str = "NaN") -> List[str
     return ["".join(separate_and_trim(x, na_rep)) for x in str_complexes]
 
 
-def _trim_zeros_float(str_floats: Union[ndarray, List[str]], na_rep: str = "NaN") -> List[str]:
+def _trim_zeros_float(
+    str_floats: Union[ndarray, List[str]], na_rep: str = "NaN"
+) -> List[str]:
     """
     Trims zeros, leaving just one before the decimal points if need be.
     """
@@ -1688,7 +1751,9 @@ class EngFormatter:
         24: "Y",
     }
 
-    def __init__(self, accuracy: Optional[int] = None, use_eng_prefix: bool = False) -> None:
+    def __init__(
+        self, accuracy: Optional[int] = None, use_eng_prefix: bool = False
+    ) -> None:
         self.accuracy = accuracy
         self.use_eng_prefix = use_eng_prefix
 
@@ -1792,7 +1857,9 @@ def _binify(cols: List[int32], line_width: Union[int32, int]) -> List[int]:
     return bins
 
 
-def get_level_lengths(levels: Any, sentinel: Union[bool, object, str] = "") -> List[Dict[int, int]]:
+def get_level_lengths(
+    levels: Any, sentinel: Union[bool, object, str] = ""
+) -> List[Dict[int, int]]:
     """For each index in each level the function returns lengths of indexes.
 
     Parameters
@@ -1832,7 +1899,9 @@ def get_level_lengths(levels: Any, sentinel: Union[bool, object, str] = "") -> L
     return result
 
 
-def buffer_put_lines(buf: Union[StringIO, TextIOWrapper, EncodedFile], lines: List[str]) -> None:
+def buffer_put_lines(
+    buf: Union[StringIO, TextIOWrapper, EncodedFile], lines: List[str]
+) -> None:
     """
     Appends lines to a buffer.
 
