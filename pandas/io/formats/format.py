@@ -446,7 +446,7 @@ def _get_adjustment() -> Union[TextAdjustment, EastAsianTextAdjustment]:
 
 class TableFormatter:
 
-    show_dimensions = None
+    show_dimensions = None  # type: bool
     is_truncated = None
     formatters = None  # type: formatters_type
     columns = None  # type: Index
@@ -501,7 +501,7 @@ class DataFrameFormatter(TableFormatter):
         max_rows: Optional[int] = None,
         min_rows: Optional[int] = None,
         max_cols: Optional[int] = None,
-        show_dimensions: Union[bool, str] = False,
+        show_dimensions: bool = False,
         decimal: str = ".",
         table_id: Optional[str] = None,
         render_links: bool = False,
