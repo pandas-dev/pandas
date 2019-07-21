@@ -39,7 +39,7 @@ Backwards incompatible API changes
 
 .. _whatsnew_1000.api.other:
 
--
+- :meth:`GroupBy.transform(name)` now raises on invalid operation names (:issue:`27489`).
 -
 
 Other API changes
