@@ -661,6 +661,8 @@ class DataFrameFormatter(TableFormatter):
                 stringified.append(fmt_values)
         else:
             if is_list_like(self.header):
+                # cast here since can't be bool if is_list_like
+                self.header = cast(List[str], self.header)
                 if len(self.header) != len(self.columns):
                     raise ValueError(
                         (
