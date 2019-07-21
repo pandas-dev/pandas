@@ -1092,7 +1092,7 @@ class GenericArrayFormatter:
         formatter: Optional[Union[Callable, Type[str]]] = None,
         na_rep: str = "NaN",
         space: Union[str, int] = 12,
-        float_format: Optional[Union[str, Callable, EngFormatter, Type[str]]] = None,
+        float_format: Optional[Union[str, Callable, "EngFormatter", Type[str]]] = None,
         justify: str = "right",
         decimal: str = ".",
         quoting: Optional[int] = None,
