@@ -571,6 +571,9 @@ class DataFrameFormatter(TableFormatter):
                 prompt_row = 1
                 if self.show_dimensions:
                     show_dimension_rows = 3
+                # assume we only get here if self.header is boolean.
+                # i.e. not to_latex() where self.header may be List[str]
+                self.header = cast(bool, self.header)
                 n_add_rows = self.header + dot_row + show_dimension_rows + prompt_row
                 # rows available to fill with actual data
                 max_rows_adj = self.h - n_add_rows
