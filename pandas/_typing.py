@@ -4,9 +4,7 @@ from typing import IO, TYPE_CHECKING, AnyStr, TypeVar, Union
 import numpy as np
 
 if TYPE_CHECKING:  # Use for any internal imports
-    from pandas._libs import Timestamp
-    from pandas._libs.tslibs.period import Period
-    from pandas._libs.tslibs.timedeltas import Timedelta
+    from pandas._libs import Period, Timedelta, Timestamp
 
     from pandas.core.arrays.base import ExtensionArray
     from pandas.core.dtypes.dtypes import ExtensionDtype
