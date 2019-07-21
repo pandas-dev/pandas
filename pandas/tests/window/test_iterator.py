@@ -6,6 +6,7 @@ from pandas.tests.window.common import Base
 import pandas.util.testing as tm
 
 
+# Tests for GH11704
 class TestExpanding(Base):
     @pytest.mark.parametrize(
         "dataframe,expected,window",
