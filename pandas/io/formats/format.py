@@ -759,8 +759,8 @@ class DataFrameFormatter(TableFormatter):
             ):  # need to wrap around
                 text = self._join_multiline(*strcols)
             else:  # max_cols == 0. Try to fit frame to terminal
-                text = self.adj.adjoin(1, *strcols).split("\n")
-                max_len = Series(text).str.len().max()
+                lines = self.adj.adjoin(1, *strcols).split("\n")
+                max_len = Series(lines).str.len().max()
                 # plus truncate dot col
                 dif = max_len - self.w
                 # '+ 1' to avoid too wide repr (GH PR #17023)
