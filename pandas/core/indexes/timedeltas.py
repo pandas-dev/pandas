@@ -30,25 +30,11 @@ from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
-    maybe_unwrap_index,
-    wrap_arithmetic_op,
 )
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
-
-
-def _make_wrapped_arith_op(opname):
-
-    meth = getattr(TimedeltaArray, opname)
-
-    def method(self, other):
-        result = meth(self._data, maybe_unwrap_index(other))
-        return wrap_arithmetic_op(self, other, result)
-
-    method.__name__ = opname
-    return method
 
 
 class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
@@ -320,17 +306,6 @@ class TimedeltaIndex(
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
-    __mul__ = _make_wrapped_arith_op("__mul__")
-    __rmul__ = _make_wrapped_arith_op("__rmul__")
-    __floordiv__ = _make_wrapped_arith_op("__floordiv__")
-    __rfloordiv__ = _make_wrapped_arith_op("__rfloordiv__")
-    __mod__ = _make_wrapped_arith_op("__mod__")
-    __rmod__ = _make_wrapped_arith_op("__rmod__")
-    __divmod__ = _make_wrapped_arith_op("__divmod__")
-    __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
-    __truediv__ = _make_wrapped_arith_op("__truediv__")
-    __rtruediv__ = _make_wrapped_arith_op("__rtruediv__")
-
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
@@ -593,7 +568,7 @@ class TimedeltaIndex(
                 return lbound
             else:
                 return lbound + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
-        elif (is_integer(label) or is_float(label)) and not is_timedelta64_dtype(label):
+        elif is_integer(label) or is_float(label):
             self._invalid_indexer("slice", label)
 
         return label

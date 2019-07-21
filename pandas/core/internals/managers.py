@@ -1061,7 +1061,7 @@ class BlockManager(PandasObject):
 
             if value.shape[1:] != self.shape[1:]:
                 raise AssertionError(
-                    "Shape of new values must be compatible " "with manager shape"
+                    "Shape of new values must be compatible with manager shape"
                 )
 
         try:
@@ -1154,7 +1154,7 @@ class BlockManager(PandasObject):
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
 
-    def insert(self, loc, item, value, allow_duplicates=False):
+    def insert(self, loc: int, item, value, allow_duplicates: bool = False):
         """
         Insert item at selected position.
 
@@ -1389,9 +1389,7 @@ class BlockManager(PandasObject):
 
         if verify:
             if ((indexer == -1) | (indexer >= n)).any():
-                raise Exception(
-                    "Indices must be nonzero and less than " "the axis length"
-                )
+                raise Exception("Indices must be nonzero and less than the axis length")
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
@@ -1478,7 +1476,7 @@ class SingleBlockManager(BlockManager):
         if isinstance(axis, list):
             if len(axis) != 1:
                 raise ValueError(
-                    "cannot create SingleBlockManager with more " "than 1 axis"
+                    "cannot create SingleBlockManager with more than 1 axis"
                 )
             axis = axis[0]
 
@@ -1492,7 +1490,7 @@ class SingleBlockManager(BlockManager):
                     block = [np.array([])]
                 elif len(block) != 1:
                     raise ValueError(
-                        "Cannot create SingleBlockManager with " "more than 1 block"
+                        "Cannot create SingleBlockManager with more than 1 block"
                     )
                 block = block[0]
         else:
@@ -1509,7 +1507,7 @@ class SingleBlockManager(BlockManager):
 
                 if len(block) != 1:
                     raise ValueError(
-                        "Cannot create SingleBlockManager with " "more than 1 block"
+                        "Cannot create SingleBlockManager with more than 1 block"
                     )
                 block = block[0]
 
@@ -1553,7 +1551,6 @@ class SingleBlockManager(BlockManager):
 
     def convert(self, **kwargs):
         """ convert the whole block as one """
-        kwargs["by_item"] = False
         return self.apply("convert", **kwargs)
 
     @property

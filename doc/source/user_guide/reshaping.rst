@@ -254,8 +254,6 @@ values will be set to ``NaN``.
    df3
    df3.unstack()
 
-.. versionadded:: 0.18.0
-
 Alternatively, unstack takes an optional ``fill_value`` argument, for specifying
 the value of missing data.
 
@@ -630,8 +628,6 @@ the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:
     from_dict = pd.get_dummies(df, prefix={'B': 'from_B', 'A': 'from_A'})
     from_dict
 
-.. versionadded:: 0.18.0
-
 Sometimes it will be useful to only keep k-1 levels of a categorical
 variable to avoid collinearity when feeding the result to statistical models.
 You can switch to this mode by turn on ``drop_first``.
@@ -801,3 +797,53 @@ Note to subdivide over multiple columns we can pass in a list to the
 
    df.pivot_table(
        values=['val0'], index='row', columns=['item', 'col'], aggfunc=['mean'])
+
+.. _reshaping.explode:
+
+Exploding a list-like column
+----------------------------
+
+.. versionadded:: 0.25.0
+
+Sometimes the values in a column are list-like.
+
+.. ipython:: python
+
+   keys = ['panda1', 'panda2', 'panda3']
+   values = [['eats', 'shoots'], ['shoots', 'leaves'], ['eats', 'leaves']]
+   df = pd.DataFrame({'keys': keys, 'values': values})
+   df
+
+We can 'explode' the ``values`` column, transforming each list-like to a separate row, by using :meth:`~Series.explode`. This will replicate the index values from the original row:
+
+.. ipython:: python
+
+   df['values'].explode()
+
+You can also explode the column in the ``DataFrame``.
+
+.. ipython:: python
+
+   df.explode('values')
+
+:meth:`Series.explode` will replace empty lists with ``np.nan`` and preserve scalar entries. The dtype of the resulting ``Series`` is always ``object``.
+
+.. ipython:: python
+
+   s = pd.Series([[1, 2, 3], 'foo', [], ['a', 'b']])
+   s
+   s.explode()
+
+Here is a typical usecase. You have comma separated strings in a column and want to expand this.
+
+.. ipython:: python
+
+    df = pd.DataFrame([{'var1': 'a,b,c', 'var2': 1},
+                       {'var1': 'd,e,f', 'var2': 2}])
+    df
+
+Creating a long form DataFrame is now straightforward using explode and chained operations
+
+.. ipython:: python
+
+   df.assign(var1=df.var1.str.split(',')).explode('var1')

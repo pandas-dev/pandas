@@ -2091,10 +2091,11 @@ class MultiIndex(Index):
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
         nv.validate_repeat(tuple(), dict(axis=axis))
+        repeats = ensure_platform_int(repeats)
         return MultiIndex(
             levels=self.levels,
             codes=[
-                level_codes.view(np.ndarray).repeat(repeats)
+                level_codes.view(np.ndarray).astype(np.intp).repeat(repeats)
                 for level_codes in self.codes
             ],
             names=self.names,
@@ -2195,11 +2196,6 @@ class MultiIndex(Index):
         -------
         MultiIndex
             A new MultiIndex.
-
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
 
         See Also
         --------

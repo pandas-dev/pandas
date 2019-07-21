@@ -156,7 +156,7 @@ def nested_to_record(
 
 
 def json_normalize(
-    data: List[Dict],
+    data: Union[Dict, List[Dict]],
     record_path: Optional[Union[str, List]] = None,
     meta: Optional[Union[str, List]] = None,
     meta_prefix: Optional[str] = None,
@@ -353,8 +353,6 @@ def json_normalize(
     lengths = []
 
     meta_vals = defaultdict(list)  # type: DefaultDict
-    if not isinstance(sep, str):
-        sep = str(sep)
     meta_keys = [sep.join(val) for val in meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
