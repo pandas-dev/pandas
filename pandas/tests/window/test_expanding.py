@@ -90,63 +90,6 @@ class TestExpanding(Base):
         expected = pd.Series([np.nan])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dataframe,expected,window",
-        [
-            (
-                DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
-                [({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2])],
-                3,
-            ),
-            (
-                DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
-                [
-                    ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
-                    ({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2]),
-                ],
-                2,
-            ),
-            (
-                DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
-                [
-                    ({"A": [1], "B": [4]}, [0]),
-                    ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
-                    ({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2]),
-                ],
-                1,
-            ),
-            (DataFrame({"A": [1], "B": [4]}), [], 1337),
-            (DataFrame(), [({}, [])], 1337),
-        ],
-    )
-    def test_iterator_dataframe(self, dataframe, expected, window):
-        expected = [DataFrame(values, index=index) for (values, index) in expected]
-
-        for (expected, actual) in zip(
-            expected, dataframe.expanding(min_periods=window)
-        ):
-            tm.assert_frame_equal(actual, expected)
-
-    @pytest.mark.parametrize(
-        "series,expected,window",
-        [
-            (Series([1, 2, 3]), [([1, 2, 3], [0, 1, 2])], 3),
-            (Series([1, 2, 3]), [([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])], 2),
-            (
-                Series([1, 2, 3]),
-                [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])],
-                1,
-            ),
-            (Series([1, 2]), [([1, 2], [0, 1])], 1337),
-            (Series([]), [], 1337),
-        ],
-    )
-    def test_iterator_series(self, series, expected, window):
-        expected = [Series(values, index=index) for (values, index) in expected]
-
-        for (expected, actual) in zip(expected, series.expanding(min_periods=window)):
-            tm.assert_series_equal(actual, expected)
-
     def test_expanding_axis(self, axis_frame):
         # see gh-23372.
         df = DataFrame(np.ones((10, 20)))
