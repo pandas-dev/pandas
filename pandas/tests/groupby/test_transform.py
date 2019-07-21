@@ -1025,10 +1025,16 @@ def test_transform_invalid_name_raises():
         g.transform("aggregate")
 
 
-def test_transform_agg_by_name(reduction_func):
+@pytest.mark.parametrize(
+    "obj",
+    [
+        DataFrame(dict(a=[0, 0, 0, 1, 1, 1], b=range(6))),
+        Series([0, 0, 0, 1, 1, 1])
+    ],
+)
+def test_transform_agg_by_name(reduction_func, obj):
     func = reduction_func
-    df = DataFrame(dict(a=[0, 0, 0, 1, 1, 1], b=range(6)))
-    g = df.groupby(np.repeat([0, 1], 3))
+    g = obj.groupby(np.repeat([0, 1], 3))
 
     if func == "ngroup":  # GH#27468
         pytest.xfail("TODO: g.transform('ngroup') doesn't work")
@@ -1036,11 +1042,13 @@ def test_transform_agg_by_name(reduction_func):
         pytest.xfail("TODO: g.transform('size') doesn't work")
     if func == "corr":
         pytest.xfail("corr returns multiindex, excluded from transform for now")
+    if func == "cov" and isinstance(obj, Series):
+        pytest.xfail("skip cov for series")
 
     args = {"nth": [0], "quantile": [0.5]}.get(func, [])
 
     result = g.transform(func, *args)
-    tm.assert_index_equal(result.index, df.index)
+    tm.assert_index_equal(result.index, obj.index)
 
     # check values replicated broadcasted across group
-    assert len(set(result.iloc[-3:, 1])) == 1
+    assert len(set(DataFrame(result).iloc[-3:, -1])) == 1
