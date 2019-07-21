@@ -977,7 +977,8 @@ class DataFrameFormatter(TableFormatter):
 
     def _get_formatted_index(self, frame: "DataFrame") -> List[str]:
         # Note: this is only used by to_string() and to_latex(), not by
-        # to_html().
+        # to_html(). so safe to cast col_space here.
+        self.col_space = cast(int, self.col_space)
         index = frame.index
         columns = frame.columns
         fmt = self._get_formatter("__index__")
