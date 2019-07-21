@@ -268,7 +268,7 @@ class SeriesFormatter:
             else:
                 row_num = max_rows // 2
                 series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
-            self.tr_row_num: Optional[int] = row_num
+            self.tr_row_num = row_num  # type: Optional[int]
         else:
             self.tr_row_num = None
         self.tr_series = series
@@ -991,7 +991,7 @@ class DataFrameFormatter(TableFormatter):
             return adjoined
 
     def _get_column_name_list(self) -> List[str]:
-        names: List[str] = []
+        names = []  # type: List[str]
         columns = self.frame.columns
         if isinstance(columns, ABCMultiIndex):
             names.extend("" if name is None else name for name in columns.names)
