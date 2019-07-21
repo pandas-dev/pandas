@@ -603,9 +603,12 @@ class DataFrameFormatter(TableFormatter):
 
         frame = self.frame
         if truncate_h:
+            # cast here since if truncate_h is True, max_cols_adj is not None
+            max_cols_adj = cast(int, max_cols_adj)
             if max_cols_adj == 0:
                 col_num = len(frame.columns)
             elif max_cols_adj == 1:
+                max_cols = cast(int, max_cols)
                 frame = frame.iloc[:, :max_cols]
                 col_num = max_cols
             else:
