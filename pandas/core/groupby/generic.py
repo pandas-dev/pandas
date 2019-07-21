@@ -1025,8 +1025,8 @@ class SeriesGroupBy(GroupBy):
             object.__setattr__(group, "name", name)
             res = wrapper(group)
 
-            if hasattr(res, "values"):
-                res = res.values
+            if hasattr(res, "_values"):
+                res = res._values
 
             indexer = self._get_index(name)
             s = klass(res, indexer)
