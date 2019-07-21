@@ -82,8 +82,9 @@ class HTMLFormatter(TableFormatter):
     def _get_columns_formatted_values(self) -> Iterable:
         return self.columns
 
+    # https://github.com/python/mypy/issues/1237
     @property
-    def is_truncated(self) -> bool:
+    def is_truncated(self) -> bool:  # type: ignore
         return self.fmt.is_truncated
 
     @property
