@@ -95,7 +95,7 @@ common_docstring = """
             Formatter functions to apply to columns' elements by position or
             name.
             The result of each function must be a unicode string.
-            List must be of length equal to the number of columns.
+            List/tuple must be of length equal to the number of columns.
         float_format : one-parameter function, optional, default None
             Formatter function to apply to columns' elements if they are
             floats. The result of this function must be a unicode string.
@@ -639,6 +639,10 @@ class DataFrameFormatter(TableFormatter):
         """
         Render a DataFrame to a list of columns (as lists of strings).
         """
+        # this method is not used by to_html where self.col_space
+        # could be a string so safe to cast
+        self.col_space = cast(int, self.col_space)
+
         frame = self.tr_frame
         # may include levels names also
 
