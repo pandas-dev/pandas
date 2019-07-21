@@ -1679,26 +1679,23 @@ def roll_generic(object obj,
 # Rolling sum and mean for weighted window
 
 
-def roll_weighted_sum(ndarray[float64_t, ndim=1, cast=True] values,
-                      ndarray[float64_t, ndim=1, cast=True] weights,
+def roll_weighted_sum(float64_t[:] values, float64_t[:] weights,
                       int minp):
     return _roll_weighted_sum_mean(values, weights, minp, avg=0)
 
 
-def roll_weighted_mean(ndarray[float64_t, ndim=1, cast=True] values,
-                       ndarray[float64_t, ndim=1, cast=True] weights,
+def roll_weighted_mean(float64_t[:] values, float64_t[:] weights,
                        int minp):
     return _roll_weighted_sum_mean(values, weights, minp, avg=1)
 
 
-def _roll_weighted_sum_mean(ndarray[float64_t, ndim=1, cast=True] values,
-                            ndarray[float64_t, ndim=1, cast=True] weights,
-                            int minp, bint avg=True):
+def _roll_weighted_sum_mean(float64_t[:] values, float64_t[:] weights,
+                            int minp, bint avg):
     """
     Assume len(weights) << len(values)
     """
     cdef:
-        ndarray[float64_t] output, tot_wgt, counts
+        float64_t[:] output, tot_wgt, counts
         Py_ssize_t in_i, win_i, win_n, in_n
         float64_t val_in, val_win, c, w
 

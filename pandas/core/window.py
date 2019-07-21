@@ -449,6 +449,7 @@ class _Window(PandasObject, SelectionMixin):
                     result = np.apply_along_axis(calc, self.axis, values)
                 else:
                     result = calc(values)
+                    result = np.asarray(result)
 
             if center:
                 result = self._center_window(result, window)
