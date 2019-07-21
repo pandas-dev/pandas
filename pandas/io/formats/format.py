@@ -64,7 +64,6 @@ from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.index import Index, ensure_index
-from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.series import Series
