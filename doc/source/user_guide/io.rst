@@ -454,8 +454,6 @@ worth trying.
 Specifying categorical dtype
 ''''''''''''''''''''''''''''
 
-.. versionadded:: 0.19.0
-
 ``Categorical`` columns can be parsed directly by specifying ``dtype='category'`` or
 ``dtype=CategoricalDtype(categories, ordered)``.
 
@@ -2193,8 +2191,6 @@ With max_level=1 the following snippet normalizes until 1st nesting level of the
 Line delimited json
 '''''''''''''''''''
 
-.. versionadded:: 0.19.0
-
 pandas is able to read and write line-delimited json files that are common in data processing pipelines
 using Hadoop or Spark.
 
@@ -2492,15 +2488,11 @@ Specify values that should be converted to NaN:
 
    dfs = pd.read_html(url, na_values=['No Acquirer'])
 
-.. versionadded:: 0.19
-
 Specify whether to keep the default set of NaN values:
 
 .. code-block:: python
 
    dfs = pd.read_html(url, keep_default_na=False)
-
-.. versionadded:: 0.19
 
 Specify converters for columns. This is useful for numerical text data that has
 leading zeros.  By default columns that are numerical are cast to numeric
@@ -2512,8 +2504,6 @@ columns to strings.
    url_mcc = 'https://en.wikipedia.org/wiki/Mobile_country_code'
    dfs = pd.read_html(url_mcc, match='Telekom Albania', header=0,
                       converters={'MNC': str})
-
-.. versionadded:: 0.19
 
 Use some combination of the above:
 

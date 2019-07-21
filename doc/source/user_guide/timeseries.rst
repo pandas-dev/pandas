@@ -1928,8 +1928,6 @@ objects:
 Period dtypes
 ~~~~~~~~~~~~~
 
-.. versionadded:: 0.19.0
-
 ``PeriodIndex`` has a custom ``period`` dtype. This is a pandas extension
 dtype similar to the :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``).
 

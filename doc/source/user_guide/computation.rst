@@ -408,9 +408,7 @@ For some windowing functions, additional parameters must be specified:
 Time-aware rolling
 ~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.19.0
-
-New in version 0.19.0 are the ability to pass an offset (or convertible) to a ``.rolling()`` method and have it produce
+It is possible to pass an offset (or convertible) to a ``.rolling()`` method and have it produce
 variable sized windows based on the passed time window. For each time point, this includes all preceding values occurring
 within the indicated time delta.
 

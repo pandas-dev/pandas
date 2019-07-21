@@ -1463,8 +1463,6 @@ class IndexOpsMixin:
         Return boolean if values in the object are
         monotonic_increasing.
 
-        .. versionadded:: 0.19.0
-
         Returns
         -------
         bool
@@ -1480,8 +1478,6 @@ class IndexOpsMixin:
         """
         Return boolean if values in the object are
         monotonic_decreasing.
-
-        .. versionadded:: 0.19.0
 
         Returns
         -------

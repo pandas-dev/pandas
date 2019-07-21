@@ -225,8 +225,6 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     Combine list-like of Categorical-like, unioning categories. All
     categories must have the same dtype.
 
-    .. versionadded:: 0.19.0
-
     Parameters
     ----------
     to_union : list-like of Categorical, CategoricalIndex,

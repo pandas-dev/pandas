@@ -1396,8 +1396,6 @@ class SemiMonthEnd(SemiMonthOffset):
     Two DateOffset's per month repeating on the last
     day of the month and day_of_month.
 
-    .. versionadded:: 0.19.0
-
     Parameters
     ----------
     n : int
@@ -1456,8 +1454,6 @@ class SemiMonthBegin(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the first
     day of the month and day_of_month.
-
-    .. versionadded:: 0.19.0
 
     Parameters
     ----------
