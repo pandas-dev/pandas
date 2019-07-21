@@ -956,9 +956,14 @@ class IntervalIndex(IntervalMixin, Index):
             )
             if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
                 # different closed or incompatible subtype -> no matches
-                return np.repeat(-1, len(target_as_index)), np.arange(len(target_as_index))
+                return (
+                    np.repeat(-1, len(target_as_index)),
+                    np.arange(len(target_as_index)),
+                )
 
-        if is_object_dtype(target_as_index) or isinstance(target_as_index, IntervalIndex):
+        if is_object_dtype(target_as_index) or isinstance(
+            target_as_index, IntervalIndex
+        ):
             # target_as_index might contain intervals: defer elementwise to get_loc
             indexer, missing = [], []
             for i, key in enumerate(target_as_index):
