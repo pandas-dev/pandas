@@ -1027,10 +1027,7 @@ def test_transform_invalid_name_raises():
 
 @pytest.mark.parametrize(
     "obj",
-    [
-        DataFrame(dict(a=[0, 0, 0, 1, 1, 1], b=range(6))),
-        Series([0, 0, 0, 1, 1, 1])
-    ],
+    [DataFrame(dict(a=[0, 0, 0, 1, 1, 1], b=range(6))), Series([0, 0, 0, 1, 1, 1])],
 )
 def test_transform_agg_by_name(reduction_func, obj):
     func = reduction_func
