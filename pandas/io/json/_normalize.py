@@ -26,11 +26,22 @@ def convert_to_line_delimits(s):
     return convert_json_to_lines(s)
 
 
-def __parse_use_keys(use_keys: Optional[Union[str, List[str], Callable]] = None):
+def _parse_use_keys(use_keys: Optional[Union[str, List[str], Callable]] = None):
     """
     Converts different types of use_keys into a callable
-    :param use_keys:
-    :return:
+
+    Parameters
+    ----------
+    use_keys : Str, List or Callable, optional, default: None
+        Returns true or false depending on whether to include or exclude a key
+
+        .. versionadded:: 1.0
+
+    Returns
+    -------
+    use_key - A callable that returns a boolean value.
+     It Decides on whether to include a key in processing.
+
     """
     use_key = None
     if isinstance(use_keys, list):
@@ -79,7 +90,7 @@ def nested_to_record(
     use_keys : Str, List or Callable, optional, default: None
         Returns true or false depending on whether to include or exclude a key
 
-        .. versionadded:: 0.25.0
+        .. versionadded:: 1.0
 
     Returns
     -------
@@ -198,7 +209,7 @@ def json_normalize(
     use_keys : str or a list of str, callable, optional, default None
         Includes or excludes a given key based on a given condition.
 
-        .. versionadded:: 0.25.0
+        .. versionadded:: 1.0
 
     Returns
     -------
