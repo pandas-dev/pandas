@@ -34,7 +34,6 @@ from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
-from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
