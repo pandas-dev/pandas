@@ -438,10 +438,6 @@ columns:
 
 .. _visualization.box.return:
 
-.. warning::
-
-   The default changed from ``'dict'`` to ``'axes'`` in version 0.19.0.
-
 In ``boxplot``, the return type can be controlled by the ``return_type``, keyword. The valid choices are ``{"axes", "dict", "both", None}``.
 Faceting, created by ``DataFrame.boxplot`` with the ``by``
 keyword, will affect the output type as well:

@@ -217,8 +217,6 @@ def merge_ordered(
         * outer: use union of keys from both frames (SQL: full outer join)
         * inner: use intersection of keys from both frames (SQL: inner join)
 
-        .. versionadded:: 0.19.0
-
     Returns
     -------
     merged : DataFrame
@@ -328,8 +326,6 @@ def merge_asof(
 
     Optionally match on equivalent keys with 'by' before searching with 'on'.
 
-    .. versionadded:: 0.19.0
-
     Parameters
     ----------
     left : DataFrame
@@ -345,26 +341,14 @@ def merge_asof(
         Field name to join on in right DataFrame.
     left_index : boolean
         Use the index of the left DataFrame as the join key.
-
-        .. versionadded:: 0.19.2
-
     right_index : boolean
         Use the index of the right DataFrame as the join key.
-
-        .. versionadded:: 0.19.2
-
     by : column name or list of column names
         Match on these columns before performing merge operation.
     left_by : column name
         Field names to match on in the left DataFrame.
-
-        .. versionadded:: 0.19.2
-
     right_by : column name
         Field names to match on in the right DataFrame.
-
-        .. versionadded:: 0.19.2
-
     suffixes : 2-length sequence (tuple, list, ...)
         Suffix to apply to overlapping column names in the left and right
         side, respectively.

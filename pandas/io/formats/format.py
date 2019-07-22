@@ -846,8 +846,6 @@ class DataFrameFormatter(TableFormatter):
         border : int
             A ``border=border`` attribute is included in the opening
             ``<table>`` tag. Default ``pd.options.display.html.border``.
-
-            .. versionadded:: 0.19.0
          """
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
 
