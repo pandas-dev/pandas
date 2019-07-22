@@ -448,8 +448,8 @@ registers the default "matplotlib" backend as follows.
 .. code-block:: python
 
    # in setup.py
-   setup(
-       ...
+   setup(  # noqa: F821
+       ...,
        entry_points={
            "pandas_plotting_backends": [
                "matplotlib = pandas:plotting._matplotlib",
