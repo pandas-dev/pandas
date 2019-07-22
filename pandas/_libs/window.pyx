@@ -1583,13 +1583,45 @@ def roll_generic(object obj,
                  int offset, object func, bint raw,
                  object args, object kwargs):
     cdef:
-        ndarray[float64_t] output, counts, bufarr
+        ndarray[float64_t, cast=True] arr
+        int64_t N
+        bint is_variable
+        ndarray[int64_t] start, end
+
+    arr = np.asarray(obj)
+
+    # ndarray input
+    if raw:
+        if not arr.flags.c_contiguous:
+            arr = arr.copy('C')
+
+    start, end, N, _ , minp, is_variable = get_window_indexer(arr, win,
+                                                               minp, index,
+                                                               closed,
+                                                               floor=0)
+
+    return roll_generic_with_indexer(obj,
+                                     win, minp, index, closed,
+                                     offset, func, raw,
+                                     start, end, N,
+                                     is_variable,
+                                     args, kwargs
+                                     )
+
+
+def roll_generic_with_indexer(object obj,
+                 int64_t win, int64_t minp, object index, object closed,
+                 int offset, object func, bint raw,
+                 ndarray[int64_t] start, ndarray[int64_t] end, int64_t N,
+                 bint is_variable,
+                 object args, object kwargs):
+    cdef:
+        ndarray[float64_t] output, bufarr
         ndarray[float64_t, cast=True] arr
         float64_t *buf
         float64_t *oldbuf
-        int64_t nobs = 0, i, j, s, e, N
-        bint is_variable
-        ndarray[int64_t] start, end
+        int64_t nobs = 0, i, j, s, e
+        ndarray[float64_t] counts
 
     n = len(obj)
     if n == 0:
@@ -1605,11 +1637,6 @@ def roll_generic(object obj,
     counts = roll_sum(np.concatenate([np.isfinite(arr).astype(float),
                                       np.array([0.] * offset)]),
                       win, minp, index, closed)[offset:]
-
-    start, end, N, win, minp, is_variable = get_window_indexer(arr, win,
-                                                               minp, index,
-                                                               closed,
-                                                               floor=0)
 
     output = np.empty(N, dtype=float)
 
