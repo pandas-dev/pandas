@@ -11,10 +11,11 @@ from pandas.util._validators import validate_fillna_kwargs
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like, is_list_like
+from pandas.core.dtypes.missing import isna
 
 from pandas import compat
 from pandas.core import nanops
-from pandas.core.algorithms import searchsorted
+from pandas.core.algorithms import searchsorted, take, unique
 from pandas.core.missing import backfill_1d, pad_1d
 
 from .base import ExtensionArray, ExtensionOpsMixin
@@ -249,8 +250,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return self._ndarray.nbytes
 
     def isna(self):
-        from pandas import isna
-
         return isna(self._ndarray)
 
     def fillna(self, value=None, method=None, limit=None):
@@ -281,8 +280,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return new_values
 
     def take(self, indices, allow_fill=False, fill_value=None):
-        from pandas.core.algorithms import take
-
         result = take(
             self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value
         )
@@ -298,8 +295,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return self._ndarray, -1
 
     def unique(self):
-        from pandas import unique
-
         return type(self)(unique(self._ndarray))
 
     # ------------------------------------------------------------------------

@@ -1292,8 +1292,6 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how="inner", **kwargs)
         indexers into the left_keys, right_keys
 
     """
-    from functools import partial
-
     assert len(left_keys) == len(
         right_keys
     ), "left_key and right_keys must be the same length"
@@ -1767,7 +1765,6 @@ class _AsOfMerge(_OrderedMerge):
 
 
 def _get_multiindex_indexer(join_keys, index, sort):
-    from functools import partial
 
     # bind `sort` argument
     fkeys = partial(_factorize_keys, sort=sort)

@@ -254,7 +254,6 @@ def asarray_tuplesafe(values, dtype=None):
 
     if result.ndim == 2:
         # Avoid building an array of arrays:
-        # TODO: verify whether any path hits this except #18819 (invalid)
         values = [tuple(x) for x in values]
         result = construct_1d_object_array_from_listlike(values)
 

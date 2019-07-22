@@ -1977,12 +1977,6 @@ def diff(arr, n, axis=0):
             out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
 
     if is_timedelta:
-        from pandas import TimedeltaIndex
-
-        out_arr = (
-            TimedeltaIndex(out_arr.ravel().astype("int64"))
-            .asi8.reshape(out_arr.shape)
-            .astype("timedelta64[ns]")
-        )
+        out_arr = out_arr.astype("int64").view("timedelta64[ns]")
 
     return out_arr
