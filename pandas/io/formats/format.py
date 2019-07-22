@@ -4,13 +4,14 @@ and latex files. This module also applies to display formatting.
 """
 
 from functools import partial
-from io import StringIO, TextIOWrapper
+from io import StringIO
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
     Dict,
+    Iterable,
     List,
     Optional,
     TextIO,
@@ -21,12 +22,10 @@ from typing import (
 )
 from unicodedata import east_asian_width
 
-from _pytest.capture import EncodedFile
 from dateutil.tz.tz import tzutc
 from dateutil.zoneinfo import tzfile
 import numpy as np
-from numpy import float64, int32, ndarray, str_
-from py._path.local import LocalPath
+from numpy import float64, int32, ndarray
 
 from pandas._config.config import get_option, set_option
 
@@ -58,6 +57,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas._typing import FilePathOrBuffer
 from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
@@ -75,7 +75,7 @@ if TYPE_CHECKING:
 formatters_type = Union[
     List[Callable], Tuple[Callable, ...], Dict[Union[str, int], Callable]
 ]
-float_format_type = Union[str, Callable[..., Any], "EngFormatter", Type[str]]
+float_format_type = Union[str, Callable, "EngFormatter"]
 
 common_docstring = """
         Parameters
@@ -380,7 +380,7 @@ class TextAdjustment:
     def __init__(self):
         self.encoding = get_option("display.encoding")
 
-    def len(self, text: Union[str_, str]) -> int:
+    def len(self, text: str) -> int:
         return len(text)
 
     def justify(self, texts: Any, max_len: int, mode: str = "right") -> List[str]:
@@ -415,15 +415,7 @@ class EastAsianTextAdjustment(TextAdjustment):
         )
 
     def justify(
-        self,
-        texts: Union[
-            Tuple[str, str],
-            List[str],
-            Tuple[str, str, str, str, str],
-            Tuple[str, str, str, str],
-        ],
-        max_len: int,
-        mode: str = "right",
+        self, texts: Iterable[str], max_len: int, mode: str = "right"
     ) -> List[str]:
         # re-calculate padding space per str considering East Asian Width
         def _get_pad(t):
@@ -437,7 +429,7 @@ class EastAsianTextAdjustment(TextAdjustment):
             return [x.rjust(_get_pad(x)) for x in texts]
 
 
-def _get_adjustment() -> Union[TextAdjustment, EastAsianTextAdjustment]:
+def _get_adjustment() -> TextAdjustment:
     use_east_asian_width = get_option("display.unicode.east_asian_width")
     if use_east_asian_width:
         return EastAsianTextAdjustment()
@@ -487,15 +479,15 @@ class DataFrameFormatter(TableFormatter):
     def __init__(
         self,
         frame: "DataFrame",
-        buf: Optional[Union[StringIO, LocalPath, str]] = None,
+        buf: Optional[FilePathOrBuffer] = None,
         columns: Optional[List[str]] = None,
         col_space: Optional[Union[str, int]] = None,
         header: Union[bool, List[str]] = True,
-        index: Union[bool, int] = True,
+        index: bool = True,
         na_rep: str = "NaN",
         formatters: Optional[formatters_type] = None,
         justify: Optional[str] = None,
-        float_format: Optional[Union[str, Type[str]]] = None,
+        float_format: Optional[float_format_type] = None,
         sparsify: Optional[bool] = None,
         index_names: bool = True,
         line_width: Optional[int] = None,
@@ -1032,8 +1024,8 @@ class DataFrameFormatter(TableFormatter):
 
 def format_array(
     values: Any,
-    formatter: Optional[Union[Callable, Type[str]]],
-    float_format: Optional[Union[Callable, str, Type[str]]] = None,
+    formatter: Optional[Callable],
+    float_format: Optional[float_format_type] = None,
     na_rep: str = "NaN",
     digits: Optional[int] = None,
     space: Optional[Union[str, int]] = None,
@@ -1112,7 +1104,7 @@ class GenericArrayFormatter:
         self,
         values: Any,
         digits: int = 7,
-        formatter: Optional[Union[Callable, Type[str]]] = None,
+        formatter: Optional[Callable] = None,
         na_rep: str = "NaN",
         space: Union[str, int] = 12,
         float_format: Optional[float_format_type] = None,
@@ -1661,10 +1653,10 @@ def _get_format_timedelta64(
 
 
 def _make_fixed_width(
-    strings: Union[ndarray, List[str], List[str_]],
+    strings: Union[ndarray, List[str]],
     justify: str = "right",
     minimum: Optional[int] = None,
-    adj: Optional[Union[TextAdjustment, EastAsianTextAdjustment]] = None,
+    adj: Optional[TextAdjustment] = None,
 ) -> Union[ndarray, List[str]]:
 
     if len(strings) == 0 or justify == "all":
@@ -1918,9 +1910,7 @@ def get_level_lengths(
     return result
 
 
-def buffer_put_lines(
-    buf: Union[StringIO, TextIOWrapper, EncodedFile], lines: List[str]
-) -> None:
+def buffer_put_lines(buf: TextIO, lines: List[str]) -> None:
     """
     Appends lines to a buffer.
 
