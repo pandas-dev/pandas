@@ -1037,10 +1037,6 @@ def test_transform_agg_by_name(reduction_func, obj):
         pytest.xfail("TODO: g.transform('ngroup') doesn't work")
     if func == "size":  # GH#27469
         pytest.xfail("TODO: g.transform('size') doesn't work")
-    if func == "corr":
-        pytest.xfail("corr returns multiindex, excluded from transform for now")
-    if func == "cov" and isinstance(obj, Series):
-        pytest.xfail("skip cov for series")
 
     args = {"nth": [0], "quantile": [0.5]}.get(func, [])
 
