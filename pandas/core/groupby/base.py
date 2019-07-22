@@ -135,7 +135,7 @@ reduction_kernels = frozenset(
 )
 
 # List of transformation functions.
-# These map each Series/DataFrame to a like-indexed result object
+# These map each group to a like-indexed result object
 # like-indexed means *same* index and *same* columns.
 transformation_kernels = frozenset(
     [
