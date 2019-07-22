@@ -46,7 +46,7 @@ def register(explicit=True):
 
     See Also
     --------
-    deregister_matplotlib_converter
+    deregister_matplotlib_converters
     """
     plot_backend = _get_plot_backend("matplotlib")
     plot_backend.register(explicit=explicit)
@@ -65,7 +65,7 @@ def deregister():
 
     See Also
     --------
-    deregister_matplotlib_converters
+    register_matplotlib_converters
     """
     plot_backend = _get_plot_backend("matplotlib")
     plot_backend.deregister()

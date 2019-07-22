@@ -425,8 +425,8 @@ def masked_arith_op(x, y, op):
     # For Series `x` is 1D so ravel() is a no-op; calling it anyway makes
     # the logic valid for both Series and DataFrame ops.
     xrav = x.ravel()
-    assert isinstance(x, (np.ndarray, ABCSeries)), type(x)
-    if isinstance(y, (np.ndarray, ABCSeries, ABCIndexClass)):
+    assert isinstance(x, np.ndarray), type(x)
+    if isinstance(y, np.ndarray):
         dtype = find_common_type([x.dtype, y.dtype])
         result = np.empty(x.size, dtype=dtype)
 
@@ -444,7 +444,7 @@ def masked_arith_op(x, y, op):
 
         if mask.any():
             with np.errstate(all="ignore"):
-                result[mask] = op(xrav[mask], com.values_from_object(yrav[mask]))
+                result[mask] = op(xrav[mask], yrav[mask])
 
     else:
         assert is_scalar(y), type(y)
