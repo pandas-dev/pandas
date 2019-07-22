@@ -1,5 +1,5 @@
 import textwrap
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union, cast
 import warnings
 
 import numpy as np
@@ -94,7 +94,7 @@ class _IndexSlice:
            B1   10   11
     """
 
-    def __getitem__(self, arg):
+    def __getitem__(self, arg: Any) -> Any:
         return arg
 
 
@@ -116,13 +116,14 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         if axis is not None:
             axis = self.obj._get_axis_number(axis)
+        axis = cast(int, axis)
         new_self.axis = axis
         return new_self
 
     def __iter__(self):
         raise NotImplementedError("ix is not iterable")
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any) -> Any:
         if type(key) is tuple:
             # Note: we check the type exactly instead of with isinstance
             #  because NamedTuple is checked separately.
@@ -199,7 +200,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 raise
             raise IndexingError(key)
 
-    def __setitem__(self, key, value) -> None:
+    def __setitem__(self, key: Any, value: Any) -> None:
         if isinstance(key, tuple):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
@@ -270,7 +271,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         """ convert a range argument """
         return list(key)
 
-    def _convert_scalar_indexer(self, key, axis: int):
+    def _convert_scalar_indexer(self, key: Any, axis: int) -> Any:
         # if we are accessing via lowered dim, use the last dim
         ax = self.obj._get_axis(min(axis, self.ndim - 1))
         # a scalar
@@ -645,7 +646,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             return self.obj
 
     def _align_series(
-        self, indexer, ser: "Series", multiindex_indexer: bool = False
+        self, indexer: Any, ser: "Series", multiindex_indexer: bool = False
     ) -> Union[ndarray, "DatetimeArray"]:
         """
         Parameters
@@ -742,7 +743,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         raise ValueError("Incompatible indexer with Series")
 
-    def _align_frame(self, indexer, df: "DataFrame") -> ndarray:
+    def _align_frame(self, indexer: Any, df: "DataFrame") -> ndarray:
         is_frame = self.obj.ndim == 2
 
         if isinstance(indexer, tuple):
@@ -864,7 +865,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         }
         return o._reindex_with_indexers(d, copy=True, allow_dups=True)
 
-    def _convert_for_reindex(self, key, axis: int):
+    def _convert_for_reindex(self, key: Any, axis: int) -> Any:
         return key
 
     def _handle_lowerdim_multi_index_axis0(self, tup):
@@ -1341,7 +1342,7 @@ class _IXIndexer(_NDFrameIndexer):
         super().__init__(name, obj)
 
     @Appender(_NDFrameIndexer._validate_key.__doc__)
-    def _validate_key(self, key, axis: int) -> bool:
+    def _validate_key(self, key: Any, axis: int) -> bool:
         if isinstance(key, slice):
             return True
 
@@ -1357,7 +1358,7 @@ class _IXIndexer(_NDFrameIndexer):
 
         return True
 
-    def _convert_for_reindex(self, key, axis: int) -> Union[Index, ndarray]:
+    def _convert_for_reindex(self, key: Any, axis: int) -> Union[Index, ndarray]:
         """
         Transform a list of keys into a new array ready to be used as axis of
         the object we return (e.g. including NaNs).
@@ -1401,7 +1402,7 @@ class _IXIndexer(_NDFrameIndexer):
 class _LocationIndexer(_NDFrameIndexer):
     _exception = Exception
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any) -> Any:
         if type(key) is tuple:
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
@@ -1426,7 +1427,9 @@ class _LocationIndexer(_NDFrameIndexer):
     def _getitem_axis(self, key, axis: int):
         raise NotImplementedError()
 
-    def _getbool_axis(self, key, axis: int) -> "NDFrame":
+    def _getbool_axis(
+        self, key: Union[ndarray, "Series", Index, List[bool]], axis: int
+    ) -> "NDFrame":
         # caller is responsible for ensuring non-None axis
         labels = self.obj._get_axis(axis)
         key = check_bool_indexer(labels, key)
@@ -1702,7 +1705,7 @@ class _LocIndexer(_LocationIndexer):
     _exception = KeyError
 
     @Appender(_NDFrameIndexer._validate_key.__doc__)
-    def _validate_key(self, key, axis: int) -> None:
+    def _validate_key(self, key: Any, axis: int) -> None:
 
         # valid for a collection of labels (we check their presence later)
         # slice of labels (where start-end in labels)
@@ -1739,13 +1742,13 @@ class _LocIndexer(_LocationIndexer):
 
         return True
 
-    def _getitem_scalar(self, key):
+    def _getitem_scalar(self, key: Any) -> Any:
         # a fast-path to scalar access
         # if not, raise
         values = self.obj._get_value(*key)
         return values
 
-    def _get_partial_string_timestamp_match_key(self, key, labels: Index):
+    def _get_partial_string_timestamp_match_key(self, key: Any, labels: Index) -> Any:
         """Translate any partial string timestamp matches in key, returning the
         new key (GH 10331)"""
         if isinstance(labels, MultiIndex):
@@ -1771,7 +1774,7 @@ class _LocIndexer(_LocationIndexer):
 
         return key
 
-    def _getitem_axis(self, key, axis: int):
+    def _getitem_axis(self, key: Any, axis: int) -> Any:
         key = item_from_zerodim(key)
         if is_iterator(key):
             key = list(key)
@@ -2251,7 +2254,7 @@ class _AtIndexer(_ScalarAccessIndexer):
 
     _takeable = False
 
-    def _convert_key(self, key, is_setter: bool = False):
+    def _convert_key(self, key: Any, is_setter: bool = False) -> Any:
         """ require they keys to be the same type as the index (so we don't
         fallback)
         """
