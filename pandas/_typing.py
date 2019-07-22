@@ -7,21 +7,13 @@ import numpy as np
 # and use a string literal forward reference to it in subsequent types
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
-    from pandas._libs import Period, Timedelta, Timestamp
-
-    from pandas.core.arrays.base import ExtensionArray
-    from pandas.core.dtypes.dtypes import ExtensionDtype
-    from pandas.core.dtypes.generic import (
-        ABCDataFrame,
-        ABCExtensionArray,
-        ABCIndexClass,
-        ABCSeries,
-        ABCSparseSeries,
-    )
-    from pandas.core.indexes.base import Index
-    from pandas.core.frame import DataFrame
-    from pandas.core.series import Series
-    from pandas.core.sparse.series import SparseSeries
+    from pandas._libs import Period, Timedelta, Timestamp  # noqa: F401
+    from pandas.core.arrays.base import ExtensionArray  # noqa: F401
+    from pandas.core.dtypes.dtypes import ExtensionDtype  # noqa: F401
+    from pandas.core.indexes.base import Index  # noqa: F401
+    from pandas.core.frame import DataFrame  # noqa: F401
+    from pandas.core.series import Series  # noqa: F401
+    from pandas.core.sparse.series import SparseSeries  # noqa: F401
 
 
 AnyArrayLike = TypeVar(
