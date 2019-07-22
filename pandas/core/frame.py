@@ -4271,10 +4271,10 @@ class DataFrame(NDFrame):
         This method can take either:
         - a column name to be used as a new index. The column must exist.
         - an array-like to be used as labels for the new index. Must match the
-          length of the frame.
+        length of the frame.
         - a (possibly mixed) list of either column names or array-like,
         each item in the list is treated as specifying a level in a resulting
-         MultiIndex.
+        MultiIndex.
 
         if append=True is passed, the existing index will be converted to a MultiIndex
         and the the new labels will be be appended as a new level to it.
