@@ -112,7 +112,6 @@ reduction_kernels = frozenset(
         "any",
         "bfill",
         "count",
-        "cov",
         "first",
         "idxmax",
         "idxmin",
