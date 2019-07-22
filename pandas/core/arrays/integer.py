@@ -448,11 +448,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         mask = mask.copy()
         return type(self)(data, mask, copy=False)
 
-    def view(self, dtype=None):
-        if dtype is not None:
-            raise NotImplementedError
-        return type(self)(self._data, self._mask, copy=False)
-
     def __setitem__(self, key, value):
         _is_scalar = is_scalar(value)
         if _is_scalar:

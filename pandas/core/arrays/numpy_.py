@@ -291,11 +291,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     def copy(self):
         return type(self)(self._ndarray.copy())
 
-    def view(self, dtype=None):
-        if dtype is not None:
-            raise NotImplementedError
-        return type(self)(self._ndarray)
-
     def _values_for_argsort(self):
         return self._ndarray
 

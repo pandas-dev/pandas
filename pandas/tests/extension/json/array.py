@@ -81,6 +81,9 @@ class JSONArray(ExtensionArray):
         elif isinstance(item, abc.Iterable):
             # fancy indexing
             return type(self)([self.data[i] for i in item])
+        elif isinstance(item, slice) and item == slice(None):
+            # make sure we get a view
+            return type(self)(self.data)
         else:
             # slice
             return type(self)(self.data[item])
@@ -147,11 +150,6 @@ class JSONArray(ExtensionArray):
 
     def copy(self):
         return type(self)(self.data[:])
-
-    def view(self, dtype=None):
-        if dtype is not None:
-            raise NotImplementedError
-        return type(self)(self.data)
 
     def astype(self, dtype, copy=True):
         # NumPy has issues when all the dicts are the same length.

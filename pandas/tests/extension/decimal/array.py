@@ -124,11 +124,6 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def copy(self):
         return type(self)(self._data.copy())
 
-    def view(self, dtype=None):
-        if dtype is not None:
-            raise NotImplementedError
-        return type(self)(self._data, context=self.dtype.context)
-
     def astype(self, dtype, copy=True):
         if isinstance(dtype, type(self.dtype)):
             return type(self)(self._data, context=dtype.context)

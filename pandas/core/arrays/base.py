@@ -87,7 +87,6 @@ class ExtensionArray:
     * isna
     * take
     * copy
-    * view
     * _concat_same_type
 
     A default repr displaying the type, (truncated) data, length,

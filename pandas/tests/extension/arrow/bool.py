@@ -119,11 +119,6 @@ class ArrowBoolArray(ExtensionArray):
     def copy(self):
         return type(self)(copy.copy(self._data))
 
-    def view(self, dtype=None):
-        if dtype is not None:
-            raise NotImplementedError
-        return type(self)(self._data)
-
     @classmethod
     def _concat_same_type(cls, to_concat):
         chunks = list(itertools.chain.from_iterable(x._data.chunks for x in to_concat))
