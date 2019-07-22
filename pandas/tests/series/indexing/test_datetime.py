@@ -119,7 +119,7 @@ def test_series_set_value():
 
     # FIXME: dont leave commented-out
     # s = Series(index[:1], index[:1])
-    # s2 = s.set_value(dates[1], index[1])
+    # s2 = s._set_value(dates[1], index[1])
     # assert s2.values.dtype == 'M8[ns]'
 
 
