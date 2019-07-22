@@ -1944,7 +1944,7 @@ class Categorical(ExtensionArray, PandasObject):
         indexer = np.asarray(indexer, dtype=np.intp)
         if allow_fill is None:
             if (indexer < 0).any():
-                warn(_take_msg, FutureWarning, stacklevel=2)
+                warn(_take_msg, FutureWarning, stacklevel=3)
                 allow_fill = True
 
         dtype = self.dtype
@@ -1956,7 +1956,7 @@ class Categorical(ExtensionArray, PandasObject):
             if fill_value in self.categories:
                 fill_value = self.categories.get_loc(fill_value)
             else:
-                msg = "'fill_value' ('{}') is not in this Categorical's " "categories."
+                msg = "'fill_value' ('{}') is not in this Categorical's categories."
                 raise TypeError(msg.format(fill_value))
 
         codes = take(self._codes, indexer, allow_fill=allow_fill, fill_value=fill_value)

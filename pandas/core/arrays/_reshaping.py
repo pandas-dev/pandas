@@ -44,7 +44,99 @@ def implement_2d(cls):
 
     cls.copy = copy
 
+    orig_getitem = cls.__getitem__
+
+    def __getitem__(self, key):
+        if self.ndim == 1:
+            return orig_getitem(self, key)
+
+        key = expand_key(key, self.shape)
+        if is_integer(key[0]):
+            assert key[0] in [0, -1]
+            result = orig_getitem(self, key[1])
+            return result
+
+        if isinstance(key[0], slice):
+            if slice_contains_zero(key[0]):
+                result = orig_getitem(self, key[1])
+                result._shape = (1, result.size)
+                return result
+
+            raise NotImplementedError(key)
+        # TODO: ellipses?
+        raise NotImplementedError(key)
+
+    cls.__getitem__ = __getitem__
+
+    orig_take = cls.take
+
+    # kwargs for compat with Interval
+    # allow_fill=None instead of False is for compat with Categorical
+    def take(self, indices, allow_fill=None, fill_value=None, axis=0, **kwargs):
+        if self.ndim == 1 and axis == 0:
+            return orig_take(self, indices, allow_fill=allow_fill,
+                             fill_value=fill_value, **kwargs)
+
+        if self.ndim != 2 or self.shape[0] != 1:
+            raise NotImplementedError
+        if axis not in [0, 1]:
+            raise ValueError(axis)
+        if kwargs:
+            raise ValueError('kwargs should not be passed in the 2D case, '
+                             'are only included for compat with Interval')
+
+        if axis == 1:
+            result = orig_take(self, indices, allow_fill=allow_fill,
+                               fill_value=fill_value)
+            result._shape = (1, result.size)
+            return result
+
+        # For axis == 0, because we only support shape (1, N)
+        #  there are only limited indices we can accept
+        if len(indices) != 1:
+            # TODO: we could probably support zero-len here
+            raise NotImplementedError
+
+        def take_item(n):
+            if n == -1:
+                seq = [fill_value] * self.shape[1]
+                return type(self)._from_sequence(seq)
+            else:
+                return self[n, :]
+
+        arrs = [take_item(n) for n in indices]
+        result = type(self)._concat_same_type(arrs)
+        result.shape = (len(indices), self.shape[1])
+        return result
+
+    cls.take = take
+
     return cls
+
+
+def slice_contains_zero(slc: slice) -> bool:
+    if slc == slice(None):
+        return True
+    if slc == slice(0, None):
+        return True
+    if slc == slice(0, 1):
+        return True
+    raise NotImplementedError(slc)
+
+
+def expand_key(key, shape):
+    ndim = len(shape)
+    if ndim != 2 or shape[0] != 1:
+        raise NotImplementedError
+    if not isinstance(key, tuple):
+        key = (key, slice(None))
+    if len(key) != 2:
+        raise ValueError(key)
+
+    if is_integer(key[0]) and key[0] not in [0, -1]:
+        raise ValueError(key)
+
+    return key
 
 
 def can_safe_ravel(shape: Tuple[int, ...]) -> bool:
