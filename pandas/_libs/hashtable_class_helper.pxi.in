@@ -424,8 +424,12 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 val = values[i]
 
-                if ignore_na and (val != val
-                                  or (use_na_value and val == na_value2)):
+                if ignore_na and (
+                {{if not name.lower().startswith(("uint", "int"))}}
+                val != val or
+                {{endif}}
+                (use_na_value and val == na_value2)
+                ):
                     # if missing values do not count as unique values (i.e. if
                     # ignore_na is True), skip the hashtable entry for them,
                     # and replace the corresponding label with na_sentinel
@@ -659,7 +663,7 @@ cdef class StringHashTable(HashTable):
             int64_t[:] locs = np.empty(n, dtype=np.int64)
 
         # these by-definition *must* be strings
-        vecs = <char **>malloc(n * sizeof(char *))
+        vecs = <const char **>malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 

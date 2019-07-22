@@ -20,7 +20,7 @@ of useful recipes in pandas (and that we want contributions!).
 
 There are several libraries that are now :ref:`Recommended Dependencies <install.recommended_dependencies>`
 
-Selection Choices
+Selection choices
 ~~~~~~~~~~~~~~~~~
 
 Starting in 0.11.0, object selection has had a number of user-requested additions in
@@ -56,7 +56,7 @@ three types of multi-axis indexing.
   See more at :ref:`Advanced Indexing <advanced>` and :ref:`Advanced Hierarchical <advanced.advanced_hierarchical>`.
 
 
-Selection Deprecations
+Selection deprecations
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Starting in version 0.11.0, these methods *may* be deprecated in future versions.
@@ -88,7 +88,7 @@ Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passe
    df3
    df3.dtypes
 
-Dtype Conversion
+Dtype conversion
 ~~~~~~~~~~~~~~~~
 
 This is lower-common-denominator upcasting, meaning you get the dtype which can accommodate all of the types
@@ -103,7 +103,7 @@ Conversion
 
    df3.astype('float32').dtypes
 
-Mixed Conversion
+Mixed conversion
 
 .. code-block:: ipython
 
@@ -134,7 +134,7 @@ Mixed Conversion
     E      int32
     dtype: object
 
-Forcing Date coercion (and setting ``NaT`` when not datelike)
+Forcing date coercion (and setting ``NaT`` when not datelike)
 
 .. code-block:: ipython
 
@@ -154,10 +154,10 @@ Forcing Date coercion (and setting ``NaT`` when not datelike)
     5   2001-01-05
     dtype: datetime64[ns]
 
-Dtype Gotchas
+Dtype gotchas
 ~~~~~~~~~~~~~
 
-**Platform Gotchas**
+**Platform gotchas**
 
 Starting in 0.11.0, construction of DataFrame/Series will use default dtypes of ``int64`` and ``float64``,
 *regardless of platform*. This is not an apparent change from earlier versions of pandas. If you specify
@@ -185,7 +185,7 @@ The following will all result in ``int64`` dtypes
 Keep in mind that ``DataFrame(np.array([1,2]))`` **WILL** result in ``int32`` on 32-bit platforms!
 
 
-**Upcasting Gotchas**
+**Upcasting gotchas**
 
 Performing indexing operations on integer type data can easily upcast the data.
 The dtype of the input data will be preserved in cases where ``nans`` are not introduced.
@@ -280,7 +280,7 @@ While float dtypes are unchanged.
     E      int32
     dtype: object
 
-Datetimes Conversion
+Datetimes conversion
 ~~~~~~~~~~~~~~~~~~~~
 
 Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` to indicate a nan value,
@@ -296,7 +296,7 @@ Furthermore ``datetime64[ns]`` columns are created by default, when passed datet
    df
 
    # datetime64[ns] out of the box
-   df.get_dtype_counts()
+   df.dtypes.value_counts()
 
    # use the traditional nan, which is mapped to NaT internally
    df.loc[df.index[2:4], ['A', 'timestamp']] = np.nan
@@ -377,15 +377,31 @@ Enhancements
 
   - ``Squeeze`` to possibly remove length 1 dimensions from an object.
 
-    .. ipython:: python
-       :okwarning:
+    .. code-block:: python
 
-       p = pd.Panel(np.random.randn(3, 4, 4), items=['ItemA', 'ItemB', 'ItemC'],
-                    major_axis=pd.date_range('20010102', periods=4),
-                    minor_axis=['A', 'B', 'C', 'D'])
-       p
-       p.reindex(items=['ItemA']).squeeze()
-       p.reindex(items=['ItemA'], minor=['B']).squeeze()
+       >>> p = pd.Panel(np.random.randn(3, 4, 4), items=['ItemA', 'ItemB', 'ItemC'],
+       ...              major_axis=pd.date_range('20010102', periods=4),
+       ...              minor_axis=['A', 'B', 'C', 'D'])
+       >>> p
+       <class 'pandas.core.panel.Panel'>
+       Dimensions: 3 (items) x 4 (major_axis) x 4 (minor_axis)
+       Items axis: ItemA to ItemC
+       Major_axis axis: 2001-01-02 00:00:00 to 2001-01-05 00:00:00
+       Minor_axis axis: A to D
+
+       >>> p.reindex(items=['ItemA']).squeeze()
+                          A         B         C         D
+       2001-01-02  0.926089 -2.026458  0.501277 -0.204683
+       2001-01-03 -0.076524  1.081161  1.141361  0.479243
+       2001-01-04  0.641817 -0.185352  1.824568  0.809152
+       2001-01-05  0.575237  0.669934  1.398014 -0.399338
+
+       >>> p.reindex(items=['ItemA'], minor=['B']).squeeze()
+       2001-01-02   -2.026458
+       2001-01-03    1.081161
+       2001-01-04   -0.185352
+       2001-01-05    0.669934
+       Freq: D, Name: B, dtype: float64
 
   - In ``pd.io.data.Options``,
 

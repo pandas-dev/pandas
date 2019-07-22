@@ -33,14 +33,20 @@ def test_sortlevel(idx):
 
 
 def test_sortlevel_not_sort_remaining():
-    mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
-    sorted_idx, _ = mi.sortlevel('A', sort_remaining=False)
+    mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
+    sorted_idx, _ = mi.sortlevel("A", sort_remaining=False)
     assert sorted_idx.equals(mi)
 
 
 def test_sortlevel_deterministic():
-    tuples = [('bar', 'one'), ('foo', 'two'), ('qux', 'two'),
-              ('foo', 'one'), ('baz', 'two'), ('qux', 'one')]
+    tuples = [
+        ("bar", "one"),
+        ("foo", "two"),
+        ("qux", "two"),
+        ("foo", "one"),
+        ("baz", "two"),
+        ("qux", "one"),
+    ]
 
     index = MultiIndex.from_tuples(tuples)
 
@@ -84,55 +90,55 @@ def test_numpy_argsort(idx):
 
         msg = "the 'kind' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
-            np.argsort(idx, kind='mergesort')
+            np.argsort(idx, kind="mergesort")
 
         msg = "the 'order' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
-            np.argsort(idx, order=('a', 'b'))
+            np.argsort(idx, order=("a", "b"))
 
 
 def test_unsortedindex():
     # GH 11897
-    mi = pd.MultiIndex.from_tuples([('z', 'a'), ('x', 'a'), ('y', 'b'),
-                                    ('x', 'b'), ('y', 'a'), ('z', 'b')],
-                                   names=['one', 'two'])
-    df = pd.DataFrame([[i, 10 * i] for i in range(6)], index=mi,
-                      columns=['one', 'two'])
+    mi = pd.MultiIndex.from_tuples(
+        [("z", "a"), ("x", "a"), ("y", "b"), ("x", "b"), ("y", "a"), ("z", "b")],
+        names=["one", "two"],
+    )
+    df = pd.DataFrame([[i, 10 * i] for i in range(6)], index=mi, columns=["one", "two"])
 
     # GH 16734: not sorted, but no real slicing
-    result = df.loc(axis=0)['z', 'a']
+    result = df.loc(axis=0)["z", "a"]
     expected = df.iloc[0]
     tm.assert_series_equal(result, expected)
 
     with pytest.raises(UnsortedIndexError):
-        df.loc(axis=0)['z', slice('a')]
+        df.loc(axis=0)["z", slice("a")]
     df.sort_index(inplace=True)
-    assert len(df.loc(axis=0)['z', :]) == 2
+    assert len(df.loc(axis=0)["z", :]) == 2
 
-    with pytest.raises(KeyError):
-        df.loc(axis=0)['q', :]
+    with pytest.raises(KeyError, match="'q'"):
+        df.loc(axis=0)["q", :]
 
 
 def test_unsortedindex_doc_examples():
     # http://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex  # noqa
-    dfm = DataFrame({'jim': [0, 0, 1, 1],
-                     'joe': ['x', 'x', 'z', 'y'],
-                     'jolie': np.random.rand(4)})
+    dfm = DataFrame(
+        {"jim": [0, 0, 1, 1], "joe": ["x", "x", "z", "y"], "jolie": np.random.rand(4)}
+    )
 
-    dfm = dfm.set_index(['jim', 'joe'])
+    dfm = dfm.set_index(["jim", "joe"])
     with tm.assert_produces_warning(PerformanceWarning):
-        dfm.loc[(1, 'z')]
+        dfm.loc[(1, "z")]
 
     with pytest.raises(UnsortedIndexError):
-        dfm.loc[(0, 'y'):(1, 'z')]
+        dfm.loc[(0, "y"):(1, "z")]
 
     assert not dfm.index.is_lexsorted()
     assert dfm.index.lexsort_depth == 1
 
     # sort it
     dfm = dfm.sort_index()
-    dfm.loc[(1, 'z')]
-    dfm.loc[(0, 'y'):(1, 'z')]
+    dfm.loc[(1, "z")]
+    dfm.loc[(0, "y"):(1, "z")]
 
     assert dfm.index.is_lexsorted()
     assert dfm.index.lexsort_depth == 2
@@ -141,9 +147,7 @@ def test_unsortedindex_doc_examples():
 def test_reconstruct_sort():
 
     # starts off lexsorted & monotonic
-    mi = MultiIndex.from_arrays([
-        ['A', 'A', 'B', 'B', 'B'], [1, 2, 1, 2, 3]
-    ])
+    mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     assert mi.is_lexsorted()
     assert mi.is_monotonic
 
@@ -156,9 +160,10 @@ def test_reconstruct_sort():
     assert Index(mi.values).equals(Index(recons.values))
 
     # cannot convert to lexsorted
-    mi = pd.MultiIndex.from_tuples([('z', 'a'), ('x', 'a'), ('y', 'b'),
-                                    ('x', 'b'), ('y', 'a'), ('z', 'b')],
-                                   names=['one', 'two'])
+    mi = pd.MultiIndex.from_tuples(
+        [("z", "a"), ("x", "a"), ("y", "b"), ("x", "b"), ("y", "a"), ("z", "b")],
+        names=["one", "two"],
+    )
     assert not mi.is_lexsorted()
     assert not mi.is_monotonic
 
@@ -170,9 +175,11 @@ def test_reconstruct_sort():
     assert Index(mi.values).equals(Index(recons.values))
 
     # cannot convert to lexsorted
-    mi = MultiIndex(levels=[['b', 'd', 'a'], [1, 2, 3]],
-                    codes=[[0, 1, 0, 2], [2, 0, 0, 1]],
-                    names=['col1', 'col2'])
+    mi = MultiIndex(
+        levels=[["b", "d", "a"], [1, 2, 3]],
+        codes=[[0, 1, 0, 2], [2, 0, 0, 1]],
+        names=["col1", "col2"],
+    )
     assert not mi.is_lexsorted()
     assert not mi.is_monotonic
 
@@ -186,25 +193,27 @@ def test_reconstruct_sort():
 
 def test_reconstruct_remove_unused():
     # xref to GH 2770
-    df = DataFrame([['deleteMe', 1, 9],
-                    ['keepMe', 2, 9],
-                    ['keepMeToo', 3, 9]],
-                   columns=['first', 'second', 'third'])
-    df2 = df.set_index(['first', 'second'], drop=False)
-    df2 = df2[df2['first'] != 'deleteMe']
+    df = DataFrame(
+        [["deleteMe", 1, 9], ["keepMe", 2, 9], ["keepMeToo", 3, 9]],
+        columns=["first", "second", "third"],
+    )
+    df2 = df.set_index(["first", "second"], drop=False)
+    df2 = df2[df2["first"] != "deleteMe"]
 
     # removed levels are there
-    expected = MultiIndex(levels=[['deleteMe', 'keepMe', 'keepMeToo'],
-                                  [1, 2, 3]],
-                          codes=[[1, 2], [1, 2]],
-                          names=['first', 'second'])
+    expected = MultiIndex(
+        levels=[["deleteMe", "keepMe", "keepMeToo"], [1, 2, 3]],
+        codes=[[1, 2], [1, 2]],
+        names=["first", "second"],
+    )
     result = df2.index
     tm.assert_index_equal(result, expected)
 
-    expected = MultiIndex(levels=[['keepMe', 'keepMeToo'],
-                                  [2, 3]],
-                          codes=[[0, 1], [0, 1]],
-                          names=['first', 'second'])
+    expected = MultiIndex(
+        levels=[["keepMe", "keepMeToo"], [2, 3]],
+        codes=[[0, 1], [0, 1]],
+        names=["first", "second"],
+    )
     result = df2.index.remove_unused_levels()
     tm.assert_index_equal(result, expected)
 
@@ -214,10 +223,9 @@ def test_reconstruct_remove_unused():
     assert result2.is_(result)
 
 
-@pytest.mark.parametrize('first_type,second_type', [
-    ('int64', 'int64'),
-    ('datetime64[D]', 'str')
-])
+@pytest.mark.parametrize(
+    "first_type,second_type", [("int64", "int64"), ("datetime64[D]", "str")]
+)
 def test_remove_unused_levels_large(first_type, second_type):
     # GH16556
 
@@ -227,11 +235,14 @@ def test_remove_unused_levels_large(first_type, second_type):
     rng = np.random.RandomState(4)  # seed is arbitrary value that works
 
     size = 1 << 16
-    df = DataFrame(dict(
-        first=rng.randint(0, 1 << 13, size).astype(first_type),
-        second=rng.randint(0, 1 << 10, size).astype(second_type),
-        third=rng.rand(size)))
-    df = df.groupby(['first', 'second']).sum()
+    df = DataFrame(
+        dict(
+            first=rng.randint(0, 1 << 13, size).astype(first_type),
+            second=rng.randint(0, 1 << 10, size).astype(second_type),
+            third=rng.rand(size),
+        )
+    )
+    df = df.groupby(["first", "second"]).sum()
     df = df[df.third < 0.1]
 
     result = df.index.remove_unused_levels()
@@ -239,23 +250,24 @@ def test_remove_unused_levels_large(first_type, second_type):
     assert len(result.levels[1]) < len(df.index.levels[1])
     assert result.equals(df.index)
 
-    expected = df.reset_index().set_index(['first', 'second']).index
+    expected = df.reset_index().set_index(["first", "second"]).index
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize('level0', [['a', 'd', 'b'],
-                                    ['a', 'd', 'b', 'unused']])
-@pytest.mark.parametrize('level1', [['w', 'x', 'y', 'z'],
-                                    ['w', 'x', 'y', 'z', 'unused']])
+@pytest.mark.parametrize("level0", [["a", "d", "b"], ["a", "d", "b", "unused"]])
+@pytest.mark.parametrize(
+    "level1", [["w", "x", "y", "z"], ["w", "x", "y", "z", "unused"]]
+)
 def test_remove_unused_nan(level0, level1):
     # GH 18417
-    mi = pd.MultiIndex(levels=[level0, level1],
-                       codes=[[0, 2, -1, 1, -1], [0, 1, 2, 3, 2]])
+    mi = pd.MultiIndex(
+        levels=[level0, level1], codes=[[0, 2, -1, 1, -1], [0, 1, 2, 3, 2]]
+    )
 
     result = mi.remove_unused_levels()
     tm.assert_index_equal(result, mi)
     for level in 0, 1:
-        assert('unused' not in result.levels[level])
+        assert "unused" not in result.levels[level]
 
 
 def test_argsort(idx):

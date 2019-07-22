@@ -27,7 +27,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest>=4.0.2
+  - pytest>=4.0.2,<5.0.0
   - pytest-xdist
   - pytest-mock
   - moto

@@ -236,7 +236,7 @@ Package                                                          Minimum support
 
 .. _install.recommended_dependencies:
 
-Recommended Dependencies
+Recommended dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
@@ -255,7 +255,7 @@ Recommended Dependencies
 
 .. _install.optional_dependencies:
 
-Optional Dependencies
+Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
 Pandas has many optional dependencies that are only used for specific methods.
@@ -299,7 +299,7 @@ zlib                                         Compression for msgpack
 
 .. _optional_html:
 
-Optional Dependencies for Parsing HTML
+Optional dependencies for parsing HTML
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 One of the following combinations of libraries is needed to use the

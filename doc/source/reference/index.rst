@@ -3,7 +3,7 @@
 .. _api:
 
 =============
-API Reference
+API reference
 =============
 
 This page gives an overview of all public pandas objects, functions and

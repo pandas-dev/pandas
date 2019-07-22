@@ -27,4 +27,5 @@ dependencies:
   - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
+  - pytest-azurepipelines
   - hypothesis>=3.58.0

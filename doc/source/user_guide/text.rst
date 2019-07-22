@@ -3,7 +3,7 @@
 {{ header }}
 
 ======================
-Working with Text Data
+Working with text data
 ======================
 
 .. _text.string_methods:
@@ -81,7 +81,7 @@ and replacing any remaining whitespaces with underscores:
     exceptions, other uses are not supported, and may be disabled at a later point.
 
 
-Splitting and Replacing Strings
+Splitting and replacing strings
 -------------------------------
 
 .. _text.split:
@@ -356,7 +356,7 @@ of the string, the result will be a ``NaN``.
    s.str[0]
    s.str[1]
 
-Extracting Substrings
+Extracting substrings
 ---------------------
 
 .. _text.extract:
@@ -518,7 +518,7 @@ same result as a ``Series.str.extractall`` with a default index (starts from 0).
    pd.Series(["a1a2", "b1", "c1"]).str.extractall(two_groups)
 
 
-Testing for Strings that Match or Contain a Pattern
+Testing for Strings that match or contain a pattern
 ---------------------------------------------------
 
 You can check whether elements contain a pattern:
@@ -547,7 +547,7 @@ an extra ``na`` argument so missing values can be considered True or False:
 
 .. _text.indicator:
 
-Creating Indicator Variables
+Creating indicator variables
 ----------------------------
 
 You can extract dummy variables from string columns.
@@ -560,8 +560,6 @@ For example if they are separated by a ``'|'``:
 
 String ``Index`` also supports ``get_dummies`` which returns a ``MultiIndex``.
 
-.. versionadded:: 0.18.1
-
 .. ipython:: python
 
     idx = pd.Index(['a', 'a|b', np.nan, 'a|c'])
@@ -569,7 +567,7 @@ String ``Index`` also supports ``get_dummies`` which returns a ``MultiIndex``.
 
 See also :func:`~pandas.get_dummies`.
 
-Method Summary
+Method summary
 --------------
 
 .. _text.summary:
