@@ -25,6 +25,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
+    ABCIndexClass,
     ABCInterval,
     ABCIntervalIndex,
     ABCPeriodIndex,
@@ -36,7 +37,7 @@ from pandas.core.arrays._reshaping import implement_2d
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, ensure_index
+from pandas.core.indexes.base import ensure_index
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _interval_shared_docs = {}
@@ -509,7 +510,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right = self.right[value]
 
         # scalar
-        if not isinstance(left, Index):
+        if not isinstance(left, ABCIndexClass):
             if isna(left):
                 return self._fill_value
             return Interval(left, right, self.closed)

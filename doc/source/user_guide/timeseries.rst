@@ -255,8 +255,6 @@ option, see the Python `datetime documentation`_.
 Assembling datetime from multiple DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.18.1
-
 You can also pass a ``DataFrame`` of integer or string columns to assemble into a ``Series`` of ``Timestamps``.
 
 .. ipython:: python
@@ -608,8 +606,6 @@ We are stopping on the included end-point as it is part of the index:
 .. ipython:: python
 
    dft['2013-1-15':'2013-1-15 12:30:00']
-
-.. versionadded:: 0.18.0
 
 ``DatetimeIndex`` partial string indexing also works on a ``DataFrame`` with a ``MultiIndex``:
 
@@ -1165,8 +1161,6 @@ following subsection.
 Custom business hour
 ~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.18.1
-
 The ``CustomBusinessHour`` is a mixture of ``BusinessHour`` and ``CustomBusinessDay`` which
 allows you to specify arbitrary holidays. ``CustomBusinessHour`` works as the same
 as ``BusinessHour`` except that it skips specified custom holidays.
@@ -1518,11 +1512,6 @@ Converting to Python datetimes
 Resampling
 ----------
 
-.. warning::
-
-   The interface to ``.resample`` has changed in 0.18.0 to be more groupby-like and hence more flexible.
-   See the :ref:`whatsnew docs <whatsnew_0180.breaking.resample>` for a comparison with prior versions.
-
 Pandas has a simple, powerful, and efficient functionality for performing
 resampling operations during frequency conversion (e.g., converting secondly
 data into 5-minutely data). This is extremely common in, but not limited to,
@@ -1532,8 +1521,8 @@ financial applications.
 on each of its groups. See some :ref:`cookbook examples <cookbook.resample>` for
 some advanced strategies.
 
-Starting in version 0.18.1, the ``resample()`` function can be used directly from
-``DataFrameGroupBy`` objects, see the :ref:`groupby docs <groupby.transform.window_resample>`.
+The ``resample()`` method can be used directly from ``DataFrameGroupBy`` objects,
+see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
 .. note::
 
@@ -1931,8 +1920,6 @@ objects:
 
 Period dtypes
 ~~~~~~~~~~~~~
-
-.. versionadded:: 0.19.0
 
 ``PeriodIndex`` has a custom ``period`` dtype. This is a pandas extension
 dtype similar to the :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``).

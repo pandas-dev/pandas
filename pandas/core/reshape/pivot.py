@@ -272,7 +272,7 @@ def _compute_grand_margin(data, values, aggfunc, margins_name="All"):
 
     if values:
         grand_margin = {}
-        for k, v in data[values].iteritems():
+        for k, v in data[values].items():
             try:
                 if isinstance(aggfunc, str):
                     grand_margin[k] = getattr(v, aggfunc)()
@@ -479,8 +479,6 @@ def crosstab(
         - If passed 'index' will normalize over each row.
         - If passed 'columns' will normalize over each column.
         - If margins is `True`, will also normalize margin values.
-
-        .. versionadded:: 0.18.1
 
     Returns
     -------

@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
     ensure_int_or_float,
-    ensure_object,
     ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
@@ -567,15 +566,8 @@ class BaseGrouper:
                 result[mask] = np.nan
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
-            if result.ndim == 2:
-                try:
-                    result = lib.row_bool_subset(result, (counts > 0).view(np.uint8))
-                except ValueError:
-                    result = lib.row_bool_subset_object(
-                        ensure_object(result), (counts > 0).view(np.uint8)
-                    )
-            else:
-                result = result[counts > 0]
+            assert result.ndim != 2
+            result = result[counts > 0]
 
         if vdim == 1 and arity == 1:
             result = result[:, 0]
@@ -675,7 +667,7 @@ class BaseGrouper:
         # avoids object / Series creation overhead
         dummy = obj._get_values(slice(None, 0))
         indexer = get_group_index_sorter(group_index, ngroups)
-        obj = obj._take(indexer)
+        obj = obj.take(indexer)
         group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
         grouper = reduction.SeriesGrouper(obj, func, group_index, ngroups, dummy)
         result, counts = grouper.get_result()
@@ -915,7 +907,7 @@ class DataSplitter:
             yield i, self._chop(sdata, slice(start, end))
 
     def _get_sorted_data(self):
-        return self.data._take(self.sort_idx, axis=self.axis)
+        return self.data.take(self.sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj):
         return sdata.iloc[slice_obj]

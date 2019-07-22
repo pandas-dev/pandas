@@ -67,8 +67,8 @@ Indexing, iteration
    DataFrame.insert
    DataFrame.__iter__
    DataFrame.items
-   DataFrame.keys
    DataFrame.iteritems
+   DataFrame.keys
    DataFrame.iterrows
    DataFrame.itertuples
    DataFrame.lookup
@@ -239,6 +239,7 @@ Reshaping, sorting, transposing
    DataFrame.unstack
    DataFrame.swapaxes
    DataFrame.melt
+   DataFrame.explode
    DataFrame.squeeze
    DataFrame.to_xarray
    DataFrame.T

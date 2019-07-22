@@ -105,8 +105,6 @@ class SparseDtype(ExtensionDtype):
     _metadata = ("_dtype", "_fill_value", "_is_na_fill_value")
 
     def __init__(self, dtype: Dtype = np.float64, fill_value: Any = None) -> None:
-        from pandas.core.dtypes.missing import na_value_for_dtype
-        from pandas.core.dtypes.common import pandas_dtype, is_string_dtype, is_scalar
 
         if isinstance(dtype, type(self)):
             if fill_value is None:
@@ -178,20 +176,14 @@ class SparseDtype(ExtensionDtype):
 
     @property
     def _is_na_fill_value(self):
-        from pandas.core.dtypes.missing import isna
-
         return isna(self.fill_value)
 
     @property
     def _is_numeric(self):
-        from pandas.core.dtypes.common import is_object_dtype
-
         return not is_object_dtype(self.subtype)
 
     @property
     def _is_boolean(self):
-        from pandas.core.dtypes.common import is_bool_dtype
-
         return is_bool_dtype(self.subtype)
 
     @property
@@ -930,8 +922,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return self.to_dense()
 
     def isna(self):
-        from pandas import isna
-
         # If null fill value, we want SparseDtype[bool, true]
         # to preserve the same memory usage.
         dtype = SparseDtype(bool, self._null_fill_value)

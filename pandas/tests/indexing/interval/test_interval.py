@@ -41,9 +41,9 @@ class TestIntervalIndex:
                 assert s[key] == expected
                 assert s.loc[key] == expected
             else:
-                with pytest.raises(KeyError):
+                with pytest.raises(KeyError, match=str(key)):
                     s[key]
-                with pytest.raises(KeyError):
+                with pytest.raises(KeyError, match=str(key)):
                     s.loc[key]
 
         for key, expected in zip(idx.right, s):
@@ -51,9 +51,9 @@ class TestIntervalIndex:
                 assert s[key] == expected
                 assert s.loc[key] == expected
             else:
-                with pytest.raises(KeyError):
+                with pytest.raises(KeyError, match=str(key)):
                     s[key]
-                with pytest.raises(KeyError):
+                with pytest.raises(KeyError, match=str(key)):
                     s.loc[key]
 
         for key, expected in zip(idx.mid, s):
@@ -65,10 +65,10 @@ class TestIntervalIndex:
 
         # this is a departure from our current
         # indexin scheme, but simpler
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^$"):
             s.loc[[-1, 3, 4, 5]]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^$"):
             s.loc[[-1, 3]]
 
     def test_large_series(self):
@@ -93,7 +93,7 @@ class TestIntervalIndex:
         expected = df.iloc[4:6]
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="10"):
             df.loc[10]
 
         # single list-like
@@ -106,9 +106,9 @@ class TestIntervalIndex:
         expected = df.take([4, 5, 4, 5])
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^$"):
             df.loc[[10]]
 
         # partial missing
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="^$"):
             df.loc[[10, 4]]

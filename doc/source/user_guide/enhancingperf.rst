@@ -601,8 +601,6 @@ This allows for *formulaic evaluation*.  The assignment target can be a
 new column name or an existing column name, and it must be a valid Python
 identifier.
 
-.. versionadded:: 0.18.0
-
 The ``inplace`` keyword determines whether this assignment will performed
 on the original ``DataFrame`` or return a copy with the new column.
 
@@ -630,8 +628,6 @@ new or modified columns is returned and the original frame is unchanged.
    df.eval('e = a - c', inplace=False)
    df
 
-.. versionadded:: 0.18.0
-
 As a convenience, multiple assignments can be performed by using a
 multi-line string.
 
@@ -652,9 +648,7 @@ The equivalent in standard Python would be
    df['a'] = 1
    df
 
-.. versionadded:: 0.18.0
-
-The ``query`` method gained the ``inplace`` keyword which determines
+The ``query`` method has a ``inplace`` keyword which determines
 whether the query modifies the original frame.
 
 .. ipython:: python

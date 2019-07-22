@@ -523,7 +523,7 @@ def test_setitem_with_tz_dst():
     tm.assert_series_equal(s, exp)
 
 
-def test_categorial_assigning_ops():
+def test_categorical_assigning_ops():
     orig = Series(Categorical(["b", "b"], categories=["a", "b"]))
     s = orig.copy()
     s[:] = "a"
@@ -652,6 +652,59 @@ def test_timedelta_assignment():
     expected = pd.Series(10 * [np.timedelta64(10, "m")])
     expected.loc[[1, 2, 3]] = pd.Timedelta(np.timedelta64(20, "m"))
     tm.assert_series_equal(s, expected)
+
+
+@pytest.mark.parametrize(
+    "nat_val,should_cast",
+    [
+        (pd.NaT, True),
+        (np.timedelta64("NaT", "ns"), True),
+        (np.datetime64("NaT", "ns"), False),
+    ],
+)
+def test_td64_series_assign_nat(nat_val, should_cast):
+    # some nat-like values should be cast to timedelta64 when inserting
+    #  into a timedelta64 series.  Others should coerce to object
+    #  and retain their dtypes.
+    base = pd.Series([0, 1, 2], dtype="m8[ns]")
+    expected = pd.Series([pd.NaT, 1, 2], dtype="m8[ns]")
+    if not should_cast:
+        expected = expected.astype(object)
+
+    ser = base.copy(deep=True)
+    ser[0] = nat_val
+    tm.assert_series_equal(ser, expected)
+
+    ser = base.copy(deep=True)
+    ser.loc[0] = nat_val
+    tm.assert_series_equal(ser, expected)
+
+    ser = base.copy(deep=True)
+    ser.iloc[0] = nat_val
+    tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
+    "td",
+    [
+        pd.Timedelta("9 days"),
+        pd.Timedelta("9 days").to_timedelta64(),
+        pd.Timedelta("9 days").to_pytimedelta(),
+    ],
+)
+def test_append_timedelta_does_not_cast(td):
+    # GH#22717 inserting a Timedelta should _not_ cast to int64
+    expected = pd.Series(["x", td], index=[0, "td"], dtype=object)
+
+    ser = pd.Series(["x"])
+    ser["td"] = td
+    tm.assert_series_equal(ser, expected)
+    assert isinstance(ser["td"], pd.Timedelta)
+
+    ser = pd.Series(["x"])
+    ser.loc["td"] = pd.Timedelta("9 days")
+    tm.assert_series_equal(ser, expected)
+    assert isinstance(ser["td"], pd.Timedelta)
 
 
 def test_underlying_data_conversion():

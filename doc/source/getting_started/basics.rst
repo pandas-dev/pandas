@@ -1422,8 +1422,6 @@ The :meth:`~DataFrame.rename` method also provides an ``inplace`` named
 parameter that is by default ``False`` and copies the underlying data. Pass
 ``inplace=True`` to rename the data in place.
 
-.. versionadded:: 0.18.0
-
 Finally, :meth:`~Series.rename` also accepts a scalar or list-like
 for altering the ``Series.name`` attribute.
 
@@ -1475,7 +1473,7 @@ Thus, for example, iterating over a DataFrame gives you the column names:
        print(col)
 
 
-Pandas objects also have the dict-like :meth:`~DataFrame.iteritems` method to
+Pandas objects also have the dict-like :meth:`~DataFrame.items` method to
 iterate over the (key, value) pairs.
 
 To iterate over the rows of a DataFrame, you can use the following methods:
@@ -1524,10 +1522,10 @@ To iterate over the rows of a DataFrame, you can use the following methods:
 
     df
 
-iteritems
-~~~~~~~~~
+items
+~~~~~
 
-Consistent with the dict-like interface, :meth:`~DataFrame.iteritems` iterates
+Consistent with the dict-like interface, :meth:`~DataFrame.items` iterates
 through key-value pairs:
 
 * **Series**: (index, scalar value) pairs
@@ -1537,7 +1535,7 @@ For example:
 
 .. ipython:: python
 
-   for label, ser in df.iteritems():
+   for label, ser in df.items():
        print(label)
        print(ser)
 
@@ -2062,8 +2060,6 @@ Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`.
    dft[['a', 'b']] = dft[['a', 'b']].astype(np.uint8)
    dft
    dft.dtypes
-
-.. versionadded:: 0.19.0
 
 Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFrame.astype`.
 

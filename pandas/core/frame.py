@@ -15,7 +15,7 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Set, Type, Union
+from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_extension_type,
     is_float_dtype,
+    is_hashable,
     is_integer,
     is_integer_dtype,
     is_iterator,
@@ -313,8 +314,12 @@ class DataFrame(NDFrame):
         Dict can contain Series, arrays, constants, or list-like objects
 
         .. versionchanged :: 0.23.0
-           If data is a dict, argument order is maintained for Python 3.6
-           and later.
+           If data is a dict, column order follows insertion-order for
+           Python 3.6 and later.
+
+        .. versionchanged :: 0.25.0
+           If data is a list of dicts, column order follows insertion-order
+           Python 3.6 and later.
 
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
@@ -770,15 +775,15 @@ class DataFrame(NDFrame):
 
         return Styler(self)
 
-    def iteritems(self):
-        r"""
+    _shared_docs[
+        "items"
+    ] = r"""
         Iterator over (column name, Series) pairs.
 
         Iterates over the DataFrame columns, returning a tuple with
         the column name and the content as a Series.
 
-        Yields
-        ------
+        %s
         label : object
             The column names for the DataFrame being iterated over.
         content : Series
@@ -801,7 +806,7 @@ class DataFrame(NDFrame):
         panda 	bear 	  1864
         polar 	bear 	  22000
         koala 	marsupial 80000
-        >>> for label, content in df.iteritems():
+        >>> for label, content in df.items():
         ...     print('label:', label)
         ...     print('content:', content, sep='\n')
         ...
@@ -818,12 +823,19 @@ class DataFrame(NDFrame):
         koala    80000
         Name: population, dtype: int64
         """
+
+    @Appender(_shared_docs["items"] % "Yields\n        ------")
+    def items(self):
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
         else:
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
+
+    @Appender(_shared_docs["items"] % "Returns\n        -------")
+    def iteritems(self):
+        return self.items()
 
     def iterrows(self):
         """
@@ -842,7 +854,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         itertuples : Iterate over DataFrame rows as namedtuples of the values.
-        iteritems : Iterate over (column name, Series) pairs.
+        items : Iterate over (column name, Series) pairs.
 
         Notes
         -----
@@ -900,7 +912,7 @@ class DataFrame(NDFrame):
         --------
         DataFrame.iterrows : Iterate over DataFrame rows as (index, Series)
             pairs.
-        DataFrame.iteritems : Iterate over (column name, Series) pairs.
+        DataFrame.items : Iterate over (column name, Series) pairs.
 
         Notes
         -----
@@ -956,8 +968,6 @@ class DataFrame(NDFrame):
 
         # fallback to regular tuples
         return zip(*arrays)
-
-    items = iteritems
 
     def __len__(self):
         """
@@ -2033,9 +2043,6 @@ class DataFrame(NDFrame):
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
             values. Each label must be 80 characters or smaller.
-
-            .. versionadded:: 0.19.0
-
         version : {114, 117}, default 114
             Version to use in the output dta file.  Version 114 can be used
             read by Stata 10 and later.  Version 117 can be read by Stata 13
@@ -2063,8 +2070,6 @@ class DataFrame(NDFrame):
               or datetime.datetime
             * Column listed in convert_dates is not in DataFrame
             * Categorical label contains more than 32,000 characters
-
-            .. versionadded:: 0.19.0
 
         See Also
         --------
@@ -2255,9 +2260,6 @@ class DataFrame(NDFrame):
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
-
-            .. versionadded:: 0.19.0
-
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
 
@@ -2633,7 +2635,7 @@ class DataFrame(NDFrame):
         5216
         """
         result = Series(
-            [c.memory_usage(index=False, deep=deep) for col, c in self.iteritems()],
+            [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
             index=self.columns,
         )
         if index:
@@ -2883,11 +2885,11 @@ class DataFrame(NDFrame):
 
     _set_value.__doc__ = set_value.__doc__
 
-    def _ixs(self, i, axis=0):
+    def _ixs(self, i: int, axis: int = 0):
         """
         Parameters
         ----------
-        i : int, slice, or sequence of integers
+        i : int
         axis : int
 
         Notes
@@ -2896,74 +2898,51 @@ class DataFrame(NDFrame):
         """
         # irow
         if axis == 0:
-            if isinstance(i, slice):
-                return self[i]
-            else:
-                label = self.index[i]
-                if isinstance(label, Index):
-                    # a location index by definition
-                    result = self.take(i, axis=axis)
-                    copy = True
-                else:
-                    new_values = self._data.fast_xs(i)
-                    if is_scalar(new_values):
-                        return new_values
+            label = self.index[i]
+            new_values = self._data.fast_xs(i)
+            if is_scalar(new_values):
+                return new_values
 
-                    # if we are a copy, mark as such
-                    copy = (
-                        isinstance(new_values, np.ndarray) and new_values.base is None
-                    )
-                    result = self._constructor_sliced(
-                        new_values,
-                        index=self.columns,
-                        name=self.index[i],
-                        dtype=new_values.dtype,
-                    )
-                result._set_is_copy(self, copy=copy)
-                return result
+            # if we are a copy, mark as such
+            copy = isinstance(new_values, np.ndarray) and new_values.base is None
+            result = self._constructor_sliced(
+                new_values,
+                index=self.columns,
+                name=self.index[i],
+                dtype=new_values.dtype,
+            )
+            result._set_is_copy(self, copy=copy)
+            return result
 
         # icol
         else:
             label = self.columns[i]
-            if isinstance(i, slice):
-                # need to return view
-                lab_slice = slice(label[0], label[-1])
-                return self.loc[:, lab_slice]
-            else:
-                if isinstance(label, Index):
-                    return self._take(i, axis=1)
 
-                index_len = len(self.index)
+            # if the values returned are not the same length
+            # as the index (iow a not found value), iget returns
+            # a 0-len ndarray. This is effectively catching
+            # a numpy error (as numpy should really raise)
+            values = self._data.iget(i)
 
-                # if the values returned are not the same length
-                # as the index (iow a not found value), iget returns
-                # a 0-len ndarray. This is effectively catching
-                # a numpy error (as numpy should really raise)
-                values = self._data.iget(i)
+            if len(self.index) and not len(values):
+                values = np.array([np.nan] * len(self.index), dtype=object)
+            result = self._box_col_values(values, label)
 
-                if index_len and not len(values):
-                    values = np.array([np.nan] * index_len, dtype=object)
-                result = self._box_col_values(values, label)
+            # this is a cached value, mark it so
+            result._set_as_cached(label, self)
 
-                # this is a cached value, mark it so
-                result._set_as_cached(label, self)
-
-                return result
+            return result
 
     def __getitem__(self, key):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        # shortcut if the key is in columns
-        try:
+        if is_hashable(key):
+            # shortcut if the key is in columns
             if self.columns.is_unique and key in self.columns:
                 if self.columns.nlevels > 1:
                     return self._getitem_multilevel(key)
                 return self._get_item_cache(key)
-        except (TypeError, ValueError):
-            # The TypeError correctly catches non hashable "key" (e.g. list)
-            # The ValueError can be removed once GH #21729 is fixed
-            pass
 
         # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
@@ -2997,7 +2976,7 @@ class DataFrame(NDFrame):
         if getattr(indexer, "dtype", None) == bool:
             indexer = np.where(indexer)[0]
 
-        data = self._take(indexer, axis=1)
+        data = self.take(indexer, axis=1)
 
         if is_single_key:
             # What does looking for a single key in a non-unique index return?
@@ -3030,7 +3009,7 @@ class DataFrame(NDFrame):
         # be reindexed to match DataFrame rows
         key = check_bool_indexer(self.index, key)
         indexer = key.nonzero()[0]
-        return self._take(indexer, axis=0)
+        return self.take(indexer, axis=0)
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
@@ -3099,8 +3078,6 @@ class DataFrame(NDFrame):
         **kwargs
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by :meth:`DataFrame.query`.
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------
@@ -3219,8 +3196,6 @@ class DataFrame(NDFrame):
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
             a new DataFrame is returned.
-
-            .. versionadded:: 0.18.0.
         kwargs : dict
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by
@@ -4958,7 +4933,7 @@ class DataFrame(NDFrame):
         if not diff.empty:
             raise KeyError(diff)
 
-        vals = (col.values for name, col in self.iteritems() if name in subset)
+        vals = (col.values for name, col in self.items() if name in subset)
         labels, shape = map(list, zip(*map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
@@ -5316,11 +5291,6 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
-
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
         """
         result = self.copy()
 
@@ -6250,6 +6220,75 @@ class DataFrame(NDFrame):
         else:
             return stack(self, level, dropna=dropna)
 
+    def explode(self, column: Union[str, Tuple]) -> "DataFrame":
+        """
+        Transform each element of a list-like to a row, replicating the
+        index values.
+
+        .. versionadded:: 0.25.0
+
+        Parameters
+        ----------
+        column : str or tuple
+
+        Returns
+        -------
+        DataFrame
+            Exploded lists to rows of the subset columns;
+            index will be duplicated for these rows.
+
+        Raises
+        ------
+        ValueError :
+            if columns of the frame are not unique.
+
+        See Also
+        --------
+        DataFrame.unstack : Pivot a level of the (necessarily hierarchical)
+            index labels
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format
+        Series.explode : Explode a DataFrame from list-like columns to long format.
+
+        Notes
+        -----
+        This routine will explode list-likes including lists, tuples,
+        Series, and np.ndarray. The result dtype of the subset rows will
+        be object. Scalars will be returned unchanged. Empty list-likes will
+        result in a np.nan for that row.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [[1, 2, 3], 'foo', [], [3, 4]], 'B': 1})
+        >>> df
+                   A  B
+        0  [1, 2, 3]  1
+        1        foo  1
+        2         []  1
+        3     [3, 4]  1
+
+        >>> df.explode('A')
+             A  B
+        0    1  1
+        0    2  1
+        0    3  1
+        1  foo  1
+        2  NaN  1
+        3    3  1
+        3    4  1
+        """
+
+        if not (is_scalar(column) or isinstance(column, tuple)):
+            raise ValueError("column must be a scalar")
+        if not self.columns.is_unique:
+            raise ValueError("columns must be unique")
+
+        result = self[column].explode()
+        return (
+            self.drop([column], axis=1)
+            .join(result)
+            .reindex(columns=self.columns, copy=False)
+        )
+
     def unstack(self, level=-1, fill_value=None):
         """
         Pivot a level of the (necessarily hierarchical) index labels, returning
@@ -6267,8 +6306,6 @@ class DataFrame(NDFrame):
             Level(s) of index to unstack, can pass level name
         fill_value : replace NaN with this value if the unstack produces
             missing values
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------
@@ -6352,6 +6389,7 @@ class DataFrame(NDFrame):
     %(other)s
     pivot_table
     DataFrame.pivot
+    Series.explode
 
     Examples
     --------
@@ -7346,7 +7384,7 @@ class DataFrame(NDFrame):
         from pandas.core.reshape.concat import concat
 
         def _dict_round(df, decimals):
-            for col, vals in df.iteritems():
+            for col, vals in df.items():
                 try:
                     yield _series_round(vals, decimals[col])
                 except KeyError:
@@ -7366,7 +7404,7 @@ class DataFrame(NDFrame):
             new_cols = [col for col in _dict_round(self, decimals)]
         elif is_integer(decimals):
             # Dispatch to Series.round
-            new_cols = [_series_round(v, decimals) for _, v in self.iteritems()]
+            new_cols = [_series_round(v, decimals) for _, v in self.items()]
         else:
             raise TypeError("decimals must be an integer, a dict-like or a " "Series")
 
@@ -8155,8 +8193,6 @@ class DataFrame(NDFrame):
             * higher: `j`.
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------

@@ -478,7 +478,7 @@ def _unstack_extension_series(series, level, fill_value):
     out = []
     values = extract_array(series, extract_numpy=False)
 
-    for col, indices in result.iteritems():
+    for col, indices in result.items():
         out.append(
             Series(
                 values.take(indices.values, allow_fill=True, fill_value=fill_value),
@@ -544,7 +544,7 @@ def stack(frame, level=-1, dropna=True):
         if is_extension_array_dtype(dtype):
             arr = dtype.construct_array_type()
             new_values = arr._concat_same_type(
-                [col._values for _, col in frame.iteritems()]
+                [col._values for _, col in frame.items()]
             )
             new_values = _reorder_for_extension_array_stack(new_values, N, K)
         else:
@@ -695,7 +695,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
                 subset = this[this.columns[loc]]
 
                 value_slice = dtype.construct_array_type()._concat_same_type(
-                    [x._values for _, x in subset.iteritems()]
+                    [x._values for _, x in subset.items()]
                 )
                 N, K = this.shape
                 idx = np.arange(N * K).reshape(K, N).T.ravel()
@@ -781,9 +781,6 @@ def get_dummies(
     drop_first : bool, default False
         Whether to get k-1 dummies out of k categorical levels by removing the
         first level.
-
-        .. versionadded:: 0.18.0
-
     dtype : dtype, default np.uint8
         Data type for new columns. Only a single dtype is allowed.
 
@@ -855,7 +852,6 @@ def get_dummies(
     2  0.0  0.0  1.0
     """
     from pandas.core.reshape.concat import concat
-    from itertools import cycle
 
     dtypes_to_encode = ["object", "category"]
 
@@ -884,7 +880,7 @@ def get_dummies(
         check_len(prefix_sep, "prefix_sep")
 
         if isinstance(prefix, str):
-            prefix = cycle([prefix])
+            prefix = itertools.cycle([prefix])
         if isinstance(prefix, dict):
             prefix = [prefix[col] for col in data_to_encode.columns]
 
@@ -893,7 +889,7 @@ def get_dummies(
 
         # validate separators
         if isinstance(prefix_sep, str):
-            prefix_sep = cycle([prefix_sep])
+            prefix_sep = itertools.cycle([prefix_sep])
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
@@ -909,7 +905,7 @@ def get_dummies(
             # columns to prepend to result.
             with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
 
-        for (col, pre, sep) in zip(data_to_encode.iteritems(), prefix, prefix_sep):
+        for (col, pre, sep) in zip(data_to_encode.items(), prefix, prefix_sep):
             # col is (column_name, column), use just column data here
             dummy = _get_dummies_1d(
                 col[1],

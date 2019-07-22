@@ -110,7 +110,9 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
     elif typestr in ("complex", "c16", "c8"):
         values = 1.0j * (mat.astype(typestr) + num_offset)
     elif typestr in ("object", "string", "O"):
-        values = np.reshape(["A%d" % i for i in mat.ravel() + num_offset], shape)
+        values = np.reshape(
+            ["A{i:d}".format(i=i) for i in mat.ravel() + num_offset], shape
+        )
     elif typestr in ("b", "bool"):
         values = np.ones(shape, dtype=np.bool_)
     elif typestr in ("datetime", "dt", "M8[ns]"):
@@ -579,10 +581,6 @@ class TestBlockManager:
 
         # noops
         mgr = create_mgr("f: i8; g: f8")
-        new_mgr = mgr.convert()
-        _compare(mgr, new_mgr)
-
-        mgr = create_mgr("a, b: object; f: i8; g: f8")
         new_mgr = mgr.convert()
         _compare(mgr, new_mgr)
 

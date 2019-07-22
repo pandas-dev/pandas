@@ -274,7 +274,6 @@ class NDFrame(PandasObject, SelectionMixin):
         info_axis=None,
         stat_axis=None,
         aliases=None,
-        slicers=None,
         axes_are_reversed=False,
         build_axes=True,
         ns=None,
@@ -288,7 +287,6 @@ class NDFrame(PandasObject, SelectionMixin):
         info_axis_num : the axis of the selector dimension (int)
         stat_axis_num : the number of axis for the default stats (int)
         aliases : other names for a single axis (dict)
-        slicers : how axes slice to others (dict)
         axes_are_reversed : boolean whether to treat passed axes as
             reversed (DataFrame)
         build_axes : setup the axis properties (default True)
@@ -300,7 +298,6 @@ class NDFrame(PandasObject, SelectionMixin):
         cls._AXIS_ALIASES = aliases or dict()
         cls._AXIS_IALIASES = {v: k for k, v in cls._AXIS_ALIASES.items()}
         cls._AXIS_NAMES = dict(enumerate(axes))
-        cls._AXIS_SLICEMAP = slicers or None
         cls._AXIS_REVERSED = axes_are_reversed
 
         # typ
@@ -344,15 +341,6 @@ class NDFrame(PandasObject, SelectionMixin):
     def _construct_axes_dict_from(self, axes, **kwargs):
         """Return an axes dictionary for the passed axes."""
         d = {a: ax for a, ax in zip(self._AXIS_ORDERS, axes)}
-        d.update(kwargs)
-        return d
-
-    def _construct_axes_dict_for_slice(self, axes=None, **kwargs):
-        """Return an axes dictionary for myself."""
-        d = {
-            self._AXIS_SLICEMAP[a]: self._get_axis(a)
-            for a in (axes or self._AXIS_ORDERS)
-        }
         d.update(kwargs)
         return d
 
@@ -494,7 +482,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         from pandas.core.computation.common import _remove_spaces_column_name
 
-        return {_remove_spaces_column_name(k): v for k, v in self.iteritems()}
+        return {_remove_spaces_column_name(k): v for k, v in self.items()}
 
     @property
     def _info_axis(self):
@@ -576,18 +564,6 @@ class NDFrame(PandasObject, SelectionMixin):
     def _obj_with_exclusions(self):
         """ internal compat with SelectionMixin """
         return self
-
-    def _expand_axes(self, key):
-        new_axes = []
-        for k, ax in zip(key, self.axes):
-            if k not in ax:
-                if type(k) != ax.dtype.type:
-                    ax = ax.astype("O")
-                new_axes.append(ax.insert(len(ax), k))
-            else:
-                new_axes.append(ax)
-
-        return new_axes
 
     def set_axis(self, labels, axis=0, inplace=None):
         """
@@ -1021,11 +997,6 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         swapped : same type as caller (new object)
-
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
         """
         axis = self._get_axis_number(axis)
         result = self.copy()
@@ -1936,14 +1907,21 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         return self._info_axis
 
-    def iteritems(self):
-        """
-        Iterate over (label, values) on info axis
+    def items(self):
+        """Iterate over (label, values) on info axis
 
-        This is index for Series, columns for DataFrame and so on.
+        This is index for Series and columns for DataFrame.
+
+        Returns
+        -------
+        Generator
         """
         for h in self._info_axis:
             yield h, self[h]
+
+    @Appender(items.__doc__)
+    def iteritems(self):
+        return self.items()
 
     def __len__(self):
         """Returns length of info axis"""
@@ -2349,8 +2327,6 @@ class NDFrame(PandasObject, SelectionMixin):
             If 'orient' is 'records' write out line delimited json format. Will
             throw ValueError if incorrect 'orient' since others are not list
             like.
-
-            .. versionadded:: 0.19.0
 
         compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
 
@@ -3008,8 +2984,6 @@ class NDFrame(PandasObject, SelectionMixin):
             defaults to 'utf-8'.
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
-
-            .. versionadded:: 0.18.0
         multicolumn : bool, default True
             Use \multicolumn to enhance MultiIndex columns.
             The default will be read from the config module.
@@ -3311,7 +3285,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if ax.is_unique:
             lower = self._get_item_cache(ax[item])
         else:
-            lower = self._take(item, axis=self._info_axis_number)
+            lower = self.take(item, axis=self._info_axis_number)
         return lower
 
     def _box_item_values(self, key, values):
@@ -3512,7 +3486,7 @@ class NDFrame(PandasObject, SelectionMixin):
         deleted = False
 
         maybe_shortcut = False
-        if hasattr(self, "columns") and isinstance(self.columns, MultiIndex):
+        if self.ndim == 2 and isinstance(self.columns, MultiIndex):
             try:
                 maybe_shortcut = key not in self.columns._engine
             except TypeError:
@@ -3538,52 +3512,6 @@ class NDFrame(PandasObject, SelectionMixin):
             del self._item_cache[key]
         except KeyError:
             pass
-
-    def _take(self, indices, axis=0, is_copy=True):
-        """
-        Return the elements in the given *positional* indices along an axis.
-
-        This means that we are not indexing according to actual values in
-        the index attribute of the object. We are indexing according to the
-        actual position of the element in the object.
-
-        This is the internal version of ``.take()`` and will contain a wider
-        selection of parameters useful for internal use but not as suitable
-        for public usage.
-
-        Parameters
-        ----------
-        indices : array-like
-            An array of ints indicating which positions to take.
-        axis : int, default 0
-            The axis on which to select elements. "0" means that we are
-            selecting rows, "1" means that we are selecting columns, etc.
-        is_copy : bool, default True
-            Whether to return a copy of the original object or not.
-
-        Returns
-        -------
-        taken : same type as caller
-            An array-like containing the elements taken from the object.
-
-        See Also
-        --------
-        numpy.ndarray.take
-        numpy.take
-        """
-        self._consolidate_inplace()
-
-        new_data = self._data.take(
-            indices, axis=self._get_block_manager_axis(axis), verify=True
-        )
-        result = self._constructor(new_data).__finalize__(self)
-
-        # Maybe set copy if we didn't actually change the index.
-        if is_copy:
-            if not result._get_axis(axis).equals(self._get_axis(axis)):
-                result._set_is_copy(self)
-
-        return result
 
     def take(self, indices, axis=0, is_copy=True, **kwargs):
         """
@@ -3661,7 +3589,20 @@ class NDFrame(PandasObject, SelectionMixin):
         3    lion  mammal       80.5
         """
         nv.validate_take(tuple(), kwargs)
-        return self._take(indices, axis=axis, is_copy=is_copy)
+
+        self._consolidate_inplace()
+
+        new_data = self._data.take(
+            indices, axis=self._get_block_manager_axis(axis), verify=True
+        )
+        result = self._constructor(new_data).__finalize__(self)
+
+        # Maybe set copy if we didn't actually change the index.
+        if is_copy:
+            if not result._get_axis(axis).equals(self._get_axis(axis)):
+                result._set_is_copy(self)
+
+        return result
 
     def xs(self, key, axis=0, level=None, drop_level=True):
         """
@@ -3790,9 +3731,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
                     inds, = loc.nonzero()
-                    return self._take(inds, axis=axis)
+                    return self.take(inds, axis=axis)
                 else:
-                    return self._take(loc, axis=axis)
+                    return self.take(loc, axis=axis)
 
             if not is_scalar(loc):
                 new_index = self.index[loc]
@@ -5282,9 +5223,6 @@ class NDFrame(PandasObject, SelectionMixin):
         return super()._dir_additions().union(additions)
 
     # ----------------------------------------------------------------------
-    # Getting and setting elements
-
-    # ----------------------------------------------------------------------
     # Consolidation of internals
 
     def _protect_consolidate(self, f):
@@ -5603,6 +5541,7 @@ class NDFrame(PandasObject, SelectionMixin):
             FutureWarning,
             stacklevel=2,
         )
+
         from pandas import Series
 
         return Series(self._data.get_dtype_counts())
@@ -5911,7 +5850,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         "key in a dtype mappings argument."
                     )
             results = []
-            for col_name, col in self.iteritems():
+            for col_name, col in self.items():
                 if col_name in dtype:
                     results.append(
                         col.astype(
@@ -6090,6 +6029,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         converted : same as input object
         """
+        validate_bool_kwarg(datetime, "datetime")
+        validate_bool_kwarg(numeric, "numeric")
+        validate_bool_kwarg(timedelta, "timedelta")
+        validate_bool_kwarg(coerce, "coerce")
+        validate_bool_kwarg(copy, "copy")
         return self._constructor(
             self._data.convert(
                 datetime=datetime,
@@ -6871,14 +6815,6 @@ class NDFrame(PandasObject, SelectionMixin):
               `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
               scipy 0.18.
-
-            .. versionadded:: 0.18.1
-
-               Added support for the 'akima' method.
-               Added interpolate method 'from_derivatives' which replaces
-               'piecewise_polynomial' in SciPy 0.18; backwards-compatible with
-               SciPy < 0.18
-
         axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to interpolate along.
         limit : int, optional
@@ -7139,8 +7075,6 @@ class NDFrame(PandasObject, SelectionMixin):
         NaN is taken.
         In case of a :class:`~pandas.DataFrame`, the last row without NaN
         considering only the subset of columns (if not `None`)
-
-        .. versionadded:: 0.19.0 For DataFrame
 
         If there is no good value, NaN is returned for a Series or
         a Series of NaN values for a DataFrame
@@ -8107,7 +8041,7 @@ class NDFrame(PandasObject, SelectionMixin):
         except AttributeError:
             raise TypeError("Index must be DatetimeIndex")
 
-        return self._take(indexer, axis=axis)
+        return self.take(indexer, axis=axis)
 
     def between_time(
         self, start_time, end_time, include_start=True, include_end=True, axis=None
@@ -8184,7 +8118,7 @@ class NDFrame(PandasObject, SelectionMixin):
         except AttributeError:
             raise TypeError("Index must be DatetimeIndex")
 
-        return self._take(indexer, axis=axis)
+        return self.take(indexer, axis=axis)
 
     def resample(
         self,
@@ -8259,13 +8193,9 @@ class NDFrame(PandasObject, SelectionMixin):
             For a DataFrame, column to use instead of index for resampling.
             Column must be datetime-like.
 
-            .. versionadded:: 0.19.0
-
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
-
-            .. versionadded:: 0.19.0
 
         Returns
         -------
@@ -9192,20 +9122,12 @@ class NDFrame(PandasObject, SelectionMixin):
             If `cond` is callable, it is computed on the %(klass)s and
             should return boolean %(klass)s or array. The callable must
             not change input %(klass)s (though pandas doesn't check it).
-
-            .. versionadded:: 0.18.1
-                A callable can be used as cond.
-
         other : scalar, %(klass)s, or callable
             Entries where `cond` is %(cond_rev)s are replaced with
             corresponding value from `other`.
             If other is callable, it is computed on the %(klass)s and
             should return scalar or %(klass)s. The callable must not
             change input %(klass)s (though pandas doesn't check it).
-
-            .. versionadded:: 0.18.1
-                A callable can be used as other.
-
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         axis : int, default None
@@ -10327,7 +10249,7 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             data = self.select_dtypes(include=include, exclude=exclude)
 
-        ldesc = [describe_1d(s) for _, s in data.iteritems()]
+        ldesc = [describe_1d(s) for _, s in data.items()]
         # set a convenient order for rows
         names = []
         ldesc_indexes = sorted((x.index for x in ldesc), key=len)

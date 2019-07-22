@@ -34,7 +34,7 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, ensure_index
-from pandas.core.indexing import maybe_convert_indices
+from pandas.core.indexers import maybe_convert_indices
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -583,8 +583,9 @@ class BlockManager(PandasObject):
     def convert(self, **kwargs):
         return self.apply("convert", **kwargs)
 
-    def replace(self, **kwargs):
-        return self.apply("replace", **kwargs)
+    def replace(self, value, **kwargs):
+        assert np.ndim(value) == 0, value
+        return self.apply("replace", value=value, **kwargs)
 
     def replace_list(self, src_list, dest_list, inplace=False, regex=False):
         """ do a list replace """
@@ -617,6 +618,7 @@ class BlockManager(PandasObject):
             # replace ALWAYS will return a list
             rb = [blk if inplace else blk.copy()]
             for i, (s, d) in enumerate(zip(src_list, dest_list)):
+                # TODO: assert/validate that `d` is always a scalar?
                 new_rb = []
                 for b in rb:
                     m = masks[i][b.mgr_locs.indexer]
@@ -1059,7 +1061,7 @@ class BlockManager(PandasObject):
 
             if value.shape[1:] != self.shape[1:]:
                 raise AssertionError(
-                    "Shape of new values must be compatible " "with manager shape"
+                    "Shape of new values must be compatible with manager shape"
                 )
 
         try:
@@ -1152,7 +1154,7 @@ class BlockManager(PandasObject):
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
 
-    def insert(self, loc, item, value, allow_duplicates=False):
+    def insert(self, loc: int, item, value, allow_duplicates: bool = False):
         """
         Insert item at selected position.
 
@@ -1387,9 +1389,7 @@ class BlockManager(PandasObject):
 
         if verify:
             if ((indexer == -1) | (indexer >= n)).any():
-                raise Exception(
-                    "Indices must be nonzero and less than " "the axis length"
-                )
+                raise Exception("Indices must be nonzero and less than the axis length")
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
@@ -1476,7 +1476,7 @@ class SingleBlockManager(BlockManager):
         if isinstance(axis, list):
             if len(axis) != 1:
                 raise ValueError(
-                    "cannot create SingleBlockManager with more " "than 1 axis"
+                    "cannot create SingleBlockManager with more than 1 axis"
                 )
             axis = axis[0]
 
@@ -1490,7 +1490,7 @@ class SingleBlockManager(BlockManager):
                     block = [np.array([])]
                 elif len(block) != 1:
                     raise ValueError(
-                        "Cannot create SingleBlockManager with " "more than 1 block"
+                        "Cannot create SingleBlockManager with more than 1 block"
                     )
                 block = block[0]
         else:
@@ -1507,7 +1507,7 @@ class SingleBlockManager(BlockManager):
 
                 if len(block) != 1:
                     raise ValueError(
-                        "Cannot create SingleBlockManager with " "more than 1 block"
+                        "Cannot create SingleBlockManager with more than 1 block"
                     )
                 block = block[0]
 
@@ -1551,7 +1551,6 @@ class SingleBlockManager(BlockManager):
 
     def convert(self, **kwargs):
         """ convert the whole block as one """
-        kwargs["by_item"] = False
         return self.apply("convert", **kwargs)
 
     @property
