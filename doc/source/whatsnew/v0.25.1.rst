@@ -56,7 +56,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in :class:`format` in which negative floating point complex numbers would raise an ``IndexError`` (:issue:`27484`)
 -
 -
 
