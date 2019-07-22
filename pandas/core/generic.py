@@ -565,7 +565,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """ internal compat with SelectionMixin """
         return self
 
-    def set_axis(self, labels, axis=0, inplace=None):
+    def set_axis(self, labels, axis=0, inplace=False):
         """
         Assign desired index to given axis.
 
@@ -588,14 +588,8 @@ class NDFrame(PandasObject, SelectionMixin):
             The axis to update. The value 0 identifies the rows, and 1
             identifies the columns.
 
-        inplace : bool, default None
+        inplace : bool, default False
             Whether to return a new %(klass)s instance.
-
-            .. warning::
-
-               ``inplace=None`` currently falls back to to True, but in a
-               future version, will default to False. Use inplace=True
-               explicitly rather than relying on the default.
 
         Returns
         -------
