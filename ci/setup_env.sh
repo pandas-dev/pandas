@@ -109,7 +109,7 @@ else
     if [ -z "$CC" ]; then
         GCC=$(which gcc)
     else
-        update-alternatives --set gcc "${CC}"
+        alias gcc "${GCC}"
     fi
 fi
 
