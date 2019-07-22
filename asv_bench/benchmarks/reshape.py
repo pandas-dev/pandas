@@ -240,4 +240,17 @@ class Cut:
         pd.qcut(self.datetime_series, bins)
 
 
+class Explode:
+    param_names = ["n_rows", "max_list_length"]
+    params = [[100, 1000, 10000], [3, 5, 10]]
+
+    def setup(self, n_rows, max_list_length):
+
+        data = [np.arange(np.random.randint(max_list_length)) for _ in range(n_rows)]
+        self.series = pd.Series(data)
+
+    def time_explode(self, n_rows, max_list_length):
+        self.series.explode()
+
+
 from .pandas_vb_common import setup  # noqa: F401

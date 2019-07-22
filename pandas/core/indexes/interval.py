@@ -406,11 +406,6 @@ class IntervalIndex(IntervalMixin, Index):
         return self._data.size
 
     @property
-    def shape(self):
-        # Avoid materializing ndarray[Interval]
-        return self._data.shape
-
-    @property
     def itemsize(self):
         msg = (
             "IntervalIndex.itemsize is deprecated and will be removed in "
@@ -1255,15 +1250,9 @@ class IntervalIndex(IntervalMixin, Index):
             first_nan_loc = np.arange(len(self))[self.isna()][0]
             mask[first_nan_loc] = True
 
-        lmiss = other.left.get_indexer_non_unique(self.left)[1]
-        lmatch = np.setdiff1d(np.arange(len(self)), lmiss)
-
-        for i in lmatch:
-            potential = other.left.get_loc(self.left[i])
-            if is_scalar(potential):
-                if self.right[i] == other.right[potential]:
-                    mask[i] = True
-            elif self.right[i] in other.right[potential]:
+        other_tups = set(zip(other.left, other.right))
+        for i, tup in enumerate(zip(self.left, self.right)):
+            if tup in other_tups:
                 mask[i] = True
 
         return self[mask]

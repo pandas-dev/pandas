@@ -438,10 +438,6 @@ columns:
 
 .. _visualization.box.return:
 
-.. warning::
-
-   The default changed from ``'dict'`` to ``'axes'`` in version 0.19.0.
-
 In ``boxplot``, the return type can be controlled by the ``return_type``, keyword. The valid choices are ``{"axes", "dict", "both", None}``.
 Faceting, created by ``DataFrame.boxplot`` with the ``by``
 keyword, will affect the output type as well:
@@ -1632,18 +1628,3 @@ when plotting a large number of points.
    :suppress:
 
     plt.close('all')
-
-
-.. _rplot:
-
-
-Trellis plotting interface
---------------------------
-
-.. warning::
-
-    The ``rplot`` trellis plotting interface has been **removed**. Please use
-    external packages like `seaborn <https://github.com/mwaskom/seaborn>`_ for
-    similar but more refined functionality and refer to our 0.18.1 documentation
-    `here <http://pandas.pydata.org/pandas-docs/version/0.18.1/visualization.html>`__
-    for how to convert to using it.

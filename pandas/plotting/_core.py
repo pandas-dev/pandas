@@ -375,7 +375,7 @@ def boxplot(
         >>> type(boxplot)
         <class 'numpy.ndarray'>
     """
-    plot_backend = _get_plot_backend()
+    plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.boxplot(
         data,
         column=column,
@@ -1533,7 +1533,7 @@ class PlotAccessor(PandasObject):
         return self(kind="hexbin", x=x, y=y, C=C, **kwargs)
 
 
-def _get_plot_backend():
+def _get_plot_backend(backend=None):
     """
     Return the plotting backend to use (e.g. `pandas.plotting._matplotlib`).
 
@@ -1546,7 +1546,7 @@ def _get_plot_backend():
     The backend is imported lazily, as matplotlib is a soft dependency, and
     pandas can be used without it being installed.
     """
-    backend_str = pandas.get_option("plotting.backend")
+    backend_str = backend or pandas.get_option("plotting.backend")
     if backend_str == "matplotlib":
         backend_str = "pandas.plotting._matplotlib"
     return importlib.import_module(backend_str)
