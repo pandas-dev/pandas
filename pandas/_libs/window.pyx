@@ -1596,9 +1596,9 @@ def roll_generic(object obj,
             arr = arr.copy('C')
 
     start, end, N, _ , minp, is_variable = get_window_indexer(arr, win,
-                                                               minp, index,
-                                                               closed,
-                                                               floor=0)
+                                                              minp, index,
+                                                              closed,
+                                                              floor=0)
 
     return roll_generic_with_indexer(obj,
                                      win, minp, index, closed,
@@ -1610,11 +1610,11 @@ def roll_generic(object obj,
 
 
 def roll_generic_with_indexer(object obj,
-                 int64_t win, int64_t minp, object index, object closed,
-                 int offset, object func, bint raw,
-                 ndarray[int64_t] start, ndarray[int64_t] end, int64_t N,
-                 bint is_variable,
-                 object args, object kwargs):
+                              int64_t win, int64_t minp, object index, object closed,
+                              int offset, object func, bint raw,
+                              ndarray[int64_t] start, ndarray[int64_t] end, int64_t N,
+                              bint is_variable,
+                              object args, object kwargs):
     cdef:
         ndarray[float64_t] output, bufarr
         ndarray[float64_t, cast=True] arr
