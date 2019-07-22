@@ -4277,7 +4277,7 @@ class DataFrame(NDFrame):
         MultiIndex.
 
         if append=True is passed, the existing index will be converted to a MultiIndex
-        and the the new labels will be be appended as a new level to it.
+        and the the new labels will be be appended as new level(s) to it.
 
         Parameters
         ----------
