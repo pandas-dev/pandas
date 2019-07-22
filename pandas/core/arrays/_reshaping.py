@@ -74,20 +74,24 @@ def implement_2d(cls):
     # allow_fill=None instead of False is for compat with Categorical
     def take(self, indices, allow_fill=None, fill_value=None, axis=0, **kwargs):
         if self.ndim == 1 and axis == 0:
-            return orig_take(self, indices, allow_fill=allow_fill,
-                             fill_value=fill_value, **kwargs)
+            return orig_take(
+                self, indices, allow_fill=allow_fill, fill_value=fill_value, **kwargs
+            )
 
         if self.ndim != 2 or self.shape[0] != 1:
             raise NotImplementedError
         if axis not in [0, 1]:
             raise ValueError(axis)
         if kwargs:
-            raise ValueError('kwargs should not be passed in the 2D case, '
-                             'are only included for compat with Interval')
+            raise ValueError(
+                "kwargs should not be passed in the 2D case, "
+                "are only included for compat with Interval"
+            )
 
         if axis == 1:
-            result = orig_take(self, indices, allow_fill=allow_fill,
-                               fill_value=fill_value)
+            result = orig_take(
+                self, indices, allow_fill=allow_fill, fill_value=fill_value
+            )
             result._shape = (1, result.size)
             return result
 
