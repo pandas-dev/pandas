@@ -24,8 +24,8 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core.algorithms import take
 from pandas.core import nanops, ops
+from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin, implement_2d
 from pandas.core.tools.numeric import to_numeric
 
