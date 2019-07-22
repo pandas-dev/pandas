@@ -15,7 +15,7 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Set, Type, Union
+from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -2043,9 +2043,6 @@ class DataFrame(NDFrame):
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
             values. Each label must be 80 characters or smaller.
-
-            .. versionadded:: 0.19.0
-
         version : {114, 117}, default 114
             Version to use in the output dta file.  Version 114 can be used
             read by Stata 10 and later.  Version 117 can be read by Stata 13
@@ -2073,8 +2070,6 @@ class DataFrame(NDFrame):
               or datetime.datetime
             * Column listed in convert_dates is not in DataFrame
             * Categorical label contains more than 32,000 characters
-
-            .. versionadded:: 0.19.0
 
         See Also
         --------
@@ -2265,9 +2260,6 @@ class DataFrame(NDFrame):
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
-
-            .. versionadded:: 0.19.0
-
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
 
@@ -3087,8 +3079,6 @@ class DataFrame(NDFrame):
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by :meth:`DataFrame.query`.
 
-            .. versionadded:: 0.18.0
-
         Returns
         -------
         DataFrame
@@ -3206,8 +3196,6 @@ class DataFrame(NDFrame):
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
             a new DataFrame is returned.
-
-            .. versionadded:: 0.18.0.
         kwargs : dict
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by
@@ -5303,11 +5291,6 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
-
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
         """
         result = self.copy()
 
@@ -6237,6 +6220,75 @@ class DataFrame(NDFrame):
         else:
             return stack(self, level, dropna=dropna)
 
+    def explode(self, column: Union[str, Tuple]) -> "DataFrame":
+        """
+        Transform each element of a list-like to a row, replicating the
+        index values.
+
+        .. versionadded:: 0.25.0
+
+        Parameters
+        ----------
+        column : str or tuple
+
+        Returns
+        -------
+        DataFrame
+            Exploded lists to rows of the subset columns;
+            index will be duplicated for these rows.
+
+        Raises
+        ------
+        ValueError :
+            if columns of the frame are not unique.
+
+        See Also
+        --------
+        DataFrame.unstack : Pivot a level of the (necessarily hierarchical)
+            index labels
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format
+        Series.explode : Explode a DataFrame from list-like columns to long format.
+
+        Notes
+        -----
+        This routine will explode list-likes including lists, tuples,
+        Series, and np.ndarray. The result dtype of the subset rows will
+        be object. Scalars will be returned unchanged. Empty list-likes will
+        result in a np.nan for that row.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [[1, 2, 3], 'foo', [], [3, 4]], 'B': 1})
+        >>> df
+                   A  B
+        0  [1, 2, 3]  1
+        1        foo  1
+        2         []  1
+        3     [3, 4]  1
+
+        >>> df.explode('A')
+             A  B
+        0    1  1
+        0    2  1
+        0    3  1
+        1  foo  1
+        2  NaN  1
+        3    3  1
+        3    4  1
+        """
+
+        if not (is_scalar(column) or isinstance(column, tuple)):
+            raise ValueError("column must be a scalar")
+        if not self.columns.is_unique:
+            raise ValueError("columns must be unique")
+
+        result = self[column].explode()
+        return (
+            self.drop([column], axis=1)
+            .join(result)
+            .reindex(columns=self.columns, copy=False)
+        )
+
     def unstack(self, level=-1, fill_value=None):
         """
         Pivot a level of the (necessarily hierarchical) index labels, returning
@@ -6254,8 +6306,6 @@ class DataFrame(NDFrame):
             Level(s) of index to unstack, can pass level name
         fill_value : replace NaN with this value if the unstack produces
             missing values
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------
@@ -6339,6 +6389,7 @@ class DataFrame(NDFrame):
     %(other)s
     pivot_table
     DataFrame.pivot
+    Series.explode
 
     Examples
     --------
@@ -8142,8 +8193,6 @@ class DataFrame(NDFrame):
             * higher: `j`.
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------

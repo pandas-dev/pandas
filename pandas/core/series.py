@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import iNaT, index as libindex, lib, tslibs
+from pandas._libs import iNaT, index as libindex, lib, reshape, tslibs
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_iterator,
     is_list_like,
+    is_object_dtype,
     is_scalar,
     is_string_like,
     is_timedelta64_dtype,
@@ -2010,7 +2011,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        Generate an Series with duplicated entries.
+        Generate a Series with duplicated entries.
 
         >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'],
         ...               name='animal')
@@ -2349,8 +2350,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         q : float or array-like, default 0.5 (50% quantile)
             0 <= q <= 1, the quantile(s) to compute.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
-            .. versionadded:: 0.18.0
-
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
@@ -2701,9 +2700,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Series to append with self.
         ignore_index : bool, default False
             If True, do not use the index labels.
-
-            .. versionadded:: 0.19.0
-
         verify_integrity : bool, default False
             If True, raise Exception on creating index with duplicates.
 
@@ -3594,22 +3590,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def swaplevel(self, i=-2, j=-1, copy=True):
         """
-        Swap levels i and j in a MultiIndex.
+        Swap levels i and j in a :class:`MultiIndex`.
+
+        Default is to swap the two innermost levels of the index.
 
         Parameters
         ----------
         i, j : int, str (can be mixed)
             Level of index to be swapped. Can pass level name as string.
+        copy : bool, default True
+            Whether to copy underlying data.
 
         Returns
         -------
         Series
             Series with levels swapped in MultiIndex.
-
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
         """
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
@@ -3638,6 +3633,62 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result.index = result.index.reorder_levels(order)
         return result
 
+    def explode(self) -> "Series":
+        """
+        Transform each element of a list-like to a row, replicating the
+        index values.
+
+        .. versionadded:: 0.25.0
+
+        Returns
+        -------
+        Series
+            Exploded lists to rows; index will be duplicated for these rows.
+
+        See Also
+        --------
+        Series.str.split : Split string values on specified separator.
+        Series.unstack : Unstack, a.k.a. pivot, Series with MultiIndex
+            to produce DataFrame.
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format
+        DataFrame.explode : Explode a DataFrame from list-like
+            columns to long format.
+
+        Notes
+        -----
+        This routine will explode list-likes including lists, tuples,
+        Series, and np.ndarray. The result dtype of the subset rows will
+        be object. Scalars will be returned unchanged. Empty list-likes will
+        result in a np.nan for that row.
+
+        Examples
+        --------
+        >>> s = pd.Series([[1, 2, 3], 'foo', [], [3, 4]])
+        >>> s
+        0    [1, 2, 3]
+        1          foo
+        2           []
+        3       [3, 4]
+        dtype: object
+
+        >>> s.explode()
+        0      1
+        0      2
+        0      3
+        1    foo
+        2    NaN
+        3      3
+        3      4
+        dtype: object
+        """
+        if not len(self) or not is_object_dtype(self):
+            return self.copy()
+
+        values, counts = reshape.explode(np.asarray(self.array))
+
+        result = Series(values, index=self.index.repeat(counts), name=self.name)
+        return result
+
     def unstack(self, level=-1, fill_value=None):
         """
         Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
@@ -3649,8 +3700,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Level(s) to unstack, can pass level name.
         fill_value : scalar value, default None
             Value to use when replacing NaN values.
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------
@@ -4405,10 +4454,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             The sequence of values to test. Passing in a single string will
             raise a ``TypeError``. Instead, turn a single string into a
             list of one element.
-
-            .. versionadded:: 0.18.1
-
-              Support for values as a set.
 
         Returns
         -------
