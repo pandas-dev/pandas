@@ -491,21 +491,6 @@ Another example that can be given is:
    right
    pd.merge(left, right, on='key')
 
-
-Append
-~~~~~~
-
-Append rows to a dataframe. See the :ref:`Appending <merging.concatenation>`
-section.
-
-.. ipython:: python
-
-   df = pd.DataFrame(np.random.randn(8, 4), columns=['A', 'B', 'C', 'D'])
-   df
-   s = df.iloc[3]
-   df.append(s, ignore_index=True)
-
-
 Grouping
 --------
 
