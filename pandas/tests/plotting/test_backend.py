@@ -62,8 +62,14 @@ def test_register_entrypoint():
     result = pandas.plotting._core._get_plot_backend("my_backend")
     assert result is mod
 
+    # TODO: https://github.com/pandas-dev/pandas/issues/27517
+    # Remove the td.skip_if_no_mpl
+    with pandas.option_context("plotting.backend", "my_backend"):
+        result = pandas.plotting._core._get_plot_backend()
 
-@td.skip_if_no_mpl
+    assert result is mod
+
+
 def test_register_import():
     mod = types.ModuleType("my_backend2")
     mod.plot = lambda *args, **kwargs: 1
@@ -73,13 +79,7 @@ def test_register_import():
     assert result is mod
 
 
+@td.skip_if_mpl
 def test_no_matplotlib_ok():
-    try:
-        import matplotlib  # noqa
-    except ImportError:
-        pass
-    else:
-        raise pytest.skip("matplotlib installed.")
-
     with pytest.raises(ImportError):
         pandas.plotting._core._get_plot_backend("matplotlib")
