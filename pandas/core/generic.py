@@ -2328,8 +2328,6 @@ class NDFrame(PandasObject, SelectionMixin):
             throw ValueError if incorrect 'orient' since others are not list
             like.
 
-            .. versionadded:: 0.19.0
-
         compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
 
             A string representing the compression to use in the output file,
@@ -7078,8 +7076,6 @@ class NDFrame(PandasObject, SelectionMixin):
         In case of a :class:`~pandas.DataFrame`, the last row without NaN
         considering only the subset of columns (if not `None`)
 
-        .. versionadded:: 0.19.0 For DataFrame
-
         If there is no good value, NaN is returned for a Series or
         a Series of NaN values for a DataFrame
 
@@ -8197,13 +8193,9 @@ class NDFrame(PandasObject, SelectionMixin):
             For a DataFrame, column to use instead of index for resampling.
             Column must be datetime-like.
 
-            .. versionadded:: 0.19.0
-
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
-
-            .. versionadded:: 0.19.0
 
         Returns
         -------

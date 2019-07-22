@@ -2096,8 +2096,6 @@ class StataWriter(StataParser):
         Dictionary containing columns as keys and variable labels as values.
         Each label must be 80 characters or smaller.
 
-        .. versionadded:: 0.19.0
-
     Returns
     -------
     writer : StataWriter instance

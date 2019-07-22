@@ -2061,8 +2061,6 @@ Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`.
    dft
    dft.dtypes
 
-.. versionadded:: 0.19.0
-
 Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFrame.astype`.
 
 .. ipython:: python

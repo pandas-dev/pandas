@@ -306,8 +306,6 @@ def _cast_inplace(terms, acceptable_dtypes, dtype):
     acceptable_dtypes : list of acceptable numpy.dtype
         Will not cast if term's dtype in this list.
 
-        .. versionadded:: 0.19.0
-
     dtype : str or numpy.dtype
         The dtype to cast to.
     """

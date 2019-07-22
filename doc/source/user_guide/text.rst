@@ -506,8 +506,6 @@ then ``extractall(pat).xs(0, level='match')`` gives the same result as
 ``Index`` also supports ``.str.extractall``. It returns a ``DataFrame`` which has the
 same result as a ``Series.str.extractall`` with a default index (starts from 0).
 
-.. versionadded:: 0.19.0
-
 .. ipython:: python
 
    pd.Index(["a1a2", "b1", "c1"]).str.extractall(two_groups)

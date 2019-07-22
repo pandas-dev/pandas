@@ -59,8 +59,6 @@ def to_numeric(arg, errors="raise", downcast=None):
         checked satisfy that specification, no downcasting will be
         performed on the data.
 
-        .. versionadded:: 0.19.0
-
     Returns
     -------
     ret : numeric if parsing succeeded.

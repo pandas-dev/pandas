@@ -399,8 +399,6 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False, verify=T
     ``values`` should be unique if ``labels`` is not None.
     Safe for use with mixed types (int, str), orders ints before strs.
 
-    .. versionadded:: 0.19.0
-
     Parameters
     ----------
     values : list-like

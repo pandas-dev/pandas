@@ -834,8 +834,6 @@ See also the section on :ref:`merge dtypes<merging.dtypes>` for notes about pres
 Unioning
 ~~~~~~~~
 
-.. versionadded:: 0.19.0
-
 If you want to combine categoricals that do not necessarily have the same
 categories, the :func:`~pandas.api.types.union_categoricals` function will
 combine a list-like of categoricals. The new categories will be the union of

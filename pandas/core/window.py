@@ -485,8 +485,7 @@ class Window(_Window):
 
         If its an offset then this will be the time period of each window. Each
         window will be a variable sized based on the observations included in
-        the time-period. This is only valid for datetimelike indexes. This is
-        new in 0.19.0
+        the time-period. This is only valid for datetimelike indexes.
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA). For a window that is specified by an offset,

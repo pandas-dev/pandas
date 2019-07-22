@@ -521,9 +521,6 @@ class Categorical(ExtensionArray, PandasObject):
             By default, astype always returns a newly allocated object.
             If copy is set to False and dtype is categorical, the original
             object is returned.
-
-            .. versionadded:: 0.19.0
-
         """
         if is_categorical_dtype(dtype):
             # GH 10696/18593

@@ -2700,9 +2700,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Series to append with self.
         ignore_index : bool, default False
             If True, do not use the index labels.
-
-            .. versionadded:: 0.19.0
-
         verify_integrity : bool, default False
             If True, raise Exception on creating index with duplicates.
 

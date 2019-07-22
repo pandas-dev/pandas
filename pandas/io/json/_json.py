@@ -458,12 +458,8 @@ def read_json(
     encoding : str, default is 'utf-8'
         The encoding to use to decode py3 bytes.
 
-        .. versionadded:: 0.19.0
-
     lines : bool, default False
         Read the file as a json object per line.
-
-        .. versionadded:: 0.19.0
 
     chunksize : int, optional
         Return JsonReader object for iteration.
