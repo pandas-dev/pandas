@@ -361,9 +361,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
             new_codes = np.concatenate(codes)
 
         if sort_categories and not ignore_order and ordered:
-            raise TypeError(
-                "Cannot use sort_categories=True with " "ordered Categoricals"
-            )
+            raise TypeError("Cannot use sort_categories=True with ordered Categoricals")
 
         if sort_categories and not categories.is_monotonic_increasing:
             categories = categories.sort_values()
@@ -386,7 +384,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     else:
         # ordered - to show a proper error message
         if all(c.ordered for c in to_union):
-            msg = "to union ordered Categoricals, " "all categories must be the same"
+            msg = "to union ordered Categoricals, all categories must be the same"
             raise TypeError(msg)
         else:
             raise TypeError("Categorical.ordered must be the same")
