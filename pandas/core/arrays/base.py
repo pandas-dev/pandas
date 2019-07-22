@@ -909,7 +909,9 @@ class ExtensionArray:
         - The only case that *must* be implemented is with dtype=None,
           giving a view with the same dtype as self.
         """
-        raise AbstractMethodError(self)
+        if dtype is not None:
+            raise NotImplementedError(dtype)
+        return self[:]
 
     # ------------------------------------------------------------------------
     # Printing
