@@ -116,7 +116,9 @@ else
         GCC=$(which gcc)
     else
         gcc="${CC}"
+        GCC="${CC}"
     fi
+    echo "gcc: $gcc"
 fi
 
 echo
