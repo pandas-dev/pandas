@@ -657,15 +657,6 @@ class NDFrame(PandasObject, SelectionMixin):
             )
             labels, axis = axis, labels
 
-        if inplace is None:
-            warnings.warn(
-                "set_axis currently defaults to operating inplace.\nThis "
-                "will change in a future version of pandas, use "
-                "inplace=True to avoid this warning.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            inplace = True
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
