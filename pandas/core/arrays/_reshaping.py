@@ -115,6 +115,18 @@ def implement_2d(cls):
 
     cls.take = take
 
+    orig_iter = cls.__iter__
+
+    def __iter__(self):
+        if self.ndim == 1:
+            for obj in orig_iter(self):
+                yield obj
+        else:
+            for n in range(self.shape[0]):
+                yield self[n]
+
+    cls.__iter__ = __iter__
+
     return cls
 
 
