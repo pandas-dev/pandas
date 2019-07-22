@@ -2986,8 +2986,6 @@ class NDFrame(PandasObject, SelectionMixin):
             defaults to 'utf-8'.
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
-
-            .. versionadded:: 0.18.0
         multicolumn : bool, default True
             Use \multicolumn to enhance MultiIndex columns.
             The default will be read from the config module.
@@ -6819,14 +6817,6 @@ class NDFrame(PandasObject, SelectionMixin):
               `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
               scipy 0.18.
-
-            .. versionadded:: 0.18.1
-
-               Added support for the 'akima' method.
-               Added interpolate method 'from_derivatives' which replaces
-               'piecewise_polynomial' in SciPy 0.18; backwards-compatible with
-               SciPy < 0.18
-
         axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to interpolate along.
         limit : int, optional
@@ -9146,10 +9136,6 @@ class NDFrame(PandasObject, SelectionMixin):
             If other is callable, it is computed on the %(klass)s and
             should return scalar or %(klass)s. The callable must not
             change input %(klass)s (though pandas doesn't check it).
-
-            .. versionadded:: 0.18.1
-                A callable can be used as other.
-
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         axis : int, default None

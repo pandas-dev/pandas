@@ -628,8 +628,6 @@ new or modified columns is returned and the original frame is unchanged.
    df.eval('e = a - c', inplace=False)
    df
 
-.. versionadded:: 0.18.0
-
 As a convenience, multiple assignments can be performed by using a
 multi-line string.
 
