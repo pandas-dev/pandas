@@ -33,8 +33,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
-import pandas.core.common as com
-
 bn = import_optional_dependency("bottleneck", raise_on_missing=False, on_version="warn")
 _BOTTLENECK_INSTALLED = bn is not None
 _USE_BOTTLENECK = False
@@ -281,12 +279,12 @@ def _get_values(
     mask = _maybe_get_mask(values, skipna, mask)
 
     if is_datetime64tz_dtype(values):
-        # com.values_from_object returns M8[ns] dtype instead of tz-aware,
+        # lib.values_from_object returns M8[ns] dtype instead of tz-aware,
         #  so this case must be handled separately from the rest
         dtype = values.dtype
         values = getattr(values, "_values", values)
     else:
-        values = com.values_from_object(values)
+        values = lib.values_from_object(values)
         dtype = values.dtype
 
     if is_datetime_or_timedelta_dtype(values) or is_datetime64tz_dtype(values):
@@ -742,7 +740,7 @@ def nanvar(values, axis=None, skipna=True, ddof=1, mask=None):
     >>> nanops.nanvar(s)
     1.0
     """
-    values = com.values_from_object(values)
+    values = lib.values_from_object(values)
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
     if is_any_int_dtype(values):
@@ -943,7 +941,7 @@ def nanskew(values, axis=None, skipna=True, mask=None):
     >>> nanops.nanskew(s)
     1.7320508075688787
     """
-    values = com.values_from_object(values)
+    values = lib.values_from_object(values)
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
@@ -1022,7 +1020,7 @@ def nankurt(values, axis=None, skipna=True, mask=None):
     >>> nanops.nankurt(s)
     -1.2892561983471076
     """
-    values = com.values_from_object(values)
+    values = lib.values_from_object(values)
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
