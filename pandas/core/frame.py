@@ -4266,24 +4266,36 @@ class DataFrame(NDFrame):
         self, keys, drop=True, append=False, inplace=False, verify_integrity=False
     ):
         """
-        Set the DataFrame index using existing columns.
+        Set a new index for the DataFrame.
 
-        Set the DataFrame index (row labels) using one or more existing
-        columns or arrays (of the correct length). The index can replace the
-        existing index or expand on it.
+        This method can take either:
+        - a column name to be used as a new index. The column must exist.
+        - an array-like to be used as labels for the new index. Must match the
+          length of the frame.
+        - a (possibly mixed) list of either column names or array-like,
+        each item in the list is treated as specifying a level in a resulting
+         MultiIndex.
+
+        if append=True is passed, the existing index will be converted to a MultiIndex
+        and the the new labels will be be appended as a new level to it.
 
         Parameters
         ----------
-        keys : label or array-like or list of labels/arrays
-            This parameter can be either a single column key, a single array of
-            the same length as the calling DataFrame, or a list containing an
-            arbitrary combination of column keys and arrays. Here, "array"
-            encompasses :class:`Series`, :class:`Index`, ``np.ndarray``, and
-            instances of :class:`~collections.abc.Iterator`.
+        keys : column label, array-like of new index labels, or a list of either
+            Here, "array-like" encompasses :class:`Series`, :class:`Index`,
+            ``np.ndarray``, and instances of :class:`~collections.abc.Iterator`.
+            If an array-like is passed, its length must match thae length of the frame.
+
+            If column label(s) is passed, the column(s) must exist.
+
+            if a list is passed, it is treated as a list of levels in a MultiIndex.
+            The list can be a mixture of column name and array-like.
         drop : bool, default True
-            Delete columns to be used as the new index.
+            Delete columns to be used as the new index. Applies only when passing
+            column label(s).
         append : bool, default False
-            Whether to append columns to existing index.
+            If True, convert the existing index to a MultiIndex and
+            add the new labels to it as a new level.
         inplace : bool, default False
             Modify the DataFrame in place (do not create a new object).
         verify_integrity : bool, default False
