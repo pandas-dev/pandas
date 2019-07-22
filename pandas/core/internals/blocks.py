@@ -2589,8 +2589,9 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         try:
             return super().setitem(indexer, value)
         except (ValueError, TypeError):
+            obj_vals = self.values.astype(object)
             newb = make_block(
-                self.values.astype(object), placement=self.mgr_locs, klass=ObjectBlock
+                obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
             )
             return newb.setitem(indexer, value)
 
