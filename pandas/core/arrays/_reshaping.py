@@ -137,6 +137,10 @@ def slice_contains_zero(slc: slice) -> bool:
         return True
     if slc == slice(0, 1):
         return True
+    if slc.start == slc.stop:
+        # Note: order matters here, since we _dont_ want this to catch
+        #  the slice(None) case.
+        return False
     raise NotImplementedError(slc)
 
 
