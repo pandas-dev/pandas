@@ -657,6 +657,8 @@ class NDFrame(PandasObject, SelectionMixin):
             )
             labels, axis = axis, labels
 
+        if inplace is None:
+            raise ValueError("`inplace` cannot have None as a value.")
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
