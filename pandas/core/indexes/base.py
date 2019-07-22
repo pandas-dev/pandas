@@ -788,8 +788,6 @@ class Index(IndexOpsMixin, PandasObject):
             satisfied, the original data is used to create a new Index
             or the original Index is returned.
 
-            .. versionadded:: 0.19.0
-
         Returns
         -------
         Index
@@ -3992,8 +3990,6 @@ class Index(IndexOpsMixin, PandasObject):
         Return an Index of same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from
         other.
-
-        .. versionadded:: 0.19.0
 
         Parameters
         ----------
