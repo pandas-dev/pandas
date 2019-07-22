@@ -15,6 +15,7 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
+from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
 from pandas.core.dtypes.common import (
     ensure_categorical,
@@ -45,7 +46,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDateOffset,
@@ -2540,7 +2541,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             if len(indexer) > 0:
                 other_diff = algos.take_nd(rvals, indexer, allow_fill=False)
-                result = _concat._concat_compat((lvals, other_diff))
+                result = concat_compat((lvals, other_diff))
 
             else:
                 result = lvals
@@ -2786,7 +2787,7 @@ class Index(IndexOpsMixin, PandasObject):
         right_indexer = (indexer == -1).nonzero()[0]
         right_diff = other.values.take(right_indexer)
 
-        the_diff = _concat._concat_compat([left_diff, right_diff])
+        the_diff = concat_compat([left_diff, right_diff])
         if sort is None:
             try:
                 the_diff = sorting.safe_sort(the_diff)

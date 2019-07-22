@@ -49,7 +49,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.concat import concat_categorical, concat_datetime
 from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -2563,7 +2563,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # Instead of placing the condition here, it could also go into the
         # is_uniform_join_units check, but I'm not sure what is better.
         if len({x.dtype for x in to_concat}) > 1:
-            values = _concat._concat_datetime([x.values for x in to_concat])
+            values = concat_datetime([x.values for x in to_concat])
             placement = placement or slice(0, len(values), 1)
 
             if self.ndim > 1:
@@ -3082,7 +3082,7 @@ class CategoricalBlock(ExtensionBlock):
     is_categorical = True
     _verify_integrity = True
     _can_hold_na = True
-    _concatenator = staticmethod(_concat._concat_categorical)
+    _concatenator = staticmethod(concat_categorical)
 
     def __init__(self, values, placement, ndim=None):
         from pandas.core.arrays.categorical import _maybe_to_categorical

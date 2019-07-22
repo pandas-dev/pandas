@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
     is_timedelta64_dtype,
 )
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
@@ -211,7 +211,7 @@ class JoinUnit:
 
             if not self.indexers:
                 if not self.block._can_consolidate:
-                    # preserve these for validation in _concat_compat
+                    # preserve these for validation in concat_compat
                     return self.block.values
 
             if self.block.is_bool and not self.block.is_categorical:
@@ -265,7 +265,7 @@ def concatenate_join_units(join_units, concat_axis, copy):
             else:
                 concat_values = concat_values.copy()
     else:
-        concat_values = _concat._concat_compat(to_concat, axis=concat_axis)
+        concat_values = concat_compat(to_concat, axis=concat_axis)
 
     return concat_values
 
@@ -380,7 +380,7 @@ def is_uniform_join_units(join_units):
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic
-    concatenate_join_units (which uses `_concat._concat_compat`).
+    concatenate_join_units (which uses `concat_compat`).
 
     """
     return (
