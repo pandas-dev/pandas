@@ -157,13 +157,13 @@ def is_scalar(val: object) -> bool:
 
     return (cnp.PyArray_IsAnyScalar(val)
             # PyArray_IsAnyScalar is always False for bytearrays on Py3
-            or isinstance(val, (Fraction, Number))
-            # We differ from numpy, which claims that None is not scalar;
-            # see np.isscalar
-            or val is None
             or PyDate_Check(val)
             or PyDelta_Check(val)
             or PyTime_Check(val)
+            # We differ from numpy, which claims that None is not scalar;
+            # see np.isscalar
+            or val is None
+            or isinstance(val, (Fraction, Number))
             or util.is_period_object(val)
             or is_decimal(val)
             or is_interval(val)
@@ -1192,7 +1192,9 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         # e.g. categoricals
         try:
             values = getattr(value, '_values', getattr(value, 'values', value))
-        except:
+        except TypeError:
+            # This gets hit if we have an EA, since cython expects `values`
+            #  to be an ndarray
             value = _try_infer_map(value)
             if value is not None:
                 return value
@@ -1207,8 +1209,6 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         from pandas.core.dtypes.cast import (
             construct_1d_object_array_from_listlike)
         values = construct_1d_object_array_from_listlike(value)
-
-    values = getattr(values, 'values', values)
 
     # make contiguous
     values = values.ravel()
