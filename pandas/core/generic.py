@@ -611,18 +611,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2    3
         dtype: int64
 
-        >>> s.set_axis(['a', 'b', 'c'], axis=0, inplace=False)
+        >>> s.set_axis(['a', 'b', 'c'], axis=0)
         a    1
         b    2
         c    3
-        dtype: int64
-
-        The original object is not modified.
-
-        >>> s
-        0    1
-        1    2
-        2    3
         dtype: int64
 
         **DataFrame**
@@ -631,7 +623,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Change the row labels.
 
-        >>> df.set_axis(['a', 'b', 'c'], axis='index', inplace=False)
+        >>> df.set_axis(['a', 'b', 'c'], axis='index')
            A  B
         a  1  4
         b  2  5
@@ -639,7 +631,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Change the column labels.
 
-        >>> df.set_axis(['I', 'II'], axis='columns', inplace=False)
+        >>> df.set_axis(['I', 'II'], axis='columns')
            I  II
         0  1   4
         1  2   5
