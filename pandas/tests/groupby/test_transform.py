@@ -1020,10 +1020,6 @@ def test_transform_invalid_name_raises():
     with pytest.raises(ValueError, match="not a valid function name"):
         g.transform("some_arbitrary_name")
 
-    # method exists on the object, but is not a valid transformation/agg
-    with pytest.raises(ValueError, match="not a valid function name"):
-        g.transform("aggregate")
-
 
 @pytest.mark.parametrize(
     "obj",
