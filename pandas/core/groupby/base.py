@@ -136,6 +136,7 @@ reduction_kernels = frozenset(
 
 # List of transformation functions.
 # These map each object to a like-indexed result object
+# like-indexed means *same* index and *same* columns.
 transformation_kernels = frozenset(
     [
         "backfill",
