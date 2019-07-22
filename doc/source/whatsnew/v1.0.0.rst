@@ -61,7 +61,7 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Changed the the default value of `inplace` in of :meth:`DataFrame.set_index` and :meth:`Series.set_index`. It now defaults to False (:issue:``)
+- Changed the the default value of `inplace` in of :meth:`DataFrame.set_index` and :meth:`Series.set_index`. It now defaults to False (:issue:`27525`)
 -
 
 .. _whatsnew_1000.performance:
