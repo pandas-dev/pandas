@@ -212,7 +212,6 @@ def array(
     """
     from pandas.core.arrays import (
         period_array,
-        ExtensionArray,
         IntervalArray,
         PandasArray,
         DatetimeArray,
@@ -226,7 +225,7 @@ def array(
 
     data = extract_array(data, extract_numpy=True)
 
-    if dtype is None and isinstance(data, ExtensionArray):
+    if dtype is None and isinstance(data, ABCExtensionArray):
         dtype = data.dtype
 
     # this returns None for not-found dtypes.

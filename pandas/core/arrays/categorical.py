@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, lib
+from pandas._libs import algos as libalgos, hashtable as htable, lib
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -50,7 +50,14 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
-from pandas.core.algorithms import factorize, take, take_1d, unique1d
+from pandas.core.algorithms import (
+    _get_data_algo,
+    _hashtables,
+    factorize,
+    take,
+    take_1d,
+    unique1d,
+)
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
@@ -1527,9 +1534,7 @@ class Categorical(ExtensionArray, PandasObject):
         See Also
         --------
         Series.value_counts
-
         """
-        from numpy import bincount
         from pandas import Series, CategoricalIndex
 
         code, cat = self._codes, self.categories
@@ -1538,9 +1543,9 @@ class Categorical(ExtensionArray, PandasObject):
 
         if dropna or clean:
             obs = code if clean else code[mask]
-            count = bincount(obs, minlength=ncat or 0)
+            count = np.bincount(obs, minlength=ncat or 0)
         else:
-            count = bincount(np.where(mask, code, ncat))
+            count = np.bincount(np.where(mask, code, ncat))
             ix = np.append(ix, -1)
 
         ix = self._constructor(ix, dtype=self.dtype, fastpath=True)
@@ -2329,9 +2334,6 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         modes : `Categorical` (sorted)
         """
-
-        import pandas._libs.hashtable as htable
-
         codes = self._codes
         if dropna:
             good = self._codes != -1
@@ -2671,8 +2673,6 @@ def _get_codes_for_values(values, categories):
     """
     utility routine to turn values into codes given the specified categories
     """
-    from pandas.core.algorithms import _get_data_algo, _hashtables
-
     dtype_equal = is_dtype_equal(values.dtype, categories.dtype)
 
     if dtype_equal:
@@ -2722,8 +2722,6 @@ def _recode_for_categories(codes, old_categories, new_categories):
     >>> _recode_for_categories(codes, old_cat, new_cat)
     array([ 1,  0,  0, -1])
     """
-    from pandas.core.algorithms import take_1d
-
     if len(old_categories) == 0:
         # All null anyway, so just retain the nulls
         return codes.copy()
