@@ -1632,18 +1632,3 @@ when plotting a large number of points.
    :suppress:
 
     plt.close('all')
-
-
-.. _rplot:
-
-
-Trellis plotting interface
---------------------------
-
-.. warning::
-
-    The ``rplot`` trellis plotting interface has been **removed**. Please use
-    external packages like `seaborn <https://github.com/mwaskom/seaborn>`_ for
-    similar but more refined functionality and refer to our 0.18.1 documentation
-    `here <http://pandas.pydata.org/pandas-docs/version/0.18.1/visualization.html>`__
-    for how to convert to using it.

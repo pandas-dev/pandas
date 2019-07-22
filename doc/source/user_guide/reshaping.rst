@@ -484,8 +484,6 @@ not contain any instances of a particular category.
 Normalization
 ~~~~~~~~~~~~~
 
-.. versionadded:: 0.18.1
-
 Frequency tables can also be normalized to show percentages rather than counts
 using the ``normalize`` argument:
 

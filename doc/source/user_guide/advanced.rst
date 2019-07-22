@@ -810,15 +810,10 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 Int64Index and RangeIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. warning::
+:class:`Int64Index` is a fundamental basic index in pandas. This is an immutable array
+implementing an ordered, sliceable set.
 
-   Indexing on an integer-based Index with floats has been clarified in 0.18.0, for a summary of the changes, see :ref:`here <whatsnew_0180.float_indexers>`.
-
-:class:`Int64Index` is a fundamental basic index in pandas.
-This is an immutable array implementing an ordered, sliceable set.
-Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
-
-:class:`RangeIndex` is a sub-class of ``Int64Index`` added in version 0.18.0, now providing the default index for all ``NDFrame`` objects.
+:class:`RangeIndex` is a sub-class of ``Int64Index``  that provides the default index for all ``NDFrame`` objects.
 ``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analogous to Python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
 
 .. _indexing.float64index:
@@ -879,16 +874,6 @@ In non-float indexes, slicing using floats will raise a ``TypeError``.
 
    In [1]: pd.Series(range(5))[3.5:4.5]
    TypeError: the slice start [3.5] is not a proper indexer for this index type (Int64Index)
-
-.. warning::
-
-   Using a scalar float indexer for ``.iloc`` has been removed in 0.18.0, so the following will raise a ``TypeError``:
-
-   .. code-block:: ipython
-
-      In [3]: pd.Series(range(5)).iloc[3.0]
-      TypeError: cannot do positional indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [3.0] of <type 'float'>
-
 
 Here is a typical use-case for using this type of indexing. Imagine that you have a somewhat
 irregular timedelta-like indexing scheme, but the data is recorded as floats. This could, for

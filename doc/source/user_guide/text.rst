@@ -366,13 +366,12 @@ Extract first match in each subject (extract)
 
 .. warning::
 
-   In version 0.18.0, ``extract`` gained the ``expand`` argument. When
-   ``expand=False`` it returns a ``Series``, ``Index``, or
+   Before version 0.23, argument ``expand`` of the ``extract`` method defaulted to
+   ``False``. When ``expand=False``, ``expand`` returns a ``Series``, ``Index``, or
    ``DataFrame``, depending on the subject and regular expression
-   pattern (same behavior as pre-0.18.0). When ``expand=True`` it
-   always returns a ``DataFrame``, which is more consistent and less
-   confusing from the perspective of a user. ``expand=True`` is the
-   default since version 0.23.0.
+   pattern. When ``expand=True``, it always returns a ``DataFrame``,
+   which is more consistent and less confusing from the perspective of a user.
+   ``expand=True`` has been the default since version 0.23.0.
 
 The ``extract`` method accepts a `regular expression
 <https://docs.python.org/3/library/re.html>`__ with at least one
@@ -467,8 +466,6 @@ Extract all matches in each subject (extractall)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. _text.extractall:
-
-.. versionadded:: 0.18.0
 
 Unlike ``extract`` (which returns only the first match),
 

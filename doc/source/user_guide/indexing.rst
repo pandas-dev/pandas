@@ -36,10 +36,6 @@ this area.
    should be avoided. See :ref:`Returning a View versus Copy
    <indexing.view_versus_copy>`.
 
-.. warning::
-
-   Indexing on an integer-based Index with floats has been clarified in 0.18.0, for a summary of the changes, see :ref:`here <whatsnew_0180.float_indexers>`.
-
 See the :ref:`MultiIndex / Advanced Indexing <advanced>` for ``MultiIndex`` and more advanced indexing documentation.
 
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies.
@@ -82,8 +78,6 @@ of multi-axis indexing.
     * A boolean array.
     * A ``callable`` function with one argument (the calling Series or DataFrame) and
       that returns valid output for indexing (one of the above).
-
-      .. versionadded:: 0.18.1
 
   See more at :ref:`Selection by Position <indexing.integer>`,
   :ref:`Advanced Indexing <advanced>` and :ref:`Advanced
@@ -1101,9 +1095,7 @@ This is equivalent to (but faster than) the following.
    df2 = df.copy()
    df.apply(lambda x, y: x.where(x > 0, y), y=df['A'])
 
-.. versionadded:: 0.18.1
-
-Where can accept a callable as condition and ``other`` arguments. The function must
+``where`` can accept a callable as condition and ``other`` arguments. The function must
 be with one argument (the calling Series or DataFrame) and that returns valid output
 as condition and ``other`` argument.
 

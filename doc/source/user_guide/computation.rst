@@ -893,10 +893,9 @@ Therefore, there is an assumption that :math:`x_0` is not an ordinary value
 but rather an exponentially weighted moment of the infinite series up to that
 point.
 
-One must have :math:`0 < \alpha \leq 1`, and while since version 0.18.0
-it has been possible to pass :math:`\alpha` directly, it's often easier
-to think about either the **span**, **center of mass (com)** or **half-life**
-of an EW moment:
+One must have :math:`0 < \alpha \leq 1`, and while it is possible to pass
+:math:`\alpha` directly, it's often easier to think about either the
+**span**, **center  of mass (com)** or **half-life** of an EW moment:
 
 .. math::
 
