@@ -115,7 +115,7 @@ else
     if [ -z "$CC" ]; then
         GCC=$(which gcc)
     else
-        alias gcc "${GCC}"
+        gcc="${CC}"
     fi
 fi
 
