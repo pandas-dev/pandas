@@ -1140,8 +1140,6 @@ class DatetimeIndexResampler(Resampler):
 class DatetimeIndexResamplerGroupby(_GroupByMixin, DatetimeIndexResampler):
     """
     Provides a resample of a groupby implementation
-
-    .. versionadded:: 0.18.1
     """
 
     @property
@@ -1286,8 +1284,6 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
     """
     Provides a resample of a groupby implementation.
-
-    .. versionadded:: 0.18.1
     """
 
     @property

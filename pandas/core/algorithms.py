@@ -816,8 +816,6 @@ def duplicated(values, keep="first"):
     """
     Return boolean ndarray denoting duplicate values.
 
-    .. versionadded:: 0.19.0
-
     Parameters
     ----------
     values : ndarray-like

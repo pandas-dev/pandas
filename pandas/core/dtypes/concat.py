@@ -25,7 +25,6 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass,
     ABCPeriodIndex,
     ABCRangeIndex,
-    ABCSparseDataFrame,
     ABCTimedeltaIndex,
 )
 
@@ -71,41 +70,7 @@ def get_dtype_kinds(l):
     return typs
 
 
-def _get_series_result_type(result, objs=None):
-    """
-    return appropriate class of Series concat
-    input is either dict or array-like
-    """
-    from pandas import SparseSeries, SparseDataFrame, DataFrame
-
-    # concat Series with axis 1
-    if isinstance(result, dict):
-        # concat Series with axis 1
-        if all(isinstance(c, (SparseSeries, SparseDataFrame)) for c in result.values()):
-            return SparseDataFrame
-        else:
-            return DataFrame
-
-    # otherwise it is a SingleBlockManager (axis = 0)
-    return objs[0]._constructor
-
-
-def _get_frame_result_type(result, objs):
-    """
-    return appropriate class of DataFrame-like concat
-    if all blocks are sparse, return SparseDataFrame
-    otherwise, return 1st obj
-    """
-
-    if result.blocks and (any(isinstance(obj, ABCSparseDataFrame) for obj in objs)):
-        from pandas.core.sparse.api import SparseDataFrame
-
-        return SparseDataFrame
-    else:
-        return next(obj for obj in objs if not isinstance(obj, ABCSparseDataFrame))
-
-
-def _concat_compat(to_concat, axis=0):
+def concat_compat(to_concat, axis=0):
     """
     provide concatenation of an array of arrays each of which is a single
     'normalized' dtypes (in that for example, if it's object, then it is a
@@ -142,12 +107,12 @@ def _concat_compat(to_concat, axis=0):
     _contains_period = any(typ.startswith("period") for typ in typs)
 
     if "category" in typs:
-        # this must be prior to _concat_datetime,
+        # this must be prior to concat_datetime,
         # to support Categorical + datetime-like
-        return _concat_categorical(to_concat, axis=axis)
+        return concat_categorical(to_concat, axis=axis)
 
     elif _contains_datetime or "timedelta" in typs or _contains_period:
-        return _concat_datetime(to_concat, axis=axis, typs=typs)
+        return concat_datetime(to_concat, axis=axis, typs=typs)
 
     # these are mandated to handle empties as well
     elif "sparse" in typs:
@@ -174,7 +139,7 @@ def _concat_compat(to_concat, axis=0):
     return np.concatenate(to_concat, axis=axis)
 
 
-def _concat_categorical(to_concat, axis=0):
+def concat_categorical(to_concat, axis=0):
     """Concatenate an object/categorical array of arrays, each of which is a
     single dtype
 
@@ -214,7 +179,7 @@ def _concat_categorical(to_concat, axis=0):
         else np.asarray(x.astype(object))
         for x in to_concat
     ]
-    result = _concat_compat(to_concat)
+    result = concat_compat(to_concat)
     if axis == 1:
         result = result.reshape(1, len(result))
     return result
@@ -224,8 +189,6 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     """
     Combine list-like of Categorical-like, unioning categories. All
     categories must have the same dtype.
-
-    .. versionadded:: 0.19.0
 
     Parameters
     ----------
@@ -402,7 +365,7 @@ def _concatenate_2d(to_concat, axis):
     return np.concatenate(to_concat, axis=axis)
 
 
-def _concat_datetime(to_concat, axis=0, typs=None):
+def concat_datetime(to_concat, axis=0, typs=None):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
     single M8[ns], datetimet64[ns, tz] or m8[ns] dtype

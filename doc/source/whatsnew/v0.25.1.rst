@@ -120,7 +120,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
+- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
 -
 -
 
