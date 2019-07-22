@@ -110,7 +110,6 @@ reduction_kernels = frozenset(
     [
         "all",
         "any",
-        "bfill",
         "count",
         "first",
         "idxmax",
@@ -147,6 +146,7 @@ transformation_kernels = frozenset(
         "cumprod",
         "cumsum",
         "diff",
+        "bfill",
         "ffill",
         "fillna",
         "pad",
