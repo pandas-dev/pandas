@@ -32,6 +32,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
+from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
 import pandas.core.nanops as nanops
 
@@ -1381,8 +1382,6 @@ class IndexOpsMixin:
         1.0    1
         dtype: int64
         """
-        from pandas.core.algorithms import value_counts
-
         result = value_counts(
             self,
             sort=sort,
@@ -1400,8 +1399,6 @@ class IndexOpsMixin:
 
             result = values.unique()
         else:
-            from pandas.core.algorithms import unique1d
-
             result = unique1d(values)
 
         return result
@@ -1463,8 +1460,6 @@ class IndexOpsMixin:
         Return boolean if values in the object are
         monotonic_increasing.
 
-        .. versionadded:: 0.19.0
-
         Returns
         -------
         bool
@@ -1480,8 +1475,6 @@ class IndexOpsMixin:
         """
         Return boolean if values in the object are
         monotonic_decreasing.
-
-        .. versionadded:: 0.19.0
 
         Returns
         -------
@@ -1631,8 +1624,6 @@ class IndexOpsMixin:
             return result
 
     def duplicated(self, keep="first"):
-        from pandas.core.algorithms import duplicated
-
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
                 return np.zeros(len(self), dtype=np.bool)

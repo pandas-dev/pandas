@@ -303,7 +303,6 @@ def read_hdf(path_or_buf, key=None, mode="r", **kwargs):
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
 
-        .. versionadded:: 0.19.0 support for pathlib, py.path.
         .. versionadded:: 0.21.0 support for __fspath__ protocol.
 
     key : object, optional

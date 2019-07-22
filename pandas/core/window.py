@@ -485,8 +485,7 @@ class Window(_Window):
 
         If its an offset then this will be the time period of each window. Each
         window will be a variable sized based on the observations included in
-        the time-period. This is only valid for datetimelike indexes. This is
-        new in 0.19.0
+        the time-period. This is only valid for datetimelike indexes.
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA). For a window that is specified by an offset,
@@ -1949,9 +1948,6 @@ class Rolling(_Rolling_and_Expanding):
 class RollingGroupby(_GroupByMixin, Rolling):
     """
     Provide a rolling groupby implementation.
-
-    .. versionadded:: 0.18.1
-
     """
 
     @property
@@ -2224,9 +2220,6 @@ class Expanding(_Rolling_and_Expanding):
 class ExpandingGroupby(_GroupByMixin, Expanding):
     """
     Provide a expanding groupby implementation.
-
-    .. versionadded:: 0.18.1
-
     """
 
     @property
@@ -2281,9 +2274,6 @@ class EWM(_Rolling):
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
         :math:`0 < \alpha \leq 1`.
-
-        .. versionadded:: 0.18.0
-
     min_periods : int, default 0
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
