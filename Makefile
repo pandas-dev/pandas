@@ -9,7 +9,7 @@ clean_pyc:
 	-find . -name '*.py[co]' -exec rm {} \;
 
 build: clean_pyc
-	python setup.py build_ext --inplace --compiler=${CC}
+	python setup.py build_ext --inplace
 
 lint-diff:
 	git diff upstream/master --name-only -- "*.py" | xargs flake8
