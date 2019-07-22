@@ -1,8 +1,9 @@
 import textwrap
-from typing import Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union, cast
 import warnings
 
 import numpy as np
+from numpy import ndarray
 
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
@@ -25,9 +26,14 @@ from pandas.core.dtypes.concat import _concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
+from pandas._typing import Axis
 import pandas.core.common as com
 from pandas.core.index import Index, InvalidIndexError, MultiIndex
 from pandas.core.indexers import is_list_like_indexer, length_of_indexer
+
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
+    from pandas import DataFrame, Series, DatetimeArray  # noqa: F401
 
 
 # the supported indexers
@@ -104,7 +110,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
     _exception = Exception
     axis = None
 
-    def __call__(self, axis=None):
+    def __call__(self, axis: Optional[Axis] = None) -> "_NDFrameIndexer":
         # we need to return a copy of ourselves
         new_self = self.__class__(self.name, self.obj)
 
@@ -193,7 +199,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 raise
             raise IndexingError(key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if isinstance(key, tuple):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
@@ -260,7 +266,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 keyidx.append(idx)
         return tuple(keyidx)
 
-    def _convert_range(self, key, is_setter: bool = False):
+    def _convert_range(self, key: range, is_setter: bool = False) -> List[int]:
         """ convert a range argument """
         return list(key)
 
@@ -638,7 +644,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             self.obj._maybe_update_cacher(clear=True)
             return self.obj
 
-    def _align_series(self, indexer, ser, multiindex_indexer=False):
+    def _align_series(
+        self, indexer, ser: "Series", multiindex_indexer: bool = False
+    ) -> Union[ndarray, "DatetimeArray"]:
         """
         Parameters
         ----------
@@ -734,7 +742,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         raise ValueError("Incompatible indexer with Series")
 
-    def _align_frame(self, indexer, df):
+    def _align_frame(self, indexer, df: "DataFrame") -> ndarray:
         is_frame = self.obj.ndim == 2
 
         if isinstance(indexer, tuple):
@@ -1328,12 +1336,12 @@ class _IXIndexer(_NDFrameIndexer):
         http://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#ix-indexer-is-deprecated"""  # noqa: E501
     )
 
-    def __init__(self, name, obj):
+    def __init__(self, name: str, obj: "NDFrame"):
         warnings.warn(self._ix_deprecation_warning, FutureWarning, stacklevel=2)
         super().__init__(name, obj)
 
     @Appender(_NDFrameIndexer._validate_key.__doc__)
-    def _validate_key(self, key, axis: int):
+    def _validate_key(self, key, axis: int) -> bool:
         if isinstance(key, slice):
             return True
 
@@ -1349,7 +1357,7 @@ class _IXIndexer(_NDFrameIndexer):
 
         return True
 
-    def _convert_for_reindex(self, key, axis: int):
+    def _convert_for_reindex(self, key, axis: int) -> Union[Index, ndarray]:
         """
         Transform a list of keys into a new array ready to be used as axis of
         the object we return (e.g. including NaNs).
@@ -1418,7 +1426,7 @@ class _LocationIndexer(_NDFrameIndexer):
     def _getitem_axis(self, key, axis: int):
         raise NotImplementedError()
 
-    def _getbool_axis(self, key, axis: int):
+    def _getbool_axis(self, key, axis: int) -> "NDFrame":
         # caller is responsible for ensuring non-None axis
         labels = self.obj._get_axis(axis)
         key = check_bool_indexer(labels, key)
@@ -1428,7 +1436,7 @@ class _LocationIndexer(_NDFrameIndexer):
         except Exception as detail:
             raise self._exception(detail)
 
-    def _get_slice_axis(self, slice_obj: slice, axis: int):
+    def _get_slice_axis(self, slice_obj: slice, axis: int) -> "NDFrame":
         """ this is pretty simple as we just have to deal with labels """
         # caller is responsible for ensuring non-None axis
         obj = self.obj
@@ -1694,7 +1702,7 @@ class _LocIndexer(_LocationIndexer):
     _exception = KeyError
 
     @Appender(_NDFrameIndexer._validate_key.__doc__)
-    def _validate_key(self, key, axis: int):
+    def _validate_key(self, key, axis: int) -> None:
 
         # valid for a collection of labels (we check their presence later)
         # slice of labels (where start-end in labels)
@@ -1710,7 +1718,7 @@ class _LocIndexer(_LocationIndexer):
         if not is_list_like_indexer(key):
             self._convert_scalar_indexer(key, axis)
 
-    def _is_scalar_access(self, key: Tuple):
+    def _is_scalar_access(self, key: Tuple) -> bool:
         # this is a shortcut accessor to both .loc and .iloc
         # that provide the equivalent access of .at and .iat
         # a) avoid getting things via sections and (to minimize dtype changes)
@@ -1737,13 +1745,14 @@ class _LocIndexer(_LocationIndexer):
         values = self.obj._get_value(*key)
         return values
 
-    def _get_partial_string_timestamp_match_key(self, key, labels):
+    def _get_partial_string_timestamp_match_key(self, key, labels: Index):
         """Translate any partial string timestamp matches in key, returning the
         new key (GH 10331)"""
         if isinstance(labels, MultiIndex):
             if isinstance(key, str) and labels.levels[0].is_all_dates:
                 # Convert key '2016-01-01' to
                 # ('2016-01-01'[, slice(None, None, None)]+)
+                key = cast(tuple, key)
                 key = tuple([key] + [slice(None)] * (len(labels.levels) - 1))
 
             if isinstance(key, tuple):
@@ -1752,7 +1761,10 @@ class _LocIndexer(_LocationIndexer):
                 new_key = []
                 for i, component in enumerate(key):
                     if isinstance(component, str) and labels.levels[i].is_all_dates:
-                        new_key.append(slice(component, component, None))
+                        # error: No overload variant of "slice" matches argument
+                        new_key.append(
+                            slice(component, component, None)  # type: ignore
+                        )
                     else:
                         new_key.append(component)
                 key = tuple(new_key)
