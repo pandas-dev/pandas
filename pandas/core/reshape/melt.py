@@ -171,9 +171,9 @@ def lreshape(data, groups, dropna=True, label=None):
     for target, names in zip(keys, values):
         to_concat = [data[col].values for col in names]
 
-        import pandas.core.dtypes.concat as _concat
+        from pandas.core.dtypes.concat import concat_compat
 
-        mdata[target] = _concat._concat_compat(to_concat)
+        mdata[target] = concat_compat(to_concat)
         pivot_cols.append(target)
 
     for col in id_cols:
