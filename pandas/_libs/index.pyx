@@ -551,6 +551,8 @@ cpdef convert_scalar(ndarray arr, object value):
             # exclude np.datetime64("NaT") which would otherwise be picked up
             #  by the `value != value check below
             pass
+        elif util.is_timedelta64_object(value):
+            return value
         elif value is None or value != value:
             return NPY_NAT
         elif isinstance(value, str):
