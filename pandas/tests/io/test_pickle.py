@@ -194,38 +194,6 @@ def test_round_trip_current(current_pickle_data):
                     compare_element(result, expected, typ)
 
 
-def test_pickle_v0_14_1(datapath):
-
-    cat = pd.Categorical(
-        values=["a", "b", "c"], ordered=False, categories=["a", "b", "c", "d"]
-    )
-    pickle_path = datapath("io", "data", "categorical_0_14_1.pickle")
-    # This code was executed once on v0.14.1 to generate the pickle:
-    #
-    # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-    #                   name='foobar')
-    # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-    #
-    tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
-
-
-def test_pickle_v0_15_2(datapath):
-    # ordered -> _ordered
-    # GH 9347
-
-    cat = pd.Categorical(
-        values=["a", "b", "c"], ordered=False, categories=["a", "b", "c", "d"]
-    )
-    pickle_path = datapath("io", "data", "categorical_0_15_2.pickle")
-    # This code was executed once on v0.15.2 to generate the pickle:
-    #
-    # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-    #                   name='foobar')
-    # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-    #
-    tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
-
-
 def test_pickle_path_pathlib():
     df = tm.makeDataFrame()
     result = tm.round_trip_pathlib(df.to_pickle, pd.read_pickle)
