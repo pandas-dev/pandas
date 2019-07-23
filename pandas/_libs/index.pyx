@@ -555,11 +555,7 @@ cpdef convert_scalar(ndarray arr, object value):
             return NPY_NAT
         elif isinstance(value, str):
             return Timedelta(value).value
-        raise ValueError("cannot set a Timedelta with a non-timedelta {typ}; "
-                         "is_array={check1}, is_dt64={check2}"
-                         .format(typ=type(value).__name__,
-                                 check1=util.is_array(value),
-                                 check2=util.is_datetime64_object(value)))
+        raise ValueError("cannot set a Timedelta with a non-timedelta")
 
     if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and
             not issubclass(arr.dtype.type, np.bool_)):

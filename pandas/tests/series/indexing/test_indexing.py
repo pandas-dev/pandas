@@ -703,33 +703,6 @@ def test_td64_series_assign_nat(nat_val, should_cast):
     if not should_cast:
         expected = expected.astype(object)
 
-    if should_cast:
-        # Debugging CI failures
-
-        # Walk through the engine.set_value call that _should_ work
-        ser = base.copy(deep=True)
-        values = ser._values
-        engine = ser.index._engine
-        assert type(engine).__name__ == "Int64Engine"
-        loc = engine.get_loc(0)
-        assert loc == 0
-        value = pd._libs.index.convert_scalar(values, nat_val)
-        assert value == pd._libs.iNaT
-        values[loc] = value
-        tm.assert_series_equal(ser, expected)
-
-        # the _set_with_engine call should successfully go
-        #  through index._engine.set_value
-        ser = base.copy(deep=True)
-        values = ser._values
-        ser.index._engine.set_value(values, 0, nat_val)
-        tm.assert_series_equal(ser, expected)
-
-        # the __setitem__ call should successfully go through _set_with_engine
-        ser = base.copy(deep=True)
-        ser._set_with_engine(0, nat_val)
-        tm.assert_series_equal(ser, expected)
-
     ser = base.copy(deep=True)
     ser[0] = nat_val
     tm.assert_series_equal(ser, expected)
