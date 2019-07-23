@@ -8,8 +8,9 @@ from numpy cimport (ndarray,
                     uint32_t, uint64_t, float32_t, float64_t)
 cnp.import_array()
 
-from pandas._libs.algos import groupsort_indexer, ensure_platform_int
-from pandas.core.algorithms import take_nd
+from pandas._libs.algos import (
+    groupsort_indexer, ensure_platform_int, take_1d_int64_int64
+)
 
 
 def inner_join(const int64_t[:] left, const int64_t[:] right,
@@ -67,8 +68,8 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
                     Py_ssize_t max_groups, sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int64_t] left_count, right_count
-        ndarray left_sorter, right_sorter, rev
+        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
+        ndarray rev
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
 
@@ -201,9 +202,12 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
             _get_result_indexer(right_sorter, right_indexer))
 
 
-def _get_result_indexer(sorter, indexer):
+cdef _get_result_indexer(ndarray[int64_t] sorter, ndarray[int64_t] indexer):
     if len(sorter) > 0:
-        res = take_nd(sorter, indexer, fill_value=-1)
+        # cython-only equivalent to
+        #  `res = algos.take_nd(sorter, indexer, fill_value=-1)`
+        res = np.empty(len(indexer), dtype=np.int64)
+        take_1d_int64_int64(sorter, indexer, res, -1)
     else:
         # length-0 case
         res = np.empty(len(indexer), dtype=np.int64)
