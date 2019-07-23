@@ -688,13 +688,7 @@ def test_dt64_series_assign_nat(nat_val, should_cast, tz):
     "nat_val,should_cast",
     [
         (pd.NaT, True),
-        pytest.param(
-            np.timedelta64("NaT", "ns"),
-            True,
-            marks=pytest.mark.xfail(
-                reason="Platform-specific failures, unknown cause", strict=False
-            ),
-        ),
+        (np.timedelta64("NaT", "ns"), True),
         (np.datetime64("NaT", "ns"), False),
     ],
 )

@@ -1359,6 +1359,12 @@ class MultiIndex(Index):
         increasing) values.
         """
 
+        if all(x.is_monotonic for x in self.levels):
+            # If each level is sorted, we can operate on the codes directly. GH27495
+            return libalgos.is_lexsorted(
+                [x.astype("int64", copy=False) for x in self.codes]
+            )
+
         # reversed() because lexsort() wants the most significant key last.
         values = [
             self._get_level_values(i).values for i in reversed(range(len(self.levels)))
