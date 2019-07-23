@@ -125,10 +125,8 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
             # no multiple matches for any row on the left
             # this is a short-cut to avoid groupsort_indexer
             # otherwise, the `else` path also works in this case
-            left_sorter = ensure_platform_int(left_sorter)
-
             rev = np.empty(len(left), dtype=np.intp)
-            rev.put(left_sorter, np.arange(len(left)))
+            rev.put(ensure_platform_int(left_sorter), np.arange(len(left)))
         else:
             rev, _ = groupsort_indexer(left_indexer, len(left))
 
