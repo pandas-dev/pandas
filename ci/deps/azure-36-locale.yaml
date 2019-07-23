@@ -7,7 +7,6 @@ dependencies:
   - bottleneck=1.2.*
   - cython=0.28.2
   - lxml
-  - matplotlib=2.2.2
   - numpy=1.14.*
   - openpyxl=2.4.8
   - python-dateutil
