@@ -10,15 +10,13 @@ of these goals may be hastened with dedicated funding.
 Extensibility
 -------------
 
-Pandas Extension Arrays provide 3rd party libraries the ability to
-extend pandas' supported types. In theory, these 3rd party types can do
-everything one of pandas. In practice, many places in pandas will unintentionally
-convert the ExtensionArray to a NumPy array of Python objects, causing
-performance issues and the loss of type information. These problems are especially
-pronounced for nested data.
+Pandas :ref:`extending.extension-types` provide 3rd-party libraries the ability to
+extend pandas' supported data types. Many parts of pandas still unintentionally
+convert data to a NumPy array. These problems are especially pronounced for nested data.
 
 We'd like to improve the handling of extension arrays throughout the library,
-making their behavior more consistent with the handling of NumPy arrays.
+making their behavior more consistent with the handling of NumPy arrays. We'll do this
+by cleaning up pandas' internals and adding new methods do the extension array interface.
 
 String Dtype
 ------------
@@ -42,9 +40,9 @@ Apache Arrow Interoperability
 platform for in-memory data. The Arrow logical types are closely aligned with
 typical pandas use cases (for example, support for nullable integers).
 
-We'd like have a pandas DataFrame be backed by Arrow memory and data types
-by default. This should simplify pandas internals and ensure more consistent
-handling of data types through operations.
+We'd like better support for a DataFrame be backed by Arrow memory and data types.
+This should simplify pandas internals and ensure more consistent handling
+of data types through operations.
 
 Block Manager Rewrite
 ---------------------
