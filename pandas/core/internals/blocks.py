@@ -75,6 +75,7 @@ from pandas.core.arrays import (
     PandasDtype,
     TimedeltaArray,
 )
+from pandas.core.arrays.categorical import _maybe_to_categorical
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexers import (
@@ -3085,8 +3086,6 @@ class CategoricalBlock(ExtensionBlock):
     _concatenator = staticmethod(concat_categorical)
 
     def __init__(self, values, placement, ndim=None):
-        from pandas.core.arrays.categorical import _maybe_to_categorical
-
         # coerce to categorical if we can
         super().__init__(_maybe_to_categorical(values), placement=placement, ndim=ndim)
 

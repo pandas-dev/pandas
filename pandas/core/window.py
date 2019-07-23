@@ -40,6 +40,7 @@ from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
+from pandas.core.index import Index, MultiIndex, ensure_index
 
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
@@ -281,7 +282,6 @@ class _Window(PandasObject, SelectionMixin):
         """
 
         from pandas import Series, concat
-        from pandas.core.index import ensure_index
 
         final = []
         for result, block in zip(results, blocks):
@@ -1691,8 +1691,6 @@ class Rolling(_Rolling_and_Expanding):
         if self.on is None:
             return self.obj.index
         elif isinstance(self.obj, ABCDataFrame) and self.on in self.obj.columns:
-            from pandas import Index
-
             return Index(self.obj[self.on])
         else:
             raise ValueError(
@@ -2670,7 +2668,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                                 *_prep_binary(arg1.iloc[:, i], arg2.iloc[:, j])
                             )
 
-                from pandas import MultiIndex, concat
+                from pandas import concat
 
                 result_index = arg1.index.union(arg2.index)
                 if len(result_index):

@@ -35,7 +35,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
 
 from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
@@ -45,13 +45,15 @@ from pandas.core.frame import DataFrame
 from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
 from pandas.core.groupby import base
 from pandas.core.groupby.groupby import GroupBy, _apply_docs, _transform_template
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting import boxplot_frame_groupby
+
+from .groupby import groupby
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
@@ -162,8 +164,6 @@ class NDFrameGroupBy(GroupBy):
                     continue
 
                 # call our grouper again with only this block
-                from pandas.core.groupby.groupby import groupby
-
                 obj = self.obj[data.items[locs]]
                 s = groupby(obj, self.grouper)
                 try:
@@ -348,8 +348,6 @@ class NDFrameGroupBy(GroupBy):
         return output_keys
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
-        from pandas.core.index import _all_indexes_same
-
         if len(keys) == 0:
             return DataFrame(index=keys)
 
@@ -1590,13 +1588,14 @@ class DataFrameGroupBy(NDFrameGroupBy):
         DataFrame
             Count of values within each group.
         """
-        from pandas.core.dtypes.missing import _isna_ndarraylike as _isna
-
         data, _ = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        val = ((mask & ~_isna(np.atleast_2d(blk.get_values()))) for blk in data.blocks)
+        val = (
+            (mask & ~_isna_ndarraylike(np.atleast_2d(blk.get_values())))
+            for blk in data.blocks
+        )
         loc = (blk.mgr_locs for blk in data.blocks)
 
         counter = partial(lib.count_level_2d, labels=ids, max_bin=ngroups, axis=1)

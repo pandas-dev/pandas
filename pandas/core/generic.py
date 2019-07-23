@@ -4893,12 +4893,12 @@ class NDFrame(PandasObject, SelectionMixin):
         if weights is not None:
 
             # If a series, align with frame
-            if isinstance(weights, pd.Series):
+            if isinstance(weights, ABCSeries):
                 weights = weights.reindex(self.axes[axis])
 
             # Strings acceptable if a dataframe and axis = 0
             if isinstance(weights, str):
-                if isinstance(self, pd.DataFrame):
+                if isinstance(self, ABCDataFrame):
                     if axis == 0:
                         try:
                             weights = self[weights]
@@ -6629,7 +6629,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 to_replace = [to_replace]
 
             if isinstance(to_replace, (tuple, list)):
-                if isinstance(self, pd.DataFrame):
+                if isinstance(self, ABCDataFrame):
                     return self.apply(
                         _single_replace, args=(to_replace, method, inplace, limit)
                     )
@@ -7422,7 +7422,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # be transformed to NDFrame from other array like structure.
         if (not isinstance(threshold, ABCSeries)) and is_list_like(threshold):
             if isinstance(self, ABCSeries):
-                threshold = pd.Series(threshold, index=self.index)
+                threshold = self._constructor(threshold, index=self.index)
             else:
                 threshold = _align_method_FRAME(self, threshold, axis)
         return self.where(subset, threshold, axis=axis, inplace=inplace)
@@ -7511,9 +7511,9 @@ class NDFrame(PandasObject, SelectionMixin):
         # so ignore
         # GH 19992
         # numpy doesn't drop a list-like bound containing NaN
-        if not is_list_like(lower) and np.any(pd.isnull(lower)):
+        if not is_list_like(lower) and np.any(pd.isna(lower)):
             lower = None
-        if not is_list_like(upper) and np.any(pd.isnull(upper)):
+        if not is_list_like(upper) and np.any(pd.isna(upper)):
             upper = None
 
         # GH 2747 (arguments were reversed)
@@ -8986,7 +8986,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         msg = "Boolean array expected for the condition, not {dtype}"
 
-        if not isinstance(cond, pd.DataFrame):
+        if not isinstance(cond, ABCDataFrame):
             # This is a single-dimensional object.
             if not is_bool_dtype(cond):
                 raise ValueError(msg.format(dtype=cond.dtype))
