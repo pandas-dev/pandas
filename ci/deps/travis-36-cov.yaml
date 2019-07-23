@@ -11,7 +11,6 @@ dependencies:
   - gcsfs
   - geopandas
   - html5lib
-  - matplotlib
   - moto
   - nomkl
   - numexpr
@@ -39,8 +38,8 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest>=4.0.2
-  - pytest-xdist
+  - pytest>=4.0.2,<5.0.0
+  - pytest-xdist==1.28.0
   - pytest-cov
   - pytest-mock
   - hypothesis>=3.58.0
