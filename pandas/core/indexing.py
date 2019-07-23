@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union, cast
 import warnings
 
 import numpy as np
-from numpy import ndarray
 
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
@@ -647,7 +646,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def _align_series(
         self, indexer: Any, ser: "Series", multiindex_indexer: bool = False
-    ) -> Union[ndarray, "DatetimeArray"]:
+    ) -> Union[np.ndarray, "DatetimeArray"]:
         """
         Parameters
         ----------
@@ -743,7 +742,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         raise ValueError("Incompatible indexer with Series")
 
-    def _align_frame(self, indexer: Any, df: "DataFrame") -> ndarray:
+    def _align_frame(self, indexer: Any, df: "DataFrame") -> np.ndarray:
         is_frame = self.obj.ndim == 2
 
         if isinstance(indexer, tuple):
@@ -1358,7 +1357,7 @@ class _IXIndexer(_NDFrameIndexer):
 
         return True
 
-    def _convert_for_reindex(self, key: Any, axis: int) -> Union[Index, ndarray]:
+    def _convert_for_reindex(self, key: Any, axis: int) -> Union[Index, np.ndarray]:
         """
         Transform a list of keys into a new array ready to be used as axis of
         the object we return (e.g. including NaNs).
@@ -1428,7 +1427,7 @@ class _LocationIndexer(_NDFrameIndexer):
         raise NotImplementedError()
 
     def _getbool_axis(
-        self, key: Union[ndarray, "Series", Index, List[bool]], axis: int
+        self, key: Union[np.ndarray, "Series", Index, List[bool]], axis: int
     ) -> "NDFrame":
         # caller is responsible for ensuring non-None axis
         labels = self.obj._get_axis(axis)
