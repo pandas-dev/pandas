@@ -545,7 +545,7 @@ cpdef convert_scalar(ndarray arr, object value):
     elif arr.descr.type_num == NPY_TIMEDELTA:
         if util.is_array(value):
             pass
-        elif isinstance(value, timedelta):
+        elif isinstance(value, timedelta) or util.is_timedelta64_object(value):
             return Timedelta(value).value
         elif util.is_datetime64_object(value):
             # exclude np.datetime64("NaT") which would otherwise be picked up
