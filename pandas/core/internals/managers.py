@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_sparse,
 )
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -532,7 +532,7 @@ class BlockManager(PandasObject):
             return self.__class__(blocks, new_axes)
 
         # single block, i.e. ndim == {1}
-        values = _concat._concat_compat([b.values for b in blocks])
+        values = concat_compat([b.values for b in blocks])
 
         # compute the orderings of our original data
         if len(self.blocks) > 1:
@@ -1061,7 +1061,7 @@ class BlockManager(PandasObject):
 
             if value.shape[1:] != self.shape[1:]:
                 raise AssertionError(
-                    "Shape of new values must be compatible " "with manager shape"
+                    "Shape of new values must be compatible with manager shape"
                 )
 
         try:
@@ -1154,7 +1154,7 @@ class BlockManager(PandasObject):
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
 
-    def insert(self, loc, item, value, allow_duplicates=False):
+    def insert(self, loc: int, item, value, allow_duplicates: bool = False):
         """
         Insert item at selected position.
 
@@ -1389,9 +1389,7 @@ class BlockManager(PandasObject):
 
         if verify:
             if ((indexer == -1) | (indexer >= n)).any():
-                raise Exception(
-                    "Indices must be nonzero and less than " "the axis length"
-                )
+                raise Exception("Indices must be nonzero and less than the axis length")
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
@@ -1478,7 +1476,7 @@ class SingleBlockManager(BlockManager):
         if isinstance(axis, list):
             if len(axis) != 1:
                 raise ValueError(
-                    "cannot create SingleBlockManager with more " "than 1 axis"
+                    "cannot create SingleBlockManager with more than 1 axis"
                 )
             axis = axis[0]
 
@@ -1492,7 +1490,7 @@ class SingleBlockManager(BlockManager):
                     block = [np.array([])]
                 elif len(block) != 1:
                     raise ValueError(
-                        "Cannot create SingleBlockManager with " "more than 1 block"
+                        "Cannot create SingleBlockManager with more than 1 block"
                     )
                 block = block[0]
         else:
@@ -1509,7 +1507,7 @@ class SingleBlockManager(BlockManager):
 
                 if len(block) != 1:
                     raise ValueError(
-                        "Cannot create SingleBlockManager with " "more than 1 block"
+                        "Cannot create SingleBlockManager with more than 1 block"
                     )
                 block = block[0]
 
@@ -1553,7 +1551,6 @@ class SingleBlockManager(BlockManager):
 
     def convert(self, **kwargs):
         """ convert the whole block as one """
-        kwargs["by_item"] = False
         return self.apply("convert", **kwargs)
 
     @property
@@ -1650,11 +1647,11 @@ class SingleBlockManager(BlockManager):
                 new_block = blocks[0].concat_same_type(blocks)
             else:
                 values = [x.values for x in blocks]
-                values = _concat._concat_compat(values)
+                values = concat_compat(values)
                 new_block = make_block(values, placement=slice(0, len(values), 1))
         else:
             values = [x._block.values for x in to_concat]
-            values = _concat._concat_compat(values)
+            values = concat_compat(values)
             new_block = make_block(values, placement=slice(0, len(values), 1))
 
         mgr = SingleBlockManager(new_block, new_axis)
