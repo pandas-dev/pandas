@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
     is_sparse,
 )
-from pandas.core.dtypes.concat import _concat_compat
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
@@ -607,7 +607,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if len(self.obj._values):
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
-                new_values = _concat_compat([self.obj._values, new_values])
+                new_values = concat_compat([self.obj._values, new_values])
             self.obj._data = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
             )._data
