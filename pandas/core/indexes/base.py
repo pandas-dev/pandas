@@ -473,6 +473,7 @@ class Index(IndexOpsMixin, PandasObject):
 
                     return Index(subarr, copy=copy, dtype=object, name=name)
                 elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
+                    # TODO: Returns IntegerArray for integer-na case in the future
                     from .numeric import Float64Index
 
                     return Float64Index(subarr, copy=copy, name=name)
@@ -3197,10 +3198,7 @@ class Index(IndexOpsMixin, PandasObject):
                     self.get_loc(stop)
                 is_positional = False
         except KeyError:
-            if (
-                self.inferred_type == "mixed-integer-float"
-                or self.inferred_type == "integer-na"
-            ):
+            if self.inferred_type in ["mixed-integer-float", "integer-na"]:
                 raise
 
         if is_null_slicer:
