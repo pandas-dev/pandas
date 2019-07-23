@@ -56,7 +56,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in :meth:`interpolate` when using a timezone aware index (:issue:`27548`)
 -
 -
 
