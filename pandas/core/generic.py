@@ -2328,8 +2328,6 @@ class NDFrame(PandasObject, SelectionMixin):
             throw ValueError if incorrect 'orient' since others are not list
             like.
 
-            .. versionadded:: 0.19.0
-
         compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
 
             A string representing the compression to use in the output file,
@@ -2986,8 +2984,6 @@ class NDFrame(PandasObject, SelectionMixin):
             defaults to 'utf-8'.
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
-
-            .. versionadded:: 0.18.0
         multicolumn : bool, default True
             Use \multicolumn to enhance MultiIndex columns.
             The default will be read from the config module.
@@ -6819,14 +6815,6 @@ class NDFrame(PandasObject, SelectionMixin):
               `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
               scipy 0.18.
-
-            .. versionadded:: 0.18.1
-
-               Added support for the 'akima' method.
-               Added interpolate method 'from_derivatives' which replaces
-               'piecewise_polynomial' in SciPy 0.18; backwards-compatible with
-               SciPy < 0.18
-
         axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to interpolate along.
         limit : int, optional
@@ -7087,8 +7075,6 @@ class NDFrame(PandasObject, SelectionMixin):
         NaN is taken.
         In case of a :class:`~pandas.DataFrame`, the last row without NaN
         considering only the subset of columns (if not `None`)
-
-        .. versionadded:: 0.19.0 For DataFrame
 
         If there is no good value, NaN is returned for a Series or
         a Series of NaN values for a DataFrame
@@ -8207,13 +8193,9 @@ class NDFrame(PandasObject, SelectionMixin):
             For a DataFrame, column to use instead of index for resampling.
             Column must be datetime-like.
 
-            .. versionadded:: 0.19.0
-
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
-
-            .. versionadded:: 0.19.0
 
         Returns
         -------
@@ -9146,10 +9128,6 @@ class NDFrame(PandasObject, SelectionMixin):
             If other is callable, it is computed on the %(klass)s and
             should return scalar or %(klass)s. The callable must not
             change input %(klass)s (though pandas doesn't check it).
-
-            .. versionadded:: 0.18.1
-                A callable can be used as other.
-
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         axis : int, default None
