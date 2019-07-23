@@ -77,9 +77,9 @@ Decoupling of Indexing and Internals
 
 The code for getting and setting values in pandas' data structures needs refactoring.
 In particular, a clear separation must be made between code that
-converts indexes (e.g., the argument to ``DataFrame.loc``) to positions from code that uses
+converts keys (e.g., the argument to ``DataFrame.loc``) to positions from code that uses
 uses these positions to get or set values. This is related to the proposed BlockManager rewrite.
-Currently, the BlockManager sometimes label-based, rather than position-based, indexing.
+Currently, the BlockManager sometimes uses label-based, rather than position-based, indexing.
 We propose that it should only work with positional indexing, and the translation of keys
 to positions should be entirely done at a higher level.
 
