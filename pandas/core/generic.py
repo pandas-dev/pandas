@@ -7023,7 +7023,7 @@ class NDFrame(PandasObject, SelectionMixin):
             methods = {"index", "values", "nearest", "time"}
             is_numeric_or_datetime = (
                 is_numeric_dtype(index)
-                or is_datetime64_dtype(index)
+                or is_datetime64_any_dtype(index)
                 or is_timedelta64_dtype(index)
             )
             if method not in methods and not is_numeric_or_datetime:
