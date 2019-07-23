@@ -1360,14 +1360,6 @@ def _nanpercentile_1d(values, mask, q, na_value, interpolation):
     quantiles : scalar or array
     """
     # mask is Union[ExtensionArray, ndarray]
-    if values.dtype.kind == "m":
-        # need to cast to integer to avoid rounding errors in numpy
-        result = _nanpercentile_1d(values.view("i8"), mask, q, na_value, interpolation)
-
-        # Note: we have to do do `astype` and not view because in general we
-        #  have float result at this point, not i8
-        return result.astype(values.dtype)
-
     values = values[~mask]
 
     if len(values) == 0:
@@ -1399,6 +1391,16 @@ def nanpercentile(values, q, axis, na_value, mask, ndim, interpolation):
     -------
     quantiles : scalar or array
     """
+    if values.dtype.kind in ["m", "M"]:
+        # need to cast to integer to avoid rounding errors in numpy
+        result = nanpercentile(
+            values.view("i8"), q, axis, na_value.view("i8"), mask, ndim, interpolation
+        )
+
+        # Note: we have to do do `astype` and not view because in general we
+        #  have float result at this point, not i8
+        return result.astype(values.dtype)
+
     if not lib.is_scalar(mask) and mask.any():
         if ndim == 1:
             return _nanpercentile_1d(

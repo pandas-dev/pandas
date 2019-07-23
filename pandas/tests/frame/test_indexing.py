@@ -1150,6 +1150,7 @@ class TestDataFrameIndexing(TestData):
             with pytest.raises(KeyError, match=msg):
                 float_frame.ix[:, ["E"]] = 1
 
+            # FIXME: don't leave commented-out
             # partial setting now allows this GH2578
             # pytest.raises(KeyError, float_frame.ix.__setitem__,
             #               (slice(None, None), 'E'), 1)
@@ -1676,9 +1677,11 @@ class TestDataFrameIndexing(TestData):
         )
         assert_series_equal(result, expected)
 
-        # set an allowable datetime64 type
+        # GH#16674 iNaT is treated as an integer when given by the user
         df.loc["b", "timestamp"] = iNaT
-        assert isna(df.loc["b", "timestamp"])
+        assert not isna(df.loc["b", "timestamp"])
+        assert df["timestamp"].dtype == np.object_
+        assert df.loc["b", "timestamp"] == iNaT
 
         # allow this syntax
         df.loc["c", "timestamp"] = np.nan
