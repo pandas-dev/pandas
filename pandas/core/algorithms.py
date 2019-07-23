@@ -1100,7 +1100,9 @@ def quantile(x, q, interpolation_method="fraction"):
         return _get_score(q)
     else:
         q = np.asarray(q, np.float64)
-        return algos.arrmap_float64(q, _get_score)
+        result = [_get_score(x) for x in q]
+        result = np.array(result, dtype=np.float64)
+        return result
 
 
 # --------------- #
