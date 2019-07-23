@@ -40,7 +40,7 @@ dependencies:
   - xlwt
   # universal
   - pytest>=4.0.2
-  - pytest-xdist
+  - pytest-xdist>=1.29.0
   - pytest-cov
   - pytest-mock
   - hypothesis>=3.58.0
