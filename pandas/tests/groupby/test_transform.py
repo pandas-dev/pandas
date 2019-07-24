@@ -1037,7 +1037,11 @@ def test_transform_agg_by_name(reduction_func, obj):
     args = {"nth": [0], "quantile": [0.5]}.get(func, [])
 
     result = g.transform(func, *args)
+
+    # this is the *definition* of a transformation
     tm.assert_index_equal(result.index, obj.index)
+    if hasattr(obj, "columns"):
+        tm.assert_index_equal(result.columns, obj.columns)
 
     # verify that values were broadcasted across each group
     assert len(set(DataFrame(result).iloc[-3:, -1])) == 1
