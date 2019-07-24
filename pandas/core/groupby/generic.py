@@ -44,7 +44,12 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
 from pandas.core.groupby import base
-from pandas.core.groupby.groupby import GroupBy, _apply_docs, _transform_template
+from pandas.core.groupby.groupby import (
+    GroupBy,
+    _apply_docs,
+    _transform_template,
+    groupby,
+)
 from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
@@ -52,8 +57,6 @@ from pandas.core.series import Series
 from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting import boxplot_frame_groupby
-
-from .groupby import groupby
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.

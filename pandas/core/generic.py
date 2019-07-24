@@ -7510,9 +7510,9 @@ class NDFrame(PandasObject, SelectionMixin):
         # so ignore
         # GH 19992
         # numpy doesn't drop a list-like bound containing NaN
-        if not is_list_like(lower) and np.any(pd.isna(lower)):
+        if not is_list_like(lower) and np.any(isna(lower)):
             lower = None
-        if not is_list_like(upper) and np.any(pd.isna(upper)):
+        if not is_list_like(upper) and np.any(isna(upper)):
             upper = None
 
         # GH 2747 (arguments were reversed)
