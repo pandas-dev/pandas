@@ -167,12 +167,13 @@ def ensure_int_or_float(arr: ArrayLike, copy=False) -> np.array:
     If the array is explicitly of type uint64 the type
     will remain unchanged.
     """
+    # TODO: GH27506 potential bug with ExtensionArrays
     try:
-        return arr.astype("int64", copy=copy, casting="safe")
+        return arr.astype("int64", copy=copy, casting="safe")  # type: ignore
     except TypeError:
         pass
     try:
-        return arr.astype("uint64", copy=copy, casting="safe")
+        return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore
     except TypeError:
         return arr.astype("float64", copy=copy)
 
