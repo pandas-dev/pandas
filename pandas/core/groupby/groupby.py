@@ -34,7 +34,6 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCDatetimeArray
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.api.types import is_datetime64_dtype, is_integer_dtype, is_object_dtype
@@ -52,6 +51,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
 from pandas.core.index import CategoricalIndex, Index, MultiIndex
+from pandas.core.internals.arrays import extract_array
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 
@@ -804,10 +804,7 @@ b  2""",
                 # Prior results _may_ have been generated in UTC.
                 # Ensure we localize to UTC first before converting
                 # to the target timezone
-                if isinstance(obj, ABCDatetimeArray):
-                    arr = obj
-                else:
-                    arr = obj._values
+                arr = extract_array(obj)
                 try:
                     result = arr._from_sequence(
                         result, dtype="datetime64[ns, UTC]"
