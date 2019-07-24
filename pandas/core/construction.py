@@ -17,7 +17,10 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 from pandas.core.dtypes.generic import (
-    ABCExtensionArray, ABCIndexClass, ABCPandasArray, ABCSeries
+    ABCExtensionArray,
+    ABCIndexClass,
+    ABCPandasArray,
+    ABCSeries,
 )
 
 
