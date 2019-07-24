@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Callable, FrozenSet, List, Optional, Set
+from typing import Callable, Dict, FrozenSet, List, Optional, Set
 import warnings
 import weakref
 
@@ -73,7 +73,7 @@ from pandas.tseries.frequencies import to_offset
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
-_shared_docs = dict()
+_shared_docs = dict()  # type: Dict[str, str]
 _shared_doc_kwargs = dict(
     axes="keywords for axes",
     klass="Series/DataFrame",
