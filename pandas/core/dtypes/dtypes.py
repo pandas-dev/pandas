@@ -11,7 +11,7 @@ from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
 
-from pandas._typing import OrderedType
+from pandas._typing import Ordered
 
 from .base import ExtensionDtype
 from .inference import is_bool, is_list_like
@@ -221,7 +221,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     _metadata = ("categories", "ordered", "_ordered_from_sentinel")
     _cache = {}  # type: Dict[str_type, PandasExtensionDtype]
 
-    def __init__(self, categories=None, ordered: OrderedType = ordered_sentinel):
+    def __init__(
+        self, categories=None, ordered: Union[Ordered, object] = ordered_sentinel
+    ):
+        # TODO(GH26403): Set type of ordered to Ordered
+        ordered = cast(Ordered, ordered)
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
@@ -234,7 +238,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @classmethod
     def _from_categorical_dtype(
-        cls, dtype: "CategoricalDtype", categories=None, ordered: OrderedType = None
+        cls, dtype: "CategoricalDtype", categories=None, ordered: Ordered = None
     ) -> "CategoricalDtype":
         if categories is ordered is None:
             return dtype
@@ -335,9 +339,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return dtype
 
-    def _finalize(
-        self, categories, ordered: OrderedType, fastpath: bool = False
-    ) -> None:
+    def _finalize(self, categories, ordered: Ordered, fastpath: bool = False) -> None:
 
         if ordered is not None and ordered is not ordered_sentinel:
             self.validate_ordered(ordered)
@@ -422,7 +424,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return tpl.format(data, self._ordered)
 
     @staticmethod
-    def _hash_categories(categories, ordered: OrderedType = True) -> int:
+    def _hash_categories(categories, ordered: Ordered = True) -> int:
         from pandas.core.util.hashing import (
             hash_array,
             _combine_hash_arrays,
@@ -474,7 +476,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return Categorical
 
     @staticmethod
-    def validate_ordered(ordered: OrderedType) -> None:
+    def validate_ordered(ordered: Ordered) -> None:
         """
         Validates that we have a valid ordered parameter. If
         it is not a boolean, a TypeError will be raised.
@@ -552,8 +554,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 "got {dtype!r}"
             ).format(dtype=dtype)
             raise ValueError(msg)
-
-        dtype = cast(CategoricalDtype, dtype)
+        else:
+            # from here on, dtype is a CategoricalDtype
+            dtype = cast(CategoricalDtype, dtype)
 
         # dtype is CDT: keep current categories/ordered if None
         new_categories = dtype.categories
@@ -586,7 +589,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return self._categories
 
     @property
-    def ordered(self) -> OrderedType:
+    def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
         """

@@ -48,7 +48,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import ArrayLike, Dtype, OrderedType
+from pandas._typing import ArrayLike, Dtype, Ordered
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
@@ -475,7 +475,7 @@ class Categorical(ExtensionArray, PandasObject):
         self._dtype = new_dtype
 
     @property
-    def ordered(self) -> OrderedType:
+    def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
         """
@@ -715,8 +715,6 @@ class Categorical(ExtensionArray, PandasObject):
             raise ValueError("codes need to be between -1 and " "len(categories)-1")
 
         return cls(codes, dtype=dtype, fastpath=True)
-
-    _codes = None
 
     def _get_codes(self):
         """

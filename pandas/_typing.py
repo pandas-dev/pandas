@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, AnyStr, TypeVar, Union
+from typing import IO, TYPE_CHECKING, AnyStr, Optional, TypeVar, Union
 
 import numpy as np
 
@@ -27,6 +27,4 @@ FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 FrameOrSeries = TypeVar("FrameOrSeries", "Series", "DataFrame")
 Scalar = Union[str, int, float]
 Axis = Union[str, int]
-
-# TODO(GH26403): Replace with Optional[bool] or bool
-OrderedType = Union[None, bool, object]
+Ordered = Optional[bool]
