@@ -1749,7 +1749,8 @@ class _LocIndexer(_LocationIndexer):
                 # ('2016-01-01'[, slice(None, None, None)]+)
                 key = tuple(
                     # https://github.com/python/mypy/issues/5492
-                    [key] + [slice(None)] * (len(labels.levels) - 1)  # type: ignore
+                    [key]
+                    + [slice(None)] * (len(labels.levels) - 1)  # type: ignore
                 )
 
             if isinstance(key, tuple):
