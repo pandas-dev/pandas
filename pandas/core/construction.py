@@ -487,6 +487,7 @@ def sanitize_array(data, index, dtype=None, copy=False, raise_cast_failure=False
         inferred = lib.infer_dtype(subarr, skipna=False)
         if inferred == "period":
             from pandas.core.arrays import period_array
+
             try:
                 subarr = period_array(subarr)
             except IncompatibleFrequency:
@@ -538,7 +539,8 @@ def _try_cast(arr, dtype, copy, raise_cast_failure):
             # We *do* allow casting to categorical, since we know
             # that Categorical is the only array type for 'category'.
             subarr = dtype.construct_array_type()(
-                arr, dtype.categories, ordered=dtype._ordered)
+                arr, dtype.categories, ordered=dtype._ordered
+            )
         elif is_extension_array_dtype(dtype):
             # create an extension array from its dtype
             array_type = dtype.construct_array_type()._from_sequence
