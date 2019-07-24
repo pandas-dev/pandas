@@ -166,19 +166,6 @@ def _cat_compare_op(op):
     return f
 
 
-def _maybe_to_categorical(array):
-    """
-    Coerce to a categorical if a series is given.
-
-    Internal use ONLY.
-    """
-    if isinstance(array, (ABCSeries, ABCCategoricalIndex)):
-        return array._values
-    elif isinstance(array, np.ndarray):
-        return Categorical(array)
-    return array
-
-
 def contains(cat, key, container):
     """
     Helper for membership check for ``key`` in ``cat``.

@@ -75,7 +75,6 @@ from pandas.core.arrays import (
     PandasDtype,
     TimedeltaArray,
 )
-from pandas.core.arrays.categorical import _maybe_to_categorical
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexers import (
@@ -3087,7 +3086,9 @@ class CategoricalBlock(ExtensionBlock):
 
     def __init__(self, values, placement, ndim=None):
         # coerce to categorical if we can
-        super().__init__(_maybe_to_categorical(values), placement=placement, ndim=ndim)
+        values = extract_array(values)
+        assert isinstance(values, Categorical), type(values)
+        super().__init__(values, placement=placement, ndim=ndim)
 
     @property
     def _holder(self):
