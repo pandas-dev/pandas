@@ -47,7 +47,6 @@ from pandas.core.dtypes.generic import (
     ABCSparseSeries,
 )
 from pandas.core.dtypes.missing import (
-    is_valid_nat_for_dtype,
     isna,
     na_value_for_dtype,
     notna,
@@ -1196,20 +1195,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif key is Ellipsis:
                     self[:] = value
                     return
-                elif com.is_bool_indexer(key):
-                    pass
-                elif is_timedelta64_dtype(self.dtype):
-                    # reassign a null value to iNaT
-                    if is_valid_nat_for_dtype(value, self.dtype):
-                        # exclude np.datetime64("NaT")
-                        value = iNaT
-
-                        try:
-                            self.index._engine.set_value(self._values, key, value)
-                            return
-                        except (TypeError, ValueError):
-                            # ValueError appears in only some builds in CI
-                            pass
 
                 self.loc[key] = value
                 return
