@@ -382,7 +382,7 @@ class DataFrame(NDFrame):
 
     _constructor_sliced = Series  # type: Type[Series]
     _deprecations = NDFrame._deprecations | frozenset(
-        ["get_value", "set_value", "from_items"]
+        ["from_items"]
     )  # type: FrozenSet[str]
     _accessors = set()  # type: Set[str]
 
@@ -2779,12 +2779,9 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Getting and setting elements
 
-    def get_value(self, index, col, takeable=False):
+    def _get_value(self, index, col, takeable: bool = False):
         """
         Quickly retrieve single value at passed column and index.
-
-        .. deprecated:: 0.21.0
-            Use .at[] or .iat[] accessors instead.
 
         Parameters
         ----------
@@ -2796,18 +2793,6 @@ class DataFrame(NDFrame):
         -------
         scalar
         """
-
-        warnings.warn(
-            "get_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._get_value(index, col, takeable=takeable)
-
-    def _get_value(self, index, col, takeable=False):
-
         if takeable:
             series = self._iget_item_cache(col)
             return com.maybe_box_datetimelike(series._values[index])
@@ -2831,14 +2816,9 @@ class DataFrame(NDFrame):
         index = self.index.get_loc(index)
         return self._get_value(index, col, takeable=True)
 
-    _get_value.__doc__ = get_value.__doc__
-
-    def set_value(self, index, col, value, takeable=False):
+    def _set_value(self, index, col, value, takeable: bool = False):
         """
         Put single value at passed column and index.
-
-        .. deprecated:: 0.21.0
-            Use .at[] or .iat[] accessors instead.
 
         Parameters
         ----------
@@ -2853,16 +2833,6 @@ class DataFrame(NDFrame):
             If label pair is contained, will be reference to calling DataFrame,
             otherwise a new object.
         """
-        warnings.warn(
-            "set_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._set_value(index, col, value, takeable=takeable)
-
-    def _set_value(self, index, col, value, takeable=False):
         try:
             if takeable is True:
                 series = self._iget_item_cache(col)
@@ -2882,8 +2852,6 @@ class DataFrame(NDFrame):
             self._item_cache.pop(col, None)
 
             return self
-
-    _set_value.__doc__ = set_value.__doc__
 
     def _ixs(self, i: int, axis: int = 0):
         """
@@ -2970,7 +2938,7 @@ class DataFrame(NDFrame):
         else:
             if is_iterator(key):
                 key = list(key)
-            indexer = self.loc._convert_to_indexer(key, axis=1, raise_missing=True)
+            indexer = self.loc._get_listlike_indexer(key, axis=1, raise_missing=True)[1]
 
         # take() does not accept boolean indexers
         if getattr(indexer, "dtype", None) == bool:
@@ -3456,7 +3424,7 @@ class DataFrame(NDFrame):
 
     def _setitem_slice(self, key, value):
         self._check_setitem_copy()
-        self.loc._setitem_with_indexer(key, value)
+        self.loc[key] = value
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
@@ -3476,7 +3444,9 @@ class DataFrame(NDFrame):
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
-                indexer = self.loc._convert_to_indexer(key, axis=1)
+                indexer = self.loc._get_listlike_indexer(
+                    key, axis=1, raise_missing=False
+                )[1]
                 self._check_setitem_copy()
                 self.loc._setitem_with_indexer((slice(None), indexer), value)
 
