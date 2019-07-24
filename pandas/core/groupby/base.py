@@ -166,8 +166,8 @@ groupby_other_methods = frozenset(
         "aggregate",
         "apply",
         "boxplot",
-        # corr and cove return a MultiIndex so the result is not like-index
-        # and therefore not a transformation
+        # corr and cov return ngroups*ncolumns rows, so they
+        # are neither a transformation nor a reduction
         "corr",
         "cov",
         "describe",
