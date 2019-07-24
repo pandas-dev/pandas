@@ -12,6 +12,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Series, SparseDtype, SparseSeries, bdate_range, isna
+from pandas.core import ops
 from pandas.core.reshape.util import cartesian_product
 import pandas.core.sparse.frame as spf
 from pandas.tests.series.test_api import SharedWithSparse
@@ -469,18 +470,15 @@ class TestSparseSeries(SharedWithSparse):
         expected = self.btseries.to_dense()[dt]
         tm.assert_almost_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            tm.assert_almost_equal(self.bseries.get_value(10), self.bseries[10])
+        tm.assert_almost_equal(self.bseries._get_value(10), self.bseries[10])
 
     def test_set_value(self):
 
         idx = self.btseries.index[7]
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.btseries.set_value(idx, 0)
+        self.btseries._set_value(idx, 0)
         assert self.btseries[idx] == 0
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.iseries.set_value("foobar", 0)
+        self.iseries._set_value("foobar", 0)
         assert self.iseries.index[-1] == "foobar"
         assert self.iseries["foobar"] == 0
 
@@ -563,6 +561,10 @@ class TestSparseSeries(SharedWithSparse):
             adense = a.to_dense() if isinstance(a, SparseSeries) else a
             bdense = b.to_dense() if isinstance(b, SparseSeries) else b
             dense_result = op(adense, bdense)
+            if "floordiv" in op.__name__:
+                # Series sets 1//0 to np.inf, which SparseSeries does not do (yet)
+                mask = np.isinf(dense_result)
+                dense_result[mask] = np.nan
             tm.assert_almost_equal(sp_result.to_dense(), dense_result)
 
         def check(a, b):
@@ -572,16 +574,16 @@ class TestSparseSeries(SharedWithSparse):
             _check_op(a, b, operator.floordiv)
             _check_op(a, b, operator.mul)
 
-            _check_op(a, b, lambda x, y: operator.add(y, x))
-            _check_op(a, b, lambda x, y: operator.sub(y, x))
-            _check_op(a, b, lambda x, y: operator.truediv(y, x))
-            _check_op(a, b, lambda x, y: operator.floordiv(y, x))
-            _check_op(a, b, lambda x, y: operator.mul(y, x))
+            _check_op(a, b, ops.radd)
+            _check_op(a, b, ops.rsub)
+            _check_op(a, b, ops.rtruediv)
+            _check_op(a, b, ops.rfloordiv)
+            _check_op(a, b, ops.rmul)
 
             # FIXME: don't leave commented-out
             # NaN ** 0 = 1 in C?
             # _check_op(a, b, operator.pow)
-            # _check_op(a, b, lambda x, y: operator.pow(y, x))
+            # _check_op(a, b, ops.rpow)
 
         check(self.bseries, self.bseries)
         check(self.iseries, self.iseries)
@@ -619,7 +621,9 @@ class TestSparseSeries(SharedWithSparse):
 
         inplace_ops = ["add", "sub", "mul", "truediv", "floordiv", "pow"]
         for op in inplace_ops:
-            _check_inplace_op(getattr(operator, "i%s" % op), getattr(operator, op))
+            _check_inplace_op(
+                getattr(operator, "i{op}".format(op=op)), getattr(operator, op)
+            )
 
     @pytest.mark.parametrize(
         "values, op, fill_value",

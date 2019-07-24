@@ -1,5 +1,7 @@
 .PHONY : develop build clean clean_pyc doc lint-diff black
 
+all: develop
+
 clean:
 	-python setup.py clean
 

@@ -50,6 +50,7 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
+from pandas.core.indexers import validate_indices
 
 _shared_docs = {}  # type: Dict[str, str]
 
@@ -815,8 +816,6 @@ def duplicated(values, keep="first"):
     """
     Return boolean ndarray denoting duplicate values.
 
-    .. versionadded:: 0.19.0
-
     Parameters
     ----------
     values : ndarray-like
@@ -1101,7 +1100,9 @@ def quantile(x, q, interpolation_method="fraction"):
         return _get_score(q)
     else:
         q = np.asarray(q, np.float64)
-        return algos.arrmap_float64(q, _get_score)
+        result = [_get_score(x) for x in q]
+        result = np.array(result, dtype=np.float64)
+        return result
 
 
 # --------------- #
@@ -1587,8 +1588,6 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
     ...      fill_value=-10)
     array([ 10,  10, -10])
     """
-    from pandas.core.indexing import validate_indices
-
     if not is_array_like(arr):
         arr = np.asarray(arr)
 
@@ -1978,12 +1977,6 @@ def diff(arr, n, axis=0):
             out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
 
     if is_timedelta:
-        from pandas import TimedeltaIndex
-
-        out_arr = (
-            TimedeltaIndex(out_arr.ravel().astype("int64"))
-            .asi8.reshape(out_arr.shape)
-            .astype("timedelta64[ns]")
-        )
+        out_arr = out_arr.astype("int64").view("timedelta64[ns]")
 
     return out_arr

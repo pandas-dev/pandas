@@ -352,11 +352,18 @@ def read_json(
 
     Parameters
     ----------
-    path_or_buf : a valid JSON string or file-like, default: None
-        The string could be a URL. Valid URL schemes include http, ftp, s3,
-        gcs, and file. For file URLs, a host is expected. For instance, a local
-        file could be ``file://localhost/path/to/table.json``
+    path_or_buf : a valid JSON str, path object or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be:
+        ``file://localhost/path/to/table.json``.
 
+        If you want to pass in a path object, pandas accepts any
+        ``os.PathLike``.
+
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function)
+        or ``StringIO``.
     orient : string,
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
@@ -393,8 +400,10 @@ def read_json(
         .. versionadded:: 0.23.0
            'table' as an allowed value for the ``orient`` argument
 
-    typ : type of object to recover (series or frame), default 'frame'
-    dtype : boolean or dict, default None
+    typ : {'frame', 'series'}, default 'frame'
+        The type of object to recover.
+
+    dtype : bool or dict, default None
         If True, infer dtypes; if a dict of column to dtype, then use those;
         if False, then don't infer dtypes at all, applies only to the data.
 
@@ -404,7 +413,7 @@ def read_json(
 
            Not applicable for ``orient='table'``.
 
-    convert_axes : boolean, default None
+    convert_axes : bool, default None
         Try to convert the axes to the proper dtypes.
 
         For all ``orient`` values except ``'table'``, default is True.
@@ -413,9 +422,9 @@ def read_json(
 
            Not applicable for ``orient='table'``.
 
-    convert_dates : boolean, default True
-        List of columns to parse for dates; If True, then try to parse
-        datelike columns default is True; a column label is datelike if
+    convert_dates : bool or list of str, default True
+        List of columns to parse for dates. If True, then try to parse
+        datelike columns. A column label is datelike if
 
         * it ends with ``'_at'``,
 
@@ -425,34 +434,34 @@ def read_json(
 
         * it is ``'modified'``, or
 
-        * it is ``'date'``
+        * it is ``'date'``.
 
-    keep_default_dates : boolean, default True
-        If parsing dates, then parse the default datelike columns
-    numpy : boolean, default False
+    keep_default_dates : bool, default True
+        If parsing dates, then parse the default datelike columns.
+
+    numpy : bool, default False
         Direct decoding to numpy arrays. Supports numeric data only, but
         non-numeric column and index labels are supported. Note also that the
         JSON ordering MUST be the same for each term if numpy=True.
-    precise_float : boolean, default False
+
+    precise_float : bool, default False
         Set to enable usage of higher precision (strtod) function when
         decoding string to double values. Default (False) is to use fast but
-        less precise builtin functionality
-    date_unit : string, default None
+        less precise builtin functionality.
+
+    date_unit : str, default None
         The timestamp unit to detect if converting dates. The default behaviour
         is to try and detect the correct precision, but if this is not desired
         then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds,
         milliseconds, microseconds or nanoseconds respectively.
+
     encoding : str, default is 'utf-8'
         The encoding to use to decode py3 bytes.
 
-        .. versionadded:: 0.19.0
-
-    lines : boolean, default False
+    lines : bool, default False
         Read the file as a json object per line.
 
-        .. versionadded:: 0.19.0
-
-    chunksize : integer, default None
+    chunksize : int, optional
         Return JsonReader object for iteration.
         See the `line-delimited json docs
         <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_
@@ -473,11 +482,13 @@ def read_json(
 
     Returns
     -------
-    result : Series or DataFrame, depending on the value of `typ`.
+    Series or DataFrame
+        The type returned depends on the value of `typ`.
 
     See Also
     --------
-    DataFrame.to_json
+    DataFrame.to_json : Convert a DataFrame to a JSON string.
+    Series.to_json : Convert a Series to a JSON string.
 
     Notes
     -----
@@ -1085,9 +1096,15 @@ class FrameParser(Parser):
             self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
-            self.obj = DataFrame(
-                loads(json, precise_float=self.precise_float), dtype=None
-            ).T
+            self.obj = (
+                DataFrame.from_dict(
+                    loads(json, precise_float=self.precise_float),
+                    dtype=None,
+                    orient="index",
+                )
+                .sort_index(axis="columns")
+                .sort_index(axis="index")
+            )
         elif orient == "table":
             self.obj = parse_table_schema(json, precise_float=self.precise_float)
         else:
@@ -1105,7 +1122,7 @@ class FrameParser(Parser):
 
         needs_new_obj = False
         new_obj = dict()
-        for i, (col, c) in enumerate(self.obj.iteritems()):
+        for i, (col, c) in enumerate(self.obj.items()):
             if filt(col, c):
                 new_data, result = f(col, c)
                 if result:

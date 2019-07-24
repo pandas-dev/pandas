@@ -60,8 +60,6 @@ def hash_pandas_object(
     """
     Return a data hash of the Index/Series/DataFrame
 
-    .. versionadded:: 0.19.2
-
     Parameters
     ----------
     index : boolean, default True
@@ -113,7 +111,7 @@ def hash_pandas_object(
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCDataFrame):
-        hashes = (hash_array(series.values) for _, series in obj.iteritems())
+        hashes = (hash_array(series.values) for _, series in obj.items())
         num_items = len(obj.columns)
         if index:
             index_hash_generator = (
@@ -244,8 +242,6 @@ def _hash_categorical(c, encoding, hash_key):
 def hash_array(vals, encoding="utf8", hash_key=None, categorize=True):
     """
     Given a 1d array, return an array of deterministic integers.
-
-    .. versionadded:: 0.19.2
 
     Parameters
     ----------

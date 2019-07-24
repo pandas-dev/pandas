@@ -651,3 +651,51 @@ class TestPeriodArray(SharedTests):
         result = np.asarray(arr, dtype="S20")
         expected = np.asarray(arr).astype("S20")
         tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "array,casting_nats",
+    [
+        (
+            pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
+            (pd.NaT, np.timedelta64("NaT", "ns")),
+        ),
+        (
+            pd.date_range("2000-01-01", periods=3, freq="D")._data,
+            (pd.NaT, np.datetime64("NaT", "ns")),
+        ),
+        (pd.period_range("2000-01-01", periods=3, freq="D")._data, (pd.NaT,)),
+    ],
+    ids=lambda x: type(x).__name__,
+)
+def test_casting_nat_setitem_array(array, casting_nats):
+    expected = type(array)._from_sequence([pd.NaT, array[1], array[2]])
+
+    for nat in casting_nats:
+        arr = array.copy()
+        arr[0] = nat
+        tm.assert_equal(arr, expected)
+
+
+@pytest.mark.parametrize(
+    "array,non_casting_nats",
+    [
+        (
+            pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
+            (np.datetime64("NaT", "ns"),),
+        ),
+        (
+            pd.date_range("2000-01-01", periods=3, freq="D")._data,
+            (np.timedelta64("NaT", "ns"),),
+        ),
+        (
+            pd.period_range("2000-01-01", periods=3, freq="D")._data,
+            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")),
+        ),
+    ],
+    ids=lambda x: type(x).__name__,
+)
+def test_invalid_nat_setitem_array(array, non_casting_nats):
+    for nat in non_casting_nats:
+        with pytest.raises(TypeError):
+            array[0] = nat

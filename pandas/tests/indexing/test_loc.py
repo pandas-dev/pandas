@@ -1,5 +1,6 @@
 """ test label based indexing with loc """
 from io import StringIO
+import re
 from warnings import catch_warnings, filterwarnings
 
 import numpy as np
@@ -425,7 +426,12 @@ class TestLoc(Base):
 
         s.loc[[2]]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(
+            KeyError,
+            match=re.escape(
+                "\"None of [Int64Index([3], dtype='int64')] are in the [index]\""
+            ),
+        ):
             s.loc[[3]]
 
         # a non-match and a match
@@ -802,7 +808,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         assert is_scalar(result) and result == "Z"
 
-    def test_loc_coerceion(self):
+    def test_loc_coercion(self):
 
         # 12411
         df = DataFrame({"date": [Timestamp("20130101").tz_localize("UTC"), pd.NaT]})
@@ -837,6 +843,26 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         result = df.iloc[3:]
         tm.assert_series_equal(result.dtypes, expected)
+
+    def test_setitem_new_key_tz(self):
+        # GH#12862 should not raise on assigning the second value
+        vals = [
+            pd.to_datetime(42).tz_localize("UTC"),
+            pd.to_datetime(666).tz_localize("UTC"),
+        ]
+        expected = pd.Series(vals, index=["foo", "bar"])
+
+        ser = pd.Series()
+        ser["foo"] = vals[0]
+        ser["bar"] = vals[1]
+
+        tm.assert_series_equal(ser, expected)
+
+        ser = pd.Series()
+        ser.loc["foo"] = vals[0]
+        ser.loc["bar"] = vals[1]
+
+        tm.assert_series_equal(ser, expected)
 
     def test_loc_non_unique(self):
         # GH3659
@@ -1043,3 +1069,33 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         s = Series([1, 2])
         result = s.loc[np.array(0)]
         assert result == 1
+
+
+def test_series_loc_getitem_label_list_missing_values():
+    # gh-11428
+    key = np.array(
+        ["2001-01-04", "2001-01-02", "2001-01-04", "2001-01-14"], dtype="datetime64"
+    )
+    s = Series([2, 5, 8, 11], date_range("2001-01-01", freq="D", periods=4))
+    expected = Series([11.0, 5.0, 11.0, np.nan], index=key)
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = s.loc[key]
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "columns, column_key, expected_columns, check_column_type",
+    [
+        ([2011, 2012, 2013], [2011, 2012], [0, 1], True),
+        ([2011, 2012, "All"], [2011, 2012], [0, 1], False),
+        ([2011, 2012, "All"], [2011, "All"], [0, 2], True),
+    ],
+)
+def test_loc_getitem_label_list_integer_labels(
+    columns, column_key, expected_columns, check_column_type
+):
+    # gh-14836
+    df = DataFrame(np.random.rand(3, 3), columns=columns, index=list("ABC"))
+    expected = df.iloc[:, expected_columns]
+    result = df.loc[["A", "B", "C"], column_key]
+    tm.assert_frame_equal(result, expected, check_column_type=check_column_type)

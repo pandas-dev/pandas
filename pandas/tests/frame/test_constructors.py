@@ -264,7 +264,7 @@ class TestDataFrameConstructors:
         nitems = 100
         nums = list(range(nitems))
         random.shuffle(nums)
-        expected = ["A%d" % i for i in nums]
+        expected = ["A{i:d}".format(i=i) for i in nums]
         df = DataFrame(OrderedDict(zip(expected, [[0]] * nitems)))
         assert expected == list(df.columns)
 
@@ -329,10 +329,8 @@ class TestDataFrameConstructors:
         # Dict with None value
         frame_none = DataFrame(dict(a=None), index=[0])
         frame_none_list = DataFrame(dict(a=[None]), index=[0])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert frame_none.get_value(0, "a") is None
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert frame_none_list.get_value(0, "a") is None
+        assert frame_none._get_value(0, "a") is None
+        assert frame_none_list._get_value(0, "a") is None
         tm.assert_frame_equal(frame_none, frame_none_list)
 
         # GH10856
@@ -702,8 +700,7 @@ class TestDataFrameConstructors:
         data = {}
         for col in df.columns:
             for row in df.index:
-                with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                    data.setdefault(col, {})[row] = df.get_value(row, col)
+                data.setdefault(col, {})[row] = df._get_value(row, col)
 
         result = DataFrame(data, columns=rng)
         tm.assert_frame_equal(result, df)
@@ -711,8 +708,7 @@ class TestDataFrameConstructors:
         data = {}
         for col in df.columns:
             for row in df.index:
-                with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                    data.setdefault(row, {})[col] = df.get_value(row, col)
+                data.setdefault(row, {})[col] = df._get_value(row, col)
 
         result = DataFrame(data, index=rng).T
         tm.assert_frame_equal(result, df)
@@ -1119,7 +1115,7 @@ class TestDataFrameConstructors:
         expected = DataFrame({0: range(10), 1: "a"})
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
-    def test_constructor_list_of_dicts(self):
+    def test_constructor_list_of_odicts(self):
         data = [
             OrderedDict([["a", 1.5], ["b", 3], ["c", 4], ["d", 6]]),
             OrderedDict([["a", 1.5], ["b", 3], ["d", 6]]),
@@ -1339,6 +1335,26 @@ class TestDataFrameConstructors:
         expected = DataFrame({"y": [1, 2], "z": [3, 4]})
         result = DataFrame(tuples, columns=["y", "z"])
         tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_dict_order(self):
+        # GH10056
+        data = [
+            {"First": 1, "Second": 4, "Third": 7, "Fourth": 10},
+            {"Second": 5, "First": 2, "Fourth": 11, "Third": 8},
+            {"Second": 6, "First": 3, "Fourth": 12, "Third": 9, "YYY": 14, "XXX": 13},
+        ]
+        expected = DataFrame(
+            {
+                "First": [1, 2, 3],
+                "Second": [4, 5, 6],
+                "Third": [7, 8, 9],
+                "Fourth": [10, 11, 12],
+                "YYY": [None, None, 14],
+                "XXX": [None, None, 13],
+            }
+        )
+        result = DataFrame(data)
+        tm.assert_frame_equal(result, expected, check_like=not PY36)
 
     def test_constructor_orient(self, float_string_frame):
         data_dict = float_string_frame.T._series
@@ -2396,6 +2412,13 @@ class TestDataFrameConstructors:
         assert len(result) == 0
         assert result.index.name == "foo"
         tm.assert_index_equal(result.columns, expected)
+
+    def test_from_records_series_list_dict(self):
+        # GH27358
+        expected = DataFrame([[{"a": 1, "b": 2}, {"a": 3, "b": 4}]]).T
+        data = Series([[{"a": 1, "b": 2}], [{"a": 3, "b": 4}]])
+        result = DataFrame.from_records(data)
+        tm.assert_frame_equal(result, expected)
 
     def test_to_frame_with_falsey_names(self):
         # GH 16114

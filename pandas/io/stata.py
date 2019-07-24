@@ -94,8 +94,16 @@ Read Stata file into DataFrame.
 
 Parameters
 ----------
-filepath_or_buffer : string or file-like object
-    Path to .dta file or object implementing a binary read() functions.
+filepath_or_buffer : str, path object or file-like object
+    Any valid string path is acceptable. The string could be a URL. Valid
+    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    expected. A local file could be: ``file://localhost/path/to/table.dta``.
+
+    If you want to pass in a path object, pandas accepts any ``os.PathLike``.
+
+    By file-like object, we refer to objects with a ``read()`` method,
+    such as a file handler (e.g. via builtin ``open`` function)
+    or ``StringIO``.
 %s
 %s
 %s
@@ -2088,8 +2096,6 @@ class StataWriter(StataParser):
         Dictionary containing columns as keys and variable labels as values.
         Each label must be 80 characters or smaller.
 
-        .. versionadded:: 0.19.0
-
     Returns
     -------
     writer : StataWriter instance
@@ -2302,7 +2308,7 @@ class StataWriter(StataParser):
     def _set_formats_and_types(self, data, dtypes):
         self.typlist = []
         self.fmtlist = []
-        for col, dtype in dtypes.iteritems():
+        for col, dtype in dtypes.items():
             self.fmtlist.append(_dtype_to_default_stata_fmt(dtype, data[col]))
             self.typlist.append(_dtype_to_stata_type(dtype, data[col]))
 
@@ -3168,7 +3174,7 @@ class StataWriter117(StataWriter):
     def _set_formats_and_types(self, data, dtypes):
         self.typlist = []
         self.fmtlist = []
-        for col, dtype in dtypes.iteritems():
+        for col, dtype in dtypes.items():
             force_strl = col in self._convert_strl
             fmt = _dtype_to_default_stata_fmt(
                 dtype, data[col], dta_version=117, force_strl=force_strl

@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.lib import is_scalar, item_from_zerodim
 from pandas._libs.sparse import BlockIndex, get_blocks
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
@@ -74,6 +75,8 @@ class SparseDataFrame(DataFrame):
         dtype=None,
         copy=False,
     ):
+        if not is_scalar(default_fill_value):
+            raise ValueError("'default_fill_value' must be a scalar")
 
         warnings.warn(depr_msg, FutureWarning, stacklevel=2)
         # pick up the defaults from the Sparse structures
@@ -444,11 +447,9 @@ class SparseDataFrame(DataFrame):
         # always return a SparseArray!
         return clean
 
-    def get_value(self, index, col, takeable=False):
+    def _get_value(self, index, col, takeable=False):
         """
         Quickly retrieve single value at passed column and index
-
-        .. deprecated:: 0.21.0
 
         Please use .at[] or .iat[] accessors.
 
@@ -462,16 +463,6 @@ class SparseDataFrame(DataFrame):
         -------
         value : scalar value
         """
-        warnings.warn(
-            "get_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._get_value(index, col, takeable=takeable)
-
-    def _get_value(self, index, col, takeable=False):
         if takeable is True:
             series = self._iget_item_cache(col)
         else:
@@ -479,13 +470,9 @@ class SparseDataFrame(DataFrame):
 
         return series._get_value(index, takeable=takeable)
 
-    _get_value.__doc__ = get_value.__doc__
-
-    def set_value(self, index, col, value, takeable=False):
+    def _set_value(self, index, col, value, takeable=False):
         """
         Put single value at passed column and index
-
-        .. deprecated:: 0.21.0
 
         Please use .at[] or .iat[] accessors.
 
@@ -506,22 +493,10 @@ class SparseDataFrame(DataFrame):
         -------
         frame : DataFrame
         """
-        warnings.warn(
-            "set_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._set_value(index, col, value, takeable=takeable)
-
-    def _set_value(self, index, col, value, takeable=False):
         dense = self.to_dense()._set_value(index, col, value, takeable=takeable)
         return dense.to_sparse(
             kind=self._default_kind, fill_value=self._default_fill_value
         )
-
-    _set_value.__doc__ = set_value.__doc__
 
     def _slice(self, slobj, axis=0, kind=None):
         if axis == 0:
@@ -666,7 +641,7 @@ class SparseDataFrame(DataFrame):
                 fill_value = np.nan
             else:
                 fill_value = func(np.float64(own_default), np.float64(other.fill_value))
-
+                fill_value = item_from_zerodim(fill_value)
         else:
             raise NotImplementedError(type(other))
 
@@ -695,7 +670,7 @@ class SparseDataFrame(DataFrame):
         need_mask = mask.any()
 
         new_series = {}
-        for col, series in self.iteritems():
+        for col, series in self.items():
             if mask.all():
                 continue
 

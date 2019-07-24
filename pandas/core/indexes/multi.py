@@ -601,7 +601,7 @@ class MultiIndex(Index):
         if not isinstance(df, ABCDataFrame):
             raise TypeError("Input must be a DataFrame")
 
-        column_names, columns = zip(*df.iteritems())
+        column_names, columns = zip(*df.items())
         names = column_names if names is None else names
         return cls.from_arrays(columns, sortorder=sortorder, names=names)
 
@@ -1359,6 +1359,12 @@ class MultiIndex(Index):
         increasing) values.
         """
 
+        if all(x.is_monotonic for x in self.levels):
+            # If each level is sorted, we can operate on the codes directly. GH27495
+            return libalgos.is_lexsorted(
+                [x.astype("int64", copy=False) for x in self.codes]
+            )
+
         # reversed() because lexsort() wants the most significant key last.
         values = [
             self._get_level_values(i).values for i in reversed(range(len(self.levels)))
@@ -2091,10 +2097,11 @@ class MultiIndex(Index):
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
         nv.validate_repeat(tuple(), dict(axis=axis))
+        repeats = ensure_platform_int(repeats)
         return MultiIndex(
             levels=self.levels,
             codes=[
-                level_codes.view(np.ndarray).repeat(repeats)
+                level_codes.view(np.ndarray).astype(np.intp).repeat(repeats)
                 for level_codes in self.codes
             ],
             names=self.names,
@@ -2195,11 +2202,6 @@ class MultiIndex(Index):
         -------
         MultiIndex
             A new MultiIndex.
-
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
 
         See Also
         --------
@@ -2810,7 +2812,10 @@ class MultiIndex(Index):
 
                 if len(key) == self.nlevels and self.is_unique:
                     # Complete key in unique index -> standard get_loc
-                    return (self._engine.get_loc(key), None)
+                    try:
+                        return (self._engine.get_loc(key), None)
+                    except KeyError as e:
+                        raise KeyError(key) from e
                 else:
                     return partial_selection(key)
             else:

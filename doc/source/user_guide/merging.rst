@@ -819,8 +819,6 @@ The ``indicator`` argument will also accept string arguments, in which case the 
 Merge dtypes
 ~~~~~~~~~~~~
 
-.. versionadded:: 0.19.0
-
 Merging will preserve the dtype of the join keys.
 
 .. ipython:: python
@@ -1385,8 +1383,6 @@ fill/interpolate missing data:
 
 Merging asof
 ~~~~~~~~~~~~
-
-.. versionadded:: 0.19.0
 
 A :func:`merge_asof` is similar to an ordered left-join except that we match on
 nearest key rather than equal keys. For each row in the ``left`` ``DataFrame``,

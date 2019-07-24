@@ -941,7 +941,7 @@ def read_html(
 
     Parameters
     ----------
-    io : str or file-like
+    io : str, path object or file-like object
         A URL, a file-like object, or a raw string containing HTML. Note that
         lxml only accepts the http, ftp and file url protocols. If you have a
         URL that starts with ``'https'`` you might try removing the ``'s'``.
@@ -1011,31 +1011,21 @@ def read_html(
         Character to recognize as decimal point (e.g. use ',' for European
         data).
 
-        .. versionadded:: 0.19.0
-
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels, values are functions that take one
         input argument, the cell (not column) content, and return the
         transformed content.
 
-        .. versionadded:: 0.19.0
-
     na_values : iterable, default None
         Custom NA values
-
-        .. versionadded:: 0.19.0
 
     keep_default_na : bool, default True
         If na_values are specified and keep_default_na is False the default NaN
         values are overridden, otherwise they're appended to
 
-        .. versionadded:: 0.19.0
-
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed
-
-        .. versionadded:: 0.23.0
 
     Returns
     -------

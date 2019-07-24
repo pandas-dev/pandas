@@ -79,10 +79,10 @@ def test_get_offset():
 
     for name, expected in pairs:
         offset = get_offset(name)
-        assert offset == expected, "Expected %r to yield %r (actual: %r)" % (
-            name,
-            expected,
-            offset,
+        assert (
+            offset == expected
+        ), "Expected {name!r} to yield {expected!r} (actual: {offset!r})".format(
+            name=name, expected=expected, offset=offset
         )
 
 

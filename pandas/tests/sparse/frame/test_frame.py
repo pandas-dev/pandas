@@ -1,4 +1,5 @@
 import operator
+from types import LambdaType
 
 import numpy as np
 from numpy import nan
@@ -9,6 +10,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import DataFrame, Series, bdate_range, compat
+from pandas.core import ops
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.sparse import frame as spf
 from pandas.core.sparse.api import (
@@ -135,6 +137,12 @@ class TestSparseDataFrame(SharedWithSparse):
             float_frame.reindex(idx, level=0)
 
         repr(float_frame)
+
+    def test_constructor_fill_value_not_scalar_raises(self):
+        d = {"b": [2, 3], "a": [0, 1]}
+        fill_value = np.array(np.nan)
+        with pytest.raises(ValueError, match="must be a scalar"):
+            SparseDataFrame(data=d, default_fill_value=fill_value)
 
     def test_constructor_dict_order(self):
         # GH19018
@@ -418,6 +426,13 @@ class TestSparseDataFrame(SharedWithSparse):
             sparse_result = op(a, b)
             dense_result = op(da, db)
 
+            # catch lambdas but not non-lambdas e.g. operator.add
+            if op in [operator.floordiv, ops.rfloordiv] or isinstance(op, LambdaType):
+                # GH#27231 Series sets 1//0 to np.inf, which SparseArray
+                #  does not do (yet)
+                mask = np.isinf(dense_result) & ~np.isinf(sparse_result.to_dense())
+                dense_result[mask] = np.nan
+
             fill = sparse_result.default_fill_value
             dense_result = dense_result.to_sparse(fill_value=fill)
             tm.assert_sp_frame_equal(sparse_result, dense_result, exact_indices=False)
@@ -430,7 +445,6 @@ class TestSparseDataFrame(SharedWithSparse):
                 )
 
         opnames = ["add", "sub", "mul", "truediv", "floordiv"]
-        ops = [getattr(operator, name) for name in opnames]
 
         fidx = frame.index
 
@@ -460,6 +474,7 @@ class TestSparseDataFrame(SharedWithSparse):
                 f = lambda a, b: getattr(a, op)(b, axis="index")
                 _compare_to_dense(frame, s, frame.to_dense(), s.to_dense(), f)
 
+                # FIXME: dont leave commented-out
                 # rops are not implemented
                 # _compare_to_dense(s, frame, s.to_dense(),
                 #                   frame.to_dense(), f)
@@ -473,13 +488,14 @@ class TestSparseDataFrame(SharedWithSparse):
             frame.xs(fidx[5])[:2],
         ]
 
-        for op in ops:
+        for name in opnames:
+            op = getattr(operator, name)
             for s in series:
                 _compare_to_dense(frame, s, frame.to_dense(), s, op)
                 _compare_to_dense(s, frame, s, frame.to_dense(), op)
 
         # it works!
-        result = frame + frame.loc[:, ["A", "B"]]  # noqa
+        frame + frame.loc[:, ["A", "B"]]
 
     def test_op_corners(self, float_frame, empty_frame):
         empty = empty_frame + empty_frame
@@ -522,28 +538,23 @@ class TestSparseDataFrame(SharedWithSparse):
 
         # ok, as the index gets converted to object
         frame = float_frame.copy()
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            res = frame.set_value("foobar", "B", 1.5)
+        res = frame._set_value("foobar", "B", 1.5)
         assert res.index.dtype == "object"
 
         res = float_frame
         res.index = res.index.astype(object)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            res = float_frame.set_value("foobar", "B", 1.5)
+        res = float_frame._set_value("foobar", "B", 1.5)
         assert res is not float_frame
         assert res.index[-1] == "foobar"
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert res.get_value("foobar", "B") == 1.5
+        assert res._get_value("foobar", "B") == 1.5
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            res2 = res.set_value("foobar", "qux", 1.5)
+        res2 = res._set_value("foobar", "qux", 1.5)
         assert res2 is not res
         tm.assert_index_equal(
             res2.columns, pd.Index(list(float_frame.columns) + ["qux"])
         )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert res2.get_value("foobar", "qux") == 1.5
+        assert res2._get_value("foobar", "qux") == 1.5
 
     def test_fancy_index_misc(self, float_frame):
         # axis = 0
@@ -967,7 +978,7 @@ class TestSparseDataFrame(SharedWithSparse):
         )
         tm.assert_sp_frame_equal(result, expected)
 
-        result = float_frame.rename(columns=lambda x: "%s%d" % (x, 1))
+        result = float_frame.rename(columns="{}1".format)
         data = {
             "A1": [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
             "B1": [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
