@@ -806,9 +806,7 @@ b  2""",
                 # to the target timezone
                 arr = extract_array(obj)
                 try:
-                    result = arr._from_sequence(
-                        result, dtype="datetime64[ns, UTC]"
-                    )
+                    result = arr._from_sequence(result, dtype="datetime64[ns, UTC]")
                     result = result.astype(dtype)
                 except TypeError:
                     # _try_cast was called at a point where the result
