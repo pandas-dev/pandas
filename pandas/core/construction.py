@@ -4,8 +4,6 @@ and Index.__new__.
 
 These should not depend on core.internals.
 """
-
-
 from typing import Optional, Sequence, Union, cast
 
 import numpy as np
@@ -19,7 +17,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 from pandas.core.dtypes.generic import (
-	ABCExtensionArray, ABCIndexClass, ABCPandasArray, ABCSeries
+    ABCExtensionArray, ABCIndexClass, ABCPandasArray, ABCSeries
 )
 
 
