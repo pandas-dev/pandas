@@ -829,12 +829,8 @@ def is_pos_int(value):
     ----------
     value - the value to be checked
 
-    Returns
-    ----------
-    None
-
     Raises
-    ----------
+    ------
     ValueError if value is not equal to None or int, or if value is not
     positive in the case of a int type.
 
