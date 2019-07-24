@@ -447,11 +447,9 @@ class SparseDataFrame(DataFrame):
         # always return a SparseArray!
         return clean
 
-    def get_value(self, index, col, takeable=False):
+    def _get_value(self, index, col, takeable=False):
         """
         Quickly retrieve single value at passed column and index
-
-        .. deprecated:: 0.21.0
 
         Please use .at[] or .iat[] accessors.
 
@@ -465,16 +463,6 @@ class SparseDataFrame(DataFrame):
         -------
         value : scalar value
         """
-        warnings.warn(
-            "get_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._get_value(index, col, takeable=takeable)
-
-    def _get_value(self, index, col, takeable=False):
         if takeable is True:
             series = self._iget_item_cache(col)
         else:
@@ -482,13 +470,9 @@ class SparseDataFrame(DataFrame):
 
         return series._get_value(index, takeable=takeable)
 
-    _get_value.__doc__ = get_value.__doc__
-
-    def set_value(self, index, col, value, takeable=False):
+    def _set_value(self, index, col, value, takeable=False):
         """
         Put single value at passed column and index
-
-        .. deprecated:: 0.21.0
 
         Please use .at[] or .iat[] accessors.
 
@@ -509,22 +493,10 @@ class SparseDataFrame(DataFrame):
         -------
         frame : DataFrame
         """
-        warnings.warn(
-            "set_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._set_value(index, col, value, takeable=takeable)
-
-    def _set_value(self, index, col, value, takeable=False):
         dense = self.to_dense()._set_value(index, col, value, takeable=takeable)
         return dense.to_sparse(
             kind=self._default_kind, fill_value=self._default_fill_value
         )
-
-    _set_value.__doc__ = set_value.__doc__
 
     def _slice(self, slobj, axis=0, kind=None):
         if axis == 0:

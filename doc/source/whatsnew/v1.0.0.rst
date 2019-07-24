@@ -60,7 +60,7 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+- Removed the previously deprecated :meth:`Series.get_value`, :meth:`Series.set_value`, :meth:`DataFrame.get_value`, :meth:`DataFrame.set_value` (:issue:`17739`)
 -
 -
 
@@ -70,7 +70,8 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Performance improvement in indexing with a non-unique :class:`IntervalIndex` (:issue:`27489`)
--
+- Performance improvement in `MultiIndex.is_monotonic` (:issue:`27495`)
+
 
 .. _whatsnew_1000.bug_fixes:
 
