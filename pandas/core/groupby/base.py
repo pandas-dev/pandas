@@ -158,8 +158,8 @@ transformation_kernels = frozenset(
     ]
 )
 
-# these are methods which don't belong
-# in either of the above groups
+# these are all the public methods on Grouper which don't belong
+# in either of the above lists
 groupby_other_methods = frozenset(
     [
         "agg",
