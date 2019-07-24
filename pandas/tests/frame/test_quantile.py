@@ -439,7 +439,7 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(res, exp)
 
-    def test_quantile_empty(self):
+    def test_quantile_empty_no_rows(self):
 
         # floats
         df = DataFrame(columns=["a", "b"], dtype="float64")
@@ -467,3 +467,17 @@ class TestDataFrameQuantile:
 
         # FIXME (gives NaNs instead of NaT in 0.18.1 or 0.19.0)
         # res = df.quantile(0.5, numeric_only=False)
+
+    def test_quantile_empty_no_columns(self):
+        # GH#23925 _get_numeric_data may drop all columns
+        df = pd.DataFrame(pd.date_range("1/1/18", periods=5))
+        df.columns.name = "captain tightpants"
+        result = df.quantile(0.5)
+        expected = pd.Series([], index=[], name=0.5)
+        expected.index.name = "captain tightpants"
+        tm.assert_series_equal(result, expected)
+
+        result = df.quantile([0.5])
+        expected = pd.DataFrame([], index=[0.5], columns=[])
+        expected.columns.name = "captain tightpants"
+        tm.assert_frame_equal(result, expected)
