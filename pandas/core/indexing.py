@@ -2147,9 +2147,7 @@ class _iLocIndexer(_LocationIndexer):
             )
 
 
-# Note: aside from the constructor, this and subclasses do not use any
-#  _NDFrameIndexer methods
-class _ScalarAccessIndexer(_NDFrameIndexer):
+class _ScalarAccessIndexer(_NDFrameIndexerBase):
     """ access scalars quickly """
 
     def _convert_key(self, key, is_setter: bool = False):
@@ -2305,9 +2303,6 @@ class _iAtIndexer(_ScalarAccessIndexer):
     """
 
     _takeable = True
-
-    def _has_valid_setitem_indexer(self, indexer):
-        self._has_valid_positional_setitem_indexer(indexer)
 
     def _convert_key(self, key, is_setter: bool = False):
         """ require integer args (and convert to label arguments) """
