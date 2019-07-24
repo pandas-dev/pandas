@@ -2072,6 +2072,8 @@ class _iLocIndexer(_LocationIndexer):
 
             # if the dim was reduced, then pass a lower-dim the next time
             if retval.ndim < self.ndim:
+                # TODO: this is never reached in tests; can we confirm that
+                #  it is impossible?
                 axis -= 1
 
             # try to get for the next axis
