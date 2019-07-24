@@ -3,6 +3,8 @@ missing types & inference
 """
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
@@ -203,8 +205,6 @@ def _use_inf_as_na(key):
     * http://stackoverflow.com/questions/4859217/
       programmatically-creating-variables-in-python/4859312#4859312
     """
-    from pandas._config import get_option
-
     flag = get_option(key)
     if flag:
         globals()["_isna"] = _isna_old
@@ -574,7 +574,7 @@ def is_valid_nat_for_dtype(obj, dtype):
     -------
     bool
     """
-    if not isna(obj):
+    if not lib.is_scalar(obj) or not isna(obj):
         return False
     if dtype.kind == "M":
         return not isinstance(obj, np.timedelta64)

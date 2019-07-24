@@ -1,3 +1,4 @@
+from collections import abc
 from decimal import Decimal
 from fractions import Fraction
 from numbers import Number
@@ -156,13 +157,13 @@ def is_scalar(val: object) -> bool:
 
     return (cnp.PyArray_IsAnyScalar(val)
             # PyArray_IsAnyScalar is always False for bytearrays on Py3
-            or isinstance(val, (Fraction, Number))
-            # We differ from numpy, which claims that None is not scalar;
-            # see np.isscalar
-            or val is None
             or PyDate_Check(val)
             or PyDelta_Check(val)
             or PyTime_Check(val)
+            # We differ from numpy, which claims that None is not scalar;
+            # see np.isscalar
+            or val is None
+            or isinstance(val, (Fraction, Number))
             or util.is_period_object(val)
             or is_decimal(val)
             or is_interval(val)
@@ -689,50 +690,6 @@ def generate_bins_dt64(ndarray[int64_t] values, const int64_t[:] binner,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def row_bool_subset(const float64_t[:, :] values,
-                    ndarray[uint8_t, cast=True] mask):
-    cdef:
-        Py_ssize_t i, j, n, k, pos = 0
-        ndarray[float64_t, ndim=2] out
-
-    n, k = (<object>values).shape
-    assert (n == len(mask))
-
-    out = np.empty((mask.sum(), k), dtype=np.float64)
-
-    for i in range(n):
-        if mask[i]:
-            for j in range(k):
-                out[pos, j] = values[i, j]
-            pos += 1
-
-    return out
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def row_bool_subset_object(ndarray[object, ndim=2] values,
-                           ndarray[uint8_t, cast=True] mask):
-    cdef:
-        Py_ssize_t i, j, n, k, pos = 0
-        ndarray[object, ndim=2] out
-
-    n, k = (<object>values).shape
-    assert (n == len(mask))
-
-    out = np.empty((mask.sum(), k), dtype=object)
-
-    for i in range(n):
-        if mask[i]:
-            for j in range(k):
-                out[pos, j] = values[i, j]
-            pos += 1
-
-    return out
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def get_level_sorter(const int64_t[:] label,
                      const int64_t[:] starts):
     """
@@ -884,6 +841,60 @@ cpdef bint is_interval(object obj):
 def is_period(val: object) -> bool:
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
+
+
+def is_list_like(obj: object, allow_sets: bool = True):
+    """
+    Check if the object is list-like.
+
+    Objects that are considered list-like are for example Python
+    lists, tuples, sets, NumPy arrays, and Pandas Series.
+
+    Strings and datetime objects, however, are not considered list-like.
+
+    Parameters
+    ----------
+    obj : The object to check
+    allow_sets : boolean, default True
+        If this parameter is False, sets will not be considered list-like
+
+        .. versionadded:: 0.24.0
+
+    Returns
+    -------
+    is_list_like : bool
+        Whether `obj` has list-like properties.
+
+    Examples
+    --------
+    >>> is_list_like([1, 2, 3])
+    True
+    >>> is_list_like({1, 2, 3})
+    True
+    >>> is_list_like(datetime(2017, 1, 1))
+    False
+    >>> is_list_like("foo")
+    False
+    >>> is_list_like(1)
+    False
+    >>> is_list_like(np.array([2]))
+    True
+    >>> is_list_like(np.array(2)))
+    False
+    """
+    return c_is_list_like(obj, allow_sets)
+
+
+cdef inline bint c_is_list_like(object obj, bint allow_sets):
+    return (
+        isinstance(obj, abc.Iterable)
+        # we do not count strings/unicode/bytes as list-like
+        and not isinstance(obj, (str, bytes))
+        # exclude zero-dimensional numpy arrays, effectively scalars
+        and not (util.is_array(obj) and obj.ndim == 0)
+        # exclude sets if allow_sets is False
+        and not (allow_sets is False and isinstance(obj, abc.Set))
+    )
 
 
 _TYPE_MAP = {
@@ -1181,7 +1192,9 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         # e.g. categoricals
         try:
             values = getattr(value, '_values', getattr(value, 'values', value))
-        except:
+        except TypeError:
+            # This gets hit if we have an EA, since cython expects `values`
+            #  to be an ndarray
             value = _try_infer_map(value)
             if value is not None:
                 return value
@@ -1196,8 +1209,6 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         from pandas.core.dtypes.cast import (
             construct_1d_object_array_from_listlike)
         values = construct_1d_object_array_from_listlike(value)
-
-    values = getattr(values, 'values', values)
 
     # make contiguous
     values = values.ravel()

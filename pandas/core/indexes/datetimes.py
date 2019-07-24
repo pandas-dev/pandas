@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_string_like,
 )
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
@@ -608,7 +608,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
             right_chunk = right.values[:loc]
-            dates = _concat._concat_compat((left.values, right_chunk))
+            dates = concat_compat((left.values, right_chunk))
             return self._shallow_copy(dates)
         # DTIs are not in the "correct" order and we want
         # to sort
@@ -624,7 +624,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
             right_chunk = right.values[loc:]
-            dates = _concat._concat_compat((left.values, right_chunk))
+            dates = concat_compat((left.values, right_chunk))
             return self._shallow_copy(dates)
         else:
             return left

@@ -41,10 +41,16 @@ Support an option to read a single sheet or a list of sheets.
 
 Parameters
 ----------
-io : str, file descriptor, pathlib.Path, ExcelFile or xlrd.Book
-    The string could be a URL. Valid URL schemes include http, ftp, s3,
-    gcs, and file. For file URLs, a host is expected. For instance, a local
-    file could be /path/to/workbook.xlsx.
+io : str, ExcelFile, xlrd.Book, path object or file-like object
+    Any valid string path is acceptable. The string could be a URL. Valid
+    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
+
+    If you want to pass in a path object, pandas accepts any ``os.PathLike``.
+
+    By file-like object, we refer to objects with a ``read()`` method,
+    such as a file handler (e.g. via builtin ``open`` function)
+    or ``StringIO``.
 sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
     sheet positions. Lists of strings/integers are used to request
@@ -114,14 +120,8 @@ converters : dict, default None
     content.
 true_values : list, default None
     Values to consider as True.
-
-    .. versionadded:: 0.19.0
-
 false_values : list, default None
     Values to consider as False.
-
-    .. versionadded:: 0.19.0
-
 skiprows : list-like
     Rows to skip at the beginning (0-indexed).
 nrows : int, default None

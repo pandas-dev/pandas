@@ -15,7 +15,7 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Set, Type, Union
+from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -314,8 +314,12 @@ class DataFrame(NDFrame):
         Dict can contain Series, arrays, constants, or list-like objects
 
         .. versionchanged :: 0.23.0
-           If data is a dict, argument order is maintained for Python 3.6
-           and later.
+           If data is a dict, column order follows insertion-order for
+           Python 3.6 and later.
+
+        .. versionchanged :: 0.25.0
+           If data is a list of dicts, column order follows insertion-order
+           Python 3.6 and later.
 
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
@@ -378,7 +382,7 @@ class DataFrame(NDFrame):
 
     _constructor_sliced = Series  # type: Type[Series]
     _deprecations = NDFrame._deprecations | frozenset(
-        ["get_value", "set_value", "from_items"]
+        ["from_items"]
     )  # type: FrozenSet[str]
     _accessors = set()  # type: Set[str]
 
@@ -2039,9 +2043,6 @@ class DataFrame(NDFrame):
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
             values. Each label must be 80 characters or smaller.
-
-            .. versionadded:: 0.19.0
-
         version : {114, 117}, default 114
             Version to use in the output dta file.  Version 114 can be used
             read by Stata 10 and later.  Version 117 can be read by Stata 13
@@ -2069,8 +2070,6 @@ class DataFrame(NDFrame):
               or datetime.datetime
             * Column listed in convert_dates is not in DataFrame
             * Categorical label contains more than 32,000 characters
-
-            .. versionadded:: 0.19.0
 
         See Also
         --------
@@ -2261,9 +2260,6 @@ class DataFrame(NDFrame):
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
-
-            .. versionadded:: 0.19.0
-
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
 
@@ -2783,12 +2779,9 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Getting and setting elements
 
-    def get_value(self, index, col, takeable=False):
+    def _get_value(self, index, col, takeable: bool = False):
         """
         Quickly retrieve single value at passed column and index.
-
-        .. deprecated:: 0.21.0
-            Use .at[] or .iat[] accessors instead.
 
         Parameters
         ----------
@@ -2800,18 +2793,6 @@ class DataFrame(NDFrame):
         -------
         scalar
         """
-
-        warnings.warn(
-            "get_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._get_value(index, col, takeable=takeable)
-
-    def _get_value(self, index, col, takeable=False):
-
         if takeable:
             series = self._iget_item_cache(col)
             return com.maybe_box_datetimelike(series._values[index])
@@ -2835,14 +2816,9 @@ class DataFrame(NDFrame):
         index = self.index.get_loc(index)
         return self._get_value(index, col, takeable=True)
 
-    _get_value.__doc__ = get_value.__doc__
-
-    def set_value(self, index, col, value, takeable=False):
+    def _set_value(self, index, col, value, takeable: bool = False):
         """
         Put single value at passed column and index.
-
-        .. deprecated:: 0.21.0
-            Use .at[] or .iat[] accessors instead.
 
         Parameters
         ----------
@@ -2857,16 +2833,6 @@ class DataFrame(NDFrame):
             If label pair is contained, will be reference to calling DataFrame,
             otherwise a new object.
         """
-        warnings.warn(
-            "set_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._set_value(index, col, value, takeable=takeable)
-
-    def _set_value(self, index, col, value, takeable=False):
         try:
             if takeable is True:
                 series = self._iget_item_cache(col)
@@ -2886,8 +2852,6 @@ class DataFrame(NDFrame):
             self._item_cache.pop(col, None)
 
             return self
-
-    _set_value.__doc__ = set_value.__doc__
 
     def _ixs(self, i: int, axis: int = 0):
         """
@@ -2974,7 +2938,7 @@ class DataFrame(NDFrame):
         else:
             if is_iterator(key):
                 key = list(key)
-            indexer = self.loc._convert_to_indexer(key, axis=1, raise_missing=True)
+            indexer = self.loc._get_listlike_indexer(key, axis=1, raise_missing=True)[1]
 
         # take() does not accept boolean indexers
         if getattr(indexer, "dtype", None) == bool:
@@ -3082,8 +3046,6 @@ class DataFrame(NDFrame):
         **kwargs
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by :meth:`DataFrame.query`.
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------
@@ -3202,8 +3164,6 @@ class DataFrame(NDFrame):
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
             a new DataFrame is returned.
-
-            .. versionadded:: 0.18.0.
         kwargs : dict
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by
@@ -3464,7 +3424,7 @@ class DataFrame(NDFrame):
 
     def _setitem_slice(self, key, value):
         self._check_setitem_copy()
-        self.loc._setitem_with_indexer(key, value)
+        self.loc[key] = value
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
@@ -3484,7 +3444,9 @@ class DataFrame(NDFrame):
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
-                indexer = self.loc._convert_to_indexer(key, axis=1)
+                indexer = self.loc._get_listlike_indexer(
+                    key, axis=1, raise_missing=False
+                )[1]
                 self._check_setitem_copy()
                 self.loc._setitem_with_indexer((slice(None), indexer), value)
 
@@ -5299,11 +5261,6 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
-
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
         """
         result = self.copy()
 
@@ -6233,6 +6190,75 @@ class DataFrame(NDFrame):
         else:
             return stack(self, level, dropna=dropna)
 
+    def explode(self, column: Union[str, Tuple]) -> "DataFrame":
+        """
+        Transform each element of a list-like to a row, replicating the
+        index values.
+
+        .. versionadded:: 0.25.0
+
+        Parameters
+        ----------
+        column : str or tuple
+
+        Returns
+        -------
+        DataFrame
+            Exploded lists to rows of the subset columns;
+            index will be duplicated for these rows.
+
+        Raises
+        ------
+        ValueError :
+            if columns of the frame are not unique.
+
+        See Also
+        --------
+        DataFrame.unstack : Pivot a level of the (necessarily hierarchical)
+            index labels
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format
+        Series.explode : Explode a DataFrame from list-like columns to long format.
+
+        Notes
+        -----
+        This routine will explode list-likes including lists, tuples,
+        Series, and np.ndarray. The result dtype of the subset rows will
+        be object. Scalars will be returned unchanged. Empty list-likes will
+        result in a np.nan for that row.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [[1, 2, 3], 'foo', [], [3, 4]], 'B': 1})
+        >>> df
+                   A  B
+        0  [1, 2, 3]  1
+        1        foo  1
+        2         []  1
+        3     [3, 4]  1
+
+        >>> df.explode('A')
+             A  B
+        0    1  1
+        0    2  1
+        0    3  1
+        1  foo  1
+        2  NaN  1
+        3    3  1
+        3    4  1
+        """
+
+        if not (is_scalar(column) or isinstance(column, tuple)):
+            raise ValueError("column must be a scalar")
+        if not self.columns.is_unique:
+            raise ValueError("columns must be unique")
+
+        result = self[column].explode()
+        return (
+            self.drop([column], axis=1)
+            .join(result)
+            .reindex(columns=self.columns, copy=False)
+        )
+
     def unstack(self, level=-1, fill_value=None):
         """
         Pivot a level of the (necessarily hierarchical) index labels, returning
@@ -6250,8 +6276,6 @@ class DataFrame(NDFrame):
             Level(s) of index to unstack, can pass level name
         fill_value : replace NaN with this value if the unstack produces
             missing values
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------
@@ -6335,6 +6359,7 @@ class DataFrame(NDFrame):
     %(other)s
     pivot_table
     DataFrame.pivot
+    Series.explode
 
     Examples
     --------
@@ -8138,8 +8163,6 @@ class DataFrame(NDFrame):
             * higher: `j`.
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------

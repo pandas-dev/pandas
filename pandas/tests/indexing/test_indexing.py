@@ -8,6 +8,8 @@ import weakref
 import numpy as np
 import pytest
 
+from pandas.compat import PY36
+
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
@@ -228,8 +230,10 @@ class TestFancy(Base):
         assert df["c"].dtype == np.float64
 
         df.loc[0, "c"] = "foo"
-        expected = DataFrame([{"a": 1, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}])
-        tm.assert_frame_equal(df, expected)
+        expected = DataFrame(
+            [{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}]
+        )
+        tm.assert_frame_equal(df, expected, check_like=not PY36)
 
         # GH10280
         df = DataFrame(
@@ -1244,3 +1248,18 @@ def test_ndframe_indexing_raises(idxr, error, error_message):
     frame = NDFrame(np.random.randint(5, size=(2, 2, 2)))
     with pytest.raises(error, match=error_message):
         idxr(frame)[0]
+
+
+def test_readonly_indices():
+    # GH#17192 iloc with read-only array raising TypeError
+    df = pd.DataFrame({"data": np.ones(100, dtype="float64")})
+    indices = np.array([1, 3, 6])
+    indices.flags.writeable = False
+
+    result = df.iloc[indices]
+    expected = df.loc[[1, 3, 6]]
+    tm.assert_frame_equal(result, expected)
+
+    result = df["data"].iloc[indices]
+    expected = df["data"].loc[[1, 3, 6]]
+    tm.assert_series_equal(result, expected)

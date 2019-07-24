@@ -781,9 +781,6 @@ def get_dummies(
     drop_first : bool, default False
         Whether to get k-1 dummies out of k categorical levels by removing the
         first level.
-
-        .. versionadded:: 0.18.0
-
     dtype : dtype, default np.uint8
         Data type for new columns. Only a single dtype is allowed.
 
@@ -855,7 +852,6 @@ def get_dummies(
     2  0.0  0.0  1.0
     """
     from pandas.core.reshape.concat import concat
-    from itertools import cycle
 
     dtypes_to_encode = ["object", "category"]
 
@@ -884,7 +880,7 @@ def get_dummies(
         check_len(prefix_sep, "prefix_sep")
 
         if isinstance(prefix, str):
-            prefix = cycle([prefix])
+            prefix = itertools.cycle([prefix])
         if isinstance(prefix, dict):
             prefix = [prefix[col] for col in data_to_encode.columns]
 
@@ -893,7 +889,7 @@ def get_dummies(
 
         # validate separators
         if isinstance(prefix_sep, str):
-            prefix_sep = cycle([prefix_sep])
+            prefix_sep = itertools.cycle([prefix_sep])
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
