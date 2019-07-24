@@ -2469,25 +2469,6 @@ def need_slice(obj):
     )
 
 
-def maybe_droplevels(index, key):
-    # drop levels
-    original_index = index
-    if isinstance(key, tuple):
-        for _ in key:
-            try:
-                index = index.droplevel(0)
-            except ValueError:
-                # we have dropped too much, so back out
-                return original_index
-    else:
-        try:
-            index = index.droplevel(0)
-        except ValueError:
-            pass
-
-    return index
-
-
 def _non_reducing_slice(slice_):
     """
     Ensurse that a slice doesn't reduce to a Series or Scalar.
