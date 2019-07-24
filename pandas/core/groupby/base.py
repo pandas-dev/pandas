@@ -158,6 +158,39 @@ transformation_kernels = frozenset(
     ]
 )
 
+# these are methods which don't belong
+# in either of the above groups
+groupby_other_methods = frozenset(
+    [
+        "agg",
+        "aggregate",
+        "apply",
+        "boxplot",
+        # corr and cove return a MultiIndex so the result is not like-index
+        # and therefore not a transformation
+        "corr",
+        "cov",
+        "describe",
+        "dtypes",
+        "expanding",
+        "filter",
+        "get_group",
+        "groups",
+        "head",
+        "hist",
+        "indices",
+        "ndim",
+        "ngroups",
+        "ohlc",
+        "pipe",
+        "plot",
+        "resample",
+        "rolling",
+        "tail",
+        "take",
+        "transform",
+    ]
+)
 # Valid values  of `name` for `groupby.transform(name)`
 # NOTE: do NOT edit this directly. New additions should be inserted
 # into the appropriate list above.

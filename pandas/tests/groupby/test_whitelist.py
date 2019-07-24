@@ -9,6 +9,11 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
+from pandas.core.groupby.base import (
+    groupby_other_methods,
+    reduction_kernels,
+    transformation_kernels,
+)
 from pandas.util import testing as tm
 
 AGG_FUNCTIONS = [
@@ -376,3 +381,24 @@ def test_groupby_selection_with_methods(df):
     tm.assert_frame_equal(
         g.filter(lambda x: len(x) == 3), g_exp.filter(lambda x: len(x) == 3)
     )
+
+
+def test_all_methods_categorized(mframe):
+    grp = mframe.groupby(mframe.iloc[:, 0])
+    names = {_ for _ in dir(grp) if not _.startswith("_")} - set(mframe.columns)
+    names -= reduction_kernels
+    names -= transformation_kernels
+    names -= groupby_other_methods
+
+    # each name can appear in only one list
+    assert not (reduction_kernels & transformation_kernels)
+    assert not (reduction_kernels & groupby_other_methods)
+    assert not (transformation_kernels & groupby_other_methods)
+
+    if names:
+        # each name must appear in one of the lists under
+        # pandas.core.groupby.base:
+        # - reduction_kernels
+        # - transformation_kernels
+        # - groupby_other_methods
+        raise RuntimeError("Uncatgeorized Groupby Methods: {names}".format(names=names))
