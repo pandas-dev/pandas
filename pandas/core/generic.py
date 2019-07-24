@@ -3251,7 +3251,7 @@ class NDFrame(PandasObject, SelectionMixin):
             return default
 
     def __getitem__(self, item):
-        return self._get_item_cache(item)
+        raise AbstractMethodError(self)
 
     def _get_item_cache(self, item):
         """Return the cached item, item represents a label indexer."""
