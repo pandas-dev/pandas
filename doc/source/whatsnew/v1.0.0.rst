@@ -89,7 +89,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :meth:`Series.__setitem__` incorrectly casting ``np.timedelta64("NaT")`` to ``np.datetime64("NaT")`` when inserting into a :class:`Series` with datetime64 dtype (:issue:`27311`)
--
+- Bug in :meth:`Series.dt` property lookups when the underlying data is read-only (:issue:`27529`)
 -
 
 
@@ -108,7 +108,7 @@ Timezones
 
 Numeric
 ^^^^^^^
-
+- Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
 -
 -
 
@@ -189,10 +189,6 @@ ExtensionArray
 
 -
 -
-
-
-Other
-^^^^^
 
 
 .. _whatsnew_1000.contributors:

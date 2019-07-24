@@ -8215,6 +8215,13 @@ class DataFrame(NDFrame):
         if is_transposed:
             data = data.T
 
+        if len(data.columns) == 0:
+            # GH#23925 _get_numeric_data may have dropped all columns
+            cols = Index([], name=self.columns.name)
+            if is_list_like(q):
+                return self._constructor([], index=q, columns=cols)
+            return self._constructor_sliced([], index=cols, name=q)
+
         result = data._data.quantile(
             qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
         )
