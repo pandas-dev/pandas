@@ -386,11 +386,9 @@ class SparseSeries(Series):
         else:
             return default
 
-    def get_value(self, label, takeable=False):
+    def _get_value(self, label, takeable=False):
         """
         Retrieve single value at passed index label
-
-        .. deprecated:: 0.21.0
 
         Please use .at[] or .iat[] accessors.
 
@@ -403,23 +401,10 @@ class SparseSeries(Series):
         -------
         value : scalar value
         """
-        warnings.warn(
-            "get_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return self._get_value(label, takeable=takeable)
-
-    def _get_value(self, label, takeable=False):
         loc = label if takeable is True else self.index.get_loc(label)
         return self._get_val_at(loc)
 
-    _get_value.__doc__ = get_value.__doc__
-
-    def set_value(self, label, value, takeable=False):
+    def _set_value(self, label, value, takeable=False):
         """
         Quickly set single value at passed label. If label is not contained, a
         new object is created with the label placed at the end of the result
@@ -446,16 +431,6 @@ class SparseSeries(Series):
         -------
         series : SparseSeries
         """
-        warnings.warn(
-            "set_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._set_value(label, value, takeable=takeable)
-
-    def _set_value(self, label, value, takeable=False):
         values = self.to_dense()
 
         # if the label doesn't exist, we will create a new object here
@@ -467,8 +442,6 @@ class SparseSeries(Series):
         values = SparseArray(values, fill_value=self.fill_value, kind=self.kind)
         self._data = SingleBlockManager(values, new_index)
         self._index = new_index
-
-    _set_value.__doc__ = set_value.__doc__
 
     def _set_values(self, key, value):
 
