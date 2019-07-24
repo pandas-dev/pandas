@@ -390,9 +390,8 @@ class Block(PandasObject):
         with np.errstate(all="ignore"):
             result = func(self.values, **kwargs)
         if not isinstance(result, Block):
-            # TODO: do we need this condition?  It could only fail if the user
-            #  passed a `func` that itself returned a Block
             result = self.make_block(values=_block_shape(result, ndim=self.ndim))
+
         return result
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
@@ -1829,7 +1828,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values = values.reshape((1,) + values.shape)
         return values
 
-    # TODO: should this reshape?
     def to_dense(self):
         return np.asarray(self.values)
 
@@ -2407,7 +2405,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             values = values.reshape(1, -1)
         return values
 
-    # TODO: should this reshape?
     def to_dense(self):
         # we request M8[ns] dtype here, even though it discards tzinfo,
         # as lots of code (e.g. anything using values_from_object)
