@@ -56,7 +56,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in :meth:`Series.interpolate` when using a timezone aware :class:`DatetimeIndex` (:issue:`27548`)
 -
 -
 
