@@ -10,6 +10,7 @@ from pandas._config import get_option
 
 from pandas._libs import Timedelta, Timestamp, lib
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
+from pandas._typing import AnyArrayLike
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._exceptions import rewrite_exception
 
@@ -36,7 +37,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import AnyArrayLike
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase

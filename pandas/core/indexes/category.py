@@ -7,6 +7,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex
+from pandas._typing import AnyArrayLike
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
@@ -22,7 +23,6 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import AnyArrayLike
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, contains

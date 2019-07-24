@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
+from pandas._typing import ArrayLike
 from pandas.compat import PY36
 
 from pandas.core.dtypes.dtypes import (
@@ -47,8 +48,6 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_sequence,
     is_string_like,
 )
-
-from pandas._typing import ArrayLike
 
 _POSSIBLY_CAST_DTYPES = {
     np.dtype(t).name

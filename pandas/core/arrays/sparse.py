@@ -14,6 +14,7 @@ from pandas._libs import index as libindex, lib
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
+from pandas._typing import Dtype
 import pandas.compat as compat
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -46,7 +47,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
-from pandas._typing import Dtype
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin

@@ -12,6 +12,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, lib, ops as libops
+from pandas._typing import ArrayLike
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -49,7 +50,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import ArrayLike
 import pandas.core.common as com
 
 from . import missing

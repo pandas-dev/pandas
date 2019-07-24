@@ -17,6 +17,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
+from pandas._typing import FrameOrSeries
 from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
@@ -37,7 +38,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com

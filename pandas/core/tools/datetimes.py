@@ -14,6 +14,7 @@ from pandas._libs.tslibs.parsing import (  # noqa
     parse_time_string,
 )
 from pandas._libs.tslibs.strptime import array_strptime
+from pandas._typing import ArrayLike
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -37,7 +38,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
-from pandas._typing import ArrayLike
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
 

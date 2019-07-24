@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.window as libwindow
+from pandas._typing import Axis, FrameOrSeries
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -35,7 +36,6 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 
-from pandas._typing import Axis, FrameOrSeries
 from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.generic import _shared_docs
