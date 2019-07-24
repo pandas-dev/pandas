@@ -226,7 +226,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
     def _has_valid_tuple(self, key: Tuple):
         """ check the key for valid keys across my indexer """
         for i, k in enumerate(key):
-            if i >= self.obj.ndim:
+            if i >= self.ndim:
                 raise IndexingError("Too many indexers")
             try:
                 self._validate_key(k, i)
@@ -254,7 +254,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     keyidx.append(slice(None))
         else:
             for i, k in enumerate(key):
-                if i >= self.obj.ndim:
+                if i >= self.ndim:
                     raise IndexingError("Too many indexers")
                 idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
                 keyidx.append(idx)
@@ -670,7 +670,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             aligners = [not com.is_null_slice(idx) for idx in indexer]
             sum_aligners = sum(aligners)
             single_aligner = sum_aligners == 1
-            is_frame = self.obj.ndim == 2
+            is_frame = self.ndim == 2
             obj = self.obj
 
             # are we a single alignable value on a non-primary
@@ -731,7 +731,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         raise ValueError("Incompatible indexer with Series")
 
     def _align_frame(self, indexer, df: ABCDataFrame):
-        is_frame = self.obj.ndim == 2
+        is_frame = self.ndim == 2
 
         if isinstance(indexer, tuple):
 
@@ -867,7 +867,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         except KeyError as ek:
             # raise KeyError if number of indexers match
             # else IndexingError will be raised
-            if len(tup) <= self.obj.index.nlevels and len(tup) > self.obj.ndim:
+            if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
                 raise ek
         except Exception as e1:
             if isinstance(tup[0], (slice, Index)):
@@ -900,7 +900,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if result is not None:
                 return result
 
-        if len(tup) > self.obj.ndim:
+        if len(tup) > self.ndim:
             raise IndexingError("Too many indexers. handle elsewhere")
 
         # to avoid wasted computation
@@ -2174,7 +2174,7 @@ class _ScalarAccessIndexer(_NDFrameIndexerBase):
 
         if not isinstance(key, tuple):
             key = _tuplify(self.ndim, key)
-        if len(key) != self.obj.ndim:
+        if len(key) != self.ndim:
             raise ValueError("Not enough indexers for scalar access (setting)!")
         key = list(self._convert_key(key, is_setter=True))
         key.append(value)
