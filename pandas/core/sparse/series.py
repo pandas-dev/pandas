@@ -114,6 +114,11 @@ class SparseSeries(Series):
         elif is_scalar(data) and index is not None:
             data = np.full(len(index), fill_value=data)
 
+        if isinstance(data, SingleBlockManager):
+            # SparseArray doesn't accept SingleBlockManager
+            index = data.index
+            data = data.blocks[0].values
+
         super().__init__(
             SparseArray(
                 data,
