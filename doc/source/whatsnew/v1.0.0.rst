@@ -108,7 +108,7 @@ Timezones
 
 Numeric
 ^^^^^^^
-
+- Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
 -
 -
 
@@ -189,10 +189,6 @@ ExtensionArray
 
 -
 -
-
-
-Other
-^^^^^
 
 
 .. _whatsnew_1000.contributors:
