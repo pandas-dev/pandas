@@ -401,7 +401,7 @@ def test_all_methods_categorized(mframe):
 There are uncatgeorized methods defined on the Grouper class:
 {names}.
 
-IWas a new method just added?
+Was a new method recently added?
 
 Every public method On Grouper must appear in exactly one the
 following three lists defined in pandas.core.groupby.base:
