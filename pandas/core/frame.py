@@ -382,7 +382,7 @@ class DataFrame(NDFrame):
 
     _constructor_sliced = Series  # type: Type[Series]
     _deprecations = NDFrame._deprecations | frozenset(
-        ["get_value", "set_value", "from_items"]
+        ["from_items"]
     )  # type: FrozenSet[str]
     _accessors = set()  # type: Set[str]
 
@@ -2043,9 +2043,6 @@ class DataFrame(NDFrame):
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
             values. Each label must be 80 characters or smaller.
-
-            .. versionadded:: 0.19.0
-
         version : {114, 117}, default 114
             Version to use in the output dta file.  Version 114 can be used
             read by Stata 10 and later.  Version 117 can be read by Stata 13
@@ -2073,8 +2070,6 @@ class DataFrame(NDFrame):
               or datetime.datetime
             * Column listed in convert_dates is not in DataFrame
             * Categorical label contains more than 32,000 characters
-
-            .. versionadded:: 0.19.0
 
         See Also
         --------
@@ -2265,9 +2260,6 @@ class DataFrame(NDFrame):
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
-
-            .. versionadded:: 0.19.0
-
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
 
@@ -2787,12 +2779,9 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Getting and setting elements
 
-    def get_value(self, index, col, takeable=False):
+    def _get_value(self, index, col, takeable: bool = False):
         """
         Quickly retrieve single value at passed column and index.
-
-        .. deprecated:: 0.21.0
-            Use .at[] or .iat[] accessors instead.
 
         Parameters
         ----------
@@ -2804,18 +2793,6 @@ class DataFrame(NDFrame):
         -------
         scalar
         """
-
-        warnings.warn(
-            "get_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._get_value(index, col, takeable=takeable)
-
-    def _get_value(self, index, col, takeable=False):
-
         if takeable:
             series = self._iget_item_cache(col)
             return com.maybe_box_datetimelike(series._values[index])
@@ -2839,14 +2816,9 @@ class DataFrame(NDFrame):
         index = self.index.get_loc(index)
         return self._get_value(index, col, takeable=True)
 
-    _get_value.__doc__ = get_value.__doc__
-
-    def set_value(self, index, col, value, takeable=False):
+    def _set_value(self, index, col, value, takeable: bool = False):
         """
         Put single value at passed column and index.
-
-        .. deprecated:: 0.21.0
-            Use .at[] or .iat[] accessors instead.
 
         Parameters
         ----------
@@ -2861,16 +2833,6 @@ class DataFrame(NDFrame):
             If label pair is contained, will be reference to calling DataFrame,
             otherwise a new object.
         """
-        warnings.warn(
-            "set_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._set_value(index, col, value, takeable=takeable)
-
-    def _set_value(self, index, col, value, takeable=False):
         try:
             if takeable is True:
                 series = self._iget_item_cache(col)
@@ -2890,8 +2852,6 @@ class DataFrame(NDFrame):
             self._item_cache.pop(col, None)
 
             return self
-
-    _set_value.__doc__ = set_value.__doc__
 
     def _ixs(self, i: int, axis: int = 0):
         """
@@ -2978,7 +2938,7 @@ class DataFrame(NDFrame):
         else:
             if is_iterator(key):
                 key = list(key)
-            indexer = self.loc._convert_to_indexer(key, axis=1, raise_missing=True)
+            indexer = self.loc._get_listlike_indexer(key, axis=1, raise_missing=True)[1]
 
         # take() does not accept boolean indexers
         if getattr(indexer, "dtype", None) == bool:
@@ -3204,8 +3164,6 @@ class DataFrame(NDFrame):
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
             a new DataFrame is returned.
-
-            .. versionadded:: 0.18.0.
         kwargs : dict
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by
@@ -3466,7 +3424,7 @@ class DataFrame(NDFrame):
 
     def _setitem_slice(self, key, value):
         self._check_setitem_copy()
-        self.loc._setitem_with_indexer(key, value)
+        self.loc[key] = value
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
@@ -3486,7 +3444,9 @@ class DataFrame(NDFrame):
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
-                indexer = self.loc._convert_to_indexer(key, axis=1)
+                indexer = self.loc._get_listlike_indexer(
+                    key, axis=1, raise_missing=False
+                )[1]
                 self._check_setitem_copy()
                 self.loc._setitem_with_indexer((slice(None), indexer), value)
 
@@ -6317,8 +6277,6 @@ class DataFrame(NDFrame):
         fill_value : replace NaN with this value if the unstack produces
             missing values
 
-            .. versionadded:: 0.18.0
-
         Returns
         -------
         Series or DataFrame
@@ -8256,6 +8214,13 @@ class DataFrame(NDFrame):
 
         if is_transposed:
             data = data.T
+
+        if len(data.columns) == 0:
+            # GH#23925 _get_numeric_data may have dropped all columns
+            cols = Index([], name=self.columns.name)
+            if is_list_like(q):
+                return self._constructor([], index=q, columns=cols)
+            return self._constructor_sliced([], index=cols, name=q)
 
         result = data._data.quantile(
             qs=q, axis=1, interpolation=interpolation, transposed=is_transposed

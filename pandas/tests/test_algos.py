@@ -1685,12 +1685,6 @@ def test_pad_backfill_object_segfault():
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_arrmap():
-    values = np.array(["foo", "foo", "bar", "bar", "baz", "qux"], dtype="O")
-    result = libalgos.arrmap_object(values, lambda x: x in ["foo", "bar"])
-    assert result.dtype == np.bool_
-
-
 class TestTseriesUtil:
     def test_combineFunc(self):
         pass

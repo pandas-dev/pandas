@@ -42,7 +42,7 @@ import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
 from pandas.core.groupby import base
 from pandas.core.groupby.groupby import GroupBy, _apply_docs, _transform_template
 from pandas.core.index import Index, MultiIndex
@@ -1025,8 +1025,8 @@ class SeriesGroupBy(GroupBy):
             object.__setattr__(group, "name", name)
             res = wrapper(group)
 
-            if hasattr(res, "values"):
-                res = res.values
+            if isinstance(res, (ABCDataFrame, ABCSeries)):
+                res = res._values
 
             indexer = self._get_index(name)
             s = klass(res, indexer)
