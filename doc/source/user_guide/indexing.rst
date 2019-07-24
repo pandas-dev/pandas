@@ -206,11 +206,11 @@ as an attribute:
 
 .. warning::
 
-   - You can use this access only if the index element is a valid Python identifier, e.g. ``s.1`` is not allowed.
+   - You can use this access only if the index element is a valid Python identifier, e.g. ``s.1`` is not allowed, but neither is ``s['1']``.
      See `here for an explanation of valid identifiers
      <https://docs.python.org/3/reference/lexical_analysis.html#identifiers>`__.
 
-   - The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed.
+   - The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed, but ``s['min']``is possible.
 
    - Similarly, the attribute will not be available if it conflicts with any of the following list: ``index``,
      ``major_axis``, ``minor_axis``, ``items``.
@@ -236,7 +236,7 @@ new column. In 0.21.0 and later, this will raise a ``UserWarning``:
 .. code-block:: ipython
 
     In [1]: df = pd.DataFrame({'one': [1., 2., 3.]})
-    In [2]: df['two'] = [4, 5, 6]
+    In [2]: df.two = [4, 5, 6]
     UserWarning: Pandas doesn't allow Series to be assigned into nonexistent columns - see https://pandas.pydata.org/pandas-docs/stable/indexing.html#attribute_access
     In [3]: df
     Out[3]:
@@ -552,7 +552,7 @@ You can use callable indexing in ``Series``.
 
 .. ipython:: python
 
-   df1.A.loc[lambda s: s > 0]
+   df1['A']loc[lambda s: s > 0]
 
 Using these methods / indexers, you can chain data selection operations
 without using a temporary variable.
@@ -1352,7 +1352,7 @@ You can negate boolean expressions with the word ``not`` or the ``~`` operator.
    df['bools'] = np.random.rand(len(df)) > 0.5
    df.query('~bools')
    df.query('not bools')
-   df.query('not bools') == df[~df.bools]
+   df.query('not bools') == df[~df['bools']]
 
 Of course, expressions can be arbitrarily complex too:
 
@@ -1362,7 +1362,7 @@ Of course, expressions can be arbitrarily complex too:
    shorter = df.query('a < b < c and (not bools) or bools > 2')
 
    # equivalent in pure Python
-   longer = df[(df['a'] < df['b']) & (df['b'] < df['c']) & (~df.bools) | (df.bools > 2)]
+   longer = df[(df['a'] < df['b']) & (df['b'] < df['c']) & (~df['bools']) | (df['bools'] > 2)]
 
    shorter
    longer
@@ -1835,14 +1835,14 @@ chained indexing expression, you can set the :ref:`option <options>`
 
    # This will show the SettingWithCopyWarning
    # but the frame values will be set
-   dfb['c'][dfb.a.str.startswith('o')] = 42
+   dfb['c'][dfb['a'].str.startswith('o')] = 42
 
 This however is operating on a copy and will not work.
 
 ::
 
    >>> pd.set_option('mode.chained_assignment','warn')
-   >>> dfb[dfb.a.str.startswith('o')]['c'] = 42
+   >>> dfb[dfb['a'].str.startswith('o')]['c'] = 42
    Traceback (most recent call last)
         ...
    SettingWithCopyWarning:

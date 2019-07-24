@@ -393,15 +393,15 @@ Consider the following toy example of doubling each observation:
 .. code-block:: ipython
 
    # Custom function without numba
-   In [5]: %timeit df['col1_doubled'] = df.a.apply(double_every_value_nonumba)  # noqa E501
+   In [5]: %timeit df['col1_doubled'] = df['a'].apply(double_every_value_nonumba)  # noqa E501
    1000 loops, best of 3: 797 us per loop
 
    # Standard implementation (faster than a custom function)
-   In [6]: %timeit df['col1_doubled'] = df.a * 2
+   In [6]: %timeit df['col1_doubled'] = df['a'] * 2
    1000 loops, best of 3: 233 us per loop
 
    # Custom function with numba
-   In [7]: %timeit (df['col1_doubled'] = double_every_value_withnumba(df.a.to_numpy())
+   In [7]: %timeit (df['col1_doubled'] = double_every_value_withnumba(df['a'].to_numpy())
    1000 loops, best of 3: 145 us per loop
 
 Caveats
@@ -475,7 +475,7 @@ These operations are supported by :func:`pandas.eval`:
 * Comparison operations, including chained comparisons, e.g., ``2 < df < df2``
 * Boolean operations, e.g., ``df < df2 and df3 < df4 or not df_bool``
 * ``list`` and ``tuple`` literals, e.g., ``[1, 2]`` or ``(1, 2)``
-* Attribute access, e.g., ``df.a``
+* Attribute access, e.g., ``df['a']``
 * Subscript expressions, e.g., ``df[0]``
 * Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
 * Math functions: `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
@@ -643,8 +643,8 @@ The equivalent in standard Python would be
 .. ipython:: python
 
    df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
-   df['c'] = df.a + df.b
-   df['d'] = df.a + df.b + df.c
+   df['c'] = df['a'] + df['b']
+   df['d'] = df['a'] + df['b'] + df['c']
    df['a'] = 1
    df
 
@@ -688,7 +688,7 @@ name in an expression.
 
    a = np.random.randn()
    df.query('@a < a')
-   df.loc[a < df.a]  # same as the previous expression
+   df.loc[a < df['a']]  # same as the previous expression
 
 With :func:`pandas.eval` you cannot use the ``@`` prefix *at all*, because it
 isn't defined in that context. ``pandas`` will let you know this if you try to
