@@ -867,7 +867,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         axis = self.axis or 0
         try:
             # fast path for series or for tup devoid of slices
-            return self._get_label(tup, axis=axis)
+            return self._get_label(tup, axis=axis)  # type: ignore
         except TypeError:
             # slices are unhashable
             pass
@@ -966,7 +966,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # this is a series with a multi-index specified a tuple of
             # selectors
             axis = self.axis or 0
-            return self._getitem_axis(tup, axis=axis)
+            return self._getitem_axis(tup, axis=axis)  # type: ignore
 
         # handle the multi-axis by taking sections and reducing
         # this is iterative
