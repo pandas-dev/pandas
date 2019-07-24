@@ -1302,7 +1302,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
                     result = _trim_zeros_complex(values, na_rep)
                 else:
                     result = _trim_zeros_float(values, na_rep)
-                return np.array(result, dtype="object")
+                return np.asarray(result, dtype="object")
 
             return values
 

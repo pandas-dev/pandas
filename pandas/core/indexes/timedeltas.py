@@ -299,7 +299,7 @@ class TimedeltaIndex(
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
         from pandas.io.formats.format import Timedelta64Formatter
 
-        return np.array(
+        return np.asarray(
             Timedelta64Formatter(
                 values=self, nat_rep=na_rep, justify="all"
             ).get_result()
