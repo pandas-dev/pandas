@@ -1472,17 +1472,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             labels = [labels]
 
         err_msg = (
-            'The parameter "labels" may be an Index or a list-like '
-            "and it must be of the same length is the calling Series."
+            'The parameter "labels" may be a column key, one-dimensional '
+            "array, or a list containing only "
+            "one-dimensional arrays."
         )
 
-        if isinstance(
-            labels, (ABCIndexClass, ABCSeries, np.ndarray, list, abc.Iterator)
-        ):
-            # arrays are fine as long as they are one-dimensional
-            # iterators get converted to list below
-            if getattr(labels, "ndim", 1) != 1:
-                raise ValueError(err_msg)
+        for col in labels:
+            if isinstance(
+                col, (ABCIndexClass, ABCSeries, np.ndarray, list, abc.Iterator)
+            ):
+                # arrays are fine as long as they are one-dimensional
+                # iterators get converted to list below
+                if getattr(col, "ndim", 1) != 1:
+                    raise ValueError(err_msg)
 
         if inplace:
             ser = self
@@ -1490,6 +1492,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             ser = self.copy()
 
         arrays = []
+        names = []
         if append:
             names = [x for x in self.index.names]
             if isinstance(self.index, ABCMultiIndex):
@@ -1497,8 +1500,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     arrays.append(self.index._get_level_values(i))
             else:
                 arrays.append(self.index)
-        else:
-            names = []
 
         for col in labels:
             if isinstance(col, ABCMultiIndex):
@@ -1509,18 +1510,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # if Index then not MultiIndex (treated above)
                 arrays.append(col)
                 names.append(col.name)
-            elif isinstance(col, (np.ndarray,)):
+            elif isinstance(col, (list, np.ndarray)):
                 arrays.append(col)
                 names.append(None)
             elif isinstance(col, abc.Iterator):
                 arrays.append(list(col))
                 names.append(None)
+            # from here, col can only be a column label
             else:
-                msg = "Passing type '{typ}' in labels is not allowed"
-                raise ValueError(msg.format(typ=type(col)))
+                raise ValueError("MultiIndex Levels must be array-like")
 
             if len(arrays[-1]) != len(self):
-                # check newest element against length of calling series, since
+                # check newest element against length of calling ser, since
                 # ensure_index_from_sequences would not raise for append=False.
                 raise ValueError(
                     "Length mismatch: Expected {len_self} rows, "

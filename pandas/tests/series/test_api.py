@@ -803,7 +803,7 @@ class TestCategoricalSeries:
         tm.assert_series_equal(res, exp)
 
     def test_set_index_raises(self):
-        ser = pd.Series([[0], [1], [2]])  # not allowed
+        ser = pd.Series([0, 1, 2])
 
-        with pytest.raises(ValueError, match="not allowed"):
-            ser.set_index([["a"]])
+        with pytest.raises(ValueError, match="must be array"):
+            ser.set_index(["A", "B", "C"])
