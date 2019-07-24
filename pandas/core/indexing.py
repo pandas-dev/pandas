@@ -1747,9 +1747,10 @@ class _LocIndexer(_LocationIndexer):
             if isinstance(key, str) and labels.levels[0].is_all_dates:
                 # Convert key '2016-01-01' to
                 # ('2016-01-01'[, slice(None, None, None)]+)
-                list_items = [key]  # type: List[Union[slice,str]]
-                list_items += [slice(None)] * (len(labels.levels) - 1)
-                key = tuple(list_items)
+                key = tuple(
+                    # https://github.com/python/mypy/issues/5492
+                    [key] + [slice(None)] * (len(labels.levels) - 1)  # type: ignore
+                )
 
             if isinstance(key, tuple):
                 # Convert (..., '2016-01-01', ...) in tuple to
