@@ -49,6 +49,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
 from pandas.core.arrays import Categorical, ExtensionArray, period_array
+from pandas.core.construction import extract_array
 from pandas.core.index import (
     Index,
     _get_objs_combined_axis,
@@ -60,7 +61,6 @@ from pandas.core.internals import (
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
 )
-from pandas.core.internals.arrays import extract_array
 
 # ---------------------------------------------------------------------
 # BlockManager Interface

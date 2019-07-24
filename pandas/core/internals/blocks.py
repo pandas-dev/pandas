@@ -77,12 +77,12 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
     is_scalar_indexer,
 )
-from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
 

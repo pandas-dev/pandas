@@ -61,6 +61,7 @@ from pandas.core.arrays import ExtensionArray, SparseArray
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.index import (
     Float64Index,
     Index,
@@ -801,8 +802,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any
     ):
         # TODO: handle DataFrame
-        from pandas.core.internals.construction import extract_array
-
         cls = type(self)
 
         # for binary ops, use our custom dunder methods

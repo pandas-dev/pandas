@@ -60,6 +60,7 @@ from pandas.core.algorithms import (
 )
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
 
@@ -2162,8 +2163,6 @@ class Categorical(ExtensionArray, PandasObject):
             If (one or more) Value is not in categories or if a assigned
             `Categorical` does not have the same categories
         """
-        from pandas.core.internals.arrays import extract_array
-
         value = extract_array(value, extract_numpy=True)
 
         # require identical categories set
