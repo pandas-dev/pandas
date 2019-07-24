@@ -83,6 +83,14 @@ As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
 tab completed. ``E`` is there as well; the rest of the attributes have been
 truncated for brevity.
 
+.. note::
+
+Adding a column to a DataFrame is relatively fast. Adding a row, however,
+requires a full copy of the data and a construction of a new Index, which
+may be expensive. Rather than iteratively building a DataFrame by
+appending records, we recommend passing the pre-built list of records
+to the DataFrame constructor. See :ref:`Appending to dataframe <merging.concatenation>` for more.
+
 Viewing data
 ------------
 
