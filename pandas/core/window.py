@@ -240,7 +240,7 @@ class _Window(PandasObject, SelectionMixin):
 
         return values
 
-    def _wrap_result(self, result, block=None, obj=None) -> FrameOrSeries:
+    def _wrap_result(self, result, block=None, obj=None):
         """
         Wrap a single result.
         """
