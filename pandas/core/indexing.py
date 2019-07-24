@@ -286,7 +286,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             raise IndexError("{0} cannot enlarge its target object".format(self.name))
         else:
             if not isinstance(indexer, tuple):
-                indexer = self._tuplify(indexer)
+                indexer = _tuplify(self.ndim, indexer)
             for ax, i in zip(self.obj.axes, indexer):
                 if isinstance(i, slice):
                     # should check the stop slice?
@@ -401,7 +401,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             assert info_axis == 1
 
             if not isinstance(indexer, tuple):
-                indexer = self._tuplify(indexer)
+                indexer = _tuplify(self.ndim, indexer)
 
             if isinstance(value, ABCSeries):
                 value = self._align_series(indexer, value)
@@ -1273,11 +1273,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 if not is_list_like_indexer(obj) and is_setter:
                     return {"key": obj}
                 raise
-
-    def _tuplify(self, loc):
-        tup = [slice(None, None) for _ in range(self.ndim)]
-        tup[0] = loc
-        return tuple(tup)
 
     def _get_slice_axis(self, slice_obj: slice, axis: int):
         # caller is responsible for ensuring non-None axis
@@ -2152,6 +2147,8 @@ class _iLocIndexer(_LocationIndexer):
             )
 
 
+# Note: aside from the constructor, this and subclasses do not use any
+#  _NDFrameIndexer methods
 class _ScalarAccessIndexer(_NDFrameIndexer):
     """ access scalars quickly """
 
@@ -2178,7 +2175,7 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
             key = com.apply_if_callable(key, self.obj)
 
         if not isinstance(key, tuple):
-            key = self._tuplify(key)
+            key = _tuplify(self.ndim, key)
         if len(key) != self.obj.ndim:
             raise ValueError("Not enough indexers for scalar access (setting)!")
         key = list(self._convert_key(key, is_setter=True))
@@ -2318,6 +2315,12 @@ class _iAtIndexer(_ScalarAccessIndexer):
             if not is_integer(i):
                 raise ValueError("iAt based indexing can only have integer indexers")
         return key
+
+
+def _tuplify(ndim: int, loc) -> tuple:
+    tup = [slice(None, None) for _ in range(ndim)]
+    tup[0] = loc
+    return tuple(tup)
 
 
 def convert_to_index_sliceable(obj, key):
