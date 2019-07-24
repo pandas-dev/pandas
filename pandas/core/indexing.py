@@ -1754,8 +1754,8 @@ class _LocIndexer(_LocationIndexer):
 
             # convert various list-like indexers
             # to a list of keys
-            # we will use the *values* of the object
-            # and NOT the index if its a PandasObject
+            # even if the object has an index,
+            # we use the *values* of the object
             if isinstance(labels, MultiIndex):
 
                 if isinstance(key, (ABCSeries, np.ndarray)) and key.ndim <= 1:
