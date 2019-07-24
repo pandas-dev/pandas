@@ -3346,11 +3346,8 @@ class NDFrame(PandasObject, SelectionMixin):
         if clear:
             self._clear_item_cache()
 
-    def _clear_item_cache(self, i=None):
-        if i is not None:
-            self._item_cache.pop(i, None)
-        else:
-            self._item_cache.clear()
+    def _clear_item_cache(self):
+        self._item_cache.clear()
 
     def _slice(self, slobj, axis=0, kind=None):
         """
