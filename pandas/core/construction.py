@@ -537,7 +537,7 @@ def _try_cast(arr, dtype, copy, raise_cast_failure):
         if is_categorical_dtype(dtype):
             # We *do* allow casting to categorical, since we know
             # that Categorical is the only array type for 'category'.
-            subarr = dtype.construct_array_type(
+            subarr = dtype.construct_array_type()(
                 arr, dtype.categories, ordered=dtype._ordered)
         elif is_extension_array_dtype(dtype):
             # create an extension array from its dtype
