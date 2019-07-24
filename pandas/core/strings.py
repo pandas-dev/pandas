@@ -763,7 +763,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
     Index.
 
     """
-    from pandas import DataFrame, Index
+    from pandas import DataFrame
 
     regex = re.compile(pat, flags=flags)
     groups_or_na = _groups_or_na_fun(regex)
@@ -772,7 +772,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
         result = np.array([groups_or_na(val)[0] for val in arr], dtype=object)
         name = _get_single_group_name(regex)
     else:
-        if isinstance(arr, Index):
+        if isinstance(arr, ABCIndexClass):
             raise ValueError("only one regex group is supported with Index")
         name = None
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
@@ -836,8 +836,6 @@ def str_extract(arr, pat, flags=0, expand=True):
         If True, return DataFrame with one column per capture group.
         If False, return a Series/Index if there is one capture group
         or DataFrame if there are multiple capture groups.
-
-        .. versionadded:: 0.18.0
 
     Returns
     -------
@@ -915,8 +913,6 @@ def str_extractall(arr, pat, flags=0):
     matches of regular expression pat. When each subject string in the
     Series has exactly one match, extractall(pat).xs(0, level='match')
     is the same as extract(pat).
-
-    .. versionadded:: 0.18.0
 
     Parameters
     ----------
@@ -2003,7 +1999,7 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
-        elif expand is True and not isinstance(self._orig, Index):
+        elif expand is True and not isinstance(self._orig, ABCIndexClass):
             # required when expand=True is explicitly specified
             # not needed when inferred
 
@@ -2036,7 +2032,7 @@ class StringMethods(NoNewAttributesMixin):
 
         # Wait until we are sure result is a Series or Index before
         # checking attributes (GH 12180)
-        if isinstance(self._orig, Index):
+        if isinstance(self._orig, ABCIndexClass):
             # if result is a boolean np.array, return the np.array
             # instead of wrapping it into a boolean Index (GH 8875)
             if is_bool_dtype(result):
@@ -2084,10 +2080,10 @@ class StringMethods(NoNewAttributesMixin):
         # Once str.cat defaults to alignment, this function can be simplified;
         # will not need `ignore_index` and the second boolean output anymore
 
-        from pandas import Index, Series, DataFrame
+        from pandas import Series, DataFrame
 
         # self._orig is either Series or Index
-        idx = self._orig if isinstance(self._orig, Index) else self._orig.index
+        idx = self._orig if isinstance(self._orig, ABCIndexClass) else self._orig.index
 
         err_msg = (
             "others must be Series, Index, DataFrame, np.ndarray or "
@@ -2099,14 +2095,14 @@ class StringMethods(NoNewAttributesMixin):
         # `idx` of the calling Series/Index - i.e. must have matching length.
         # Objects with an index (i.e. Series/Index/DataFrame) keep their own
         # index, *unless* ignore_index is set to True.
-        if isinstance(others, Series):
+        if isinstance(others, ABCSeries):
             warn = not others.index.equals(idx)
             # only reconstruct Series when absolutely necessary
             los = [
                 Series(others.values, index=idx) if ignore_index and warn else others
             ]
             return (los, warn)
-        elif isinstance(others, Index):
+        elif isinstance(others, ABCIndexClass):
             warn = not others.equals(idx)
             los = [Series(others.values, index=(idx if ignore_index else others))]
             return (los, warn)
@@ -2139,12 +2135,14 @@ class StringMethods(NoNewAttributesMixin):
                     # only allowing Series/Index/np.ndarray[1-dim] will greatly
                     # simply this function post-deprecation.
                     if not (
-                        isinstance(nxt, (Series, Index))
+                        isinstance(nxt, (Series, ABCIndexClass))
                         or (isinstance(nxt, np.ndarray) and nxt.ndim == 1)
                     ):
                         depr_warn = True
 
-                    if not isinstance(nxt, (DataFrame, Series, Index, np.ndarray)):
+                    if not isinstance(
+                        nxt, (DataFrame, Series, ABCIndexClass, np.ndarray)
+                    ):
                         # safety for non-persistent list-likes (e.g. iterators)
                         # do not map indexed/typed objects; info needed below
                         nxt = list(nxt)
@@ -2152,7 +2150,7 @@ class StringMethods(NoNewAttributesMixin):
                     # known types for which we can avoid deep inspection
                     no_deep = (
                         isinstance(nxt, np.ndarray) and nxt.ndim == 1
-                    ) or isinstance(nxt, (Series, Index))
+                    ) or isinstance(nxt, (Series, ABCIndexClass))
                     # nested list-likes are forbidden:
                     # -> elements of nxt must not be list-like
                     is_legal = (no_deep and nxt.dtype == object) or all(
@@ -2325,7 +2323,7 @@ class StringMethods(NoNewAttributesMixin):
         if sep is None:
             sep = ""
 
-        if isinstance(self._orig, Index):
+        if isinstance(self._orig, ABCIndexClass):
             data = Series(self._orig, index=self._orig)
         else:  # Series
             data = self._orig
@@ -2411,7 +2409,7 @@ class StringMethods(NoNewAttributesMixin):
             # no NaNs - can just concatenate
             result = cat_safe(all_cols, sep)
 
-        if isinstance(self._orig, Index):
+        if isinstance(self._orig, ABCIndexClass):
             # add dtype for case that result is all-NA
             result = Index(result, dtype=object, name=self._orig.name)
         else:  # Series

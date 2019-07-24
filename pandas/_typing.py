@@ -34,3 +34,4 @@ Axes = Iterable[Union[ABCIndexClass, Iterable[str]]]
 
 FrameOrSeries = TypeVar("FrameOrSeries", ABCSeries, ABCDataFrame)
 Scalar = Union[str, int, float]
+Axis = Union[str, int]

@@ -120,14 +120,8 @@ converters : dict, default None
     content.
 true_values : list, default None
     Values to consider as True.
-
-    .. versionadded:: 0.19.0
-
 false_values : list, default None
     Values to consider as False.
-
-    .. versionadded:: 0.19.0
-
 skiprows : list-like
     Rows to skip at the beginning (0-indexed).
 nrows : int, default None

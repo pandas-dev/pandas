@@ -30,7 +30,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_datetime64_any_dtype,
-    is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_dict_like,
     is_extension_array_dtype,
@@ -997,11 +996,6 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         swapped : same type as caller (new object)
-
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
         """
         axis = self._get_axis_number(axis)
         result = self.copy()
@@ -2333,8 +2327,6 @@ class NDFrame(PandasObject, SelectionMixin):
             throw ValueError if incorrect 'orient' since others are not list
             like.
 
-            .. versionadded:: 0.19.0
-
         compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
 
             A string representing the compression to use in the output file,
@@ -2991,8 +2983,6 @@ class NDFrame(PandasObject, SelectionMixin):
             defaults to 'utf-8'.
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
-
-            .. versionadded:: 0.18.0
         multicolumn : bool, default True
             Use \multicolumn to enhance MultiIndex columns.
             The default will be read from the config module.
@@ -6038,6 +6028,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         converted : same as input object
         """
+        validate_bool_kwarg(datetime, "datetime")
+        validate_bool_kwarg(numeric, "numeric")
+        validate_bool_kwarg(timedelta, "timedelta")
+        validate_bool_kwarg(coerce, "coerce")
+        validate_bool_kwarg(copy, "copy")
         return self._constructor(
             self._data.convert(
                 datetime=datetime,
@@ -6819,14 +6814,6 @@ class NDFrame(PandasObject, SelectionMixin):
               `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
               scipy 0.18.
-
-            .. versionadded:: 0.18.1
-
-               Added support for the 'akima' method.
-               Added interpolate method 'from_derivatives' which replaces
-               'piecewise_polynomial' in SciPy 0.18; backwards-compatible with
-               SciPy < 0.18
-
         axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to interpolate along.
         limit : int, optional
@@ -7035,7 +7022,7 @@ class NDFrame(PandasObject, SelectionMixin):
             methods = {"index", "values", "nearest", "time"}
             is_numeric_or_datetime = (
                 is_numeric_dtype(index)
-                or is_datetime64_dtype(index)
+                or is_datetime64_any_dtype(index)
                 or is_timedelta64_dtype(index)
             )
             if method not in methods and not is_numeric_or_datetime:
@@ -7087,8 +7074,6 @@ class NDFrame(PandasObject, SelectionMixin):
         NaN is taken.
         In case of a :class:`~pandas.DataFrame`, the last row without NaN
         considering only the subset of columns (if not `None`)
-
-        .. versionadded:: 0.19.0 For DataFrame
 
         If there is no good value, NaN is returned for a Series or
         a Series of NaN values for a DataFrame
@@ -8207,13 +8192,9 @@ class NDFrame(PandasObject, SelectionMixin):
             For a DataFrame, column to use instead of index for resampling.
             Column must be datetime-like.
 
-            .. versionadded:: 0.19.0
-
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
-
-            .. versionadded:: 0.19.0
 
         Returns
         -------
@@ -9140,20 +9121,12 @@ class NDFrame(PandasObject, SelectionMixin):
             If `cond` is callable, it is computed on the %(klass)s and
             should return boolean %(klass)s or array. The callable must
             not change input %(klass)s (though pandas doesn't check it).
-
-            .. versionadded:: 0.18.1
-                A callable can be used as cond.
-
         other : scalar, %(klass)s, or callable
             Entries where `cond` is %(cond_rev)s are replaced with
             corresponding value from `other`.
             If other is callable, it is computed on the %(klass)s and
             should return scalar or %(klass)s. The callable must not
             change input %(klass)s (though pandas doesn't check it).
-
-            .. versionadded:: 0.18.1
-                A callable can be used as other.
-
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         axis : int, default None

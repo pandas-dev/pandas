@@ -7,7 +7,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import NaT, Timestamp
+from pandas._libs.tslibs import NaT, Period, Timestamp
 from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas.compat.numpy import function as nv
@@ -16,7 +16,6 @@ from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-import pandas as pd
 import pandas.core.algorithms as algos
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
@@ -25,7 +24,7 @@ from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, group
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
-from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
 from pandas.tseries.frequencies import to_offset
@@ -138,7 +137,7 @@ class Resampler(_GroupBy):
         """
         Masquerade for compat as a Series or a DataFrame.
         """
-        if isinstance(self._selected_obj, pd.Series):
+        if isinstance(self._selected_obj, ABCSeries):
             return "series"
         return "dataframe"
 
@@ -781,8 +780,6 @@ class Resampler(_GroupBy):
     ):
         """
         Interpolate values according to different methods.
-
-        .. versionadded:: 0.18.1
         """
         result = self._upsample(None)
         return result.interpolate(
@@ -860,7 +857,9 @@ class Resampler(_GroupBy):
         # a copy of 0-len objects. GH14962
         result = self._downsample("size")
         if not len(self.ax) and isinstance(self._selected_obj, ABCDataFrame):
-            result = pd.Series([], index=result.index, dtype="int64")
+            from pandas import Series
+
+            result = Series([], index=result.index, dtype="int64")
         return result
 
     def quantile(self, q=0.5, **kwargs):
@@ -1141,8 +1140,6 @@ class DatetimeIndexResampler(Resampler):
 class DatetimeIndexResamplerGroupby(_GroupByMixin, DatetimeIndexResampler):
     """
     Provides a resample of a groupby implementation
-
-    .. versionadded:: 0.18.1
     """
 
     @property
@@ -1259,8 +1256,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 class PeriodIndexResamplerGroupby(_GroupByMixin, PeriodIndexResampler):
     """
     Provides a resample of a groupby implementation.
-
-    .. versionadded:: 0.18.1
     """
 
     @property
@@ -1289,8 +1284,6 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
     """
     Provides a resample of a groupby implementation.
-
-    .. versionadded:: 0.18.1
     """
 
     @property
@@ -1563,9 +1556,7 @@ class TimeGrouper(Grouper):
             binner = labels = PeriodIndex(data=[], freq=freq, name=ax.name)
             return binner, [], labels
 
-        labels = binner = pd.period_range(
-            start=ax[0], end=ax[-1], freq=freq, name=ax.name
-        )
+        labels = binner = period_range(start=ax[0], end=ax[-1], freq=freq, name=ax.name)
 
         end_stamps = (labels + freq).asfreq(freq, "s").to_timestamp()
         if ax.tzinfo:
@@ -1608,11 +1599,11 @@ class TimeGrouper(Grouper):
             )
 
             # Get offset for bin edge (not label edge) adjustment
-            start_offset = pd.Period(start, self.freq) - pd.Period(p_start, self.freq)
+            start_offset = Period(start, self.freq) - Period(p_start, self.freq)
             bin_shift = start_offset.n % freq_mult
             start = p_start
 
-        labels = binner = pd.period_range(
+        labels = binner = period_range(
             start=start, end=end, freq=self.freq, name=ax.name
         )
 
@@ -1732,7 +1723,7 @@ def _get_period_range_edges(first, last, offset, closed="left", base=0):
     -------
     A tuple of length 2, containing the adjusted pd.Period objects.
     """
-    if not all(isinstance(obj, pd.Period) for obj in [first, last]):
+    if not all(isinstance(obj, Period) for obj in [first, last]):
         raise TypeError("'first' and 'last' must be instances of type Period")
 
     # GH 23882

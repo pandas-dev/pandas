@@ -12,7 +12,7 @@ from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
 
 from .base import ExtensionDtype
-from .inference import is_list_like
+from .inference import is_bool, is_list_like
 
 str_type = str
 
@@ -149,7 +149,7 @@ class PandasExtensionDtype(ExtensionDtype):
         return str(self)
 
     def __hash__(self) -> int:
-        raise NotImplementedError("sub-classes should implement an __hash__ " "method")
+        raise NotImplementedError("sub-classes should implement an __hash__ method")
 
     def __getstate__(self) -> Dict[str_type, Any]:
         # pickle support; we don't want to pickle the cache
@@ -320,7 +320,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                     raise ValueError(msg.format(dtype=dtype))
             elif categories is not None or ordered is not None:
                 raise ValueError(
-                    "Cannot specify `categories` or `ordered` " "together with `dtype`."
+                    "Cannot specify `categories` or `ordered` together with `dtype`."
                 )
         elif is_categorical(values):
             # If no "dtype" was passed, use the one from "values", but honor
@@ -406,6 +406,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # but same order is not necessary.  There is no distinction between
             # ordered=False and ordered=None: CDT(., False) and CDT(., None)
             # will be equal if they have the same categories.
+            if (
+                self.categories.dtype == other.categories.dtype
+                and self.categories.equals(other.categories)
+            ):
+                # Check and see if they happen to be identical categories
+                return True
             return hash(self) == hash(other)
 
     def __repr__(self):
@@ -484,8 +490,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         TypeError
             If 'ordered' is not a boolean.
         """
-        from pandas.core.dtypes.common import is_bool
-
         if not is_bool(ordered):
             raise TypeError("'ordered' must either be 'True' or 'False'")
 

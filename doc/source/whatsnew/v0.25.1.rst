@@ -50,13 +50,13 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
--
+- Bug in :class:`Index` where a numpy object array with a timezone aware :class:`Timestamp` and ``np.nan`` would not return a :class:`DatetimeIndex` (:issue:`27011`)
 -
 -
 
 Numeric
 ^^^^^^^
--
+- Bug in :meth:`Series.interpolate` when using a timezone aware :class:`DatetimeIndex` (:issue:`27548`)
 -
 -
 
@@ -120,7 +120,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
+- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
 -
 -
 

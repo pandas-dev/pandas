@@ -1,0 +1,197 @@
+.. _whatsnew_1000:
+
+What's new in 1.0.0 (??)
+------------------------
+
+.. warning::
+
+   Starting with the 0.25.x series of releases, pandas only supports Python 3.5.3 and higher.
+   See :ref:`install.dropping-27` for more details.
+
+.. warning::
+
+   The minimum supported Python version will be bumped to 3.6 in a future release.
+
+{{ header }}
+
+These are the changes in pandas 1.0.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_1000.enhancements.other:
+
+-
+-
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_1000.api_breaking:
+
+-
+-
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_1000.api.other:
+
+-
+-
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+-
+-
+
+.. _whatsnew_1000.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+
+.. _whatsnew_1000.prior_deprecations:
+
+Removal of prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Removed the previously deprecated :meth:`Series.get_value`, :meth:`Series.set_value`, :meth:`DataFrame.get_value`, :meth:`DataFrame.set_value` (:issue:`17739`)
+-
+-
+
+.. _whatsnew_1000.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Performance improvement in indexing with a non-unique :class:`IntervalIndex` (:issue:`27489`)
+- Performance improvement in `MultiIndex.is_monotonic` (:issue:`27495`)
+
+
+.. _whatsnew_1000.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+
+Categorical
+^^^^^^^^^^^
+
+-
+-
+
+
+Datetimelike
+^^^^^^^^^^^^
+- Bug in :meth:`Series.__setitem__` incorrectly casting ``np.timedelta64("NaT")`` to ``np.datetime64("NaT")`` when inserting into a :class:`Series` with datetime64 dtype (:issue:`27311`)
+- Bug in :meth:`Series.dt` property lookups when the underlying data is read-only (:issue:`27529`)
+-
+
+
+Timedelta
+^^^^^^^^^
+
+-
+-
+
+Timezones
+^^^^^^^^^
+
+-
+-
+
+
+Numeric
+^^^^^^^
+- Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
+-
+-
+
+Conversion
+^^^^^^^^^^
+
+-
+-
+
+Strings
+^^^^^^^
+
+-
+-
+
+
+Interval
+^^^^^^^^
+
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+
+Missing
+^^^^^^^
+
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+
+-
+-
+
+I/O
+^^^
+
+-
+-
+
+Plotting
+^^^^^^^^
+
+-
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+-
+-
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+
+Sparse
+^^^^^^
+
+-
+-
+
+
+Build Changes
+^^^^^^^^^^^^^
+
+
+ExtensionArray
+^^^^^^^^^^^^^^
+
+-
+-
+
+
+.. _whatsnew_1000.contributors:
+
+Contributors
+~~~~~~~~~~~~
