@@ -23,7 +23,7 @@ Enhancements
 
 .. _whatsnew_1000.enhancements.other:
 
--
+- :class:`Series` gained a :meth:`Series.set_index`, which facilitates the use of method-chaining.
 -
 
 Other enhancements

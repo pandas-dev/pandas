@@ -1,7 +1,7 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
-from collections import OrderedDict
+from collections import OrderedDict, abc
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
@@ -42,6 +42,8 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeArray,
     ABCDatetimeIndex,
+    ABCIndexClass,
+    ABCMultiIndex,
     ABCSeries,
     ABCSparseArray,
     ABCSparseSeries,
@@ -67,6 +69,7 @@ from pandas.core.index import (
     InvalidIndexError,
     MultiIndex,
     ensure_index,
+    ensure_index_from_sequences,
 )
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
@@ -1416,6 +1419,129 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self.loc[label] = value
 
         return self
+
+    def set_index(self, labels, append=False, inplace=False, verify_integrity=False):
+        """
+        Set a new index for the Series.
+
+        This method can take either:
+        - an array-like to be used as labels for the new index. It length
+        must match the length of the frame.
+        - a list of array-likes. The new index will be a MultiIndex and each item
+        in the list will serve as a level in it.
+
+        Parameters
+        ----------
+        labels : array-like or list of array-likes
+            Each array must have the same length as the calling Series.
+            If a list of array-likes is passed, the new index will be a MultiIndex.
+            array-like in this context means a 1D Pandas object like
+            Index/MultiIndex/Series, an ndarray or abc.Iter.
+        append : bool, default False
+            If True, convert the existing index to a MultiIndex and
+            add the new labels to it as a new level.
+        inplace : bool, default False
+            Modify the DataFrame in place (do not create a new object).
+        verify_integrity : bool, default False
+            Check the new index for duplicates. Otherwise defer the check until
+            necessary. Setting to False will improve the performance of this
+            method.
+
+        Returns
+        -------
+        Series
+            With new index.
+
+        See Also
+        --------
+        Series.reset_index : Opposite of set_index.
+        Series.reindex : Change to new indices or expand indices.
+        Series.reindex_like : Change to same indices as another FrameOrSeries.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1,2,3])
+        >>> ser.set_index(pd.Index(['D', 'E', 'F']))
+        D    1
+        E    2
+        F    3
+        dtype: int64
+        """
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        if not isinstance(labels, list):
+            labels = [labels]
+
+        err_msg = (
+            'The parameter "labels" may be an Index or a list-like '
+            "and it must be of the same length is the calling Series."
+        )
+
+        if isinstance(
+            labels, (ABCIndexClass, ABCSeries, np.ndarray, list, abc.Iterator)
+        ):
+            # arrays are fine as long as they are one-dimensional
+            # iterators get converted to list below
+            if getattr(labels, "ndim", 1) != 1:
+                raise ValueError(err_msg)
+
+        if inplace:
+            ser = self
+        else:
+            ser = self.copy()
+
+        arrays = []
+        if append:
+            names = [x for x in self.index.names]
+            if isinstance(self.index, ABCMultiIndex):
+                for i in range(self.index.nlevels):
+                    arrays.append(self.index._get_level_values(i))
+            else:
+                arrays.append(self.index)
+        else:
+            names = []
+
+        for col in labels:
+            if isinstance(col, ABCMultiIndex):
+                for n in range(col.nlevels):
+                    arrays.append(col._get_level_values(n))
+                names.extend(col.names)
+            elif isinstance(col, (ABCIndexClass, ABCSeries)):
+                # if Index then not MultiIndex (treated above)
+                arrays.append(col)
+                names.append(col.name)
+            elif isinstance(col, (np.ndarray,)):
+                arrays.append(col)
+                names.append(None)
+            elif isinstance(col, abc.Iterator):
+                arrays.append(list(col))
+                names.append(None)
+            else:
+                msg = "Passing type '{typ}' in labels is not allowed"
+                raise ValueError(msg.format(typ=type(col)))
+
+            if len(arrays[-1]) != len(self):
+                # check newest element against length of calling series, since
+                # ensure_index_from_sequences would not raise for append=False.
+                raise ValueError(
+                    "Length mismatch: Expected {len_self} rows, "
+                    "received array of length {len_col}".format(
+                        len_self=len(self), len_col=len(arrays[-1])
+                    )
+                )
+
+        index = ensure_index_from_sequences(arrays, names)
+
+        if verify_integrity and not index.is_unique:
+            duplicates = index[index.duplicated()].unique()
+            raise ValueError("Index has duplicate keys: {dup}".format(dup=duplicates))
+
+        # clear up memory usage
+        index._cleanup()
+
+        ser.index = index
+
+        if not inplace:
+            return ser
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """

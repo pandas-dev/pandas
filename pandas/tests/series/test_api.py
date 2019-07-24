@@ -757,3 +757,53 @@ class TestCategoricalSeries:
         with pytest.raises(AttributeError, match=msg):
             invalid.dt
         assert not hasattr(invalid, "str")
+
+    @pytest.mark.parametrize("arrayklass", [iter, np.array, pd.Series, pd.Index])
+    def test_set_index(self, arrayklass):
+        ser = pd.Series([0, 1, 2])
+
+        res = ser.set_index(arrayklass(["A", "B", "C"]))
+        exp = pd.Series([0, 1, 2], index=["A", "B", "C"])
+        tm.assert_series_equal(res, exp)
+
+        # inplace
+        ser = pd.Series([0, 1, 2])
+        ser.set_index(arrayklass(["A", "B", "C"]), inplace=True)
+        exp = pd.Series([0, 1, 2], index=pd.Index(["A", "B", "C"]))
+        tm.assert_series_equal(ser, exp)
+
+        # check for duplicates
+        with pytest.raises(ValueError, match="duplicate keys"):
+            ser.set_index(arrayklass(["A", "B", "B"]), verify_integrity=True)
+
+        # MultiIndex
+        ser = pd.Series([0, 1, 2])
+        levels = [pd.Series(["A", "B", "C"]), pd.Series(["x", "y", "z"])]
+        ix = pd.MultiIndex.from_arrays(levels)
+        res = ser.set_index(levels)
+        exp = pd.Series([0, 1, 2], index=ix)
+        tm.assert_series_equal(res, exp)
+
+        # append
+        ser = pd.Series([0, 1, 2])
+        labels = pd.Series(["A", "B", "C"])
+        ix = pd.MultiIndex.from_arrays([ser.index, labels])
+        res = ser.set_index(pd.Series(["A", "B", "C"]), append=True)
+        exp = pd.Series([0, 1, 2], index=ix)
+        tm.assert_series_equal(res, exp)
+
+        # append MultIndex
+        ser = pd.Series([0, 1, 2])
+        level1 = pd.Series(["A", "B", "C"])
+        level2 = pd.Series(["X", "Y", "Z"])
+        ix = pd.MultiIndex.from_arrays([level1, level2])
+        exp_ix = pd.MultiIndex.from_arrays([ser.index, level1, level2])
+        res = ser.set_index(ix, append=True)
+        exp = pd.Series([0, 1, 2], index=exp_ix)
+        tm.assert_series_equal(res, exp)
+
+    def test_set_index_raises(self):
+        ser = pd.Series([[0], [1], [2]])  # not allowed
+
+        with pytest.raises(ValueError, match="not allowed"):
+            ser.set_index([["a"]])
