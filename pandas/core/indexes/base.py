@@ -469,19 +469,15 @@ class Index(IndexOpsMixin, PandasObject):
                     pass
                 elif inferred != "string":
                     if inferred.startswith("datetime"):
-                        if (
-                            lib.is_datetime_with_singletz_array(subarr)
-                            or "tz" in kwargs
-                        ):
-                            # only when subarr has the same tz
-                            from pandas import DatetimeIndex
+                        from pandas import DatetimeIndex
 
-                            try:
-                                return DatetimeIndex(
-                                    subarr, copy=copy, name=name, **kwargs
-                                )
-                            except OutOfBoundsDatetime:
-                                pass
+                        try:
+                            return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
+                        except (ValueError, OutOfBoundsDatetime):
+                            # GH 27011
+                            # If we have mixed timezones, just send it
+                            # down the base constructor
+                            pass
 
                     elif inferred.startswith("timedelta"):
                         from pandas import TimedeltaIndex

@@ -179,7 +179,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _accessors = {"dt", "cat", "str", "sparse"}
     # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = generic.NDFrame._deprecations | frozenset(
-        ["asobject", "reshape", "get_value", "set_value", "valid", "tolist"]
+        ["asobject", "reshape", "valid", "tolist"]
     )
 
     # Override cache_readonly bc Series is mutable
@@ -1365,12 +1365,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_values = self._values.repeat(repeats)
         return self._constructor(new_values, index=new_index).__finalize__(self)
 
-    def get_value(self, label, takeable=False):
+    def _get_value(self, label, takeable: bool = False):
         """
         Quickly retrieve single value at passed index label.
-
-        .. deprecated:: 0.21.0
-            Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -1381,28 +1378,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         scalar value
         """
-        warnings.warn(
-            "get_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._get_value(label, takeable=takeable)
-
-    def _get_value(self, label, takeable=False):
-        if takeable is True:
+        if takeable:
             return com.maybe_box_datetimelike(self._values[label])
         return self.index.get_value(self._values, label)
 
-    _get_value.__doc__ = get_value.__doc__
-
-    def set_value(self, label, value, takeable=False):
+    def _set_value(self, label, value, takeable: bool = False):
         """
         Quickly set single value at passed label.
-
-        .. deprecated:: 0.21.0
-            Please use .at[] or .iat[] accessors.
 
         If label is not contained, a new object is created with the label
         placed at the end of the result index.
@@ -1421,16 +1403,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             If label is contained, will be reference to calling Series,
             otherwise a new object.
         """
-        warnings.warn(
-            "set_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._set_value(label, value, takeable=takeable)
-
-    def _set_value(self, label, value, takeable=False):
         try:
             if takeable:
                 self._values[label] = value
@@ -1442,8 +1414,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self.loc[label] = value
 
         return self
-
-    _set_value.__doc__ = set_value.__doc__
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """

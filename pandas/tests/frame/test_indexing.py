@@ -1852,8 +1852,7 @@ class TestDataFrameIndexing(TestData):
     def test_get_value(self, float_frame):
         for idx in float_frame.index:
             for col in float_frame.columns:
-                with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                    result = float_frame.get_value(idx, col)
+                result = float_frame._get_value(idx, col)
                 expected = float_frame[col][idx]
                 assert result == expected
 
@@ -1908,42 +1907,34 @@ class TestDataFrameIndexing(TestData):
     def test_set_value(self, float_frame):
         for idx in float_frame.index:
             for col in float_frame.columns:
-                with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                    float_frame.set_value(idx, col, 1)
+                float_frame._set_value(idx, col, 1)
                 assert float_frame[col][idx] == 1
 
     def test_set_value_resize(self, float_frame):
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            res = float_frame.set_value("foobar", "B", 0)
+        res = float_frame._set_value("foobar", "B", 0)
         assert res is float_frame
         assert res.index[-1] == "foobar"
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert res.get_value("foobar", "B") == 0
+        assert res._get_value("foobar", "B") == 0
 
         float_frame.loc["foobar", "qux"] = 0
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert float_frame.get_value("foobar", "qux") == 0
+        assert float_frame._get_value("foobar", "qux") == 0
 
         res = float_frame.copy()
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            res3 = res.set_value("foobar", "baz", "sam")
+        res3 = res._set_value("foobar", "baz", "sam")
         assert res3["baz"].dtype == np.object_
 
         res = float_frame.copy()
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            res3 = res.set_value("foobar", "baz", True)
+        res3 = res._set_value("foobar", "baz", True)
         assert res3["baz"].dtype == np.object_
 
         res = float_frame.copy()
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            res3 = res.set_value("foobar", "baz", 5)
+        res3 = res._set_value("foobar", "baz", 5)
         assert is_float_dtype(res3["baz"])
         assert isna(res3["baz"].drop(["foobar"])).all()
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "could not convert string to float: 'sam'"
-            with pytest.raises(ValueError, match=msg):
-                res3.set_value("foobar", "baz", "sam")
+        msg = "could not convert string to float: 'sam'"
+        with pytest.raises(ValueError, match=msg):
+            res3._set_value("foobar", "baz", "sam")
 
     def test_set_value_with_index_dtype_change(self):
         df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
@@ -1951,8 +1942,7 @@ class TestDataFrameIndexing(TestData):
         # this is actually ambiguous as the 2 is interpreted as a positional
         # so column is not created
         df = df_orig.copy()
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df.set_value("C", 2, 1.0)
+        df._set_value("C", 2, 1.0)
         assert list(df.index) == list(df_orig.index) + ["C"]
         # assert list(df.columns) == list(df_orig.columns) + [2]
 
@@ -1963,8 +1953,7 @@ class TestDataFrameIndexing(TestData):
 
         # create both new
         df = df_orig.copy()
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df.set_value("C", "D", 1.0)
+        df._set_value("C", "D", 1.0)
         assert list(df.index) == list(df_orig.index) + ["C"]
         assert list(df.columns) == list(df_orig.columns) + ["D"]
 
@@ -1977,9 +1966,8 @@ class TestDataFrameIndexing(TestData):
         # partial w/ MultiIndex raise exception
         index = MultiIndex.from_tuples([(0, 1), (0, 2), (1, 1), (1, 2)])
         df = DataFrame(index=index, columns=range(4))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            with pytest.raises(KeyError, match=r"^0$"):
-                df.get_value(0, 1)
+        with pytest.raises(KeyError, match=r"^0$"):
+            df._get_value(0, 1)
 
     def test_single_element_ix_dont_upcast(self, float_frame):
         float_frame["E"] = 1
