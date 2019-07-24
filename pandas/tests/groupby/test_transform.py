@@ -1039,7 +1039,7 @@ def test_transform_agg_by_name(reduction_func, obj):
     result = g.transform(func, *args)
     tm.assert_index_equal(result.index, obj.index)
 
-    # check values replicated broadcasted across group
+    # verify that values were broadcasted across each group
     assert len(set(DataFrame(result).iloc[-3:, -1])) == 1
 
 
