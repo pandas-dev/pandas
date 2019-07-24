@@ -35,7 +35,7 @@ dependencies:
   - xlwt
   # universal
   - pytest>=4.0.2
-  - pytest-xdist>=1.29.0
+  - pytest-xdist
   - pytest-mock
   - pip
   - pip:
