@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import iNaT, index as libindex, lib, reshape, tslibs
+from pandas._libs import index as libindex, lib, reshape, tslibs
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
