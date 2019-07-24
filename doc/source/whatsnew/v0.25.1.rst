@@ -50,7 +50,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
--
+- Bug in :class:`Index` where a numpy object array with a timezone aware :class:`Timestamp` and ``np.nan`` would not return a :class:`DatetimeIndex` (:issue:`27011`)
 -
 -
 

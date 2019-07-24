@@ -42,10 +42,9 @@ class TestAttributes:
             (0, 1),
             (Timedelta("0 days"), Timedelta("1 day")),
             (Timestamp("2018-01-01"), Timestamp("2018-01-02")),
-            pytest.param(
+            (
                 Timestamp("2018-01-01", tz="US/Eastern"),
                 Timestamp("2018-01-02", tz="US/Eastern"),
-                marks=pytest.mark.xfail(strict=True, reason="GH 27011"),
             ),
         ],
     )

@@ -822,6 +822,12 @@ class TestDatetimeIndex:
         with pytest.raises(ValueError):
             pd.DatetimeIndex(["2000"], dtype="datetime64[us]")
 
+    def test_index_constructor_with_numpy_object_array_and_timestamp_tz_with_nan(self):
+        # GH 27011
+        result = Index(np.array([Timestamp("2019", tz="UTC"), np.nan], dtype=object))
+        expected = DatetimeIndex([Timestamp("2019", tz="UTC"), pd.NaT])
+        tm.assert_index_equal(result, expected)
+
 
 class TestTimeSeries:
     def test_dti_constructor_preserve_dti_freq(self):
