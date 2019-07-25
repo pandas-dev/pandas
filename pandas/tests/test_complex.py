@@ -1,93 +1,70 @@
-from datetime import datetime
-from itertools import permutations
-import struct
-
 import numpy as np
-from numpy import nan
-from numpy.random import RandomState
 import pytest
-
-from pandas._libs import algos as libalgos, groupby as libgroupby, hashtable as ht
-from pandas.compat.numpy import np_array_datetime64_compat
-import pandas.util._test_decorators as td
-
-from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 
 import pandas as pd
 from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DatetimeIndex,
     Index,
-    IntervalIndex,
     Series,
-    Timestamp,
     DataFrame,
-    Index,
-    compat,
 )
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray
-import pandas.core.common as com
-from pandas.core.sorting import safe_sort
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
 
 
 class TestComplexSupportBasic:
     @pytest.mark.parametrize("array,expected", [
         (
-            [1+1j, 0, 1, 1j, 1+2j],
-            Series([1, 1, 1, 1, 1], index=[1+2j, 1+1j, 1j, 1, 0])
+            [1 + 1j, 0, 1, 1j, 1 + 2j],
+            Series([1, 1, 1, 1, 1], index=[1 + 2j, 1 + 1j, 1j, 1, 0])
         ),
         (
-            [1+2j, 0, 1j, 1, 1j, 1+1j],
+            [1 + 2j, 0, 1j, 1, 1j, 1 + 1j],
             # index is sorted by value counts in descending order by default
-            Series([2, 1, 1, 1, 1], index=[1j, 1+2j, 1+1j, 1, 0])
+            Series([2, 1, 1, 1, 1], index=[1j, 1 + 2j, 1 + 1j, 1, 0])
         )
     ])
-    def test_value_counts(self, array, expected):        
+    def test_value_counts(self, array, expected):
         result = algos.value_counts(array)
         tm.assert_series_equal(result, expected)
 
-
     @pytest.mark.parametrize("array,expected", [
         (
-            [1+1j, 0, 1, 1j, 1+2j, 1+2j],
-            np.array([(1+1j), 0j, (1+0j), 1j, (1+2j)], dtype=object)
+            [1 + 1j, 0, 1, 1j, 1 + 2j, 1 + 2j],
+            np.array([(1 + 1j), 0j, (1 + 0j), 1j, (1 + 2j)], dtype=object)
         ),
     ])
-    def test_unique(self, array, expected):        
+    def test_unique(self, array, expected):
         result = algos.unique(array)
         assert np.array_equal(result, expected)
 
     @pytest.mark.parametrize("array,expected", [
         (
-            [0, 1j, 1j, 1, 1+1j, 1+2j, 1+1j],
+            [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j],
             Series([False, False, True, False, False, False, True], dtype=bool)
         ),
     ])
-    def test_duplicated(self, array, expected):        
+    def test_duplicated(self, array, expected):
         result = Series(array).duplicated()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("array,expected", [
         (
-            [0, 1j, 1j, 1, 1+1j, 1+2j, 1+1j],
+            [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j],
             Series([False, True, True, False, True, True, True], dtype=bool)
         ),
     ])
-    def test_isin(self, array, expected):        
-        result = Series(array).isin([1j, 1+1j, 1+2j])
+    def test_isin(self, array, expected):
+        result = Series(array).isin([1j, 1 + 1j, 1 + 2j])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("array,expected", [
         (
             [1, 2, 2 + 1j],
-            (np.array([0, 1, 2]), np.array([(1+0j), (2+0j), (2+1j)], dtype=object))
+            (np.array([0, 1, 2]), np.array([(1 + 0j), (2 + 0j), (2 + 1j)],
+                                           dtype=object))
         ),
     ])
-    def test_factorize(self, array, expected):        
+    def test_factorize(self, array, expected):
         result = pd.factorize(array)
         assert len(result) == 2
 
@@ -98,12 +75,11 @@ class TestComplexSupportBasic:
         (
             DataFrame([dict(a=1, b=1 + 1j), dict(a=1, b=1 + 2j)]),
             DataFrame(
-                np.array([1, 1]), 
-                index=Index([(1+1j), (1+2j)], dtype='object', name='b'), 
+                np.array([1, 1]),
+                index=Index([(1 + 1j), (1 + 2j)], dtype='object', name='b'),
                 columns=Index(['a'], dtype='object'))
         ),
     ])
-    def test_groupby(self, frame, expected):        
+    def test_groupby(self, frame, expected):
         result = frame.groupby("b").count()
         tm.assert_frame_equal(result, expected)
-
