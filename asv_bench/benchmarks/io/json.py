@@ -63,10 +63,12 @@ class ReadJSONLines(BaseIO):
 class ToJSON(BaseIO):
 
     fname = "__test__.json"
-    params = ["split", "columns", "index"]
-    param_names = ["orient"]
+    params = [["split", "columns", "index", "values", "records"],
+              ["df", "df_date_idx", "df_td_int_ts", "df_int_floats",
+               "df_int_float_str"]]
+    param_names = ["orient", "frame"]
 
-    def setup(self, lines_orient):
+    def setup(self, orient, frame):
         N = 10 ** 5
         ncols = 5
         index = date_range("20000101", periods=N, freq="H")
@@ -111,20 +113,21 @@ class ToJSON(BaseIO):
             index=index,
         )
 
-    def time_floats_with_int_index(self, orient):
-        self.df.to_json(self.fname, orient=orient)
+    def time_to_json(self, orient, frame):
+        getattr(self, frame).to_json(self.fname, orient=orient)
 
-    def time_floats_with_dt_index(self, orient):
-        self.df_date_idx.to_json(self.fname, orient=orient)
+    def mem_to_json(self, orient, frame):
+        getattr(self, frame).to_json(self.fname, orient=orient)
 
-    def time_delta_int_tstamp(self, orient):
-        self.df_td_int_ts.to_json(self.fname, orient=orient)
+    def time_to_json_wide(self, orient, frame):
+        base_df = getattr(self, frame).copy()
+        df = pd.concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
+        df.to_json(self.fname, orient=orient)
 
-    def time_float_int(self, orient):
-        self.df_int_floats.to_json(self.fname, orient=orient)
-
-    def time_float_int_str(self, orient):
-        self.df_int_float_str.to_json(self.fname, orient=orient)
+    def mem_to_json_wide(self, orient, frame):
+        base_df = getattr(self, frame).copy()
+        df = pd.concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
+        df.to_json(self.fname, orient=orient)
 
 
 class ToJSON(BaseIO):
