@@ -3,7 +3,7 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from textwrap import dedent
-from typing import Dict
+from typing import Dict, Union, Iterable
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
@@ -1105,7 +1105,7 @@ def quantile(x, q, interpolation_method="fraction"):
         return result
 
 
-def check_percentile(q):
+def check_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
     """
     Validate percentiles (used by describe and quantile).
     """
