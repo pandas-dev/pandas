@@ -87,7 +87,7 @@ def nested_to_record(
 
         .. versionadded:: 0.25.0
 
-    use_keys : Str, List or Callable, optional, default: None
+    use_keys : str, list or Callable, Optional
         Returns true or false depending on whether to include or exclude a key
 
         .. versionadded:: 1.0.0
