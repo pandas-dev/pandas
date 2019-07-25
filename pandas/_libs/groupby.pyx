@@ -720,9 +720,6 @@ def group_quantile(ndarray[float64_t] out,
 
     assert values.shape[0] == N
 
-    if not 0 <= q <= 1:
-        raise ValueError("Quantile values must lie in the interval [0, 1]")
-
     inter_methods = {
         'linear': INTERPOLATION_LINEAR,
         'lower': INTERPOLATION_LOWER,

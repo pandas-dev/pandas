@@ -1895,6 +1895,8 @@ class GroupBy(_GroupBy):
 
             return vals
 
+        algorithms.check_percentile(q)
+
         return self._get_cythonized_result(
             "group_quantile",
             self.grouper,

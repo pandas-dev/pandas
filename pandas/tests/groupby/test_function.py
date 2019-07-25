@@ -1343,5 +1343,5 @@ def test_quantile_validation():
     expected = DataFrame(dict(a=[0.0, 1.0]))
     tm.assert_frame_equal(result, expected)
 
-    with pytest.raises(ValueError, match="uantile values"):
+    with pytest.raises(ValueError, match="all be in the interval"):
         g.quantile(1.1)
