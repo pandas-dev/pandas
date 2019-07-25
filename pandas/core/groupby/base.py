@@ -126,6 +126,7 @@ reduction_kernels = frozenset(
         "prod",
         # as long as `quantile`'s signature accepts only
         # a single quantile value, it's a reduction.
+        # GH#27526 might change that.
         "quantile",
         "sem",
         "size",
