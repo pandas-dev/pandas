@@ -52,6 +52,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core.construction import sanitize_array
 from pandas.core.missing import interpolate_2d
 import pandas.core.ops as ops
 
@@ -660,7 +661,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if not is_array_like(data):
             try:
                 # probably shared code in sanitize_series
-                from pandas.core.internals.construction import sanitize_array
 
                 data = sanitize_array(data, index=None)
             except ValueError:

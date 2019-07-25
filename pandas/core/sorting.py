@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algorithms
+from pandas.core.construction import extract_array
 
 _INT64_MAX = np.iinfo(np.int64).max
 
@@ -240,8 +241,6 @@ def nargsort(items, kind="quicksort", ascending=True, na_position="last"):
     handles NaNs. It adds ascending and na_position parameters.
     GH #6399, #5231
     """
-    from pandas.core.internals.arrays import extract_array
-
     items = extract_array(items)
     mask = np.asarray(isna(items))
 

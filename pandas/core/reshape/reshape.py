@@ -22,9 +22,9 @@ from pandas.core.dtypes.missing import notna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import _factorize_from_iterable
+from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
 from pandas.core.index import Index, MultiIndex
-from pandas.core.internals.arrays import extract_array
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,

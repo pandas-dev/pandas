@@ -20,7 +20,8 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     DatetimeTZDtype,
 )
-from pandas.core.arrays import Categorical, array
+from pandas.core.arrays import Categorical
+from pandas.core.construction import array
 from pandas.core.groupby import Grouper, NamedAgg
 from pandas.io.formats.format import set_eng_float_format
 from pandas.core.index import (
