@@ -446,7 +446,7 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     # GH 17778
     def __init__(
         self,
-        file: Union[BytesIO, str],
+        file: Union[BinaryIO, str],
         mode: str,
         compression: int = zipfile.ZIP_DEFLATED,
         **kwargs
