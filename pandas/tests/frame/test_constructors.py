@@ -1331,9 +1331,16 @@ class TestDataFrameConstructors:
         result = DataFrame(tuples)
         tm.assert_frame_equal(result, expected)
 
-        # with columns
-        # namedtuples now behave like records, so columns
-        # act like lookups, not rename
+    def test_constructor_list_of_namedtuples_new_behavior(self):
+        # GH27329
+        from collections import namedtuple
+
+        named_tuple = namedtuple("Pandas", list("ab"))
+        tuples = [named_tuple(1, 3), named_tuple(2, 4)]
+
+        # namedtuples now behave like records, so if `columns`
+        # is passed it's treated as field selection. Previously
+        # it was treated as a rename.
         expected = DataFrame({"a": [1, 2], "x": [np.nan, np.nan]})
         result = DataFrame(tuples, columns=["a", "x"])
         tm.assert_frame_equal(result, expected)
