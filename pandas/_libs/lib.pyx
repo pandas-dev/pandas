@@ -1530,8 +1530,8 @@ cpdef bint is_integer_array(ndarray values):
 
 cdef class IntegerNaValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
-        return util.is_integer_object(value) or (util.is_nan(value)
-                and util.is_float_object(value))
+        return (util.is_integer_object(value)
+                or (util.is_nan(value) and util.is_float_object(value)))
 
 
 cdef bint is_integer_na_array(ndarray values):
