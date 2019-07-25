@@ -396,7 +396,7 @@ class DataFrame(NDFrame):
 
     def __init__(self,
                  data: Optional[Union[np.ndarray, dict,
-                                      'DataFrame']] = None,
+                                      ABCDataFrame]] = None,
                  index: Optional[Axes] = None,
                  columns: Optional[Axes] = None,
                  dtype: Optional[Dtype] = None,
