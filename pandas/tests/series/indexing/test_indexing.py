@@ -372,15 +372,13 @@ def test_setitem_dtypes():
 
 def test_set_value(test_data):
     idx = test_data.ts.index[10]
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        res = test_data.ts.set_value(idx, 0)
+    res = test_data.ts._set_value(idx, 0)
     assert res is test_data.ts
     assert test_data.ts[idx] == 0
 
     # equiv
     s = test_data.series.copy()
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        res = s.set_value("foobar", 0)
+    res = s._set_value("foobar", 0)
     assert res is s
     assert res.index[-1] == "foobar"
     assert res["foobar"] == 0
@@ -690,13 +688,7 @@ def test_dt64_series_assign_nat(nat_val, should_cast, tz):
     "nat_val,should_cast",
     [
         (pd.NaT, True),
-        pytest.param(
-            np.timedelta64("NaT", "ns"),
-            True,
-            marks=pytest.mark.xfail(
-                reason="Platform-specific failures, unknown cause", strict=False
-            ),
-        ),
+        (np.timedelta64("NaT", "ns"), True),
         (np.datetime64("NaT", "ns"), False),
     ],
 )

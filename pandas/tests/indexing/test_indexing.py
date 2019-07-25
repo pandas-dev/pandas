@@ -2,7 +2,6 @@
 
 from datetime import datetime
 import re
-from warnings import catch_warnings, simplefilter
 import weakref
 
 import numpy as np
@@ -19,8 +18,6 @@ from pandas.core.indexers import validate_indices
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.tests.indexing.common import Base, _mklbl
 import pandas.util.testing as tm
-
-ignore_ix = pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
 
 # ------------------------------------------------------------------------
 # Indexing test cases
@@ -75,7 +72,6 @@ class TestFancy(Base):
             (lambda x: x, "getitem"),
             (lambda x: x.loc, "loc"),
             (lambda x: x.iloc, "iloc"),
-            pytest.param(lambda x: x.ix, "ix", marks=ignore_ix),
         ],
     )
     def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):
@@ -141,7 +137,6 @@ class TestFancy(Base):
             (lambda x: x, "setitem"),
             (lambda x: x.loc, "loc"),
             (lambda x: x.iloc, "iloc"),
-            pytest.param(lambda x: x.ix, "ix", marks=ignore_ix),
         ],
     )
     def test_setitem_ndarray_3d(self, index, obj, idxr, idxr_id):
@@ -163,27 +158,20 @@ class TestFancy(Base):
             r"^\[\[\["  # pandas.core.indexing.IndexingError
         )
 
-        if (
-            (idxr_id == "iloc")
-            or (
-                (
-                    isinstance(obj, Series)
-                    and idxr_id == "setitem"
-                    and index.inferred_type
-                    in [
-                        "floating",
-                        "string",
-                        "datetime64",
-                        "period",
-                        "timedelta64",
-                        "boolean",
-                        "categorical",
-                    ]
-                )
-            )
-            or (
-                idxr_id == "ix"
-                and index.inferred_type in ["string", "datetime64", "period", "boolean"]
+        if (idxr_id == "iloc") or (
+            (
+                isinstance(obj, Series)
+                and idxr_id == "setitem"
+                and index.inferred_type
+                in [
+                    "floating",
+                    "string",
+                    "datetime64",
+                    "period",
+                    "timedelta64",
+                    "boolean",
+                    "categorical",
+                ]
             )
         ):
             idxr[nd3] = 0
@@ -427,10 +415,6 @@ class TestFancy(Base):
         df.loc[idx, "test"] = temp
         assert df.iloc[0, 2] == "-----"
 
-        # if I look at df, then element [0,2] equals '_'. If instead I type
-        # df.ix[idx,'test'], I get '-----', finally by typing df.iloc[0,2] I
-        # get '_'.
-
     def test_multitype_list_index_access(self):
         # GH 10610
         df = DataFrame(np.random.random((10, 5)), columns=["a"] + [20, 21, 22, 23])
@@ -592,21 +576,17 @@ class TestFancy(Base):
     def test_setitem_list(self):
 
         # GH 6043
-        # ix with a list
+        # iloc with a list
         df = DataFrame(index=[0, 1], columns=[0])
-        with catch_warnings(record=True):
-            simplefilter("ignore")
-            df.ix[1, 0] = [1, 2, 3]
-            df.ix[1, 0] = [1, 2]
+        df.iloc[1, 0] = [1, 2, 3]
+        df.iloc[1, 0] = [1, 2]
 
         result = DataFrame(index=[0, 1], columns=[0])
-        with catch_warnings(record=True):
-            simplefilter("ignore")
-            result.ix[1, 0] = [1, 2]
+        result.iloc[1, 0] = [1, 2]
 
         tm.assert_frame_equal(result, df)
 
-        # ix with an object
+        # iloc with an object
         class TO:
             def __init__(self, value):
                 self.value = value
@@ -623,24 +603,18 @@ class TestFancy(Base):
                 return self
 
         df = DataFrame(index=[0, 1], columns=[0])
-        with catch_warnings(record=True):
-            simplefilter("ignore")
-            df.ix[1, 0] = TO(1)
-            df.ix[1, 0] = TO(2)
+        df.iloc[1, 0] = TO(1)
+        df.iloc[1, 0] = TO(2)
 
         result = DataFrame(index=[0, 1], columns=[0])
-        with catch_warnings(record=True):
-            simplefilter("ignore")
-            result.ix[1, 0] = TO(2)
+        result.iloc[1, 0] = TO(2)
 
         tm.assert_frame_equal(result, df)
 
         # remains object dtype even after setting it back
         df = DataFrame(index=[0, 1], columns=[0])
-        with catch_warnings(record=True):
-            simplefilter("ignore")
-            df.ix[1, 0] = TO(1)
-            df.ix[1, 0] = np.nan
+        df.iloc[1, 0] = TO(1)
+        df.iloc[1, 0] = np.nan
         result = DataFrame(index=[0, 1], columns=[0])
 
         tm.assert_frame_equal(result, df)
@@ -777,55 +751,52 @@ class TestFancy(Base):
 
     def test_index_type_coercion(self):
 
-        with catch_warnings(record=True):
-            simplefilter("ignore")
+        # GH 11836
+        # if we have an index type and set it with something that looks
+        # to numpy like the same, but is actually, not
+        # (e.g. setting with a float or string '0')
+        # then we need to coerce to object
 
-            # GH 11836
-            # if we have an index type and set it with something that looks
-            # to numpy like the same, but is actually, not
-            # (e.g. setting with a float or string '0')
-            # then we need to coerce to object
+        # integer indexes
+        for s in [Series(range(5)), Series(range(5), index=range(1, 6))]:
 
-            # integer indexes
-            for s in [Series(range(5)), Series(range(5), index=range(1, 6))]:
+            assert s.index.is_integer()
 
-                assert s.index.is_integer()
+            for indexer in [lambda x: x.loc, lambda x: x]:
+                s2 = s.copy()
+                indexer(s2)[0.1] = 0
+                assert s2.index.is_floating()
+                assert indexer(s2)[0.1] == 0
 
-                for indexer in [lambda x: x.ix, lambda x: x.loc, lambda x: x]:
-                    s2 = s.copy()
-                    indexer(s2)[0.1] = 0
-                    assert s2.index.is_floating()
-                    assert indexer(s2)[0.1] == 0
+                s2 = s.copy()
+                indexer(s2)[0.0] = 0
+                exp = s.index
+                if 0 not in s:
+                    exp = Index(s.index.tolist() + [0])
+                tm.assert_index_equal(s2.index, exp)
 
-                    s2 = s.copy()
-                    indexer(s2)[0.0] = 0
-                    exp = s.index
-                    if 0 not in s:
-                        exp = Index(s.index.tolist() + [0])
-                    tm.assert_index_equal(s2.index, exp)
+                s2 = s.copy()
+                indexer(s2)["0"] = 0
+                assert s2.index.is_object()
 
-                    s2 = s.copy()
-                    indexer(s2)["0"] = 0
-                    assert s2.index.is_object()
+        for s in [Series(range(5), index=np.arange(5.0))]:
 
-            for s in [Series(range(5), index=np.arange(5.0))]:
+            assert s.index.is_floating()
 
-                assert s.index.is_floating()
+            for idxr in [lambda x: x.loc, lambda x: x]:
 
-                for idxr in [lambda x: x.ix, lambda x: x.loc, lambda x: x]:
+                s2 = s.copy()
+                idxr(s2)[0.1] = 0
+                assert s2.index.is_floating()
+                assert idxr(s2)[0.1] == 0
 
-                    s2 = s.copy()
-                    idxr(s2)[0.1] = 0
-                    assert s2.index.is_floating()
-                    assert idxr(s2)[0.1] == 0
+                s2 = s.copy()
+                idxr(s2)[0.0] = 0
+                tm.assert_index_equal(s2.index, s.index)
 
-                    s2 = s.copy()
-                    idxr(s2)[0.0] = 0
-                    tm.assert_index_equal(s2.index, s.index)
-
-                    s2 = s.copy()
-                    idxr(s2)["0"] = 0
-                    assert s2.index.is_object()
+                s2 = s.copy()
+                idxr(s2)["0"] = 0
+                assert s2.index.is_object()
 
 
 class TestMisc(Base):
@@ -887,22 +858,7 @@ class TestMisc(Base):
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
-            with catch_warnings(record=True):
-                # XXX: finer-filter here.
-                simplefilter("ignore")
-                left.ix[slice_one, slice_two] = rhs
-            tm.assert_frame_equal(left, right)
-
-            left = df.copy()
-            with catch_warnings(record=True):
-                simplefilter("ignore")
-                left.ix[idx_one, idx_two] = rhs
-            tm.assert_frame_equal(left, right)
-
-            left = df.copy()
-            with catch_warnings(record=True):
-                simplefilter("ignore")
-                left.ix[lbl_one, lbl_two] = rhs
+            left.iloc[slice_one, slice_two] = rhs
             tm.assert_frame_equal(left, right)
 
         xs = np.arange(20).reshape(5, 4)
@@ -933,7 +889,7 @@ class TestMisc(Base):
             tm.assert_series_equal(s.loc[l_slc], s.iloc[i_slc])
 
             if not idx.is_integer:
-                # For integer indices, ix and plain getitem are position-based.
+                # For integer indices, .loc and plain getitem are position-based.
                 tm.assert_series_equal(s[l_slc], s.iloc[i_slc])
                 tm.assert_series_equal(s.loc[l_slc], s.iloc[i_slc])
 
@@ -951,10 +907,6 @@ class TestMisc(Base):
             s[::0]
         with pytest.raises(ValueError, match="slice step cannot be zero"):
             s.loc[::0]
-        with catch_warnings(record=True):
-            simplefilter("ignore")
-            with pytest.raises(ValueError, match="slice step cannot be zero"):
-                s.ix[::0]
 
     def test_indexing_assignment_dict_already_exists(self):
         df = DataFrame({"x": [1, 2, 6], "y": [2, 2, 8], "z": [-5, 0, 5]}).set_index("z")
@@ -965,17 +917,12 @@ class TestMisc(Base):
         tm.assert_frame_equal(df, expected)
 
     def test_indexing_dtypes_on_empty(self):
-        # Check that .iloc and .ix return correct dtypes GH9983
+        # Check that .iloc returns correct dtypes GH9983
         df = DataFrame({"a": [1, 2, 3], "b": ["b", "b2", "b3"]})
-        with catch_warnings(record=True):
-            simplefilter("ignore")
-            df2 = df.ix[[], :]
+        df2 = df.iloc[[], :]
 
         assert df2.loc[:, "a"].dtype == np.int64
         tm.assert_series_equal(df2.loc[:, "a"], df2.iloc[:, 0])
-        with catch_warnings(record=True):
-            simplefilter("ignore")
-            tm.assert_series_equal(df2.loc[:, "a"], df2.ix[:, 0])
 
     def test_range_in_series_indexing(self):
         # range can cause an indexing error
@@ -1048,9 +995,6 @@ class TestMisc(Base):
         df = DataFrame({"a": [0, 1], "b": [2, 3]})
         for name in ("loc", "iloc", "at", "iat"):
             getattr(df, name)
-        with catch_warnings(record=True):
-            simplefilter("ignore")
-            getattr(df, "ix")
         wr = weakref.ref(df)
         del df
         assert wr() is None
@@ -1234,12 +1178,6 @@ def test_extension_array_cross_section_converts():
             lambda x: x.iloc,
             AttributeError,
             "type object 'NDFrame' has no attribute '_AXIS_ALIASES'",
-        ),
-        pytest.param(
-            lambda x: x.ix,
-            ValueError,
-            "NDFrameIndexer does not support NDFrame objects with ndim > 2",
-            marks=ignore_ix,
         ),
     ],
 )

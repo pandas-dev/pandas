@@ -50,6 +50,7 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
+from pandas.core.construction import array
 from pandas.core.indexers import validate_indices
 
 _shared_docs = {}  # type: Dict[str, str]
@@ -1100,7 +1101,9 @@ def quantile(x, q, interpolation_method="fraction"):
         return _get_score(q)
     else:
         q = np.asarray(q, np.float64)
-        return algos.arrmap_float64(q, _get_score)
+        result = [_get_score(x) for x in q]
+        result = np.array(result, dtype=np.float64)
+        return result
 
 
 # --------------- #
@@ -1853,8 +1856,6 @@ def searchsorted(arr, value, side="left", sorter=None):
         and is_integer_dtype(arr)
         and (is_integer(value) or is_integer_dtype(value))
     ):
-        from .arrays.array_ import array
-
         # if `arr` and `value` have different dtypes, `arr` would be
         # recast by numpy, causing a slow search.
         # Before searching below, we therefore try to give `value` the
