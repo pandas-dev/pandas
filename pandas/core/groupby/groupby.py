@@ -47,11 +47,11 @@ from pandas.core.base import (
     SpecificationError,
 )
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
 from pandas.core.index import CategoricalIndex, Index, MultiIndex
-from pandas.core.internals.arrays import extract_array
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 
