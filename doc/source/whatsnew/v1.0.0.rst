@@ -42,6 +42,61 @@ Backwards incompatible API changes
 - :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
 -
 
+DataFrame constructor treats list of namedtuple/dict in the same way
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Lists of typing.NameTuple are now treated the same way as lists of :class:`collections.namedtuple.`
+by the :class:`DataFrame` constructor.
+
+The treatment of such lists has also changed in this release. Previously, only
+the first element in the list was checked, and if it was a namedtuple, the
+field names of that single tuple were used as the column names. Subsequent
+tuples were assumed to be of the same type, and their values were looked up by
+position. As a consequence, if subsequent tuples of different types were
+included, any additional fields were dropped, and if similarly named fields
+appeared in a different order, alignment was not performed.
+
+This behavior has now changed so that namedtuples are treated in the same way
+as list of dict behaves, i.e as a "list of records" (:issue:`27329`) (:issue:`27494`).
+
+Additionally, this change implies a change in the semantics of the `columns`
+argument to :class:`DataFrame` when passing a list of namedtuples. Previously,
+`columns` has "rename" semantics, now it has the same "lookup" semantics as a
+list of records. Meaning that any name given in `columns` which doesn't appear
+as a key in the record will be assigned a NaN value.
+
+Due to this change, The performance of constructing frames from a list of
+namedtuples is now roughly 50% slower.
+
+This change affects all supported python versions.
+
+.. ipython:: python
+
+   from collections import namedtuple
+   Foo = namedtuple("Foo", list("ab"))
+   tuples = [Foo(1, 3), Foo(2, 4)]
+
+*Previous Behavior*:
+
+The columns were lexicographically sorted previously,
+
+.. code-block:: python
+
+   In [1]: pd.DataFrame(tuples, columns=['y', 'z'])
+   Out[1]:
+      y  z
+   0  1  3
+   1  2  4
+
+*New Behavior*:
+
+The column order now matches the insertion-order of the keys in the ``dict``,
+considering all the records from top to bottom.
+
+.. ipython:: python
+
+   pd.DataFrame(tuples, columns=['Q', 'a'])
+
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
