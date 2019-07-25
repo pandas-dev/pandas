@@ -202,19 +202,19 @@ def lexsort_indexer(keys, orders=None, na_position="last"):
 
         # we are already a Categorical
         if is_categorical_dtype(key):
-            c = key
+            cat = key
 
         # create the Categorical
         else:
-            c = Categorical(key, ordered=True)
+            cat = Categorical(key, ordered=True)
 
         if na_position not in ["last", "first"]:
             raise ValueError("invalid na_position: {!r}".format(na_position))
 
-        n = len(c.categories)
-        codes = c.codes.copy()
+        n = len(cat.categories)
+        codes = cat.codes.copy()
 
-        mask = c.codes == -1
+        mask = cat.codes == -1
         if order:  # ascending
             if na_position == "last":
                 codes = np.where(mask, n, codes)

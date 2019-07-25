@@ -601,10 +601,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         dtype=None,
         copy=False,
     ):
-        from pandas.core.internals import SingleBlockManager
-
-        if isinstance(data, SingleBlockManager):
-            data = data.internal_values()
 
         if fill_value is None and isinstance(dtype, SparseDtype):
             fill_value = dtype.fill_value
@@ -1857,15 +1853,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 SparseArray._add_arithmetic_ops()
 SparseArray._add_comparison_ops()
 SparseArray._add_unary_ops()
-
-
-def _maybe_to_dense(obj):
-    """
-    try to convert to dense
-    """
-    if hasattr(obj, "to_dense"):
-        return obj.to_dense()
-    return obj
 
 
 def make_sparse(arr, kind="block", fill_value=None, dtype=None, copy=False):
