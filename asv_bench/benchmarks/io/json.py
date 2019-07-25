@@ -63,9 +63,10 @@ class ReadJSONLines(BaseIO):
 class ToJSON(BaseIO):
 
     fname = "__test__.json"
-    params = [["split", "columns", "index", "values", "records"],
-              ["df", "df_date_idx", "df_td_int_ts", "df_int_floats",
-               "df_int_float_str"]]
+    params = [
+        ["split", "columns", "index", "values", "records"],
+        ["df", "df_date_idx", "df_td_int_ts", "df_int_floats", "df_int_float_str"],
+    ]
     param_names = ["orient", "frame"]
 
     def setup(self, orient, frame):
