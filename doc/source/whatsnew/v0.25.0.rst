@@ -182,36 +182,6 @@ The repr now looks like this:
     json_normalize(data, max_level=1)
 
 
-.. _whatsnew_0250.enhancements.loc_regex:
-
-Selection using regular expressions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-It is now possible to call :attr:`~DataFrame.loc` with parameter ``regex=True`` to select by
-row/columns axis labels that match a regular expression pattern.
-
-.. ipython:: python
-
-    df = pd.DataFrame(1, index=["A", "AB", "BC"], columns=["BC", "AB", "A"])
-    df
-
-    df.loc(regex=True)["B", "B"]
-    df.loc(axis=1, regex=True)["B"]
-
-The regex matching will only work when looking up single strings, not list of strings etc.
-
-.. ipython:: python
-
-    df.loc(regex=True)[["A"], "A"]
-
-Is is currently not possible to set values for a given regular expression.
-
-.. ipython:: python
-    :okexcept:
-
-    df.loc(regex=True)["B", "B"] = [[1, 2], [3, 4]]
-
-
 .. _whatsnew_0250.enhancements.explode:
 
 Series.explode to split list-like values to rows

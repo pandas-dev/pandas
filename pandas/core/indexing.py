@@ -941,11 +941,11 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 if com.is_null_slice(new_key):
                     return section
 
-                return self._getitem_lower_dim(section, new_key)
+                return self._getitem_lower_section(section, new_key)
 
         raise IndexingError("not applicable")
 
-    def _getitem_lower_dim(self, section, key):
+    def _getitem_lower_section(self, section, key):
         # This is an elided recursive call to iloc/loc/etc'
         return getattr(section, self.name)[key]
 
@@ -1871,14 +1871,13 @@ class _LocIndexer(_LocationIndexer):
                 return self.obj.iloc[tuple(indexer)]
 
         elif self.regex and isinstance(key, (str, bytes)):
-            print(key, axis)
             return self._getitem_regex(key, axis=axis)
 
         # fall thru to straight lookup
         self._validate_key(key, axis)
         return self._get_label(key, axis=axis)
 
-    def _getitem_lower_dim(self, section, key):
+    def _getitem_lower_section(self, section, key):
         return getattr(section, self.name)(regex=self.regex)[key]
 
     def __setitem__(self, key, value):
