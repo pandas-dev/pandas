@@ -10,7 +10,7 @@ from pandas._config import get_option
 from pandas.core.dtypes.inference import is_sequence
 
 
-def adjoin(space: int, *lists: str, **kwargs) -> str:
+def adjoin(space: int, *lists: List[str], **kwargs) -> str:
     """
     Glues together two sets of strings using the amount of space requested.
     The idea is to prettify.
@@ -41,8 +41,8 @@ def adjoin(space: int, *lists: str, **kwargs) -> str:
         newLists.append(nl)
     toJoin = zip(*newLists)
     for lines in toJoin:
-        out_lines.append(_join_unicode(lines))
-    return _join_unicode(out_lines, sep="\n")
+        out_lines.append("".join(lines))
+    return "\n".join(out_lines)
 
 
 def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> List[str]:
@@ -55,10 +55,6 @@ def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> List[str
         return [x.center(max_len) for x in texts]
     else:
         return [x.rjust(max_len) for x in texts]
-
-
-def _join_unicode(lines: Iterable[str], sep: str = "") -> str:
-    return sep.join(lines)
 
 
 # Unicode consolidation
