@@ -372,15 +372,13 @@ def test_setitem_dtypes():
 
 def test_set_value(test_data):
     idx = test_data.ts.index[10]
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        res = test_data.ts.set_value(idx, 0)
+    res = test_data.ts._set_value(idx, 0)
     assert res is test_data.ts
     assert test_data.ts[idx] == 0
 
     # equiv
     s = test_data.series.copy()
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        res = s.set_value("foobar", 0)
+    res = s._set_value("foobar", 0)
     assert res is s
     assert res.index[-1] == "foobar"
     assert res["foobar"] == 0
@@ -652,6 +650,38 @@ def test_timedelta_assignment():
     expected = pd.Series(10 * [np.timedelta64(10, "m")])
     expected.loc[[1, 2, 3]] = pd.Timedelta(np.timedelta64(20, "m"))
     tm.assert_series_equal(s, expected)
+
+
+@pytest.mark.parametrize(
+    "nat_val,should_cast",
+    [
+        (pd.NaT, True),
+        (np.timedelta64("NaT", "ns"), False),
+        (np.datetime64("NaT", "ns"), True),
+    ],
+)
+@pytest.mark.parametrize("tz", [None, "UTC"])
+def test_dt64_series_assign_nat(nat_val, should_cast, tz):
+    # some nat-like values should be cast to datetime64 when inserting
+    #  into a datetime64 series.  Others should coerce to object
+    #  and retain their dtypes.
+    dti = pd.date_range("2016-01-01", periods=3, tz=tz)
+    base = pd.Series(dti)
+    expected = pd.Series([pd.NaT] + list(dti[1:]), dtype=dti.dtype)
+    if not should_cast:
+        expected = expected.astype(object)
+
+    ser = base.copy(deep=True)
+    ser[0] = nat_val
+    tm.assert_series_equal(ser, expected)
+
+    ser = base.copy(deep=True)
+    ser.loc[0] = nat_val
+    tm.assert_series_equal(ser, expected)
+
+    ser = base.copy(deep=True)
+    ser.iloc[0] = nat_val
+    tm.assert_series_equal(ser, expected)
 
 
 @pytest.mark.parametrize(

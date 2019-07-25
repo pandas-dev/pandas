@@ -1,5 +1,3 @@
-from warnings import catch_warnings, simplefilter
-
 import numpy as np
 import pytest
 
@@ -9,9 +7,8 @@ from pandas import DataFrame, MultiIndex
 from pandas.util import testing as tm
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
-class TestMultiIndexIx:
-    def test_frame_setitem_ix(self, multiindex_dataframe_random_data):
+class TestMultiIndex:
+    def test_frame_setitem_loc(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
         frame.loc[("bar", "two"), "B"] = 5
         assert frame.loc[("bar", "two"), "B"] == 5
@@ -22,16 +19,7 @@ class TestMultiIndexIx:
         df.loc[("bar", "two"), 1] = 7
         assert df.loc[("bar", "two"), 1] == 7
 
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            df = frame.copy()
-            df.columns = list(range(3))
-            df.ix[("bar", "two"), 1] = 7
-        assert df.loc[("bar", "two"), 1] == 7
-
-    def test_ix_general(self):
-
-        # ix general issues
+    def test_loc_general(self):
 
         # GH 2817
         data = {
@@ -55,7 +43,7 @@ class TestMultiIndexIx:
         expected = DataFrame({"amount": [222, 333, 444]}, index=index)
         tm.assert_frame_equal(res, expected)
 
-    def test_ix_multiindex_missing_label_raises(self):
+    def test_loc_multiindex_missing_label_raises(self):
         # GH 21593
         df = DataFrame(
             np.random.randn(3, 3),
@@ -64,12 +52,12 @@ class TestMultiIndexIx:
         )
 
         with pytest.raises(KeyError, match=r"^2$"):
-            df.ix[2]
+            df.loc[2]
 
-    def test_series_ix_getitem_fancy(
+    def test_series_loc_getitem_fancy(
         self, multiindex_year_month_day_dataframe_random_data
     ):
         s = multiindex_year_month_day_dataframe_random_data["A"]
         expected = s.reindex(s.index[49:51])
-        result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
+        result = s.loc[[(2000, 3, 10), (2000, 3, 13)]]
         tm.assert_series_equal(result, expected)

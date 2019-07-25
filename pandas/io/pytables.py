@@ -303,7 +303,6 @@ def read_hdf(path_or_buf, key=None, mode="r", **kwargs):
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
 
-        .. versionadded:: 0.19.0 support for pathlib, py.path.
         .. versionadded:: 0.21.0 support for __fspath__ protocol.
 
     key : object, optional
@@ -3993,7 +3992,7 @@ class Table(Fixed):
                                 filt = filt.union(Index(self.levels))
 
                             takers = op(axis_values, filt)
-                            return obj.loc._getitem_axis(takers, axis=axis_number)
+                            return obj.loc(axis=axis_number)[takers]
 
                         # this might be the name of a file IN an axis
                         elif field in axis_values:
@@ -4006,7 +4005,7 @@ class Table(Fixed):
                             if isinstance(obj, DataFrame):
                                 axis_number = 1 - axis_number
                             takers = op(values, filt)
-                            return obj.loc._getitem_axis(takers, axis=axis_number)
+                            return obj.loc(axis=axis_number)[takers]
 
                     raise ValueError(
                         "cannot find the field [{field}] for "

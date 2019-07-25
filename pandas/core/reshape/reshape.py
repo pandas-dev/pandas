@@ -22,9 +22,9 @@ from pandas.core.dtypes.missing import notna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import _factorize_from_iterable
+from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
 from pandas.core.index import Index, MultiIndex
-from pandas.core.internals.arrays import extract_array
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -852,7 +852,6 @@ def get_dummies(
     2  0.0  0.0  1.0
     """
     from pandas.core.reshape.concat import concat
-    from itertools import cycle
 
     dtypes_to_encode = ["object", "category"]
 
@@ -881,7 +880,7 @@ def get_dummies(
         check_len(prefix_sep, "prefix_sep")
 
         if isinstance(prefix, str):
-            prefix = cycle([prefix])
+            prefix = itertools.cycle([prefix])
         if isinstance(prefix, dict):
             prefix = [prefix[col] for col in data_to_encode.columns]
 
@@ -890,7 +889,7 @@ def get_dummies(
 
         # validate separators
         if isinstance(prefix_sep, str):
-            prefix_sep = cycle([prefix_sep])
+            prefix_sep = itertools.cycle([prefix_sep])
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
