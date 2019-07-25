@@ -3,7 +3,7 @@
 
 from collections import defaultdict
 import copy
-from typing import Callable, DefaultDict, Dict, List, Optional, Union
+from typing import Callable, DefaultDict, Dict, List,  Optional, Union
 
 import numpy as np
 
@@ -26,7 +26,7 @@ def convert_to_line_delimits(s):
     return convert_json_to_lines(s)
 
 
-def _parse_use_keys(use_keys: Optional[Union[str, List[str], Callable]] = None):
+def _parse_use_keys(use_keys: Union[str, List, Callable, None]) -> Callable:
     """
     Converts different types of use_keys into a callable
 
@@ -39,20 +39,21 @@ def _parse_use_keys(use_keys: Optional[Union[str, List[str], Callable]] = None):
 
     Returns
     -------
-    use_key - A callable that returns a boolean value.
+    use_key - Callable
      It Decides on whether to include a key in processing.
 
     """
-    use_key = None
+    if callable(use_keys):
+        return use_keys
+
     if isinstance(use_keys, list):
-        use_key = lambda x: x in use_keys
-    elif isinstance(use_keys, str):
-        use_key = lambda x: x == use_keys
-    elif not use_keys:
-        use_key = lambda x: True
-    elif callable(use_keys):
-        use_key = use_keys
-    return use_key
+        return lambda x: x in use_keys  # type: ignore
+
+    if isinstance(use_keys, str):
+        return lambda x: x == use_keys
+
+    if not use_keys:
+        return lambda x: True
 
 
 def nested_to_record(
