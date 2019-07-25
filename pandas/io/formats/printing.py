@@ -3,13 +3,14 @@ printing tools
 """
 
 import sys
+from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
 
 
-def adjoin(space, *lists, **kwargs):
+def adjoin(space: int, *lists: str, **kwargs) -> str:
     """
     Glues together two sets of strings using the amount of space requested.
     The idea is to prettify.
@@ -44,7 +45,7 @@ def adjoin(space, *lists, **kwargs):
     return _join_unicode(out_lines, sep="\n")
 
 
-def justify(texts, max_len, mode="right"):
+def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> List[str]:
     """
     Perform ljust, center, rjust against string or list-like
     """
@@ -56,12 +57,8 @@ def justify(texts, max_len, mode="right"):
         return [x.rjust(max_len) for x in texts]
 
 
-def _join_unicode(lines, sep=""):
-    try:
-        return sep.join(lines)
-    except UnicodeDecodeError:
-        sep = str(sep)
-        return sep.join([x.decode("utf-8") if isinstance(x, str) else x for x in lines])
+def _join_unicode(lines: Iterable[str], sep: str = "") -> str:
+    return sep.join(lines)
 
 
 # Unicode consolidation
@@ -88,7 +85,9 @@ def _join_unicode(lines, sep=""):
 #    working with straight ascii.
 
 
-def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
+def _pprint_seq(
+    seq: Sequence, _nest_lvl: int = 0, max_seq_items: Optional[int] = None, **kwds
+) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
@@ -121,7 +120,9 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     return fmt.format(body=body)
 
 
-def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
+def _pprint_dict(
+    seq: Dict, _nest_lvl: int = 0, max_seq_items: Optional[int] = None, **kwds
+) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
@@ -152,12 +153,12 @@ def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
 
 def pprint_thing(
     thing,
-    _nest_lvl=0,
-    escape_chars=None,
-    default_escapes=False,
-    quote_strings=False,
-    max_seq_items=None,
-):
+    _nest_lvl: int = 0,
+    escape_chars: Optional[Union[Dict[str, str], Iterable[str]]] = None,
+    default_escapes: bool = False,
+    quote_strings: bool = False,
+    max_seq_items: Optional[int] = None,
+) -> str:
     """
     This function is the sanctioned way of converting objects
     to a unicode representation.
@@ -234,12 +235,14 @@ def pprint_thing(
     return str(result)  # always unicode
 
 
-def pprint_thing_encoded(object, encoding="utf-8", errors="replace", **kwds):
+def pprint_thing_encoded(
+    object, encoding: str = "utf-8", errors: str = "replace"
+) -> bytes:
     value = pprint_thing(object)  # get unicode representation of object
-    return value.encode(encoding, errors, **kwds)
+    return value.encode(encoding, errors)
 
 
-def _enable_data_resource_formatter(enable):
+def _enable_data_resource_formatter(enable: bool) -> None:
     if "IPython" not in sys.modules:
         # definitely not in IPython
         return
@@ -279,12 +282,12 @@ default_pprint = lambda x, max_seq_items=None: pprint_thing(
 
 def format_object_summary(
     obj,
-    formatter,
-    is_justify=True,
-    name=None,
-    indent_for_name=True,
-    line_break_each_value=False,
-):
+    formatter: Callable,
+    is_justify: bool = True,
+    name: Optional[str] = None,
+    indent_for_name: bool = True,
+    line_break_each_value: bool = False,
+) -> str:
     """
     Return the formatted obj as a unicode string
 
@@ -448,7 +451,9 @@ def format_object_summary(
     return summary
 
 
-def _justify(head, tail):
+def _justify(
+    head: List[Sequence[str]], tail: List[Sequence[str]]
+) -> Tuple[List[Tuple[str, ...]], List[Tuple[str, ...]]]:
     """
     Justify items in head and tail, so they are right-aligned when stacked.
 
@@ -484,10 +489,16 @@ def _justify(head, tail):
     tail = [
         tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in tail
     ]
-    return head, tail
+    # https://github.com/python/mypy/issues/4975
+    # error: Incompatible return value type (got "Tuple[List[Sequence[str]],
+    #  List[Sequence[str]]]", expected "Tuple[List[Tuple[str, ...]],
+    #  List[Tuple[str, ...]]]")
+    return head, tail  # type: ignore
 
 
-def format_object_attrs(obj, include_dtype=True):
+def format_object_attrs(
+    obj: Sequence, include_dtype: bool = True
+) -> List[Tuple[str, Union[str, int]]]:
     """
     Return a list of tuples of the (attr, formatted_value)
     for common attrs, including dtype, name, length
@@ -501,16 +512,20 @@ def format_object_attrs(obj, include_dtype=True):
 
     Returns
     -------
-    list
+    list of 2-tuple
 
     """
-    attrs = []
+    attrs = []  # type: List[Tuple[str, Union[str, int]]]
     if hasattr(obj, "dtype") and include_dtype:
-        attrs.append(("dtype", "'{}'".format(obj.dtype)))
+        # error: "Sequence[Any]" has no attribute "dtype"
+        attrs.append(("dtype", "'{}'".format(obj.dtype)))  # type: ignore
     if getattr(obj, "name", None) is not None:
-        attrs.append(("name", default_pprint(obj.name)))
-    elif getattr(obj, "names", None) is not None and any(obj.names):
-        attrs.append(("names", default_pprint(obj.names)))
+        # error: "Sequence[Any]" has no attribute "name"
+        attrs.append(("name", default_pprint(obj.name)))  # type: ignore
+    # error: "Sequence[Any]" has no attribute "names"
+    elif getattr(obj, "names", None) is not None and any(obj.names):  # type: ignore
+        # error: "Sequence[Any]" has no attribute "names"
+        attrs.append(("names", default_pprint(obj.names)))  # type: ignore
     max_seq_items = get_option("display.max_seq_items") or len(obj)
     if len(obj) > max_seq_items:
         attrs.append(("length", len(obj)))
