@@ -2184,7 +2184,7 @@ class DatetimeLikeBlockMixin:
 
     @property
     def fill_value(self):
-        return tslibs.iNaT
+        return np.datetime64("NaT", "ns")
 
     def get_values(self, dtype=None):
         """
@@ -2266,13 +2266,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             if self.is_datetimetz:
                 return tz_compare(element.tzinfo, self.dtype.tz)
             return element.tzinfo is None
-        elif is_integer(element):
-            return element == tslibs.iNaT
 
         return is_valid_nat_for_dtype(element, self.dtype)
-
-    def _coerce_values(self, values):
-        return values.view("i8")
 
     def _try_coerce_args(self, other):
         """
@@ -2290,16 +2285,15 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         base-type other
         """
         if is_valid_nat_for_dtype(other, self.dtype):
-            other = tslibs.iNaT
-        elif is_integer(other) and other == tslibs.iNaT:
-            pass
+            other = np.datetime64("NaT", "ns")
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
             if getattr(other, "tz") is not None:
                 raise TypeError("cannot coerce a Timestamp with a tz on a naive Block")
-            other = other.asm8.view("i8")
+            other = other.asm8
         elif hasattr(other, "dtype") and is_datetime64_dtype(other):
-            other = other.astype("i8", copy=False).view("i8")
+            # TODO: can we get here with non-nano?
+            pass
         else:
             # coercion issues
             # let higher levels handle
@@ -2458,8 +2452,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return self.values[slicer]
 
     def _coerce_values(self, values):
-        # asi8 is a view, needs copy
-        return _block_shape(values.view("i8"), ndim=self.ndim)
+        return _block_shape(values, ndim=self.ndim)
 
     def _try_coerce_args(self, other):
         """
@@ -2484,21 +2477,17 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             other = self._holder(other, dtype=self.dtype)
 
         elif is_valid_nat_for_dtype(other, self.dtype):
-            other = tslibs.iNaT
-        elif is_integer(other) and other == tslibs.iNaT:
-            pass
+            other = np.datetime64("NaT", "ns")
         elif isinstance(other, self._holder):
-            if other.tz != self.values.tz:
+            if not tz_compare(other.tz, self.values.tz):
                 raise ValueError("incompatible or non tz-aware value")
-            other = _block_shape(other.asi8, ndim=self.ndim)
+
         elif isinstance(other, (np.datetime64, datetime, date)):
             other = tslibs.Timestamp(other)
-            tz = getattr(other, "tz", None)
 
             # test we can have an equal time zone
-            if tz is None or str(tz) != str(self.values.tz):
+            if not tz_compare(other.tz, self.values.tz):
                 raise ValueError("incompatible or non tz-aware value")
-            other = other.value
         else:
             raise TypeError(other)
 
@@ -2654,8 +2643,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     def _try_coerce_args(self, other):
         """
-        Coerce values and other to int64, with null values converted to
-        iNaT. values is always ndarray-like, other may not be
+        Coerce values and other to datetime64[ns], with null values
+        converted to datetime64("NaT", "ns").
 
         Parameters
         ----------
