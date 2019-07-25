@@ -1,5 +1,6 @@
 from shutil import get_terminal_size
 import textwrap
+from typing import Type, Union, cast
 from warnings import warn
 
 import numpy as np
@@ -42,6 +43,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas._typing import ArrayLike, Dtype, Ordered
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
@@ -455,7 +457,7 @@ class Categorical(ExtensionArray, PandasObject):
         self._dtype = new_dtype
 
     @property
-    def ordered(self):
+    def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
         """
@@ -469,11 +471,11 @@ class Categorical(ExtensionArray, PandasObject):
         return self._dtype
 
     @property
-    def _ndarray_values(self):
+    def _ndarray_values(self) -> np.ndarray:
         return self.codes
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Type["Categorical"]:
         return Categorical
 
     @classmethod
@@ -484,7 +486,7 @@ class Categorical(ExtensionArray, PandasObject):
         # Defer to CategoricalFormatter's formatter.
         return None
 
-    def copy(self):
+    def copy(self) -> "Categorical":
         """
         Copy constructor.
         """
@@ -492,7 +494,7 @@ class Categorical(ExtensionArray, PandasObject):
             values=self._codes.copy(), dtype=self.dtype, fastpath=True
         )
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         """
         Coerce this type to another dtype
 
@@ -505,6 +507,8 @@ class Categorical(ExtensionArray, PandasObject):
             object is returned.
         """
         if is_categorical_dtype(dtype):
+            dtype = cast(Union[str, CategoricalDtype], dtype)
+
             # GH 10696/18593
             dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
@@ -514,27 +518,27 @@ class Categorical(ExtensionArray, PandasObject):
         return np.array(self, dtype=dtype, copy=copy)
 
     @cache_readonly
-    def ndim(self):
+    def ndim(self) -> int:
         """
         Number of dimensions of the Categorical
         """
         return self._codes.ndim
 
     @cache_readonly
-    def size(self):
+    def size(self) -> int:
         """
         return the len of myself
         """
         return len(self)
 
     @cache_readonly
-    def itemsize(self):
+    def itemsize(self) -> int:
         """
         return the size of a single category
         """
         return self.categories.itemsize
 
-    def tolist(self):
+    def tolist(self) -> list:
         """
         Return a list of the values.
 
@@ -547,7 +551,7 @@ class Categorical(ExtensionArray, PandasObject):
     to_list = tolist
 
     @property
-    def base(self):
+    def base(self) -> None:
         """
         compat, we are always our own object
         """
@@ -694,8 +698,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         return cls(codes, dtype=dtype, fastpath=True)
 
-    _codes = None
-
     def _get_codes(self):
         """
         Get the codes.
@@ -755,7 +757,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         self._dtype = new_dtype
 
-    def _set_dtype(self, dtype):
+    def _set_dtype(self, dtype: CategoricalDtype) -> "Categorical":
         """
         Internal method for directly updating the CategoricalDtype
 
