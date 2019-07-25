@@ -441,5 +441,22 @@ This would be more or less equivalent to:
 The backend module can then use other visualization tools (Bokeh, Altair,...)
 to generate the plots.
 
+Libraries implementing the plotting backend should use `entry points <https://setuptools.readthedocs.io/en/latest/setuptools.html#dynamic-discovery-of-services-and-plugins>`__
+to make their backend discoverable to pandas. The key is ``"pandas_plotting_backends"``. For example, pandas
+registers the default "matplotlib" backend as follows.
+
+.. code-block:: python
+
+   # in setup.py
+   setup(  # noqa: F821
+       ...,
+       entry_points={
+           "pandas_plotting_backends": [
+               "matplotlib = pandas:plotting._matplotlib",
+           ],
+       },
+   )
+
+
 More information on how to implement a third-party plotting backend can be found at
 https://github.com/pandas-dev/pandas/blob/master/pandas/plotting/__init__.py#L1.
