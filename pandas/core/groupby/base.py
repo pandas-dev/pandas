@@ -124,6 +124,8 @@ reduction_kernels = frozenset(
         "nth",
         "nunique",
         "prod",
+        # as long as `quantile`'s signature accepts only
+        # a single quantile value, it's a reduction.
         "quantile",
         "sem",
         "size",
@@ -135,8 +137,8 @@ reduction_kernels = frozenset(
 )
 
 # List of transformation functions.
-# These map each group to a like-indexed result object
-# like-indexed means *same* index and *same* columns.
+# a transformation is a function that, for each group,
+# produces a result that has the same shape as the group.
 transformation_kernels = frozenset(
     [
         "backfill",
