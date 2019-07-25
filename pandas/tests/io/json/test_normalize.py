@@ -461,14 +461,14 @@ class TestJSONNormalize:
         "use_keys, expected",
         [
             (
-                lambda key: key not in ["Image"],
+                lambda key: key in ["Image"],
                 [
                     {
                         "CreatedBy.Name": "User001",
                         "Lookup.TextField": "Some text",
                         "Lookup.UserField.Id": "ID001",
                         "Lookup.UserField.Name": "Name001",
-                        "Image": {"a": "b"},
+                        "Image.a": "b",
                     }
                 ],
             ),
@@ -505,6 +505,22 @@ class TestJSONNormalize:
         result = json_normalize(nested_input_data, use_keys=use_keys)
         expected_df = DataFrame(data=expected, columns=result.columns)
         tm.assert_equal(result, expected_df)
+
+    def test_exclude_keys_with_callable(self, nested_input_data):
+        use_keys = lambda key: key in ["Image"],
+        expected = [
+            {
+                "CreatedBy.Name": "User001",
+                "Lookup.TextField": "Some text",
+                "Lookup.UserField.Id": "ID001",
+                "Lookup.UserField.Name": "Name001",
+                "Image.a": "b",
+            }
+        ]
+        result = json_normalize(nested_input_data, use_keys=use_keys)
+        expected_df = DataFrame(data=expected, columns=result.columns)
+        tm.assert_equal(result, expected_df)
+
 
     def test_use_keys_with_meta(self, nested_input_data):
         # GH 27241 ignore specific keys from normalization
