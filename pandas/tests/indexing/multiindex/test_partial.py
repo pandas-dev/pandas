@@ -1,5 +1,3 @@
-from warnings import catch_warnings, simplefilter
-
 import numpy as np
 import pytest
 
@@ -104,11 +102,6 @@ class TestMultiIndexPartial:
 
         result = df.loc[("a", "y"), [1, 0]]
         expected = df.loc[("a", "y")][[1, 0]]
-        tm.assert_frame_equal(result, expected)
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            result = df.ix[("a", "y"), [1, 0]]
         tm.assert_frame_equal(result, expected)
 
         with pytest.raises(KeyError, match=r"\('a', 'foo'\)"):
