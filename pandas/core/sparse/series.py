@@ -114,6 +114,11 @@ class SparseSeries(Series):
         elif is_scalar(data) and index is not None:
             data = np.full(len(index), fill_value=data)
 
+        if isinstance(data, SingleBlockManager):
+            # SparseArray doesn't accept SingleBlockManager
+            index = data.index
+            data = data.blocks[0].values
+
         super().__init__(
             SparseArray(
                 data,
@@ -310,6 +315,9 @@ class SparseSeries(Series):
         else:
             object.__setattr__(self, "_subtyp", "sparse_series")
 
+    # ----------------------------------------------------------------------
+    # Indexing Methods
+
     def _ixs(self, i, axis=0):
         """
         Return the i-th value or values in the SparseSeries by location
@@ -340,52 +348,6 @@ class SparseSeries(Series):
         else:
             return super().__getitem__(key)
 
-    def _get_values(self, indexer):
-        try:
-            return self._constructor(
-                self._data.get_slice(indexer), fastpath=True
-            ).__finalize__(self)
-        except Exception:
-            return self[indexer]
-
-    def _set_with_engine(self, key, value):
-        return self._set_value(key, value)
-
-    def abs(self):
-        """
-        Return an object with absolute value taken. Only applicable to objects
-        that are all numeric
-
-        Returns
-        -------
-        abs: same type as caller
-        """
-        return self._constructor(np.abs(self.values), index=self.index).__finalize__(
-            self
-        )
-
-    def get(self, label, default=None):
-        """
-        Returns value occupying requested label, default to specified
-        missing value if not present. Analogous to dict.get
-
-        Parameters
-        ----------
-        label : object
-            Label value looking for
-        default : object, optional
-            Value to return if label not in index
-
-        Returns
-        -------
-        y : scalar
-        """
-        if label in self.index:
-            loc = self.index.get_loc(label)
-            return self._get_val_at(loc)
-        else:
-            return default
-
     def _get_value(self, label, takeable=False):
         """
         Retrieve single value at passed index label
@@ -403,6 +365,17 @@ class SparseSeries(Series):
         """
         loc = label if takeable is True else self.index.get_loc(label)
         return self._get_val_at(loc)
+
+    def _get_values(self, indexer):
+        try:
+            return self._constructor(
+                self._data.get_slice(indexer), fastpath=True
+            ).__finalize__(self)
+        except Exception:
+            return self[indexer]
+
+    def _set_with_engine(self, key, value):
+        return self._set_value(key, value)
 
     def _set_value(self, label, value, takeable=False):
         """
@@ -456,6 +429,44 @@ class SparseSeries(Series):
         values[key] = libindex.convert_scalar(values, value)
         values = SparseArray(values, fill_value=self.fill_value, kind=self.kind)
         self._data = SingleBlockManager(values, self.index)
+
+    # ----------------------------------------------------------------------
+    # Unsorted
+
+    def abs(self):
+        """
+        Return an object with absolute value taken. Only applicable to objects
+        that are all numeric
+
+        Returns
+        -------
+        abs: same type as caller
+        """
+        return self._constructor(np.abs(self.values), index=self.index).__finalize__(
+            self
+        )
+
+    def get(self, label, default=None):
+        """
+        Returns value occupying requested label, default to specified
+        missing value if not present. Analogous to dict.get
+
+        Parameters
+        ----------
+        label : object
+            Label value looking for
+        default : object, optional
+            Value to return if label not in index
+
+        Returns
+        -------
+        y : scalar
+        """
+        if label in self.index:
+            loc = self.index.get_loc(label)
+            return self._get_val_at(loc)
+        else:
+            return default
 
     def to_dense(self):
         """
