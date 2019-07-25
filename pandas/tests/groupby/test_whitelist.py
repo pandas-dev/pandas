@@ -9,6 +9,11 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
+from pandas.core.groupby.base import (
+    groupby_other_methods,
+    reduction_kernels,
+    transformation_kernels,
+)
 from pandas.util import testing as tm
 
 AGG_FUNCTIONS = [
@@ -376,3 +381,49 @@ def test_groupby_selection_with_methods(df):
     tm.assert_frame_equal(
         g.filter(lambda x: len(x) == 3), g_exp.filter(lambda x: len(x) == 3)
     )
+
+
+def test_all_methods_categorized(mframe):
+    grp = mframe.groupby(mframe.iloc[:, 0])
+    names = {_ for _ in dir(grp) if not _.startswith("_")} - set(mframe.columns)
+    new_names = set(names)
+    new_names -= reduction_kernels
+    new_names -= transformation_kernels
+    new_names -= groupby_other_methods
+
+    assert not (reduction_kernels & transformation_kernels)
+    assert not (reduction_kernels & groupby_other_methods)
+    assert not (transformation_kernels & groupby_other_methods)
+
+    # new public method?
+    if new_names:
+        msg = """
+There are uncatgeorized methods defined on the Grouper class:
+{names}.
+
+Was a new method recently added?
+
+Every public method On Grouper must appear in exactly one the
+following three lists defined in pandas.core.groupby.base:
+- `reduction_kernels`
+- `transformation_kernels`
+- `groupby_other_methods`
+see the comments in pandas/core/groupby/base.py for guidance on
+how to fix this test.
+        """
+        raise AssertionError(msg.format(names=names))
+
+    # removed a public method?
+    all_categorized = reduction_kernels | transformation_kernels | groupby_other_methods
+    print(names)
+    print(all_categorized)
+    if not (names == all_categorized):
+        msg = """
+Some methods which are supposed to be on the Grouper class
+are missing:
+{names}.
+
+They're still defined in one of the lists that live in pandas/core/groupby/base.py.
+If you removed a method, you should update them
+"""
+        raise AssertionError(msg.format(names=all_categorized - names))
