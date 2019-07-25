@@ -103,10 +103,11 @@ def _ensure_data(values, dtype=None):
 
             # ignore the fact that we are casting to float
             # which discards complex parts
-            with catch_warnings():
-                simplefilter("ignore", np.ComplexWarning)
-                values = ensure_float64(values)
-            return values, "float64", "float64"
+            # with catch_warnings():
+            #     simplefilter("ignore", np.ComplexWarning)
+            #     values = ensure_float64(values)
+            # return values, "float64", "float64"
+            return ensure_object(np.asarray(values)), "object", "object"
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
