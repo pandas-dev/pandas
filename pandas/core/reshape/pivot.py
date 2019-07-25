@@ -127,8 +127,6 @@ def pivot_table(
         table = agged.unstack(to_unstack)
 
     if not dropna:
-        from pandas import MultiIndex
-
         if table.index.nlevels > 1:
             m = MultiIndex.from_arrays(
                 cartesian_product(table.index.levels), names=table.index.names
@@ -479,8 +477,6 @@ def crosstab(
         - If passed 'index' will normalize over each row.
         - If passed 'columns' will normalize over each column.
         - If margins is `True`, will also normalize margin values.
-
-        .. versionadded:: 0.18.1
 
     Returns
     -------

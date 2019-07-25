@@ -6,7 +6,6 @@ import copy
 import pickle as pkl
 import sys
 
-import pandas  # noqa
 from pandas import Index
 
 
