@@ -1333,3 +1333,15 @@ def test_groupby_mean_no_overflow():
         }
     )
     assert df.groupby("user")["connections"].mean()["A"] == 3689348814740003840
+
+
+def test_quantile_validation():
+    # GH#27470
+    df = pd.DataFrame(dict(a=[0, 0, 0, 1, 1, 1]))
+    g = df.groupby(np.repeat([0, 1], 3))
+    result = g.quantile(0.5)
+    expected = DataFrame(dict(a=[0.0, 1.0]))
+    tm.assert_frame_equal(result, expected)
+
+    with pytest.raises(ValueError, match="uantile values"):
+        g.quantile(1.1)
