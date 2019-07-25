@@ -38,11 +38,12 @@ Apache Arrow Interoperability
 
 `Apache Arrow <https://arrow.apache.org>`__ is a cross-language development
 platform for in-memory data. The Arrow logical types are closely aligned with
-typical pandas use cases (for example, support for nullable integers).
+typical pandas use cases.
 
-We'd like better support for a DataFrame be backed by Arrow memory and data types.
-This should simplify pandas internals and ensure more consistent handling
-of data types through operations.
+We'd like to provide better-integrated support for Arrow memory and data types
+within pandas. This will let us take advantage of its I/O capabilities and
+provides for better interoperability with other languages and libraries
+using Arrow.
 
 Block Manager Rewrite
 ---------------------
