@@ -1359,6 +1359,12 @@ class MultiIndex(Index):
         increasing) values.
         """
 
+        if all(x.is_monotonic for x in self.levels):
+            # If each level is sorted, we can operate on the codes directly. GH27495
+            return libalgos.is_lexsorted(
+                [x.astype("int64", copy=False) for x in self.codes]
+            )
+
         # reversed() because lexsort() wants the most significant key last.
         values = [
             self._get_level_values(i).values for i in reversed(range(len(self.levels)))
@@ -1464,9 +1470,6 @@ class MultiIndex(Index):
         return self.copy(codes=new_codes, deep=True)
 
     def get_value(self, series, key):
-        # somewhat broken encapsulation
-        from pandas.core.indexing import maybe_droplevels
-
         # Label-based
         s = com.values_from_object(series)
         k = com.values_from_object(key)
@@ -2197,11 +2200,6 @@ class MultiIndex(Index):
         MultiIndex
             A new MultiIndex.
 
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
-
         See Also
         --------
         Series.swaplevel : Swap levels i and j in a MultiIndex.
@@ -2708,7 +2706,7 @@ class MultiIndex(Index):
 
         return _maybe_to_slice(loc) if len(loc) != stop - start else slice(start, stop)
 
-    def get_loc_level(self, key, level=0, drop_level=True):
+    def get_loc_level(self, key, level=0, drop_level: bool = True):
         """
         Get both the location for the requested label(s) and the
         resulting sliced index.
@@ -2749,7 +2747,8 @@ class MultiIndex(Index):
         (1, None)
         """
 
-        def maybe_droplevels(indexer, levels, drop_level):
+        # different name to distinguish from maybe_droplevels
+        def maybe_mi_droplevels(indexer, levels, drop_level: bool):
             if not drop_level:
                 return self[indexer]
             # kludgearound
@@ -2779,7 +2778,7 @@ class MultiIndex(Index):
 
                 result = loc if result is None else result & loc
 
-            return result, maybe_droplevels(result, level, drop_level)
+            return result, maybe_mi_droplevels(result, level, drop_level)
 
         level = self._get_level_number(level)
 
@@ -2792,7 +2791,7 @@ class MultiIndex(Index):
             try:
                 if key in self.levels[0]:
                     indexer = self._get_level_indexer(key, level=level)
-                    new_index = maybe_droplevels(indexer, [0], drop_level)
+                    new_index = maybe_mi_droplevels(indexer, [0], drop_level)
                     return indexer, new_index
             except TypeError:
                 pass
@@ -2807,7 +2806,7 @@ class MultiIndex(Index):
                     ilevels = [
                         i for i in range(len(key)) if key[i] != slice(None, None)
                     ]
-                    return indexer, maybe_droplevels(indexer, ilevels, drop_level)
+                    return indexer, maybe_mi_droplevels(indexer, ilevels, drop_level)
 
                 if len(key) == self.nlevels and self.is_unique:
                     # Complete key in unique index -> standard get_loc
@@ -2842,10 +2841,10 @@ class MultiIndex(Index):
                 if indexer is None:
                     indexer = slice(None, None)
                 ilevels = [i for i in range(len(key)) if key[i] != slice(None, None)]
-                return indexer, maybe_droplevels(indexer, ilevels, drop_level)
+                return indexer, maybe_mi_droplevels(indexer, ilevels, drop_level)
         else:
             indexer = self._get_level_indexer(key, level=level)
-            return indexer, maybe_droplevels(indexer, [level], drop_level)
+            return indexer, maybe_mi_droplevels(indexer, [level], drop_level)
 
     def _get_level_indexer(self, key, level=0, indexer=None):
         # return an indexer, boolean array or a slice showing where the key is
@@ -3463,3 +3462,34 @@ def _sparsify(label_list, start=0, sentinel=""):
 
 def _get_na_rep(dtype):
     return {np.datetime64: "NaT", np.timedelta64: "NaT"}.get(dtype, "NaN")
+
+
+def maybe_droplevels(index, key):
+    """
+    Attempt to drop level or levels from the given index.
+
+    Parameters
+    ----------
+    index: Index
+    key : scalar or tuple
+
+    Returns
+    -------
+    Index
+    """
+    # drop levels
+    original_index = index
+    if isinstance(key, tuple):
+        for _ in key:
+            try:
+                index = index.droplevel(0)
+            except ValueError:
+                # we have dropped too much, so back out
+                return original_index
+    else:
+        try:
+            index = index.droplevel(0)
+        except ValueError:
+            pass
+
+    return index

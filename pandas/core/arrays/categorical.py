@@ -1,12 +1,13 @@
 from shutil import get_terminal_size
 import textwrap
+from typing import Type, Union, cast
 from warnings import warn
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, lib
+from pandas._libs import algos as libalgos, hashtable as htable, lib
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -38,21 +39,25 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.generic import (
-    ABCCategoricalIndex,
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas._typing import ArrayLike, Dtype, Ordered
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
-from pandas.core.algorithms import factorize, take, take_1d, unique1d
+from pandas.core.algorithms import (
+    _get_data_algo,
+    _hashtables,
+    factorize,
+    take,
+    take_1d,
+    unique1d,
+)
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
+from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
 
@@ -157,19 +162,6 @@ def _cat_compare_op(op):
     f.__name__ = op
 
     return f
-
-
-def _maybe_to_categorical(array):
-    """
-    Coerce to a categorical if a series is given.
-
-    Internal use ONLY.
-    """
-    if isinstance(array, (ABCSeries, ABCCategoricalIndex)):
-        return array._values
-    elif isinstance(array, np.ndarray):
-        return Categorical(array)
-    return array
 
 
 def contains(cat, key, container):
@@ -367,7 +359,6 @@ class Categorical(ExtensionArray, PandasObject):
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
                 values = _convert_to_list_like(values)
-                from pandas.core.internals.construction import sanitize_array
 
                 # By convention, empty lists result in object dtype:
                 if len(values) == 0:
@@ -466,7 +457,7 @@ class Categorical(ExtensionArray, PandasObject):
         self._dtype = new_dtype
 
     @property
-    def ordered(self):
+    def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
         """
@@ -480,11 +471,11 @@ class Categorical(ExtensionArray, PandasObject):
         return self._dtype
 
     @property
-    def _ndarray_values(self):
+    def _ndarray_values(self) -> np.ndarray:
         return self.codes
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Type["Categorical"]:
         return Categorical
 
     @classmethod
@@ -495,7 +486,7 @@ class Categorical(ExtensionArray, PandasObject):
         # Defer to CategoricalFormatter's formatter.
         return None
 
-    def copy(self):
+    def copy(self) -> "Categorical":
         """
         Copy constructor.
         """
@@ -503,7 +494,7 @@ class Categorical(ExtensionArray, PandasObject):
             values=self._codes.copy(), dtype=self.dtype, fastpath=True
         )
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         """
         Coerce this type to another dtype
 
@@ -514,11 +505,10 @@ class Categorical(ExtensionArray, PandasObject):
             By default, astype always returns a newly allocated object.
             If copy is set to False and dtype is categorical, the original
             object is returned.
-
-            .. versionadded:: 0.19.0
-
         """
         if is_categorical_dtype(dtype):
+            dtype = cast(Union[str, CategoricalDtype], dtype)
+
             # GH 10696/18593
             dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
@@ -528,27 +518,27 @@ class Categorical(ExtensionArray, PandasObject):
         return np.array(self, dtype=dtype, copy=copy)
 
     @cache_readonly
-    def ndim(self):
+    def ndim(self) -> int:
         """
         Number of dimensions of the Categorical
         """
         return self._codes.ndim
 
     @cache_readonly
-    def size(self):
+    def size(self) -> int:
         """
         return the len of myself
         """
         return len(self)
 
     @cache_readonly
-    def itemsize(self):
+    def itemsize(self) -> int:
         """
         return the size of a single category
         """
         return self.categories.itemsize
 
-    def tolist(self):
+    def tolist(self) -> list:
         """
         Return a list of the values.
 
@@ -561,7 +551,7 @@ class Categorical(ExtensionArray, PandasObject):
     to_list = tolist
 
     @property
-    def base(self):
+    def base(self) -> None:
         """
         compat, we are always our own object
         """
@@ -708,8 +698,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         return cls(codes, dtype=dtype, fastpath=True)
 
-    _codes = None
-
     def _get_codes(self):
         """
         Get the codes.
@@ -769,7 +757,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         self._dtype = new_dtype
 
-    def _set_dtype(self, dtype):
+    def _set_dtype(self, dtype: CategoricalDtype) -> "Categorical":
         """
         Internal method for directly updating the CategoricalDtype
 
@@ -1527,9 +1515,7 @@ class Categorical(ExtensionArray, PandasObject):
         See Also
         --------
         Series.value_counts
-
         """
-        from numpy import bincount
         from pandas import Series, CategoricalIndex
 
         code, cat = self._codes, self.categories
@@ -1538,9 +1524,9 @@ class Categorical(ExtensionArray, PandasObject):
 
         if dropna or clean:
             obs = code if clean else code[mask]
-            count = bincount(obs, minlength=ncat or 0)
+            count = np.bincount(obs, minlength=ncat or 0)
         else:
-            count = bincount(np.where(mask, code, ncat))
+            count = np.bincount(np.where(mask, code, ncat))
             ix = np.append(ix, -1)
 
         ix = self._constructor(ix, dtype=self.dtype, fastpath=True)
@@ -1986,23 +1972,6 @@ class Categorical(ExtensionArray, PandasObject):
 
     take = take_nd
 
-    def _slice(self, slicer):
-        """
-        Return a slice of myself.
-
-        For internal compatibility with numpy arrays.
-        """
-
-        # only allow 1 dimensional slicing, but can
-        # in a 2-d case be passd (slice(None),....)
-        if isinstance(slicer, tuple) and len(slicer) == 2:
-            if not com.is_null_slice(slicer[0]):
-                raise AssertionError("invalid slicing for a 1-ndim " "categorical")
-            slicer = slicer[1]
-
-        codes = self._codes[slicer]
-        return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
-
     def __len__(self):
         """
         The length of this Categorical.
@@ -2160,8 +2129,6 @@ class Categorical(ExtensionArray, PandasObject):
             If (one or more) Value is not in categories or if a assigned
             `Categorical` does not have the same categories
         """
-        from pandas.core.internals.arrays import extract_array
-
         value = extract_array(value, extract_numpy=True)
 
         # require identical categories set
@@ -2329,9 +2296,6 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         modes : `Categorical` (sorted)
         """
-
-        import pandas._libs.hashtable as htable
-
         codes = self._codes
         if dropna:
             good = self._codes != -1
@@ -2481,9 +2445,9 @@ class Categorical(ExtensionArray, PandasObject):
 
     @classmethod
     def _concat_same_type(self, to_concat):
-        from pandas.core.dtypes.concat import _concat_categorical
+        from pandas.core.dtypes.concat import concat_categorical
 
-        return _concat_categorical(to_concat)
+        return concat_categorical(to_concat)
 
     def isin(self, values):
         """
@@ -2527,8 +2491,6 @@ class Categorical(ExtensionArray, PandasObject):
         >>> s.isin(['lama'])
         array([ True, False,  True, False,  True, False])
         """
-        from pandas.core.internals.construction import sanitize_array
-
         if not is_list_like(values):
             raise TypeError(
                 "only list-like objects are allowed to be passed"
@@ -2671,8 +2633,6 @@ def _get_codes_for_values(values, categories):
     """
     utility routine to turn values into codes given the specified categories
     """
-    from pandas.core.algorithms import _get_data_algo, _hashtables
-
     dtype_equal = is_dtype_equal(values.dtype, categories.dtype)
 
     if dtype_equal:
@@ -2722,8 +2682,6 @@ def _recode_for_categories(codes, old_categories, new_categories):
     >>> _recode_for_categories(codes, old_cat, new_cat)
     array([ 1,  0,  0, -1])
     """
-    from pandas.core.algorithms import take_1d
-
     if len(old_categories) == 0:
         # All null anyway, so just retain the nulls
         return codes.copy()

@@ -906,35 +906,35 @@ class IntervalIndex(IntervalMixin, Index):
             )
             raise InvalidIndexError(msg)
 
-        target = ensure_index(target)
+        target_as_index = ensure_index(target)
 
-        if isinstance(target, IntervalIndex):
+        if isinstance(target_as_index, IntervalIndex):
             # equal indexes -> 1:1 positional match
-            if self.equals(target):
+            if self.equals(target_as_index):
                 return np.arange(len(self), dtype="intp")
 
             # different closed or incompatible subtype -> no matches
             common_subtype = find_common_type(
-                [self.dtype.subtype, target.dtype.subtype]
+                [self.dtype.subtype, target_as_index.dtype.subtype]
             )
-            if self.closed != target.closed or is_object_dtype(common_subtype):
-                return np.repeat(np.intp(-1), len(target))
+            if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
+                return np.repeat(np.intp(-1), len(target_as_index))
 
-            # non-overlapping -> at most one match per interval in target
+            # non-overlapping -> at most one match per interval in target_as_index
             # want exact matches -> need both left/right to match, so defer to
             # left/right get_indexer, compare elementwise, equality -> match
-            left_indexer = self.left.get_indexer(target.left)
-            right_indexer = self.right.get_indexer(target.right)
+            left_indexer = self.left.get_indexer(target_as_index.left)
+            right_indexer = self.right.get_indexer(target_as_index.right)
             indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
-        elif not is_object_dtype(target):
+        elif not is_object_dtype(target_as_index):
             # homogeneous scalar index: use IntervalTree
-            target = self._maybe_convert_i8(target)
-            indexer = self._engine.get_indexer(target.values)
+            target_as_index = self._maybe_convert_i8(target_as_index)
+            indexer = self._engine.get_indexer(target_as_index.values)
         else:
             # heterogeneous scalar index: defer elementwise to get_loc
             # (non-overlapping so get_loc guarantees scalar of KeyError)
             indexer = []
-            for key in target:
+            for key in target_as_index:
                 try:
                     loc = self.get_loc(key)
                 except KeyError:
@@ -947,21 +947,26 @@ class IntervalIndex(IntervalMixin, Index):
     def get_indexer_non_unique(
         self, target: AnyArrayLike
     ) -> Tuple[np.ndarray, np.ndarray]:
-        target = ensure_index(target)
+        target_as_index = ensure_index(target)
 
-        # check that target IntervalIndex is compatible
-        if isinstance(target, IntervalIndex):
+        # check that target_as_index IntervalIndex is compatible
+        if isinstance(target_as_index, IntervalIndex):
             common_subtype = find_common_type(
-                [self.dtype.subtype, target.dtype.subtype]
+                [self.dtype.subtype, target_as_index.dtype.subtype]
             )
-            if self.closed != target.closed or is_object_dtype(common_subtype):
+            if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
                 # different closed or incompatible subtype -> no matches
-                return np.repeat(-1, len(target)), np.arange(len(target))
+                return (
+                    np.repeat(-1, len(target_as_index)),
+                    np.arange(len(target_as_index)),
+                )
 
-        if is_object_dtype(target) or isinstance(target, IntervalIndex):
-            # target might contain intervals: defer elementwise to get_loc
+        if is_object_dtype(target_as_index) or isinstance(
+            target_as_index, IntervalIndex
+        ):
+            # target_as_index might contain intervals: defer elementwise to get_loc
             indexer, missing = [], []
-            for i, key in enumerate(target):
+            for i, key in enumerate(target_as_index):
                 try:
                     locs = self.get_loc(key)
                     if isinstance(locs, slice):
@@ -973,8 +978,10 @@ class IntervalIndex(IntervalMixin, Index):
                 indexer.append(locs)
             indexer = np.concatenate(indexer)
         else:
-            target = self._maybe_convert_i8(target)
-            indexer, missing = self._engine.get_indexer_non_unique(target.values)
+            target_as_index = self._maybe_convert_i8(target_as_index)
+            indexer, missing = self._engine.get_indexer_non_unique(
+                target_as_index.values
+            )
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
@@ -1250,15 +1257,9 @@ class IntervalIndex(IntervalMixin, Index):
             first_nan_loc = np.arange(len(self))[self.isna()][0]
             mask[first_nan_loc] = True
 
-        lmiss = other.left.get_indexer_non_unique(self.left)[1]
-        lmatch = np.setdiff1d(np.arange(len(self)), lmiss)
-
-        for i in lmatch:
-            potential = other.left.get_loc(self.left[i])
-            if is_scalar(potential):
-                if self.right[i] == other.right[potential]:
-                    mask[i] = True
-            elif self.right[i] in other.right[potential]:
+        other_tups = set(zip(other.left, other.right))
+        for i, tup in enumerate(zip(self.left, self.right)):
+            if tup in other_tups:
                 mask[i] = True
 
         return self[mask]
