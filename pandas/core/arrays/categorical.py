@@ -55,6 +55,7 @@ from pandas.core.algorithms import (
 )
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
+from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
 
@@ -356,7 +357,6 @@ class Categorical(ExtensionArray, PandasObject):
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
                 values = _convert_to_list_like(values)
-                from pandas.core.internals.construction import sanitize_array
 
                 # By convention, empty lists result in object dtype:
                 if len(values) == 0:
@@ -2127,8 +2127,6 @@ class Categorical(ExtensionArray, PandasObject):
             If (one or more) Value is not in categories or if a assigned
             `Categorical` does not have the same categories
         """
-        from pandas.core.internals.arrays import extract_array
-
         value = extract_array(value, extract_numpy=True)
 
         # require identical categories set
@@ -2491,8 +2489,6 @@ class Categorical(ExtensionArray, PandasObject):
         >>> s.isin(['lama'])
         array([ True, False,  True, False,  True, False])
         """
-        from pandas.core.internals.construction import sanitize_array
-
         if not is_list_like(values):
             raise TypeError(
                 "only list-like objects are allowed to be passed"
