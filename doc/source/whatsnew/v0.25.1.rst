@@ -57,6 +57,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`Series.interpolate` when using a timezone aware :class:`DatetimeIndex` (:issue:`27548`)
+- Bug when printing negative floating point complex numbers would raise an ``IndexError`` (:issue:`27484`)
 -
 -
 
