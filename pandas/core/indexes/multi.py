@@ -3465,6 +3465,18 @@ def _get_na_rep(dtype):
 
 
 def maybe_droplevels(index, key):
+    """
+    Attempt to drop level or levels from the given index.
+
+    Parameters
+    ----------
+    index: Index
+    key : scalar or tuple
+
+    Returns
+    -------
+    Index
+    """
     # drop levels
     original_index = index
     if isinstance(key, tuple):

@@ -2315,6 +2315,19 @@ class _iAtIndexer(_ScalarAccessIndexer):
 
 
 def _tuplify(ndim: int, loc) -> tuple:
+    """
+    Given an indexer for the first dimension, create an equivalent tuple
+    for indexing over all dimensions.
+
+    Parameters
+    ----------
+    ndim : int
+    loc : object
+
+    Returns
+    -------
+    tuple
+    """
     tup = [slice(None, None) for _ in range(ndim)]
     tup[0] = loc
     return tuple(tup)
