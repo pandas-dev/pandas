@@ -94,12 +94,9 @@ from pandas.core.index import (
 )
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.multi import maybe_droplevels
 from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexing import (
-    check_bool_indexer,
-    convert_to_index_sliceable,
-    maybe_droplevels,
-)
+from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
@@ -2794,8 +2791,6 @@ class DataFrame(NDFrame):
         if axis == 0:
             label = self.index[i]
             new_values = self._data.fast_xs(i)
-            if is_scalar(new_values):
-                return new_values
 
             # if we are a copy, mark as such
             copy = isinstance(new_values, np.ndarray) and new_values.base is None
@@ -2906,6 +2901,7 @@ class DataFrame(NDFrame):
         return self.take(indexer, axis=0)
 
     def _getitem_multilevel(self, key):
+        # self.columns is a MultiIndex
         loc = self.columns.get_loc(key)
         if isinstance(loc, (slice, Series, np.ndarray, Index)):
             new_columns = self.columns[loc]
