@@ -1073,6 +1073,8 @@ def test_transform_transformation_by_name(transformation_func, obj):
     args = {"fillna": [0]}.get(func, [])
 
     result = g.transform(func, *args)
+    # for transformations, g.transform.(name) should return the same result
+    # as `g.name()`
     expected = getattr(g, func)(*args)
     if isinstance(obj, DataFrame):
         tm.assert_frame_equal(result, expected)
