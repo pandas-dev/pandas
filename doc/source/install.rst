@@ -43,7 +43,7 @@ For more information, see the `Python 3 statement`_ and the `Porting to Python 3
 Python version support
 ----------------------
 
-Officially Python 2.7, 3.5, 3.6, and 3.7.
+Officially Python 3.5.3 and above, 3.6, and 3.7.
 
 Installing pandas
 -----------------
