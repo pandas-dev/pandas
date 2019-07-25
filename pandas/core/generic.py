@@ -3296,11 +3296,8 @@ class NDFrame(PandasObject, SelectionMixin):
         if clear:
             self._clear_item_cache()
 
-    def _clear_item_cache(self, i=None):
-        if i is not None:
-            self._item_cache.pop(i, None)
-        else:
-            self._item_cache.clear()
+    def _clear_item_cache(self):
+        self._item_cache.clear()
 
     # ----------------------------------------------------------------------
     # Indexing Methods
@@ -3559,27 +3556,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _xs = xs  # type: Callable
 
-    def get(self, key, default=None):
-        """
-        Get item from object for given key (ex: DataFrame column).
-
-        Returns default value if not found.
-
-        Parameters
-        ----------
-        key : object
-
-        Returns
-        -------
-        value : same type as items contained in object
-        """
-        try:
-            return self[key]
-        except (KeyError, ValueError, IndexError):
-            return default
-
     def __getitem__(self, item):
-        return self._get_item_cache(item)
+        raise AbstractMethodError(self)
 
     def _get_item_cache(self, item):
         """Return the cached item, item represents a label indexer."""
@@ -3769,6 +3747,25 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # ----------------------------------------------------------------------
     # Unsorted
+
+    def get(self, key, default=None):
+        """
+        Get item from object for given key (ex: DataFrame column).
+
+        Returns default value if not found.
+
+        Parameters
+        ----------
+        key : object
+
+        Returns
+        -------
+        value : same type as items contained in object
+        """
+        try:
+            return self[key]
+        except (KeyError, ValueError, IndexError):
+            return default
 
     @property
     def _is_view(self):
