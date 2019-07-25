@@ -60,6 +60,7 @@ from pandas.core.arrays import ExtensionArray, SparseArray
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
+from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.index import (
     Float64Index,
     Index,
@@ -75,7 +76,6 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
-from pandas.core.internals.construction import sanitize_array
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
@@ -800,8 +800,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any
     ):
         # TODO: handle DataFrame
-        from pandas.core.internals.construction import extract_array
-
         cls = type(self)
 
         # for binary ops, use our custom dunder methods
@@ -1029,6 +1027,36 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return [self.index]
 
+    # ----------------------------------------------------------------------
+    # Indexing Methods
+
+    @Appender(generic.NDFrame.take.__doc__)
+    def take(self, indices, axis=0, is_copy=False, **kwargs):
+        nv.validate_take(tuple(), kwargs)
+
+        indices = ensure_platform_int(indices)
+        new_index = self.index.take(indices)
+
+        if is_categorical_dtype(self):
+            # https://github.com/pandas-dev/pandas/issues/20664
+            # TODO: remove when the default Categorical.take behavior changes
+            indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
+            kwargs = {"allow_fill": False}
+        else:
+            kwargs = {}
+        new_values = self._values.take(indices, **kwargs)
+
+        result = self._constructor(
+            new_values, index=new_index, fastpath=True
+        ).__finalize__(self)
+
+        # Maybe set copy if we didn't actually change the index.
+        if is_copy:
+            if not result._get_axis(axis).equals(self._get_axis(axis)):
+                result._set_is_copy(self)
+
+        return result
+
     def _ixs(self, i: int, axis: int = 0):
         """
         Return the i-th value or values in the Series by location.
@@ -1048,10 +1076,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return libindex.get_value_at(values, i)
         else:
             return values[i]
-
-    @property
-    def _is_mixed_type(self):
-        return False
 
     def _slice(self, slobj, axis=0, kind=None):
         slobj = self.index._convert_slice_indexer(slobj, kind=kind or "getitem")
@@ -1177,6 +1201,23 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         except Exception:
             return self._values[indexer]
 
+    def _get_value(self, label, takeable: bool = False):
+        """
+        Quickly retrieve single value at passed index label.
+
+        Parameters
+        ----------
+        label : object
+        takeable : interpret the index as indexers, default False
+
+        Returns
+        -------
+        scalar value
+        """
+        if takeable:
+            return com.maybe_box_datetimelike(self._values[label])
+        return self.index.get_value(self._values, label)
+
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
 
@@ -1295,6 +1336,46 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self._data = self._data.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
+    def _set_value(self, label, value, takeable: bool = False):
+        """
+        Quickly set single value at passed label.
+
+        If label is not contained, a new object is created with the label
+        placed at the end of the result index.
+
+        Parameters
+        ----------
+        label : object
+            Partial indexing with MultiIndex not allowed
+        value : object
+            Scalar value
+        takeable : interpret the index as indexers, default False
+
+        Returns
+        -------
+        Series
+            If label is contained, will be reference to calling Series,
+            otherwise a new object.
+        """
+        try:
+            if takeable:
+                self._values[label] = value
+            else:
+                self.index._engine.set_value(self._values, label, value)
+        except (KeyError, TypeError):
+
+            # set using a non-recursive method
+            self.loc[label] = value
+
+        return self
+
+    # ----------------------------------------------------------------------
+    # Unsorted
+
+    @property
+    def _is_mixed_type(self):
+        return False
+
     def repeat(self, repeats, axis=None):
         """
         Repeat elements of a Series.
@@ -1351,56 +1432,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
         return self._constructor(new_values, index=new_index).__finalize__(self)
-
-    def _get_value(self, label, takeable: bool = False):
-        """
-        Quickly retrieve single value at passed index label.
-
-        Parameters
-        ----------
-        label : object
-        takeable : interpret the index as indexers, default False
-
-        Returns
-        -------
-        scalar value
-        """
-        if takeable:
-            return com.maybe_box_datetimelike(self._values[label])
-        return self.index.get_value(self._values, label)
-
-    def _set_value(self, label, value, takeable: bool = False):
-        """
-        Quickly set single value at passed label.
-
-        If label is not contained, a new object is created with the label
-        placed at the end of the result index.
-
-        Parameters
-        ----------
-        label : object
-            Partial indexing with MultiIndex not allowed
-        value : object
-            Scalar value
-        takeable : interpret the index as indexers, default False
-
-        Returns
-        -------
-        Series
-            If label is contained, will be reference to calling Series,
-            otherwise a new object.
-        """
-        try:
-            if takeable:
-                self._values[label] = value
-            else:
-                self.index._engine.set_value(self._values, label, value)
-        except (KeyError, TypeError):
-
-            # set using a non-recursive method
-            self.loc[label] = value
-
-        return self
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
@@ -4368,33 +4399,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if index:
             v += self.index.memory_usage(deep=deep)
         return v
-
-    @Appender(generic.NDFrame.take.__doc__)
-    def take(self, indices, axis=0, is_copy=False, **kwargs):
-        nv.validate_take(tuple(), kwargs)
-
-        indices = ensure_platform_int(indices)
-        new_index = self.index.take(indices)
-
-        if is_categorical_dtype(self):
-            # https://github.com/pandas-dev/pandas/issues/20664
-            # TODO: remove when the default Categorical.take behavior changes
-            indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
-            kwargs = {"allow_fill": False}
-        else:
-            kwargs = {}
-        new_values = self._values.take(indices, **kwargs)
-
-        result = self._constructor(
-            new_values, index=new_index, fastpath=True
-        ).__finalize__(self)
-
-        # Maybe set copy if we didn't actually change the index.
-        if is_copy:
-            if not result._get_axis(axis).equals(self._get_axis(axis)):
-                result._set_is_copy(self)
-
-        return result
 
     def isin(self, values):
         """

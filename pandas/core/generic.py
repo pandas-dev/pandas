@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import Callable, FrozenSet, List, Optional, Set
+from typing import Callable, Dict, FrozenSet, List, Optional, Set
 import warnings
 import weakref
 
@@ -73,7 +73,7 @@ from pandas.tseries.frequencies import to_offset
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
-_shared_docs = dict()
+_shared_docs = dict()  # type: Dict[str, str]
 _shared_doc_kwargs = dict(
     axes="keywords for axes",
     klass="Series/DataFrame",
@@ -3231,41 +3231,8 @@ class NDFrame(PandasObject, SelectionMixin):
             _indexer = functools.partial(indexer, name)
             setattr(cls, name, property(_indexer, doc=indexer.__doc__))
 
-    def get(self, key, default=None):
-        """
-        Get item from object for given key (ex: DataFrame column).
-
-        Returns default value if not found.
-
-        Parameters
-        ----------
-        key : object
-
-        Returns
-        -------
-        value : same type as items contained in object
-        """
-        try:
-            return self[key]
-        except (KeyError, ValueError, IndexError):
-            return default
-
-    def __getitem__(self, item):
-        raise AbstractMethodError(self)
-
-    def _get_item_cache(self, item):
-        """Return the cached item, item represents a label indexer."""
-        cache = self._item_cache
-        res = cache.get(item)
-        if res is None:
-            values = self._data.get(item)
-            res = self._box_item_values(item, values)
-            cache[item] = res
-            res._set_as_cached(item, self)
-
-            # for a chain
-            res._is_copy = self._is_copy
-        return res
+    # ----------------------------------------------------------------------
+    # Lookup Caching
 
     def _set_as_cached(self, item, cacher):
         """Set the _cacher attribute on the calling object with a weakref to
@@ -3277,18 +3244,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """Reset the cacher."""
         if hasattr(self, "_cacher"):
             del self._cacher
-
-    def _iget_item_cache(self, item):
-        """Return the cached item, item represents a positional indexer."""
-        ax = self._info_axis
-        if ax.is_unique:
-            lower = self._get_item_cache(ax[item])
-        else:
-            lower = self.take(item, axis=self._info_axis_number)
-        return lower
-
-    def _box_item_values(self, key, values):
-        raise AbstractMethodError(self)
 
     def _maybe_cache_changed(self, item, value):
         """The object has called back to us saying maybe it has changed.
@@ -3306,11 +3261,6 @@ class NDFrame(PandasObject, SelectionMixin):
         if cacher is not None:
             cacher = cacher[1]()
         return cacher
-
-    @property
-    def _is_view(self):
-        """Return boolean indicating if self is view of another array """
-        return self._data.is_view
 
     def _maybe_update_cacher(self, clear=False, verify_is_copy=True):
         """
@@ -3349,165 +3299,8 @@ class NDFrame(PandasObject, SelectionMixin):
     def _clear_item_cache(self):
         self._item_cache.clear()
 
-    def _slice(self, slobj, axis=0, kind=None):
-        """
-        Construct a slice of this container.
-
-        kind parameter is maintained for compatibility with Series slicing.
-        """
-        axis = self._get_block_manager_axis(axis)
-        result = self._constructor(self._data.get_slice(slobj, axis=axis))
-        result = result.__finalize__(self)
-
-        # this could be a view
-        # but only in a single-dtyped view sliceable case
-        is_copy = axis != 0 or result._is_view
-        result._set_is_copy(self, copy=is_copy)
-        return result
-
-    def _set_item(self, key, value):
-        self._data.set(key, value)
-        self._clear_item_cache()
-
-    def _set_is_copy(self, ref=None, copy=True):
-        if not copy:
-            self._is_copy = None
-        else:
-            if ref is not None:
-                self._is_copy = weakref.ref(ref)
-            else:
-                self._is_copy = None
-
-    def _check_is_chained_assignment_possible(self):
-        """
-        Check if we are a view, have a cacher, and are of mixed type.
-        If so, then force a setitem_copy check.
-
-        Should be called just near setting a value
-
-        Will return a boolean if it we are a view and are cached, but a
-        single-dtype meaning that the cacher should be updated following
-        setting.
-        """
-        if self._is_view and self._is_cached:
-            ref = self._get_cacher()
-            if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(stacklevel=4, t="referant", force=True)
-            return True
-        elif self._is_copy:
-            self._check_setitem_copy(stacklevel=4, t="referant")
-        return False
-
-    def _check_setitem_copy(self, stacklevel=4, t="setting", force=False):
-        """
-
-        Parameters
-        ----------
-        stacklevel : integer, default 4
-           the level to show of the stack when the error is output
-        t : string, the type of setting error
-        force : boolean, default False
-           if True, then force showing an error
-
-        validate if we are doing a setitem on a chained copy.
-
-        If you call this function, be sure to set the stacklevel such that the
-        user will see the error *at the level of setting*
-
-        It is technically possible to figure out that we are setting on
-        a copy even WITH a multi-dtyped pandas object. In other words, some
-        blocks may be views while other are not. Currently _is_view will ALWAYS
-        return False for multi-blocks to avoid having to handle this case.
-
-        df = DataFrame(np.arange(0,9), columns=['count'])
-        df['group'] = 'b'
-
-        # This technically need not raise SettingWithCopy if both are view
-        # (which is not # generally guaranteed but is usually True.  However,
-        # this is in general not a good practice and we recommend using .loc.
-        df.iloc[0:5]['group'] = 'a'
-
-        """
-
-        # return early if the check is not needed
-        if not (force or self._is_copy):
-            return
-
-        value = config.get_option("mode.chained_assignment")
-        if value is None:
-            return
-
-        # see if the copy is not actually referred; if so, then dissolve
-        # the copy weakref
-        if self._is_copy is not None and not isinstance(self._is_copy, str):
-            r = self._is_copy()
-            if not gc.get_referents(r) or r.shape == self.shape:
-                self._is_copy = None
-                return
-
-        # a custom message
-        if isinstance(self._is_copy, str):
-            t = self._is_copy
-
-        elif t == "referant":
-            t = (
-                "\n"
-                "A value is trying to be set on a copy of a slice from a "
-                "DataFrame\n\n"
-                "See the caveats in the documentation: "
-                "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
-                "indexing.html#returning-a-view-versus-a-copy"
-            )
-
-        else:
-            t = (
-                "\n"
-                "A value is trying to be set on a copy of a slice from a "
-                "DataFrame.\n"
-                "Try using .loc[row_indexer,col_indexer] = value "
-                "instead\n\nSee the caveats in the documentation: "
-                "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
-                "indexing.html#returning-a-view-versus-a-copy"
-            )
-
-        if value == "raise":
-            raise com.SettingWithCopyError(t)
-        elif value == "warn":
-            warnings.warn(t, com.SettingWithCopyWarning, stacklevel=stacklevel)
-
-    def __delitem__(self, key):
-        """
-        Delete item
-        """
-        deleted = False
-
-        maybe_shortcut = False
-        if self.ndim == 2 and isinstance(self.columns, MultiIndex):
-            try:
-                maybe_shortcut = key not in self.columns._engine
-            except TypeError:
-                pass
-
-        if maybe_shortcut:
-            # Allow shorthand to delete all columns whose first len(key)
-            # elements match key:
-            if not isinstance(key, tuple):
-                key = (key,)
-            for col in self.columns:
-                if isinstance(col, tuple) and col[: len(key)] == key:
-                    del self[col]
-                    deleted = True
-        if not deleted:
-            # If the above loop ran and didn't delete anything because
-            # there was no match, this call should raise the appropriate
-            # exception:
-            self._data.delete(key)
-
-        # delete from the caches
-        try:
-            del self._item_cache[key]
-        except KeyError:
-            pass
+    # ----------------------------------------------------------------------
+    # Indexing Methods
 
     def take(self, indices, axis=0, is_copy=True, **kwargs):
         """
@@ -3762,6 +3555,222 @@ class NDFrame(PandasObject, SelectionMixin):
         return result
 
     _xs = xs  # type: Callable
+
+    def __getitem__(self, item):
+        raise AbstractMethodError(self)
+
+    def _get_item_cache(self, item):
+        """Return the cached item, item represents a label indexer."""
+        cache = self._item_cache
+        res = cache.get(item)
+        if res is None:
+            values = self._data.get(item)
+            res = self._box_item_values(item, values)
+            cache[item] = res
+            res._set_as_cached(item, self)
+
+            # for a chain
+            res._is_copy = self._is_copy
+        return res
+
+    def _iget_item_cache(self, item):
+        """Return the cached item, item represents a positional indexer."""
+        ax = self._info_axis
+        if ax.is_unique:
+            lower = self._get_item_cache(ax[item])
+        else:
+            lower = self.take(item, axis=self._info_axis_number)
+        return lower
+
+    def _box_item_values(self, key, values):
+        raise AbstractMethodError(self)
+
+    def _slice(self, slobj, axis=0, kind=None):
+        """
+        Construct a slice of this container.
+
+        kind parameter is maintained for compatibility with Series slicing.
+        """
+        axis = self._get_block_manager_axis(axis)
+        result = self._constructor(self._data.get_slice(slobj, axis=axis))
+        result = result.__finalize__(self)
+
+        # this could be a view
+        # but only in a single-dtyped view sliceable case
+        is_copy = axis != 0 or result._is_view
+        result._set_is_copy(self, copy=is_copy)
+        return result
+
+    def _set_item(self, key, value):
+        self._data.set(key, value)
+        self._clear_item_cache()
+
+    def _set_is_copy(self, ref=None, copy=True):
+        if not copy:
+            self._is_copy = None
+        else:
+            if ref is not None:
+                self._is_copy = weakref.ref(ref)
+            else:
+                self._is_copy = None
+
+    def _check_is_chained_assignment_possible(self):
+        """
+        Check if we are a view, have a cacher, and are of mixed type.
+        If so, then force a setitem_copy check.
+
+        Should be called just near setting a value
+
+        Will return a boolean if it we are a view and are cached, but a
+        single-dtype meaning that the cacher should be updated following
+        setting.
+        """
+        if self._is_view and self._is_cached:
+            ref = self._get_cacher()
+            if ref is not None and ref._is_mixed_type:
+                self._check_setitem_copy(stacklevel=4, t="referant", force=True)
+            return True
+        elif self._is_copy:
+            self._check_setitem_copy(stacklevel=4, t="referant")
+        return False
+
+    def _check_setitem_copy(self, stacklevel=4, t="setting", force=False):
+        """
+
+        Parameters
+        ----------
+        stacklevel : integer, default 4
+           the level to show of the stack when the error is output
+        t : string, the type of setting error
+        force : boolean, default False
+           if True, then force showing an error
+
+        validate if we are doing a setitem on a chained copy.
+
+        If you call this function, be sure to set the stacklevel such that the
+        user will see the error *at the level of setting*
+
+        It is technically possible to figure out that we are setting on
+        a copy even WITH a multi-dtyped pandas object. In other words, some
+        blocks may be views while other are not. Currently _is_view will ALWAYS
+        return False for multi-blocks to avoid having to handle this case.
+
+        df = DataFrame(np.arange(0,9), columns=['count'])
+        df['group'] = 'b'
+
+        # This technically need not raise SettingWithCopy if both are view
+        # (which is not # generally guaranteed but is usually True.  However,
+        # this is in general not a good practice and we recommend using .loc.
+        df.iloc[0:5]['group'] = 'a'
+
+        """
+
+        # return early if the check is not needed
+        if not (force or self._is_copy):
+            return
+
+        value = config.get_option("mode.chained_assignment")
+        if value is None:
+            return
+
+        # see if the copy is not actually referred; if so, then dissolve
+        # the copy weakref
+        if self._is_copy is not None and not isinstance(self._is_copy, str):
+            r = self._is_copy()
+            if not gc.get_referents(r) or r.shape == self.shape:
+                self._is_copy = None
+                return
+
+        # a custom message
+        if isinstance(self._is_copy, str):
+            t = self._is_copy
+
+        elif t == "referant":
+            t = (
+                "\n"
+                "A value is trying to be set on a copy of a slice from a "
+                "DataFrame\n\n"
+                "See the caveats in the documentation: "
+                "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                "indexing.html#returning-a-view-versus-a-copy"
+            )
+
+        else:
+            t = (
+                "\n"
+                "A value is trying to be set on a copy of a slice from a "
+                "DataFrame.\n"
+                "Try using .loc[row_indexer,col_indexer] = value "
+                "instead\n\nSee the caveats in the documentation: "
+                "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                "indexing.html#returning-a-view-versus-a-copy"
+            )
+
+        if value == "raise":
+            raise com.SettingWithCopyError(t)
+        elif value == "warn":
+            warnings.warn(t, com.SettingWithCopyWarning, stacklevel=stacklevel)
+
+    def __delitem__(self, key):
+        """
+        Delete item
+        """
+        deleted = False
+
+        maybe_shortcut = False
+        if self.ndim == 2 and isinstance(self.columns, MultiIndex):
+            try:
+                maybe_shortcut = key not in self.columns._engine
+            except TypeError:
+                pass
+
+        if maybe_shortcut:
+            # Allow shorthand to delete all columns whose first len(key)
+            # elements match key:
+            if not isinstance(key, tuple):
+                key = (key,)
+            for col in self.columns:
+                if isinstance(col, tuple) and col[: len(key)] == key:
+                    del self[col]
+                    deleted = True
+        if not deleted:
+            # If the above loop ran and didn't delete anything because
+            # there was no match, this call should raise the appropriate
+            # exception:
+            self._data.delete(key)
+
+        # delete from the caches
+        try:
+            del self._item_cache[key]
+        except KeyError:
+            pass
+
+    # ----------------------------------------------------------------------
+    # Unsorted
+
+    def get(self, key, default=None):
+        """
+        Get item from object for given key (ex: DataFrame column).
+
+        Returns default value if not found.
+
+        Parameters
+        ----------
+        key : object
+
+        Returns
+        -------
+        value : same type as items contained in object
+        """
+        try:
+            return self[key]
+        except (KeyError, ValueError, IndexError):
+            return default
+
+    @property
+    def _is_view(self):
+        """Return boolean indicating if self is view of another array """
+        return self._data.is_view
 
     def reindex_like(self, other, method=None, copy=True, limit=None, tolerance=None):
         """
@@ -4889,12 +4898,12 @@ class NDFrame(PandasObject, SelectionMixin):
         if weights is not None:
 
             # If a series, align with frame
-            if isinstance(weights, pd.Series):
+            if isinstance(weights, ABCSeries):
                 weights = weights.reindex(self.axes[axis])
 
             # Strings acceptable if a dataframe and axis = 0
             if isinstance(weights, str):
-                if isinstance(self, pd.DataFrame):
+                if isinstance(self, ABCDataFrame):
                     if axis == 0:
                         try:
                             weights = self[weights]
@@ -6625,7 +6634,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 to_replace = [to_replace]
 
             if isinstance(to_replace, (tuple, list)):
-                if isinstance(self, pd.DataFrame):
+                if isinstance(self, ABCDataFrame):
                     return self.apply(
                         _single_replace, args=(to_replace, method, inplace, limit)
                     )
@@ -7418,7 +7427,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # be transformed to NDFrame from other array like structure.
         if (not isinstance(threshold, ABCSeries)) and is_list_like(threshold):
             if isinstance(self, ABCSeries):
-                threshold = pd.Series(threshold, index=self.index)
+                threshold = self._constructor(threshold, index=self.index)
             else:
                 threshold = _align_method_FRAME(self, threshold, axis)
         return self.where(subset, threshold, axis=axis, inplace=inplace)
@@ -7507,9 +7516,9 @@ class NDFrame(PandasObject, SelectionMixin):
         # so ignore
         # GH 19992
         # numpy doesn't drop a list-like bound containing NaN
-        if not is_list_like(lower) and np.any(pd.isnull(lower)):
+        if not is_list_like(lower) and np.any(isna(lower)):
             lower = None
-        if not is_list_like(upper) and np.any(pd.isnull(upper)):
+        if not is_list_like(upper) and np.any(isna(upper)):
             upper = None
 
         # GH 2747 (arguments were reversed)
@@ -8982,7 +8991,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         msg = "Boolean array expected for the condition, not {dtype}"
 
-        if not isinstance(cond, pd.DataFrame):
+        if not isinstance(cond, ABCDataFrame):
             # This is a single-dimensional object.
             if not is_bool_dtype(cond):
                 raise ValueError(msg.format(dtype=cond.dtype))
