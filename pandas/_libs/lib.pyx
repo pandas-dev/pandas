@@ -312,18 +312,18 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def dicts_to_array(dicts: list, _columns : list):
+def dicts_to_array(dicts: list, columns : list):
     cdef:
         Py_ssize_t i, j, n
-        object result, columns
+        object result, result_columns
         object row
         object col, onan = np.nan
         dict d, nt_lookup
 
     n = len(dicts)
-    have_columns = len(_columns) > 0
-    columns = OrderedDict.fromkeys(list(_columns or []))
-    result = OrderedDict((k, np.full(n, np.nan, dtype='O')) for k in _columns)
+    have_columns = len(columns) > 0
+    result_columns = OrderedDict.fromkeys(list(columns or []))
+    result = OrderedDict((k, np.full(n, np.nan, dtype='O')) for k in columns)
 
     nt_lookup = {}
     for i in range(n):
@@ -332,22 +332,22 @@ def dicts_to_array(dicts: list, _columns : list):
             d = row
             for k in d:
                 v = d[k]
-                if k not in columns:
+                if k not in result_columns:
                     if have_columns:
                         continue
-                    columns[k] = None
+                    result_columns[k] = None
                     result[k] = np.full(n, np.nan, dtype='O')
                 result[k][i] = v
         elif hasattr(row, "_fields"):
             if type(row) not in nt_lookup:
                 l = []
                 for j, k in enumerate(row._fields):
-                    if k in columns or not have_columns:
+                    if k in result_columns or not have_columns:
                         # include this field in result
                         l.append((k, j))
                         # create an array to store it
-                        if k not in columns:
-                            columns[k] = None
+                        if k not in result_columns:
+                            result_columns[k] = None
                             result[k] = np.full(n, np.nan, dtype='O')
                 # save (column_name, index) pairs
                 nt_lookup[type(row)] = l
@@ -358,7 +358,7 @@ def dicts_to_array(dicts: list, _columns : list):
             msg = "'%s' at row %d is not a valid record type"
             raise ValueError(msg % (type(row), i))
 
-    return list(columns), list(result.values())
+    return list(result_columns), list(result.values())
 
 
 def fast_zip(list ndarrays):
