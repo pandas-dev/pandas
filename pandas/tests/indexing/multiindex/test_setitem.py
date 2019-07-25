@@ -1,5 +1,3 @@
-from warnings import catch_warnings, simplefilter
-
 import numpy as np
 from numpy.random import randn
 import pytest
@@ -10,133 +8,114 @@ import pandas.core.common as com
 from pandas.util import testing as tm
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
 class TestMultiIndexSetItem:
     def test_setitem_multiindex(self):
-        with catch_warnings(record=True):
+        for index_fn in ("loc",):
 
-            for index_fn in ("ix", "loc"):
+            def assert_equal(a, b):
+                assert a == b
 
-                def assert_equal(a, b):
-                    assert a == b
+            def check(target, indexers, value, compare_fn, expected=None):
+                fn = getattr(target, index_fn)
+                fn.__setitem__(indexers, value)
+                result = fn.__getitem__(indexers)
+                if expected is None:
+                    expected = value
+                compare_fn(result, expected)
 
-                def check(target, indexers, value, compare_fn, expected=None):
-                    fn = getattr(target, index_fn)
-                    fn.__setitem__(indexers, value)
-                    result = fn.__getitem__(indexers)
-                    if expected is None:
-                        expected = value
-                    compare_fn(result, expected)
+            # GH7190
+            index = MultiIndex.from_product(
+                [np.arange(0, 100), np.arange(0, 80)], names=["time", "firm"]
+            )
+            t, n = 0, 2
+            df = DataFrame(
+                np.nan,
+                columns=["A", "w", "l", "a", "x", "X", "d", "profit"],
+                index=index,
+            )
+            check(target=df, indexers=((t, n), "X"), value=0, compare_fn=assert_equal)
 
-                # GH7190
-                index = MultiIndex.from_product(
-                    [np.arange(0, 100), np.arange(0, 80)], names=["time", "firm"]
-                )
-                t, n = 0, 2
-                df = DataFrame(
-                    np.nan,
-                    columns=["A", "w", "l", "a", "x", "X", "d", "profit"],
-                    index=index,
-                )
-                check(
-                    target=df, indexers=((t, n), "X"), value=0, compare_fn=assert_equal
-                )
+            df = DataFrame(
+                -999, columns=["A", "w", "l", "a", "x", "X", "d", "profit"], index=index
+            )
+            check(target=df, indexers=((t, n), "X"), value=1, compare_fn=assert_equal)
 
-                df = DataFrame(
-                    -999,
-                    columns=["A", "w", "l", "a", "x", "X", "d", "profit"],
-                    index=index,
-                )
-                check(
-                    target=df, indexers=((t, n), "X"), value=1, compare_fn=assert_equal
-                )
+            df = DataFrame(
+                columns=["A", "w", "l", "a", "x", "X", "d", "profit"], index=index
+            )
+            check(target=df, indexers=((t, n), "X"), value=2, compare_fn=assert_equal)
 
-                df = DataFrame(
-                    columns=["A", "w", "l", "a", "x", "X", "d", "profit"], index=index
-                )
-                check(
-                    target=df, indexers=((t, n), "X"), value=2, compare_fn=assert_equal
-                )
+            # gh-7218: assigning with 0-dim arrays
+            df = DataFrame(
+                -999, columns=["A", "w", "l", "a", "x", "X", "d", "profit"], index=index
+            )
+            check(
+                target=df,
+                indexers=((t, n), "X"),
+                value=np.array(3),
+                compare_fn=assert_equal,
+                expected=3,
+            )
 
-                # gh-7218: assigning with 0-dim arrays
-                df = DataFrame(
-                    -999,
-                    columns=["A", "w", "l", "a", "x", "X", "d", "profit"],
-                    index=index,
-                )
-                check(
-                    target=df,
-                    indexers=((t, n), "X"),
-                    value=np.array(3),
-                    compare_fn=assert_equal,
-                    expected=3,
-                )
+            # GH5206
+            df = DataFrame(
+                np.arange(25).reshape(5, 5), columns="A,B,C,D,E".split(","), dtype=float
+            )
+            df["F"] = 99
+            row_selection = df["A"] % 2 == 0
+            col_selection = ["B", "C"]
+            df.loc[row_selection, col_selection] = df["F"]
+            output = DataFrame(99.0, index=[0, 2, 4], columns=["B", "C"])
+            tm.assert_frame_equal(df.loc[row_selection, col_selection], output)
+            check(
+                target=df,
+                indexers=(row_selection, col_selection),
+                value=df["F"],
+                compare_fn=tm.assert_frame_equal,
+                expected=output,
+            )
 
-                # GH5206
-                df = DataFrame(
-                    np.arange(25).reshape(5, 5),
-                    columns="A,B,C,D,E".split(","),
-                    dtype=float,
-                )
-                df["F"] = 99
-                row_selection = df["A"] % 2 == 0
-                col_selection = ["B", "C"]
-                with catch_warnings(record=True):
-                    df.ix[row_selection, col_selection] = df["F"]
-                output = DataFrame(99.0, index=[0, 2, 4], columns=["B", "C"])
-                with catch_warnings(record=True):
-                    tm.assert_frame_equal(df.ix[row_selection, col_selection], output)
-                check(
-                    target=df,
-                    indexers=(row_selection, col_selection),
-                    value=df["F"],
-                    compare_fn=tm.assert_frame_equal,
-                    expected=output,
-                )
+            # GH11372
+            idx = MultiIndex.from_product(
+                [["A", "B", "C"], date_range("2015-01-01", "2015-04-01", freq="MS")]
+            )
+            cols = MultiIndex.from_product(
+                [["foo", "bar"], date_range("2016-01-01", "2016-02-01", freq="MS")]
+            )
 
-                # GH11372
-                idx = MultiIndex.from_product(
-                    [["A", "B", "C"], date_range("2015-01-01", "2015-04-01", freq="MS")]
-                )
-                cols = MultiIndex.from_product(
-                    [["foo", "bar"], date_range("2016-01-01", "2016-02-01", freq="MS")]
-                )
+            df = DataFrame(np.random.random((12, 4)), index=idx, columns=cols)
 
-                df = DataFrame(np.random.random((12, 4)), index=idx, columns=cols)
+            subidx = MultiIndex.from_tuples(
+                [("A", Timestamp("2015-01-01")), ("A", Timestamp("2015-02-01"))]
+            )
+            subcols = MultiIndex.from_tuples(
+                [("foo", Timestamp("2016-01-01")), ("foo", Timestamp("2016-02-01"))]
+            )
 
-                subidx = MultiIndex.from_tuples(
-                    [("A", Timestamp("2015-01-01")), ("A", Timestamp("2015-02-01"))]
-                )
-                subcols = MultiIndex.from_tuples(
-                    [("foo", Timestamp("2016-01-01")), ("foo", Timestamp("2016-02-01"))]
-                )
-
-                vals = DataFrame(
-                    np.random.random((2, 2)), index=subidx, columns=subcols
-                )
-                check(
-                    target=df,
-                    indexers=(subidx, subcols),
-                    value=vals,
-                    compare_fn=tm.assert_frame_equal,
-                )
-                # set all columns
-                vals = DataFrame(np.random.random((2, 4)), index=subidx, columns=cols)
-                check(
-                    target=df,
-                    indexers=(subidx, slice(None, None, None)),
-                    value=vals,
-                    compare_fn=tm.assert_frame_equal,
-                )
-                # identity
-                copy = df.copy()
-                check(
-                    target=df,
-                    indexers=(df.index, df.columns),
-                    value=df,
-                    compare_fn=tm.assert_frame_equal,
-                    expected=copy,
-                )
+            vals = DataFrame(np.random.random((2, 2)), index=subidx, columns=subcols)
+            check(
+                target=df,
+                indexers=(subidx, subcols),
+                value=vals,
+                compare_fn=tm.assert_frame_equal,
+            )
+            # set all columns
+            vals = DataFrame(np.random.random((2, 4)), index=subidx, columns=cols)
+            check(
+                target=df,
+                indexers=(subidx, slice(None, None, None)),
+                value=vals,
+                compare_fn=tm.assert_frame_equal,
+            )
+            # identity
+            copy = df.copy()
+            check(
+                target=df,
+                indexers=(df.index, df.columns),
+                value=df,
+                compare_fn=tm.assert_frame_equal,
+                expected=copy,
+            )
 
     def test_multiindex_setitem(self):
 
@@ -204,9 +183,8 @@ class TestMultiIndexSetItem:
         df["d"] = np.nan
         arr = np.array([0.0, 1.0])
 
-        with catch_warnings(record=True):
-            df.ix[4, "d"] = arr
-            tm.assert_series_equal(df.ix[4, "d"], Series(arr, index=[8, 10], name="d"))
+        df.loc[4, "d"] = arr
+        tm.assert_series_equal(df.loc[4, "d"], Series(arr, index=[8, 10], name="d"))
 
         # single dtype
         df = DataFrame(
@@ -215,25 +193,21 @@ class TestMultiIndexSetItem:
             index=[[4, 4, 8], [8, 10, 12]],
         )
 
-        with catch_warnings(record=True):
-            df.ix[4, "c"] = arr
-            exp = Series(arr, index=[8, 10], name="c", dtype="float64")
-            tm.assert_series_equal(df.ix[4, "c"], exp)
+        df.loc[4, "c"] = arr
+        exp = Series(arr, index=[8, 10], name="c", dtype="float64")
+        tm.assert_series_equal(df.loc[4, "c"], exp)
 
         # scalar ok
-        with catch_warnings(record=True):
-            df.ix[4, "c"] = 10
-            exp = Series(10, index=[8, 10], name="c", dtype="float64")
-            tm.assert_series_equal(df.ix[4, "c"], exp)
+        df.loc[4, "c"] = 10
+        exp = Series(10, index=[8, 10], name="c", dtype="float64")
+        tm.assert_series_equal(df.loc[4, "c"], exp)
 
         # invalid assignments
         with pytest.raises(ValueError):
-            with catch_warnings(record=True):
-                df.ix[4, "c"] = [0, 1, 2, 3]
+            df.loc[4, "c"] = [0, 1, 2, 3]
 
         with pytest.raises(ValueError):
-            with catch_warnings(record=True):
-                df.ix[4, "c"] = [0]
+            df.loc[4, "c"] = [0]
 
         # groupby example
         NUM_ROWS = 100
@@ -264,8 +238,7 @@ class TestMultiIndexSetItem:
         # but in this case, that's ok
         for name, df2 in grp:
             new_vals = np.arange(df2.shape[0])
-            with catch_warnings(record=True):
-                df.ix[name, "new_col"] = new_vals
+            df.loc[name, "new_col"] = new_vals
 
     def test_series_setitem(self, multiindex_year_month_day_dataframe_random_data):
         ymd = multiindex_year_month_day_dataframe_random_data
@@ -311,11 +284,6 @@ class TestMultiIndexSetItem:
         df = DataFrame({"value": [1, 2, 3, 7, 8]}, index=midx)
 
         result = df.loc[:, "value"]
-        tm.assert_series_equal(df["value"], result)
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            result = df.ix[:, "value"]
         tm.assert_series_equal(df["value"], result)
 
         result = df.loc[df.index[1:3], "value"]
@@ -412,7 +380,7 @@ class TestMultiIndexSetItem:
         reindexed = dft.reindex(columns=[("foo", "two")])
         tm.assert_series_equal(reindexed["foo", "two"], s > s.median())
 
-    def test_set_column_scalar_with_ix(self, multiindex_dataframe_random_data):
+    def test_set_column_scalar_with_loc(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
         subset = frame.index[[1, 4, 5]]
 
