@@ -107,5 +107,3 @@ class TestComplexSupportBasic:
         result = frame.groupby("b").count()
         tm.assert_frame_equal(result, expected)
 
-
-
