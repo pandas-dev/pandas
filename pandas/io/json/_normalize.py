@@ -3,7 +3,7 @@
 
 from collections import defaultdict
 import copy
-from typing import Callable, DefaultDict, Dict, List,  Optional, Union
+from typing import Callable, DefaultDict, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -88,8 +88,8 @@ def nested_to_record(
 
         .. versionadded:: 0.25.0
 
-    use_keys : Str, List or Callable, optional, default: None
-        Returns true or false depending on whether to include or exclude a key
+    use_keys : str, list or Callable, Optional
+        Criteria for inclusion of a particular JSON object (matches on key)
 
         .. versionadded:: 1.0.0
 
