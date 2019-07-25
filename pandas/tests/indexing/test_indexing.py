@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY36
+from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
@@ -1168,7 +1169,7 @@ def test_extension_array_cross_section_converts():
 @pytest.mark.parametrize(
     "idxr, error, error_message",
     [
-        (lambda x: x, AttributeError, "'numpy.ndarray' object has no attribute 'get'"),
+        (lambda x: x, AbstractMethodError, None),
         (
             lambda x: x.loc,
             AttributeError,

@@ -262,7 +262,7 @@ The current implementation imposes three requirements on f:
 
 * f must return a value that either has the same shape as the input
   subframe or can be broadcast to the shape of the input subframe.
-  For example, f returns a scalar it will be broadcast to have the
+  For example, if `f` returns a scalar it will be broadcast to have the
   same shape as the input subframe.
 * if this is a DataFrame, f must support application column-by-column
   in the subframe. If f also supports application to the entire subframe,
