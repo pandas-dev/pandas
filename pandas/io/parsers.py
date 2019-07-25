@@ -460,7 +460,9 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
 
     if should_close:
         try:
-            fp_or_buf.close()
+            # error: Item "str" of "Union[str, Path, IO[Any]]" has no attribute "close"
+            # error: Item "Path" of "Union[str, Path, IO[Any]]" has no attribute "close"
+            fp_or_buf.close()  # type: ignore
         except ValueError:
             pass
 
