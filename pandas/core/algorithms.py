@@ -3,7 +3,7 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from textwrap import dedent
-from typing import Dict
+from typing import Dict, Iterable, Union
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
@@ -1103,6 +1103,27 @@ def quantile(x, q, interpolation_method="fraction"):
         result = [_get_score(x) for x in q]
         result = np.array(result, dtype=np.float64)
         return result
+
+
+def check_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
+    """
+    Validate percentiles (used by describe and quantile).
+    Args:
+        q: A single percentile or an iterable of percentiles.
+    Returns:
+        ndarray
+            An ndarray of the percentiles if valid.
+    Raises: ValueError if percentiles are not in given interval([0, 1]). 
+    """
+    msg = "percentiles should all be in the interval [0, 1]. " "Try {0} instead."
+    q_arr = np.asarray(q)
+    if q_arr.ndim == 0:
+        if not 0 <= q_arr <= 1:
+            raise ValueError(msg.format(q_arr / 100.0))
+    else:
+        if not all(0 <= qs <= 1 for qs in q_arr):
+            raise ValueError(msg.format(q / 100.0))
+    return q_arr
 
 
 # --------------- #
