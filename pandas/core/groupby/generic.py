@@ -576,7 +576,7 @@ class NDFrameGroupBy(GroupBy):
         func = self._get_cython_func(func) or func
 
         if isinstance(func, str):
-            if not (func in base.transform_kernel_whitelist):
+            if not (func in base.groupby_transform_whitelist):
                 msg = "'{func}' is not a valid function name for transform(name)"
                 raise ValueError(msg.format(func=func))
             if func in base.cythonized_kernels:
@@ -615,7 +615,11 @@ class NDFrameGroupBy(GroupBy):
         ids, _, ngroup = self.grouper.group_info
         output = []
         for i, _ in enumerate(result.columns):
-            res = algorithms.take_1d(result.iloc[:, i].values, ids)
+            if func_nm in base.reduction_kernels:
+                # only broadcast results if we performed a reduction
+                res = algorithms.take_1d(result.iloc[:, i].values, ids)
+            else:
+                res = result.iloc[:, i].values
             if cast:
                 res = self._try_cast(res, obj.iloc[:, i])
             output.append(res)
@@ -1014,7 +1018,7 @@ class SeriesGroupBy(GroupBy):
         func = self._get_cython_func(func) or func
 
         if isinstance(func, str):
-            if not (func in base.transform_kernel_whitelist):
+            if not (func in base.groupby_transform_whitelist):
                 msg = "'{func}' is not a valid function name for transform(name)"
                 raise ValueError(msg.format(func=func))
             if func in base.cythonized_kernels:
@@ -1072,7 +1076,10 @@ class SeriesGroupBy(GroupBy):
 
         ids, _, ngroup = self.grouper.group_info
         cast = self._transform_should_cast(func_nm)
-        out = algorithms.take_1d(func()._values, ids)
+        out = func()
+        if func_nm in base.reduction_kernels:
+            # only broadcast results if we performed a reduction
+            out = algorithms.take_1d(out._values, ids)
         if cast:
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)

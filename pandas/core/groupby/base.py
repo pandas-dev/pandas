@@ -144,7 +144,6 @@ transformation_kernels = frozenset(
     [
         "backfill",
         "bfill",
-        "corrwith",
         "cumcount",
         "cummax",
         "cummin",
@@ -173,6 +172,8 @@ groupby_other_methods = frozenset(
         # are neither a transformation nor a reduction
         "corr",
         "cov",
+        # corrwith does not preserve shape, depending on `other`
+        "corrwith",
         "describe",
         "dtypes",
         "expanding",
@@ -197,4 +198,4 @@ groupby_other_methods = frozenset(
 # Valid values  of `name` for `groupby.transform(name)`
 # NOTE: do NOT edit this directly. New additions should be inserted
 # into the appropriate list above.
-transform_kernel_whitelist = reduction_kernels | transformation_kernels
+groupby_transform_whitelist = reduction_kernels | transformation_kernels

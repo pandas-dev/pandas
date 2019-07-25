@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, MultiIndex
-from pandas.core.groupby.base import reduction_kernels
+from pandas.core.groupby.base import reduction_kernels, transformation_kernels
 from pandas.util import testing as tm
 
 
@@ -103,6 +103,13 @@ def three_group():
             "F": np.random.randn(11),
         }
     )
+
+
+@pytest.fixture(params=sorted(transformation_kernels))
+def transformation_func(request):
+    """yields the string names of all groupby reduction functions, one at a time.
+    """
+    return request.param
 
 
 @pytest.fixture(params=sorted(reduction_kernels))
