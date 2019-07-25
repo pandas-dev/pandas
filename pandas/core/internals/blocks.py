@@ -3074,10 +3074,10 @@ class CategoricalBlock(ExtensionBlock):
     _concatenator = staticmethod(concat_categorical)
 
     def __init__(self, values, placement, ndim=None):
-        from pandas.core.arrays.categorical import _maybe_to_categorical
-
         # coerce to categorical if we can
-        super().__init__(_maybe_to_categorical(values), placement=placement, ndim=ndim)
+        values = extract_array(values)
+        assert isinstance(values, Categorical), type(values)
+        super().__init__(values, placement=placement, ndim=ndim)
 
     @property
     def _holder(self):

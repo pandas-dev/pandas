@@ -127,8 +127,6 @@ def pivot_table(
         table = agged.unstack(to_unstack)
 
     if not dropna:
-        from pandas import MultiIndex
-
         if table.index.nlevels > 1:
             m = MultiIndex.from_arrays(
                 cartesian_product(table.index.levels), names=table.index.names

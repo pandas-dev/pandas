@@ -38,12 +38,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.generic import (
-    ABCCategoricalIndex,
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
@@ -164,19 +159,6 @@ def _cat_compare_op(op):
     f.__name__ = op
 
     return f
-
-
-def _maybe_to_categorical(array):
-    """
-    Coerce to a categorical if a series is given.
-
-    Internal use ONLY.
-    """
-    if isinstance(array, (ABCSeries, ABCCategoricalIndex)):
-        return array._values
-    elif isinstance(array, np.ndarray):
-        return Categorical(array)
-    return array
 
 
 def contains(cat, key, container):
@@ -1987,23 +1969,6 @@ class Categorical(ExtensionArray, PandasObject):
         return result
 
     take = take_nd
-
-    def _slice(self, slicer):
-        """
-        Return a slice of myself.
-
-        For internal compatibility with numpy arrays.
-        """
-
-        # only allow 1 dimensional slicing, but can
-        # in a 2-d case be passd (slice(None),....)
-        if isinstance(slicer, tuple) and len(slicer) == 2:
-            if not com.is_null_slice(slicer[0]):
-                raise AssertionError("invalid slicing for a 1-ndim " "categorical")
-            slicer = slicer[1]
-
-        codes = self._codes[slicer]
-        return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
 
     def __len__(self):
         """
