@@ -458,15 +458,15 @@ class TestDataFrameQuantile:
 
         # ints
         df = DataFrame(columns=["a", "b"], dtype="int64")
-
-        # FIXME (gives empty frame in 0.18.1, broken in 0.19.0)
-        # res = df.quantile(0.5)
+        res = df.quantile(0.5)
+        exp = Series([np.nan, np.nan], index=["a", "b"], name=0.5)
+        tm.assert_series_equal(res, exp)
 
         # datetimes
         df = DataFrame(columns=["a", "b"], dtype="datetime64[ns]")
-
-        # FIXME (gives NaNs instead of NaT in 0.18.1 or 0.19.0)
-        # res = df.quantile(0.5, numeric_only=False)
+        res = df.quantile(0.5, numeric_only=False)
+        exp = Series([pd.NaT, pd.NaT], index=["a", "b"], name=0.5)
+        tm.assert_series_equal(res, exp)
 
     def test_quantile_empty_no_columns(self):
         # GH#23925 _get_numeric_data may drop all columns
