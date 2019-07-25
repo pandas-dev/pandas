@@ -1548,11 +1548,11 @@ def _find_backend(backend: str):
 
     Notes
     -----
-    Modifies _backcends with imported backends as a side effect.
+    Modifies _backends with imported backends as a side effect.
 
     Returns
     -------
-    backend : types.ModuleType
+    types.ModuleType
         The imported backend.
     """
     import pkg_resources  # Delay import for performance.
