@@ -384,7 +384,7 @@ class TestStringMethods:
             other = other(values)
         else:
             other = values
-        result = box(values, name="name").str.cat(other, sep=",", join="left")
+        result = box(values, name="name").str.cat(other, sep=",")
         assert result.name == "name"
 
     @pytest.mark.parametrize("box", [Series, Index])
@@ -418,11 +418,8 @@ class TestStringMethods:
         assert_series_or_index_equal(result, expected)
 
         # errors for incorrect lengths
-        rgx = "All arrays must be same length, except those having an index.*"
+        rgx = r"If `others` contains arrays or lists \(or other list-likes.*"
         z = Series(["1", "2", "3"])
-
-        with pytest.raises(ValueError, match=rgx):
-            s.str.cat(z)
 
         with pytest.raises(ValueError, match=rgx):
             s.str.cat(z.values)
@@ -452,14 +449,12 @@ class TestStringMethods:
         expected = Index(["ab", "aa", "bb", "ac"])
         expected = expected if box == Index else Series(expected, index=s)
 
-        # Series/Index with unaligned Index
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # FutureWarning to switch to alignment by default
-            result = s.str.cat(t, sep=sep)
-            assert_series_or_index_equal(result, expected)
+        # Series/Index with unaligned Index -> t.values
+        result = s.str.cat(t.values, sep=sep)
+        assert_series_or_index_equal(result, expected)
 
         # Series/Index with Series having matching Index
-        t = Series(t, index=s)
+        t = Series(t.values, index=s)
         result = s.str.cat(t, sep=sep)
         assert_series_or_index_equal(result, expected)
 
@@ -468,11 +463,15 @@ class TestStringMethods:
         assert_series_or_index_equal(result, expected)
 
         # Series/Index with Series having different Index
-        t = Series(t.values, index=t)
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # FutureWarning to switch to alignment by default
-            result = s.str.cat(t, sep=sep)
-            assert_series_or_index_equal(result, expected)
+        t = Series(t.values, index=t.values)
+        expected = Index(["aa", "aa", "aa", "bb", "bb"])
+        expected = (
+            expected if box == Index else Series(expected, index=expected.str[:1])
+        )
+
+        result = s.str.cat(t, sep=sep)
+        print(s, t, result)
+        assert_series_or_index_equal(result, expected)
 
     # test integer/float dtypes (inferred by constructor) and mixed
     @pytest.mark.parametrize(
@@ -523,54 +522,32 @@ class TestStringMethods:
         result = s.str.cat([t, s.values])
         assert_series_or_index_equal(result, expected)
 
-        # Series/Index with list of list-likes
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # nested list-likes will be deprecated
-            result = s.str.cat([t.values, list(s)])
-            assert_series_or_index_equal(result, expected)
-
         # Series/Index with list of Series; different indexes
         t.index = ["b", "c", "d", "a"]
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # FutureWarning to switch to alignment by default
-            result = s.str.cat([t, s])
-            assert_series_or_index_equal(result, expected)
+        expected = box(["aDa", "bAb", "cBc", "dCd"])
+        expected = expected if box == Index else Series(expected.values, index=s.values)
+        result = s.str.cat([t, s])
+        assert_series_or_index_equal(result, expected)
 
-        # Series/Index with mixed list; different indexes
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # FutureWarning to switch to alignment by default
-            result = s.str.cat([t, s.values])
-            assert_series_or_index_equal(result, expected)
+        # Series/Index with mixed list; different index
+        result = s.str.cat([t, s.values])
+        assert_series_or_index_equal(result, expected)
 
         # Series/Index with DataFrame; different indexes
         d.index = ["b", "c", "d", "a"]
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # FutureWarning to switch to alignment by default
-            result = s.str.cat(d)
-            assert_series_or_index_equal(result, expected)
-
-        # Series/Index with iterator of list-likes
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # nested list-likes will be deprecated
-            result = s.str.cat(iter([t.values, list(s)]))
-            assert_series_or_index_equal(result, expected)
+        expected = box(["aDd", "bAa", "cBb", "dCc"])
+        expected = expected if box == Index else Series(expected.values, index=s.values)
+        result = s.str.cat(d)
+        assert_series_or_index_equal(result, expected)
 
         # errors for incorrect lengths
-        rgx = "All arrays must be same length, except those having an index.*"
+        rgx = r"If `others` contains arrays or lists \(or other list-likes.*"
         z = Series(["1", "2", "3"])
         e = concat([z, z], axis=1)
-
-        # DataFrame
-        with pytest.raises(ValueError, match=rgx):
-            s.str.cat(e)
 
         # two-dimensional ndarray
         with pytest.raises(ValueError, match=rgx):
             s.str.cat(e.values)
-
-        # list of Series
-        with pytest.raises(ValueError, match=rgx):
-            s.str.cat([z, s])
 
         # list of list-likes
         with pytest.raises(ValueError, match=rgx):
@@ -614,6 +591,10 @@ class TestStringMethods:
         # other forbidden input type, e.g. int
         with pytest.raises(TypeError, match=rgx):
             s.str.cat(1)
+
+        # nested list-likes
+        with pytest.raises(TypeError, match=rgx):
+            s.str.cat(iter([t.values, list(s)]))
 
     @pytest.mark.parametrize("join", ["left", "outer", "inner", "right"])
     @pytest.mark.parametrize("box", [Series, Index])
@@ -660,10 +641,9 @@ class TestStringMethods:
         result = s.str.cat([t, u], join=join, na_rep="-")
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # nested list-likes will be deprecated
-            result = s.str.cat([t, list(u)], join=join, na_rep="-")
-            tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="others must be Series,.*"):
+            # nested lists are forbidden
+            s.str.cat([t, list(u)], join=join)
 
         # errors for incorrect lengths
         rgx = r"If `others` contains arrays or lists \(or other list-likes.*"
