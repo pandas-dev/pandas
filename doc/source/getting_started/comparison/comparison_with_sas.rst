@@ -31,10 +31,10 @@ As is customary, we import pandas and NumPy as follows:
       proc print data=df(obs=5);
       run;
 
-Data Structures
+Data structures
 ---------------
 
-General Terminology Translation
+General terminology translation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table::
@@ -78,10 +78,10 @@ see the :ref:`indexing documentation<indexing>` for much more on how to use an
 ``Index`` effectively.
 
 
-Data Input / Output
+Data input / output
 -------------------
 
-Constructing a DataFrame from Values
+Constructing a DataFrame from values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A SAS data set can be built from specified values by
@@ -110,7 +110,7 @@ and the values are the data.
    df
 
 
-Reading External Data
+Reading external data
 ~~~~~~~~~~~~~~~~~~~~~
 
 Like SAS, pandas provides utilities for reading in data from
@@ -151,7 +151,7 @@ In addition to text/csv, pandas supports a variety of other data formats
 such as Excel, HDF5, and SQL databases.  These are all read via a ``pd.read_*``
 function.  See the :ref:`IO documentation<io>` for more details.
 
-Exporting Data
+Exporting data
 ~~~~~~~~~~~~~~
 
 The inverse of ``PROC IMPORT`` in SAS is ``PROC EXPORT``
@@ -169,10 +169,10 @@ and other data formats follow a similar api.
    tips.to_csv('tips2.csv')
 
 
-Data Operations
+Data operations
 ---------------
 
-Operations on Columns
+Operations on columns
 ~~~~~~~~~~~~~~~~~~~~~
 
 In the ``DATA`` step, arbitrary math expressions can
@@ -228,7 +228,7 @@ DataFrames can be filtered in multiple ways; the most intuitive of which is usin
 
    tips[tips['total_bill'] > 10].head()
 
-If/Then Logic
+If/then logic
 ~~~~~~~~~~~~~
 
 In SAS, if/then logic can be used to create new columns.
@@ -256,7 +256,7 @@ the ``where`` method from ``numpy``.
 
    tips = tips.drop('bucket', axis=1)
 
-Date Functionality
+Date functionality
 ~~~~~~~~~~~~~~~~~~
 
 SAS provides a variety of functions to do operations on
@@ -301,7 +301,7 @@ see the :ref:`timeseries documentation<timeseries>` for more details.
    tips = tips.drop(['date1', 'date2', 'date1_year',
                      'date2_month', 'date1_next', 'months_between'], axis=1)
 
-Selection of Columns
+Selection of columns
 ~~~~~~~~~~~~~~~~~~~~
 
 SAS provides keywords in the ``DATA`` step to select,
@@ -338,7 +338,7 @@ The same operations are expressed in pandas below.
    tips.rename(columns={'total_bill': 'total_bill_2'}).head()
 
 
-Sorting by Values
+Sorting by values
 ~~~~~~~~~~~~~~~~~
 
 Sorting in SAS is accomplished via ``PROC SORT``
@@ -358,7 +358,7 @@ takes a list of columns to sort by.
    tips.head()
 
 
-String Processing
+String processing
 -----------------
 
 Length
@@ -466,7 +466,7 @@ approaches, but this just shows a simple approach.
    firstlast
 
 
-Upcase, Lowcase, and Propcase
+Upcase, lowcase, and propcase
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The SAS `UPCASE <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm>`__
@@ -555,7 +555,7 @@ types are accomplished via the ``how`` keyword.
    outer_join
 
 
-Missing Data
+Missing data
 ------------
 
 Like SAS, pandas has a representation for missing data - which is the
@@ -660,7 +660,7 @@ example, to subtract the mean for each observation by smoker group.
    run;
 
 
-pandas ``groubpy`` provides a ``transform`` mechanism that allows
+pandas ``groupby`` provides a ``transform`` mechanism that allows
 these type of operations to be succinctly expressed in one
 operation.
 
@@ -671,7 +671,7 @@ operation.
    tips.head()
 
 
-By Group Processing
+By group processing
 ~~~~~~~~~~~~~~~~~~~
 
 In addition to aggregation, pandas ``groupby`` can be used to
@@ -701,7 +701,7 @@ In pandas this would be written as:
 Other Considerations
 --------------------
 
-Disk vs Memory
+Disk vs memory
 ~~~~~~~~~~~~~~
 
 pandas operates exclusively in memory, where a SAS data set exists on disk.
@@ -713,7 +713,7 @@ If out of core processing is needed, one possibility is the
 library (currently in development) which
 provides a subset of pandas functionality for an on-disk ``DataFrame``
 
-Data Interop
+Data interop
 ~~~~~~~~~~~~
 
 pandas provides a :func:`read_sas` method that can read SAS data saved in
