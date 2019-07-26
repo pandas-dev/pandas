@@ -5485,8 +5485,10 @@ No official documentation is available for the SAS7BDAT format.
 SPSS formats
 ------------
 
+.. versionadded:: 0.25.0
+
 The top-level function :func:`read_spss` can read (but not write) SPSS
-`sav` (.sav) and  `zsav` (.zsav) format files(since *v0.25.0*).
+`sav` (.sav) and  `zsav` (.zsav) format files.
 
 SPSS files contain column names. By default the
 whole file is read, categorical columns are converted into ``pd.Categorical``
