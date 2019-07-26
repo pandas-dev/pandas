@@ -10,7 +10,7 @@ import lzma
 import mmap
 import os
 import pathlib
-from typing import IO, BinaryIO, Optional, TextIO, Tuple, Type, Union
+from typing import IO, BinaryIO, Optional, TextIO, Tuple, Type
 from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
     urlencode,
@@ -446,7 +446,7 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     # GH 17778
     def __init__(
         self,
-        file: Union[BinaryIO, str],
+        file: FilePathOrBuffer,
         mode: str,
         compression: int = zipfile.ZIP_DEFLATED,
         **kwargs
@@ -527,6 +527,6 @@ def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
 
 
 def UnicodeWriter(
-    f: TextIO, dialect: Type[csv.excel] = csv.excel, encoding: str = "utf-8", **kwds
+    f: TextIO, dialect: Type[csv.Dialect] = csv.excel, encoding: str = "utf-8", **kwds
 ):
     return csv.writer(f, dialect=dialect, **kwds)
