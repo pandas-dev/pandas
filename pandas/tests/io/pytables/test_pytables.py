@@ -4935,8 +4935,8 @@ class TestHDFStore(Base):
         df = DataFrame(np.random.random((10, 10000)))
 
         with ensure_clean_path(self.path) as path:
-            df.to_hdf(path, 'df', format='table')
-            reread = read_hdf(path, 'df')
+            df.to_hdf(path, "df", format="table")
+            reread = read_hdf(path, "df")
             assert_frame_equal(df, reread)
 
     def test_append_wide_table_format(self):
@@ -4947,8 +4947,8 @@ class TestHDFStore(Base):
         df2 = DataFrame(np.random.random((10, 10000)))
 
         with ensure_clean_path(self.path) as path:
-            df1.to_hdf(path, 'df', format='table')
-            df2.to_hdf(path, 'df', append=True)
+            df1.to_hdf(path, "df", format="table")
+            df2.to_hdf(path, "df", append=True)
             reread = read_hdf(path)
             assert_frame_equal(pd.concat([df1, df2]), reread)
 
@@ -4958,25 +4958,29 @@ class TestHDFStore(Base):
         # saved as pytables metadata
 
         column_numeric = [1, 2, 3, 4]
-        column_str_1 = ['A', 'B', 'C', 'D']
-        column_str_2 = ['Ä', 'Ö', 'Â', 'é']
-        column_dt = pd.date_range('19700101', '19700104')
-        column_multi_1 = pd.MultiIndex.from_tuples(
-            zip(column_numeric, column_str_1))
-        column_multi_2 = pd.MultiIndex.from_tuples(
-            zip(column_str_2, column_dt))
+        column_str_1 = ["A", "B", "C", "D"]
+        column_str_2 = ["Ä", "Ö", "Â", "é"]
+        column_dt = pd.date_range("19700101", "19700104")
+        column_multi_1 = pd.MultiIndex.from_tuples(zip(column_numeric, column_str_1))
+        column_multi_2 = pd.MultiIndex.from_tuples(zip(column_str_2, column_dt))
 
-        columns = [column_numeric, column_str_1, column_str_2, column_dt,
-                   column_multi_1, column_multi_2]
+        columns = [
+            column_numeric,
+            column_str_1,
+            column_str_2,
+            column_dt,
+            column_multi_1,
+            column_multi_2,
+        ]
 
-        data = np.arange(0, 16).reshape(4, 4).astype('int64')
+        data = np.arange(0, 16).reshape(4, 4).astype("int64")
 
         with ensure_clean_store(
-                datapath('io', 'data', 'legacy_hdf',
-                         'legacy_table_table_format.h5'),
-                mode='r') as store:
+            datapath("io", "data", "legacy_hdf", "legacy_table_table_format.h5"),
+            mode="r",
+        ) as store:
             for i, column in enumerate(columns):
-                table_name = 'table_{}'.format(i)
+                table_name = "table_{}".format(i)
                 df = pd.DataFrame(data, columns=column)
                 tm.assert_frame_equal(store[table_name], df)
 

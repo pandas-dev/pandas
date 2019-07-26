@@ -2442,9 +2442,10 @@ class DataCol(IndexCol):
 
         if self.values is None:
             try:
-                data = self.handle.get_node(self.attrs._v_node._v_parent,
-                                            self.kind_attr)[:]
-                data = np.array(data, dtype='object')
+                data = self.handle.get_node(
+                    self.attrs._v_node._v_parent, self.kind_attr
+                )[:]
+                data = np.array(data, dtype="object")
                 # check for multiindex
                 if len(data.shape) > 1 and data.shape[1] > 1:
                     self.values = list(map(tuple, data.tolist()))
@@ -2463,8 +2464,7 @@ class DataCol(IndexCol):
         if key in group:
             self.handle.remove_node(group, key)
 
-        vlarray = self.handle.create_vlarray(group, key,
-                                             _tables().ObjectAtom())
+        vlarray = self.handle.create_vlarray(group, key, _tables().ObjectAtom())
         for fld in self.values:
             vlarray.append(fld)
 
@@ -3526,8 +3526,7 @@ class Table(Fixed):
             if key in group:
                 self.handle.remove_node(group, key)
 
-            vlarray = self._handle.create_vlarray(group, key,
-                                                  _tables().ObjectAtom())
+            vlarray = self._handle.create_vlarray(group, key, _tables().ObjectAtom())
             for fld in flds:
                 vlarray.append(fld)
             return dim, key
@@ -3537,10 +3536,11 @@ class Table(Fixed):
 
     def get_non_index_axes(self):
         """Load the non-index axes from their vlarrays."""
+
         def f(dim, flds):
             if isinstance(flds, str):
                 flds = self._handle.get_node(self.attrs._v_node, flds)[:]
-                flds = np.array(flds, dtype='object')
+                flds = np.array(flds, dtype="object")
                 if len(flds.shape) > 1 and flds.shape[1] > 1:
                     flds = list(map(tuple, flds.tolist()))
                 else:
@@ -3548,7 +3548,8 @@ class Table(Fixed):
                 return dim, flds
             else:
                 return dim, flds  # if not a string presumably pre v0.xx list
-        non_index_axes = getattr(self.attrs, 'non_index_axes', [])
+
+        non_index_axes = getattr(self.attrs, "non_index_axes", [])
         new = [f(dim, flds) for dim, flds in non_index_axes]
         return new
 
@@ -3580,7 +3581,6 @@ class Table(Fixed):
         ]
         self.metadata = getattr(self.attrs, "metadata", None) or []
         self.non_index_axes = self.get_non_index_axes()
-
 
     def validate_version(self, where=None):
         """ are we trying to operate on an old version? """
