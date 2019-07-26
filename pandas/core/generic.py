@@ -564,7 +564,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """ internal compat with SelectionMixin """
         return self
 
-    def set_axis(self, labels, axis=0, inplace=None):
+    def set_axis(self, labels, axis=0, inplace=False):
         """
         Assign desired index to given axis.
 
@@ -587,14 +587,8 @@ class NDFrame(PandasObject, SelectionMixin):
             The axis to update. The value 0 identifies the rows, and 1
             identifies the columns.
 
-        inplace : bool, default None
+        inplace : bool, default False
             Whether to return a new %(klass)s instance.
-
-            .. warning::
-
-               ``inplace=None`` currently falls back to to True, but in a
-               future version, will default to False. Use inplace=True
-               explicitly rather than relying on the default.
 
         Returns
         -------
@@ -616,18 +610,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2    3
         dtype: int64
 
-        >>> s.set_axis(['a', 'b', 'c'], axis=0, inplace=False)
+        >>> s.set_axis(['a', 'b', 'c'], axis=0)
         a    1
         b    2
         c    3
-        dtype: int64
-
-        The original object is not modified.
-
-        >>> s
-        0    1
-        1    2
-        2    3
         dtype: int64
 
         **DataFrame**
@@ -636,7 +622,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Change the row labels.
 
-        >>> df.set_axis(['a', 'b', 'c'], axis='index', inplace=False)
+        >>> df.set_axis(['a', 'b', 'c'], axis='index')
            A  B
         a  1  4
         b  2  5
@@ -644,7 +630,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Change the column labels.
 
-        >>> df.set_axis(['I', 'II'], axis='columns', inplace=False)
+        >>> df.set_axis(['I', 'II'], axis='columns')
            I  II
         0  1   4
         1  2   5
@@ -670,15 +656,6 @@ class NDFrame(PandasObject, SelectionMixin):
             )
             labels, axis = axis, labels
 
-        if inplace is None:
-            warnings.warn(
-                "set_axis currently defaults to operating inplace.\nThis "
-                "will change in a future version of pandas, use "
-                "inplace=True to avoid this warning.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            inplace = True
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
