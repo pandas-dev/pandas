@@ -874,8 +874,10 @@ class TestHDFStore(Base):
                     assert node.filters.complevel == 0
                     assert node.filters.complib is None
                 for node in h5file.walk_nodes(where="/dfc", classname="Leaf"):
-                    assert node.filters.complevel == 9
-                    assert node.filters.complib == "blosc"
+                    # only check table, skip column
+                    if node.name == 'table':
+                        assert node.filters.complevel == 9
+                        assert node.filters.complib == 'blosc'
 
     def test_complibs(self):
         # GH14478
