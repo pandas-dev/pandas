@@ -78,7 +78,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
-- Previously, when :class:`pandas.core.groupby.GroupBy.transform` was passed the name of a transformation (e.g. `rank`, `ffill`, etc') it  broadcast the results resulting in erroneous values.  only reduction results and not the results of transformations. The return value in thse cases is the same as calling the named function directly (e.g. `g.rank()`) (:issue:`14274`) (:issue:`19354`) (:issue:`22509`).
+- Previously, when :class:`pandas.core.groupby.GroupBy.transform` was passed the name of a transformation (e.g. `rank`, `ffill`, etc) it broadcast the results resulting in erroneous values. Only reduction results and not the results of transformations. The return value in these cases is the same as calling the named function directly (e.g. `g.rank()`) (:issue:`14274`) (:issue:`19354`) (:issue:`22509`).
 
 Categorical
 ^^^^^^^^^^^
