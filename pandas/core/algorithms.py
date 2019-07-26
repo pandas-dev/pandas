@@ -1110,14 +1110,11 @@ def check_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
     Validate percentiles (used by describe and quantile).
     Args:
         q: A single percentile or an iterable of percentiles.
-    
     Returns:
         ndarray
             An ndarray of the percentiles if valid.
-    
     Raises: ValueError if percentiles are not in given interval([0, 1]). 
     """
-
     msg = "percentiles should all be in the interval [0, 1]. " "Try {0} instead."
     q_arr = np.asarray(q)
     if q_arr.ndim == 0:
