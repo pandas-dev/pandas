@@ -2436,7 +2436,7 @@ class DataCol(IndexCol):
         return self
 
     def get_attr(self):
-        """ get the data for this colummn """
+        """ get the data for this column """
         # reading tables prior to 0.x.x
         self.values = getattr(self.attrs, self.kind_attr, None)
 
@@ -3518,7 +3518,7 @@ class Table(Fixed):
         self.attrs.info = self.info
 
     def set_non_index_axes(self):
-        """ Write the axes to carrays """
+        """ Write the axes to vlarrays """
         group = self.attrs._v_node
 
         def f(dim, flds):
@@ -3536,8 +3536,7 @@ class Table(Fixed):
         self.attrs.non_index_axes = replacement
 
     def get_non_index_axes(self):
-        """Load the non-index axes from their carrays. This is a pass-through
-        for tables stored prior to v0.xx"""
+        """Load the non-index axes from their vlarrays."""
         def f(dim, flds):
             if isinstance(flds, str):
                 flds = self._handle.get_node(self.attrs._v_node, flds)[:]
@@ -3569,28 +3568,6 @@ class Table(Fixed):
 
     def get_attrs(self):
         """ retrieve our attributes """
-<<<<<<< HEAD
-        self.data_columns = getattr(
-            self.attrs, 'data_columns', None) or []
-        self.info = getattr(
-            self.attrs, 'info', None) or dict()
-        self.nan_rep = getattr(self.attrs, 'nan_rep', None)
-        self.encoding = _ensure_encoding(
-            getattr(self.attrs, 'encoding', None))
-        self.errors = _ensure_decoded(getattr(self.attrs, 'errors', 'strict'))
-        self.levels = getattr(
-            self.attrs, 'levels', None) or []
-        self.index_axes = [
-            a.infer(self) for a in self.indexables if a.is_an_indexable
-        ]
-        self.values_axes = [
-            a.infer(self) for a in self.indexables if not a.is_an_indexable
-        ]
-        self.metadata = getattr(
-            self.attrs, 'metadata', None) or []
-        self.non_index_axes = self.get_non_index_axes()
-=======
-        self.non_index_axes = getattr(self.attrs, "non_index_axes", None) or []
         self.data_columns = getattr(self.attrs, "data_columns", None) or []
         self.info = getattr(self.attrs, "info", None) or dict()
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
@@ -3602,7 +3579,8 @@ class Table(Fixed):
             a.infer(self) for a in self.indexables if not a.is_an_indexable
         ]
         self.metadata = getattr(self.attrs, "metadata", None) or []
->>>>>>> upstream/master
+        self.non_index_axes = self.get_non_index_axes()
+
 
     def validate_version(self, where=None):
         """ are we trying to operate on an old version? """
