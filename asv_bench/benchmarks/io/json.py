@@ -122,16 +122,16 @@ class ToJSON(BaseIO):
 
     def time_to_json_wide(self, orient, frame):
         base_df = getattr(self, frame).copy()
-        df = pd.concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
+        df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
         df.to_json(self.fname, orient=orient)
 
     def mem_to_json_wide(self, orient, frame):
         base_df = getattr(self, frame).copy()
-        df = pd.concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
+        df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
         df.to_json(self.fname, orient=orient)
 
 
-class ToJSON(BaseIO):
+class ToJSONLines(BaseIO):
 
     fname = "__test__.json"
 
