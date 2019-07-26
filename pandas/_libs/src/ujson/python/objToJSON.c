@@ -1625,38 +1625,28 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
     type_num = PyArray_TYPE(labels);
 
     for (i = 0; i < num; i++) {
-      if (PyTypeNum_ISDATETIME(type_num))
-        {
-            item = (PyObject *)labels;
-            pyenc->npyType = type_num;
-            pyenc->npyValue = dataptr;
-        } else {
-            item = getitem(dataptr, labels);
-            if (!item) {
-                NpyArr_freeLabels(ret, num);
-                ret = 0;
-                break;
-            }
-        }
-
+        item = getitem(dataptr, labels);
+        if (!item) {
+	  NpyArr_freeLabels(ret, num);
+	  ret = 0;
+	  break;
+	}
+      
 	PyObject *str = PyObject_Str(item);
-        cLabel = PyUnicode_AsUTF8(str);
+	cLabel = PyUnicode_AsUTF8(str);
+	len = strlen(cLabel);
 	Py_DECREF(str);
 
-        if (item != (PyObject *)labels) {
-            Py_DECREF(item);
-        }
+	Py_DECREF(item);
+	// Add 1 to include NULL terminator
+	ret[i] = PyObject_Malloc(len + 1);
+	memcpy(ret[i], cLabel, len + 1);	
 
-        if (PyErr_Occurred() || enc->errorMsg) {
+        if (PyErr_Occurred()) {
             NpyArr_freeLabels(ret, num);
             ret = 0;
             break;
         }
-
-	len = strlen(cLabel);
-	// Add 1 to include NULL terminator
-	ret[i] = PyObject_Malloc(len + 1);
-	memcpy(ret[i], cLabel, len + 1);
 
         if (!ret[i]) {
             PyErr_NoMemory();
