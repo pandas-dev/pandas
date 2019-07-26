@@ -48,8 +48,6 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <../../../tslibs/src/datetime/np_datetime_strings.h>
 #include "datetime.h"
 
-#define NPY_JSON_BUFSIZE 32768
-
 static PyTypeObject *type_decimal;
 static PyTypeObject *cls_dataframe;
 static PyTypeObject *cls_series;
@@ -1597,7 +1595,6 @@ void NpyArr_freeLabels(char **labels, npy_intp len) {
 char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
                            npy_intp num) {
     // NOTE this function steals a reference to labels.
-    PyObjectEncoder *pyenc = (PyObjectEncoder *)enc;
     PyObject *item = NULL;
     npy_intp i, stride, len;
     char **ret;
