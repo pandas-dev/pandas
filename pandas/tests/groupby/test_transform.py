@@ -632,7 +632,7 @@ def test_cython_transform_series(op, args, targop):
 )
 def test_groupby_cum_skipna(op, skipna, input, exp):
     df = pd.DataFrame(input)
-    result = df.groupby("key")["value"].transform(op, skipna=skipna)
+    result = getattr(df.groupby("key")["value"],op)(skipna=skipna)
     if isinstance(exp, dict):
         expected = exp[(op, skipna)]
     else:
