@@ -1131,8 +1131,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._get_values(indexer)
+            return self._slice(key)
         elif isinstance(key, ABCDataFrame):
             raise TypeError(
                 "Indexing a Series with DataFrame is not "
@@ -1148,7 +1147,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         return self._get_values(key)
                 raise
 
-        # pragma: no cover
         if not isinstance(key, (list, np.ndarray, Series, Index)):
             key = list(key)
 
@@ -1165,19 +1163,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif key_type == "boolean":
             return self._get_values(key)
 
-        try:
-            # handle the dup indexing case (GH 4246)
-            if isinstance(key, (list, tuple)):
-                return self.loc[key]
-
-            return self.reindex(key)
-        except Exception:
-            # [slice(0, 5, None)] will break if you convert to ndarray,
-            # e.g. as requested by np.median
-            # hack
-            if isinstance(key[0], slice):
+        if isinstance(key, (list, tuple)):
+            # TODO: de-dup with tuple case handled above?
+            # handle the dup indexing case GH#4246
+            if len(key) == 1 and isinstance(key[0], slice):
+                # [slice(0, 5, None)] will break if you convert to ndarray,
+                # e.g. as requested by np.median
+                # FIXME: hack
                 return self._get_values(key)
-            raise
+
+            return self.loc[key]
+
+        return self.reindex(key)
 
     def _get_values_tuple(self, key):
         # mpl hackaround
