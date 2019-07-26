@@ -681,8 +681,8 @@ def _maybe_promote_with_array(dtype, fill_value=np.nan):
         if (
             dtype in ["float32", "complex64"]
             and max(
-                np.abs(fill_value.real).max(),  # also works for float
-                np.abs(fill_value.imag).max(),
+                np.abs(np.real(fill_value)).max(),  # also works for float
+                np.abs(np.imag(fill_value)).max(),
             )
             <= _float32_max
         ):
