@@ -144,7 +144,7 @@ typedef struct __PyObjectEncoder {
 
 enum PANDAS_FORMAT { SPLIT, RECORDS, INDEX, COLUMNS, VALUES };
 
-#define PRINTMARK() printf("%d\n", __LINE__)
+#define PRINTMARK()
 
 int PdBlock_iterNext(JSOBJ, JSONTypeContext *);
 
@@ -801,13 +801,9 @@ char *NpyArr_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
 	cStr = npyarr->rowLabels[idx];
     }
 
-    printf("giving back %s\n", cStr);
     *outLen = strlen(cStr);
 
-    // encoding will free whatever is returned here, so copy as the
-    // call to NpyArr_freeLabels at the end of iteration will try
-    // to free as well
-    return strdup(cStr);
+    return cStr;
 }
 
 //=============================================================================
@@ -864,10 +860,7 @@ char *PdBlock_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
     }
 
     *outLen = strlen(cStr);    
-    // encoding will free whatever is returned here, so copy as the
-    // call to NpyArr_freeLabels at the end of iteration will try
-    // to free as well
-    return strdup(cStr);
+    return cStr;
 }
 
 char *PdBlock_iterGetName_Transpose(JSOBJ obj, JSONTypeContext *tc,
@@ -887,10 +880,7 @@ char *PdBlock_iterGetName_Transpose(JSOBJ obj, JSONTypeContext *tc,
     }
 
     *outLen = strlen(cStr);
-    // encoding will free whatever is returned here, so copy as the
-    // call to NpyArr_freeLabels at the end of iteration will try
-    // to free as well
-    return strdup(cStr);
+    return cStr;
 }
 
 int PdBlock_iterNext(JSOBJ obj, JSONTypeContext *tc) {
@@ -1592,7 +1582,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
     // NOTE this function steals a reference to labels.
     PyObjectEncoder *pyenc = (PyObjectEncoder *)enc;
     PyObject *item = NULL;
-    npy_intp i, stride;
+    npy_intp i, stride, len;
     char **ret;
     char *dataptr, *cLabel, *origend, *origst, *origoffset;
     char labelBuffer[NPY_JSON_BUFSIZE];
@@ -1635,7 +1625,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
     type_num = PyArray_TYPE(labels);
 
     for (i = 0; i < num; i++) {
-        if (PyTypeNum_ISDATETIME(type_num))
+      if (PyTypeNum_ISDATETIME(type_num))
         {
             item = (PyObject *)labels;
             pyenc->npyType = type_num;
@@ -1650,8 +1640,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
         }
 
 	PyObject *str = PyObject_Str(item);
-	Py_ssize_t *size;
-        cLabel = PyUnicode_AsUTF8AndSize(str, size);
+        cLabel = PyUnicode_AsUTF8(str);
 	Py_DECREF(str);
 
         if (item != (PyObject *)labels) {
@@ -1664,8 +1653,10 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
             break;
         }
 
-	printf("label is %s\n", cLabel);
-	ret[i] = cLabel;
+	len = strlen(cLabel);
+	// Add 1 to include NULL terminator
+	ret[i] = PyObject_Malloc(len + 1);
+	memcpy(ret[i], cLabel, len + 1);
 
         if (!ret[i]) {
             PyErr_NoMemory();
@@ -2450,7 +2441,6 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     newobj = PyUnicode_FromString(ret);
 
-    printf("returning %s\n", ret);
     if (ret != buffer) {
         encoder->free(ret);
     }
