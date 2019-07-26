@@ -318,23 +318,23 @@ class SparseSeries(Series):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def _ixs(self, i, axis=0):
+    def _ixs(self, i: int, axis: int = 0):
         """
         Return the i-th value or values in the SparseSeries by location
 
         Parameters
         ----------
-        i : int, slice, or sequence of integers
+        i : int
+        axis: int
+            default 0, ignored
 
         Returns
         -------
         value : scalar (int) or Series (slice, sequence)
         """
-        label = self.index[i]
-        if isinstance(label, Index):
-            return self.take(i, axis=axis)
-        else:
-            return self._get_val_at(i)
+        assert is_integer(i), i
+        # equiv: self._get_val_at(i) since we have an integer
+        return self.values[i]
 
     def _get_val_at(self, loc):
         """ forward to the array """
