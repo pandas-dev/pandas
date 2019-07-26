@@ -6,7 +6,6 @@ import copy
 import pickle as pkl
 import sys
 
-import pandas  # noqa
 from pandas import Index
 
 
@@ -26,7 +25,7 @@ def load_reduce(self):
         # If we have a deprecated function,
         # try to replace and try again.
 
-        msg = '_reconstruct: First argument must be a sub-type of ndarray'
+        msg = "_reconstruct: First argument must be a sub-type of ndarray"
 
         if msg in str(e):
             try:
@@ -37,10 +36,11 @@ def load_reduce(self):
                 pass
 
         # try to re-encode the arguments
-        if getattr(self, 'encoding', None) is not None:
-            args = tuple(arg.encode(self.encoding)
-                         if isinstance(arg, str)
-                         else arg for arg in args)
+        if getattr(self, "encoding", None) is not None:
+            args = tuple(
+                arg.encode(self.encoding) if isinstance(arg, str) else arg
+                for arg in args
+            )
             try:
                 stack[-1] = func(*args)
                 return
@@ -48,7 +48,7 @@ def load_reduce(self):
                 pass
 
         # unknown exception, re-raise
-        if getattr(self, 'is_verbose', None):
+        if getattr(self, "is_verbose", None):
             print(sys.exc_info())
             print(func, args)
         raise
@@ -56,9 +56,7 @@ def load_reduce(self):
 
 # If classes are moved, provide compat here.
 _class_locations_map = {
-    ('pandas.core.sparse.array', 'SparseArray'):
-        ('pandas.core.arrays', 'SparseArray'),
-
+    ("pandas.core.sparse.array", "SparseArray"): ("pandas.core.arrays", "SparseArray"),
     # 15477
     #
     # TODO: When FrozenNDArray is removed, add
@@ -71,75 +69,84 @@ _class_locations_map = {
     #
     # Afterwards, remove the current entry
     # for `pandas.core.base.FrozenNDArray`.
-    ('pandas.core.base', 'FrozenNDArray'):
-        ('pandas.core.indexes.frozen', 'FrozenNDArray'),
-    ('pandas.core.base', 'FrozenList'):
-        ('pandas.core.indexes.frozen', 'FrozenList'),
-
+    ("pandas.core.base", "FrozenNDArray"): (
+        "pandas.core.indexes.frozen",
+        "FrozenNDArray",
+    ),
+    ("pandas.core.base", "FrozenList"): ("pandas.core.indexes.frozen", "FrozenList"),
     # 10890
-    ('pandas.core.series', 'TimeSeries'):
-        ('pandas.core.series', 'Series'),
-    ('pandas.sparse.series', 'SparseTimeSeries'):
-        ('pandas.core.sparse.series', 'SparseSeries'),
-
+    ("pandas.core.series", "TimeSeries"): ("pandas.core.series", "Series"),
+    ("pandas.sparse.series", "SparseTimeSeries"): (
+        "pandas.core.sparse.series",
+        "SparseSeries",
+    ),
     # 12588, extensions moving
-    ('pandas._sparse', 'BlockIndex'):
-        ('pandas._libs.sparse', 'BlockIndex'),
-    ('pandas.tslib', 'Timestamp'):
-        ('pandas._libs.tslib', 'Timestamp'),
-
+    ("pandas._sparse", "BlockIndex"): ("pandas._libs.sparse", "BlockIndex"),
+    ("pandas.tslib", "Timestamp"): ("pandas._libs.tslib", "Timestamp"),
     # 18543 moving period
-    ('pandas._period', 'Period'): ('pandas._libs.tslibs.period', 'Period'),
-    ('pandas._libs.period', 'Period'):
-        ('pandas._libs.tslibs.period', 'Period'),
-
+    ("pandas._period", "Period"): ("pandas._libs.tslibs.period", "Period"),
+    ("pandas._libs.period", "Period"): ("pandas._libs.tslibs.period", "Period"),
     # 18014 moved __nat_unpickle from _libs.tslib-->_libs.tslibs.nattype
-    ('pandas.tslib', '__nat_unpickle'):
-        ('pandas._libs.tslibs.nattype', '__nat_unpickle'),
-    ('pandas._libs.tslib', '__nat_unpickle'):
-        ('pandas._libs.tslibs.nattype', '__nat_unpickle'),
-
+    ("pandas.tslib", "__nat_unpickle"): (
+        "pandas._libs.tslibs.nattype",
+        "__nat_unpickle",
+    ),
+    ("pandas._libs.tslib", "__nat_unpickle"): (
+        "pandas._libs.tslibs.nattype",
+        "__nat_unpickle",
+    ),
     # 15998 top-level dirs moving
-    ('pandas.sparse.array', 'SparseArray'):
-        ('pandas.core.arrays.sparse', 'SparseArray'),
-    ('pandas.sparse.series', 'SparseSeries'):
-        ('pandas.core.sparse.series', 'SparseSeries'),
-    ('pandas.sparse.frame', 'SparseDataFrame'):
-        ('pandas.core.sparse.frame', 'SparseDataFrame'),
-    ('pandas.indexes.base', '_new_Index'):
-        ('pandas.core.indexes.base', '_new_Index'),
-    ('pandas.indexes.base', 'Index'):
-        ('pandas.core.indexes.base', 'Index'),
-    ('pandas.indexes.numeric', 'Int64Index'):
-        ('pandas.core.indexes.numeric', 'Int64Index'),
-    ('pandas.indexes.range', 'RangeIndex'):
-        ('pandas.core.indexes.range', 'RangeIndex'),
-    ('pandas.indexes.multi', 'MultiIndex'):
-        ('pandas.core.indexes.multi', 'MultiIndex'),
-    ('pandas.tseries.index', '_new_DatetimeIndex'):
-        ('pandas.core.indexes.datetimes', '_new_DatetimeIndex'),
-    ('pandas.tseries.index', 'DatetimeIndex'):
-        ('pandas.core.indexes.datetimes', 'DatetimeIndex'),
-    ('pandas.tseries.period', 'PeriodIndex'):
-        ('pandas.core.indexes.period', 'PeriodIndex'),
-
+    ("pandas.sparse.array", "SparseArray"): (
+        "pandas.core.arrays.sparse",
+        "SparseArray",
+    ),
+    ("pandas.sparse.series", "SparseSeries"): (
+        "pandas.core.sparse.series",
+        "SparseSeries",
+    ),
+    ("pandas.sparse.frame", "SparseDataFrame"): (
+        "pandas.core.sparse.frame",
+        "SparseDataFrame",
+    ),
+    ("pandas.indexes.base", "_new_Index"): ("pandas.core.indexes.base", "_new_Index"),
+    ("pandas.indexes.base", "Index"): ("pandas.core.indexes.base", "Index"),
+    ("pandas.indexes.numeric", "Int64Index"): (
+        "pandas.core.indexes.numeric",
+        "Int64Index",
+    ),
+    ("pandas.indexes.range", "RangeIndex"): ("pandas.core.indexes.range", "RangeIndex"),
+    ("pandas.indexes.multi", "MultiIndex"): ("pandas.core.indexes.multi", "MultiIndex"),
+    ("pandas.tseries.index", "_new_DatetimeIndex"): (
+        "pandas.core.indexes.datetimes",
+        "_new_DatetimeIndex",
+    ),
+    ("pandas.tseries.index", "DatetimeIndex"): (
+        "pandas.core.indexes.datetimes",
+        "DatetimeIndex",
+    ),
+    ("pandas.tseries.period", "PeriodIndex"): (
+        "pandas.core.indexes.period",
+        "PeriodIndex",
+    ),
     # 19269, arrays moving
-    ('pandas.core.categorical', 'Categorical'):
-        ('pandas.core.arrays', 'Categorical'),
-
+    ("pandas.core.categorical", "Categorical"): ("pandas.core.arrays", "Categorical"),
     # 19939, add timedeltaindex, float64index compat from 15998 move
-    ('pandas.tseries.tdi', 'TimedeltaIndex'):
-        ('pandas.core.indexes.timedeltas', 'TimedeltaIndex'),
-    ('pandas.indexes.numeric', 'Float64Index'):
-        ('pandas.core.indexes.numeric', 'Float64Index'),
+    ("pandas.tseries.tdi", "TimedeltaIndex"): (
+        "pandas.core.indexes.timedeltas",
+        "TimedeltaIndex",
+    ),
+    ("pandas.indexes.numeric", "Float64Index"): (
+        "pandas.core.indexes.numeric",
+        "Float64Index",
+    ),
 }
 
 
 # our Unpickler sub-class to override methods and some dispatcher
 # functions for compat
 
-class Unpickler(pkl._Unpickler):  # type: ignore
 
+class Unpickler(pkl._Unpickler):  # type: ignore
     def find_class(self, module, name):
         # override superclass
         key = (module, name)

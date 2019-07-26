@@ -24,12 +24,15 @@ from pandas.core.index import Index
 from pandas.core.internals import SingleBlockManager
 import pandas.core.ops as ops
 from pandas.core.series import Series
-from pandas.core.sparse.scipy_sparse import (
-    _coo_to_sparse_series, _sparse_series_to_coo)
+from pandas.core.sparse.scipy_sparse import _coo_to_sparse_series, _sparse_series_to_coo
 
-_shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
-                          axes_single_arg="{0, 'index'}",
-                          optional_labels='', optional_axis='')
+_shared_doc_kwargs = dict(
+    axes="index",
+    klass="SparseSeries",
+    axes_single_arg="{0, 'index'}",
+    optional_labels="",
+    optional_axis="",
+)
 
 
 depr_msg = """\
@@ -70,11 +73,21 @@ class SparseSeries(Series):
     must change values, convert to dense, make your changes, then convert back
     to sparse
     """
-    _subtyp = 'sparse_series'
 
-    def __init__(self, data=None, index=None, sparse_index=None, kind='block',
-                 fill_value=None, name=None, dtype=None, copy=False,
-                 fastpath=False):
+    _subtyp = "sparse_series"
+
+    def __init__(
+        self,
+        data=None,
+        index=None,
+        sparse_index=None,
+        kind="block",
+        fill_value=None,
+        name=None,
+        dtype=None,
+        copy=False,
+        fastpath=False,
+    ):
         warnings.warn(depr_msg, FutureWarning, stacklevel=2)
         # TODO: Most of this should be refactored and shared with Series
         # 1. BlockManager -> array
@@ -101,56 +114,73 @@ class SparseSeries(Series):
         elif is_scalar(data) and index is not None:
             data = np.full(len(index), fill_value=data)
 
+        if isinstance(data, SingleBlockManager):
+            # SparseArray doesn't accept SingleBlockManager
+            index = data.index
+            data = data.blocks[0].values
+
         super().__init__(
-            SparseArray(data,
-                        sparse_index=sparse_index,
-                        kind=kind,
-                        dtype=dtype,
-                        fill_value=fill_value,
-                        copy=copy),
-            index=index, name=name,
-            copy=False, fastpath=fastpath
+            SparseArray(
+                data,
+                sparse_index=sparse_index,
+                kind=kind,
+                dtype=dtype,
+                fill_value=fill_value,
+                copy=copy,
+            ),
+            index=index,
+            name=name,
+            copy=False,
+            fastpath=fastpath,
         )
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         # avoid infinite recursion for other SparseSeries inputs
-        inputs = tuple(
-            x.values if isinstance(x, type(self)) else x
-            for x in inputs
-        )
+        inputs = tuple(x.values if isinstance(x, type(self)) else x for x in inputs)
         result = self.values.__array_ufunc__(ufunc, method, *inputs, **kwargs)
-        return self._constructor(result, index=self.index,
-                                 sparse_index=self.sp_index,
-                                 fill_value=result.fill_value,
-                                 copy=False).__finalize__(self)
+        return self._constructor(
+            result,
+            index=self.index,
+            sparse_index=self.sp_index,
+            fill_value=result.fill_value,
+            copy=False,
+        ).__finalize__(self)
 
     # unary ops
     # TODO: See if this can be shared
     def __pos__(self):
         result = self.values.__pos__()
-        return self._constructor(result, index=self.index,
-                                 sparse_index=self.sp_index,
-                                 fill_value=result.fill_value,
-                                 copy=False).__finalize__(self)
+        return self._constructor(
+            result,
+            index=self.index,
+            sparse_index=self.sp_index,
+            fill_value=result.fill_value,
+            copy=False,
+        ).__finalize__(self)
 
     def __neg__(self):
         result = self.values.__neg__()
-        return self._constructor(result, index=self.index,
-                                 sparse_index=self.sp_index,
-                                 fill_value=result.fill_value,
-                                 copy=False).__finalize__(self)
+        return self._constructor(
+            result,
+            index=self.index,
+            sparse_index=self.sp_index,
+            fill_value=result.fill_value,
+            copy=False,
+        ).__finalize__(self)
 
     def __invert__(self):
         result = self.values.__invert__()
-        return self._constructor(result, index=self.index,
-                                 sparse_index=self.sp_index,
-                                 fill_value=result.fill_value,
-                                 copy=False).__finalize__(self)
+        return self._constructor(
+            result,
+            index=self.index,
+            sparse_index=self.sp_index,
+            fill_value=result.fill_value,
+            copy=False,
+        ).__finalize__(self)
 
     @property
     def block(self):
-        warnings.warn("SparseSeries.block is deprecated.", FutureWarning,
-                      stacklevel=2)
+        warnings.warn("SparseSeries.block is deprecated.", FutureWarning, stacklevel=2)
         return self._data._block
 
     @property
@@ -174,18 +204,29 @@ class SparseSeries(Series):
         return self.values.npoints
 
     @classmethod
-    def from_array(cls, arr, index=None, name=None, copy=False,
-                   fill_value=None, fastpath=False):
+    def from_array(
+        cls, arr, index=None, name=None, copy=False, fill_value=None, fastpath=False
+    ):
         """Construct SparseSeries from array.
 
         .. deprecated:: 0.23.0
             Use the pd.SparseSeries(..) constructor instead.
         """
-        warnings.warn("'from_array' is deprecated and will be removed in a "
-                      "future version. Please use the pd.SparseSeries(..) "
-                      "constructor instead.", FutureWarning, stacklevel=2)
-        return cls(arr, index=index, name=name, copy=copy,
-                   fill_value=fill_value, fastpath=fastpath)
+        warnings.warn(
+            "'from_array' is deprecated and will be removed in a "
+            "future version. Please use the pd.SparseSeries(..) "
+            "constructor instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return cls(
+            arr,
+            index=index,
+            name=name,
+            copy=copy,
+            fill_value=fill_value,
+            fastpath=fastpath,
+        )
 
     @property
     def _constructor(self):
@@ -194,14 +235,15 @@ class SparseSeries(Series):
     @property
     def _constructor_expanddim(self):
         from pandas.core.sparse.api import SparseDataFrame
+
         return SparseDataFrame
 
     @property
     def kind(self):
         if isinstance(self.sp_index, BlockIndex):
-            return 'block'
+            return "block"
         elif isinstance(self.sp_index, IntIndex):
-            return 'integer'
+            return "integer"
 
     def as_sparse_array(self, kind=None, fill_value=None, copy=False):
         """ return my self as a sparse array, do not copy by default """
@@ -210,26 +252,36 @@ class SparseSeries(Series):
             fill_value = self.fill_value
         if kind is None:
             kind = self.kind
-        return SparseArray(self.values, sparse_index=self.sp_index,
-                           fill_value=fill_value, kind=kind, copy=copy)
+        return SparseArray(
+            self.values,
+            sparse_index=self.sp_index,
+            fill_value=fill_value,
+            kind=kind,
+            copy=copy,
+        )
 
     def __repr__(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", "Sparse")
             series_rep = Series.__repr__(self)
-            rep = '{series}\n{index!r}'.format(series=series_rep,
-                                               index=self.sp_index)
+            rep = "{series}\n{index!r}".format(series=series_rep, index=self.sp_index)
             return rep
 
-    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
+    def _reduce(
+        self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
+    ):
         """ perform a reduction operation """
-        return op(self.get_values(), skipna=skipna, **kwds)
+        return op(self.array.to_dense(), skipna=skipna, **kwds)
 
     def __getstate__(self):
         # pickling
-        return dict(_typ=self._typ, _subtyp=self._subtyp, _data=self._data,
-                    fill_value=self.fill_value, name=self.name)
+        return dict(
+            _typ=self._typ,
+            _subtyp=self._subtyp,
+            _data=self._data,
+            fill_value=self.fill_value,
+            name=self.name,
+        )
 
     def _unpickle_series_compat(self, state):
 
@@ -246,8 +298,9 @@ class SparseSeries(Series):
 
         # create a sparse array
         if not isinstance(data, SparseArray):
-            data = SparseArray(data, sparse_index=sp_index,
-                               fill_value=fill_value, copy=False)
+            data = SparseArray(
+                data, sparse_index=sp_index, fill_value=fill_value, copy=False
+            )
 
         # recreate
         data = SingleBlockManager(data, index, fastpath=True)
@@ -258,9 +311,12 @@ class SparseSeries(Series):
 
     def _set_subtyp(self, is_all_dates):
         if is_all_dates:
-            object.__setattr__(self, '_subtyp', 'sparse_time_series')
+            object.__setattr__(self, "_subtyp", "sparse_time_series")
         else:
-            object.__setattr__(self, '_subtyp', 'sparse_series')
+            object.__setattr__(self, "_subtyp", "sparse_series")
+
+    # ----------------------------------------------------------------------
+    # Indexing Methods
 
     def _ixs(self, i, axis=0):
         """
@@ -292,55 +348,9 @@ class SparseSeries(Series):
         else:
             return super().__getitem__(key)
 
-    def _get_values(self, indexer):
-        try:
-            return self._constructor(self._data.get_slice(indexer),
-                                     fastpath=True).__finalize__(self)
-        except Exception:
-            return self[indexer]
-
-    def _set_with_engine(self, key, value):
-        return self._set_value(key, value)
-
-    def abs(self):
-        """
-        Return an object with absolute value taken. Only applicable to objects
-        that are all numeric
-
-        Returns
-        -------
-        abs: same type as caller
-        """
-        return self._constructor(np.abs(self.values),
-                                 index=self.index).__finalize__(self)
-
-    def get(self, label, default=None):
-        """
-        Returns value occupying requested label, default to specified
-        missing value if not present. Analogous to dict.get
-
-        Parameters
-        ----------
-        label : object
-            Label value looking for
-        default : object, optional
-            Value to return if label not in index
-
-        Returns
-        -------
-        y : scalar
-        """
-        if label in self.index:
-            loc = self.index.get_loc(label)
-            return self._get_val_at(loc)
-        else:
-            return default
-
-    def get_value(self, label, takeable=False):
+    def _get_value(self, label, takeable=False):
         """
         Retrieve single value at passed index label
-
-        .. deprecated:: 0.21.0
 
         Please use .at[] or .iat[] accessors.
 
@@ -353,19 +363,21 @@ class SparseSeries(Series):
         -------
         value : scalar value
         """
-        warnings.warn("get_value is deprecated and will be removed "
-                      "in a future release. Please use "
-                      ".at[] or .iat[] accessors instead", FutureWarning,
-                      stacklevel=2)
-
-        return self._get_value(label, takeable=takeable)
-
-    def _get_value(self, label, takeable=False):
         loc = label if takeable is True else self.index.get_loc(label)
         return self._get_val_at(loc)
-    _get_value.__doc__ = get_value.__doc__
 
-    def set_value(self, label, value, takeable=False):
+    def _get_values(self, indexer):
+        try:
+            return self._constructor(
+                self._data.get_slice(indexer), fastpath=True
+            ).__finalize__(self)
+        except Exception:
+            return self[indexer]
+
+    def _set_with_engine(self, key, value):
+        return self._set_value(key, value)
+
+    def _set_value(self, label, value, takeable=False):
         """
         Quickly set single value at passed label. If label is not contained, a
         new object is created with the label placed at the end of the result
@@ -392,13 +404,6 @@ class SparseSeries(Series):
         -------
         series : SparseSeries
         """
-        warnings.warn("set_value is deprecated and will be removed "
-                      "in a future release. Please use "
-                      ".at[] or .iat[] accessors instead", FutureWarning,
-                      stacklevel=2)
-        return self._set_value(label, value, takeable=takeable)
-
-    def _set_value(self, label, value, takeable=False):
         values = self.to_dense()
 
         # if the label doesn't exist, we will create a new object here
@@ -407,11 +412,9 @@ class SparseSeries(Series):
         if new_values is not None:
             values = new_values
         new_index = values.index
-        values = SparseArray(values, fill_value=self.fill_value,
-                             kind=self.kind)
+        values = SparseArray(values, fill_value=self.fill_value, kind=self.kind)
         self._data = SingleBlockManager(values, new_index)
         self._index = new_index
-    _set_value.__doc__ = set_value.__doc__
 
     def _set_values(self, key, value):
 
@@ -424,9 +427,46 @@ class SparseSeries(Series):
 
         values = self.values.to_dense()
         values[key] = libindex.convert_scalar(values, value)
-        values = SparseArray(values, fill_value=self.fill_value,
-                             kind=self.kind)
+        values = SparseArray(values, fill_value=self.fill_value, kind=self.kind)
         self._data = SingleBlockManager(values, self.index)
+
+    # ----------------------------------------------------------------------
+    # Unsorted
+
+    def abs(self):
+        """
+        Return an object with absolute value taken. Only applicable to objects
+        that are all numeric
+
+        Returns
+        -------
+        abs: same type as caller
+        """
+        return self._constructor(np.abs(self.values), index=self.index).__finalize__(
+            self
+        )
+
+    def get(self, label, default=None):
+        """
+        Returns value occupying requested label, default to specified
+        missing value if not present. Analogous to dict.get
+
+        Parameters
+        ----------
+        label : object
+            Label value looking for
+        default : object, optional
+            Value to return if label not in index
+
+        Returns
+        -------
+        y : scalar
+        """
+        if label in self.index:
+            loc = self.index.get_loc(label)
+            return self._get_val_at(loc)
+        else:
+            return default
 
     def to_dense(self):
         """
@@ -436,8 +476,7 @@ class SparseSeries(Series):
         -------
         s : Series
         """
-        return Series(self.values.to_dense(), index=self.index,
-                      name=self.name)
+        return Series(self.values.to_dense(), index=self.index, name=self.name)
 
     @property
     def density(self):
@@ -453,18 +492,21 @@ class SparseSeries(Series):
         new_data = self.values
         if deep:
             new_data = new_data.copy()
-        return self._constructor(new_data, sparse_index=self.sp_index,
-                                 fill_value=self.fill_value,
-                                 index=self.index.copy(),
-                                 name=self.name).__finalize__(self)
+        return self._constructor(
+            new_data,
+            sparse_index=self.sp_index,
+            fill_value=self.fill_value,
+            index=self.index.copy(),
+            name=self.name,
+        ).__finalize__(self)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(generic.NDFrame.reindex.__doc__)
-    def reindex(self, index=None, method=None, copy=True, limit=None,
-                **kwargs):
+    def reindex(self, index=None, method=None, copy=True, limit=None, **kwargs):
         # TODO: remove?
-        return super().reindex(index=index, method=method, copy=copy,
-                               limit=limit, **kwargs)
+        return super().reindex(
+            index=index, method=method, copy=copy, limit=limit, **kwargs
+        )
 
     def sparse_reindex(self, new_index):
         """
@@ -482,10 +524,11 @@ class SparseSeries(Series):
             raise TypeError("new index must be a SparseIndex")
         values = self.values
         values = values.sp_index.to_int_index().reindex(
-            values.sp_values.astype('float64'), values.fill_value, new_index)
-        values = SparseArray(values,
-                             sparse_index=new_index,
-                             fill_value=self.values.fill_value)
+            values.sp_values.astype("float64"), values.fill_value, new_index
+        )
+        values = SparseArray(
+            values, sparse_index=new_index, fill_value=self.values.fill_value
+        )
         return self._constructor(values, index=self.index).__finalize__(self)
 
     def cumsum(self, axis=0, *args, **kwargs):
@@ -512,25 +555,30 @@ class SparseSeries(Series):
         new_array = self.values.cumsum()
 
         return self._constructor(
-            new_array, index=self.index,
-            sparse_index=new_array.sp_index).__finalize__(self)
+            new_array, index=self.index, sparse_index=new_array.sp_index
+        ).__finalize__(self)
 
     # TODO: SparseSeries.isna is Sparse, while Series.isna is dense
-    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
+    @Appender(generic._shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self):
-        arr = SparseArray(isna(self.values.sp_values),
-                          sparse_index=self.values.sp_index,
-                          fill_value=isna(self.fill_value))
+        arr = SparseArray(
+            isna(self.values.sp_values),
+            sparse_index=self.values.sp_index,
+            fill_value=isna(self.fill_value),
+        )
         return self._constructor(arr, index=self.index).__finalize__(self)
 
     isnull = isna
 
-    @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
+    @Appender(generic._shared_docs["notna"] % _shared_doc_kwargs)
     def notna(self):
-        arr = SparseArray(notna(self.values.sp_values),
-                          sparse_index=self.values.sp_index,
-                          fill_value=notna(self.fill_value))
+        arr = SparseArray(
+            notna(self.values.sp_values),
+            sparse_index=self.values.sp_index,
+            fill_value=notna(self.fill_value),
+        )
         return self._constructor(arr, index=self.index).__finalize__(self)
+
     notnull = notna
 
     def dropna(self, axis=0, inplace=False, **kwargs):
@@ -542,8 +590,9 @@ class SparseSeries(Series):
         self._get_axis_number(axis or 0)
         dense_valid = self.to_dense().dropna()
         if inplace:
-            raise NotImplementedError("Cannot perform inplace dropna"
-                                      " operations on a SparseSeries")
+            raise NotImplementedError(
+                "Cannot perform inplace dropna" " operations on a SparseSeries"
+            )
         if isna(self.fill_value):
             return dense_valid
         else:
@@ -570,10 +619,10 @@ class SparseSeries(Series):
         return dense_combined.to_sparse(fill_value=self.fill_value)
 
     @Appender(SparseAccessor.to_coo.__doc__)
-    def to_coo(self, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
-        A, rows, columns = _sparse_series_to_coo(self, row_levels,
-                                                 column_levels,
-                                                 sort_labels=sort_labels)
+    def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels=False):
+        A, rows, columns = _sparse_series_to_coo(
+            self, row_levels, column_levels, sort_labels=sort_labels
+        )
         return A, rows, columns
 
     @classmethod

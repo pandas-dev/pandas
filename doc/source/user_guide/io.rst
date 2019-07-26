@@ -32,6 +32,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
     binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
@@ -86,8 +87,6 @@ delim_whitespace : boolean, default False
   If this option is set to ``True``, nothing should be passed in for the
   ``delimiter`` parameter.
 
-  .. versionadded:: 0.18.1 support for the Python parser.
-
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
 
@@ -108,8 +107,7 @@ header : int or list of ints, default ``'infer'``
   line of data rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
-  explicitly pass ``header=None``. Duplicates in this list will cause
-  a ``UserWarning`` to be issued.
+  explicitly pass ``header=None``. Duplicates in this list are not allowed.
 index_col : int, str, sequence of int / str, or False, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as
   string name or column index. If a sequence of int / str is given, a
@@ -298,7 +296,6 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``
   the ZIP file must contain only one data file to be read in.
   Set to ``None`` for no decompression.
 
-  .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
   .. versionchanged:: 0.24.0 'infer' option added and set to default.
 thousands : str, default ``None``
   Thousands separator.
@@ -340,13 +337,6 @@ dialect : str or :class:`python:csv.Dialect` instance, default ``None``
   `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
   override values, a ParserWarning will be issued. See :class:`python:csv.Dialect`
   documentation for more details.
-tupleize_cols : boolean, default ``False``
-    .. deprecated:: 0.21.0
-
-    This argument will be removed and will always convert to MultiIndex
-
-  Leave a list of tuples on columns as is (default is to convert to a MultiIndex
-  on the columns).
 
 Error handling
 ++++++++++++++
@@ -462,8 +452,6 @@ worth trying.
 
 Specifying categorical dtype
 ''''''''''''''''''''''''''''
-
-.. versionadded:: 0.19.0
 
 ``Categorical`` columns can be parsed directly by specifying ``dtype='category'`` or
 ``dtype=CategoricalDtype(categories, ordered)``.
@@ -1718,8 +1706,6 @@ function takes a number of arguments. Only the first is required.
 * ``escapechar``: Character used to escape ``sep`` and ``quotechar`` when
   appropriate (default None)
 * ``chunksize``: Number of rows to write at a time
-* ``tupleize_cols``: If False (default), write as a list of tuples, otherwise
-  write in an expanded line format suitable for ``read_csv``
 * ``date_format``: Format string for datetime objects
 
 Writing a formatted string
@@ -2186,12 +2172,23 @@ into a flat table.
 
    json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
 
+The max_level parameter provides more control over which level to end normalization.
+With max_level=1 the following snippet normalizes until 1st nesting level of the provided dict.
+
+.. ipython:: python
+
+    data = [{'CreatedBy': {'Name': 'User001'},
+             'Lookup': {'TextField': 'Some text',
+                        'UserField': {'Id': 'ID001',
+                                      'Name': 'Name001'}},
+             'Image': {'a': 'b'}
+             }]
+    json_normalize(data, max_level=1)
+
 .. _io.jsonl:
 
 Line delimited json
 '''''''''''''''''''
-
-.. versionadded:: 0.19.0
 
 pandas is able to read and write line-delimited json files that are common in data processing pipelines
 using Hadoop or Spark.
@@ -2490,15 +2487,11 @@ Specify values that should be converted to NaN:
 
    dfs = pd.read_html(url, na_values=['No Acquirer'])
 
-.. versionadded:: 0.19
-
 Specify whether to keep the default set of NaN values:
 
 .. code-block:: python
 
    dfs = pd.read_html(url, keep_default_na=False)
-
-.. versionadded:: 0.19
 
 Specify converters for columns. This is useful for numerical text data that has
 leading zeros.  By default columns that are numerical are cast to numeric
@@ -2510,8 +2503,6 @@ columns to strings.
    url_mcc = 'https://en.wikipedia.org/wiki/Mobile_country_code'
    dfs = pd.read_html(url_mcc, match='Telekom Albania', header=0,
                       converters={'MNC': str})
-
-.. versionadded:: 0.19
 
 Use some combination of the above:
 
@@ -2788,9 +2779,10 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 Excel files
 -----------
 
-The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``) and
-Excel 2007+ (``.xlsx``) files using the ``xlrd`` Python
-module.  The :meth:`~DataFrame.to_excel` instance method is used for
+The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``)
+files using the ``xlrd`` Python module.  Excel 2007+ (``.xlsx``) files
+can be read using either ``xlrd`` or ``openpyxl``.
+The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
@@ -3226,7 +3218,31 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 * ``float_format`` : Format string for floating point numbers (default ``None``).
 * ``freeze_panes`` : A tuple of two integers representing the bottommost row and rightmost column to freeze. Each of these parameters is one-based, so (1, 1) will freeze the first row and first column (default ``None``).
 
+Using the `Xlsxwriter`_ engine provides many options for controlling the
+format of an Excel worksheet created with the ``to_excel`` method.  Excellent examples can be found in the
+`Xlsxwriter`_ documentation here: https://xlsxwriter.readthedocs.io/working_with_pandas.html
 
+.. _io.ods:
+
+OpenDocument Spreadsheets
+-------------------------
+
+.. versionadded:: 0.25
+
+The :func:`~pandas.read_excel` method can also read OpenDocument spreadsheets
+using the ``odfpy`` module. The semantics and features for reading
+OpenDocument spreadsheets match what can be done for `Excel files`_ using
+``engine='odf'``.
+
+.. code-block:: python
+
+   # Returns a DataFrame
+   pd.read_excel('path_to_file.ods', engine='odf')
+
+.. note::
+
+   Currently pandas only supports *reading* OpenDocument spreadsheets. Writing
+   is not implemented.
 
 .. _io.clipboard:
 
@@ -3393,15 +3409,15 @@ both on the writing (serialization), and reading (deserialization).
 
 .. warning::
 
-   This is a very new feature of pandas. We intend to provide certain
-   optimizations in the io of the ``msgpack`` data. Since this is marked
-   as an EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
+   The msgpack format is deprecated as of 0.25 and will be removed in a future version.
+   It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
 
 .. warning::
 
    :func:`read_msgpack` is only guaranteed backwards compatible back to pandas version 0.20.3
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame(np.random.rand(5, 2), columns=list('AB'))
    df.to_msgpack('foo.msg')
@@ -3411,6 +3427,7 @@ both on the writing (serialization), and reading (deserialization).
 You can pass a list of objects and you will receive them back on deserialization.
 
 .. ipython:: python
+   :okwarning:
 
    pd.to_msgpack('foo.msg', df, 'foo', np.array([1, 2, 3]), s)
    pd.read_msgpack('foo.msg')
@@ -3418,6 +3435,7 @@ You can pass a list of objects and you will receive them back on deserialization
 You can pass ``iterator=True`` to iterate over the unpacked results:
 
 .. ipython:: python
+   :okwarning:
 
    for o in pd.read_msgpack('foo.msg', iterator=True):
        print(o)
@@ -3425,6 +3443,7 @@ You can pass ``iterator=True`` to iterate over the unpacked results:
 You can pass ``append=True`` to the writer to append to an existing pack:
 
 .. ipython:: python
+   :okwarning:
 
    df.to_msgpack('foo.msg', append=True)
    pd.read_msgpack('foo.msg')
@@ -3435,6 +3454,7 @@ can pack arbitrary collections of Python lists, dicts, scalars, while intermixin
 pandas objects.
 
 .. ipython:: python
+   :okwarning:
 
    pd.to_msgpack('foo2.msg', {'dict': [{'df': df}, {'string': 'foo'},
                                        {'scalar': 1.}, {'s': s}]})
@@ -3453,14 +3473,16 @@ Read/write API
 Msgpacks can also be read from and written to strings.
 
 .. ipython:: python
+   :okwarning:
 
    df.to_msgpack()
 
 Furthermore you can concatenate the strings to produce a list of the original objects.
 
 .. ipython:: python
+   :okwarning:
 
-  pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
+   pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
 
 .. _io.hdf5:
 
@@ -3758,7 +3780,7 @@ defaults to `nan`.
     store.append('df_mixed', df_mixed, min_itemsize={'values': 50})
     df_mixed1 = store.select('df_mixed')
     df_mixed1
-    df_mixed1.get_dtype_counts()
+    df_mixed1.dtypes.value_counts()
 
     # we have provided a minimum string column size
     store.root.df_mixed.table

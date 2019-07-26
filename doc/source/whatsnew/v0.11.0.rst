@@ -296,7 +296,7 @@ Furthermore ``datetime64[ns]`` columns are created by default, when passed datet
    df
 
    # datetime64[ns] out of the box
-   df.get_dtype_counts()
+   df.dtypes.value_counts()
 
    # use the traditional nan, which is mapped to NaT internally
    df.loc[df.index[2:4], ['A', 'timestamp']] = np.nan
@@ -377,15 +377,31 @@ Enhancements
 
   - ``Squeeze`` to possibly remove length 1 dimensions from an object.
 
-    .. ipython:: python
-       :okwarning:
+    .. code-block:: python
 
-       p = pd.Panel(np.random.randn(3, 4, 4), items=['ItemA', 'ItemB', 'ItemC'],
-                    major_axis=pd.date_range('20010102', periods=4),
-                    minor_axis=['A', 'B', 'C', 'D'])
-       p
-       p.reindex(items=['ItemA']).squeeze()
-       p.reindex(items=['ItemA'], minor=['B']).squeeze()
+       >>> p = pd.Panel(np.random.randn(3, 4, 4), items=['ItemA', 'ItemB', 'ItemC'],
+       ...              major_axis=pd.date_range('20010102', periods=4),
+       ...              minor_axis=['A', 'B', 'C', 'D'])
+       >>> p
+       <class 'pandas.core.panel.Panel'>
+       Dimensions: 3 (items) x 4 (major_axis) x 4 (minor_axis)
+       Items axis: ItemA to ItemC
+       Major_axis axis: 2001-01-02 00:00:00 to 2001-01-05 00:00:00
+       Minor_axis axis: A to D
+
+       >>> p.reindex(items=['ItemA']).squeeze()
+                          A         B         C         D
+       2001-01-02  0.926089 -2.026458  0.501277 -0.204683
+       2001-01-03 -0.076524  1.081161  1.141361  0.479243
+       2001-01-04  0.641817 -0.185352  1.824568  0.809152
+       2001-01-05  0.575237  0.669934  1.398014 -0.399338
+
+       >>> p.reindex(items=['ItemA'], minor=['B']).squeeze()
+       2001-01-02   -2.026458
+       2001-01-03    1.081161
+       2001-01-04   -0.185352
+       2001-01-05    0.669934
+       Freq: D, Name: B, dtype: float64
 
   - In ``pd.io.data.Options``,
 

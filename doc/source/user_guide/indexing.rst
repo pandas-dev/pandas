@@ -36,10 +36,6 @@ this area.
    should be avoided. See :ref:`Returning a View versus Copy
    <indexing.view_versus_copy>`.
 
-.. warning::
-
-   Indexing on an integer-based Index with floats has been clarified in 0.18.0, for a summary of the changes, see :ref:`here <whatsnew_0180.float_indexers>`.
-
 See the :ref:`MultiIndex / Advanced Indexing <advanced>` for ``MultiIndex`` and more advanced indexing documentation.
 
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies.
@@ -61,13 +57,11 @@ of multi-axis indexing.
     * A list or array of labels ``['a', 'b', 'c']``.
     * A slice object with labels ``'a':'f'`` (Note that contrary to usual python
       slices, **both** the start and the stop are included, when present in the
-      index! See :ref:`Slicing with labels
-      <indexing.slicing_with_labels>`.).
+      index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
+      and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
     * A boolean array
     * A ``callable`` function with one argument (the calling Series or DataFrame) and
       that returns valid output for indexing (one of the above).
-
-      .. versionadded:: 0.18.1
 
   See more at :ref:`Selection by Label <indexing.label>`.
 
@@ -84,8 +78,6 @@ of multi-axis indexing.
     * A boolean array.
     * A ``callable`` function with one argument (the calling Series or DataFrame) and
       that returns valid output for indexing (one of the above).
-
-      .. versionadded:: 0.18.1
 
   See more at :ref:`Selection by Position <indexing.integer>`,
   :ref:`Advanced Indexing <advanced>` and :ref:`Advanced
@@ -335,8 +327,7 @@ The ``.loc`` attribute is the primary access method. The following are valid inp
 * A list or array of labels ``['a', 'b', 'c']``.
 * A slice object with labels ``'a':'f'`` (Note that contrary to usual python
   slices, **both** the start and the stop are included, when present in the
-  index! See :ref:`Slicing with labels
-  <indexing.slicing_with_labels>`.).
+  index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`.
 * A boolean array.
 * A ``callable``, see :ref:`Selection By Callable <indexing.callable>`.
 
@@ -417,6 +408,9 @@ However, if at least one of the two is absent *and* the index is not sorted, an
 error will be raised (since doing otherwise would be computationally expensive,
 as well as potentially ambiguous for mixed type indexes). For instance, in the
 above example, ``s.loc[1:6]`` would raise ``KeyError``.
+
+For the rationale behind this behavior, see
+:ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.
 
 .. _indexing.integer:
 
@@ -535,8 +529,6 @@ A list of indexers where any element is out of bounds will raise an
 
 Selection by callable
 ---------------------
-
-.. versionadded:: 0.18.1
 
 ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer.
 The ``callable`` must be a function with one argument (the calling Series or DataFrame) that returns valid output for indexing.
@@ -1103,9 +1095,7 @@ This is equivalent to (but faster than) the following.
    df2 = df.copy()
    df.apply(lambda x, y: x.where(x > 0, y), y=df['A'])
 
-.. versionadded:: 0.18.1
-
-Where can accept a callable as condition and ``other`` arguments. The function must
+``where`` can accept a callable as condition and ``other`` arguments. The function must
 be with one argument (the calling Series or DataFrame) and that returns valid output
 as condition and ``other`` argument.
 

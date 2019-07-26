@@ -829,6 +829,7 @@ Experimental
      Since this is an EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
 
   .. ipython:: python
+     :okwarning:
 
      df = pd.DataFrame(np.random.rand(5, 2), columns=list('AB'))
      df.to_msgpack('foo.msg')
@@ -841,6 +842,7 @@ Experimental
   You can pass ``iterator=True`` to iterator over the unpacked results
 
   .. ipython:: python
+     :okwarning:
 
      for o in pd.read_msgpack('foo.msg', iterator=True):
          print(o)
