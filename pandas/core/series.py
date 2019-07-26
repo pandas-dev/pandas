@@ -1217,6 +1217,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
+        cacher_needs_updating = self._check_is_chained_assignment_possible()
 
         def setitem(key, value):
             try:
@@ -1256,7 +1257,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._set_with(key, value)
 
         # do the setitem
-        cacher_needs_updating = self._check_is_chained_assignment_possible()
         setitem(key, value)
         if cacher_needs_updating:
             self._maybe_update_cacher()
@@ -1303,6 +1303,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if isinstance(key, Index):
                 key_type = key.inferred_type
+                key = key._values
             else:
                 key_type = lib.infer_dtype(key, skipna=False)
 
@@ -1317,10 +1318,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 self._set_labels(key, value)
 
     def _set_labels(self, key, value):
-        if isinstance(key, Index):
-            key = key.values
-        else:
-            key = com.asarray_tuplesafe(key)
+        key = com.asarray_tuplesafe(key)
         indexer = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
