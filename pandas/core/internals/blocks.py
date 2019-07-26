@@ -868,7 +868,6 @@ class Block(PandasObject):
         if self._can_hold_element(value):
             value = self._try_coerce_args(value)
 
-            values = self._coerce_values(values)
             # can keep its own dtype
             if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
                 dtype = self.dtype
