@@ -579,14 +579,14 @@ class NDFrameGroupBy(GroupBy):
             if not (func in base.groupby_transform_whitelist):
                 msg = (
                     "`g.transform('func')` is used exclusively for "
-                    "computing aggregations and broadcasting the results across groups. "
+                    "computing aggregations and broadcasting "
+                    "the results across groups. "
                     "'{func}' is not a valid aggregation name. "
                 )
 
                 if func in base.transformation_kernels | base.groupby_other_methods:
-                    msg += "Perhaps you should try <your grouper>.{func}() instead?".format(
-                        func=func
-                    )
+                    msg += "Perhaps you should try <your grouper>.{func}() instead?"
+                    msg = msg.format(func=func)
                 raise ValueError(msg.format(func=func))
             if func in base.cythonized_kernels:
                 # cythonized transformation or canned "reduction+broadcast"
@@ -1030,14 +1030,14 @@ class SeriesGroupBy(GroupBy):
             if not (func in base.groupby_transform_whitelist):
                 msg = (
                     "`g.transform('func')` is used exclusively for "
-                    "computing aggregations and broadcasting the results across groups. "
+                    "computing aggregations and broadcasting "
+                    "the results across groups. "
                     "'{func}' is not a valid aggregation name. "
                 )
 
                 if func in base.transformation_kernels | base.groupby_other_methods:
-                    msg += "Perhaps you should try <your grouper>.{func}() instead?".format(
-                        func=func
-                    )
+                    msg += "Perhaps you should try <your grouper>.{func}() instead?"
+                    msg = msg.format(func=func)
                 raise ValueError(msg.format(func=func))
             if func in base.cythonized_kernels:
                 # cythonized transform or canned "agg+broadcast"
