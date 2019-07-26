@@ -1003,6 +1003,55 @@ def test_ffill_not_in_axis(func, key, val):
     assert_frame_equal(result, expected)
 
 
+def test_transform_invalid_name_raises():
+    # GH#27486
+    df = DataFrame(dict(a=[0, 1, 1, 2]))
+    g = df.groupby(["a", "b", "b", "c"])
+    with pytest.raises(ValueError, match="not a valid function name"):
+        g.transform("some_arbitrary_name")
+
+    # method exists on the object, but is not a valid transformation/agg
+    assert hasattr(g, "aggregate")  # make sure the method exists
+    with pytest.raises(ValueError, match="not a valid function name"):
+        g.transform("aggregate")
+
+    # Test SeriesGroupBy
+    g = df["a"].groupby(["a", "b", "b", "c"])
+    with pytest.raises(ValueError, match="not a valid function name"):
+        g.transform("some_arbitrary_name")
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        DataFrame(
+            dict(a=[0, 0, 0, 1, 1, 1], b=range(6)), index=["A", "B", "C", "D", "E", "F"]
+        ),
+        Series([0, 0, 0, 1, 1, 1], index=["A", "B", "C", "D", "E", "F"]),
+    ],
+)
+def test_transform_agg_by_name(reduction_func, obj):
+    func = reduction_func
+    g = obj.groupby(np.repeat([0, 1], 3))
+
+    if func == "ngroup":  # GH#27468
+        pytest.xfail("TODO: g.transform('ngroup') doesn't work")
+    if func == "size":  # GH#27469
+        pytest.xfail("TODO: g.transform('size') doesn't work")
+
+    args = {"nth": [0], "quantile": [0.5]}.get(func, [])
+
+    result = g.transform(func, *args)
+
+    # this is the *definition* of a transformation
+    tm.assert_index_equal(result.index, obj.index)
+    if hasattr(obj, "columns"):
+        tm.assert_index_equal(result.columns, obj.columns)
+
+    # verify that values were broadcasted across each group
+    assert len(set(DataFrame(result).iloc[-3:, -1])) == 1
+
+
 def test_transform_lambda_with_datetimetz():
     # GH 27496
     df = DataFrame(

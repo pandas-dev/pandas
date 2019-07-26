@@ -644,7 +644,9 @@ class Block(PandasObject):
                 if isinstance(values, np.ndarray):
                     values = values.reshape(self.shape)
 
-            except Exception:  # noqa: E722
+            except Exception:
+                # e.g. astype_nansafe can fail on object-dtype of strings
+                #  trying to convert to float
                 if errors == "raise":
                     raise
                 newb = self.copy() if copy else self
@@ -739,6 +741,13 @@ class Block(PandasObject):
                     type(self).__name__.lower().replace("Block", ""),
                 )
             )
+        if np.any(isna(other)) and not self._can_hold_na:
+            raise TypeError(
+                "cannot convert {} to an {}".format(
+                    type(other).__name__,
+                    type(self).__name__.lower().replace("Block", ""),
+                )
+            )
 
         return other
 
@@ -787,16 +796,15 @@ class Block(PandasObject):
         inplace = validate_bool_kwarg(inplace, "inplace")
         original_to_replace = to_replace
 
-        # try to replace, if we raise an error, convert to ObjectBlock and
+        # If we cannot replace with own dtype, convert to ObjectBlock and
         # retry
-        values = self._coerce_values(self.values)
-        try:
-            to_replace = self._try_coerce_args(to_replace)
-        except (TypeError, ValueError):
+        if not self._can_hold_element(to_replace):
+            # TODO: we should be able to infer at this point that there is
+            #  nothing to replace
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
             if is_object_dtype(self):
-                raise
+                raise AssertionError
 
             # try again with a compatible block
             block = self.astype(object)
@@ -808,6 +816,9 @@ class Block(PandasObject):
                 regex=regex,
                 convert=convert,
             )
+
+        values = self._coerce_values(self.values)
+        to_replace = self._try_coerce_args(to_replace)
 
         mask = missing.mask_missing(values, to_replace)
         if filter is not None:
@@ -868,9 +879,17 @@ class Block(PandasObject):
 
         # coerce if block dtype can store value
         values = self.values
-        try:
+        if self._can_hold_element(value):
             value = self._try_coerce_args(value)
-        except (TypeError, ValueError):
+
+            values = self._coerce_values(values)
+            # can keep its own dtype
+            if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
+                dtype = self.dtype
+            else:
+                dtype = "infer"
+
+        else:
             # current dtype cannot store value, coerce to common dtype
             find_dtype = False
 
@@ -893,13 +912,6 @@ class Block(PandasObject):
                 if not is_dtype_equal(self.dtype, dtype):
                     b = self.astype(dtype)
                     return b.setitem(indexer, value)
-        else:
-            values = self._coerce_values(values)
-            # can keep its own dtype
-            if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
-                dtype = self.dtype
-            else:
-                dtype = "infer"
 
         # value must be storeable at this moment
         arr_value = np.array(value)
@@ -929,7 +941,7 @@ class Block(PandasObject):
         elif (
             len(arr_value.shape)
             and arr_value.shape[0] == values.shape[0]
-            and np.prod(arr_value.shape) == np.prod(values.shape)
+            and arr_value.size == values.size
         ):
             values[indexer] = value
             try:
@@ -1125,9 +1137,7 @@ class Block(PandasObject):
         try:
             return self.astype(dtype)
         except (ValueError, TypeError, OverflowError):
-            pass
-
-        return self.astype(object)
+            return self.astype(object)
 
     def interpolate(
         self,
@@ -1405,7 +1415,14 @@ class Block(PandasObject):
 
         # our where function
         def func(cond, values, other):
-            other = self._try_coerce_args(other)
+
+            if not (
+                (self.is_integer or self.is_bool)
+                and lib.is_scalar(other)
+                and np.isnan(other)
+            ):
+                # np.where will cast integer array to floats in this case
+                other = self._try_coerce_args(other)
 
             try:
                 fastres = expressions.where(cond, values, other)

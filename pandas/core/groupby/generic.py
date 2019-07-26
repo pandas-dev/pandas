@@ -573,13 +573,19 @@ class NDFrameGroupBy(GroupBy):
     def transform(self, func, *args, **kwargs):
 
         # optimized transforms
-        func = self._is_cython_func(func) or func
+        func = self._get_cython_func(func) or func
+
         if isinstance(func, str):
-            if func in base.cython_transforms:
-                # cythonized transform
+            if not (func in base.transform_kernel_whitelist):
+                msg = "'{func}' is not a valid function name for transform(name)"
+                raise ValueError(msg.format(func=func))
+            if func in base.cythonized_kernels:
+                # cythonized transformation or canned "reduction+broadcast"
                 return getattr(self, func)(*args, **kwargs)
             else:
-                # cythonized aggregation and merge
+                # If func is a reduction, we need to broadcast the
+                # result to the whole group. Compute func result
+                # and deal with possible broadcasting below.
                 result = getattr(self, func)(*args, **kwargs)
         else:
             return self._transform_general(func, *args, **kwargs)
@@ -590,7 +596,7 @@ class NDFrameGroupBy(GroupBy):
 
         obj = self._obj_with_exclusions
 
-        # nuiscance columns
+        # nuisance columns
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)
 
@@ -853,7 +859,7 @@ class SeriesGroupBy(GroupBy):
             if relabeling:
                 ret.columns = columns
         else:
-            cyfunc = self._is_cython_func(func_or_funcs)
+            cyfunc = self._get_cython_func(func_or_funcs)
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
@@ -1005,15 +1011,19 @@ class SeriesGroupBy(GroupBy):
     @Substitution(klass="Series", selected="A.")
     @Appender(_transform_template)
     def transform(self, func, *args, **kwargs):
-        func = self._is_cython_func(func) or func
+        func = self._get_cython_func(func) or func
 
-        # if string function
         if isinstance(func, str):
-            if func in base.cython_transforms:
-                # cythonized transform
+            if not (func in base.transform_kernel_whitelist):
+                msg = "'{func}' is not a valid function name for transform(name)"
+                raise ValueError(msg.format(func=func))
+            if func in base.cythonized_kernels:
+                # cythonized transform or canned "agg+broadcast"
                 return getattr(self, func)(*args, **kwargs)
             else:
-                # cythonized aggregation and merge
+                # If func is a reduction, we need to broadcast the
+                # result to the whole group. Compute func result
+                # and deal with possible broadcasting below.
                 return self._transform_fast(
                     lambda: getattr(self, func)(*args, **kwargs), func
                 )
