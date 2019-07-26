@@ -644,7 +644,9 @@ class Block(PandasObject):
                 if isinstance(values, np.ndarray):
                     values = values.reshape(self.shape)
 
-            except Exception:  # noqa: E722
+            except Exception:
+                # e.g. astype_nansafe can fail on object-dtype of strings
+                #  trying to convert to float
                 if errors == "raise":
                     raise
                 newb = self.copy() if copy else self
@@ -863,9 +865,17 @@ class Block(PandasObject):
 
         # coerce if block dtype can store value
         values = self.values
-        try:
+        if self._can_hold_element(value):
             value = self._try_coerce_args(value)
-        except (TypeError, ValueError):
+
+            values = self._coerce_values(values)
+            # can keep its own dtype
+            if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
+                dtype = self.dtype
+            else:
+                dtype = "infer"
+
+        else:
             # current dtype cannot store value, coerce to common dtype
             find_dtype = False
 
@@ -888,12 +898,6 @@ class Block(PandasObject):
                 if not is_dtype_equal(self.dtype, dtype):
                     b = self.astype(dtype)
                     return b.setitem(indexer, value)
-        else:
-            # can keep its own dtype
-            if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
-                dtype = self.dtype
-            else:
-                dtype = "infer"
 
         # value must be storeable at this moment
         arr_value = np.array(value)
@@ -923,7 +927,7 @@ class Block(PandasObject):
         elif (
             len(arr_value.shape)
             and arr_value.shape[0] == values.shape[0]
-            and np.prod(arr_value.shape) == np.prod(values.shape)
+            and arr_value.size == values.size
         ):
             values[indexer] = value
             try:
@@ -1119,9 +1123,7 @@ class Block(PandasObject):
         try:
             return self.astype(dtype)
         except (ValueError, TypeError, OverflowError):
-            pass
-
-        return self.astype(object)
+            return self.astype(object)
 
     def interpolate(
         self,

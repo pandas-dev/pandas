@@ -112,7 +112,7 @@ def remove_na(arr):
     """
 
     warnings.warn(
-        "remove_na is deprecated and is a private " "function. Do not use.",
+        "remove_na is deprecated and is a private function. Do not use.",
         FutureWarning,
         stacklevel=2,
     )
@@ -127,7 +127,7 @@ def _coerce_method(converter):
     def wrapper(self):
         if len(self) == 1:
             return converter(self.iloc[0])
-        raise TypeError("cannot convert the series to " "{0}".format(str(converter)))
+        raise TypeError("cannot convert the series to {0}".format(str(converter)))
 
     wrapper.__name__ = "__{name}__".format(name=converter.__name__)
     return wrapper
@@ -226,7 +226,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if isinstance(data, MultiIndex):
                 raise NotImplementedError(
-                    "initializing a Series from a " "MultiIndex is not supported"
+                    "initializing a Series from a MultiIndex is not supported"
                 )
             elif isinstance(data, Index):
                 if name is None:
@@ -275,7 +275,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 pass
             elif isinstance(data, (set, frozenset)):
                 raise TypeError(
-                    "{0!r} type is unordered" "".format(data.__class__.__name__)
+                    "{0!r} type is unordered".format(data.__class__.__name__)
                 )
             elif isinstance(data, ABCSparseArray):
                 # handle sparse passed here (and force conversion)
@@ -604,7 +604,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         *this is an internal non-public method*
         """
         warnings.warn(
-            "'asobject' is deprecated. Use 'astype(object)'" " instead",
+            "'asobject' is deprecated. Use 'astype(object)' instead",
             FutureWarning,
             stacklevel=2,
         )
@@ -710,7 +710,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         numpy.ndarray.put
         """
         warnings.warn(
-            "`put` has been deprecated and will be removed in a" "future version.",
+            "`put` has been deprecated and will be removed in a future version.",
             FutureWarning,
             stacklevel=2,
         )
@@ -955,7 +955,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         .. deprecated 0.25.0
         """
         warnings.warn(
-            "`real` has be deprecated and will be removed in a " "future verison",
+            "`real` has be deprecated and will be removed in a future version",
             FutureWarning,
             stacklevel=2,
         )
@@ -973,7 +973,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         .. deprecated 0.25.0
         """
         warnings.warn(
-            "`imag` has be deprecated and will be removed in a " "future verison",
+            "`imag` has be deprecated and will be removed in a future version",
             FutureWarning,
             stacklevel=2,
         )
@@ -1077,7 +1077,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             return values[i]
 
-    def _slice(self, slobj, axis=0, kind=None):
+    def _slice(self, slobj: slice, axis: int = 0, kind=None):
         slobj = self.index._convert_slice_indexer(slobj, kind=kind or "getitem")
         return self._get_values(slobj)
 
@@ -1561,7 +1561,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 ).__finalize__(self)
         elif inplace:
             raise TypeError(
-                "Cannot reset_index inplace on a Series " "to create a DataFrame"
+                "Cannot reset_index inplace on a Series to create a DataFrame"
             )
         else:
             df = self.to_frame(name)
@@ -1813,7 +1813,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
 
         warnings.warn(
-            "Series.to_sparse is deprecated and will be removed " "in a future version",
+            "Series.to_sparse is deprecated and will be removed in a future version",
             FutureWarning,
             stacklevel=2,
         )
@@ -4055,7 +4055,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif isinstance(delegate, np.ndarray):
             if numeric_only:
                 raise NotImplementedError(
-                    "Series.{0} does not implement " "numeric_only.".format(name)
+                    "Series.{0} does not implement numeric_only.".format(name)
                 )
             with np.errstate(all="ignore"):
                 return op(delegate, skipna=skipna, **kwds)
