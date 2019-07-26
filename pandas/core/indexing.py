@@ -12,6 +12,7 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_float,
+    is_hashable,
     is_integer,
     is_integer_dtype,
     is_iterator,
@@ -197,6 +198,19 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
+            if (
+                self.name == "loc"
+                and len(key) > 1
+                and is_list_like_indexer(key[1])
+                and not isinstance(key[1], tuple)
+                and not com.is_bool_indexer(key[1])
+                and all(is_hashable(k) for k in key[1])
+            ):
+                for k in key[1]:
+                    try:
+                        self.obj[k]
+                    except KeyError:
+                        self.obj[k] = np.nan
         else:
             key = com.apply_if_callable(key, self.obj)
         indexer = self._get_setitem_indexer(key)

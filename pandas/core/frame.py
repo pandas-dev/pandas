@@ -3007,6 +3007,12 @@ class DataFrame(NDFrame):
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
+                if all(is_hashable(k) for k in key):
+                    for k in key:
+                        try:
+                            self[k]
+                        except KeyError:
+                            self[k] = np.nan
                 indexer = self.loc._get_listlike_indexer(
                     key, axis=1, raise_missing=False
                 )[1]
