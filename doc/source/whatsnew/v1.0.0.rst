@@ -39,8 +39,59 @@ Backwards incompatible API changes
 
 .. _whatsnew_1000.api.other:
 
-- :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
--
+Groupby.transform(name) accepts only aggregation names
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrameGroupBy.transform` and :meth:`SeriesGroupBy.transform` are used to either invoked
+a callable, or to convert an aggregation into a transformation by replicating the resulting aggregation
+value for each across the whole group.  In previous releases, these methods did not
+validate that the function name passed was actually the name of an aggregation. As a result,
+users might get a cryptic error or worse, erroneous results. Starting with this release, passing
+either of these method the name of anything except a known aggregation function name will raise
+an exception. There is no change in the behavior associated with passing a callable.
+
+Users who relied on :meth:`DataFrameGroupBy.transform` or :meth:`SeriesGroupBy.transform`
+for transformations such as :meth:`DataFrameGroupBy.rank`, :meth:`DataFrameGroupBy.ffill`,
+etc, should instead call these method directly
+(:issue:`27597`) (:issue:`14274`) (:issue:`19354`) (:issue:`22509`).
+
+.. ipython:: python
+
+    df = pd.DataFrame([0,1,100,99])
+    labels = [0,0,1,1]
+    g = df.groupby(labels)
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [1]: g.transform('ers >= Decepticons')
+    AttributeError: 'DataFrameGroupBy' object has no attribute 'ers >= Decepticons'
+
+    g.transform('rank')
+    Out[14]:
+         0
+    0  1.0
+    1  1.0
+    2  2.0
+    3  2.0
+
+    g.rank()
+    Out[15]:
+         0
+    0  1.0
+    1  2.0
+    2  2.0
+    3  1.0
+
+*New behavior*:
+
+.. ipython:: python
+   :okexcept:
+
+   g.transform('ers >= Decepticons')
+   g.transform('rank')
+
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
@@ -78,7 +129,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
-- Previously, when :class:`pandas.core.groupby.GroupBy.transform` was passed the name of a transformation (e.g. `rank`, `ffill`, etc) it broadcast the results resulting in erroneous values. Only reduction results and not the results of transformations. The return value in these cases is the same as calling the named function directly (e.g. `g.rank()`) (:issue:`14274`) (:issue:`19354`) (:issue:`22509`).
+-
 
 Categorical
 ^^^^^^^^^^^
