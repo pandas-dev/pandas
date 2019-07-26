@@ -1577,6 +1577,23 @@ void NpyArr_freeLabels(char **labels, npy_intp len) {
     }
 }
 
+/*
+ * Function: NpyArr_encodeLabels
+ * -----------------------------
+ *
+ * Builds an array of "encoded" labels.
+ *
+ * labels: PyArrayObject pointer for labels to be "encoded"
+ * num : number of labels
+ *
+ * "encode" is quoted above because we aren't really doing encoding
+ * For historical reasons this function would actually encode the entire
+ * array into a separate buffer with a separate call to JSON_Encode
+ * and would leave it to complex pointer manipulation from there to
+ * unpack values as needed. To make things simpler and more idiomatic
+ * this has instead just stringified any input save for datetime values,
+ * which may need to be represented in various formats.
+ */
 char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
                            npy_intp num) {
     // NOTE this function steals a reference to labels.
