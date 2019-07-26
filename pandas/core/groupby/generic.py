@@ -148,8 +148,10 @@ class NDFrameGroupBy(GroupBy):
         new_blocks = []
         new_items = []
         deleted_items = []
+        no_result = object()
         for block in data.blocks:
-
+            # Avoid inheriting result from earlier in the loop
+            result = no_result
             locs = block.mgr_locs.as_array
             try:
                 result, _ = self.grouper.aggregate(
@@ -174,15 +176,15 @@ class NDFrameGroupBy(GroupBy):
                 except TypeError:
                     # we may have an exception in trying to aggregate
                     # continue and exclude the block
-                    pass
-
+                    deleted_items.append(locs)
+                    continue
             finally:
+                if result is not no_result:
+                    dtype = block.values.dtype
 
-                dtype = block.values.dtype
-
-                # see if we can cast the block back to the original dtype
-                result = block._try_coerce_and_cast_result(result, dtype=dtype)
-                newb = block.make_block(result)
+                    # see if we can cast the block back to the original dtype
+                    result = block._try_coerce_and_cast_result(result, dtype=dtype)
+                    newb = block.make_block(result)
 
             new_items.append(locs)
             new_blocks.append(newb)
