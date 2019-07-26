@@ -569,7 +569,7 @@ without using a temporary variable.
 Selection by regular expression
 -------------------------------
 
-.. versionadded:: 0.25.0
+.. versionadded:: 1.0
 
 it is possible to call :attr:`~DataFrame.loc` with parameter ``regex=True`` to select by
 row/columns axis labels that match a regular expression pattern.

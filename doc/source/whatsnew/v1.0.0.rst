@@ -21,7 +21,7 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_0250.enhancements.loc_regex:
+.. _whatsnew_1000.enhancements.loc_regex:
 
 Selection using regular expressions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

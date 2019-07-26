@@ -26,6 +26,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
+from pandas._typing import FrameOrSeries
 import pandas.core.common as com
 from pandas.core.index import Index, InvalidIndexError, MultiIndex
 from pandas.core.indexers import is_list_like_indexer, length_of_indexer
@@ -940,14 +941,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # slice returns a new object.
                 if com.is_null_slice(new_key):
                     return section
-
-                return self._getitem_lower_section(section, new_key)
+                # This is an elided recursive call to iloc/loc/etc'
+                return getattr(section, self.name)[new_key]
 
         raise IndexingError("not applicable")
-
-    def _getitem_lower_section(self, section, key):
-        # This is an elided recursive call to iloc/loc/etc'
-        return getattr(section, self.name)[key]
 
     def _getitem_nested_tuple(self, tup: Tuple):
         # we have a nested tuple so have at least 1 multi-index level
@@ -1187,7 +1184,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             )
 
             if not (ax.is_categorical() or ax.is_interval()):
-                warnings.warn(_missing_key_warning, FutureWarning, stacklevel=6)
+                warnings.warn(_missing_key_warning, FutureWarning, stacklevel=7)
 
     def _convert_to_indexer(
         self, obj, axis: int, is_setter: bool = False, raise_missing: bool = False
@@ -1472,10 +1469,10 @@ class _LocIndexer(_LocationIndexer):
     - A ``callable`` function with one argument (the calling Series or
       DataFrame) and that returns valid output for indexing (one of the above)
 
-    ``.loc`` can be called before selecting using parameters:
+    ``.loc`` can be called before selecting using these parameters:
 
     - ``axis``, to select by a single axis on a DataFrame, e.g. ``.loc(axis=1)['a']``.
-    - ``regex``, to let strings be interpreted as regex patterns, e.g.
+    - ``regex``, to let single strings be interpreted as regex patterns, e.g.
       ``.loc(regex=True)[:, '^col_']``
 
     See more at :ref:`Selection by Label <indexing.label>`
@@ -1723,6 +1720,11 @@ class _LocIndexer(_LocationIndexer):
             new_self.regex = regex
         return new_self
 
+    def __getitem__(self, key):
+        if self.regex:
+            return self._getitem_regex(key)
+        return super().__getitem__(key)
+
     @Appender(_NDFrameIndexer._validate_key.__doc__)
     def _validate_key(self, key, axis: int):
 
@@ -1789,25 +1791,35 @@ class _LocIndexer(_LocationIndexer):
 
         return key
 
-    def _get_regex_mappings(self, key, axis=None):
-
-        if axis is None:
-            axis = self.axis or 0
-
-        labels = self.obj._get_axis(axis)
-
-        matcher = re.compile(key)
-
-        def f(x):
-            return matcher.search(x) is not None
-
-        return labels.map(f)
-
     def _getitem_regex(self, key, axis=None):
         """Subset obj by regex-searching axis for key."""
-        mapped = self._get_regex_mappings(key, axis)
+        if isinstance(key, str):
+            if axis is None:
+                axis = self.axis or 0
+            return self._get_regex_axis(self.obj, pattern=key, axis=axis)
+        elif isinstance(key, tuple):
+            assert len(key) == 2
+            result = self.obj  # type: ABCDataFrame
+            # slicing columns first, then index is typically faster
+            for ax, sub_key in zip([1, 0], reversed(key)):
+                if isinstance(sub_key, str):
+                    result = self._get_regex_axis(result, pattern=sub_key, axis=ax)
+                else:
+                    result = result.loc(axis=ax)[sub_key]
+            return result
 
-        return self.obj.loc(axis=axis)[mapped]
+    def _get_regex_axis(
+        self, obj: FrameOrSeries, pattern: str, axis: int
+    ) -> FrameOrSeries:
+        """Subset a single axis of ``obj`` from a regex pattern."""
+        labels = obj._get_axis(axis)
+        matcher = re.compile(pattern)
+
+        def func(x):
+            return matcher.search(x) is not None
+
+        mapped = labels.map(func)
+        return obj.loc(axis=axis)[mapped]
 
     def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
@@ -1876,9 +1888,6 @@ class _LocIndexer(_LocationIndexer):
         # fall thru to straight lookup
         self._validate_key(key, axis)
         return self._get_label(key, axis=axis)
-
-    def _getitem_lower_section(self, section, key):
-        return getattr(section, self.name)(regex=self.regex)[key]
 
     def __setitem__(self, key, value):
         if self.regex:
