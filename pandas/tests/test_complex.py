@@ -75,7 +75,7 @@ class TestComplexSupportBasic:
         (
             DataFrame([dict(a=1, b=1 + 1j), dict(a=1, b=1 + 2j)]),
             DataFrame(
-                np.array([1, 1]),
+                np.array([1, 1], dtype=np.int64),
                 index=Index([(1 + 1j), (1 + 2j)], dtype='object', name='b'),
                 columns=Index(['a'], dtype='object'))
         ),
