@@ -678,17 +678,20 @@ def _maybe_promote_with_array(dtype, fill_value=np.nan):
         is_float_dtype(fill_dtype) or is_complex_dtype(fill_dtype)
     ):
         # at least one is complex; otherwise we'd have hit float/float above
-        if (
-            dtype in ["float32", "complex64"]
-            and max(
-                np.abs(np.real(fill_value)).max(),  # also works for float
-                np.abs(np.imag(fill_value)).max(),
-            )
-            <= _float32_max
-        ):
-            return np.complex64, np.nan
-        # all other cases return complex128
-        return np.dtype("complex128"), np.nan
+        with warnings.catch_warnings():
+            # work around GH 27610
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            if (
+                dtype in ["float32", "complex64"]
+                and max(
+                    np.abs(np.real(fill_value)).max(),  # also works for float
+                    np.abs(np.imag(fill_value)).max(),
+                )
+                <= _float32_max
+            ):
+                return np.complex64, np.nan
+            # all other cases return complex128
+            return np.dtype("complex128"), np.nan
     elif is_bool_dtype(dtype) and is_bool_dtype(fill_dtype):
         # bool with bool is the only combination that stays bool; any other
         # combination involving bool upcasts to object, see else-clause below
