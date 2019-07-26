@@ -241,8 +241,9 @@ filled with the transformed values
 
 Parameters
 ----------
-f : function
-    Function to apply to each group
+func : callable or str
+    Callable to apply to each group OR
+    name of an aggregation function.
 
 Returns
 -------
@@ -256,6 +257,10 @@ Notes
 -----
 Each group is endowed the attribute 'name' in case you need to know
 which group you are working on.
+
+If `func` is the name of an aggregation, the resulting value for
+each group is replicated along the row axis to produce an output
+with the same shape as the input.
 
 The current implementation imposes three requirements on f:
 
