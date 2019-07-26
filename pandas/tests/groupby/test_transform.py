@@ -1007,17 +1007,19 @@ def test_transform_invalid_name_raises():
     # GH#27486
     df = DataFrame(dict(a=[0, 1, 1, 2]))
     g = df.groupby(["a", "b", "b", "c"])
-    with pytest.raises(ValueError, match="not a valid function name"):
+    with pytest.raises(ValueError, match="exclusively"):
         g.transform("some_arbitrary_name")
 
     # method exists on the object, but is not a valid transformation/agg
+    # make sure the error suggests using the method directly.
     assert hasattr(g, "aggregate")  # make sure the method exists
-    with pytest.raises(ValueError, match="not a valid function name"):
+    with pytest.raises(ValueError, match="exclusively.+you should try"):
         g.transform("aggregate")
 
     # Test SeriesGroupBy
-    g = df["a"].groupby(["a", "b", "b", "c"])
-    with pytest.raises(ValueError, match="not a valid function name"):
+    ser = Series(range(4))
+    g = ser.groupby(["a", "b", "b", "c"])
+    with pytest.raises(ValueError, match="exclusively"):
         g.transform("some_arbitrary_name")
 
 
@@ -1052,34 +1054,18 @@ def test_transform_agg_by_name(reduction_func, obj):
     assert len(set(DataFrame(result).iloc[-3:, -1])) == 1
 
 
-@pytest.mark.parametrize(
-    "obj",
-    [
-        DataFrame(
-            dict(a=[0, 0, 0, 1, 1, 1], b=range(6)), index=["A", "B", "C", "D", "E", "F"]
-        ),
-        Series([0, 0, 0, 1, 1, 1], index=["A", "B", "C", "D", "E", "F"]),
-    ],
-)
-def test_transform_transformation_by_name(transformation_func, obj):
+def test_transform_transformation_by_name(transformation_func):
+    """Make sure g.transform('name') raises a helpful error for non-agg
+    """
     func = transformation_func
+    obj = DataFrame(
+        dict(a=[0, 0, 0, 1, 1, 1], b=range(6)), index=["A", "B", "C", "D", "E", "F"]
+    )
     g = obj.groupby(np.repeat([0, 1], 3))
 
-    if func.startswith("cum"):  # BUG
-        pytest.xfail("skip cum* function tests")
-    if func == "tshift":  # BUG
-        pytest.xfail("tshift")
-
-    args = {"fillna": [0]}.get(func, [])
-
-    result = g.transform(func, *args)
-    # for transformations, g.transform.(name) should return the same result
-    # as `g.name()`
-    expected = getattr(g, func)(*args)
-    if isinstance(obj, DataFrame):
-        tm.assert_frame_equal(result, expected)
-    else:
-        tm.assert_series_equal(result, expected)
+    match = "exclusively for.+you should try"
+    with pytest.raises(ValueError, match=match):
+        g.transform(func)
 
 
 def test_transform_lambda_with_datetimetz():

@@ -198,4 +198,4 @@ groupby_other_methods = frozenset(
 # Valid values  of `name` for `groupby.transform(name)`
 # NOTE: do NOT edit this directly. New additions should be inserted
 # into the appropriate list above.
-groupby_transform_whitelist = reduction_kernels | transformation_kernels
+groupby_transform_whitelist = reduction_kernels

@@ -577,7 +577,16 @@ class NDFrameGroupBy(GroupBy):
 
         if isinstance(func, str):
             if not (func in base.groupby_transform_whitelist):
-                msg = "'{func}' is not a valid function name for transform(name)"
+                msg = (
+                    "`g.transform('func')` is used exclusively for "
+                    "computing aggregations and broadcasting the results across groups. "
+                    "'{func}' is not a valid aggregation name. "
+                )
+
+                if func in base.transformation_kernels | base.groupby_other_methods:
+                    msg += "Perhaps you should try <your grouper>.{func}() instead?".format(
+                        func=func
+                    )
                 raise ValueError(msg.format(func=func))
             if func in base.cythonized_kernels:
                 # cythonized transformation or canned "reduction+broadcast"
@@ -1019,7 +1028,16 @@ class SeriesGroupBy(GroupBy):
 
         if isinstance(func, str):
             if not (func in base.groupby_transform_whitelist):
-                msg = "'{func}' is not a valid function name for transform(name)"
+                msg = (
+                    "`g.transform('func')` is used exclusively for "
+                    "computing aggregations and broadcasting the results across groups. "
+                    "'{func}' is not a valid aggregation name. "
+                )
+
+                if func in base.transformation_kernels | base.groupby_other_methods:
+                    msg += "Perhaps you should try <your grouper>.{func}() instead?".format(
+                        func=func
+                    )
                 raise ValueError(msg.format(func=func))
             if func in base.cythonized_kernels:
                 # cythonized transform or canned "agg+broadcast"
