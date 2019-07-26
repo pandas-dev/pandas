@@ -1362,7 +1362,8 @@ Of course, expressions can be arbitrarily complex too:
    shorter = df.query('a < b < c and (not bools) or bools > 2')
 
    # equivalent in pure Python
-   longer = df[(df['a'] < df['b']) & (df['b'] < df['c']) & (~df['bools']) | (df['bools'] > 2)]
+   longer = df[(df['a'] < df['b']) & (df['b'] < df['c']) & \
+            (~df['bools']) | (df['bools'] > 2)]
 
    shorter
    longer
