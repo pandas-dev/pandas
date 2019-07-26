@@ -77,12 +77,12 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
     is_scalar_indexer,
 )
-from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
 
@@ -739,6 +739,13 @@ class Block(PandasObject):
                     type(self).__name__.lower().replace("Block", ""),
                 )
             )
+        if np.any(isna(other)) and not self._can_hold_na:
+            raise TypeError(
+                "cannot convert {} to an {}".format(
+                    type(other).__name__,
+                    type(self).__name__.lower().replace("Block", ""),
+                )
+            )
 
         return other
 
@@ -787,16 +794,15 @@ class Block(PandasObject):
         inplace = validate_bool_kwarg(inplace, "inplace")
         original_to_replace = to_replace
 
-        # try to replace, if we raise an error, convert to ObjectBlock and
+        # If we cannot replace with own dtype, convert to ObjectBlock and
         # retry
-        values = self._coerce_values(self.values)
-        try:
-            to_replace = self._try_coerce_args(to_replace)
-        except (TypeError, ValueError):
+        if not self._can_hold_element(to_replace):
+            # TODO: we should be able to infer at this point that there is
+            #  nothing to replace
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
             if is_object_dtype(self):
-                raise
+                raise AssertionError
 
             # try again with a compatible block
             block = self.astype(object)
@@ -808,6 +814,9 @@ class Block(PandasObject):
                 regex=regex,
                 convert=convert,
             )
+
+        values = self._coerce_values(self.values)
+        to_replace = self._try_coerce_args(to_replace)
 
         mask = missing.mask_missing(values, to_replace)
         if filter is not None:
@@ -1405,7 +1414,14 @@ class Block(PandasObject):
 
         # our where function
         def func(cond, values, other):
-            other = self._try_coerce_args(other)
+
+            if not (
+                (self.is_integer or self.is_bool)
+                and lib.is_scalar(other)
+                and np.isnan(other)
+            ):
+                # np.where will cast integer array to floats in this case
+                other = self._try_coerce_args(other)
 
             try:
                 fastres = expressions.where(cond, values, other)
@@ -3074,10 +3090,10 @@ class CategoricalBlock(ExtensionBlock):
     _concatenator = staticmethod(concat_categorical)
 
     def __init__(self, values, placement, ndim=None):
-        from pandas.core.arrays.categorical import _maybe_to_categorical
-
         # coerce to categorical if we can
-        super().__init__(_maybe_to_categorical(values), placement=placement, ndim=ndim)
+        values = extract_array(values)
+        assert isinstance(values, Categorical), type(values)
+        super().__init__(values, placement=placement, ndim=ndim)
 
     @property
     def _holder(self):
