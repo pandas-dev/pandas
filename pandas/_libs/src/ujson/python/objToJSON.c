@@ -859,7 +859,7 @@ char *PdBlock_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
 	cStr = npyarr->rowLabels[idx];
     }
 
-    *outLen = strlen(cStr);    
+    *outLen = strlen(cStr);
     return cStr;
 }
 
@@ -1641,7 +1641,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
 	  ret = 0;
 	  break;
 	}
-      
+
 	PyObject *str = PyObject_Str(item);
 	cLabel = PyUnicode_AsUTF8(str);
 	len = strlen(cLabel);
@@ -1650,7 +1650,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
 	Py_DECREF(item);
 	// Add 1 to include NULL terminator
 	ret[i] = PyObject_Malloc(len + 1);
-	memcpy(ret[i], cLabel, len + 1);	
+	memcpy(ret[i], cLabel, len + 1);
 
         if (PyErr_Occurred()) {
             NpyArr_freeLabels(ret, num);
@@ -1666,7 +1666,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
 
         dataptr += stride;
     }
-    
+
     Py_DECREF(labels);
     return ret;
 }
