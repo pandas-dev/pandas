@@ -617,7 +617,7 @@ class NDFrameGroupBy(GroupBy):
         for i, _ in enumerate(result.columns):
             if func_nm in base.reduction_kernels:
                 # only broadcast results if we performed a reduction
-                res = algorithms.take_1d(result.iloc[:, i].values, ids)
+                res = algorithms.take_1d(result.iloc[:, i]._values, ids)
             else:
                 res = result.iloc[:, i].values
             if cast:
