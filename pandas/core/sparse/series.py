@@ -20,7 +20,6 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import generic
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.sparse import SparseAccessor
-from pandas.core.index import Index
 from pandas.core.internals import SingleBlockManager
 import pandas.core.ops as ops
 from pandas.core.series import Series
