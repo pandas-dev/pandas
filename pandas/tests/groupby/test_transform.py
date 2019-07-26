@@ -581,7 +581,7 @@ def test_cython_transform_series(op, args, targop):
         # print(data.head())
         expected = data.groupby(labels).transform(targop)
 
-        tm.assert_series_equal(expected, data.groupby(labels).transform(op, *args))
+        tm.assert_series_equal(expected, getattr(data.groupby(labels), op)(*args))
         tm.assert_series_equal(expected, getattr(data.groupby(labels), op)(*args))
 
 
@@ -632,7 +632,7 @@ def test_cython_transform_series(op, args, targop):
 )
 def test_groupby_cum_skipna(op, skipna, input, exp):
     df = pd.DataFrame(input)
-    result = getattr(df.groupby("key")["value"],op)(skipna=skipna)
+    result = getattr(df.groupby("key")["value"], op)(skipna=skipna)
     if isinstance(exp, dict):
         expected = exp[(op, skipna)]
     else:
@@ -710,20 +710,17 @@ def test_cython_transform_frame(op, args, targop):
                 expected = gb.apply(targop)
 
             expected = expected.sort_index(axis=1)
-            tm.assert_frame_equal(expected, gb.transform(op, *args).sort_index(axis=1))
             tm.assert_frame_equal(expected, getattr(gb, op)(*args).sort_index(axis=1))
             # individual columns
             for c in df:
                 if c not in ["float", "int", "float_missing"] and op != "shift":
                     msg = "No numeric types to aggregate"
                     with pytest.raises(DataError, match=msg):
-                        gb[c].transform(op)
-                    with pytest.raises(DataError, match=msg):
                         getattr(gb[c], op)()
                 else:
                     expected = gb[c].apply(targop)
                     expected.name = c
-                    tm.assert_series_equal(expected, gb[c].transform(op, *args))
+                    tm.assert_series_equal(expected, getattr(gb[c], op)(*args))
                     tm.assert_series_equal(expected, getattr(gb[c], op)(*args))
 
 
