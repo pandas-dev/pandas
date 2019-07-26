@@ -213,7 +213,7 @@ def init_dict(data, index, columns, dtype=None):
         arrays = Series(data, index=columns, dtype=object)
         data_names = arrays.index
 
-        missing = arrays.isnull()
+        missing = arrays.isna()
         if index is None:
             # GH10856
             # raise ValueError if only scalars in dict
