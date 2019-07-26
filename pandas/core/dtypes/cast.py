@@ -76,7 +76,7 @@ def _is_iNaT(x):
     if not is_scalar(x):
         return False
     with warnings.catch_warnings():
-        warnings.filterwarnings('ignore', category=DeprecationWarning)
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
         result = x == iNaT
     return result
 
@@ -355,8 +355,10 @@ def maybe_promote(dtype, fill_value=np.nan):
         return _maybe_promote_with_array(dtype, fill_value)
     else:
         fill_type = type(fill_value).__name__
-        raise ValueError('fill_value must either be scalar, or a Series / '
-                         'Index / np.ndarray; received {}'.format(fill_type))
+        raise ValueError(
+            "fill_value must either be scalar, or a Series / "
+            "Index / np.ndarray; received {}".format(fill_type)
+        )
 
 
 def _maybe_promote_with_scalar(dtype, fill_value=np.nan):
@@ -410,8 +412,9 @@ def _maybe_promote_with_scalar(dtype, fill_value=np.nan):
     from pandas import Series
 
     if not (is_scalar(fill_value) or isinstance(fill_value, tuple)):
-        raise ValueError('fill_value must be a scalar, received '
-                         '{}'.format(type(fill_value)))
+        raise ValueError(
+            "fill_value must be a scalar, received " "{}".format(type(fill_value))
+        )
 
     # unify handling of scalar and array values to simplify actual
     # promotion logic in _maybe_promote_with_array;
@@ -515,8 +518,10 @@ def _maybe_promote_with_array(dtype, fill_value=np.nan):
             fill_value = fill_value.ravel()
     elif not isinstance(fill_value, (ABCSeries, ABCIndexClass)):
         fill_type = type(fill_value).__name__
-        raise ValueError('fill_value must either be a Series / Index / '
-                         'np.ndarray, received {}'.format(fill_type))
+        raise ValueError(
+            "fill_value must either be a Series / Index / "
+            "np.ndarray, received {}".format(fill_type)
+        )
 
     if all(isna(x) or _is_iNaT(x) for x in fill_value):
         # only missing values (or no values at all)
@@ -538,17 +543,20 @@ def _maybe_promote_with_array(dtype, fill_value=np.nan):
             # presence of pd.NaT upcasts everything that's not
             # datetime/timedelta (see above) to object
             dtype = np.dtype(object)
-        elif (is_integer_dtype(dtype) and dtype == 'uint64'
-              and all(x == iNaT for x in fill_value)):
+        elif (
+            is_integer_dtype(dtype)
+            and dtype == "uint64"
+            and all(x == iNaT for x in fill_value)
+        ):
             # uint64 + negative int casts to object
             dtype = np.dtype(object)
         elif is_integer_dtype(dtype) and all(x == iNaT for x in fill_value):
             # integer + iNaT casts to int64
-            dtype = np.dtype('int64')
+            dtype = np.dtype("int64")
             na_value = None
         elif is_integer_dtype(dtype):
             # integer + other missing value (np.nan / None) casts to float
-            dtype = np.dtype('float64')
+            dtype = np.dtype("float64")
         elif is_extension_array_dtype(dtype):
             na_value = dtype.na_value
         elif is_string_dtype(dtype) or dtype in (bool, bytes):
@@ -564,21 +572,29 @@ def _maybe_promote_with_array(dtype, fill_value=np.nan):
         inferred_dtype = lib.infer_dtype(fill_value, skipna=True)
 
         # cases that would yield 'empty' have been treated in branch above
-        if inferred_dtype in ['period', 'interval', 'datetime64tz']:
+        if inferred_dtype in ["period", "interval", "datetime64tz"]:
             # TODO: handle & test pandas-dtypes
             # TODO: lib.infer_dtype does not support datetime64tz yet
             pass
         else:
             # rest can be mapped to numpy dtypes
             map_inferred_to_numpy = {
-                'floating': float, 'mixed-integer-float': float,
-                'decimal': float, 'integer': int, 'boolean': bool,
-                'complex': complex, 'bytes': bytes,
-                'datetime64': 'datetime64[ns]', 'datetime': 'datetime64[ns]',
-                'date': 'datetime64[ns]', 'timedelta64': 'timedelta64[ns]',
-                'timedelta': 'timedelta64[ns]',
-                'time': object,  # time cannot be cast to datetime/timedelta
-                'string': object, 'mixed-integer': object, 'mixed': object
+                "floating": float,
+                "mixed-integer-float": float,
+                "decimal": float,
+                "integer": int,
+                "boolean": bool,
+                "complex": complex,
+                "bytes": bytes,
+                "datetime64": "datetime64[ns]",
+                "datetime": "datetime64[ns]",
+                "date": "datetime64[ns]",
+                "timedelta64": "timedelta64[ns]",
+                "timedelta": "timedelta64[ns]",
+                "time": object,  # time cannot be cast to datetime/timedelta
+                "string": object,
+                "mixed-integer": object,
+                "mixed": object,
             }
             fill_dtype = np.dtype(map_inferred_to_numpy[inferred_dtype])
 
@@ -610,11 +626,11 @@ def _maybe_promote_with_array(dtype, fill_value=np.nan):
                 # bits, which is used in the string identifier of the dtype;
                 # if fill_max is above the max for that dtype,
                 # we double the number of bytes/bits.
-                dtype = np.dtype('uint{}'.format(dtype.itemsize * 8 * 2))
+                dtype = np.dtype("uint{}".format(dtype.itemsize * 8 * 2))
             return dtype, None
         else:
             # cannot stay unsigned
-            if dtype == 'uint64':
+            if dtype == "uint64":
                 # need to hold negative values, but int64 cannot hold
                 # maximum of uint64 -> needs object
                 return np.dtype(object), np.nan
@@ -622,7 +638,7 @@ def _maybe_promote_with_array(dtype, fill_value=np.nan):
                 # need to turn into signed integers to hold negative values
                 # int8 cannot hold maximum of uint8; similar for 16/32
                 # therefore, upcast at least to next higher int-type
-                dtype = np.dtype('int{}'.format(dtype.itemsize * 8 * 2))
+                dtype = np.dtype("int{}".format(dtype.itemsize * 8 * 2))
 
             fill_max = fill_value.max()
             fill_min = fill_value.min()
@@ -637,62 +653,74 @@ def _maybe_promote_with_array(dtype, fill_value=np.nan):
             if fill_max >= _int64_max + 1 or fill_min <= _int64_min - 1:
                 return np.dtype(object), np.nan
 
-            while (fill_max > np.iinfo(dtype).max
-                    or fill_min < np.iinfo(dtype).min):
+            while fill_max > np.iinfo(dtype).max or fill_min < np.iinfo(dtype).min:
                 # same mechanism as above, but for int instead of uint
-                dtype = np.dtype('int{}'.format(dtype.itemsize * 8 * 2))
+                dtype = np.dtype("int{}".format(dtype.itemsize * 8 * 2))
             return dtype, None
     elif is_integer_dtype(dtype) and is_float_dtype(fill_dtype):
         # int with float: always upcasts to float64
-        return np.dtype('float64'), np.nan
+        return np.dtype("float64"), np.nan
     elif is_integer_dtype(dtype) and is_complex_dtype(fill_dtype):
         # int with complex: always upcasts to complex128
-        return np.dtype('complex128'), np.nan
-    elif ((is_float_dtype(dtype) or is_complex_dtype(dtype))
-          and is_integer_dtype(fill_dtype)):
+        return np.dtype("complex128"), np.nan
+    elif (is_float_dtype(dtype) or is_complex_dtype(dtype)) and is_integer_dtype(
+        fill_dtype
+    ):
         # float/complex with int: always stays original float/complex dtype
         return dtype, np.nan
     elif is_float_dtype(dtype) and is_float_dtype(fill_dtype):
         # float with float; upcasts depending on absolute max of fill_value
-        if dtype == 'float32' and np.abs(fill_value).max() <= _float32_max:
+        if dtype == "float32" and np.abs(fill_value).max() <= _float32_max:
             return dtype, np.nan
         # all other cases return float64
-        return np.dtype('float64'), np.nan
-    elif ((is_float_dtype(dtype) or is_complex_dtype(dtype))
-          and (is_float_dtype(fill_dtype) or is_complex_dtype(fill_dtype))):
+        return np.dtype("float64"), np.nan
+    elif (is_float_dtype(dtype) or is_complex_dtype(dtype)) and (
+        is_float_dtype(fill_dtype) or is_complex_dtype(fill_dtype)
+    ):
         # at least one is complex; otherwise we'd have hit float/float above
-        if (dtype in ['float32', 'complex64']
-            and max(np.abs(fill_value.real).max(),  # also works for float
-                    np.abs(fill_value.imag).max()) <= _float32_max):
+        if (
+            dtype in ["float32", "complex64"]
+            and max(
+                np.abs(fill_value.real).max(),  # also works for float
+                np.abs(fill_value.imag).max(),
+            )
+            <= _float32_max
+        ):
             return np.complex64, np.nan
         # all other cases return complex128
-        return np.dtype('complex128'), np.nan
+        return np.dtype("complex128"), np.nan
     elif is_bool_dtype(dtype) and is_bool_dtype(fill_dtype):
         # bool with bool is the only combination that stays bool; any other
         # combination involving bool upcasts to object, see else-clause below
         return dtype, None
-    elif (issubclass(dtype.type, np.bytes_)
-          and issubclass(fill_dtype.type, np.bytes_)):
+    elif issubclass(dtype.type, np.bytes_) and issubclass(fill_dtype.type, np.bytes_):
         # bytes with bytes is the only combination that stays bytes; any other
         # combination involving bytes upcasts to object, see else-clause below
         return dtype, None
-    elif (is_datetime64tz_dtype(dtype) and is_datetime64tz_dtype(fill_dtype)
-          and (dtype.tz == fill_dtype.tz)):
+    elif (
+        is_datetime64tz_dtype(dtype)
+        and is_datetime64tz_dtype(fill_dtype)
+        and (dtype.tz == fill_dtype.tz)
+    ):
         # datetimetz with datetimetz with the same timezone is the only
         # combination that stays datetimetz (in particular, mixing timezones or
         # tz-aware and tz-naive datetimes will cast to object);  any other
         # combination involving datetimetz upcasts to object, see below
         return dtype, iNaT
-    elif ((is_timedelta64_dtype(dtype) and is_timedelta64_dtype(fill_dtype))
-          or (is_datetime64_dtype(dtype) and is_datetime64_dtype(fill_dtype))):
+    elif (is_timedelta64_dtype(dtype) and is_timedelta64_dtype(fill_dtype)) or (
+        is_datetime64_dtype(dtype) and is_datetime64_dtype(fill_dtype)
+    ):
         # datetime and timedelta try to cast; if successful, keep dtype,
         # otherwise upcast to object
         try:
             with warnings.catch_warnings():
-                msg = ('parsing timezone aware datetimes is deprecated; '
-                       'this will raise an error in the future')
-                warnings.filterwarnings('ignore', message=msg,
-                                        category=DeprecationWarning)
+                msg = (
+                    "parsing timezone aware datetimes is deprecated; "
+                    "this will raise an error in the future"
+                )
+                warnings.filterwarnings(
+                    "ignore", message=msg, category=DeprecationWarning
+                )
                 fill_value.astype(dtype)
             na_value = iNaT
         except (ValueError, TypeError):

@@ -11,7 +11,10 @@ from pandas._libs.tslibs import NaT, iNaT
 from pandas.compat import is_platform_windows
 
 from pandas.core.dtypes.cast import (
-    _maybe_promote_with_array, _maybe_promote_with_scalar, maybe_promote)
+    _maybe_promote_with_array,
+    _maybe_promote_with_scalar,
+    maybe_promote,
+)
 from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_datetime64_dtype,
@@ -160,9 +163,9 @@ def _check_promote(
 
     # for equal values, also check type (relevant e.g. for int vs float, resp.
     # for different datetimes and timedeltas)
-    match_value = (result_fill_value == expected_fill_value
-                   and type(result_fill_value) == type(expected_fill_value)
-                   )
+    match_value = result_fill_value == expected_fill_value and type(
+        result_fill_value
+    ) == type(expected_fill_value)
 
     # for missing values, None == None and iNaT == iNaT (which is checked
     # through match_value above), but np.nan != np.nan and pd.NaT != pd.NaT
@@ -173,110 +176,113 @@ def _check_promote(
     assert match_value or match_missing
 
 
-@pytest.mark.parametrize('dtype, fill_value, expected_dtype', [
-    # size 8
-    ('int8', 1, 'int8'),
-    ('int8', np.iinfo('int8').max + 1, 'int16'),
-    ('int8', np.iinfo('int16').max + 1, 'int32'),
-    ('int8', np.iinfo('int32').max + 1, 'int64'),
-    ('int8', np.iinfo('int64').max + 1, 'object'),
-    ('int8', -1, 'int8'),
-    ('int8', np.iinfo('int8').min - 1, 'int16'),
-    ('int8', np.iinfo('int16').min - 1, 'int32'),
-    ('int8', np.iinfo('int32').min - 1, 'int64'),
-    ('int8', np.iinfo('int64').min - 1, 'object'),
-    # keep signed-ness as long as possible
-    ('uint8', 1, 'uint8'),
-    ('uint8', np.iinfo('int8').max + 1, 'uint8'),
-    ('uint8', np.iinfo('uint8').max + 1, 'uint16'),
-    ('uint8', np.iinfo('int16').max + 1, 'uint16'),
-    ('uint8', np.iinfo('uint16').max + 1, 'uint32'),
-    ('uint8', np.iinfo('int32').max + 1, 'uint32'),
-    ('uint8', np.iinfo('uint32').max + 1, 'uint64'),
-    ('uint8', np.iinfo('int64').max + 1, 'uint64'),
-    ('uint8', np.iinfo('uint64').max + 1, 'object'),
-    # max of uint8 cannot be contained in int8
-    ('uint8', -1, 'int16'),
-    ('uint8', np.iinfo('int8').min - 1, 'int16'),
-    ('uint8', np.iinfo('int16').min - 1, 'int32'),
-    ('uint8', np.iinfo('int32').min - 1, 'int64'),
-    ('uint8', np.iinfo('int64').min - 1, 'object'),
-    # size 16
-    ('int16', 1, 'int16'),
-    ('int16', np.iinfo('int8').max + 1, 'int16'),
-    ('int16', np.iinfo('int16').max + 1, 'int32'),
-    ('int16', np.iinfo('int32').max + 1, 'int64'),
-    ('int16', np.iinfo('int64').max + 1, 'object'),
-    ('int16', -1, 'int16'),
-    ('int16', np.iinfo('int8').min - 1, 'int16'),
-    ('int16', np.iinfo('int16').min - 1, 'int32'),
-    ('int16', np.iinfo('int32').min - 1, 'int64'),
-    ('int16', np.iinfo('int64').min - 1, 'object'),
-    ('uint16', 1, 'uint16'),
-    ('uint16', np.iinfo('int8').max + 1, 'uint16'),
-    ('uint16', np.iinfo('uint8').max + 1, 'uint16'),
-    ('uint16', np.iinfo('int16').max + 1, 'uint16'),
-    ('uint16', np.iinfo('uint16').max + 1, 'uint32'),
-    ('uint16', np.iinfo('int32').max + 1, 'uint32'),
-    ('uint16', np.iinfo('uint32').max + 1, 'uint64'),
-    ('uint16', np.iinfo('int64').max + 1, 'uint64'),
-    ('uint16', np.iinfo('uint64').max + 1, 'object'),
-    ('uint16', -1, 'int32'),
-    ('uint16', np.iinfo('int8').min - 1, 'int32'),
-    ('uint16', np.iinfo('int16').min - 1, 'int32'),
-    ('uint16', np.iinfo('int32').min - 1, 'int64'),
-    ('uint16', np.iinfo('int64').min - 1, 'object'),
-    # size 32
-    ('int32', 1, 'int32'),
-    ('int32', np.iinfo('int8').max + 1, 'int32'),
-    ('int32', np.iinfo('int16').max + 1, 'int32'),
-    ('int32', np.iinfo('int32').max + 1, 'int64'),
-    ('int32', np.iinfo('int64').max + 1, 'object'),
-    ('int32', -1, 'int32'),
-    ('int32', np.iinfo('int8').min - 1, 'int32'),
-    ('int32', np.iinfo('int16').min - 1, 'int32'),
-    ('int32', np.iinfo('int32').min - 1, 'int64'),
-    ('int32', np.iinfo('int64').min - 1, 'object'),
-    ('uint32', 1, 'uint32'),
-    ('uint32', np.iinfo('int8').max + 1, 'uint32'),
-    ('uint32', np.iinfo('uint8').max + 1, 'uint32'),
-    ('uint32', np.iinfo('int16').max + 1, 'uint32'),
-    ('uint32', np.iinfo('uint16').max + 1, 'uint32'),
-    ('uint32', np.iinfo('int32').max + 1, 'uint32'),
-    ('uint32', np.iinfo('uint32').max + 1, 'uint64'),
-    ('uint32', np.iinfo('int64').max + 1, 'uint64'),
-    ('uint32', np.iinfo('uint64').max + 1, 'object'),
-    ('uint32', -1, 'int64'),
-    ('uint32', np.iinfo('int8').min - 1, 'int64'),
-    ('uint32', np.iinfo('int16').min - 1, 'int64'),
-    ('uint32', np.iinfo('int32').min - 1, 'int64'),
-    ('uint32', np.iinfo('int64').min - 1, 'object'),
-    # size 64
-    ('int64', 1, 'int64'),
-    ('int64', np.iinfo('int8').max + 1, 'int64'),
-    ('int64', np.iinfo('int16').max + 1, 'int64'),
-    ('int64', np.iinfo('int32').max + 1, 'int64'),
-    ('int64', np.iinfo('int64').max + 1, 'object'),
-    ('int64', -1, 'int64'),
-    ('int64', np.iinfo('int8').min - 1, 'int64'),
-    ('int64', np.iinfo('int16').min - 1, 'int64'),
-    ('int64', np.iinfo('int32').min - 1, 'int64'),
-    ('int64', np.iinfo('int64').min - 1, 'object'),
-    ('uint64', 1, 'uint64'),
-    ('uint64', np.iinfo('int8').max + 1, 'uint64'),
-    ('uint64', np.iinfo('uint8').max + 1, 'uint64'),
-    ('uint64', np.iinfo('int16').max + 1, 'uint64'),
-    ('uint64', np.iinfo('uint16').max + 1, 'uint64'),
-    ('uint64', np.iinfo('int32').max + 1, 'uint64'),
-    ('uint64', np.iinfo('uint32').max + 1, 'uint64'),
-    ('uint64', np.iinfo('int64').max + 1, 'uint64'),
-    ('uint64', np.iinfo('uint64').max + 1, 'object'),
-    ('uint64', -1, 'object'),
-    ('uint64', np.iinfo('int8').min - 1, 'object'),
-    ('uint64', np.iinfo('int16').min - 1, 'object'),
-    ('uint64', np.iinfo('int32').min - 1, 'object'),
-    ('uint64', np.iinfo('int64').min - 1, 'object')
-])
+@pytest.mark.parametrize(
+    "dtype, fill_value, expected_dtype",
+    [
+        # size 8
+        ("int8", 1, "int8"),
+        ("int8", np.iinfo("int8").max + 1, "int16"),
+        ("int8", np.iinfo("int16").max + 1, "int32"),
+        ("int8", np.iinfo("int32").max + 1, "int64"),
+        ("int8", np.iinfo("int64").max + 1, "object"),
+        ("int8", -1, "int8"),
+        ("int8", np.iinfo("int8").min - 1, "int16"),
+        ("int8", np.iinfo("int16").min - 1, "int32"),
+        ("int8", np.iinfo("int32").min - 1, "int64"),
+        ("int8", np.iinfo("int64").min - 1, "object"),
+        # keep signed-ness as long as possible
+        ("uint8", 1, "uint8"),
+        ("uint8", np.iinfo("int8").max + 1, "uint8"),
+        ("uint8", np.iinfo("uint8").max + 1, "uint16"),
+        ("uint8", np.iinfo("int16").max + 1, "uint16"),
+        ("uint8", np.iinfo("uint16").max + 1, "uint32"),
+        ("uint8", np.iinfo("int32").max + 1, "uint32"),
+        ("uint8", np.iinfo("uint32").max + 1, "uint64"),
+        ("uint8", np.iinfo("int64").max + 1, "uint64"),
+        ("uint8", np.iinfo("uint64").max + 1, "object"),
+        # max of uint8 cannot be contained in int8
+        ("uint8", -1, "int16"),
+        ("uint8", np.iinfo("int8").min - 1, "int16"),
+        ("uint8", np.iinfo("int16").min - 1, "int32"),
+        ("uint8", np.iinfo("int32").min - 1, "int64"),
+        ("uint8", np.iinfo("int64").min - 1, "object"),
+        # size 16
+        ("int16", 1, "int16"),
+        ("int16", np.iinfo("int8").max + 1, "int16"),
+        ("int16", np.iinfo("int16").max + 1, "int32"),
+        ("int16", np.iinfo("int32").max + 1, "int64"),
+        ("int16", np.iinfo("int64").max + 1, "object"),
+        ("int16", -1, "int16"),
+        ("int16", np.iinfo("int8").min - 1, "int16"),
+        ("int16", np.iinfo("int16").min - 1, "int32"),
+        ("int16", np.iinfo("int32").min - 1, "int64"),
+        ("int16", np.iinfo("int64").min - 1, "object"),
+        ("uint16", 1, "uint16"),
+        ("uint16", np.iinfo("int8").max + 1, "uint16"),
+        ("uint16", np.iinfo("uint8").max + 1, "uint16"),
+        ("uint16", np.iinfo("int16").max + 1, "uint16"),
+        ("uint16", np.iinfo("uint16").max + 1, "uint32"),
+        ("uint16", np.iinfo("int32").max + 1, "uint32"),
+        ("uint16", np.iinfo("uint32").max + 1, "uint64"),
+        ("uint16", np.iinfo("int64").max + 1, "uint64"),
+        ("uint16", np.iinfo("uint64").max + 1, "object"),
+        ("uint16", -1, "int32"),
+        ("uint16", np.iinfo("int8").min - 1, "int32"),
+        ("uint16", np.iinfo("int16").min - 1, "int32"),
+        ("uint16", np.iinfo("int32").min - 1, "int64"),
+        ("uint16", np.iinfo("int64").min - 1, "object"),
+        # size 32
+        ("int32", 1, "int32"),
+        ("int32", np.iinfo("int8").max + 1, "int32"),
+        ("int32", np.iinfo("int16").max + 1, "int32"),
+        ("int32", np.iinfo("int32").max + 1, "int64"),
+        ("int32", np.iinfo("int64").max + 1, "object"),
+        ("int32", -1, "int32"),
+        ("int32", np.iinfo("int8").min - 1, "int32"),
+        ("int32", np.iinfo("int16").min - 1, "int32"),
+        ("int32", np.iinfo("int32").min - 1, "int64"),
+        ("int32", np.iinfo("int64").min - 1, "object"),
+        ("uint32", 1, "uint32"),
+        ("uint32", np.iinfo("int8").max + 1, "uint32"),
+        ("uint32", np.iinfo("uint8").max + 1, "uint32"),
+        ("uint32", np.iinfo("int16").max + 1, "uint32"),
+        ("uint32", np.iinfo("uint16").max + 1, "uint32"),
+        ("uint32", np.iinfo("int32").max + 1, "uint32"),
+        ("uint32", np.iinfo("uint32").max + 1, "uint64"),
+        ("uint32", np.iinfo("int64").max + 1, "uint64"),
+        ("uint32", np.iinfo("uint64").max + 1, "object"),
+        ("uint32", -1, "int64"),
+        ("uint32", np.iinfo("int8").min - 1, "int64"),
+        ("uint32", np.iinfo("int16").min - 1, "int64"),
+        ("uint32", np.iinfo("int32").min - 1, "int64"),
+        ("uint32", np.iinfo("int64").min - 1, "object"),
+        # size 64
+        ("int64", 1, "int64"),
+        ("int64", np.iinfo("int8").max + 1, "int64"),
+        ("int64", np.iinfo("int16").max + 1, "int64"),
+        ("int64", np.iinfo("int32").max + 1, "int64"),
+        ("int64", np.iinfo("int64").max + 1, "object"),
+        ("int64", -1, "int64"),
+        ("int64", np.iinfo("int8").min - 1, "int64"),
+        ("int64", np.iinfo("int16").min - 1, "int64"),
+        ("int64", np.iinfo("int32").min - 1, "int64"),
+        ("int64", np.iinfo("int64").min - 1, "object"),
+        ("uint64", 1, "uint64"),
+        ("uint64", np.iinfo("int8").max + 1, "uint64"),
+        ("uint64", np.iinfo("uint8").max + 1, "uint64"),
+        ("uint64", np.iinfo("int16").max + 1, "uint64"),
+        ("uint64", np.iinfo("uint16").max + 1, "uint64"),
+        ("uint64", np.iinfo("int32").max + 1, "uint64"),
+        ("uint64", np.iinfo("uint32").max + 1, "uint64"),
+        ("uint64", np.iinfo("int64").max + 1, "uint64"),
+        ("uint64", np.iinfo("uint64").max + 1, "object"),
+        ("uint64", -1, "object"),
+        ("uint64", np.iinfo("int8").min - 1, "object"),
+        ("uint64", np.iinfo("int16").min - 1, "object"),
+        ("uint64", np.iinfo("int32").min - 1, "object"),
+        ("uint64", np.iinfo("int64").min - 1, "object"),
+    ],
+)
 def test_maybe_promote_int_with_int(dtype, fill_value, expected_dtype, box):
     dtype = np.dtype(dtype)
     expected_dtype = np.dtype(expected_dtype)
@@ -285,10 +291,17 @@ def test_maybe_promote_int_with_int(dtype, fill_value, expected_dtype, box):
     # output is not a python int, but a numpy int of expected_dtype
     exp_val_for_scalar = np.array([fill_value], dtype=expected_dtype)[0]
     # no missing value marker for integers
-    exp_val_for_array = None if expected_dtype != 'object' else np.nan
+    exp_val_for_array = None if expected_dtype != "object" else np.nan
 
-    _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
-                   exp_val_for_scalar, exp_val_for_array)
+    _check_promote(
+        dtype,
+        fill_value,
+        boxed,
+        box_dtype,
+        expected_dtype,
+        exp_val_for_scalar,
+        exp_val_for_array,
+    )
 
 
 def test_maybe_promote_int_with_float(any_int_dtype, float_dtype, box):
@@ -343,30 +356,32 @@ def test_maybe_promote_float_with_int(float_dtype, any_int_dtype, box):
     )
 
 
-@pytest.mark.parametrize('dtype, fill_value, expected_dtype', [
-    # float filled with float
-    ('float32', 1, 'float32'),
-    ('float32', np.finfo('float32').max * 1.1, 'float64'),
-    ('float64', 1, 'float64'),
-    ('float64', np.finfo('float32').max * 1.1, 'float64'),
-    # complex filled with float
-    ('complex64', 1, 'complex64'),
-    ('complex64', np.finfo('float32').max * 1.1, 'complex128'),
-    ('complex128', 1, 'complex128'),
-    ('complex128', np.finfo('float32').max * 1.1, 'complex128'),
-    # float filled with complex
-    ('float32', 1 + 1j, 'complex64'),
-    ('float32', np.finfo('float32').max * (1.1 + 1j), 'complex128'),
-    ('float64', 1 + 1j, 'complex128'),
-    ('float64', np.finfo('float32').max * (1.1 + 1j), 'complex128'),
-    # complex filled with complex
-    ('complex64', 1 + 1j, 'complex64'),
-    ('complex64', np.finfo('float32').max * (1.1 + 1j), 'complex128'),
-    ('complex128', 1 + 1j, 'complex128'),
-    ('complex128', np.finfo('float32').max * (1.1 + 1j), 'complex128')
-])
-def test_maybe_promote_float_with_float(dtype, fill_value, expected_dtype,
-                                        box):
+@pytest.mark.parametrize(
+    "dtype, fill_value, expected_dtype",
+    [
+        # float filled with float
+        ("float32", 1, "float32"),
+        ("float32", np.finfo("float32").max * 1.1, "float64"),
+        ("float64", 1, "float64"),
+        ("float64", np.finfo("float32").max * 1.1, "float64"),
+        # complex filled with float
+        ("complex64", 1, "complex64"),
+        ("complex64", np.finfo("float32").max * 1.1, "complex128"),
+        ("complex128", 1, "complex128"),
+        ("complex128", np.finfo("float32").max * 1.1, "complex128"),
+        # float filled with complex
+        ("float32", 1 + 1j, "complex64"),
+        ("float32", np.finfo("float32").max * (1.1 + 1j), "complex128"),
+        ("float64", 1 + 1j, "complex128"),
+        ("float64", np.finfo("float32").max * (1.1 + 1j), "complex128"),
+        # complex filled with complex
+        ("complex64", 1 + 1j, "complex64"),
+        ("complex64", np.finfo("float32").max * (1.1 + 1j), "complex128"),
+        ("complex128", 1 + 1j, "complex128"),
+        ("complex128", np.finfo("float32").max * (1.1 + 1j), "complex128"),
+    ],
+)
+def test_maybe_promote_float_with_float(dtype, fill_value, expected_dtype, box):
 
     dtype = np.dtype(dtype)
     expected_dtype = np.dtype(expected_dtype)
@@ -376,8 +391,15 @@ def test_maybe_promote_float_with_float(dtype, fill_value, expected_dtype,
     exp_val_for_scalar = np.array([fill_value], dtype=expected_dtype)[0]
     exp_val_for_array = np.nan
 
-    _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
-                   exp_val_for_scalar, exp_val_for_array)
+    _check_promote(
+        dtype,
+        fill_value,
+        boxed,
+        box_dtype,
+        expected_dtype,
+        exp_val_for_scalar,
+        exp_val_for_array,
+    )
 
 
 def test_maybe_promote_bool_with_any(any_numpy_dtype_reduced, box):
@@ -426,8 +448,7 @@ def test_maybe_promote_any_with_bool(any_numpy_dtype_reduced, box):
     )
 
 
-def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced,
-                                      box):
+def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced, box):
     dtype = np.dtype(bytes_dtype)
     fill_dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
@@ -436,48 +457,65 @@ def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced,
     fill_value = np.array([1], dtype=fill_dtype)[0]
 
     # filling bytes with anything but bytes casts to object
-    expected_dtype = (dtype if issubclass(fill_dtype.type, np.bytes_)
-                      else np.dtype(object))
+    expected_dtype = (
+        dtype if issubclass(fill_dtype.type, np.bytes_) else np.dtype(object)
+    )
     exp_val_for_scalar = fill_value
-    exp_val_for_array = (None if issubclass(fill_dtype.type, np.bytes_)
-                         else np.nan)
+    exp_val_for_array = None if issubclass(fill_dtype.type, np.bytes_) else np.nan
 
-    _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
-                   exp_val_for_scalar, exp_val_for_array)
+    _check_promote(
+        dtype,
+        fill_value,
+        boxed,
+        box_dtype,
+        expected_dtype,
+        exp_val_for_scalar,
+        exp_val_for_array,
+    )
 
 
 # override parametrization of box to add special case for bytes
-@pytest.mark.parametrize('box', [
-    (True, None),     # fill_value wrapped in array with default dtype
-    (True, 'bytes'),  # fill_value in array with generic bytes dtype
-    (True, object),   # fill_value wrapped in array with object dtype
-    (False, None)     # fill_value passed on as scalar
-], ids=['True-None', 'True-bytes', 'True-object', 'False-None'])
-def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced, bytes_dtype,
-                                      box):
+@pytest.mark.parametrize(
+    "box",
+    [
+        (True, None),  # fill_value wrapped in array with default dtype
+        (True, "bytes"),  # fill_value in array with generic bytes dtype
+        (True, object),  # fill_value wrapped in array with object dtype
+        (False, None),  # fill_value passed on as scalar
+    ],
+    ids=["True-None", "True-bytes", "True-object", "False-None"],
+)
+def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced, bytes_dtype, box):
     dtype = np.dtype(any_numpy_dtype_reduced)
     fill_dtype = np.dtype(bytes_dtype)
     boxed, box_dtype = box  # read from parametrized fixture
 
     # create array of given dtype
-    fill_value = b'abc'
+    fill_value = b"abc"
 
     # special case for box_dtype (cannot use fixture in parametrization)
-    box_dtype = fill_dtype if box_dtype == 'bytes' else box_dtype
+    box_dtype = fill_dtype if box_dtype == "bytes" else box_dtype
 
     # filling bytes with anything but bytes casts to object
-    expected_dtype = (dtype if issubclass(dtype.type, np.bytes_)
-                      else np.dtype(object))
+    expected_dtype = dtype if issubclass(dtype.type, np.bytes_) else np.dtype(object)
     # output is not a generic bytes, but corresponds to expected_dtype
     exp_val_for_scalar = np.array([fill_value], dtype=expected_dtype)[0]
     exp_val_for_array = None if issubclass(dtype.type, np.bytes_) else np.nan
 
-    _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
-                   exp_val_for_scalar, exp_val_for_array)
+    _check_promote(
+        dtype,
+        fill_value,
+        boxed,
+        box_dtype,
+        expected_dtype,
+        exp_val_for_scalar,
+        exp_val_for_array,
+    )
 
 
-def test_maybe_promote_datetime64_with_any(datetime64_dtype,
-                                           any_numpy_dtype_reduced, box):
+def test_maybe_promote_datetime64_with_any(
+    datetime64_dtype, any_numpy_dtype_reduced, box
+):
     dtype = np.dtype(datetime64_dtype)
     fill_dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
@@ -496,17 +534,28 @@ def test_maybe_promote_datetime64_with_any(datetime64_dtype,
         exp_val_for_scalar = fill_value
         exp_val_for_array = np.nan
 
-    _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
-                   exp_val_for_scalar, exp_val_for_array)
+    _check_promote(
+        dtype,
+        fill_value,
+        boxed,
+        box_dtype,
+        expected_dtype,
+        exp_val_for_scalar,
+        exp_val_for_array,
+    )
 
 
 # override parametrization of box to add special case for dt_dtype
-@pytest.mark.parametrize('box', [
-    (True, None),        # fill_value wrapped in array with default dtype
-    (True, 'dt_dtype'),  # fill_value in array with explicit datetime dtype
-    (True, object),      # fill_value wrapped in array with object dtype
-    (False, None)        # fill_value passed on as scalar
-], ids=['True-None', 'True-dt_dtype', 'True-object', 'False-None'])
+@pytest.mark.parametrize(
+    "box",
+    [
+        (True, None),  # fill_value wrapped in array with default dtype
+        (True, "dt_dtype"),  # fill_value in array with explicit datetime dtype
+        (True, object),  # fill_value wrapped in array with object dtype
+        (False, None),  # fill_value passed on as scalar
+    ],
+    ids=["True-None", "True-dt_dtype", "True-object", "False-None"],
+)
 @pytest.mark.parametrize(
     "fill_value",
     [
@@ -574,8 +623,9 @@ def test_maybe_promote_datetimetz_with_any_numpy_dtype(
     )
 
 
-def test_maybe_promote_datetimetz_with_datetimetz(tz_aware_fixture,
-                                                  tz_aware_fixture2, box):
+def test_maybe_promote_datetimetz_with_datetimetz(
+    tz_aware_fixture, tz_aware_fixture2, box
+):
     dtype = DatetimeTZDtype(tz=tz_aware_fixture)
     fill_dtype = DatetimeTZDtype(tz=tz_aware_fixture2)
     boxed, box_dtype = box  # read from parametrized fixture
@@ -583,12 +633,12 @@ def test_maybe_promote_datetimetz_with_datetimetz(tz_aware_fixture,
     from dateutil.tz import tzlocal
 
     if is_platform_windows() and tz_aware_fixture2 == tzlocal():
-        pytest.xfail('Cannot process fill_value with this dtype, see GH 24310')
+        pytest.xfail("Cannot process fill_value with this dtype, see GH 24310")
     if dtype.tz == fill_dtype.tz:
         # here we should keep the datetime64tz dtype, but since that cannot be
         # inferred correctly for fill_value, the calling dtype ends up being
         # compared to a tz-naive datetime64-dtype, and must therefore upcast
-        pytest.xfail('cannot infer datetime64tz dtype, see GH 23554')
+        pytest.xfail("cannot infer datetime64tz dtype, see GH 23554")
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = pd.Series([10 ** 9], dtype=fill_dtype)[0]
@@ -657,7 +707,7 @@ def test_maybe_promote_any_numpy_dtype_with_datetimetz(
     if is_datetime64_dtype(dtype):
         # fill_dtype does not get inferred correctly to datetime64tz but to
         # datetime64, which then falsely matches with datetime64 dtypes.
-        pytest.xfail('cannot infer datetime64tz dtype, see GH 23554')
+        pytest.xfail("cannot infer datetime64tz dtype, see GH 23554")
 
     fill_value = pd.Series([fill_value], dtype=fill_dtype)[0]
 
@@ -677,8 +727,9 @@ def test_maybe_promote_any_numpy_dtype_with_datetimetz(
     )
 
 
-def test_maybe_promote_timedelta64_with_any(timedelta64_dtype,
-                                            any_numpy_dtype_reduced, box):
+def test_maybe_promote_timedelta64_with_any(
+    timedelta64_dtype, any_numpy_dtype_reduced, box
+):
     dtype = np.dtype(timedelta64_dtype)
     fill_dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
@@ -697,8 +748,15 @@ def test_maybe_promote_timedelta64_with_any(timedelta64_dtype,
         exp_val_for_scalar = fill_value
         exp_val_for_array = np.nan
 
-    _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
-                   exp_val_for_scalar, exp_val_for_array)
+    _check_promote(
+        dtype,
+        fill_value,
+        boxed,
+        box_dtype,
+        expected_dtype,
+        exp_val_for_scalar,
+        exp_val_for_array,
+    )
 
 
 @pytest.mark.parametrize(
@@ -711,10 +769,11 @@ def test_maybe_promote_timedelta64_with_any(timedelta64_dtype,
     "box",
     [
         (True, None),  # fill_value wrapped in array with default dtype
-        (True, 'td_dtype'),  # fill_value in array with explicit timedelta dtype
+        (True, "td_dtype"),  # fill_value in array with explicit timedelta dtype
         (True, object),  # fill_value wrapped in array with object dtype
         (False, None),  # fill_value passed on as scalar
-    ], ids=['True-None', 'True-td_dtype', 'True-object', 'False-None']
+    ],
+    ids=["True-None", "True-td_dtype", "True-object", "False-None"],
 )
 def test_maybe_promote_any_with_timedelta64(
     any_numpy_dtype_reduced, timedelta64_dtype, fill_value, box
@@ -776,11 +835,12 @@ def test_maybe_promote_string_with_any(string_dtype, any_numpy_dtype_reduced, bo
     "box",
     [
         # disabled due to too many xfails; see GH 23982 / 25425
-        (True, None),    # fill_value wrapped in array with default dtype
-        (True, 'str'),   # fill_value wrapped in array with generic string-dtype
+        (True, None),  # fill_value wrapped in array with default dtype
+        (True, "str"),  # fill_value wrapped in array with generic string-dtype
         (True, object),  # fill_value wrapped in array with object dtype
         (False, None),  # fill_value passed on as scalar
-    ], ids=['True-None', 'True-str', 'True-object', 'False-None']
+    ],
+    ids=["True-None", "True-str", "True-object", "False-None"],
 )
 def test_maybe_promote_any_with_string(any_numpy_dtype_reduced, string_dtype, box):
     dtype = np.dtype(any_numpy_dtype_reduced)
@@ -862,11 +922,12 @@ def test_maybe_promote_any_with_object(any_numpy_dtype_reduced, object_dtype, bo
 )
 # override parametrization of box, because default dtype for na is always float
 @pytest.mark.parametrize(
-    'box',
+    "box",
     [
         (True, object),  # fill_value wrapped in array with object dtype
-        (False, None)    # fill_value passed on as scalar
-    ], ids=['True-object', 'False-None']
+        (False, None),  # fill_value passed on as scalar
+    ],
+    ids=["True-object", "False-None"],
 )
 def test_maybe_promote_any_numpy_dtype_with_na(
     any_numpy_dtype_reduced, fill_value, box
@@ -874,7 +935,7 @@ def test_maybe_promote_any_numpy_dtype_with_na(
     dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if is_integer_dtype(dtype) and dtype == 'uint64' and fill_value == iNaT:
+    if is_integer_dtype(dtype) and dtype == "uint64" and fill_value == iNaT:
         # uint64 + negative int casts to object; iNaT is considered as missing
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = np.nan
@@ -953,8 +1014,7 @@ def test_maybe_promote_dimensions(any_numpy_dtype_reduced, dim):
     )
 
     # same again for _maybe_promote_with_array (for coverage)
-    result_dtype, result_missing_value = _maybe_promote_with_array(
-        dtype, fill_array)
+    result_dtype, result_missing_value = _maybe_promote_with_array(dtype, fill_array)
 
     assert result_dtype == expected_dtype
     # None == None, iNaT == iNaT, but np.nan != np.nan
@@ -964,17 +1024,17 @@ def test_maybe_promote_dimensions(any_numpy_dtype_reduced, dim):
 
 
 def test_maybe_promote_raises(any_numpy_dtype):
-    msg = 'fill_value must either be scalar, or a Series / Index / np.ndarra.*'
+    msg = "fill_value must either be scalar, or a Series / Index / np.ndarra.*"
     with pytest.raises(ValueError, match=msg):
         # something that's neither scalar, nor Series / Index / np.ndarray
         maybe_promote(any_numpy_dtype, [1, 2, 3])
 
-    msg = 'fill_value must either be a Series / Index / np.ndarray, received.*'
+    msg = "fill_value must either be a Series / Index / np.ndarray, received.*"
     with pytest.raises(ValueError, match=msg):
         # something that's not a Series / Index / np.ndarray
         _maybe_promote_with_array(any_numpy_dtype, 1)
 
-    msg = 'fill_value must be a scalar, received .*'
+    msg = "fill_value must be a scalar, received .*"
     with pytest.raises(ValueError, match=msg):
         # something that's not scalar
         _maybe_promote_with_scalar(any_numpy_dtype, pd.Series([1, 2, 3]))
