@@ -4,7 +4,7 @@ intended for public consumption
 """
 from textwrap import dedent
 from typing import Dict
-from warnings import catch_warnings, simplefilter, warn
+from warnings import warn
 
 import numpy as np
 

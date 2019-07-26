@@ -60,8 +60,8 @@ class TestComplexSupportBasic:
     @pytest.mark.parametrize("array,expected", [
         (
             [1, 2, 2 + 1j],
-            (np.array([0, 1, 2]), np.array([(1 + 0j), (2 + 0j), (2 + 1j)],
-                                           dtype=object))
+            (np.array([0, 1, 2], dtype=np.int64),
+             np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=object))
         ),
     ])
     def test_factorize(self, array, expected):
@@ -83,3 +83,40 @@ class TestComplexSupportBasic:
     def test_groupby(self, frame, expected):
         result = frame.groupby("b", sort=False).count()
         tm.assert_frame_equal(result, expected)
+
+        # sorting of the index should fail since complex numbers are unordered
+        with pytest.raises(TypeError):
+            frame.groupby("b", sort=True).count()
+
+    @pytest.mark.parametrize("array,expected", [
+        (
+            [0, 1j, 1, 1, 1 + 1j, 1 + 2j],
+            Series([1], dtype=np.complex128)
+        ),
+        (
+            [1 + 1j, 2j, 1 + 1j],
+            Series([1 + 1j], dtype=np.complex128)
+        ),
+    ])
+    def test_unimode(self, array, expected):
+        result = Series(array).mode()
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("array,expected", [
+        (
+            # no modes
+            [0, 1j, 1, 1 + 1j, 1 + 2j],
+            Series([0, 1, 1j, 1 + 1j, 1 + 2j], dtype=np.complex128)
+        ),
+        (
+            [1 + 1j, 2j, 1 + 1j, 2j, 3],
+            Series([1 + 1j, 2j], dtype=np.complex128)
+        ),
+    ])
+    def test_multimode(self, array, expected):
+        # mode tries to sort multimodal series.
+        # A warning will be raise since complex numbers
+        # are not ordered.
+        with pytest.warns(UserWarning):
+            result = Series(array).mode()
+        tm.assert_series_equal(result, expected)

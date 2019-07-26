@@ -11,7 +11,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_extension_array_dtype,
     is_list_like,
-    is_object_dtype,
 )
 from pandas.core.dtypes.missing import isna
 
