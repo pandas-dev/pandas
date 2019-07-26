@@ -15,7 +15,7 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
+from typing import Dict, FrozenSet, List, Optional, Set, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -392,8 +392,8 @@ class DataFrame(NDFrame):
     # Constructors
 
     def __init__(self,
-                 data: Optional[Union[np.ndarray, dict,
-                                      ABCDataFrame]] = None,
+                 data: Optional[Union[np.ndarray, Dict,
+                                      "DataFrame"]] = None,
                  index: Optional[Axes] = None,
                  columns: Optional[Axes] = None,
                  dtype: Optional[Dtype] = None,
