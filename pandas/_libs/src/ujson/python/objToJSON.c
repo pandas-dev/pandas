@@ -1584,8 +1584,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
     PyObject *item = NULL;
     npy_intp i, stride, len;
     char **ret;
-    char *dataptr, *cLabel, *origend, *origst, *origoffset;
-    char labelBuffer[NPY_JSON_BUFSIZE];
+    char *dataptr, *cLabel;
     PyArray_GetItemFunc *getitem;
     int type_num;
     PRINTMARK();
@@ -1612,12 +1611,6 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
     for (i = 0; i < num; i++) {
         ret[i] = NULL;
     }
-
-    // Because we make calls to JSON encode with the shared encoder
-    // for the labels be sure to keep track of where we started
-    origst = enc->start;
-    origend = enc->end;
-    origoffset = enc->offset;
 
     stride = PyArray_STRIDE(labels, 0);
     dataptr = PyArray_DATA(labels);
@@ -1656,10 +1649,6 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
 
         dataptr += stride;
     }
-
-    enc->start = origst;
-    enc->end = origend;
-    enc->offset = origoffset;
     
     Py_DECREF(labels);
     return ret;
