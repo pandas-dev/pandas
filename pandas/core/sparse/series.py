@@ -20,7 +20,6 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import generic
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.sparse import SparseAccessor
-from pandas.core.index import Index
 from pandas.core.internals import SingleBlockManager
 import pandas.core.ops as ops
 from pandas.core.series import Series
@@ -318,23 +317,23 @@ class SparseSeries(Series):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def _ixs(self, i, axis=0):
+    def _ixs(self, i: int, axis: int = 0):
         """
         Return the i-th value or values in the SparseSeries by location
 
         Parameters
         ----------
-        i : int, slice, or sequence of integers
+        i : int
+        axis: int
+            default 0, ignored
 
         Returns
         -------
         value : scalar (int) or Series (slice, sequence)
         """
-        label = self.index[i]
-        if isinstance(label, Index):
-            return self.take(i, axis=axis)
-        else:
-            return self._get_val_at(i)
+        assert is_integer(i), i
+        # equiv: self._get_val_at(i) since we have an integer
+        return self.values[i]
 
     def _get_val_at(self, loc):
         """ forward to the array """
