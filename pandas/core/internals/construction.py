@@ -202,7 +202,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     return create_block_manager_from_blocks(block_values, [columns, index])
 
 
-def init_dict(data, index, columns, dtype=None):
+def init_dict(data: dict, index, columns, dtype=None):
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
@@ -213,7 +213,7 @@ def init_dict(data, index, columns, dtype=None):
         arrays = Series(data, index=columns, dtype=object)
         data_names = arrays.index
 
-        missing = arrays.isnull()
+        missing = arrays.isna()
         if index is None:
             # GH10856
             # raise ValueError if only scalars in dict
