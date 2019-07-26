@@ -35,7 +35,7 @@ class TestComplexSupportBasic:
     ])
     def test_unique(self, array, expected):
         result = algos.unique(array)
-        assert np.array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("array,expected", [
         (
@@ -69,7 +69,7 @@ class TestComplexSupportBasic:
         assert len(result) == 2
 
         for i, r in enumerate(result):
-            assert np.array_equal(r, expected[i])
+            tm.assert_numpy_array_equal(r, expected[i])
 
     @pytest.mark.parametrize("frame,expected", [
         (
@@ -81,5 +81,5 @@ class TestComplexSupportBasic:
         ),
     ])
     def test_groupby(self, frame, expected):
-        result = frame.groupby("b").count()
+        result = frame.groupby("b", sort=False).count()
         tm.assert_frame_equal(result, expected)

@@ -101,14 +101,7 @@ def _ensure_data(values, dtype=None):
         elif is_object_dtype(values) and dtype is None:
             return ensure_object(np.asarray(values)), "object", "object"
         elif is_complex_dtype(values) or is_complex_dtype(dtype):
-
-            # ignore the fact that we are casting to float
-            # which discards complex parts
-            # with catch_warnings():
-            #     simplefilter("ignore", np.ComplexWarning)
-            #     values = ensure_float64(values)
-            # return values, "float64", "float64"
-            return ensure_object(np.asarray(values)), "object", "object"
+            raise TypeError("Complex data types not supported...Coercing to object")
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype

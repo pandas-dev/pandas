@@ -11,6 +11,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_extension_array_dtype,
     is_list_like,
+    is_object_dtype,
 )
 from pandas.core.dtypes.missing import isna
 
@@ -443,11 +444,6 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False, verify=T
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
         values = np.asarray(values, dtype=dtype)
-
-    elif isinstance(values, np.ndarray) and values.dtype == object:
-        dtype = lib.infer_dtype(values)
-        if dtype == 'complex':
-            values = np.asarray(values, dtype=dtype)
 
     def sort_mixed(values):
         # order ints before strings, safe in py3
