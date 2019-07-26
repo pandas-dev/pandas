@@ -202,7 +202,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     return create_block_manager_from_blocks(block_values, [columns, index])
 
 
-def init_dict(data: dict, index, columns, dtype=None):
+def init_dict(data, index, columns, dtype=None):
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
