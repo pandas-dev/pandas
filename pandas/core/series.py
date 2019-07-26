@@ -1219,6 +1219,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         key = com.apply_if_callable(key, self)
         cacher_needs_updating = self._check_is_chained_assignment_possible()
 
+        def setitem_fallback(key, value):
+            if com.is_bool_indexer(key):
+                key = check_bool_indexer(self.index, key)
+                try:
+                    self._where(~key, value, inplace=True)
+                    return
+                except InvalidIndexError:
+                    pass
+
+            self._set_with(key, value)
+
         def setitem(key, value):
             try:
                 self._set_with_engine(key, value)
@@ -1246,15 +1257,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if _is_unorderable_exception(e):
                     raise IndexError(key)
 
-            if com.is_bool_indexer(key):
-                key = check_bool_indexer(self.index, key)
-                try:
-                    self._where(~key, value, inplace=True)
-                    return
-                except InvalidIndexError:
-                    pass
-
-            self._set_with(key, value)
+                setitem_fallback(key, value)
 
         # do the setitem
         setitem(key, value)
@@ -1293,7 +1296,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     self._set_values(key, value)
                 except Exception:
                     pass
-
 
             if is_scalar(key):
                 key = [key]
