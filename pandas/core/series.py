@@ -1234,9 +1234,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif key is Ellipsis:
                     self[:] = value
                     return
-
-                self.loc[key] = value
-                return
+                else:
+                    self.loc[key] = value
+                    return
 
             except TypeError as e:
                 if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
@@ -1279,6 +1279,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, slice):
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
             return self._set_values(indexer, value)
+
+        elif is_scalar(key) and not is_integer(key) and key not in self.index:
+            # GH#12862 adding an new key to the Series
+            # Note: have to exclude integers because that is ambiguously
+            #  position-based
+            self.loc[key] = value
+            return
+
         else:
             if isinstance(key, tuple):
                 try:
@@ -1286,12 +1294,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 except Exception:
                     pass
 
-            if is_scalar(key) and not is_integer(key) and key not in self.index:
-                # GH#12862 adding an new key to the Series
-                # Note: have to exclude integers because that is ambiguously
-                #  position-based
-                self.loc[key] = value
-                return
 
             if is_scalar(key):
                 key = [key]
