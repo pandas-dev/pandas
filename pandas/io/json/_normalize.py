@@ -10,6 +10,7 @@ import numpy as np
 from pandas._libs.writers import convert_json_to_lines
 
 from pandas import DataFrame
+from pandas.api.types import is_list_like
 
 
 def convert_to_line_delimits(s):
@@ -32,7 +33,7 @@ def _parse_use_keys(use_keys: Union[str, List, Callable, None]) -> Callable:
 
     Parameters
     ----------
-    use_keys : Str, List or Callable, optional, default: None
+    use_keys : Str, List or Callable
         Returns true or false depending on whether to include or exclude a key
 
         .. versionadded:: 1.0.0
@@ -46,14 +47,13 @@ def _parse_use_keys(use_keys: Union[str, List, Callable, None]) -> Callable:
     if callable(use_keys):
         return use_keys
 
-    if isinstance(use_keys, list):
+    if is_list_like(use_keys):
         return lambda x: x in use_keys  # type: ignore
 
     if isinstance(use_keys, str):
         return lambda x: x == use_keys
 
-    if not use_keys:
-        return lambda x: True
+    return lambda x: True
 
 
 def nested_to_record(
@@ -135,8 +135,7 @@ def nested_to_record(
             # only at level>1 do we rename the rest of the keys
 
             if (
-                use_key
-                and not use_key(k)
+                not use_key(k)
                 or (not isinstance(v, dict))
                 or (max_level is not None and level >= max_level)
             ):

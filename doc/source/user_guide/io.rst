@@ -2187,7 +2187,7 @@ With max_level=1 the following snippet normalizes until 1st nesting level of the
 
 .. versionadded:: 1.0.0
 
-The use_key parameter allows you to include or exclude specific keys while normalizing.
+The ``use_keys`` parameter allows you to include or exclude specific keys while normalizing.
 With ``use_keys`` the following snippet normalizes all keys except "Image".
 
 .. ipython:: python
