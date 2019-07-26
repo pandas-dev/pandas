@@ -45,7 +45,7 @@ Backwards incompatible API changes
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
--
+- :meth:`pandas.Series.str.cat` now defaults to aligning ``others``, using ``join='left'`` (:issue:`27611`)
 -
 
 .. _whatsnew_1000.deprecations:
