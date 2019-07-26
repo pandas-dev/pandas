@@ -1230,37 +1230,29 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             self._set_with(key, value)
 
-        def setitem(key, value):
-            try:
-                self._set_with_engine(key, value)
-                return
-            except com.SettingWithCopyError:
-                raise
-            except (KeyError, ValueError):
-                values = self._values
-                if is_integer(key) and not self.index.inferred_type == "integer":
+        try:
+            self._set_with_engine(key, value)
+        except com.SettingWithCopyError:
+            raise
+        except (KeyError, ValueError):
+            values = self._values
+            if is_integer(key) and not self.index.inferred_type == "integer":
+                values[key] = value
+            elif key is Ellipsis:
+                self[:] = value
+            else:
+                self.loc[key] = value
 
-                    values[key] = value
-                    return
-                elif key is Ellipsis:
-                    self[:] = value
-                    return
-                else:
-                    self.loc[key] = value
-                    return
+        except TypeError as e:
+            if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
+                raise ValueError("Can only tuple-index with a MultiIndex")
 
-            except TypeError as e:
-                if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
-                    raise ValueError("Can only tuple-index with a MultiIndex")
+            # python 3 type errors should be raised
+            if _is_unorderable_exception(e):
+                raise IndexError(key)
 
-                # python 3 type errors should be raised
-                if _is_unorderable_exception(e):
-                    raise IndexError(key)
+            setitem_fallback(key, value)
 
-                setitem_fallback(key, value)
-
-        # do the setitem
-        setitem(key, value)
         if cacher_needs_updating:
             self._maybe_update_cacher()
 
