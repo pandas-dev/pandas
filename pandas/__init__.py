@@ -178,6 +178,10 @@ from pandas.io.api import (
     read_spss,
 )
 
+from pandas.io.json import (
+    json_normalize
+)
+
 from pandas.util._tester import test
 import pandas.testing
 import pandas.arrays

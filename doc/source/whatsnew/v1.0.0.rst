@@ -52,7 +52,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
-
+- Moved :func:`pandas.io.json.json_normalize` to the top-level namespace as :func:`pandas.json_normalize`.
 -
 -
 
