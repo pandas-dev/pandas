@@ -2471,6 +2471,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """ reverse of try_coerce_args """
         if isinstance(result, np.ndarray):
             if result.ndim == 2:
+                # kludge for 2D blocks with 1D EAs
                 result = result[0, :]
             if result.dtype == np.float64:
                 # needed for post-groupby.median
