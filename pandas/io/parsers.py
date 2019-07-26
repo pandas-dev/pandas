@@ -277,9 +277,6 @@ compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
     following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
     decompression). If using 'zip', the ZIP file must contain only one data
     file to be read in. Set to None for no decompression.
-
-    .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
-
 thousands : str, optional
     Thousands separator.
 decimal : str, default '.'
@@ -329,9 +326,6 @@ delim_whitespace : bool, default False
     used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
     is set to True, nothing should be passed in for the ``delimiter``
     parameter.
-
-    .. versionadded:: 0.18.1 support for the Python parser.
-
 low_memory : bool, default True
     Internally process the file in chunks, resulting in lower memory use
     while parsing, but possibly mixed type inference.  To ensure no mixed

@@ -40,6 +40,7 @@ from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
+from pandas.core.index import Index, MultiIndex, ensure_index
 
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
@@ -252,7 +253,7 @@ class _Window(PandasObject, SelectionMixin):
 
         return values
 
-    def _wrap_result(self, result, block=None, obj=None) -> FrameOrSeries:
+    def _wrap_result(self, result, block=None, obj=None):
         """
         Wrap a single result.
         """
@@ -293,7 +294,6 @@ class _Window(PandasObject, SelectionMixin):
         """
 
         from pandas import Series, concat
-        from pandas.core.index import ensure_index
 
         final = []
         for result, block in zip(results, blocks):
@@ -621,8 +621,6 @@ class Window(_Window):
     """
     Provide rolling window calculations.
 
-    .. versionadded:: 0.18.0
-
     Parameters
     ----------
     window : int, or offset
@@ -631,8 +629,7 @@ class Window(_Window):
 
         If its an offset then this will be the time period of each window. Each
         window will be a variable sized based on the observations included in
-        the time-period. This is only valid for datetimelike indexes. This is
-        new in 0.19.0
+        the time-period. This is only valid for datetimelike indexes.
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA). For a window that is specified by an offset,
@@ -1700,8 +1697,6 @@ class Rolling(_Rolling_and_Expanding):
         if self.on is None:
             return self.obj.index
         elif isinstance(self.obj, ABCDataFrame) and self.on in self.obj.columns:
-            from pandas import Index
-
             return Index(self.obj[self.on])
         else:
             raise ValueError(
@@ -1957,9 +1952,6 @@ class Rolling(_Rolling_and_Expanding):
 class RollingGroupby(_GroupByMixin, Rolling):
     """
     Provide a rolling groupby implementation.
-
-    .. versionadded:: 0.18.1
-
     """
 
     @property
@@ -1989,8 +1981,6 @@ class RollingGroupby(_GroupByMixin, Rolling):
 class Expanding(_Rolling_and_Expanding):
     """
     Provide expanding transformations.
-
-    .. versionadded:: 0.18.0
 
     Parameters
     ----------
@@ -2234,9 +2224,6 @@ class Expanding(_Rolling_and_Expanding):
 class ExpandingGroupby(_GroupByMixin, Expanding):
     """
     Provide a expanding groupby implementation.
-
-    .. versionadded:: 0.18.1
-
     """
 
     @property
@@ -2277,8 +2264,6 @@ class EWM(_Rolling):
     r"""
     Provide exponential weighted functions.
 
-    .. versionadded:: 0.18.0
-
     Parameters
     ----------
     com : float, optional
@@ -2293,9 +2278,6 @@ class EWM(_Rolling):
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
         :math:`0 < \alpha \leq 1`.
-
-        .. versionadded:: 0.18.0
-
     min_periods : int, default 0
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
@@ -2692,7 +2674,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                                 *_prep_binary(arg1.iloc[:, i], arg2.iloc[:, j])
                             )
 
-                from pandas import MultiIndex, concat
+                from pandas import concat
 
                 result_index = arg1.index.union(arg2.index)
                 if len(result_index):

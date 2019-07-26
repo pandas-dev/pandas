@@ -254,8 +254,6 @@ values will be set to ``NaN``.
    df3
    df3.unstack()
 
-.. versionadded:: 0.18.0
-
 Alternatively, unstack takes an optional ``fill_value`` argument, for specifying
 the value of missing data.
 
@@ -486,8 +484,6 @@ not contain any instances of a particular category.
 Normalization
 ~~~~~~~~~~~~~
 
-.. versionadded:: 0.18.1
-
 Frequency tables can also be normalized to show percentages rather than counts
 using the ``normalize`` argument:
 
@@ -629,8 +625,6 @@ the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:
     from_list
     from_dict = pd.get_dummies(df, prefix={'B': 'from_B', 'A': 'from_A'})
     from_dict
-
-.. versionadded:: 0.18.0
 
 Sometimes it will be useful to only keep k-1 levels of a categorical
 variable to avoid collinearity when feeding the result to statistical models.
