@@ -24,9 +24,6 @@ Other enhancements
 
 Bug fixes
 ~~~~~~~~~
-I/O
-^^^
-- Bug in :func:`DataFrame.to_excel()` where cells are missing in the excel file when exporting excel using ``xlsxwriter`` with option ``constant_memory`` set to ``True`` ((:issue:`15392`)
 
 
 Categorical
@@ -109,7 +106,7 @@ MultiIndex
 I/O
 ^^^
 
--
+- Bug in :func:`DataFrame.to_excel()` where cells are missing in the excel file when exporting excel using ``xlsxwriter`` with option ``constant_memory`` set to ``True`` ((:issue:`15392`)
 -
 -
 
