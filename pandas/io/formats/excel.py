@@ -674,13 +674,15 @@ class ExcelFormatter:
                 styles = None
         xlstyle = None
 
-        # Write the body of the frame data series by series.
-        for colidx in range(len(self.columns)):
-            series = self.df.iloc[:, colidx]
-            for i, val in enumerate(series):
+        # Write the body of the frame data row by row.
+        nrow, ncol = self.df.shape
+        for rowidx in range(nrow):
+            row = self.df.iloc[rowidx, :]
+            for colidx, val in enumerate(row):
                 if styles is not None:
-                    xlstyle = self.style_converter(";".join(styles[i, colidx]))
-                yield ExcelCell(self.rowcounter + i, colidx + coloffset, val, xlstyle)
+                    xlstyle = self.style_converter(';'.join(styles[rowidx, colidx]))
+                yield ExcelCell(self.rowcounter + rowidx, colidx + coloffset, val,
+                                xlstyle)
 
     def get_formatted_cells(self):
         for cell in itertools.chain(self._format_header(), self._format_body()):
