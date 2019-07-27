@@ -2230,6 +2230,11 @@ class NDFrame(PandasObject, SelectionMixin):
     ):
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
+        from pandas.io.excel._xlsxwriter import _XlsxWriter
+        if isinstance(excel_writer, _XlsxWriter) and excel_writer.book.constant_memory:
+            merge_cells = False
+            warnings.warn('merge_cell is set to False when constant_memory=True for xlsxwriter', RuntimeWarning)
+
         from pandas.io.formats.excel import ExcelFormatter
 
         formatter = ExcelFormatter(
