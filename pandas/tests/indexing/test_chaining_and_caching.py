@@ -365,12 +365,6 @@ class TestChaining:
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 
-        df = tm.makeDataFrame()
-        df["A"]  # cache series
-        df.ix["Hello Friend"] = df.ix[0]
-        assert "Hello Friend" in df["A"].index
-        assert "Hello Friend" in df["B"].index
-
         # 10264
         df = DataFrame(
             np.zeros((5, 5), dtype="int64"),

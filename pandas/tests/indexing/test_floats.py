@@ -134,8 +134,7 @@ class TestFloatIndexers:
 
                     # these should prob work
                     # and are inconsisten between series/dataframe ATM
-                    # for idxr in [lambda x: x.ix,
-                    #             lambda x: x]:
+                    # for idxr in [lambda x: x]:
                     #    s2 = s.copy()
                     #
                     #    with pytest.raises(TypeError):

@@ -1,7 +1,7 @@
 """ common utilities """
 
 import itertools
-from warnings import catch_warnings, filterwarnings
+from warnings import catch_warnings
 
 import numpy as np
 
@@ -154,9 +154,12 @@ class Base:
         # for a in reversed(i):
         #    v = v.__getitem__(a)
         # return v
-        with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", FutureWarning)
-            return f.ix[i]
+
+        # TODO: this used to be f.ix[i]; is loc-then-iloc correct here?
+        try:
+            return f.loc[i]
+        except KeyError:
+            return f.iloc[i]
 
     def check_values(self, f, func, values=False):
 

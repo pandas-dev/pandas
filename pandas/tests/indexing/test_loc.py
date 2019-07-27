@@ -1,7 +1,6 @@
 """ test label based indexing with loc """
 from io import StringIO
 import re
-from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 import pytest
@@ -954,11 +953,6 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame([[1, 1], [1, 1]])
         df.index.name = "index_name"
         result = df.iloc[[0, 1]].index.name
-        assert result == "index_name"
-
-        with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", FutureWarning)
-            result = df.ix[[0, 1]].index.name
         assert result == "index_name"
 
         result = df.loc[[0, 1]].index.name

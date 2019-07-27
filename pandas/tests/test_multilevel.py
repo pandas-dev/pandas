@@ -2,7 +2,6 @@ import datetime
 from io import StringIO
 import itertools
 from itertools import product
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 from numpy.random import randn
@@ -209,22 +208,12 @@ class TestMultiLevel(Base):
         reindexed = self.frame.loc[[("foo", "one"), ("bar", "one")]]
         tm.assert_frame_equal(reindexed, expected)
 
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            reindexed = self.frame.ix[[("foo", "one"), ("bar", "one")]]
-        tm.assert_frame_equal(reindexed, expected)
-
     def test_reindex_preserve_levels(self):
         new_index = self.ymd.index[::10]
         chunk = self.ymd.reindex(new_index)
         assert chunk.index is new_index
 
         chunk = self.ymd.loc[new_index]
-        assert chunk.index is new_index
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            chunk = self.ymd.ix[new_index]
         assert chunk.index is new_index
 
         ymdT = self.ymd.T
