@@ -475,7 +475,7 @@ These operations are supported by :func:`pandas.eval`:
 * Comparison operations, including chained comparisons, e.g., ``2 < df < df2``
 * Boolean operations, e.g., ``df < df2 and df3 < df4 or not df_bool``
 * ``list`` and ``tuple`` literals, e.g., ``[1, 2]`` or ``(1, 2)``
-* Attribute access, e.g., ``df['a']``
+* Attribute access, e.g., ``df.a``
 * Subscript expressions, e.g., ``df[0]``
 * Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
 * Math functions: `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
