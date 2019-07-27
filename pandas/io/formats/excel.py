@@ -578,15 +578,20 @@ class ExcelFormatter:
             if isinstance(self.df.index, ABCPeriodIndex):
                 index_values = self.df.index.to_timestamp()
 
-            for idx, idxval in enumerate(index_values):
-                yield ExcelCell(self.rowcounter + idx, 0, idxval, self.header_style)
-
             coloffset = 1
+            body = self._generate_body(coloffset)
+            _, ncol = self.df.shape
+            for idx, idxval in enumerate(index_values):
+                yield ExcelCell(self.rowcounter + idx, 0, idxval,
+                                self.header_style)
+                i = 0
+                while i < ncol:
+                    yield next(body)
+                    i += 1
         else:
             coloffset = 0
-
-        for cell in self._generate_body(coloffset):
-            yield cell
+            for cell in self._generate_body(coloffset):
+                yield cell
 
     def _format_hierarchical_rows(self):
         has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
