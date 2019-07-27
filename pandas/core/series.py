@@ -952,7 +952,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the real value of vector.
 
-        .. deprecated 0.25.0
+        .. deprecated:: 0.25.0
         """
         warnings.warn(
             "`real` has be deprecated and will be removed in a future version",
@@ -970,7 +970,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return imag value of vector.
 
-        .. deprecated 0.25.0
+        .. deprecated:: 0.25.0
         """
         warnings.warn(
             "`imag` has be deprecated and will be removed in a future version",
