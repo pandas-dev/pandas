@@ -734,10 +734,6 @@ class Block(PandasObject):
 
         return other
 
-    def _try_coerce_and_cast_result(self, result, dtype=None):
-        result = self._try_cast_result(result, dtype=dtype)
-        return result
-
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
@@ -931,7 +927,7 @@ class Block(PandasObject):
             values[indexer] = value
 
         # coerce and try to infer the dtypes of the result
-        values = self._try_coerce_and_cast_result(values, dtype)
+        #values = self._try_cast_result(values, dtype)
         if transpose:
             values = values.T
         block = self.make_block(values)
@@ -1442,8 +1438,8 @@ class Block(PandasObject):
                 result = result.T
 
             # try to cast if requested
-            if try_cast:
-                result = self._try_cast_result(result)
+            #if try_cast:
+            #    result = self._try_cast_result(result)
 
             return self.make_block(result)
 
@@ -1456,7 +1452,7 @@ class Block(PandasObject):
         for m in [mask, ~mask]:
             if m.any():
                 taken = result.take(m.nonzero()[0], axis=axis)
-                r = self._try_cast_result(taken)
+                r = self._try_cast_result(taken)  # Note: removing this breaks stuff
                 nb = self.make_block(r.T, placement=self.mgr_locs[m])
                 result_blocks.append(nb)
 
@@ -2422,10 +2418,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             raise TypeError(other)
 
         return other
-
-    @property
-    def _box_func(self):
-        return lambda x: tslibs.Timestamp(x, tz=self.dtype.tz)
 
     def diff(self, n, axis=0):
         """1st discrete difference

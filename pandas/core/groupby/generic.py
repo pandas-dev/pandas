@@ -183,7 +183,7 @@ class NDFrameGroupBy(GroupBy):
                     dtype = block.values.dtype
 
                     # see if we can cast the block back to the original dtype
-                    result = block._try_coerce_and_cast_result(result, dtype=dtype)
+                    result = block._try_cast_result(result, dtype=dtype)
                     newb = block.make_block(result)
 
             new_items.append(locs)
