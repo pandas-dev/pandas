@@ -25,6 +25,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
+    is_datetime64tz_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_sparse,
@@ -451,6 +452,16 @@ class BaseGrouper:
 
     def _cython_operation(self, kind, values, how, axis, min_count=-1, **kwargs):
         assert kind in ["transform", "aggregate"]
+
+        if is_datetime64tz_dtype(values):
+            # TODO: possible need to reshape?  kludge can be avoided when
+            #  2D EA is allowed.
+            naive = values.view("M8[ns]")
+            result, names = self._cython_operation(
+                kind, naive, how=how, axis=axis, min_count=min_count, **kwargs
+            )
+            result = type(values)(result.astype(np.int64), dtype=values.dtype)
+            return result, names
 
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
