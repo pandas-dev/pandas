@@ -913,8 +913,6 @@ class Block(PandasObject):
         else:
             values[indexer] = value
 
-        # coerce and try to infer the dtypes of the result
-        #values = self._try_cast_result(values, dtype)
         if transpose:
             values = values.T
         block = self.make_block(values)
@@ -1423,10 +1421,6 @@ class Block(PandasObject):
 
             if transpose:
                 result = result.T
-
-            # try to cast if requested
-            #if try_cast:
-            #    result = self._try_cast_result(result)
 
             return self.make_block(result)
 
