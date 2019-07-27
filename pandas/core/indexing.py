@@ -117,6 +117,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         raise NotImplementedError("ix is not iterable")
 
     def __getitem__(self, key):
+        # Used in ix and downstream in geopandas _CoordinateIndexer
         if type(key) is tuple:
             # Note: we check the type exactly instead of with isinstance
             #  because NamedTuple is checked separately.
@@ -181,7 +182,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 pass
 
         if isinstance(key, range):
-            return self._convert_range(key, is_setter=True)
+            return list(key)
 
         axis = self.axis or 0
         try:
@@ -257,10 +258,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 idx = self._convert_to_indexer(k, axis=i)
                 keyidx.append(idx)
         return tuple(keyidx)
-
-    def _convert_range(self, key: range, is_setter: bool = False):
-        """ convert a range argument """
-        return list(key)
 
     def _convert_scalar_indexer(self, key, axis: int):
         # if we are accessing via lowered dim, use the last dim

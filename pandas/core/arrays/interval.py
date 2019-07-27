@@ -1206,7 +1206,7 @@ def maybe_convert_platform_interval(values):
     """
     if isinstance(values, (list, tuple)) and len(values) == 0:
         # GH 19016
-        # empty lists/tuples get object dtype by default, but this is not
+        # empty lists/tuples get object dtype by default, but this is
         # prohibited for IntervalArray, so coerce to integer instead
         return np.array([], dtype=np.int64)
     elif is_categorical_dtype(values):
