@@ -466,8 +466,12 @@ def interpolate_2d(
     if is_datetime64tz_dtype(values):
         naive = values.view("M8[ns]")
         result = interpolate_2d(
-            naive, method=method, axis=axis, limit=limit,
-            fill_value=fill_value, dtype=dtype
+            naive,
+            method=method,
+            axis=axis,
+            limit=limit,
+            fill_value=fill_value,
+            dtype=dtype,
         )
         return type(values)._from_sequence(result, dtype=values.dtype)
 
@@ -499,7 +503,7 @@ def interpolate_2d(
     if ndim == 1:
         values = values[0]
 
-    if orig_values.dtype.kind == 'M':
+    if orig_values.dtype.kind == "M":
         # convert float back to datetime64
         values = values.astype(orig_values.dtype)
 
