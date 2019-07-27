@@ -757,7 +757,7 @@ def get_validation_data(doc):
             if doc.method_returns_something:
                 errs.append(error("RT01"))
         else:
-            if len(doc.returns) == 1 and doc.returns[0].name:
+            if len(doc.returns) == 1 and doc.returns[0][1]:
                 errs.append(error("RT02"))
             for name_or_type, type_, desc in doc.returns:
                 if not desc:
