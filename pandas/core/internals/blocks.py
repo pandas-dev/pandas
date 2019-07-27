@@ -55,7 +55,6 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
     ABCExtensionArray,
-    ABCIndexClass,
     ABCPandasArray,
     ABCSeries,
 )
@@ -690,27 +689,15 @@ class Block(PandasObject):
             return issubclass(tipo.type, dtype)
         return isinstance(element, dtype)
 
-    def _try_cast_result(self, result, dtype=None):
+    def _try_cast_result(self, result):
         """ try to cast the result to our original type, we may have
         roundtripped thru object in the mean-time
         """
-        if dtype is None:
-            dtype = self.dtype
-
-        if self.is_integer or self.is_bool or self.is_datetime:
-            pass
-        elif self.is_float and result.dtype == self.dtype:
-            # protect against a bool/object showing up here
-            if isinstance(dtype, str) and dtype == "infer":
-                return result
-
-            # This is only reached via Block.setitem, where dtype is always
-            #  either "infer", self.dtype, or values.dtype.
-            assert dtype == self.dtype, (dtype, self.dtype)
+        if self.is_float and result.dtype == self.dtype:
             return result
 
         # may need to change the dtype here
-        return maybe_downcast_to_dtype(result, dtype)
+        return maybe_downcast_to_dtype(result, self.dtype)
 
     def _try_coerce_args(self, other):
         """ provide coercion to our input arguments """
@@ -1687,7 +1674,7 @@ class NonConsolidatableMixIn:
         new_values[mask] = new
         return [self.make_block(values=new_values)]
 
-    def _try_cast_result(self, result, dtype=None):
+    def _try_cast_result(self, result):
         return result
 
     def _get_unstack_items(self, unstacker, new_columns):
@@ -1741,7 +1728,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         super().__init__(values, placement, ndim)
 
     def _maybe_coerce_values(self, values):
-        """Unbox to an extension array.
+        """
+        Unbox to an extension array.
 
         This will unbox an ExtensionArray stored in an Index or Series.
         ExtensionArrays pass through. No dtype coercion is done.
@@ -1754,9 +1742,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         -------
         ExtensionArray
         """
-        if isinstance(values, (ABCIndexClass, ABCSeries)):
-            values = values._values
-        return values
+        return extract_array(values)
 
     @property
     def _holder(self):

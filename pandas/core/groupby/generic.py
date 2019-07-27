@@ -180,10 +180,8 @@ class NDFrameGroupBy(GroupBy):
                     continue
             finally:
                 if result is not no_result:
-                    dtype = block.values.dtype
-
                     # see if we can cast the block back to the original dtype
-                    result = block._try_cast_result(result, dtype=dtype)
+                    result = block._try_cast_result(result)
                     newb = block.make_block(result)
 
             new_items.append(locs)
