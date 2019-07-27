@@ -470,7 +470,6 @@ class TestStringMethods:
         )
 
         result = s.str.cat(t, sep=sep)
-        print(s, t, result)
         assert_series_or_index_equal(result, expected)
 
     # test integer/float dtypes (inferred by constructor) and mixed
