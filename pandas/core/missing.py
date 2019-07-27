@@ -463,6 +463,15 @@ def interpolate_2d(
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
     """
+    if is_datetime64tz_dtype(values):
+        naive = values.view("M8[ns]")
+        result = interpolate_2d(
+            naive, method=method, axis=axis, limit=limit,
+            fill_value=fill_value, dtype=dtype
+        )
+        return type(values)._from_sequence(result, dtype=values.dtype)
+
+    orig_values = values
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
@@ -470,7 +479,7 @@ def interpolate_2d(
     ndim = values.ndim
     if values.ndim == 1:
         if axis != 0:  # pragma: no cover
-            raise AssertionError("cannot interpolate on a ndim == 1 with " "axis != 0")
+            raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
         values = values.reshape(tuple((1,) + values.shape))
 
     if fill_value is None:
@@ -489,6 +498,10 @@ def interpolate_2d(
     # reshape back
     if ndim == 1:
         values = values[0]
+
+    if orig_values.dtype.kind == 'M':
+        # convert float back to datetime64
+        values = values.astype(orig_values.dtype)
 
     return values
 
