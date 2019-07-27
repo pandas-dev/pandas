@@ -582,8 +582,7 @@ class ExcelFormatter:
             body = self._generate_body(coloffset)
             _, ncol = self.df.shape
             for idx, idxval in enumerate(index_values):
-                yield ExcelCell(self.rowcounter + idx, 0, idxval,
-                                self.header_style)
+                yield ExcelCell(self.rowcounter + idx, 0, idxval, self.header_style)
                 i = 0
                 while i < ncol:
                     yield next(body)
@@ -679,8 +678,6 @@ class ExcelFormatter:
             for cell in self._generate_body(colidx):
                 yield cell
 
-
-
     def _generate_body(self, coloffset):
         if self.styler is None:
             styles = None
@@ -696,9 +693,10 @@ class ExcelFormatter:
             row = self.df.iloc[rowidx, :]
             for colidx, val in enumerate(row):
                 if styles is not None:
-                    xlstyle = self.style_converter(';'.join(styles[rowidx, colidx]))
-                yield ExcelCell(self.rowcounter + rowidx, colidx + coloffset, val,
-                                xlstyle)
+                    xlstyle = self.style_converter(";".join(styles[rowidx, colidx]))
+                yield ExcelCell(
+                    self.rowcounter + rowidx, colidx + coloffset, val, xlstyle
+                )
 
     def get_formatted_cells(self):
         for cell in itertools.chain(self._format_header(), self._format_body()):
