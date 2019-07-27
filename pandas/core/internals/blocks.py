@@ -2423,10 +2423,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
         return other
 
-    @property
-    def _box_func(self):
-        return lambda x: tslibs.Timestamp(x, tz=self.dtype.tz)
-
     def diff(self, n, axis=0):
         """1st discrete difference
 
