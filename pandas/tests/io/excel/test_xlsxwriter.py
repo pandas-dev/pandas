@@ -2,8 +2,8 @@ import warnings
 
 import pytest
 
-from pandas import DataFrame
-from pandas.util.testing import ensure_clean
+from pandas import DataFrame, read_excel, MultiIndex
+from pandas.util.testing import ensure_clean, assert_frame_equal
 
 from pandas.io.excel import ExcelWriter
 
@@ -62,3 +62,44 @@ def test_write_append_mode_raises(ext):
     with ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=msg):
             ExcelWriter(f, engine="xlsxwriter", mode="a")
+
+def test_constant_memory_regularindex(ext):
+    # Test if cells are written row by row which is the requirement when exporting excel using xlsxwriter with
+    # constant_memory set True, for regular index.
+    # Test for issue #15392.
+    # Applicable to xlsxwriter only.
+    with warnings.catch_warnings():
+        # Ignore the openpyxl lxml warning.
+        warnings.simplefilter("ignore")
+        openpyxl = pytest.importorskip("openpyxl")
+
+    with ensure_clean(ext) as path:
+        df = DataFrame({"A": [123456, 123456], "B": [123456, 123456]})
+
+        with ExcelWriter(path, engine='xlsxwriter', options=dict(constant_memory=True)) as writer:
+            df.to_excel(writer)
+
+        read_df = read_excel(path, header=0, index_col=0)
+
+        assert_frame_equal(df, read_df)
+
+def test_constant_memory_multiindex(ext):
+    # Test if cells are written row by row which is the requirement when exporting excel using xlsxwriter with
+    # constant_memory set True, for MultiIndex.
+    # Test for issue #15392.
+    # Applicable to xlsxwriter only.
+    with warnings.catch_warnings():
+        # Ignore the openpyxl lxml warning.
+        warnings.simplefilter("ignore")
+        openpyxl = pytest.importorskip("openpyxl")
+
+    with ensure_clean(ext) as path:
+        df = DataFrame({"A": [123456, 123456], "B": [123456, 123456]})
+        df.index = MultiIndex.from_arrays([['a', 'a'],[1, 2]])
+
+        with ExcelWriter(path, engine='xlsxwriter', options=dict(constant_memory=True)) as writer:
+            df.to_excel(writer)
+
+        read_df = read_excel(path, header=0, index_col=[0, 1])
+
+        assert_frame_equal(df, read_df)
