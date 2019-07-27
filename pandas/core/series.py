@@ -156,7 +156,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     data : array-like, Iterable, dict, or scalar value
         Contains data stored in Series.
 
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
            If data is a dict, argument order is maintained for Python 3.6
            and later.
 
@@ -370,7 +370,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Construct Series from array.
 
-        .. deprecated :: 0.23.0
+        .. deprecated:: 0.23.0
             Use pd.Series(..) constructor instead.
 
         Returns
@@ -597,7 +597,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return object Series which contains boxed values.
 
-        .. deprecated :: 0.23.0
+        .. deprecated:: 0.23.0
 
            Use ``astype(object)`` instead.
 

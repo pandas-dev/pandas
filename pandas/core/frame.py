@@ -310,11 +310,11 @@ class DataFrame(NDFrame):
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, or list-like objects
 
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
            If data is a dict, column order follows insertion-order for
            Python 3.6 and later.
 
-        .. versionchanged :: 0.25.0
+        .. versionchanged:: 0.25.0
            If data is a list of dicts, column order follows insertion-order
            Python 3.6 and later.
 
@@ -3560,7 +3560,7 @@ class DataFrame(NDFrame):
         or modified columns. All items are computed first, and then assigned
         in alphabetical order.
 
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
 
            Keyword argument order is maintained for Python 3.6 and later.
 
@@ -5628,7 +5628,7 @@ class DataFrame(NDFrame):
             If 'raise', will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
 
-            .. versionchanged :: 0.24.0
+            .. versionchanged:: 0.24.0
                Changed from `raise_conflict=False|True`
                to `errors='ignore'|'raise'`.
 
@@ -5774,7 +5774,7 @@ class DataFrame(NDFrame):
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
 
-            .. versionchanged :: 0.23.0
+            .. versionchanged:: 0.23.0
                Also accept list of column names.
 
         Returns
@@ -5903,7 +5903,7 @@ class DataFrame(NDFrame):
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
-            .. versionchanged :: 0.25.0
+            .. versionchanged:: 0.25.0
 
         Returns
         -------

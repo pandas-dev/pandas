@@ -1559,7 +1559,7 @@ class IndexOpsMixin:
             A scalar or array of insertion points with the
             same shape as `value`.
 
-            .. versionchanged :: 0.24.0
+            .. versionchanged:: 0.24.0
                 If `value` is a scalar, an int is now always returned.
                 Previously, scalar inputs returned an 1-item array for
                 :class:`Series` and :class:`Categorical`.
