@@ -2836,11 +2836,13 @@ class DataFrame(NDFrame):
         # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
+            # either we have a slice or we have a string that can be converted
+            #  to a slice for partial-string date indexing
             return self._slice(indexer, axis=0)
 
         # Do we have a (boolean) DataFrame?
         if isinstance(key, DataFrame):
-            return self._getitem_frame(key)
+            return self.where(key)
 
         # Do we have a (boolean) 1d indexer?
         if com.is_bool_indexer(key):
@@ -2938,11 +2940,6 @@ class DataFrame(NDFrame):
         else:
             return self._get_item_cache(key)
 
-    def _getitem_frame(self, key):
-        if key.values.size and not is_bool_dtype(key.values):
-            raise ValueError("Must pass DataFrame with boolean values only")
-        return self.where(key)
-
     def _get_value(self, index, col, takeable: bool = False):
         """
         Quickly retrieve single value at passed column and index.
@@ -2986,6 +2983,8 @@ class DataFrame(NDFrame):
         # see if we can slice the rows
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
+            # either we have a slice or we have a string that can be converted
+            #  to a slice for partial-string date indexing
             return self._setitem_slice(indexer, value)
 
         if isinstance(key, DataFrame) or getattr(key, "ndim", None) == 2:

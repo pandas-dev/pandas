@@ -324,7 +324,7 @@ class SparseSeries(Series):
         Parameters
         ----------
         i : int
-        axis: int
+        axis : int
             default 0, ignored
 
         Returns
