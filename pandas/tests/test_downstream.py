@@ -123,6 +123,7 @@ def test_geopandas():
     assert geopandas.read_file(fp) is not None
 
 
+@pytest.mark.xfail(reason="ix-only methods have been removed from _NDFrameIndexer")
 def test_geopandas_coordinate_indexer():
     # this test is included to have coverage of one case in the indexing.py
     # code that is only kept for compatibility with geopandas, see

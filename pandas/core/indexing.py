@@ -110,37 +110,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         new_self.axis = axis
         return new_self
 
-    def __iter__(self):
-        raise NotImplementedError("ix is not iterable")
-
-    def __getitem__(self, key):
-        if type(key) is tuple:
-            # Note: we check the type exactly instead of with isinstance
-            #  because NamedTuple is checked separately.
-            key = tuple(com.apply_if_callable(x, self.obj) for x in key)
-            try:
-                values = self.obj._get_value(*key)
-            except (KeyError, TypeError, InvalidIndexError):
-                # TypeError occurs here if the key has non-hashable entries,
-                #  generally slice or list.
-                # TODO(ix): most/all of the TypeError cases here are for ix,
-                #  so this check can be removed once ix is removed.
-                # The InvalidIndexError is only catched for compatibility
-                #  with geopandas, see
-                #  https://github.com/pandas-dev/pandas/issues/27258
-                pass
-            else:
-                if is_scalar(values):
-                    return values
-
-            return self._getitem_tuple(key)
-        else:
-            # we by definition only have the 0th axis
-            axis = self.axis or 0
-
-            key = com.apply_if_callable(key, self.obj)
-            return self._getitem_axis(key, axis=axis)
-
     def _get_label(self, label, axis: int):
         if self.ndim == 1:
             # for perf reasons we want to try _xs first
@@ -977,41 +946,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 axis -= 1
 
         return obj
-
-    def _getitem_axis(self, key, axis: int):
-        if is_iterator(key):
-            key = list(key)
-        self._validate_key(key, axis)
-
-        labels = self.obj._get_axis(axis)
-        if isinstance(key, slice):
-            return self._get_slice_axis(key, axis=axis)
-        elif is_list_like_indexer(key) and not (
-            isinstance(key, tuple) and isinstance(labels, MultiIndex)
-        ):
-
-            if hasattr(key, "ndim") and key.ndim > 1:
-                raise ValueError("Cannot index with multidimensional key")
-
-            return self._getitem_iterable(key, axis=axis)
-        else:
-
-            # maybe coerce a float scalar to integer
-            key = labels._maybe_cast_indexer(key)
-
-            if is_integer(key):
-                if axis == 0 and isinstance(labels, MultiIndex):
-                    try:
-                        return self._get_label(key, axis=axis)
-                    except (KeyError, TypeError):
-                        if self.obj.index.levels[0].is_integer():
-                            raise
-
-                # this is the fallback! (for a non-float, non-integer index)
-                if not labels.is_floating() and not labels.is_integer():
-                    return self._get_loc(key, axis=axis)
-
-            return self._get_label(key, axis=axis)
 
     def _get_listlike_indexer(self, key, axis: int, raise_missing: bool = False):
         """
