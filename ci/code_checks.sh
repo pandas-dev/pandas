@@ -56,7 +56,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     black --version
 
     MSG='Checking black formatting' ; echo $MSG
-	black . --check --exclude '(asv_bench/env|\.egg|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist)'
+	black . --check --exclude '(asv_bench/env|\.egg|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist|setup.py)'
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # `setup.cfg` contains the list of error codes that are being ignored in flake8
