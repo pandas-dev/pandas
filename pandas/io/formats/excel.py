@@ -598,8 +598,7 @@ class ExcelFormatter:
         if has_aliases or self.header:
             self.rowcounter += 1
 
-        gcolidx = 0
-
+        colidx = 0
         if self.index:
             index_labels = self.df.index.names
             # check for aliases
@@ -640,35 +639,47 @@ class ExcelFormatter:
                         if spans[i] > 1:
                             yield ExcelCell(
                                 self.rowcounter + i,
-                                gcolidx,
+                                colidx,
                                 values[i],
                                 self.header_style,
                                 self.rowcounter + i + spans[i] - 1,
-                                gcolidx,
+                                colidx,
                             )
                         else:
                             yield ExcelCell(
                                 self.rowcounter + i,
-                                gcolidx,
+                                colidx,
                                 values[i],
                                 self.header_style,
                             )
-                    gcolidx += 1
+                    colidx += 1
+
+                for cell in self._generate_body(colidx):
+                    yield cell
 
             else:
-                # Format hierarchical rows with non-merged values.
-                for indexcolvals in zip(*self.df.index):
-                    for idx, indexcolval in enumerate(indexcolvals):
+                _, ncol = self.df.shape
+                body = self._generate_body(self.df.index.nlevels)
+                for rowidx, indexrowvals in enumerate(self.df.index):
+                    colidx = 0
+                    for indexrowval in indexrowvals:
                         yield ExcelCell(
-                            self.rowcounter + idx,
-                            gcolidx,
-                            indexcolval,
+                            self.rowcounter + rowidx,
+                            colidx,
+                            indexrowval,
                             self.header_style,
                         )
-                    gcolidx += 1
+                        colidx += 1
 
-        for cell in self._generate_body(gcolidx):
-            yield cell
+                    i = 0
+                    while i < ncol:
+                        yield next(body)
+                        i += 1
+        else:
+            for cell in self._generate_body(colidx):
+                yield cell
+
+
 
     def _generate_body(self, coloffset):
         if self.styler is None:
