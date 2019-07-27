@@ -268,7 +268,7 @@ class TestDataFrameIndexing(TestData):
         subframe_obj = datetime_frame[indexer_obj]
         assert_frame_equal(subframe_obj, subframe)
 
-        with pytest.raises(ValueError, match="boolean values only"):
+        with pytest.raises(ValueError, match="Boolean array expected"):
             datetime_frame[datetime_frame]
 
         # test that Series work
