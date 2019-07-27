@@ -2456,15 +2456,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
                 result = self._holder._from_sequence(
                     result.astype(np.int64), freq=None, dtype=self.values.dtype
                 )
-            elif result.dtype == "M8[ns]":
-                # otherwise we get here via quantile and already have M8[ns]
-                result = self._holder._simple_new(
-                    result, freq=None, dtype=self.values.dtype
-                )
 
-        elif isinstance(result, np.datetime64):
-            # also for post-quantile
-            result = self._box_func(result)
         return result
 
     @property
