@@ -2150,7 +2150,7 @@ into a flat table.
 
 .. ipython:: python
 
-   from pandas.io.json import json_normalize
+   from pandas import json_normalize
    data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
            {'name': {'given': 'Mose', 'family': 'Regner'}},
            {'id': 2, 'name': 'Faye Raker'}]

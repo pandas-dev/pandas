@@ -168,6 +168,9 @@ class TestPDApi(Base):
         "read_spss",
     ]
 
+    # top-level json funcs
+    funcs_json = ["json_normalize"]
+
     # top-level to_* funcs
     funcs_to = ["to_datetime", "to_msgpack", "to_numeric", "to_pickle", "to_timedelta"]
 

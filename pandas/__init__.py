@@ -179,7 +179,7 @@ from pandas.io.api import (
 )
 
 from pandas.io.json import (
-    json_normalize
+    _json_normalize as json_normalize
 )
 
 from pandas.util._tester import test

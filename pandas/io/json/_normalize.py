@@ -10,6 +10,7 @@ import numpy as np
 from pandas._libs.writers import convert_json_to_lines
 
 from pandas import DataFrame
+from pandas.util._decorators import deprecate
 
 
 def convert_to_line_delimits(s):
@@ -111,7 +112,7 @@ def nested_to_record(
     return new_ds
 
 
-def json_normalize(
+def _json_normalize(
     data: Union[Dict, List[Dict]],
     record_path: Optional[Union[str, List]] = None,
     meta: Optional[Union[str, List]] = None,
@@ -341,3 +342,11 @@ def json_normalize(
             )
         result[k] = np.array(v, dtype=object).repeat(lengths)
     return result
+
+
+json_normalize = deprecate(
+            "pandas.io.json.json_normalize",
+            _json_normalize,
+            "1.0.0",
+            "pandas.json_normalize",
+            )
