@@ -597,7 +597,6 @@ class ExcelFormatter:
         if has_aliases or self.header:
             self.rowcounter += 1
 
-        colidx = 0
         if self.index:
             index_labels = self.df.index.names
             # check for aliases
@@ -626,6 +625,7 @@ class ExcelFormatter:
                 )
                 level_lengths = get_level_lengths(level_strs)
 
+                colidx = 0
                 for spans, levels, level_codes in zip(
                     level_lengths, self.df.index.levels, self.df.index.codes
                 ):
