@@ -345,8 +345,8 @@ def _json_normalize(
 
 
 json_normalize = deprecate(
-            "pandas.io.json.json_normalize",
-            _json_normalize,
-            "1.0.0",
-            "pandas.json_normalize",
-            )
+    "pandas.io.json.json_normalize",
+    _json_normalize,
+    "1.0.0",
+    "pandas.json_normalize",
+)
