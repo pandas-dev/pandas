@@ -583,10 +583,8 @@ class ExcelFormatter:
             _, ncol = self.df.shape
             for idx, idxval in enumerate(index_values):
                 yield ExcelCell(self.rowcounter + idx, 0, idxval, self.header_style)
-                i = 0
-                while i < ncol:
+                for _ in range(ncol):
                     yield next(body)
-                    i += 1
         else:
             coloffset = 0
             for cell in self._generate_body(coloffset):
