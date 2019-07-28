@@ -1535,7 +1535,7 @@ class TestSeriesInterpolateData:
 
     def test_interp_pad_datetime64tz_values(self):
         # GH#27628 missing.interpolate_2d should handle datetimetz values
-        dti = pd.date_range('2015-04-05', periods=3, tz="US/Central")
+        dti = pd.date_range("2015-04-05", periods=3, tz="US/Central")
         ser = pd.Series(dti)
         ser[1] = pd.NaT
         result = ser.interpolate(method="pad")
