@@ -29,7 +29,7 @@ def convert_to_line_delimits(s):
 
 def _parse_use_keys(use_keys: Union[str, List, Callable, None]) -> Callable:
     """
-    Converts different types of use_keys into a callable
+    Converts different types of use_keys into a callable.
 
     Parameters
     ----------
