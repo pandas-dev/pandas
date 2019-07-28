@@ -675,7 +675,7 @@ class ExcelFormatter:
                         yield next(body)
                         i += 1
         else:
-            for cell in self._generate_body(colidx):
+            for cell in self._generate_body(0):
                 yield cell
 
     def _generate_body(self, coloffset):
