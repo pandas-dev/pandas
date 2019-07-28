@@ -101,3 +101,20 @@ def test_constant_memory_multiindex(ext):
         read_df = read_excel(path, header=0, index_col=[0, 1])
 
         assert_frame_equal(df, read_df)
+
+def test_constant_memory_multiheader(ext):
+    # Test if cells of a header of MultiIndex are written row by row
+    # Test for issue #15392.
+    # Applicable to xlsxwriter only.
+    with ensure_clean(ext) as path:
+        df = DataFrame({"A": [123456, 123456], "B": [123456, 123456]})
+        df.columns = MultiIndex.from_arrays([["a", "a"], [1, 2]])
+
+        with ExcelWriter(
+            path, engine="xlsxwriter", options=dict(constant_memory=True)
+        ) as writer:
+            df.to_excel(writer)
+
+        read_df = read_excel(path, header=[0, 1], index_col=0)
+
+        assert_frame_equal(df, read_df)
