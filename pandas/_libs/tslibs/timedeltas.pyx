@@ -26,6 +26,8 @@ from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
 from pandas._libs.tslibs.frequencies import _base_and_stride
 
+from pandas._libs.tslibs.frequencies import _base_and_stride
+
 from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar, reverse_ops, td64_to_tdstruct, pandas_timedeltastruct)
 
