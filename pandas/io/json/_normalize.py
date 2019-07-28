@@ -42,7 +42,6 @@ def _parse_use_keys(use_keys: Union[str, List, Callable, None]) -> Callable:
     -------
     use_key - Callable
      It Decides on whether to include a key in processing.
-
     """
     if callable(use_keys):
         return use_keys
@@ -53,7 +52,10 @@ def _parse_use_keys(use_keys: Union[str, List, Callable, None]) -> Callable:
     if isinstance(use_keys, str):
         return lambda x: x == use_keys
 
-    return lambda x: True
+    if use_keys is None:
+        return lambda x: True
+
+    raise TypeError("`use_keys` must be a str, list or a callable")
 
 
 def nested_to_record(
@@ -136,7 +138,7 @@ def nested_to_record(
 
             if (
                 not use_key(k)
-                or (not isinstance(v, dict))
+                or not isinstance(v, dict)
                 or (max_level is not None and level >= max_level)
             ):
                 if level != 0:  # so we skip copying for top level, common case
