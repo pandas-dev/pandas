@@ -408,6 +408,7 @@ class ExcelFormatter:
         self.header = header
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
+        self._constant_memory = False
 
     @property
     def header_style(self):
@@ -744,6 +745,10 @@ class ExcelFormatter:
             writer = ExcelWriter(_stringify_path(writer), engine=engine)
             need_save = True
 
+        from pandas.io.excel._xlsxwriter import _XlsxWriter
+        if isinstance(writer, _XlsxWriter) and writer.book.constant_memory:
+            self._constant_memory = True
+        
         formatted_cells = self.get_formatted_cells()
         writer.write_cells(
             formatted_cells,
