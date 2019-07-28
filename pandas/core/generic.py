@@ -11490,7 +11490,7 @@ min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 
-    .. versionadded :: 0.22.0
+    .. versionadded:: 0.22.0
 
        Added with the default being 0. This means the sum of an all-NA
        or empty Series is 0, and the product of an all-NA or empty

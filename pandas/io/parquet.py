@@ -231,7 +231,7 @@ def to_parquet(
         ``False``, they will not be written to the file. If ``None``, the
         engine's default behavior will be used.
 
-        .. versionadded 0.24.0
+        .. versionadded:: 0.24.0
 
     partition_cols : list, optional, default None
         Column names by which to partition the dataset
@@ -257,7 +257,7 @@ def read_parquet(path, engine="auto", columns=None, **kwargs):
     """
     Load a parquet object from the file path, returning a DataFrame.
 
-    .. versionadded 0.21.0
+    .. versionadded:: 0.21.0
 
     Parameters
     ----------
@@ -281,7 +281,7 @@ def read_parquet(path, engine="auto", columns=None, **kwargs):
     columns : list, default=None
         If not None, only these columns will be read from the file.
 
-        .. versionadded 0.21.1
+        .. versionadded:: 0.21.1
     **kwargs
         Any additional kwargs are passed to the engine.
 

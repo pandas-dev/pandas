@@ -931,7 +931,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return the first element of the underlying data as a python
         scalar
 
-        .. deprecated 0.25.0
+        .. deprecated:: 0.25.0
 
         """
         warnings.warn(

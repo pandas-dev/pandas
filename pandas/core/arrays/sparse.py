@@ -2102,7 +2102,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
 
-    .. versionadded :: 0.25.0
+    .. versionadded:: 0.25.0
     """
 
     def _validate(self, data):
