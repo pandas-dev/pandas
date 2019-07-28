@@ -784,3 +784,9 @@ class TestNestedToRecord:
             }
         ]
         assert output == expected
+
+    def test_use_keys_raises_type_error(self, nested_input_data):
+        # GH 27241 ignore specific keys from flattening
+        use_keys = 1
+        with pytest.raises(TypeError):
+            nested_to_record(nested_input_data, use_keys=use_keys)
