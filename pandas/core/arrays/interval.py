@@ -33,6 +33,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core.algorithms import take, value_counts
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
@@ -796,8 +797,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             When `indices` contains negative values other than ``-1``
             and `allow_fill` is True.
         """
-        from pandas.core.algorithms import take
-
         nv.validate_take(tuple(), kwargs)
 
         fill_left = fill_right = fill_value
@@ -843,8 +842,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Series.value_counts
         """
         # TODO: implement this is a non-naive way!
-        from pandas.core.algorithms import value_counts
-
         return value_counts(np.asarray(self), dropna=dropna)
 
     # Formatting

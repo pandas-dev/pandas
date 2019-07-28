@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
-from typing import Optional
+from typing import Dict, Optional
 import warnings
 
 import numpy as np
@@ -37,7 +37,7 @@ from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
 import pandas.core.nanops as nanops
 
-_shared_docs = dict()
+_shared_docs = dict()  # type: Dict[str, str]
 _indexops_doc_kwargs = dict(
     klass="IndexOpsMixin",
     inplace="",

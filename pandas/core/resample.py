@@ -1630,15 +1630,13 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(obj, indexer, new_index, axis=0):
-    from pandas.core.api import Series, DataFrame
-
-    if isinstance(obj, Series):
+    if isinstance(obj, ABCSeries):
         new_values = algos.take_1d(obj.values, indexer)
-        return Series(new_values, index=new_index, name=obj.name)
-    elif isinstance(obj, DataFrame):
+        return obj._constructor(new_values, index=new_index, name=obj.name)
+    elif isinstance(obj, ABCDataFrame):
         if axis == 1:
             raise NotImplementedError("axis 1 is not supported")
-        return DataFrame(
+        return obj._constructor(
             obj._data.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
         )
     else:

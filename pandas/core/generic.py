@@ -5,6 +5,7 @@ import gc
 import json
 import operator
 import pickle
+import re
 from textwrap import dedent
 from typing import Callable, Dict, FrozenSet, List, Optional, Set
 import warnings
@@ -4615,8 +4616,6 @@ class NDFrame(PandasObject, SelectionMixin):
                  one  two  three
         rabbit    4    5      6
         """
-        import re
-
         nkw = com.count_not_none(items, like, regex)
         if nkw > 1:
             raise TypeError(
@@ -6193,8 +6192,6 @@ class NDFrame(PandasObject, SelectionMixin):
             axis = 0
         axis = self._get_axis_number(axis)
 
-        from pandas import DataFrame
-
         if value is None:
 
             if self._is_mixed_type and axis == 1:
@@ -6257,7 +6254,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_data = self._data.fillna(
                     value=value, limit=limit, inplace=inplace, downcast=downcast
                 )
-            elif isinstance(value, DataFrame) and self.ndim == 2:
+            elif isinstance(value, ABCDataFrame) and self.ndim == 2:
                 new_data = self.where(self.notna(), value)
             else:
                 raise ValueError("invalid fill value with a %s" % type(value))
@@ -7146,9 +7143,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2018-02-27 09:04:30   40.0 NaN
         """
         if isinstance(where, str):
-            from pandas import to_datetime
-
-            where = to_datetime(where)
+            where = Timestamp(where)
 
         if not self.index.is_monotonic:
             raise ValueError("asof requires a sorted index")
@@ -8720,12 +8715,10 @@ class NDFrame(PandasObject, SelectionMixin):
         fill_axis=0,
         broadcast_axis=None,
     ):
-        from pandas import DataFrame, Series
-
         method = missing.clean_fill_method(method)
 
         if broadcast_axis == 1 and self.ndim != other.ndim:
-            if isinstance(self, Series):
+            if isinstance(self, ABCSeries):
                 # this means other is a DataFrame, and we need to broadcast
                 # self
                 cons = self._constructor_expanddim
@@ -8743,7 +8736,7 @@ class NDFrame(PandasObject, SelectionMixin):
                     limit=limit,
                     fill_axis=fill_axis,
                 )
-            elif isinstance(other, Series):
+            elif isinstance(other, ABCSeries):
                 # this means self is a DataFrame, and we need to broadcast
                 # other
                 cons = other._constructor_expanddim
@@ -8764,7 +8757,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if axis is not None:
             axis = self._get_axis_number(axis)
-        if isinstance(other, DataFrame):
+        if isinstance(other, ABCDataFrame):
             return self._align_frame(
                 other,
                 join=join,
@@ -8776,7 +8769,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 limit=limit,
                 fill_axis=fill_axis,
             )
-        elif isinstance(other, Series):
+        elif isinstance(other, ABCSeries):
             return self._align_series(
                 other,
                 join=join,
