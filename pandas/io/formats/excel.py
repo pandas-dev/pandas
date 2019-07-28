@@ -617,6 +617,18 @@ class ExcelFormatter:
                 for cidx, name in enumerate(index_labels):
                     yield ExcelCell(self.rowcounter - 1, cidx, name, self.header_style)
 
+            gen_non_merge_idx = (ExcelCell(self.rowcounter + ridx, cidx, item, self.header_style)
+                                 for ridx, row in enumerate(self.df.index)
+                                 for cidx, item in enumerate(row))
+            gen_body = self._generate_body(self.df.index.nlevels)
+            nrow, ncol = self.df.shape
+            for _ in range(nrow):
+                if self._constant_memory or not self.merge_cells:
+                    for _ in range(self.df.index.nlevels):
+                        yield next(gen_non_merge_idx)
+                for _ in range(ncol):
+                    yield next(gen_body)
+
             if self.merge_cells:
                 # Format hierarchical rows as merged cells.
                 level_strs = self.df.index.format(
@@ -652,27 +664,6 @@ class ExcelFormatter:
                             )
                     colidx += 1
 
-                for cell in self._generate_body(colidx):
-                    yield cell
-
-            else:
-                _, ncol = self.df.shape
-                body = self._generate_body(self.df.index.nlevels)
-                for rowidx, indexrowvals in enumerate(self.df.index):
-                    colidx = 0
-                    for indexrowval in indexrowvals:
-                        yield ExcelCell(
-                            self.rowcounter + rowidx,
-                            colidx,
-                            indexrowval,
-                            self.header_style,
-                        )
-                        colidx += 1
-
-                    i = 0
-                    while i < ncol:
-                        yield next(body)
-                        i += 1
         else:
             for cell in self._generate_body(0):
                 yield cell
