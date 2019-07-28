@@ -469,12 +469,12 @@ Concatenating pandas objects together with :func:`concat`:
    pd.concat(pieces)
 
 .. note::
-   Adding a column to a ``DataFrame`` is relatively fast. However, adding 
-   a row requires a copy, and may be expensive. It is recommended to 
-   pass a pre-built list of records to the ``Dataframe`` constructor instead 
-   of building a ``Dataframe`` by iteratively appending records to it. 
+   Adding a column to a ``DataFrame`` is relatively fast. However, adding
+   a row requires a copy, and may be expensive. It is recommended to
+   pass a pre-built list of records to the ``Dataframe`` constructor instead
+   of building a ``Dataframe`` by iteratively appending records to it.
    See :ref:`Appending to dataframe <merging.concatenation>` for more.
-   
+
 Join
 ~~~~
 
