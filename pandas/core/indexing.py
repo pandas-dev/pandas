@@ -117,6 +117,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         raise NotImplementedError("ix is not iterable")
 
     def __getitem__(self, key):
+        # Used in ix and downstream in geopandas _CoordinateIndexer
         if type(key) is tuple:
             # Note: we check the type exactly instead of with isinstance
             #  because NamedTuple is checked separately.
@@ -164,7 +165,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def _get_setitem_indexer(self, key):
         if self.axis is not None:
-            return self._convert_tuple(key, is_setter=True)
+            return self._convert_tuple(key)
 
         ax = self.obj._get_axis(0)
 
@@ -176,16 +177,16 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         if isinstance(key, tuple):
             try:
-                return self._convert_tuple(key, is_setter=True)
+                return self._convert_tuple(key)
             except IndexingError:
                 pass
 
         if isinstance(key, range):
-            return self._convert_range(key, is_setter=True)
+            return list(key)
 
         axis = self.axis or 0
         try:
-            return self._convert_to_indexer(key, axis=axis, is_setter=True)
+            return self._convert_to_indexer(key, axis=axis)
         except TypeError as e:
 
             # invalid indexer type vs 'other' indexing errors
@@ -241,28 +242,22 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             return any(is_nested_tuple(tup, ax) for ax in self.obj.axes)
         return False
 
-    def _convert_tuple(self, key, is_setter: bool = False):
+    def _convert_tuple(self, key):
         keyidx = []
         if self.axis is not None:
             axis = self.obj._get_axis_number(self.axis)
             for i in range(self.ndim):
                 if i == axis:
-                    keyidx.append(
-                        self._convert_to_indexer(key, axis=axis, is_setter=is_setter)
-                    )
+                    keyidx.append(self._convert_to_indexer(key, axis=axis))
                 else:
                     keyidx.append(slice(None))
         else:
             for i, k in enumerate(key):
                 if i >= self.ndim:
                     raise IndexingError("Too many indexers")
-                idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
+                idx = self._convert_to_indexer(k, axis=i)
                 keyidx.append(idx)
         return tuple(keyidx)
-
-    def _convert_range(self, key: range, is_setter: bool = False):
-        """ convert a range argument """
-        return list(key)
 
     def _convert_scalar_indexer(self, key, axis: int):
         # if we are accessing via lowered dim, use the last dim
@@ -1184,9 +1179,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if not (ax.is_categorical() or ax.is_interval()):
                 warnings.warn(_missing_key_warning, FutureWarning, stacklevel=6)
 
-    def _convert_to_indexer(
-        self, obj, axis: int, is_setter: bool = False, raise_missing: bool = False
-    ):
+    def _convert_to_indexer(self, obj, axis: int, raise_missing: bool = False):
         """
         Convert indexing key into something we can use to do actual fancy
         indexing on an ndarray
@@ -1210,10 +1203,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         try:
             obj = self._convert_scalar_indexer(obj, axis)
         except TypeError:
-
             # but we will allow setting
-            if is_setter:
-                pass
+            pass
 
         # see if we are positional in nature
         is_int_index = labels.is_integer()
@@ -1224,7 +1215,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             return labels.get_loc(obj)
         except LookupError:
             if isinstance(obj, tuple) and isinstance(labels, MultiIndex):
-                if is_setter and len(obj) == labels.nlevels:
+                if len(obj) == labels.nlevels:
                     return {"key": obj}
                 raise
         except TypeError:
@@ -1238,17 +1229,14 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             # if we are setting and its not a valid location
             # its an insert which fails by definition
-            if is_setter:
 
+            if self.name == "loc":
                 # always valid
-                if self.name == "loc":
-                    return {"key": obj}
+                return {"key": obj}
 
+            if obj >= self.obj.shape[axis] and not isinstance(labels, MultiIndex):
                 # a positional
-                if obj >= self.obj.shape[axis] and not isinstance(labels, MultiIndex):
-                    raise ValueError(
-                        "cannot set by positional indexing with enlargement"
-                    )
+                raise ValueError("cannot set by positional indexing with enlargement")
 
             return obj
 
@@ -1263,14 +1251,13 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 return inds
             else:
                 # When setting, missing keys are not allowed, even with .loc:
-                kwargs = {"raise_missing": True if is_setter else raise_missing}
-                return self._get_listlike_indexer(obj, axis, **kwargs)[1]
+                return self._get_listlike_indexer(obj, axis, raise_missing=True)[1]
         else:
             try:
                 return labels.get_loc(obj)
             except LookupError:
                 # allow a not found key only if we are a setter
-                if not is_list_like_indexer(obj) and is_setter:
+                if not is_list_like_indexer(obj):
                     return {"key": obj}
                 raise
 
@@ -2127,9 +2114,7 @@ class _iLocIndexer(_LocationIndexer):
             return self._get_loc(key, axis=axis)
 
     # raise_missing is included for compat with the parent class signature
-    def _convert_to_indexer(
-        self, obj, axis: int, is_setter: bool = False, raise_missing: bool = False
-    ):
+    def _convert_to_indexer(self, obj, axis: int, raise_missing: bool = False):
         """ much simpler as we only have to deal with our valid types """
 
         # make need to convert a float key
