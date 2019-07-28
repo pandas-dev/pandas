@@ -209,6 +209,7 @@ class TestPDApi(Base):
             + self.funcs
             + self.funcs_option
             + self.funcs_read
+            + self.funcs_json
             + self.funcs_to
             + self.deprecated_funcs_in_future
             + self.deprecated_funcs
