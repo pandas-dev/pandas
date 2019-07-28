@@ -29,18 +29,18 @@ def convert_to_line_delimits(s):
 
 def _parse_use_keys(use_keys: Union[str, List, Callable, None]) -> Callable:
     """
-    Converts different types of use_keys into a callable
+    Converts different types of use_keys into a callable.
 
     Parameters
     ----------
-    use_keys : Str, List or Callable
-        Returns true or false depending on whether to include or exclude a key
+    use_keys : str, list or callable
+        Returns true or false depending on whether to include or exclude a key.
 
         .. versionadded:: 1.0.0
 
     Returns
     -------
-    use_key - Callable
+    callable
      It Decides on whether to include a key in processing.
     """
     if callable(use_keys):
@@ -90,8 +90,8 @@ def nested_to_record(
 
         .. versionadded:: 0.25.0
 
-    use_keys : str, list or Callable, Optional
-        Criteria for inclusion of a particular JSON object (matches on key)
+    use_keys : str, list or callable, optional
+        Criteria for inclusion of a particular JSON object (matches on key).
 
         .. versionadded:: 1.0.0
 
@@ -231,7 +231,7 @@ def json_normalize(
     1  NaN         NaN      Regner        NaN       Mose       NaN
     2  2.0  Faye Raker         NaN        NaN        NaN       NaN
 
-    Normalizes list of dict into a flattened data frame
+    Normalizes list of dict into a flattened data frame.
 
     >>> data = [{'id': 1,
     ...          'name': "Cole Volk",
