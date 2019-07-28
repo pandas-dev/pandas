@@ -4,6 +4,7 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
+from typing import Optional
 import warnings
 
 import numpy as np
@@ -566,7 +567,7 @@ class SelectionMixin:
         else:
             result = None
 
-        f = self._is_cython_func(arg)
+        f = self._get_cython_func(arg)
         if f and not args and not kwargs:
             return getattr(self, f)(), None
 
@@ -653,7 +654,7 @@ class SelectionMixin:
                 kwargs[attr] = getattr(self, attr)
         return obj_type(obj, **kwargs)
 
-    def _is_cython_func(self, arg):
+    def _get_cython_func(self, arg: str) -> Optional[str]:
         """
         if we define an internal function for this argument, return it
         """
@@ -726,7 +727,7 @@ class IndexOpsMixin:
         """
         Return the first element of the underlying data as a python scalar.
 
-        .. deprecated 0.25.0
+        .. deprecated:: 0.25.0
 
         Returns
         -------
@@ -1558,7 +1559,7 @@ class IndexOpsMixin:
             A scalar or array of insertion points with the
             same shape as `value`.
 
-            .. versionchanged :: 0.24.0
+            .. versionchanged:: 0.24.0
                 If `value` is a scalar, an int is now always returned.
                 Previously, scalar inputs returned an 1-item array for
                 :class:`Series` and :class:`Categorical`.

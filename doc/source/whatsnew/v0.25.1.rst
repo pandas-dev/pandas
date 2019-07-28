@@ -50,13 +50,14 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
--
+- Bug in :class:`Index` where a numpy object array with a timezone aware :class:`Timestamp` and ``np.nan`` would not return a :class:`DatetimeIndex` (:issue:`27011`)
 -
 -
 
 Numeric
 ^^^^^^^
--
+- Bug in :meth:`Series.interpolate` when using a timezone aware :class:`DatetimeIndex` (:issue:`27548`)
+- Bug when printing negative floating point complex numbers would raise an ``IndexError`` (:issue:`27484`)
 -
 -
 
@@ -113,7 +114,7 @@ I/O
 Plotting
 ^^^^^^^^
 
--
+- Added a pandas_plotting_backends entrypoint group for registering plot backends. See :ref:`extending.plotting-backends` for more (:issue:`26747`).
 -
 -
 

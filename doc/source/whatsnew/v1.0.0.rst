@@ -39,7 +39,7 @@ Backwards incompatible API changes
 
 .. _whatsnew_1000.api.other:
 
--
+- :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
 -
 
 Other API changes
@@ -60,8 +60,8 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
--
+- Removed the previously deprecated :meth:`Series.get_value`, :meth:`Series.set_value`, :meth:`DataFrame.get_value`, :meth:`DataFrame.set_value` (:issue:`17739`)
+- Changed the the default value of `inplace` in :meth:`DataFrame.set_index` and :meth:`Series.set_axis`. It now defaults to False (:issue:`27600`)
 -
 
 .. _whatsnew_1000.performance:
@@ -89,7 +89,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :meth:`Series.__setitem__` incorrectly casting ``np.timedelta64("NaT")`` to ``np.datetime64("NaT")`` when inserting into a :class:`Series` with datetime64 dtype (:issue:`27311`)
--
+- Bug in :meth:`Series.dt` property lookups when the underlying data is read-only (:issue:`27529`)
 -
 
 
@@ -108,7 +108,7 @@ Timezones
 
 Numeric
 ^^^^^^^
-
+- Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
 -
 -
 
@@ -189,11 +189,6 @@ ExtensionArray
 
 -
 -
-
-
-Other
-^^^^^
-
 
 .. _whatsnew_1000.contributors:
 
