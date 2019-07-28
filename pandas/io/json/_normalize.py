@@ -229,7 +229,7 @@ def json_normalize(
     1  NaN         NaN      Regner        NaN       Mose       NaN
     2  2.0  Faye Raker         NaN        NaN        NaN       NaN
 
-    Normalizes list of dict into a flattened data frame
+    Normalizes list of dict into a flattened data frame.
 
     >>> data = [{'id': 1,
     ...          'name': "Cole Volk",
