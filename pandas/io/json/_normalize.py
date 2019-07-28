@@ -89,7 +89,7 @@ def nested_to_record(
         .. versionadded:: 0.25.0
 
     use_keys : str, list or Callable, Optional
-        Criteria for inclusion of a particular JSON object (matches on key)
+        Criteria for inclusion of a particular JSON object (matches on key).
 
         .. versionadded:: 1.0.0
 
