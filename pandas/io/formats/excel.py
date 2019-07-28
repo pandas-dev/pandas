@@ -616,9 +616,11 @@ class ExcelFormatter:
                 for cidx, name in enumerate(index_labels):
                     yield ExcelCell(self.rowcounter - 1, cidx, name, self.header_style)
 
-            gen_non_merge_idx = (ExcelCell(self.rowcounter + ridx, cidx, item, self.header_style)
-                                 for ridx, row in enumerate(self.df.index)
-                                 for cidx, item in enumerate(row))
+            gen_non_merge_idx = (
+                ExcelCell(self.rowcounter + ridx, cidx, item, self.header_style)
+                for ridx, row in enumerate(self.df.index)
+                for cidx, item in enumerate(row)
+            )
             gen_body = self._generate_body(self.df.index.nlevels)
             nrow, ncol = self.df.shape
             for _ in range(nrow):
@@ -736,9 +738,10 @@ class ExcelFormatter:
             need_save = True
 
         from pandas.io.excel._xlsxwriter import _XlsxWriter
+
         if isinstance(writer, _XlsxWriter) and writer.book.constant_memory:
             self._constant_memory = True
-        
+
         formatted_cells = self.get_formatted_cells()
         writer.write_cells(
             formatted_cells,

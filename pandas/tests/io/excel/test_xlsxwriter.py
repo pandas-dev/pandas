@@ -102,6 +102,7 @@ def test_constant_memory_multiindex(ext):
 
         assert_frame_equal(df, read_df)
 
+
 def test_constant_memory_multiheader(ext):
     # Test if cells of a header of MultiIndex are written row by row
     # Test for issue #15392.
