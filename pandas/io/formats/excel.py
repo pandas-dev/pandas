@@ -467,14 +467,13 @@ class ExcelFormatter:
             coloffset = len(self.df.index[0]) - 1
 
         if self.merge_cells:
-            # Format multi-index as a merged cells.
-            for lnum in range(len(level_lengths)):
-                name = columns.names[lnum]
-                yield ExcelCell(lnum, coloffset, name, self.header_style)
-
             for lnum, (spans, levels, level_codes) in enumerate(
                 zip(level_lengths, columns.levels, columns.codes)
             ):
+                # Format multi-index as a merged cells.
+                name = columns.names[lnum]
+                yield ExcelCell(lnum, coloffset, name, self.header_style)
+
                 values = levels.take(level_codes)
                 for i in spans:
                     if spans[i] > 1:
