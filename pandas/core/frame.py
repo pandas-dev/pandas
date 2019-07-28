@@ -94,12 +94,9 @@ from pandas.core.index import (
 )
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.multi import maybe_droplevels
 from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexing import (
-    check_bool_indexer,
-    convert_to_index_sliceable,
-    maybe_droplevels,
-)
+from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
@@ -313,11 +310,11 @@ class DataFrame(NDFrame):
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, or list-like objects
 
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
            If data is a dict, column order follows insertion-order for
            Python 3.6 and later.
 
-        .. versionchanged :: 0.25.0
+        .. versionchanged:: 0.25.0
            If data is a list of dicts, column order follows insertion-order
            Python 3.6 and later.
 
@@ -2794,8 +2791,6 @@ class DataFrame(NDFrame):
         if axis == 0:
             label = self.index[i]
             new_values = self._data.fast_xs(i)
-            if is_scalar(new_values):
-                return new_values
 
             # if we are a copy, mark as such
             copy = isinstance(new_values, np.ndarray) and new_values.base is None
@@ -2841,11 +2836,13 @@ class DataFrame(NDFrame):
         # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
+            # either we have a slice or we have a string that can be converted
+            #  to a slice for partial-string date indexing
             return self._slice(indexer, axis=0)
 
         # Do we have a (boolean) DataFrame?
         if isinstance(key, DataFrame):
-            return self._getitem_frame(key)
+            return self.where(key)
 
         # Do we have a (boolean) 1d indexer?
         if com.is_bool_indexer(key):
@@ -2906,6 +2903,7 @@ class DataFrame(NDFrame):
         return self.take(indexer, axis=0)
 
     def _getitem_multilevel(self, key):
+        # self.columns is a MultiIndex
         loc = self.columns.get_loc(key)
         if isinstance(loc, (slice, Series, np.ndarray, Index)):
             new_columns = self.columns[loc]
@@ -2941,11 +2939,6 @@ class DataFrame(NDFrame):
             return result
         else:
             return self._get_item_cache(key)
-
-    def _getitem_frame(self, key):
-        if key.values.size and not is_bool_dtype(key.values):
-            raise ValueError("Must pass DataFrame with boolean values only")
-        return self.where(key)
 
     def _get_value(self, index, col, takeable: bool = False):
         """
@@ -2990,6 +2983,8 @@ class DataFrame(NDFrame):
         # see if we can slice the rows
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
+            # either we have a slice or we have a string that can be converted
+            #  to a slice for partial-string date indexing
             return self._setitem_slice(indexer, value)
 
         if isinstance(key, DataFrame) or getattr(key, "ndim", None) == 2:
@@ -3564,7 +3559,7 @@ class DataFrame(NDFrame):
         or modified columns. All items are computed first, and then assigned
         in alphabetical order.
 
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
 
            Keyword argument order is maintained for Python 3.6 and later.
 
@@ -5632,7 +5627,7 @@ class DataFrame(NDFrame):
             If 'raise', will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
 
-            .. versionchanged :: 0.24.0
+            .. versionchanged:: 0.24.0
                Changed from `raise_conflict=False|True`
                to `errors='ignore'|'raise'`.
 
@@ -5778,7 +5773,7 @@ class DataFrame(NDFrame):
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
 
-            .. versionchanged :: 0.23.0
+            .. versionchanged:: 0.23.0
                Also accept list of column names.
 
         Returns
@@ -5907,7 +5902,7 @@ class DataFrame(NDFrame):
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
-            .. versionchanged :: 0.25.0
+            .. versionchanged:: 0.25.0
 
         Returns
         -------

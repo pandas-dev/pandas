@@ -39,6 +39,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
+    binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
     binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
     SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
     SQL;`Google Big Query <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
@@ -5491,6 +5492,44 @@ web site.
 .. _specification: https://support.sas.com/techsup/technote/ts140.pdf
 
 No official documentation is available for the SAS7BDAT format.
+
+.. _io.spss:
+
+.. _io.spss_reader:
+
+SPSS formats
+------------
+
+.. versionadded:: 0.25.0
+
+The top-level function :func:`read_spss` can read (but not write) SPSS
+`sav` (.sav) and  `zsav` (.zsav) format files.
+
+SPSS files contain column names. By default the
+whole file is read, categorical columns are converted into ``pd.Categorical``
+and a ``DataFrame`` with all columns is returned.
+
+Specify a ``usecols`` to obtain a subset of columns. Specify ``convert_categoricals=False``
+to avoid converting categorical columns into ``pd.Categorical``.
+
+Read a spss file:
+
+.. code-block:: python
+
+    df = pd.read_spss('spss_data.zsav')
+
+Extract a subset of columns ``usecols`` from SPSS file and
+avoid converting categorical columns into ``pd.Categorical``:
+
+.. code-block:: python
+
+    df = pd.read_spss('spss_data.zsav', usecols=['foo', 'bar'],
+                      convert_categoricals=False)
+
+More info_ about the sav and zsav file format is available from the IBM
+web site.
+
+.. _info: https://www.ibm.com/support/knowledgecenter/en/SSLVMB_22.0.0/com.ibm.spss.statistics.help/spss/base/savedatatypes.htm
 
 .. _io.other:
 

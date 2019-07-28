@@ -564,7 +564,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """ internal compat with SelectionMixin """
         return self
 
-    def set_axis(self, labels, axis=0, inplace=None):
+    def set_axis(self, labels, axis=0, inplace=False):
         """
         Assign desired index to given axis.
 
@@ -587,14 +587,8 @@ class NDFrame(PandasObject, SelectionMixin):
             The axis to update. The value 0 identifies the rows, and 1
             identifies the columns.
 
-        inplace : bool, default None
+        inplace : bool, default False
             Whether to return a new %(klass)s instance.
-
-            .. warning::
-
-               ``inplace=None`` currently falls back to to True, but in a
-               future version, will default to False. Use inplace=True
-               explicitly rather than relying on the default.
 
         Returns
         -------
@@ -616,18 +610,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2    3
         dtype: int64
 
-        >>> s.set_axis(['a', 'b', 'c'], axis=0, inplace=False)
+        >>> s.set_axis(['a', 'b', 'c'], axis=0)
         a    1
         b    2
         c    3
-        dtype: int64
-
-        The original object is not modified.
-
-        >>> s
-        0    1
-        1    2
-        2    3
         dtype: int64
 
         **DataFrame**
@@ -636,7 +622,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Change the row labels.
 
-        >>> df.set_axis(['a', 'b', 'c'], axis='index', inplace=False)
+        >>> df.set_axis(['a', 'b', 'c'], axis='index')
            A  B
         a  1  4
         b  2  5
@@ -644,7 +630,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Change the column labels.
 
-        >>> df.set_axis(['I', 'II'], axis='columns', inplace=False)
+        >>> df.set_axis(['I', 'II'], axis='columns')
            I  II
         0  1   4
         1  2   5
@@ -670,15 +656,6 @@ class NDFrame(PandasObject, SelectionMixin):
             )
             labels, axis = axis, labels
 
-        if inplace is None:
-            warnings.warn(
-                "set_axis currently defaults to operating inplace.\nThis "
-                "will change in a future version of pandas, use "
-                "inplace=True to avoid this warning.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            inplace = True
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
@@ -3296,11 +3273,8 @@ class NDFrame(PandasObject, SelectionMixin):
         if clear:
             self._clear_item_cache()
 
-    def _clear_item_cache(self, i=None):
-        if i is not None:
-            self._item_cache.pop(i, None)
-        else:
-            self._item_cache.clear()
+    def _clear_item_cache(self):
+        self._item_cache.clear()
 
     # ----------------------------------------------------------------------
     # Indexing Methods
@@ -3559,27 +3533,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _xs = xs  # type: Callable
 
-    def get(self, key, default=None):
-        """
-        Get item from object for given key (ex: DataFrame column).
-
-        Returns default value if not found.
-
-        Parameters
-        ----------
-        key : object
-
-        Returns
-        -------
-        value : same type as items contained in object
-        """
-        try:
-            return self[key]
-        except (KeyError, ValueError, IndexError):
-            return default
-
     def __getitem__(self, item):
-        return self._get_item_cache(item)
+        raise AbstractMethodError(self)
 
     def _get_item_cache(self, item):
         """Return the cached item, item represents a label indexer."""
@@ -3769,6 +3724,25 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # ----------------------------------------------------------------------
     # Unsorted
+
+    def get(self, key, default=None):
+        """
+        Get item from object for given key (ex: DataFrame column).
+
+        Returns default value if not found.
+
+        Parameters
+        ----------
+        key : object
+
+        Returns
+        -------
+        value : same type as items contained in object
+        """
+        try:
+            return self[key]
+        except (KeyError, ValueError, IndexError):
+            return default
 
     @property
     def _is_view(self):
@@ -11516,7 +11490,7 @@ min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 
-    .. versionadded :: 0.22.0
+    .. versionadded:: 0.22.0
 
        Added with the default being 0. This means the sum of an all-NA
        or empty Series is 0, and the product of an all-NA or empty
