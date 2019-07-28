@@ -2293,13 +2293,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         return other
 
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray) and result.dtype.kind == "i":
-            # needed for _interpolate_with_ffill
-            result = result.view("M8[ns]")
-        return result
-
     def to_native_types(
         self, slicer=None, na_rep=None, date_format=None, quoting=None, **kwargs
     ):
