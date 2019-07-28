@@ -40,7 +40,7 @@ def _parse_use_keys(use_keys: Union[str, List, Callable, None]) -> Callable:
 
     Returns
     -------
-    use_key - Callable
+    callable
      It Decides on whether to include a key in processing.
 
     """
