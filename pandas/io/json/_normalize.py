@@ -33,7 +33,7 @@ def _parse_use_keys(use_keys: Union[str, List, Callable, None]) -> Callable:
 
     Parameters
     ----------
-    use_keys : Str, List or Callable
+    use_keys : str, list or callable
         Returns true or false depending on whether to include or exclude a key.
 
         .. versionadded:: 1.0.0
