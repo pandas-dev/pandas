@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_extension_array_dtype,
+    is_integer,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
@@ -401,6 +402,10 @@ def unstack(obj, level, fill_value=None):
             return _unstack_multiple(obj, level, fill_value=fill_value)
         else:
             level = level[0]
+
+    # Prioritize integer interpretation (GH #21677):
+    if not is_integer(level) and not level == "__placeholder__":
+        level = obj.index._get_level_number(level)
 
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):
