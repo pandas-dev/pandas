@@ -493,12 +493,12 @@ def _get_grouper(
                 elif nlevels == 0:
                     raise ValueError("No group keys passed!")
                 else:
-                    raise ValueError("multiple levels only valid with " "MultiIndex")
+                    raise ValueError("multiple levels only valid with MultiIndex")
 
             if isinstance(level, str):
                 if obj.index.name != level:
                     raise ValueError(
-                        "level name {} is not the name of the " "index".format(level)
+                        "level name {} is not the name of the index".format(level)
                     )
             elif level > 0 or level < -1:
                 raise ValueError("level > 0 or level < -1 only valid with MultiIndex")
