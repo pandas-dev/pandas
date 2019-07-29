@@ -28,3 +28,4 @@ FrameOrSeries = TypeVar("FrameOrSeries", "Series", "DataFrame")
 Scalar = Union[str, int, float]
 Axis = Union[str, int]
 Ordered = Optional[bool]
+Level = Union[str, int]

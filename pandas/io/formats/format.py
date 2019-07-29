@@ -643,7 +643,7 @@ class DataFrameFormatter(TableFormatter):
 
         if not is_list_like(self.header) and not self.header:
             stringified = []
-            for i, c in enumerate(frame):
+            for i, _ in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
                     fmt_values,
@@ -674,7 +674,7 @@ class DataFrameFormatter(TableFormatter):
                     x.append("")
 
             stringified = []
-            for i, c in enumerate(frame):
+            for i, _ in enumerate(frame):
                 cheader = str_columns[i]
                 header_colwidth = max(
                     self.col_space or 0, *(self.adj.len(x) for x in cheader)

@@ -24,6 +24,7 @@ dependencies:
   - isort  # check that imports are in the right order
   - mypy
   - pycodestyle  # used by flake8
+  - typing_extensions
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew

@@ -54,6 +54,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas as pd
+from pandas._typing import Axis
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, SparseArray
@@ -1077,7 +1078,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             return values[i]
 
-    def _slice(self, slobj: slice, axis: int = 0, kind=None):
+    def _slice(self, slobj: slice, axis: Axis = 0, kind=None):
         slobj = self.index._convert_slice_indexer(slobj, kind=kind or "getitem")
         return self._get_values(slobj)
 
