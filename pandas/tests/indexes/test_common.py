@@ -35,7 +35,8 @@ class TestCommon:
 
         for level in "wrong", ["wrong"]:
             with pytest.raises(
-                KeyError, match=re.escape("'Level wrong must be same as name (None)'")
+                KeyError,
+                match=r"'Requested level \(wrong\) does not match index name \(None\)'",
             ):
                 indices.droplevel(level)
 
@@ -200,7 +201,7 @@ class TestCommon:
         with pytest.raises(IndexError, match=msg):
             indices.unique(level=3)
 
-        msg = r"Level wrong must be same as name \({}\)".format(
+        msg = r"Requested level \(wrong\) does not match index name \({}\)".format(
             re.escape(indices.name.__repr__())
         )
         with pytest.raises(KeyError, match=msg):

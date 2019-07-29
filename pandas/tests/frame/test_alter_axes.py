@@ -1083,7 +1083,7 @@ class TestDataFrameAlterAxes:
 
         # Missing levels - for both MultiIndex and single-level Index:
         for idx_lev in ["A", "B"], ["A"]:
-            with pytest.raises(KeyError, match="Level E "):
+            with pytest.raises(KeyError, match=r"(L|l)evel \(?E\)?"):
                 df.set_index(idx_lev).reset_index(level=["A", "E"])
             with pytest.raises(IndexError, match="Too many levels"):
                 df.set_index(idx_lev).reset_index(level=[0, 1, 2])
