@@ -1,5 +1,4 @@
 from ._reshaping import implement_2d  # noqa:F401
-from .array_ import array  # noqa: F401
 from .base import (  # noqa: F401
     ExtensionArray,
     ExtensionOpsMixin,

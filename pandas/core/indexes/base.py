@@ -15,6 +15,7 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
+from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
 from pandas.core.dtypes.common import (
     ensure_categorical,
@@ -45,7 +46,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDateOffset,
@@ -468,19 +469,15 @@ class Index(IndexOpsMixin, PandasObject):
                     pass
                 elif inferred != "string":
                     if inferred.startswith("datetime"):
-                        if (
-                            lib.is_datetime_with_singletz_array(subarr)
-                            or "tz" in kwargs
-                        ):
-                            # only when subarr has the same tz
-                            from pandas import DatetimeIndex
+                        from pandas import DatetimeIndex
 
-                            try:
-                                return DatetimeIndex(
-                                    subarr, copy=copy, name=name, **kwargs
-                                )
-                            except OutOfBoundsDatetime:
-                                pass
+                        try:
+                            return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
+                        except (ValueError, OutOfBoundsDatetime):
+                            # GH 27011
+                            # If we have mixed timezones, just send it
+                            # down the base constructor
+                            pass
 
                     elif inferred.startswith("timedelta"):
                         from pandas import TimedeltaIndex
@@ -2540,7 +2537,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             if len(indexer) > 0:
                 other_diff = algos.take_nd(rvals, indexer, allow_fill=False)
-                result = _concat._concat_compat((lvals, other_diff))
+                result = concat_compat((lvals, other_diff))
 
             else:
                 result = lvals
@@ -2786,7 +2783,7 @@ class Index(IndexOpsMixin, PandasObject):
         right_indexer = (indexer == -1).nonzero()[0]
         right_diff = other.values.take(right_indexer)
 
-        the_diff = _concat._concat_compat([left_diff, right_diff])
+        the_diff = concat_compat([left_diff, right_diff])
         if sort is None:
             try:
                 the_diff = sorting.safe_sort(the_diff)

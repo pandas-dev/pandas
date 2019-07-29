@@ -52,6 +52,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin, implement_2d
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core.construction import sanitize_array
 from pandas.core.missing import interpolate_2d
 import pandas.core.ops as ops
 
@@ -602,10 +603,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         dtype=None,
         copy=False,
     ):
-        from pandas.core.internals import SingleBlockManager
-
-        if isinstance(data, SingleBlockManager):
-            data = data.internal_values()
 
         if fill_value is None and isinstance(dtype, SparseDtype):
             fill_value = dtype.fill_value
@@ -665,7 +662,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if not is_array_like(data):
             try:
                 # probably shared code in sanitize_series
-                from pandas.core.internals.construction import sanitize_array
 
                 data = sanitize_array(data, index=None)
             except ValueError:
@@ -1861,15 +1857,6 @@ SparseArray._add_comparison_ops()
 SparseArray._add_unary_ops()
 
 
-def _maybe_to_dense(obj):
-    """
-    try to convert to dense
-    """
-    if hasattr(obj, "to_dense"):
-        return obj.to_dense()
-    return obj
-
-
 def make_sparse(arr, kind="block", fill_value=None, dtype=None, copy=False):
     """
     Convert ndarray to sparse format
@@ -2117,7 +2104,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
 
-    .. versionadded :: 0.25.0
+    .. versionadded:: 0.25.0
     """
 
     def _validate(self, data):

@@ -953,6 +953,7 @@ cdef class Seen:
 
     cdef:
         bint int_             # seen_int
+        bint nat_             # seen nat
         bint bool_            # seen_bool
         bint null_            # seen_null
         bint uint_            # seen_uint (unsigned integer)
@@ -976,6 +977,7 @@ cdef class Seen:
             initial methods to convert to numeric fail.
         """
         self.int_ = 0
+        self.nat_ = 0
         self.bool_ = 0
         self.null_ = 0
         self.uint_ = 0
@@ -1055,11 +1057,13 @@ cdef class Seen:
 
     @property
     def is_bool(self):
-        return not (self.datetime_ or self.numeric_ or self.timedelta_)
+        return not (self.datetime_ or self.numeric_ or self.timedelta_
+                    or self.nat_)
 
     @property
     def is_float_or_complex(self):
-        return not (self.bool_ or self.datetime_ or self.timedelta_)
+        return not (self.bool_ or self.datetime_ or self.timedelta_
+                    or self.nat_)
 
 
 cdef _try_infer_map(v):
@@ -1958,12 +1962,11 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             seen.null_ = 1
             floats[i] = complexes[i] = fnan
         elif val is NaT:
+            seen.nat_ = 1
             if convert_datetime:
                 idatetimes[i] = NPY_NAT
-                seen.datetime_ = 1
             if convert_timedelta:
                 itimedeltas[i] = NPY_NAT
-                seen.timedelta_ = 1
             if not (convert_datetime or convert_timedelta):
                 seen.object_ = 1
                 break
@@ -2057,11 +2060,20 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             else:
                 if not seen.bool_:
                     if seen.datetime_:
-                        if not seen.numeric_:
+                        if not seen.numeric_ and not seen.timedelta_:
                             return datetimes
                     elif seen.timedelta_:
                         if not seen.numeric_:
                             return timedeltas
+                    elif seen.nat_:
+                        if not seen.numeric_:
+                            if convert_datetime and convert_timedelta:
+                                # TODO: array full of NaT ambiguity resolve here needed
+                                pass
+                            elif convert_datetime:
+                                return datetimes
+                            elif convert_timedelta:
+                                return timedeltas
                     else:
                         if seen.complex_:
                             return complexes
@@ -2088,11 +2100,20 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             else:
                 if not seen.bool_:
                     if seen.datetime_:
-                        if not seen.numeric_:
+                        if not seen.numeric_ and not seen.timedelta_:
                             return datetimes
                     elif seen.timedelta_:
                         if not seen.numeric_:
                             return timedeltas
+                    elif seen.nat_:
+                        if not seen.numeric_:
+                            if convert_datetime and convert_timedelta:
+                                # TODO: array full of NaT ambiguity resolve here needed
+                                pass
+                            elif convert_datetime:
+                                return datetimes
+                            elif convert_timedelta:
+                                return timedeltas
                     else:
                         if seen.complex_:
                             if not seen.int_:

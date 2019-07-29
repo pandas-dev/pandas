@@ -1046,7 +1046,7 @@ class DatetimeIndexResampler(Resampler):
         **kwargs : kw args passed to how function
         """
         self._set_binner()
-        how = self._is_cython_func(how) or how
+        how = self._get_cython_func(how) or how
         ax = self.ax
         obj = self._selected_obj
 
@@ -1194,7 +1194,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self.kind == "timestamp":
             return super()._downsample(how, **kwargs)
 
-        how = self._is_cython_func(how) or how
+        how = self._get_cython_func(how) or how
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):
