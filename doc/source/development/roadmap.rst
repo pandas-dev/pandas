@@ -25,8 +25,8 @@ We'd like to improve the handling of extension arrays throughout the library,
 making their behavior more consistent with the handling of NumPy arrays. We'll do this
 by cleaning up pandas' internals and adding new methods do the extension array interface.
 
-String Dtype
-------------
+String data type
+----------------
 
 Currently, pandas stores text data in an ``object`` -dtype NumPy array.
 Each array stores Python strings. While pragmatic, since we rely on NumPy
@@ -40,7 +40,7 @@ These operations could be implemented in Numba (
 as prototyped in `Fletcher <https://github.com/xhochy/fletcher>`__)
 or in the Apache Arrow C++ library.
 
-Apache Arrow Interoperability
+Apache Arrow interoperability
 -----------------------------
 
 `Apache Arrow <https://arrow.apache.org>`__ is a cross-language development
@@ -52,7 +52,7 @@ within pandas. This will let us take advantage of its I/O capabilities and
 provide for better interoperability with other languages and libraries
 using Arrow.
 
-Block Manager Rewrite
+Block manager rewrite
 ---------------------
 
 We'd like to replace pandas current internal data structures (a collection of
@@ -78,7 +78,7 @@ By replacing the BlockManager we hope to achieve
 See `these design documents <https://dev.pandas.io/pandas2/internal-architecture.html#removal-of-blockmanager-new-dataframe-internals>`__
 for more.
 
-Decoupling of Indexing and Internals
+Decoupling of indexing and internals
 ------------------------------------
 
 The code for getting and setting values in pandas' data structures needs refactoring.
@@ -93,7 +93,7 @@ Indexing is a complicated API with many subtleties. This refactor will require c
 and attention. More details are discussed at
 https://github.com/pandas-dev/pandas/wiki/(Tentative)-rules-for-restructuring-indexing-code
 
-Numba-Accelerated Operations
+Numba-accelerated operations
 ----------------------------
 
 [Numba](https://numba.pydata.org) is a JIT compiler for Python code. We'd like to provide
@@ -103,7 +103,7 @@ and in groupby and window contexts). This will improve the performance of
 user-defined-functions in these operations by staying within compiled code.
 
 
-Weighted Operations
+Weighted operations
 -------------------
 
 In many fields, sample weights are necessary to correctly estimate population
@@ -112,7 +112,7 @@ etc.), possibly with an API similar to `DataFrame.groupby`.
 
 See https://github.com/pandas-dev/pandas/issues/10030 for more.
 
-Documentation Improvements
+Documentation improvements
 --------------------------
 
 We'd like to improve the content, structure, and presentation of pandas documentation.
@@ -125,7 +125,7 @@ Some specific goals include
 * Improve the overall organization of the documentation and specific subsections
   of the documentation to make navigation and finding content easier.
 
-Package Docstring Validation
+Package docstring validation
 ----------------------------
 
 To improve the quality and consistency of pandas docstrings, we've developed
@@ -139,7 +139,7 @@ docstrings. With the collaboration of the numpydoc maintainers, we'd like to
 move the checks to a package other than pandas so that other projects can easily
 use them as well.
 
-Performance Monitoring
+Performance monitoring
 ----------------------
 
 Pandas uses `airspeed velocity <https://asv.readthedocs.io/en/stable/>`__ to
