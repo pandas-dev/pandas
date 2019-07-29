@@ -120,7 +120,7 @@ class _Window(PandasObject, SelectionMixin):
             "left",
             "neither",
         ]:
-            raise ValueError("closed must be 'right', 'left', 'both' or " "'neither'")
+            raise ValueError("closed must be 'right', 'left', 'both' or 'neither'")
 
     def _create_blocks(self):
         """
@@ -232,9 +232,7 @@ class _Window(PandasObject, SelectionMixin):
             try:
                 values = ensure_float64(values)
             except (ValueError, TypeError):
-                raise TypeError(
-                    "cannot handle this type -> {0}" "".format(values.dtype)
-                )
+                raise TypeError("cannot handle this type -> {0}".format(values.dtype))
 
         # Always convert inf to nan
         values[np.isinf(values)] = np.NaN
@@ -329,9 +327,7 @@ class _Window(PandasObject, SelectionMixin):
         Center the result in the window.
         """
         if self.axis > result.ndim - 1:
-            raise ValueError(
-                "Requested axis is larger then no. of argument " "dimensions"
-            )
+            raise ValueError("Requested axis is larger then no. of argument dimensions")
 
         offset = _offset(window, True)
         if offset > 0:
@@ -1736,7 +1732,7 @@ class Rolling(_Rolling_and_Expanding):
 
         if not self.is_datetimelike and self.closed is not None:
             raise ValueError(
-                "closed only implemented for datetimelike " "and offset based windows"
+                "closed only implemented for datetimelike and offset based windows"
             )
 
     def _validate_monotonic(self):
@@ -1745,7 +1741,7 @@ class Rolling(_Rolling_and_Expanding):
         """
         if not self._on.is_monotonic:
             formatted = self.on or "index"
-            raise ValueError("{0} must be " "monotonic".format(formatted))
+            raise ValueError("{0} must be monotonic".format(formatted))
 
     def _validate_freq(self):
         """
@@ -2740,7 +2736,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 def _get_center_of_mass(comass, span, halflife, alpha):
     valid_count = com.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
-        raise ValueError("comass, span, halflife, and alpha " "are mutually exclusive")
+        raise ValueError("comass, span, halflife, and alpha are mutually exclusive")
 
     # Convert to center of mass; domain checks ensure 0 < alpha <= 1
     if comass is not None:

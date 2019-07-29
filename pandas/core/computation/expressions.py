@@ -197,7 +197,7 @@ def _bool_arith_check(
 
         if op_str in not_allowed:
             raise NotImplementedError(
-                "operator {op!r} not implemented for " "bool dtypes".format(op=op_str)
+                "operator {op!r} not implemented for bool dtypes".format(op=op_str)
             )
     return True
 

@@ -207,7 +207,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             left = left.astype(right.dtype)
 
         if type(left) != type(right):
-            msg = "must not have differing left [{ltype}] and right " "[{rtype}] types"
+            msg = "must not have differing left [{ltype}] and right [{rtype}] types"
             raise ValueError(
                 msg.format(ltype=type(left).__name__, rtype=type(right).__name__)
             )
@@ -459,13 +459,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     lhs, rhs = d
                 except ValueError:
                     msg = (
-                        "{name}.from_tuples requires tuples of " "length 2, got {tpl}"
+                        "{name}.from_tuples requires tuples of length 2, got {tpl}"
                     ).format(name=name, tpl=d)
                     raise ValueError(msg)
                 except TypeError:
-                    msg = (
-                        "{name}.from_tuples received an invalid " "item, {tpl}"
-                    ).format(name=name, tpl=d)
+                    msg = ("{name}.from_tuples received an invalid item, {tpl}").format(
+                        name=name, tpl=d
+                    )
                     raise TypeError(msg)
             left.append(lhs)
             right.append(rhs)
@@ -591,7 +591,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         filled : IntervalArray with NA/NaN filled
         """
         if method is not None:
-            raise TypeError("Filling by method is not supported for " "IntervalArray.")
+            raise TypeError("Filling by method is not supported for IntervalArray.")
         if limit is not None:
             raise TypeError("limit is not supported for IntervalArray.")
 

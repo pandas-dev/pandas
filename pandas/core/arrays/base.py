@@ -869,7 +869,7 @@ class ExtensionArray:
     def __repr__(self):
         from pandas.io.formats.printing import format_object_summary
 
-        template = "{class_name}" "{data}\n" "Length: {length}, dtype: {dtype}"
+        template = "{class_name}{data}\nLength: {length}, dtype: {dtype}"
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
