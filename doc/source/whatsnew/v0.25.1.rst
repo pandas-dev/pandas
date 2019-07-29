@@ -157,7 +157,7 @@ ExtensionArray
 Other
 ^^^^^
 
--
+- Add pyqt in mapping dictionary in `generate_pip_deps_from_conda.py` to fix installation failure of pandas (:issue:`26838`)
 -
 -
 
