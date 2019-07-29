@@ -49,7 +49,7 @@ typical pandas use cases.
 
 We'd like to provide better-integrated support for Arrow memory and data types
 within pandas. This will let us take advantage of its I/O capabilities and
-provides for better interoperability with other languages and libraries
+provide for better interoperability with other languages and libraries
 using Arrow.
 
 Block Manager Rewrite
@@ -82,10 +82,10 @@ Decoupling of Indexing and Internals
 ------------------------------------
 
 The code for getting and setting values in pandas' data structures needs refactoring.
-In particular, a clear separation must be made between code that
-converts keys (e.g., the argument to ``DataFrame.loc``) to positions from code that uses
-uses these positions to get or set values. This is related to the proposed BlockManager rewrite.
-Currently, the BlockManager sometimes uses label-based, rather than position-based, indexing.
+In particular, we must clearly separate code that converts keys (e.g., the argument
+to ``DataFrame.loc``) to positions from code that uses uses these positions to get
+or set values. This is related to the proposed BlockManager rewrite. Currently, the
+BlockManager sometimes uses label-based, rather than position-based, indexing.
 We propose that it should only work with positional indexing, and the translation of keys
 to positions should be entirely done at a higher level.
 
@@ -97,9 +97,10 @@ Numba-Accelerated Operations
 ----------------------------
 
 [Numba](https://numba.pydata.org) is a JIT compiler for Python code. We'd like to provide
-ways for users to apply their own Numba-jitted functions within pandas' groupby and window
-contexts. This will improve the performance of user-defined-functions in these operations
-by staying within compiled code.
+ways for users to apply their own Numba-jitted where pandas accepts user-defined functions
+(for example, :meth:`Series.apply`, :meth:`DataFrame.apply`, :meth:`DataFrame.applymap`,
+and in groupby and window contexts). This will improve the performance of
+user-defined-functions in these operations by staying within compiled code.
 
 
 Weighted Operations
