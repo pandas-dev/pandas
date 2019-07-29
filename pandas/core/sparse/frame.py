@@ -425,7 +425,7 @@ class SparseDataFrame(DataFrame):
 
         elif isinstance(value, SparseArray):
             if len(value) != len(self.index):
-                raise ValueError("Length of values does not match " "length of index")
+                raise ValueError("Length of values does not match length of index")
             clean = value
 
         elif hasattr(value, "__iter__"):
@@ -435,9 +435,7 @@ class SparseDataFrame(DataFrame):
                     clean = sp_maker(clean)
             else:
                 if len(value) != len(self.index):
-                    raise ValueError(
-                        "Length of values does not match " "length of index"
-                    )
+                    raise ValueError("Length of values does not match length of index")
                 clean = sp_maker(value)
 
         # Scalar
@@ -732,7 +730,7 @@ class SparseDataFrame(DataFrame):
 
         if method is not None or limit is not None:
             raise NotImplementedError(
-                "cannot reindex with a method or limit " "with sparse"
+                "cannot reindex with a method or limit with sparse"
             )
 
         if fill_value is None:
@@ -765,9 +763,7 @@ class SparseDataFrame(DataFrame):
         self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
     ):
         if on is not None:
-            raise NotImplementedError(
-                "'on' keyword parameter is not yet " "implemented"
-            )
+            raise NotImplementedError("'on' keyword parameter is not yet implemented")
         return self._join_index(other, how, lsuffix, rsuffix)
 
     def _join_index(self, other, how, lsuffix, rsuffix):
