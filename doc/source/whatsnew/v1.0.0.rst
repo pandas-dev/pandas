@@ -52,7 +52,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
-- :func:`pandas.json_normalize` is now exposed in the top-level namespace. Usage of :func:`json_normalize` as :func:`pandas.io.json.json_normalize` is now deprecated and it is recommended to use :func:`json_normalize` as :func:`pandas.json_normalize` instead. (:issue:`27586`)
+- :func:`pandas.json_normalize` is now exposed in the top-level namespace. Usage of ``json_normalize`` as ``pandas.io.json.json_normalize`` is now deprecated and it is recommended to use ``json_normalize`` as :func:`pandas.json_normalize` instead. (:issue:`27586`)
 -
 -
 
