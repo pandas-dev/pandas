@@ -4,15 +4,22 @@
 Roadmap
 =======
 
-This page provides an overview of the major themes pandas' development. Implementation
-of these goals may be hastened with dedicated funding.
+This page provides an overview of the major themes in pandas' development. Implementation
+of these goals may be hastened with dedicated funding or interest from contributors.
+
+An item being on the roadmap does not mean that pandas will *necessarily* happen, even
+with unlimited funding. During the implementation period we may discover issues
+preventing the adoption of the feature.
 
 Extensibility
 -------------
 
-Pandas :ref:`extending.extension-types` provide 3rd-party libraries the ability to
-extend pandas' supported data types. Many parts of pandas still unintentionally
-convert data to a NumPy array. These problems are especially pronounced for nested data.
+Pandas :ref:`extending.extension-types` allow for extending NumPy types with custom
+data types and array storage. Pandas uses extension types internally, and provides
+an interface for 3rd-party libraries to define their own custom data types.
+
+Many parts of pandas still unintentionally convert data to a NumPy array.
+These problems are especially pronounced for nested data.
 
 We'd like to improve the handling of extension arrays throughout the library,
 making their behavior more consistent with the handling of NumPy arrays. We'll do this
