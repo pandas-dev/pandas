@@ -170,7 +170,7 @@ Getting
 ~~~~~~~
 
 Selecting a single column, which yields a ``Series``,
-equivalent to ``d.A``:
+equivalent to ``df.A``:
 
 .. ipython:: python
 
