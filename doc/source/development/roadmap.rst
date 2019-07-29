@@ -29,16 +29,21 @@ String data type
 ----------------
 
 Currently, pandas stores text data in an ``object`` -dtype NumPy array.
-Each array stores Python strings. While pragmatic, since we rely on NumPy
-for storage and Python for string operations, this is memory inefficient
-and slow. We'd like to provide a native string type for pandas.
+The current implementation has two primary drawbacks: First, ``object`` -dtype
+is not specific to strings: any Python object can be stored in an ``object`` -dtype
+array, not just strings. Second: this is not efficient. The NumPy memory model
+isn't especially well-suited to variable width text data.
 
-The most obvious alternative is Apache Arrow. Currently, Arrow provides
-storage for string data. We can work with the Arrow developers to implement
-the operations needed for pandas users (for example, ``Series.str.upper``).
-These operations could be implemented in Numba (
-as prototyped in `Fletcher <https://github.com/xhochy/fletcher>`__)
-or in the Apache Arrow C++ library.
+To solve the first issue, we propose a new extension type for string data. This
+will initially be opt-in, with users explicitly requesting ``dtype="string"``.
+The array backing this string dtype may initially be the current implementation:
+an ``object`` -dtype NumPy array of Python strings.
+
+To solve the second issue (performance), we'll explore alternative in-memory
+array libraries (for example, Apache Arrow). As part of the work, we may
+need to implement certain operations expected by pandas users (for example
+the algorithm used in, ``Series.str.upper``). That work may be done outside of
+pandas.
 
 Apache Arrow interoperability
 -----------------------------
