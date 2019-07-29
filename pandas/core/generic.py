@@ -89,6 +89,7 @@ from pandas.tseries.frequencies import to_offset
 if TYPE_CHECKING:
     from pandas import Series, DataFrame
     from typing_extensions import Literal
+
     Errors = Literal["ignore", "raise"]
     How = Literal["first", "last"]
 else:
