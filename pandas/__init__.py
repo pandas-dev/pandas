@@ -178,9 +178,7 @@ from pandas.io.api import (
     read_spss,
 )
 
-from pandas.io.json import (
-    _json_normalize as json_normalize
-)
+from pandas.io.json import _json_normalize as json_normalize
 
 from pandas.util._tester import test
 import pandas.testing

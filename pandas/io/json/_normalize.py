@@ -8,9 +8,9 @@ from typing import DefaultDict, Dict, List, Optional, Union
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas.util._decorators import deprecate
 
 from pandas import DataFrame
-from pandas.util._decorators import deprecate
 
 
 def convert_to_line_delimits(s):
@@ -345,8 +345,5 @@ def _json_normalize(
 
 
 json_normalize = deprecate(
-    "pandas.io.json.json_normalize",
-    _json_normalize,
-    "1.0.0",
-    "pandas.json_normalize",
+    "pandas.io.json.json_normalize", _json_normalize, "1.0.0", "pandas.json_normalize"
 )

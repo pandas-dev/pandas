@@ -5,10 +5,9 @@ import pytest
 
 from pandas.compat import PY36
 
-from pandas import DataFrame, Index
+from pandas import DataFrame, Index, json_normalize
 import pandas.util.testing as tm
 
-from pandas import json_normalize
 from pandas.io.json._normalize import nested_to_record
 
 
