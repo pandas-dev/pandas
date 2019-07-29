@@ -2004,7 +2004,7 @@ class TestIndex(Base):
             msg = "'Level {} not found'"
         else:
             index = index.rename("foo")
-            msg = r"'Level {} must be same as name \(foo\)'"
+            msg = r"Requested level \({}\) does not match index name \(foo\)"
         with pytest.raises(KeyError, match=msg.format(label)):
             index.isin([], level=label)
 

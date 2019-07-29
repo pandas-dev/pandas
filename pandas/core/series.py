@@ -157,7 +157,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     data : array-like, Iterable, dict, or scalar value
         Contains data stored in Series.
 
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
            If data is a dict, argument order is maintained for Python 3.6
            and later.
 
@@ -371,7 +371,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Construct Series from array.
 
-        .. deprecated :: 0.23.0
+        .. deprecated:: 0.23.0
             Use pd.Series(..) constructor instead.
 
         Returns
@@ -598,7 +598,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return object Series which contains boxed values.
 
-        .. deprecated :: 0.23.0
+        .. deprecated:: 0.23.0
 
            Use ``astype(object)`` instead.
 
@@ -953,7 +953,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the real value of vector.
 
-        .. deprecated 0.25.0
+        .. deprecated:: 0.25.0
         """
         warnings.warn(
             "`real` has be deprecated and will be removed in a future version",
@@ -971,7 +971,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return imag value of vector.
 
-        .. deprecated 0.25.0
+        .. deprecated:: 0.25.0
         """
         warnings.warn(
             "`imag` has be deprecated and will be removed in a future version",
@@ -2615,9 +2615,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.dot(arr)
         array([24, 14])
         """
-        from pandas.core.frame import DataFrame
-
-        if isinstance(other, (Series, DataFrame)):
+        if isinstance(other, (Series, ABCDataFrame)):
             common = self.index.union(other.index)
             if len(common) > len(self.index) or len(common) > len(other.index):
                 raise ValueError("matrices are not aligned")
@@ -2634,7 +2632,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     "Dot product shape mismatch, %s vs %s" % (lvals.shape, rvals.shape)
                 )
 
-        if isinstance(other, DataFrame):
+        if isinstance(other, ABCDataFrame):
             return self._constructor(
                 np.dot(lvals, rvals), index=other.columns
             ).__finalize__(self)

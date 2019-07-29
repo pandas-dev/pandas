@@ -290,7 +290,7 @@ class _Concatenator:
             self.intersect = True
         else:  # pragma: no cover
             raise ValueError(
-                "Only can inner (intersect) or outer (union) " "join the other axis"
+                "Only can inner (intersect) or outer (union) join the other axis"
             )
 
         if isinstance(objs, dict):
