@@ -2,6 +2,20 @@ import re
 from typing import Optional  # noqa
 import warnings
 
+from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._matplotlib import converter
+from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+from pandas.plotting._matplotlib.style import _get_standard_colors
+from pandas.plotting._matplotlib.tools import (
+    _flatten,
+    _get_all_lines,
+    _get_xlim,
+    _handle_shared_axes,
+    _subplots,
+    format_date_labels,
+    table,
+)
+
 import numpy as np
 
 from pandas._config import get_option
@@ -26,20 +40,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.common as com
-
-from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib import converter
-from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
-from pandas.plotting._matplotlib.style import _get_standard_colors
-from pandas.plotting._matplotlib.tools import (
-    _flatten,
-    _get_all_lines,
-    _get_xlim,
-    _handle_shared_axes,
-    _subplots,
-    format_date_labels,
-    table,
-)
 
 if get_option("plotting.matplotlib.register_converters"):
     converter.register(explicit=False)
