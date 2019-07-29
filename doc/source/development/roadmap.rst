@@ -11,6 +11,8 @@ An item being on the roadmap does not mean that pandas will *necessarily* happen
 with unlimited funding. During the implementation period we may discover issues
 preventing the adoption of the feature.
 
+See :ref:`roadmap.evolution` for proposing changes to this document.
+
 Extensibility
 -------------
 
@@ -77,7 +79,7 @@ By replacing the BlockManager we hope to achieve
 * Substantially simpler code
 * Easier extensibility with new logical types
 * Better user control over memory use and layout
-* Improved microperformance
+* Improved micro-performance
 * Option to provide a C / Cython API to pandas' internals
 
 See `these design documents <https://dev.pandas.io/pandas2/internal-architecture.html#removal-of-blockmanager-new-dataframe-internals>`__
@@ -156,11 +158,13 @@ We'd like to fund improvements and maintenance of these tools to
 * Build a GitHub bot to request ASV runs *before* a PR is merged. Currently, the
   benchmarks are only run nightly.
 
+.. _roadmap.evolution:
+
 Roadmap Evolution
 -----------------
 
 Pandas continues to evolve. The direction is primarily determined by community
-interest. Everyone is welcome to review exissting items on the roadmap and
+interest. Everyone is welcome to review existing items on the roadmap and
 to propose a new item.
 
 Each item on the roadmap should be a short summary of a larger design proposal.
