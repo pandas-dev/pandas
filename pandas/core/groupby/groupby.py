@@ -47,6 +47,7 @@ from pandas.core.base import (
     SpecificationError,
 )
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
@@ -261,7 +262,7 @@ The current implementation imposes three requirements on f:
 
 * f must return a value that either has the same shape as the input
   subframe or can be broadcast to the shape of the input subframe.
-  For example, f returns a scalar it will be broadcast to have the
+  For example, if `f` returns a scalar it will be broadcast to have the
   same shape as the input subframe.
 * if this is a DataFrame, f must support application column-by-column
   in the subframe. If f also supports application to the entire subframe,
@@ -803,10 +804,9 @@ b  2""",
                 # Prior results _may_ have been generated in UTC.
                 # Ensure we localize to UTC first before converting
                 # to the target timezone
+                arr = extract_array(obj)
                 try:
-                    result = obj._values._from_sequence(
-                        result, dtype="datetime64[ns, UTC]"
-                    )
+                    result = arr._from_sequence(result, dtype="datetime64[ns, UTC]")
                     result = result.astype(dtype)
                 except TypeError:
                     # _try_cast was called at a point where the result

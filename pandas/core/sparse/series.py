@@ -20,7 +20,6 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import generic
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.sparse import SparseAccessor
-from pandas.core.index import Index
 from pandas.core.internals import SingleBlockManager
 import pandas.core.ops as ops
 from pandas.core.series import Series
@@ -56,7 +55,7 @@ class SparseSeries(Series):
     Parameters
     ----------
     data : {array-like, Series, SparseSeries, dict}
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
            If data is a dict, argument order is maintained for Python 3.6
            and later.
 
@@ -113,6 +112,11 @@ class SparseSeries(Series):
 
         elif is_scalar(data) and index is not None:
             data = np.full(len(index), fill_value=data)
+
+        if isinstance(data, SingleBlockManager):
+            # SparseArray doesn't accept SingleBlockManager
+            index = data.index
+            data = data.blocks[0].values
 
         super().__init__(
             SparseArray(
@@ -310,23 +314,26 @@ class SparseSeries(Series):
         else:
             object.__setattr__(self, "_subtyp", "sparse_series")
 
-    def _ixs(self, i, axis=0):
+    # ----------------------------------------------------------------------
+    # Indexing Methods
+
+    def _ixs(self, i: int, axis: int = 0):
         """
         Return the i-th value or values in the SparseSeries by location
 
         Parameters
         ----------
-        i : int, slice, or sequence of integers
+        i : int
+        axis : int
+            default 0, ignored
 
         Returns
         -------
         value : scalar (int) or Series (slice, sequence)
         """
-        label = self.index[i]
-        if isinstance(label, Index):
-            return self.take(i, axis=axis)
-        else:
-            return self._get_val_at(i)
+        assert is_integer(i), i
+        # equiv: self._get_val_at(i) since we have an integer
+        return self.values[i]
 
     def _get_val_at(self, loc):
         """ forward to the array """
@@ -339,52 +346,6 @@ class SparseSeries(Series):
             return self._get_val_at(key)
         else:
             return super().__getitem__(key)
-
-    def _get_values(self, indexer):
-        try:
-            return self._constructor(
-                self._data.get_slice(indexer), fastpath=True
-            ).__finalize__(self)
-        except Exception:
-            return self[indexer]
-
-    def _set_with_engine(self, key, value):
-        return self._set_value(key, value)
-
-    def abs(self):
-        """
-        Return an object with absolute value taken. Only applicable to objects
-        that are all numeric
-
-        Returns
-        -------
-        abs: same type as caller
-        """
-        return self._constructor(np.abs(self.values), index=self.index).__finalize__(
-            self
-        )
-
-    def get(self, label, default=None):
-        """
-        Returns value occupying requested label, default to specified
-        missing value if not present. Analogous to dict.get
-
-        Parameters
-        ----------
-        label : object
-            Label value looking for
-        default : object, optional
-            Value to return if label not in index
-
-        Returns
-        -------
-        y : scalar
-        """
-        if label in self.index:
-            loc = self.index.get_loc(label)
-            return self._get_val_at(loc)
-        else:
-            return default
 
     def _get_value(self, label, takeable=False):
         """
@@ -403,6 +364,17 @@ class SparseSeries(Series):
         """
         loc = label if takeable is True else self.index.get_loc(label)
         return self._get_val_at(loc)
+
+    def _get_values(self, indexer):
+        try:
+            return self._constructor(
+                self._data.get_slice(indexer), fastpath=True
+            ).__finalize__(self)
+        except Exception:
+            return self[indexer]
+
+    def _set_with_engine(self, key, value):
+        return self._set_value(key, value)
 
     def _set_value(self, label, value, takeable=False):
         """
@@ -456,6 +428,44 @@ class SparseSeries(Series):
         values[key] = libindex.convert_scalar(values, value)
         values = SparseArray(values, fill_value=self.fill_value, kind=self.kind)
         self._data = SingleBlockManager(values, self.index)
+
+    # ----------------------------------------------------------------------
+    # Unsorted
+
+    def abs(self):
+        """
+        Return an object with absolute value taken. Only applicable to objects
+        that are all numeric
+
+        Returns
+        -------
+        abs: same type as caller
+        """
+        return self._constructor(np.abs(self.values), index=self.index).__finalize__(
+            self
+        )
+
+    def get(self, label, default=None):
+        """
+        Returns value occupying requested label, default to specified
+        missing value if not present. Analogous to dict.get
+
+        Parameters
+        ----------
+        label : object
+            Label value looking for
+        default : object, optional
+            Value to return if label not in index
+
+        Returns
+        -------
+        y : scalar
+        """
+        if label in self.index:
+            loc = self.index.get_loc(label)
+            return self._get_val_at(loc)
+        else:
+            return default
 
     def to_dense(self):
         """

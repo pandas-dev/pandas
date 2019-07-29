@@ -830,5 +830,10 @@ setup(
             "hypothesis>=3.58",
         ]
     },
+    entry_points={
+        "pandas_plotting_backends": [
+            "matplotlib = pandas:plotting._matplotlib",
+        ],
+    },
     **setuptools_kwargs
 )

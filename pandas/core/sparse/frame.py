@@ -49,7 +49,7 @@ class SparseDataFrame(DataFrame):
     Parameters
     ----------
     data : same types as can be passed to DataFrame or scipy.sparse.spmatrix
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
            If data is a dict, argument order is maintained for Python 3.6
            and later.
 
@@ -447,6 +447,9 @@ class SparseDataFrame(DataFrame):
         # always return a SparseArray!
         return clean
 
+    # ----------------------------------------------------------------------
+    # Indexing Methods
+
     def _get_value(self, index, col, takeable=False):
         """
         Quickly retrieve single value at passed column and index
@@ -469,34 +472,6 @@ class SparseDataFrame(DataFrame):
             series = self._get_item_cache(col)
 
         return series._get_value(index, takeable=takeable)
-
-    def _set_value(self, index, col, value, takeable=False):
-        """
-        Put single value at passed column and index
-
-        Please use .at[] or .iat[] accessors.
-
-        Parameters
-        ----------
-        index : row label
-        col : column label
-        value : scalar value
-        takeable : interpret the index/col as indexers, default False
-
-        Notes
-        -----
-        This method *always* returns a new object. It is currently not
-        particularly efficient (and potentially very expensive) but is provided
-        for API compatibility with DataFrame
-
-        Returns
-        -------
-        frame : DataFrame
-        """
-        dense = self.to_dense()._set_value(index, col, value, takeable=takeable)
-        return dense.to_sparse(
-            kind=self._default_kind, fill_value=self._default_fill_value
-        )
 
     def _slice(self, slobj, axis=0, kind=None):
         if axis == 0:
@@ -528,6 +503,34 @@ class SparseDataFrame(DataFrame):
         i = self.index.get_loc(key)
         data = self.take([i])._internal_get_values()[0]
         return Series(data, index=self.columns)
+
+    def _set_value(self, index, col, value, takeable=False):
+        """
+        Put single value at passed column and index
+
+        Please use .at[] or .iat[] accessors.
+
+        Parameters
+        ----------
+        index : row label
+        col : column label
+        value : scalar value
+        takeable : interpret the index/col as indexers, default False
+
+        Notes
+        -----
+        This method *always* returns a new object. It is currently not
+        particularly efficient (and potentially very expensive) but is provided
+        for API compatibility with DataFrame
+
+        Returns
+        -------
+        frame : DataFrame
+        """
+        dense = self.to_dense()._set_value(index, col, value, takeable=takeable)
+        return dense.to_sparse(
+            kind=self._default_kind, fill_value=self._default_fill_value
+        )
 
     # ----------------------------------------------------------------------
     # Arithmetic-related methods
