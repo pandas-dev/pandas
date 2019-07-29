@@ -823,27 +823,27 @@ def is_one_of_factory(legal_values):
 
 def is_pos_int(value):
     """
-    Verifies that value is None or a positive int
+    Verify that value is None or a positive int.
 
     Parameters
     ----------
-    value - the value to be checked
+    value : None or int
+            The `value` to be checked.
 
     Raises
     ------
-    ValueError if value is not equal to None or int, or if value is not
-    positive in the case of a int type.
-
+    ValueError if the value is not equal to a positive integer, 0 or None.
     """
 
-    if not (value is None or isinstance(value, int)):
-        msg = "Value must be an instance of <class 'NoneType'>|<class 'int'>"
-        raise ValueError(msg)
+    if value is None:
+        return
 
     elif isinstance(value, int):
-        if value < 0:
-            msg = "int values must be positive for this option"
-            raise ValueError(msg)
+        if value >= 0:
+            return
+
+    msg = "Value must be a positive integer, 0 or None"
+    raise ValueError(msg)
 
 
 # common type validators, for convenience
