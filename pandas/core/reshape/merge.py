@@ -1637,7 +1637,7 @@ class _AsOfMerge(_OrderedMerge):
             )
 
             if(
-                is_datetime64_dtype(lt) 
+                is_datetime64_dtype(lt)
                 or is_datetime64tz_dtype(lt)
                 or is_timedelta64_dtype(lt)
             ):
