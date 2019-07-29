@@ -260,7 +260,7 @@ def group_shift_indexer(int64_t[:] out, const int64_t[:] labels,
                         int ngroups, int periods):
     cdef:
         Py_ssize_t N, i, j, ii
-        int offset, sign
+        int offset = 0, sign
         int64_t lab, idxer, idxer_slot
         int64_t[:] label_seen = np.zeros(ngroups, dtype=np.int64)
         int64_t[:, :] label_indexer

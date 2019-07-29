@@ -86,7 +86,7 @@ See the :ref:`documentation <basics.pipe>` for more. (:issue:`10129`)
 
 .. _whatsnew_0162.enhancements.other:
 
-Other Enhancements
+Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - Added `rsplit` to Index/Series StringMethods (:issue:`10303`)
@@ -105,7 +105,7 @@ Other Enhancements
 
 .. _whatsnew_0162.api:
 
-API Changes
+API changes
 ~~~~~~~~~~~
 
 - ``Holiday`` now raises ``NotImplementedError`` if both ``offset`` and ``observance`` are used in the constructor instead of returning an incorrect result (:issue:`10217`).
@@ -113,7 +113,7 @@ API Changes
 
 .. _whatsnew_0162.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved ``Series.resample`` performance with ``dtype=datetime64[ns]`` (:issue:`7754`)
@@ -121,7 +121,7 @@ Performance Improvements
 
 .. _whatsnew_0162.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in ``Series.hist`` raises an error when a one row ``Series`` was given (:issue:`10214`)

@@ -13,7 +13,7 @@ import sys
 
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
-PYPY = platform.python_implementation() == 'PyPy'
+PYPY = platform.python_implementation() == "PyPy"
 
 
 # ----------------------------------------------------------------------------
@@ -29,9 +29,7 @@ def set_function_name(f, name, cls):
     Bind the name/qualname attributes of the function
     """
     f.__name__ = name
-    f.__qualname__ = '{klass}.{name}'.format(
-        klass=cls.__name__,
-        name=name)
+    f.__qualname__ = "{klass}.{name}".format(klass=cls.__name__, name=name)
     f.__module__ = cls.__module__
     return f
 
@@ -49,19 +47,19 @@ def raise_with_traceback(exc, traceback=Ellipsis):
 # https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian():
     """ am I little endian """
-    return sys.byteorder == 'little'
+    return sys.byteorder == "little"
 
 
 def is_platform_windows():
-    return sys.platform == 'win32' or sys.platform == 'cygwin'
+    return sys.platform == "win32" or sys.platform == "cygwin"
 
 
 def is_platform_linux():
-    return sys.platform == 'linux2'
+    return sys.platform == "linux2"
 
 
 def is_platform_mac():
-    return sys.platform == 'darwin'
+    return sys.platform == "darwin"
 
 
 def is_platform_32bit():

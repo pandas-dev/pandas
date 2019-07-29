@@ -19,7 +19,7 @@ from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t, int8_t
+from numpy cimport int64_t, int8_t, uint8_t, ndarray
 cnp.import_array()
 
 from cpython.datetime cimport (datetime,
@@ -213,7 +213,7 @@ cdef class _Timestamp(datetime):
 
     def __add__(self, other):
         cdef:
-            int64_t other_int, nanos
+            int64_t other_int, nanos = 0
 
         if is_timedelta64_object(other):
             other_int = other.astype('timedelta64[ns]').view('i8')
@@ -320,7 +320,7 @@ cdef class _Timestamp(datetime):
         cdef:
             int64_t val
             dict kwds
-            int8_t out[1]
+            ndarray[uint8_t, cast=True] out
             int month_kw
 
         freq = self.freq

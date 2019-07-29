@@ -160,11 +160,16 @@ Other enhancements:
 
 - ``Panel`` now supports the ``all`` and ``any`` aggregation functions. (:issue:`8302`):
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: python
 
-     p = pd.Panel(np.random.rand(2, 5, 4) > 0.1)
-     p.all()
+     >>> p = pd.Panel(np.random.rand(2, 5, 4) > 0.1)
+     >>> p.all()
+            0      1      2     3
+     0   True   True   True  True
+     1   True  False   True  True
+     2   True   True   True  True
+     3  False   True  False  True
+     4   True   True   True  True
 
 - Added support for ``utcfromtimestamp()``, ``fromtimestamp()``, and ``combine()`` on `Timestamp` class (:issue:`5351`).
 - Added Google Analytics (`pandas.io.ga`) basic documentation (:issue:`8835`). See `here <http://pandas.pydata.org/pandas-docs/version/0.15.2/remote_data.html#remote-data-ga>`__.
@@ -191,7 +196,7 @@ Performance
 
 .. _whatsnew_0152.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in concat of Series with ``category`` dtype which were coercing to ``object``. (:issue:`8641`)
