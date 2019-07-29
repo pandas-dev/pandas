@@ -577,16 +577,19 @@ class TestTypeInference:
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "integer"
 
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_integer_na(self, skipna):
+    @pytest.mark.parametrize(
+        "arr, skipna",
+        [
+            (np.array([1, 2, np.nan, np.nan, 3], dtype="O"), False),
+            (np.array([1, 2, np.nan, np.nan, 3], dtype="O"), True),
+            (np.array([1, 2, 3, np.int64(4), np.int32(5), np.nan], dtype="O"), False),
+            (np.array([1, 2, 3, np.int64(4), np.int32(5), np.nan], dtype="O"), True),
+        ],
+    )
+    def test_integer_na(self, arr, skipna):
         # GH 27392
+        result = lib.infer_dtype(arr, skipna=skipna)
         expected = "integer" if skipna else "integer-na"
-        arr = np.array([1, 2, np.nan, np.nan, 3], dtype="O")
-        result = lib.infer_dtype(arr, skipna=skipna)
-        assert result == expected
-
-        arr = np.array([1, 2, 3, np.int64(4), np.int32(5), np.nan], dtype="O")
-        result = lib.infer_dtype(arr, skipna=skipna)
         assert result == expected
 
     def test_deprecation(self):
