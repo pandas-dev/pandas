@@ -603,7 +603,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
         if is_compiled_re:
             if (case is not None) or (flags != 0):
                 raise ValueError(
-                    "case and flags cannot be set" " when pat is a compiled regex"
+                    "case and flags cannot be set when pat is a compiled regex"
                 )
         else:
             # not a compiled regex
@@ -623,10 +623,10 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     else:
         if is_compiled_re:
             raise ValueError(
-                "Cannot use a compiled regex as replacement " "pattern with regex=False"
+                "Cannot use a compiled regex as replacement pattern with regex=False"
             )
         if callable(repl):
-            raise ValueError("Cannot use a callable replacement when " "regex=False")
+            raise ValueError("Cannot use a callable replacement when regex=False")
         f = lambda x: x.replace(pat, repl, n)
 
     return _na_map(f, arr)
@@ -1944,7 +1944,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         if isinstance(data, ABCMultiIndex):
             raise AttributeError(
-                "Can only use .str accessor with Index, " "not MultiIndex"
+                "Can only use .str accessor with Index, not MultiIndex"
             )
 
         # see _libs/lib.pyx for list of inferred types
@@ -1957,7 +1957,7 @@ class StringMethods(NoNewAttributesMixin):
         inferred_dtype = lib.infer_dtype(values, skipna=True)
 
         if inferred_dtype not in allowed_types:
-            raise AttributeError("Can only use .str accessor with string " "values!")
+            raise AttributeError("Can only use .str accessor with string values!")
         return inferred_dtype
 
     def __getitem__(self, key):
@@ -2653,7 +2653,7 @@ class StringMethods(NoNewAttributesMixin):
             "side": "first",
             "return": "3 elements containing the string itself, followed by two "
             "empty strings",
-            "also": "rpartition : Split the string at the last occurrence of " "`sep`.",
+            "also": "rpartition : Split the string at the last occurrence of `sep`.",
         }
     )
     @deprecate_kwarg(old_arg_name="pat", new_arg_name="sep")
@@ -2669,7 +2669,7 @@ class StringMethods(NoNewAttributesMixin):
             "side": "last",
             "return": "3 elements containing two empty strings, followed by the "
             "string itself",
-            "also": "partition : Split the string at the first occurrence of " "`sep`.",
+            "also": "partition : Split the string at the first occurrence of `sep`.",
         }
     )
     @deprecate_kwarg(old_arg_name="pat", new_arg_name="sep")

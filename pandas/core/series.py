@@ -2614,9 +2614,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.dot(arr)
         array([24, 14])
         """
-        from pandas.core.frame import DataFrame
-
-        if isinstance(other, (Series, DataFrame)):
+        if isinstance(other, (Series, ABCDataFrame)):
             common = self.index.union(other.index)
             if len(common) > len(self.index) or len(common) > len(other.index):
                 raise ValueError("matrices are not aligned")
@@ -2633,7 +2631,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     "Dot product shape mismatch, %s vs %s" % (lvals.shape, rvals.shape)
                 )
 
-        if isinstance(other, DataFrame):
+        if isinstance(other, ABCDataFrame):
             return self._constructor(
                 np.dot(lvals, rvals), index=other.columns
             ).__finalize__(self)

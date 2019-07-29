@@ -1139,7 +1139,7 @@ def _comp_method_SERIES(cls, op, special):
             return NotImplemented
 
         elif isinstance(other, ABCSeries) and not self._indexed_same(other):
-            raise ValueError("Can only compare identically-labeled " "Series objects")
+            raise ValueError("Can only compare identically-labeled Series objects")
 
         elif is_categorical_dtype(self):
             # Dispatch to Categorical implementation; pd.CategoricalIndex
@@ -1169,9 +1169,7 @@ def _comp_method_SERIES(cls, op, special):
                 if op in {operator.lt, operator.le, operator.gt, operator.ge}:
                     future = "a TypeError will be raised"
                 else:
-                    future = (
-                        "'the values will not compare equal to the " "'datetime.date'"
-                    )
+                    future = "'the values will not compare equal to the 'datetime.date'"
                 msg = "\n".join(textwrap.wrap(msg.format(future=future)))
                 warnings.warn(msg, FutureWarning, stacklevel=2)
                 other = Timestamp(other)
@@ -1404,9 +1402,7 @@ def _align_method_FRAME(left, right, axis):
     """ convert rhs to meet lhs dims if input is list, tuple or np.ndarray """
 
     def to_series(right):
-        msg = (
-            "Unable to coerce to Series, length must be {req_len}: " "given {given_len}"
-        )
+        msg = "Unable to coerce to Series, length must be {req_len}: given {given_len}"
         if axis is not None and left._get_axis_name(axis) == "index":
             if len(left.index) != len(right):
                 raise ValueError(
@@ -1564,7 +1560,7 @@ def _comp_method_FRAME(cls, func, special):
             # Another DataFrame
             if not self._indexed_same(other):
                 raise ValueError(
-                    "Can only compare identically-labeled " "DataFrame objects"
+                    "Can only compare identically-labeled DataFrame objects"
                 )
             return dispatch_to_series(self, other, func, str_rep)
 

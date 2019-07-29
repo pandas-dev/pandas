@@ -333,7 +333,7 @@ def eval(
                     " if all expressions contain an assignment"
                 )
             elif inplace:
-                raise ValueError("Cannot operate inplace " "if there is no assignment")
+                raise ValueError("Cannot operate inplace if there is no assignment")
 
         # assign if needed
         assigner = parsed_expr.assigner

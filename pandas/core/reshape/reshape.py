@@ -133,9 +133,7 @@ class _Unstacker:
         num_cells = np.multiply(num_rows, num_columns, dtype=np.int32)
 
         if num_rows > 0 and num_columns > 0 and num_cells <= 0:
-            raise ValueError(
-                "Unstacked DataFrame is too big, " "causing int32 overflow"
-            )
+            raise ValueError("Unstacked DataFrame is too big, causing int32 overflow")
 
         self._make_sorted_values_labels()
         self._make_selectors()
@@ -176,7 +174,7 @@ class _Unstacker:
         mask.put(selector, True)
 
         if mask.sum() < len(self.index):
-            raise ValueError("Index contains duplicate entries, " "cannot reshape")
+            raise ValueError("Index contains duplicate entries, cannot reshape")
 
         self.group_index = comp_index
         self.mask = mask

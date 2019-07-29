@@ -290,7 +290,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
-            raise ValueError("Must provide freq argument if no data is " "supplied")
+            raise ValueError("Must provide freq argument if no data is supplied")
 
         if com.count_not_none(start, end, periods, freq) != 3:
             raise ValueError(
@@ -307,7 +307,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if start is None and end is None:
             if closed is not None:
                 raise ValueError(
-                    "Closed has to be None if not both of start" "and end are defined"
+                    "Closed has to be None if not both of startand end are defined"
                 )
 
         left_closed, right_closed = dtl.validate_endpoints(closed)
@@ -862,17 +862,17 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     seconds = _field_accessor(
         "seconds",
         "seconds",
-        "Number of seconds (>= 0 and less than 1 day) " "for each element.",
+        "Number of seconds (>= 0 and less than 1 day) for each element.",
     )
     microseconds = _field_accessor(
         "microseconds",
         "microseconds",
-        "Number of microseconds (>= 0 and less " "than 1 second) for each element.",
+        "Number of microseconds (>= 0 and less than 1 second) for each element.",
     )
     nanoseconds = _field_accessor(
         "nanoseconds",
         "nanoseconds",
-        "Number of nanoseconds (>= 0 and less " "than 1 microsecond) for each element.",
+        "Number of nanoseconds (>= 0 and less than 1 microsecond) for each element.",
     )
 
     @property
@@ -1131,7 +1131,7 @@ def _generate_regular_range(start, end, periods, offset):
         b = e - periods * stride
     else:
         raise ValueError(
-            "at least 'start' or 'end' should be specified " "if a 'period' is given."
+            "at least 'start' or 'end' should be specified if a 'period' is given."
         )
 
     data = np.arange(b, e, stride, dtype=np.int64)

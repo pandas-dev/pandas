@@ -99,7 +99,7 @@ def _sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=F
         raise ValueError("to_coo requires MultiIndex with nlevels > 2")
     if not ss.index.is_unique:
         raise ValueError(
-            "Duplicate index entries are not allowed in to_coo " "transformation."
+            "Duplicate index entries are not allowed in to_coo transformation."
         )
 
     # to keep things simple, only rely on integer indexing (not labels)

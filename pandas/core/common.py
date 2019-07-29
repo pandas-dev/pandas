@@ -443,7 +443,7 @@ def random_state(state=None):
         return np.random
     else:
         raise ValueError(
-            "random_state must be an integer, a numpy " "RandomState, or None"
+            "random_state must be an integer, a numpy RandomState, or None"
         )
 
 

@@ -1556,7 +1556,7 @@ class _AsOfMerge(_OrderedMerge):
         # set 'by' columns
         if self.by is not None:
             if self.left_by is not None or self.right_by is not None:
-                raise MergeError("Can only pass by OR left_by " "and right_by")
+                raise MergeError("Can only pass by OR left_by and right_by")
             self.left_by = self.right_by = self.by
         if self.left_by is None and self.right_by is not None:
             raise MergeError("missing left_by")

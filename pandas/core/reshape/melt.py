@@ -39,7 +39,7 @@ def melt(
             id_vars = [id_vars]
         elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(id_vars, list):
             raise ValueError(
-                "id_vars must be a list of tuples when columns" " are a MultiIndex"
+                "id_vars must be a list of tuples when columns are a MultiIndex"
             )
         else:
             # Check that `id_vars` are in frame
@@ -61,7 +61,7 @@ def melt(
             value_vars, list
         ):
             raise ValueError(
-                "value_vars must be a list of tuples when" " columns are a MultiIndex"
+                "value_vars must be a list of tuples when columns are a MultiIndex"
             )
         else:
             value_vars = list(value_vars)

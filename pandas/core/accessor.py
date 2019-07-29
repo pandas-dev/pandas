@@ -51,7 +51,7 @@ class PandasDelegate:
     """
 
     def _delegate_property_get(self, name, *args, **kwargs):
-        raise TypeError("You cannot access the " "property {name}".format(name=name))
+        raise TypeError("You cannot access the property {name}".format(name=name))
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
         raise TypeError("The property {name} cannot be set".format(name=name))
@@ -271,8 +271,7 @@ Back in an interactive IPython session:
 @Appender(
     _doc
     % dict(
-        klass="DataFrame",
-        others=("register_series_accessor, " "register_index_accessor"),
+        klass="DataFrame", others=("register_series_accessor, register_index_accessor")
     )
 )
 def register_dataframe_accessor(name):
@@ -284,8 +283,7 @@ def register_dataframe_accessor(name):
 @Appender(
     _doc
     % dict(
-        klass="Series",
-        others=("register_dataframe_accessor, " "register_index_accessor"),
+        klass="Series", others=("register_dataframe_accessor, register_index_accessor")
     )
 )
 def register_series_accessor(name):
@@ -297,8 +295,7 @@ def register_series_accessor(name):
 @Appender(
     _doc
     % dict(
-        klass="Index",
-        others=("register_dataframe_accessor, " "register_series_accessor"),
+        klass="Index", others=("register_dataframe_accessor, register_series_accessor")
     )
 )
 def register_index_accessor(name):
