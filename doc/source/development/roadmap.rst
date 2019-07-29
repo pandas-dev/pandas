@@ -104,7 +104,7 @@ Numba-accelerated operations
 ----------------------------
 
 [Numba](https://numba.pydata.org) is a JIT compiler for Python code. We'd like to provide
-ways for users to apply their own Numba-jitted where pandas accepts user-defined functions
+ways for users to apply their own Numba-jitted functions where pandas accepts user-defined functions
 (for example, :meth:`Series.apply`, :meth:`DataFrame.apply`, :meth:`DataFrame.applymap`,
 and in groupby and window contexts). This will improve the performance of
 user-defined-functions in these operations by staying within compiled code.
