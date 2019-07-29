@@ -210,7 +210,7 @@ as an attribute:
      See `here for an explanation of valid identifiers
      <https://docs.python.org/3/reference/lexical_analysis.html#identifiers>`__.
 
-   - The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed, but ``s['min']``is possible.
+   - The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed, but ``s['min']`` is possible.
 
    - Similarly, the attribute will not be available if it conflicts with any of the following list: ``index``,
      ``major_axis``, ``minor_axis``, ``items``.
