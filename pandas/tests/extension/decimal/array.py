@@ -137,11 +137,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
             value = decimal.Decimal(value)
         self._data[key] = value
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._data)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         n = len(self)
         if n:
             return n * sys.getsizeof(self[0])

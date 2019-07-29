@@ -75,3 +75,15 @@ class BaseInterfaceTests(BaseExtensionTests):
 
         data[1] = data[0]
         assert result[1] != result[0]
+
+    def test_view(self, data):
+        # view with no dtype should return a shallow copy, *not* the same
+        #  object
+        assert data[1] != data[0]
+
+        result = data.view()
+        assert result is not data
+        assert type(result) == type(data)
+
+        result[1] = result[0]
+        assert data[1] == data[0]

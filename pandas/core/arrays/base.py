@@ -351,7 +351,7 @@ class ExtensionArray:
         """
         Extension Arrays are only allowed to be 1-dimensional.
         """
-        return 1
+        return len(self.shape)
 
     @property
     def nbytes(self) -> int:
@@ -866,6 +866,24 @@ class ExtensionArray:
         ExtensionArray
         """
         raise AbstractMethodError(self)
+
+    def view(self, dtype=None) -> ABCExtensionArray:
+        """
+        Return a view on the array.
+
+        Returns
+        -------
+        ExtensionArray
+
+        Notes
+        -----
+        - This must return a *new* object, not self.
+        - The only case that *must* be implemented is with dtype=None,
+          giving a view with the same dtype as self.
+        """
+        if dtype is not None:
+            raise NotImplementedError(dtype)
+        return self[:]
 
     # ------------------------------------------------------------------------
     # Printing

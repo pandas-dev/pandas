@@ -518,18 +518,11 @@ class Categorical(ExtensionArray, PandasObject):
         return np.array(self, dtype=dtype, copy=copy)
 
     @cache_readonly
-    def ndim(self) -> int:
-        """
-        Number of dimensions of the Categorical
-        """
-        return self._codes.ndim
-
-    @cache_readonly
     def size(self) -> int:
         """
         return the len of myself
         """
-        return len(self)
+        return self._codes.size
 
     @cache_readonly
     def itemsize(self) -> int:
@@ -1764,7 +1757,7 @@ class Categorical(ExtensionArray, PandasObject):
         )
         return np.array(self)
 
-    def view(self):
+    def view(self, dtype=None):
         """
         Return a view of myself.
 
@@ -1773,9 +1766,10 @@ class Categorical(ExtensionArray, PandasObject):
         Returns
         -------
         view : Categorical
-           Returns `self`!
         """
-        return self
+        if dtype is not None:
+            raise NotImplementedError(dtype)
+        return self._constructor(values=self._codes, dtype=self.dtype, fastpath=True)
 
     def to_dense(self):
         """

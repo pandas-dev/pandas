@@ -241,11 +241,11 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         else:
             self._ndarray[key] = value
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._ndarray)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self._ndarray.nbytes
 
     def isna(self):
