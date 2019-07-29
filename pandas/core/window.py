@@ -35,7 +35,7 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 
-from pandas._typing import Axis, FrameOrSeries
+from pandas._typing import Axis, FrameOrSeries, Scalar
 from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.generic import _shared_docs
@@ -387,7 +387,7 @@ class _Window(PandasObject, SelectionMixin):
         center: Optional[bool] = None,
         check_minp: Optional[Callable] = None,
         **kwargs
-    ) -> FrameOrSeries:
+    ):
         """
         Rolling statistical measure using supplied function.
 
@@ -423,7 +423,7 @@ class _Window(PandasObject, SelectionMixin):
         index_as_array = self._get_index()
 
         results = []
-        exclude = []
+        exclude = []  # type: List[Scalar]
         for i, b in enumerate(blocks):
             try:
                 values = self._prep_values(b.values)
