@@ -64,13 +64,13 @@ We'd like to replace pandas current internal data structures (a collection of
 1 or 2-D arrays) with a simpler collection of 1-D arrays.
 
 Pandas internal data model is quite complex. A DataFrame is made up of
-one or more 2-dimension "blocks", with one or more blocks per dtype. This
+one or more 2-dimensional "blocks", with one or more blocks per dtype. This
 collection of 2-D arrays is managed by the BlockManager.
 
 The primary benefit of the BlockManager is improved performance on certain
 operations (construction from a 2D array, binary operations, reductions across the columns),
 especially for wide DataFrames. However, the BlockManager substantially increases the
-complexity and maintenance burden of pandas'.
+complexity and maintenance burden of pandas.
 
 By replacing the BlockManager we hope to achieve
 
@@ -108,22 +108,13 @@ and in groupby and window contexts). This will improve the performance of
 user-defined-functions in these operations by staying within compiled code.
 
 
-Weighted operations
--------------------
-
-In many fields, sample weights are necessary to correctly estimate population
-statistics. We'd like to support weighted operations (like `mean`, `sum`, `std`,
-etc.), possibly with an API similar to `DataFrame.groupby`.
-
-See https://github.com/pandas-dev/pandas/issues/10030 for more.
-
 Documentation improvements
 --------------------------
 
-We'd like to improve the content, structure, and presentation of pandas documentation.
+We'd like to improve the content, structure, and presentation of the pandas documentation.
 Some specific goals include
 
-* Overhaul the HTML theme with a modern, responsive design.
+* Overhaul the HTML theme with a modern, responsive design (:issue:`15556`)
 * Improve the "Getting Started" documentation, designing and writing learning paths
   for users different backgrounds (e.g. brand new to programming, familiar with
   other languages like R, already familiar with Python).
@@ -164,3 +155,25 @@ We'd like to fund improvements and maintenance of these tools to
   https://pyperf.readthedocs.io/en/latest/system.html
 * Build a GitHub bot to request ASV runs *before* a PR is merged. Currently, the
   benchmarks are only run nightly.
+
+Roadmap Evolution
+-----------------
+
+Pandas continues to evolve. The direction is primarily determined by community
+interest. Everyone is welcome to review exissting items on the roadmap and
+to propose a new item.
+
+Each item on the roadmap should be a short summary of a larger design proposal.
+The proposal should include
+
+1. Short summary of the changes, which would be appropriate for inclusion in
+   the roadmap if accepted.
+2. Motivation for the changes.
+3. Detailed design: Preferably with example-usage (even if not implemented yet)
+   and API documentation
+4. API Change: Any API changes that may result from the proposal.
+
+That proposal may then be submitted as a GitHub issue, where the pandas maintainers
+can review and comment on the design. When there's agreement that an implementation
+would be welcome, the roadmap can be updated to include the summary and a
+link to the discussion issue.
