@@ -13,8 +13,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
-import pandas as pd
-
 
 def to_numeric(arg, errors="raise", downcast=None):
     """
@@ -183,11 +181,11 @@ def to_numeric(arg, errors="raise", downcast=None):
                         break
 
     if is_series:
-        return pd.Series(values, index=arg.index, name=arg.name)
+        return arg._constructor(values, index=arg.index, name=arg.name)
     elif is_index:
         # because we want to coerce to numeric if possible,
         # do not use _shallow_copy_with_infer
-        return pd.Index(values, name=arg.name)
+        return arg._constructor(values, name=arg.name)
     elif is_scalars:
         return values[0]
     else:

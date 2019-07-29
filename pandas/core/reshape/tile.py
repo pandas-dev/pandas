@@ -230,7 +230,7 @@ def cut(
         if np.isinf(mn) or np.isinf(mx):
             # GH 24314
             raise ValueError(
-                "cannot specify integer `bins` when input data " "contains infinity"
+                "cannot specify integer `bins` when input data contains infinity"
             )
         elif mn == mx:  # adjust end points before binning
             mn -= 0.001 * abs(mn) if mn != 0 else 0.001
@@ -406,7 +406,7 @@ def _bins_to_cuts(
         else:
             if len(labels) != len(bins) - 1:
                 raise ValueError(
-                    "Bin labels must be one fewer than " "the number of bin edges"
+                    "Bin labels must be one fewer than the number of bin edges"
                 )
         if not is_categorical_dtype(labels):
             labels = Categorical(labels, categories=labels, ordered=True)
