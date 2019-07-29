@@ -173,11 +173,15 @@ The proposal should include
 1. Short summary of the changes, which would be appropriate for inclusion in
    the roadmap if accepted.
 2. Motivation for the changes.
-3. Detailed design: Preferably with example-usage (even if not implemented yet)
+3. An explanation of why the change is in scope for pandas.
+4. Detailed design: Preferably with example-usage (even if not implemented yet)
    and API documentation
-4. API Change: Any API changes that may result from the proposal.
+5. API Change: Any API changes that may result from the proposal.
 
 That proposal may then be submitted as a GitHub issue, where the pandas maintainers
-can review and comment on the design. When there's agreement that an implementation
-would be welcome, the roadmap can be updated to include the summary and a
+can review and comment on the design. The `pandas mailing <https://mail.python.org/mailman/listinfo/pandas-dev>`_
+should be notified of the proposal.
+
+When there's agreement that an implementation
+would be welcome, the roadmap should be updated to include the summary and a
 link to the discussion issue.
