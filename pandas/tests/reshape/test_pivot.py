@@ -2480,5 +2480,5 @@ class TestCrosstab:
                                  name='C')
         expected.index = MultiIndex(levels=[['bar', 'foo'], ['one', 'two']],
                                     codes=[[1, 1, 2, 2], [1, 2, 1, 2]],
-                                    names=['A, B'])
+                                    names=['A', 'B'])
         tm.assert_frame_equal(result, expected)
