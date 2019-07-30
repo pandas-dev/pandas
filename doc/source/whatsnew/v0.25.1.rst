@@ -128,7 +128,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.crosstab` when margins set to True and normalize is not False, an error is raised. (:issue:`27500`)
 -
 -
 
