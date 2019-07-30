@@ -1246,3 +1246,38 @@ class TestAsOfMerge:
         )
         expected["value_y"] = np.array([np.nan], dtype=object)
         assert_frame_equal(result, expected)
+
+    def test_timedelta_tolerance_nearest(self):
+        # GH 27642
+
+        left = pd.DataFrame(
+            {
+                'time': pd.to_timedelta([0, 5, 10, 15, 20, 25], 'ms'),
+                'left': [0, 1, 2, 3, 4, 5]
+            }
+        )
+
+        right = pd.DataFrame(
+            {
+                'time': pd.to_timedelta([0, 3, 9, 12, 15, 18], 'ms'),
+                'right': [0, 1, 2, 3, 4, 5]
+            }
+        )
+
+        expected = pd.DataFrame(
+            {
+                'time': pd.to_timedelta([0, 5, 10, 15, 20, 25], 'ms'),
+                'left': [0, 1, 2, 3, 4, 5],
+                'right': [0, np.nan, 2, 4, np.nan, np.nan]
+            }
+        )
+
+        result = pd.merge_asof(
+            left,
+            right,
+            on='time',
+            tolerance=pd.Timedelta('1ms'),
+            direction="nearest"
+        )
+
+        assert_frame_equal(result, expected)
