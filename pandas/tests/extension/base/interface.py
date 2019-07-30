@@ -87,3 +87,10 @@ class BaseInterfaceTests(BaseExtensionTests):
 
         result[1] = result[0]
         assert data[1] == data[0]
+
+        # check that `dtype` kwarg is accepted; it is OK if it
+        #  raises NotImplementedError
+        try:
+            data.view(data.dtype)
+        except NotImplementedError:
+            pass

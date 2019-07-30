@@ -64,6 +64,7 @@ class ExtensionArray:
     shift
     take
     unique
+    view
     _concat_same_type
     _formatter
     _formatting_values
@@ -147,7 +148,7 @@ class ExtensionArray:
     If implementing NumPy's ``__array_ufunc__`` interface, pandas expects
     that
 
-    1. You defer by raising ``NotImplemented`` when any Series are present
+    1. You defer by returning ``NotImplemented`` when any Series are present
        in `inputs`. Pandas will extract the arrays and call the ufunc again.
     2. You define a ``_HANDLED_TYPES`` tuple as an attribute on the class.
        Pandas inspect this to determine whether the ufunc is valid for the
