@@ -288,12 +288,12 @@ def json_normalize(
         if len(path) > 1:
             for obj in data:
                 for val, key in zip(meta, meta_keys):
-                    if level + 1 == len(val):
-                        seen_meta[key] = _pull_field(obj, val[-1])
+                    # if level + 1 == len(val):
+                    seen_meta[key] = _pull_field(obj, val[0])
 
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
         else:
-            for obj in data:
+            for ind, obj in enumerate(data):
                 recs = _pull_field(obj, path[0])
                 recs = [
                     nested_to_record(r, sep=sep, max_level=max_level)
@@ -305,8 +305,16 @@ def json_normalize(
                 # For repeating the metadata later
                 lengths.append(len(recs))
                 for val, key in zip(meta, meta_keys):
+
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
+                        meta_vals[key].append(meta_val)
+                    elif seen_meta:
+                        meta_val = seen_meta[key]
+                        if isinstance(meta_val, list):
+                            meta_vals[key].append(meta_val[ind][val[level]])
+                        else:
+                            meta_vals[key].append(meta_val[val[level]])
                     else:
                         try:
                             meta_val = _pull_field(obj, val[level:])
@@ -319,7 +327,8 @@ def json_normalize(
                                     "errors='ignore' as key "
                                     "{err} is not always present".format(err=e)
                                 )
-                    meta_vals[key].append(meta_val)
+                        meta_vals[key].append(meta_val)
+
                 records.extend(recs)
 
     _recursive_extract(data, record_path, {}, level=0)
