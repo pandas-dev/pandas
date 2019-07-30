@@ -1,4 +1,5 @@
 import numpy as np
+import datetime
 import pytest
 import pytz
 
@@ -597,6 +598,18 @@ class TestAsOfMerge:
             trades, quotes, on="time", by="ticker", tolerance=Timedelta("1day")
         )
         expected = self.tolerance
+        assert_frame_equal(result, expected)
+
+    def test_datetime_timedelta_tolerance(self):
+
+        trades = self.trades
+        quotes = self.quotes
+
+        result = merge_asof(
+            trades, quotes, on="time", by="ticker", tolerance=datetime.timedelta(days=1)
+        )
+        expected = self.tolerance
+
         assert_frame_equal(result, expected)
 
     def test_tolerance_forward(self):
