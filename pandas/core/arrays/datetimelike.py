@@ -569,8 +569,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         ndarray or ExtensionArray
             With the specified `dtype`.
         """
-        if dtype is None:
-            return type(self)(self._data, dtype=self.dtype, freq=self.freq)
+        if dtype is None or dtype is self.dtype:
+            return type(self)(self._data, dtype=self.dtype)
         return self._data.view(dtype=dtype)
 
     # ------------------------------------------------------------------
