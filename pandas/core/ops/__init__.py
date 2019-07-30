@@ -39,18 +39,20 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeArray,
+    ABCDatetimeIndex,
     ABCIndex,
     ABCIndexClass,
     ABCSeries,
     ABCSparseArray,
     ABCSparseSeries,
     ABCTimedeltaArray,
+    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
 from pandas._typing import ArrayLike
-import pandas.core.common as com
+from pandas.core.construction import extract_array
 
 from . import missing
 from .docstrings import (
@@ -1017,7 +1019,7 @@ def _arith_method_SERIES(cls, op, special):
                 right = np.broadcast_to(right, left.shape)
                 right = pd.TimedeltaIndex(right)
 
-            assert isinstance(right, (pd.TimedeltaIndex, ABCTimedeltaArray, ABCSeries))
+            assert isinstance(right, (ABCTimedeltaIndex, ABCTimedeltaArray, ABCSeries))
             try:
                 result = op(left._values, right)
             except NullFrequencyError:
@@ -1035,7 +1037,7 @@ def _arith_method_SERIES(cls, op, special):
             #  does inference in the case where `result` has object-dtype.
             return construct_result(left, result, index=left.index, name=res_name)
 
-        elif isinstance(right, (ABCDatetimeArray, pd.DatetimeIndex)):
+        elif isinstance(right, (ABCDatetimeArray, ABCDatetimeIndex)):
             result = op(left._values, right)
             return construct_result(left, result, index=left.index, name=res_name)
 
@@ -1231,7 +1233,7 @@ def _comp_method_SERIES(cls, op, special):
                 )
 
             # always return a full value series here
-            res_values = com.values_from_object(res)
+            res_values = extract_array(res, extract_numpy=True)
             return self._constructor(
                 res_values, index=self.index, name=res_name, dtype="bool"
             )
