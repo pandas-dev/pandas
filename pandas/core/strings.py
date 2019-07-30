@@ -1953,8 +1953,11 @@ class StringMethods(NoNewAttributesMixin):
         values = getattr(data, "values", data)  # Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
 
-        # missing values obfuscate type inference -> skip
-        inferred_dtype = lib.infer_dtype(values, skipna=True)
+        inferred_dtype = None
+        if isinstance(values, np.ndarray):
+            # exclude e.g. IntervalArray, which will cause infer_dtype to raise
+            # missing values obfuscate type inference -> skip
+            inferred_dtype = lib.infer_dtype(values, skipna=True)
 
         if inferred_dtype not in allowed_types:
             raise AttributeError("Can only use .str accessor with string values!")
