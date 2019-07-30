@@ -7,6 +7,7 @@ from io import StringIO
 import itertools
 from operator import methodcaller
 import os
+from pathlib import Path
 import re
 from shutil import get_terminal_size
 import sys
@@ -931,6 +932,18 @@ class TestDataFrameFormatting:
 
         # this should work
         buf.getvalue()
+
+    def test_to_string_buffer_pathlike_raises(self, tmp_path):
+        msg = "'to_string' method does not yet support 'buf=<path-like>'"
+
+        assert isinstance(tmp_path, Path)
+        with pytest.raises(NotImplementedError, match=msg):
+            DataFrame().to_string(tmp_path)
+
+        path_as_string = str(tmp_path)
+        assert isinstance(path_as_string, str)
+        with pytest.raises(NotImplementedError, match=msg):
+            DataFrame().to_string(path_as_string)
 
     def test_to_string_with_col_space(self):
         df = DataFrame(np.random.random(size=(1, 3)))

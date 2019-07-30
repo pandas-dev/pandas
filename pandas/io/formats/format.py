@@ -5,6 +5,7 @@ and latex files. This module also applies to display formatting.
 
 from functools import partial
 from io import StringIO
+from pathlib import Path
 import re
 from shutil import get_terminal_size
 from typing import (
@@ -731,6 +732,11 @@ class DataFrameFormatter(TableFormatter):
         Render a DataFrame to a console-friendly tabular output.
         """
         from pandas import Series
+
+        if isinstance(self.buf, (str, Path)):
+            raise NotImplementedError(
+                "'to_string' method does not yet support 'buf=<path-like>'"
+            )
 
         frame = self.frame
 
