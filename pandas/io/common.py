@@ -10,7 +10,7 @@ import lzma
 import mmap
 import os
 import pathlib
-from typing import IO, BinaryIO, Optional, TextIO, Tuple, Type
+from typing import IO, BinaryIO, Optional, TextIO, Type
 from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
     urlencode,
@@ -175,7 +175,7 @@ def get_filepath_or_buffer(
     encoding: Optional[str] = None,
     compression: Optional[str] = None,
     mode: Optional[str] = None,
-) -> Tuple[FilePathOrBuffer, Optional[str], Optional[str], bool]:
+):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
