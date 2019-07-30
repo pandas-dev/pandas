@@ -792,7 +792,6 @@ generated/pandas.io.formats.style.Styler.to_excel,../reference/api/pandas.io.for
 generated/pandas.io.formats.style.Styler.use,../reference/api/pandas.io.formats.style.Styler.use
 generated/pandas.io.formats.style.Styler.where,../reference/api/pandas.io.formats.style.Styler.where
 generated/pandas.io.json.build_table_schema,../reference/api/pandas.io.json.build_table_schema
-generated/pandas.io.json.json_normalize,../reference/api/pandas.io.json.json_normalize
 generated/pandas.io.stata.StataReader.data,../reference/api/pandas.io.stata.StataReader.data
 generated/pandas.io.stata.StataReader.data_label,../reference/api/pandas.io.stata.StataReader.data_label
 generated/pandas.io.stata.StataReader.value_labels,../reference/api/pandas.io.stata.StataReader.value_labels
@@ -800,6 +799,7 @@ generated/pandas.io.stata.StataReader.variable_labels,../reference/api/pandas.io
 generated/pandas.io.stata.StataWriter.write_file,../reference/api/pandas.io.stata.StataWriter.write_file
 generated/pandas.isna,../reference/api/pandas.isna
 generated/pandas.isnull,../reference/api/pandas.isnull
+generated/pandas.json_normalize,../reference/api/pandas.json_normalize
 generated/pandas.melt,../reference/api/pandas.melt
 generated/pandas.merge_asof,../reference/api/pandas.merge_asof
 generated/pandas.merge,../reference/api/pandas.merge

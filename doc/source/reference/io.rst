@@ -52,12 +52,16 @@ JSON
 
    read_json
 
+.. autosummary::
+   :toctree: api/
+
+   json_normalize
+
 .. currentmodule:: pandas.io.json
 
 .. autosummary::
    :toctree: api/
 
-   json_normalize
    build_table_schema
 
 .. currentmodule:: pandas
