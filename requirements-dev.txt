@@ -45,7 +45,7 @@ html5lib
 lxml
 openpyxl
 pyarrow>=0.9.0
-pyqt
+pyqt5>=5.13.0
 tables>=3.4.2
 python-snappy
 s3fs
