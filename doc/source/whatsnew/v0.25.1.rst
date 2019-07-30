@@ -64,7 +64,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 
--
+- Improved the warnings for the deprecated methods :meth:`Series.real` and :meth:`Series.imag` (:issue:`27610`)
 -
 -
 
