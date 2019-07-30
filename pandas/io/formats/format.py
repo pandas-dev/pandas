@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 from shutil import get_terminal_size
 from typing import (
+    IO,
     TYPE_CHECKING,
     Any,
     Callable,
@@ -16,7 +17,6 @@ from typing import (
     Iterable,
     List,
     Optional,
-    TextIO,
     Tuple,
     Type,
     Union,
@@ -67,7 +67,7 @@ from pandas.core.index import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-from pandas.io.common import _expand_user, _stringify_path
+from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
@@ -161,7 +161,7 @@ class CategoricalFormatter:
     def __init__(
         self,
         categorical: "Categorical",
-        buf: Optional[TextIO] = None,
+        buf: Optional[IO[str]] = None,
         length: bool = True,
         na_rep: str = "NaN",
         footer: bool = True,
@@ -224,7 +224,7 @@ class SeriesFormatter:
     def __init__(
         self,
         series: "Series",
-        buf: Optional[TextIO] = None,
+        buf: Optional[IO[str]] = None,
         length: bool = True,
         header: bool = True,
         index: bool = True,
@@ -480,7 +480,7 @@ class DataFrameFormatter(TableFormatter):
     def __init__(
         self,
         frame: "DataFrame",
-        buf: Optional[FilePathOrBuffer] = None,
+        buf: Optional[FilePathOrBuffer[str]] = None,
         columns: Optional[List[str]] = None,
         col_space: Optional[Union[str, int]] = None,
         header: Union[bool, List[str]] = True,
@@ -503,7 +503,7 @@ class DataFrameFormatter(TableFormatter):
     ):
         self.frame = frame
         if buf is not None:
-            self.buf = _expand_user(_stringify_path(buf))
+            self.buf = _stringify_path(buf)
         else:
             self.buf = StringIO()
         self.show_index_names = index_names
@@ -908,7 +908,8 @@ class DataFrameFormatter(TableFormatter):
         Klass = NotebookFormatter if notebook else HTMLFormatter
         html = Klass(self, classes=classes, border=border).render()
         if hasattr(self.buf, "write"):
-            buffer_put_lines(self.buf, html)
+            # https://github.com/python/mypy/issues/1424
+            buffer_put_lines(self.buf, html)  # type: ignore
         elif isinstance(self.buf, str):
             with open(self.buf, "w") as f:
                 buffer_put_lines(f, html)
@@ -1909,7 +1910,7 @@ def get_level_lengths(
     return result
 
 
-def buffer_put_lines(buf: TextIO, lines: List[str]) -> None:
+def buffer_put_lines(buf: IO[str], lines: List[str]) -> None:
     """
     Appends lines to a buffer.
 
