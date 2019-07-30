@@ -2914,7 +2914,7 @@ class NDFrame(PandasObject, SelectionMixin):
         .. versionchanged:: 0.20.2
            Added to Series.
 
-        .. versionchanged:: 0.25.0
+        .. versionchanged:: 0.26.0
            Added caption and label arguments.
 
         Parameters
@@ -2988,13 +2988,13 @@ class NDFrame(PandasObject, SelectionMixin):
         caption : str, optional
             The LaTeX caption to be placed inside ``\caption{}`` in the output.
 
-            .. versionadded:: 0.25.0
+            .. versionadded:: 0.26.0
 
         label : str, optional
             The LaTeX label to be placed inside ``\label{}`` in the output.
             This is used with ``\ref{}`` in the main ``.tex`` file.
 
-            .. versionadded:: 0.25.0
+            .. versionadded:: 0.26.0
 
         Returns
         -------
