@@ -227,7 +227,7 @@ class NDFrameGroupBy(GroupBy):
             kwargs = {}
         elif func is None:
             # nicer error message
-            raise TypeError("Must provide 'func' or tuples of " "'(column, aggfunc).")
+            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
         func = _maybe_mangle_lambdas(func)
 
@@ -836,9 +836,7 @@ class SeriesGroupBy(GroupBy):
 
         relabeling = func_or_funcs is None
         columns = None
-        no_arg_message = (
-            "Must provide 'func_or_funcs' or named " "aggregation **kwargs."
-        )
+        no_arg_message = "Must provide 'func_or_funcs' or named aggregation **kwargs."
         if relabeling:
             columns = list(kwargs)
             if not PY36:
