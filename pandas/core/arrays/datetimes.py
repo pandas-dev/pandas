@@ -496,7 +496,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         if start is None and end is None:
             if closed is not None:
                 raise ValueError(
-                    "Closed has to be None if not both of startand end are defined"
+                    "Closed has to be None if not both of start and end are defined"
                 )
         if start is NaT or end is NaT:
             raise ValueError("Neither `start` nor `end` can be NaT")

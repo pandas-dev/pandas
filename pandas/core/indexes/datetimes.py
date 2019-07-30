@@ -803,11 +803,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if isinstance(other, DatetimeIndex):
             if self.tz is not None:
                 if other.tz is None:
-                    raise TypeError(
-                        "Cannot join tz-naive with tz-aware " "DatetimeIndex"
-                    )
+                    raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
             elif other.tz is not None:
-                raise TypeError("Cannot join tz-naive with tz-aware " "DatetimeIndex")
+                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
 
             if not timezones.tz_compare(self.tz, other.tz):
                 this = self.tz_convert("UTC")
@@ -1048,7 +1046,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if isinstance(key, time):
             if method is not None:
                 raise NotImplementedError(
-                    "cannot yet lookup inexact labels " "when key is a time object"
+                    "cannot yet lookup inexact labels when key is a time object"
                 )
             return self.indexer_at_time(key)
 

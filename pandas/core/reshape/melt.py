@@ -5,6 +5,7 @@ import numpy as np
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_extension_type, is_list_like
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import notna
 
@@ -170,8 +171,6 @@ def lreshape(data, groups, dropna=True, label=None):
 
     for target, names in zip(keys, values):
         to_concat = [data[col].values for col in names]
-
-        from pandas.core.dtypes.concat import concat_compat
 
         mdata[target] = concat_compat(to_concat)
         pivot_cols.append(target)

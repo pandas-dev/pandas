@@ -3,8 +3,8 @@ import itertools
 
 import numpy as np
 
-import pandas._libs.algos as _algos
-import pandas._libs.reshape as _reshape
+import pandas._libs.algos as libalgos
+import pandas._libs.reshape as libreshape
 from pandas._libs.sparse import IntIndex
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -150,7 +150,7 @@ class _Unstacker:
         comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
         ngroups = len(obs_ids)
 
-        indexer = _algos.groupsort_indexer(comp_index, ngroups)[0]
+        indexer = libalgos.groupsort_indexer(comp_index, ngroups)[0]
         indexer = ensure_platform_int(indexer)
 
         self.sorted_values = algos.take_nd(self.values, indexer, axis=0)
@@ -239,7 +239,7 @@ class _Unstacker:
             sorted_values = sorted_values.astype(name, copy=False)
 
         # fill in our values & mask
-        f = getattr(_reshape, "unstack_{name}".format(name=name))
+        f = getattr(libreshape, "unstack_{name}".format(name=name))
         f(
             sorted_values,
             mask.view("u1"),
