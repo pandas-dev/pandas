@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import is_platform_32bit, is_platform_windows
+from pandas.compat import PY36, is_platform_32bit, is_platform_windows
 
 import pandas as pd
 from pandas import (
@@ -41,6 +41,27 @@ import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
+
+
+@pytest.fixture(params=["string", "pathlike", "buffer"])
+def filepath_or_buffer(request, tmp_path):
+    """
+    A fixture yeilding a string representing a filepath, a path-like object
+    and a StringIO buffer. Also checks that buffer is not closed.
+    """
+    if request.param == "buffer":
+        buf = StringIO()
+        yield buf
+        assert not buf.closed
+    else:
+        if PY36:
+            assert isinstance(tmp_path, Path)
+        else:
+            assert hasattr(tmp_path, "__fspath__")
+        if request.param == "pathlike":
+            yield tmp_path / "foo"
+        else:
+            yield str(tmp_path / "foo")
 
 
 def curpath():
@@ -932,18 +953,6 @@ class TestDataFrameFormatting:
 
         # this should work
         buf.getvalue()
-
-    def test_to_string_buffer_pathlike_raises(self, tmp_path):
-        msg = "'to_string' method does not yet support 'buf=<path-like>'"
-
-        assert isinstance(tmp_path, Path)
-        with pytest.raises(NotImplementedError, match=msg):
-            DataFrame().to_string(tmp_path)
-
-        path_as_string = str(tmp_path)
-        assert isinstance(path_as_string, str)
-        with pytest.raises(NotImplementedError, match=msg):
-            DataFrame().to_string(path_as_string)
 
     def test_to_string_with_col_space(self):
         df = DataFrame(np.random.random(size=(1, 3)))
@@ -3155,3 +3164,19 @@ def test_repr_html_ipython_config(ip):
     )
     result = ip.run_cell(code)
     assert not result.error_in_exec
+
+
+@pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
+def test_filepath_or_buffer_arg(float_frame, method, filepath_or_buffer):
+    df = float_frame
+    expected = getattr(df, method)()
+
+    getattr(df, method)(buf=filepath_or_buffer)
+    if isinstance(filepath_or_buffer, str):
+        with open(filepath_or_buffer) as f:
+            result = f.read()
+    elif hasattr(filepath_or_buffer, "__fspath__"):
+        result = filepath_or_buffer.read_text()
+    else:
+        result = filepath_or_buffer.getvalue()
+    assert result == expected
