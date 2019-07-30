@@ -20,7 +20,7 @@ import yaml
 
 
 EXCLUDE = {"python=3"}
-RENAME = {"pytables": "tables", "pyqt": "pyqt5"}
+RENAME = {"pytables": "tables"}
 
 
 def conda_package_to_pip(package):
