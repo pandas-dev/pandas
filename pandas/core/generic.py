@@ -5,6 +5,7 @@ import gc
 import json
 import operator
 import pickle
+import re
 from textwrap import dedent
 from typing import Callable, Dict, FrozenSet, List, Optional, Set
 import warnings
@@ -380,7 +381,7 @@ class NDFrame(PandasObject, SelectionMixin):
                     kwargs[a] = args.pop(0)
                 except IndexError:
                     if require_all:
-                        raise TypeError("not enough/duplicate arguments " "specified!")
+                        raise TypeError("not enough/duplicate arguments specified!")
 
         axes = {a: kwargs.pop(a, sentinel) for a in self._AXIS_ORDERS}
         return axes, kwargs
@@ -564,7 +565,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """ internal compat with SelectionMixin """
         return self
 
-    def set_axis(self, labels, axis=0, inplace=None):
+    def set_axis(self, labels, axis=0, inplace=False):
         """
         Assign desired index to given axis.
 
@@ -587,14 +588,8 @@ class NDFrame(PandasObject, SelectionMixin):
             The axis to update. The value 0 identifies the rows, and 1
             identifies the columns.
 
-        inplace : bool, default None
+        inplace : bool, default False
             Whether to return a new %(klass)s instance.
-
-            .. warning::
-
-               ``inplace=None`` currently falls back to to True, but in a
-               future version, will default to False. Use inplace=True
-               explicitly rather than relying on the default.
 
         Returns
         -------
@@ -616,18 +611,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2    3
         dtype: int64
 
-        >>> s.set_axis(['a', 'b', 'c'], axis=0, inplace=False)
+        >>> s.set_axis(['a', 'b', 'c'], axis=0)
         a    1
         b    2
         c    3
-        dtype: int64
-
-        The original object is not modified.
-
-        >>> s
-        0    1
-        1    2
-        2    3
         dtype: int64
 
         **DataFrame**
@@ -636,7 +623,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Change the row labels.
 
-        >>> df.set_axis(['a', 'b', 'c'], axis='index', inplace=False)
+        >>> df.set_axis(['a', 'b', 'c'], axis='index')
            A  B
         a  1  4
         b  2  5
@@ -644,7 +631,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Change the column labels.
 
-        >>> df.set_axis(['I', 'II'], axis='columns', inplace=False)
+        >>> df.set_axis(['I', 'II'], axis='columns')
            I  II
         0  1   4
         1  2   5
@@ -670,15 +657,6 @@ class NDFrame(PandasObject, SelectionMixin):
             )
             labels, axis = axis, labels
 
-        if inplace is None:
-            warnings.warn(
-                "set_axis currently defaults to operating inplace.\nThis "
-                "will change in a future version of pandas, use "
-                "inplace=True to avoid this warning.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            inplace = True
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
@@ -1320,7 +1298,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if non_mapper:
                 return self._set_axis_name(mapper, axis=axis, inplace=inplace)
             else:
-                raise ValueError("Use `.rename` to alter labels " "with a mapper.")
+                raise ValueError("Use `.rename` to alter labels with a mapper.")
         else:
             # Use new behavior.  Means that index and/or columns
             # is specified
@@ -3892,16 +3870,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if labels is not None:
             if index is not None or columns is not None:
-                raise ValueError(
-                    "Cannot specify both 'labels' and " "'index'/'columns'"
-                )
+                raise ValueError("Cannot specify both 'labels' and 'index'/'columns'")
             axis_name = self._get_axis_name(axis)
             axes = {axis_name: labels}
         elif index is not None or columns is not None:
             axes, _ = self._construct_axes_from_arguments((index, columns), {})
         else:
             raise ValueError(
-                "Need to specify at least one of 'labels', " "'index' or 'columns'"
+                "Need to specify at least one of 'labels', 'index' or 'columns'"
             )
 
         obj = self
@@ -4638,8 +4614,6 @@ class NDFrame(PandasObject, SelectionMixin):
                  one  two  three
         rabbit    4    5      6
         """
-        import re
-
         nkw = com.count_not_none(items, like, regex)
         if nkw > 1:
             raise TypeError(
@@ -4909,7 +4883,7 @@ class NDFrame(PandasObject, SelectionMixin):
                             weights = self[weights]
                         except KeyError:
                             raise KeyError(
-                                "String passed to weights not a " "valid column"
+                                "String passed to weights not a valid column"
                             )
                     else:
                         raise ValueError(
@@ -4927,14 +4901,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
             if len(weights) != axis_length:
                 raise ValueError(
-                    "Weights and axis to be sampled must be of " "same length"
+                    "Weights and axis to be sampled must be of same length"
                 )
 
             if (weights == np.inf).any() or (weights == -np.inf).any():
                 raise ValueError("weight vector may not include `inf` values")
 
             if (weights < 0).any():
-                raise ValueError("weight vector many not include negative " "values")
+                raise ValueError("weight vector many not include negative values")
 
             # If has nan, set to zero.
             weights = weights.fillna(0)
@@ -4956,12 +4930,12 @@ class NDFrame(PandasObject, SelectionMixin):
         elif n is None and frac is not None:
             n = int(round(frac * axis_length))
         elif n is not None and frac is not None:
-            raise ValueError("Please enter a value for `frac` OR `n`, not " "both")
+            raise ValueError("Please enter a value for `frac` OR `n`, not both")
 
         # Check for negative sizes
         if n < 0:
             raise ValueError(
-                "A negative number of rows requested. Please " "provide positive value."
+                "A negative number of rows requested. Please provide positive value."
             )
 
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
@@ -5588,7 +5562,7 @@ class NDFrame(PandasObject, SelectionMixin):
         dtype: int64
         """
         warnings.warn(
-            "get_ftype_counts is deprecated and will " "be removed in a future version",
+            "get_ftype_counts is deprecated and will be removed in a future version",
             FutureWarning,
             stacklevel=2,
         )
@@ -5709,7 +5683,7 @@ class NDFrame(PandasObject, SelectionMixin):
         values : a dict of dtype -> Constructor Types
         """
         warnings.warn(
-            "as_blocks is deprecated and will " "be removed in a future version",
+            "as_blocks is deprecated and will be removed in a future version",
             FutureWarning,
             stacklevel=2,
         )
@@ -6621,9 +6595,7 @@ class NDFrame(PandasObject, SelectionMixin):
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_bool(regex) and to_replace is not None:
-            raise AssertionError(
-                "'to_replace' must be 'None' if 'regex' is " "not a bool"
-            )
+            raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
 
         self._consolidate_inplace()
 
@@ -6721,7 +6693,7 @@ class NDFrame(PandasObject, SelectionMixin):
                             convert=convert,
                         )
                 else:
-                    raise TypeError("value argument must be scalar, dict, or " "Series")
+                    raise TypeError("value argument must be scalar, dict, or Series")
 
             elif is_list_like(to_replace):  # [NA, ''] -> [0, 'missing']
                 if is_list_like(value):
@@ -7007,7 +6979,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if isinstance(_maybe_transposed_self.index, MultiIndex) and method != "linear":
             raise ValueError(
-                "Only `method=linear` interpolation is supported " "on MultiIndexes."
+                "Only `method=linear` interpolation is supported on MultiIndexes."
             )
 
         if _maybe_transposed_self._data.get_dtype_counts().get("object") == len(
@@ -7169,9 +7141,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2018-02-27 09:04:30   40.0 NaN
         """
         if isinstance(where, str):
-            from pandas import to_datetime
-
-            where = to_datetime(where)
+            where = Timestamp(where)
 
         if not self.index.is_monotonic:
             raise ValueError("asof requires a sorted index")
@@ -7621,7 +7591,7 @@ class NDFrame(PandasObject, SelectionMixin):
         dtype: int64
         """
         warnings.warn(
-            "clip_upper(threshold) is deprecated, " "use clip(upper=threshold) instead",
+            "clip_upper(threshold) is deprecated, use clip(upper=threshold) instead",
             FutureWarning,
             stacklevel=2,
         )
@@ -7740,7 +7710,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2  5  6
         """
         warnings.warn(
-            "clip_lower(threshold) is deprecated, " "use clip(lower=threshold) instead",
+            "clip_lower(threshold) is deprecated, use clip(lower=threshold) instead",
             FutureWarning,
             stacklevel=2,
         )
@@ -8743,12 +8713,10 @@ class NDFrame(PandasObject, SelectionMixin):
         fill_axis=0,
         broadcast_axis=None,
     ):
-        from pandas import DataFrame, Series
-
         method = missing.clean_fill_method(method)
 
         if broadcast_axis == 1 and self.ndim != other.ndim:
-            if isinstance(self, Series):
+            if isinstance(self, ABCSeries):
                 # this means other is a DataFrame, and we need to broadcast
                 # self
                 cons = self._constructor_expanddim
@@ -8766,7 +8734,7 @@ class NDFrame(PandasObject, SelectionMixin):
                     limit=limit,
                     fill_axis=fill_axis,
                 )
-            elif isinstance(other, Series):
+            elif isinstance(other, ABCSeries):
                 # this means self is a DataFrame, and we need to broadcast
                 # other
                 cons = other._constructor_expanddim
@@ -8787,7 +8755,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if axis is not None:
             axis = self._get_axis_number(axis)
-        if isinstance(other, DataFrame):
+        if isinstance(other, ABCDataFrame):
             return self._align_frame(
                 other,
                 join=join,
@@ -8799,7 +8767,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 limit=limit,
                 fill_axis=fill_axis,
             )
-        elif isinstance(other, Series):
+        elif isinstance(other, ABCSeries):
             return self._align_series(
                 other,
                 join=join,
@@ -8892,7 +8860,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # series/series compat, other must always be a Series
         if is_series:
             if axis:
-                raise ValueError("cannot align series to a series other than " "axis 0")
+                raise ValueError("cannot align series to a series other than axis 0")
 
             # equal
             if self.index.equals(other.index):
@@ -8982,7 +8950,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
             if cond.shape != self.shape:
-                raise ValueError("Array conditional must be same shape as " "self")
+                raise ValueError("Array conditional must be same shape as self")
             cond = self._constructor(cond, **self._construct_axes_dict())
 
         # make sure we are boolean
@@ -9022,7 +8990,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # slice me out of the other
             else:
                 raise NotImplementedError(
-                    "cannot align with a higher " "dimensional NDFrame"
+                    "cannot align with a higher dimensional NDFrame"
                 )
 
         if isinstance(other, np.ndarray):
@@ -9065,12 +9033,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
                     else:
                         raise ValueError(
-                            "Length of replacements must equal " "series length"
+                            "Length of replacements must equal series length"
                         )
 
                 else:
                     raise ValueError(
-                        "other must be the same shape as self " "when an ndarray"
+                        "other must be the same shape as self when an ndarray"
                     )
 
             # we are the same shape, so create an actual object for alignment
@@ -9664,7 +9632,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if len(ax) > 0:
                     ax_name = self._get_axis_name(axis)
                     raise TypeError(
-                        "%s is not a valid DatetimeIndex or " "PeriodIndex" % ax_name
+                        "%s is not a valid DatetimeIndex or PeriodIndex" % ax_name
                     )
                 else:
                     ax = DatetimeIndex([], tz=tz)
@@ -9828,7 +9796,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if len(ax) > 0:
                     ax_name = self._get_axis_name(axis)
                     raise TypeError(
-                        "%s is not a valid DatetimeIndex or " "PeriodIndex" % ax_name
+                        "%s is not a valid DatetimeIndex or PeriodIndex" % ax_name
                     )
                 else:
                     ax = DatetimeIndex([], tz=tz)
@@ -10272,7 +10240,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Validate percentiles (used by describe and quantile).
         """
 
-        msg = "percentiles should all be in the interval [0, 1]. " "Try {0} instead."
+        msg = "percentiles should all be in the interval [0, 1]. Try {0} instead."
         q = np.asarray(q)
         if q.ndim == 0:
             if not 0 <= q <= 1:
@@ -10792,7 +10760,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def transform(self, func, *args, **kwargs):
         result = self.agg(func, *args, **kwargs)
         if is_scalar(result) or len(result) != len(self):
-            raise ValueError("transforms cannot produce " "aggregated results")
+            raise ValueError("transforms cannot produce aggregated results")
 
         return result
 
@@ -11513,7 +11481,7 @@ min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 
-    .. versionadded :: 0.22.0
+    .. versionadded:: 0.22.0
 
        Added with the default being 0. This means the sum of an all-NA
        or empty Series is 0, and the product of an all-NA or empty
@@ -11692,7 +11660,7 @@ def _make_logical_function(
         if level is not None:
             if bool_only is not None:
                 raise NotImplementedError(
-                    "Option bool_only is not " "implemented with option level."
+                    "Option bool_only is not implemented with option level."
                 )
             return self._agg_by_level(name, axis=axis, level=level, skipna=skipna)
         return self._reduce(
