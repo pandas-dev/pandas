@@ -55,7 +55,7 @@ class SparseSeries(Series):
     Parameters
     ----------
     data : {array-like, Series, SparseSeries, dict}
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
            If data is a dict, argument order is maintained for Python 3.6
            and later.
 
@@ -590,7 +590,7 @@ class SparseSeries(Series):
         dense_valid = self.to_dense().dropna()
         if inplace:
             raise NotImplementedError(
-                "Cannot perform inplace dropna" " operations on a SparseSeries"
+                "Cannot perform inplace dropna operations on a SparseSeries"
             )
         if isna(self.fill_value):
             return dense_valid
