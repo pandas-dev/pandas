@@ -27,6 +27,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 
 _cpython_optimized_encoders = (
     "utf-8",
@@ -1950,14 +1951,14 @@ class StringMethods(NoNewAttributesMixin):
         # see _libs/lib.pyx for list of inferred types
         allowed_types = ["string", "empty", "bytes", "mixed", "mixed-integer"]
 
-        values = getattr(data, "values", data)  # Series / Index
+        values = extract_array(data)  # unpack Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
 
-        inferred_dtype = None
-        if isinstance(values, np.ndarray):
-            # exclude e.g. IntervalArray, which will cause infer_dtype to raise
-            # missing values obfuscate type inference -> skip
+        try:
+            # GH#27571 make sure this doesn't raise too early
             inferred_dtype = lib.infer_dtype(values, skipna=True)
+        except (ValueError, TypeError):
+            inferred_dtype = None
 
         if inferred_dtype not in allowed_types:
             raise AttributeError("Can only use .str accessor with string values!")
