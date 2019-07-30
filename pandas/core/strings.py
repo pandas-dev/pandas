@@ -1955,9 +1955,9 @@ class StringMethods(NoNewAttributesMixin):
         values = getattr(values, "categories", values)  # categorical / normal
 
         try:
-            # GH#27571 make sure this doesn't raise too early
             inferred_dtype = lib.infer_dtype(values, skipna=True)
-        except (ValueError, TypeError):
+        except ValueError:
+            # GH#27571 mostly occurs with ExtensionArray
             inferred_dtype = None
 
         if inferred_dtype not in allowed_types:
