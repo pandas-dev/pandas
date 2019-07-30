@@ -325,7 +325,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         *this is an internal non-public method*
         """
         warnings.warn(
-            "'asobject' is deprecated. Use 'astype(object)'" " instead",
+            "'asobject' is deprecated. Use 'astype(object)' instead",
             FutureWarning,
             stacklevel=2,
         )
@@ -335,7 +335,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
 
         if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match " "target index size")
+            raise ValueError("list-like tolerance size must match target index size")
         return tolerance
 
     def tolist(self):
