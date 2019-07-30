@@ -1,15 +1,13 @@
 """ basic inference routines """
 
+from collections import abc
 from numbers import Number
 import re
+from typing import Pattern
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat import (
-    PY2, Set, re_type, string_and_binary_types, string_types, text_type)
-
-from pandas import compat
 
 is_bool = lib.is_bool
 
@@ -24,6 +22,8 @@ is_scalar = lib.is_scalar
 is_decimal = lib.is_decimal
 
 is_interval = lib.is_interval
+
+is_list_like = lib.is_list_like
 
 
 def is_number(obj):
@@ -44,7 +44,7 @@ def is_number(obj):
 
     See Also
     --------
-    pandas.api.types.is_integer: Checks a subgroup of numbers.
+    api.types.is_integer: Checks a subgroup of numbers.
 
     Examples
     --------
@@ -88,7 +88,7 @@ def is_string_like(obj):
         Whether `obj` is a string or not.
     """
 
-    return isinstance(obj, (text_type, string_types))
+    return isinstance(obj, str)
 
 
 def _iterable_not_string(obj):
@@ -114,8 +114,7 @@ def _iterable_not_string(obj):
     False
     """
 
-    return (isinstance(obj, compat.Iterable) and
-            not isinstance(obj, string_types))
+    return isinstance(obj, abc.Iterable) and not isinstance(obj, str)
 
 
 def is_iterator(obj):
@@ -146,15 +145,10 @@ def is_iterator(obj):
     False
     """
 
-    if not hasattr(obj, '__iter__'):
+    if not hasattr(obj, "__iter__"):
         return False
 
-    if PY2:
-        return hasattr(obj, 'next')
-    else:
-        # Python 3 generators have
-        # __next__ instead of next
-        return hasattr(obj, '__next__')
+    return hasattr(obj, "__next__")
 
 
 def is_file_like(obj):
@@ -188,7 +182,7 @@ def is_file_like(obj):
     False
     """
 
-    if not (hasattr(obj, 'read') or hasattr(obj, 'write')):
+    if not (hasattr(obj, "read") or hasattr(obj, "write")):
         return False
 
     if not hasattr(obj, "__iter__"):
@@ -217,8 +211,7 @@ def is_re(obj):
     >>> is_re("foo")
     False
     """
-
-    return isinstance(obj, re_type)
+    return isinstance(obj, Pattern)
 
 
 def is_re_compilable(obj):
@@ -248,57 +241,6 @@ def is_re_compilable(obj):
         return False
     else:
         return True
-
-
-def is_list_like(obj, allow_sets=True):
-    """
-    Check if the object is list-like.
-
-    Objects that are considered list-like are for example Python
-    lists, tuples, sets, NumPy arrays, and Pandas Series.
-
-    Strings and datetime objects, however, are not considered list-like.
-
-    Parameters
-    ----------
-    obj : The object to check
-    allow_sets : boolean, default True
-        If this parameter is False, sets will not be considered list-like
-
-        .. versionadded:: 0.24.0
-
-    Returns
-    -------
-    is_list_like : bool
-        Whether `obj` has list-like properties.
-
-    Examples
-    --------
-    >>> is_list_like([1, 2, 3])
-    True
-    >>> is_list_like({1, 2, 3})
-    True
-    >>> is_list_like(datetime(2017, 1, 1))
-    False
-    >>> is_list_like("foo")
-    False
-    >>> is_list_like(1)
-    False
-    >>> is_list_like(np.array([2]))
-    True
-    >>> is_list_like(np.array(2)))
-    False
-    """
-
-    return (isinstance(obj, compat.Iterable)
-            # we do not count strings/unicode/bytes as list-like
-            and not isinstance(obj, string_and_binary_types)
-
-            # exclude zero-dimensional numpy arrays, effectively scalars
-            and not (isinstance(obj, np.ndarray) and obj.ndim == 0)
-
-            # exclude sets if allow_sets is False
-            and not (allow_sets is False and isinstance(obj, Set)))
 
 
 def is_array_like(obj):
@@ -374,8 +316,12 @@ def is_nested_list_like(obj):
     --------
     is_list_like
     """
-    return (is_list_like(obj) and hasattr(obj, '__len__') and
-            len(obj) > 0 and all(is_list_like(item) for item in obj))
+    return (
+        is_list_like(obj)
+        and hasattr(obj, "__len__")
+        and len(obj) > 0
+        and all(is_list_like(item) for item in obj)
+    )
 
 
 def is_dict_like(obj):
@@ -397,12 +343,17 @@ def is_dict_like(obj):
     True
     >>> is_dict_like([1, 2, 3])
     False
+    >>> is_dict_like(dict)
+    False
+    >>> is_dict_like(dict())
+    True
     """
-    for attr in ("__getitem__", "keys", "__contains__"):
-        if not hasattr(obj, attr):
-            return False
-
-    return True
+    dict_like_attrs = ("__getitem__", "keys", "__contains__")
+    return (
+        all(hasattr(obj, attr) for attr in dict_like_attrs)
+        # [GH 25196] exclude classes
+        and not isinstance(obj, type)
+    )
 
 
 def is_named_tuple(obj):
@@ -429,29 +380,34 @@ def is_named_tuple(obj):
     False
     """
 
-    return isinstance(obj, tuple) and hasattr(obj, '_fields')
+    return isinstance(obj, tuple) and hasattr(obj, "_fields")
 
 
 def is_hashable(obj):
-    """Return True if hash(obj) will succeed, False otherwise.
+    """
+    Return True if hash(obj) will succeed, False otherwise.
 
-    Some types will pass a test against collections.Hashable but fail when they
-    are actually hashed with hash().
+    Some types will pass a test against collections.abc.Hashable but fail when
+    they are actually hashed with hash().
 
     Distinguish between these and other types by trying the call to hash() and
     seeing if they raise TypeError.
 
+    Returns
+    -------
+    bool
+
     Examples
     --------
     >>> a = ([],)
-    >>> isinstance(a, collections.Hashable)
+    >>> isinstance(a, collections.abc.Hashable)
     True
     >>> is_hashable(a)
     False
     """
-    # Unfortunately, we can't use isinstance(obj, collections.Hashable), which
-    # can be faster than calling hash. That is because numpy scalars on Python
-    # 3 fail this test.
+    # Unfortunately, we can't use isinstance(obj, collections.abc.Hashable),
+    # which can be faster than calling hash. That is because numpy scalars
+    # fail this test.
 
     # Reconsider this decision once this numpy bug is fixed:
     # https://github.com/numpy/numpy/issues/5562
@@ -490,7 +446,7 @@ def is_sequence(obj):
 
     try:
         iter(obj)  # Can iterate over it.
-        len(obj)   # Has a length associated with it.
-        return not isinstance(obj, string_and_binary_types)
+        len(obj)  # Has a length associated with it.
+        return not isinstance(obj, (str, bytes))
     except (TypeError, AttributeError):
         return False

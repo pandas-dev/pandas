@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 
@@ -50,7 +48,7 @@ cdef inline bint are_diff(object left, object right):
         return left != right
 
 
-class Infinity(object):
+class Infinity:
     """ provide a positive Infinity comparison method for ranking """
 
     __lt__ = lambda self, other: False
@@ -62,7 +60,7 @@ class Infinity(object):
     __ge__ = lambda self, other: not missing.checknull(other)
 
 
-class NegInfinity(object):
+class NegInfinity:
     """ provide a negative Infinity comparison method for ranking """
 
     __lt__ = lambda self, other: (not isinstance(other, NegInfinity) and
@@ -76,7 +74,7 @@ class NegInfinity(object):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
+cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
     """
     Efficiently find the unique first-differences of the given array.
 
@@ -150,7 +148,7 @@ def is_lexsorted(list_of_arrays: list) -> bint:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
+def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     """
     compute a 1-d indexer that is an ordering of the passed index,
     ordered by the groups. This is a reverse of the label
@@ -230,7 +228,7 @@ def kth_smallest(numeric[:] a, Py_ssize_t k) -> numeric:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
+def nancorr(const float64_t[:, :] mat, bint cov=0, minp=None):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         bint minpv
@@ -294,7 +292,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
+def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
@@ -435,8 +433,8 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_inplace(ndarray[algos_t] values,
-                ndarray[uint8_t, cast=True] mask,
+def pad_inplace(algos_t[:] values,
+                const uint8_t[:] mask,
                 limit=None):
     cdef:
         Py_ssize_t i, N
@@ -472,8 +470,8 @@ def pad_inplace(ndarray[algos_t] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_2d_inplace(ndarray[algos_t, ndim=2] values,
-                   ndarray[uint8_t, ndim=2] mask,
+def pad_2d_inplace(algos_t[:, :] values,
+                   const uint8_t[:, :] mask,
                    limit=None):
     cdef:
         Py_ssize_t i, j, N, K
@@ -602,8 +600,8 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_inplace(ndarray[algos_t] values,
-                     ndarray[uint8_t, cast=True] mask,
+def backfill_inplace(algos_t[:] values,
+                     const uint8_t[:] mask,
                      limit=None):
     cdef:
         Py_ssize_t i, N
@@ -639,8 +637,8 @@ def backfill_inplace(ndarray[algos_t] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_2d_inplace(ndarray[algos_t, ndim=2] values,
-                        ndarray[uint8_t, ndim=2] mask,
+def backfill_2d_inplace(algos_t[:, :] values,
+                        const uint8_t[:, :] mask,
                         limit=None):
     cdef:
         Py_ssize_t i, j, N, K
@@ -674,31 +672,6 @@ def backfill_2d_inplace(ndarray[algos_t, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def arrmap(ndarray[algos_t] index, object func):
-    cdef:
-        Py_ssize_t length = index.shape[0]
-        Py_ssize_t i = 0
-        ndarray[object] result = np.empty(length, dtype=np.object_)
-
-    from pandas._libs.lib import maybe_convert_objects
-
-    for i in range(length):
-        result[i] = func(index[i])
-
-    return maybe_convert_objects(result)
-
-
-arrmap_float64 = arrmap["float64_t"]
-arrmap_float32 = arrmap["float32_t"]
-arrmap_object = arrmap["object"]
-arrmap_int64 = arrmap["int64_t"]
-arrmap_int32 = arrmap["int32_t"]
-arrmap_uint64 = arrmap["uint64_t"]
-arrmap_bool = arrmap["uint8_t"]
 
 
 @cython.boundscheck(False)

@@ -10,11 +10,13 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
+from pandas._libs.lib import values_from_object
+
 from pandas.core.dtypes.generic import ABCDataFrame
 
-import pandas.core.common as com
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
-from pandas.core.config import get_option
 
 if _NUMEXPR_INSTALLED:
     import numexpr as ne
@@ -27,8 +29,8 @@ _where = None
 
 # the set of dtypes that we will allow pass to numexpr
 _ALLOWED_DTYPES = {
-    'evaluate': {'int64', 'int32', 'float64', 'float32', 'bool'},
-    'where': {'int64', 'float64', 'bool'}
+    "evaluate": {"int64", "int32", "float64", "float32", "bool"},
+    "where": {"int64", "float64", "bool"},
 }
 
 # the minimum prod shape that we will use numexpr
@@ -64,7 +66,7 @@ def _evaluate_standard(op, op_str, a, b, **eval_kwargs):
     """ standard evaluation """
     if _TEST_MODE:
         _store_test_result(False)
-    with np.errstate(all='ignore'):
+    with np.errstate(all="ignore"):
         return op(a, b)
 
 
@@ -78,11 +80,11 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
             # check for dtype compatibility
             dtypes = set()
             for o in [a, b]:
-                if hasattr(o, 'get_dtype_counts'):
-                    s = o.get_dtype_counts()
+                if hasattr(o, "dtypes"):
+                    s = o.dtypes.value_counts()
                     if len(s) > 1:
                         return False
-                    dtypes |= set(s.index)
+                    dtypes |= set(s.index.astype(str))
                 elif isinstance(o, np.ndarray):
                     dtypes |= {o.dtype.name}
 
@@ -93,11 +95,10 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
     return False
 
 
-def _evaluate_numexpr(op, op_str, a, b, truediv=True,
-                      reversed=False, **eval_kwargs):
+def _evaluate_numexpr(op, op_str, a, b, truediv=True, reversed=False, **eval_kwargs):
     result = None
 
-    if _can_use_numexpr(op, op_str, a, b, 'evaluate'):
+    if _can_use_numexpr(op, op_str, a, b, "evaluate"):
         try:
 
             # we were originally called by a reversed op
@@ -107,13 +108,15 @@ def _evaluate_numexpr(op, op_str, a, b, truediv=True,
 
             a_value = getattr(a, "values", a)
             b_value = getattr(b, "values", b)
-            result = ne.evaluate('a_value {op} b_value'.format(op=op_str),
-                                 local_dict={'a_value': a_value,
-                                             'b_value': b_value},
-                                 casting='safe', truediv=truediv,
-                                 **eval_kwargs)
+            result = ne.evaluate(
+                "a_value {op} b_value".format(op=op_str),
+                local_dict={"a_value": a_value, "b_value": b_value},
+                casting="safe",
+                truediv=truediv,
+                **eval_kwargs
+            )
         except ValueError as detail:
-            if 'unknown type object' in str(detail):
+            if "unknown type object" in str(detail):
                 pass
 
     if _TEST_MODE:
@@ -126,26 +129,31 @@ def _evaluate_numexpr(op, op_str, a, b, truediv=True,
 
 
 def _where_standard(cond, a, b):
-    return np.where(com.values_from_object(cond), com.values_from_object(a),
-                    com.values_from_object(b))
+    return np.where(
+        values_from_object(cond), values_from_object(a), values_from_object(b)
+    )
 
 
 def _where_numexpr(cond, a, b):
     result = None
 
-    if _can_use_numexpr(None, 'where', a, b, 'where'):
+    if _can_use_numexpr(None, "where", a, b, "where"):
 
         try:
-            cond_value = getattr(cond, 'values', cond)
-            a_value = getattr(a, 'values', a)
-            b_value = getattr(b, 'values', b)
-            result = ne.evaluate('where(cond_value, a_value, b_value)',
-                                 local_dict={'cond_value': cond_value,
-                                             'a_value': a_value,
-                                             'b_value': b_value},
-                                 casting='safe')
+            cond_value = getattr(cond, "values", cond)
+            a_value = getattr(a, "values", a)
+            b_value = getattr(b, "values", b)
+            result = ne.evaluate(
+                "where(cond_value, a_value, b_value)",
+                local_dict={
+                    "cond_value": cond_value,
+                    "a_value": a_value,
+                    "b_value": b_value,
+                },
+                casting="safe",
+            )
         except ValueError as detail:
-            if 'unknown type object' in str(detail):
+            if "unknown type object" in str(detail):
                 pass
         except Exception as detail:
             raise TypeError(str(detail))
@@ -157,40 +165,44 @@ def _where_numexpr(cond, a, b):
 
 
 # turn myself on
-set_use_numexpr(get_option('compute.use_numexpr'))
+set_use_numexpr(get_option("compute.use_numexpr"))
 
 
 def _has_bool_dtype(x):
     try:
         if isinstance(x, ABCDataFrame):
-            return 'bool' in x.dtypes
+            return "bool" in x.dtypes
         else:
             return x.dtype == bool
     except AttributeError:
         return isinstance(x, (bool, np.bool_))
 
 
-def _bool_arith_check(op_str, a, b, not_allowed=frozenset(('/', '//', '**')),
-                      unsupported=None):
+def _bool_arith_check(
+    op_str, a, b, not_allowed=frozenset(("/", "//", "**")), unsupported=None
+):
     if unsupported is None:
-        unsupported = {'+': '|', '*': '&', '-': '^'}
+        unsupported = {"+": "|", "*": "&", "-": "^"}
 
     if _has_bool_dtype(a) and _has_bool_dtype(b):
         if op_str in unsupported:
-            warnings.warn("evaluating in Python space because the {op!r} "
-                          "operator is not supported by numexpr for "
-                          "the bool dtype, use {alt_op!r} instead"
-                          .format(op=op_str, alt_op=unsupported[op_str]))
+            warnings.warn(
+                "evaluating in Python space because the {op!r} "
+                "operator is not supported by numexpr for "
+                "the bool dtype, use {alt_op!r} instead".format(
+                    op=op_str, alt_op=unsupported[op_str]
+                )
+            )
             return False
 
         if op_str in not_allowed:
-            raise NotImplementedError("operator {op!r} not implemented for "
-                                      "bool dtypes".format(op=op_str))
+            raise NotImplementedError(
+                "operator {op!r} not implemented for bool dtypes".format(op=op_str)
+            )
     return True
 
 
-def evaluate(op, op_str, a, b, use_numexpr=True,
-             **eval_kwargs):
+def evaluate(op, op_str, a, b, use_numexpr=True, **eval_kwargs):
     """ evaluate and return the expression of the op on a and b
 
         Parameters

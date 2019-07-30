@@ -8,15 +8,28 @@ from pandas._libs.tslibs import iNaT
 import pandas.compat as compat
 
 from pandas import (
-    DatetimeIndex, Index, NaT, Period, Series, Timedelta, TimedeltaIndex,
-    Timestamp)
+    DatetimeIndex,
+    Index,
+    NaT,
+    Period,
+    Series,
+    Timedelta,
+    TimedeltaIndex,
+    Timestamp,
+    isna,
+)
 from pandas.core.arrays import PeriodArray
 from pandas.util import testing as tm
 
 
-@pytest.mark.parametrize("nat,idx", [(Timestamp("NaT"), DatetimeIndex),
-                                     (Timedelta("NaT"), TimedeltaIndex),
-                                     (Period("NaT", freq="M"), PeriodArray)])
+@pytest.mark.parametrize(
+    "nat,idx",
+    [
+        (Timestamp("NaT"), DatetimeIndex),
+        (Timedelta("NaT"), TimedeltaIndex),
+        (Period("NaT", freq="M"), PeriodArray),
+    ],
+)
 def test_nat_fields(nat, idx):
 
     for field in idx._field_ops:
@@ -72,8 +85,7 @@ def test_nat_vector_field_access():
 
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta, Period])
-@pytest.mark.parametrize("value", [None, np.nan, iNaT, float("nan"),
-                                   NaT, "NaT", "nat"])
+@pytest.mark.parametrize("value", [None, np.nan, iNaT, float("nan"), NaT, "NaT", "nat"])
 def test_identity(klass, value):
     assert klass(value) is NaT
 
@@ -98,13 +110,31 @@ def test_round_nat(klass, method, freq):
     assert round_method(freq) is ts
 
 
-@pytest.mark.parametrize("method", [
-    "astimezone", "combine", "ctime", "dst", "fromordinal",
-    "fromtimestamp", "isocalendar", "strftime", "strptime",
-    "time", "timestamp", "timetuple", "timetz", "toordinal",
-    "tzname", "utcfromtimestamp", "utcnow", "utcoffset",
-    "utctimetuple", "timestamp"
-])
+@pytest.mark.parametrize(
+    "method",
+    [
+        "astimezone",
+        "combine",
+        "ctime",
+        "dst",
+        "fromordinal",
+        "fromtimestamp",
+        "isocalendar",
+        "strftime",
+        "strptime",
+        "time",
+        "timestamp",
+        "timetuple",
+        "timetz",
+        "toordinal",
+        "tzname",
+        "utcfromtimestamp",
+        "utcnow",
+        "utcoffset",
+        "utctimetuple",
+        "timestamp",
+    ],
+)
 def test_nat_methods_raise(method):
     # see gh-9513, gh-17329
     msg = "NaTType does not support {method}".format(method=method)
@@ -113,38 +143,46 @@ def test_nat_methods_raise(method):
         getattr(NaT, method)()
 
 
-@pytest.mark.parametrize("method", [
-    "weekday", "isoweekday"
-])
+@pytest.mark.parametrize("method", ["weekday", "isoweekday"])
 def test_nat_methods_nan(method):
     # see gh-9513, gh-17329
     assert np.isnan(getattr(NaT, method)())
 
 
-@pytest.mark.parametrize("method", [
-    "date", "now", "replace", "today",
-    "tz_convert", "tz_localize"
-])
+@pytest.mark.parametrize(
+    "method", ["date", "now", "replace", "today", "tz_convert", "tz_localize"]
+)
 def test_nat_methods_nat(method):
     # see gh-8254, gh-9513, gh-17329
     assert getattr(NaT, method)() is NaT
 
 
-@pytest.mark.parametrize("get_nat", [
-    lambda x: NaT,
-    lambda x: Timedelta(x),
-    lambda x: Timestamp(x)
-])
+@pytest.mark.parametrize(
+    "get_nat", [lambda x: NaT, lambda x: Timedelta(x), lambda x: Timestamp(x)]
+)
 def test_nat_iso_format(get_nat):
     # see gh-12300
     assert get_nat("NaT").isoformat() == "NaT"
 
 
-@pytest.mark.parametrize("klass,expected", [
-    (Timestamp, ["freqstr", "normalize", "to_julian_date", "to_period", "tz"]),
-    (Timedelta, ["components", "delta", "is_populated", "to_pytimedelta",
-                 "to_timedelta64", "view"])
-])
+@pytest.mark.parametrize(
+    "klass,expected",
+    [
+        (Timestamp, ["freqstr", "normalize", "to_julian_date", "to_period", "tz"]),
+        (
+            Timedelta,
+            [
+                "components",
+                "delta",
+                "is_populated",
+                "resolution_string",
+                "to_pytimedelta",
+                "to_timedelta64",
+                "view",
+            ],
+        ),
+    ],
+)
 def test_missing_public_nat_methods(klass, expected):
     # see gh-17327
     #
@@ -154,8 +192,7 @@ def test_missing_public_nat_methods(klass, expected):
     nat_names = dir(NaT)
     klass_names = dir(klass)
 
-    missing = [x for x in klass_names if x not in nat_names and
-               not x.startswith("_")]
+    missing = [x for x in klass_names if x not in nat_names and not x.startswith("_")]
     missing.sort()
 
     assert missing == expected
@@ -179,9 +216,11 @@ def _get_overlap_public_nat_methods(klass, as_tuple=False):
     nat_names = dir(NaT)
     klass_names = dir(klass)
 
-    overlap = [x for x in nat_names if x in klass_names and
-               not x.startswith("_") and
-               callable(getattr(klass, x))]
+    overlap = [
+        x
+        for x in nat_names
+        if x in klass_names and not x.startswith("_") and callable(getattr(klass, x))
+    ]
 
     # Timestamp takes precedence over Timedelta in terms of overlap.
     if klass is Timedelta:
@@ -195,17 +234,54 @@ def _get_overlap_public_nat_methods(klass, as_tuple=False):
     return overlap
 
 
-@pytest.mark.parametrize("klass,expected", [
-    (Timestamp, ["astimezone", "ceil", "combine", "ctime", "date", "day_name",
-                 "dst", "floor", "fromisoformat", "fromordinal",
-                 "fromtimestamp", "isocalendar", "isoformat", "isoweekday",
-                 "month_name", "now", "replace", "round", "strftime",
-                 "strptime", "time", "timestamp", "timetuple", "timetz",
-                 "to_datetime64", "to_pydatetime", "today", "toordinal",
-                 "tz_convert", "tz_localize", "tzname", "utcfromtimestamp",
-                 "utcnow", "utcoffset", "utctimetuple", "weekday"]),
-    (Timedelta, ["total_seconds"])
-])
+@pytest.mark.parametrize(
+    "klass,expected",
+    [
+        (
+            Timestamp,
+            [
+                "astimezone",
+                "ceil",
+                "combine",
+                "ctime",
+                "date",
+                "day_name",
+                "dst",
+                "floor",
+                "fromisoformat",
+                "fromordinal",
+                "fromtimestamp",
+                "isocalendar",
+                "isoformat",
+                "isoweekday",
+                "month_name",
+                "now",
+                "replace",
+                "round",
+                "strftime",
+                "strptime",
+                "time",
+                "timestamp",
+                "timetuple",
+                "timetz",
+                "to_datetime64",
+                "to_numpy",
+                "to_pydatetime",
+                "today",
+                "toordinal",
+                "tz_convert",
+                "tz_localize",
+                "tzname",
+                "utcfromtimestamp",
+                "utcnow",
+                "utcoffset",
+                "utctimetuple",
+                "weekday",
+            ],
+        ),
+        (Timedelta, ["total_seconds"]),
+    ],
+)
 def test_overlap_public_nat_methods(klass, expected):
     # see gh-17327
     #
@@ -220,9 +296,12 @@ def test_overlap_public_nat_methods(klass, expected):
     assert _get_overlap_public_nat_methods(klass) == expected
 
 
-@pytest.mark.parametrize("compare", (
-    _get_overlap_public_nat_methods(Timestamp, True) +
-    _get_overlap_public_nat_methods(Timedelta, True))
+@pytest.mark.parametrize(
+    "compare",
+    (
+        _get_overlap_public_nat_methods(Timestamp, True)
+        + _get_overlap_public_nat_methods(Timedelta, True)
+    ),
 )
 def test_nat_doc_strings(compare):
     # see gh-17327
@@ -248,32 +327,42 @@ _ops = {
 
 
 @pytest.mark.parametrize("op_name", list(_ops.keys()))
-@pytest.mark.parametrize("value,val_type", [
-    (2, "scalar"),
-    (1.5, "scalar"),
-    (np.nan, "scalar"),
-    (timedelta(3600), "timedelta"),
-    (Timedelta("5s"), "timedelta"),
-    (datetime(2014, 1, 1), "timestamp"),
-    (Timestamp("2014-01-01"), "timestamp"),
-    (Timestamp("2014-01-01", tz="UTC"), "timestamp"),
-    (Timestamp("2014-01-01", tz="US/Eastern"), "timestamp"),
-    (pytz.timezone("Asia/Tokyo").localize(datetime(2014, 1, 1)), "timestamp"),
-])
+@pytest.mark.parametrize(
+    "value,val_type",
+    [
+        (2, "scalar"),
+        (1.5, "scalar"),
+        (np.nan, "scalar"),
+        (timedelta(3600), "timedelta"),
+        (Timedelta("5s"), "timedelta"),
+        (datetime(2014, 1, 1), "timestamp"),
+        (Timestamp("2014-01-01"), "timestamp"),
+        (Timestamp("2014-01-01", tz="UTC"), "timestamp"),
+        (Timestamp("2014-01-01", tz="US/Eastern"), "timestamp"),
+        (pytz.timezone("Asia/Tokyo").localize(datetime(2014, 1, 1)), "timestamp"),
+    ],
+)
 def test_nat_arithmetic_scalar(op_name, value, val_type):
     # see gh-6873
     invalid_ops = {
         "scalar": {"right_div_left"},
         "timedelta": {"left_times_right", "right_times_left"},
-        "timestamp": {"left_times_right", "right_times_left",
-                      "left_div_right", "right_div_left"}
+        "timestamp": {
+            "left_times_right",
+            "right_times_left",
+            "left_div_right",
+            "right_div_left",
+        },
     }
 
     op = _ops[op_name]
 
     if op_name in invalid_ops.get(val_type, set()):
-        if (val_type == "timedelta" and "times" in op_name and
-                isinstance(value, Timedelta)):
+        if (
+            val_type == "timedelta"
+            and "times" in op_name
+            and isinstance(value, Timedelta)
+        ):
             msg = "Cannot multiply"
         else:
             msg = "unsupported operand type"
@@ -289,11 +378,9 @@ def test_nat_arithmetic_scalar(op_name, value, val_type):
         assert op(NaT, value) is expected
 
 
-@pytest.mark.parametrize("val,expected", [
-    (np.nan, NaT),
-    (NaT, np.nan),
-    (np.timedelta64("NaT"), np.nan)
-])
+@pytest.mark.parametrize(
+    "val,expected", [(np.nan, NaT), (NaT, np.nan), (np.timedelta64("NaT"), np.nan)]
+)
 def test_nat_rfloordiv_timedelta(val, expected):
     # see gh-#18846
     #
@@ -302,15 +389,18 @@ def test_nat_rfloordiv_timedelta(val, expected):
     assert td // val is expected
 
 
-@pytest.mark.parametrize("op_name", [
-    "left_plus_right", "right_plus_left",
-    "left_minus_right", "right_minus_left"
-])
-@pytest.mark.parametrize("value", [
-    DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
-    DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
-    TimedeltaIndex(["1 day", "2 day"], name="x"),
-])
+@pytest.mark.parametrize(
+    "op_name",
+    ["left_plus_right", "right_plus_left", "left_minus_right", "right_minus_left"],
+)
+@pytest.mark.parametrize(
+    "value",
+    [
+        DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
+        DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
+        TimedeltaIndex(["1 day", "2 day"], name="x"),
+    ],
+)
 def test_nat_arithmetic_index(op_name, value):
     # see gh-11718
     exp_name = "x"
@@ -324,10 +414,10 @@ def test_nat_arithmetic_index(op_name, value):
     tm.assert_index_equal(_ops[op_name](NaT, value), expected)
 
 
-@pytest.mark.parametrize("op_name", [
-    "left_plus_right", "right_plus_left",
-    "left_minus_right", "right_minus_left"
-])
+@pytest.mark.parametrize(
+    "op_name",
+    ["left_plus_right", "right_plus_left", "left_minus_right", "right_minus_left"],
+)
 @pytest.mark.parametrize("box", [TimedeltaIndex, Series])
 def test_nat_arithmetic_td64_vector(op_name, box):
     # see gh-19124
@@ -339,3 +429,18 @@ def test_nat_arithmetic_td64_vector(op_name, box):
 def test_nat_pinned_docstrings():
     # see gh-17327
     assert NaT.ctime.__doc__ == datetime.ctime.__doc__
+
+
+def test_to_numpy_alias():
+    # GH 24653: alias .to_numpy() for scalars
+    expected = NaT.to_datetime64()
+    result = NaT.to_numpy()
+
+    assert isna(expected) and isna(result)
+
+
+@pytest.mark.parametrize("other", [Timedelta(0), Timestamp(0)])
+def test_nat_comparisons(compare_operators_no_eq_ne, other):
+    # GH 26039
+    assert getattr(NaT, compare_operators_no_eq_ne)(other) is False
+    assert getattr(other, compare_operators_no_eq_ne)(NaT) is False

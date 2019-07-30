@@ -9,6 +9,7 @@ https://support.sas.com/techsup/technote/ts140.pdf
 """
 
 from datetime import datetime
+from io import BytesIO
 import struct
 import warnings
 
@@ -17,21 +18,42 @@ import numpy as np
 from pandas.util._decorators import Appender
 
 import pandas as pd
-from pandas import compat
 
 from pandas.io.common import BaseIterator, get_filepath_or_buffer
 
-_correct_line1 = ("HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
-                  "000000000000000000000000000000  ")
-_correct_header1 = ("HEADER RECORD*******MEMBER  HEADER RECORD!!!!!!!"
-                    "000000000000000001600000000")
-_correct_header2 = ("HEADER RECORD*******DSCRPTR HEADER RECORD!!!!!!!"
-                    "000000000000000000000000000000  ")
-_correct_obs_header = ("HEADER RECORD*******OBS     HEADER RECORD!!!!!!!"
-                       "000000000000000000000000000000  ")
-_fieldkeys = ['ntype', 'nhfun', 'field_length', 'nvar0', 'name', 'label',
-              'nform', 'nfl', 'num_decimals', 'nfj', 'nfill', 'niform',
-              'nifl', 'nifd', 'npos', '_']
+_correct_line1 = (
+    "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
+    "000000000000000000000000000000  "
+)
+_correct_header1 = (
+    "HEADER RECORD*******MEMBER  HEADER RECORD!!!!!!!" "000000000000000001600000000"
+)
+_correct_header2 = (
+    "HEADER RECORD*******DSCRPTR HEADER RECORD!!!!!!!"
+    "000000000000000000000000000000  "
+)
+_correct_obs_header = (
+    "HEADER RECORD*******OBS     HEADER RECORD!!!!!!!"
+    "000000000000000000000000000000  "
+)
+_fieldkeys = [
+    "ntype",
+    "nhfun",
+    "field_length",
+    "nvar0",
+    "name",
+    "label",
+    "nform",
+    "nfl",
+    "num_decimals",
+    "nfj",
+    "nfill",
+    "niform",
+    "nifl",
+    "nifd",
+    "npos",
+    "_",
+]
 
 
 _base_params_doc = """\
@@ -80,10 +102,12 @@ Read a Xport file in 10,000 line chunks:
 >>> for chunk in itr:
 >>>     do_something(chunk)
 
-""" % {"_base_params_doc": _base_params_doc,
-       "_format_params_doc": _format_params_doc,
-       "_params2_doc": _params2_doc,
-       "_iterator_doc": _iterator_doc}
+""" % {
+    "_base_params_doc": _base_params_doc,
+    "_format_params_doc": _format_params_doc,
+    "_params2_doc": _params2_doc,
+    "_iterator_doc": _iterator_doc,
+}
 
 
 _xport_reader_doc = """\
@@ -98,8 +122,10 @@ member_info : list
     Contains information about the file
 fields : list
     Contains information about the variables in the file
-""" % {"_base_params_doc": _base_params_doc,
-       "_params2_doc": _params2_doc}
+""" % {
+    "_base_params_doc": _base_params_doc,
+    "_params2_doc": _params2_doc,
+}
 
 
 _read_method_doc = """\
@@ -142,9 +168,9 @@ def _split_line(s, parts):
     out = {}
     start = 0
     for name, length in parts:
-        out[name] = s[start:start + length].strip()
+        out[name] = s[start : start + length].strip()
         start += length
-    del out['_']
+    del out["_"]
     return out
 
 
@@ -158,10 +184,10 @@ def _handle_truncated_float_vec(vec, nbytes):
     # The R "foreign" library
 
     if nbytes != 8:
-        vec1 = np.zeros(len(vec), np.dtype('S8'))
-        dtype = np.dtype('S%d,S%d' % (nbytes, 8 - nbytes))
+        vec1 = np.zeros(len(vec), np.dtype("S8"))
+        dtype = np.dtype("S%d,S%d" % (nbytes, 8 - nbytes))
         vec2 = vec1.view(dtype=dtype)
-        vec2['f0'] = vec
+        vec2["f0"] = vec
         return vec2
 
     return vec
@@ -173,14 +199,14 @@ def _parse_float_vec(vec):
     native 8 byte floats.
     """
 
-    dtype = np.dtype('>u4,>u4')
+    dtype = np.dtype(">u4,>u4")
     vec1 = vec.view(dtype=dtype)
-    xport1 = vec1['f0']
-    xport2 = vec1['f1']
+    xport1 = vec1["f0"]
+    xport2 = vec1["f1"]
 
     # Start by setting first half of ieee number to first half of IBM
     # number sans exponent
-    ieee1 = xport1 & 0x00ffffff
+    ieee1 = xport1 & 0x00FFFFFF
 
     # The fraction bit to the left of the binary point in the ieee
     # format was set and the number was shifted 0, 1, 2, or 3
@@ -203,7 +229,7 @@ def _parse_float_vec(vec):
     ieee2 = (xport2 >> shift) | ((xport1 & 0x00000007) << (29 + (3 - shift)))
 
     # clear the 1 bit to the left of the binary point
-    ieee1 &= 0xffefffff
+    ieee1 &= 0xFFEFFFFF
 
     # set the exponent of the ieee number to be the actual exponent
     # plus the shift count + 1023. Or this into the first half of the
@@ -212,14 +238,15 @@ def _parse_float_vec(vec):
     # incremented by 1 and the fraction bits left 4 positions to the
     # right of the radix point.  (had to add >> 24 because C treats &
     # 0x7f as 0x7f000000 and Python doesn't)
-    ieee1 |= ((((((xport1 >> 24) & 0x7f) - 65) << 2) +
-               shift + 1023) << 20) | (xport1 & 0x80000000)
+    ieee1 |= ((((((xport1 >> 24) & 0x7F) - 65) << 2) + shift + 1023) << 20) | (
+        xport1 & 0x80000000
+    )
 
-    ieee = np.empty((len(ieee1),), dtype='>u4,>u4')
-    ieee['f0'] = ieee1
-    ieee['f1'] = ieee2
-    ieee = ieee.view(dtype='>f8')
-    ieee = ieee.astype('f8')
+    ieee = np.empty((len(ieee1),), dtype=">u4,>u4")
+    ieee["f0"] = ieee1
+    ieee["f1"] = ieee2
+    ieee = ieee.view(dtype=">f8")
+    ieee = ieee.astype("f8")
 
     return ieee
 
@@ -227,8 +254,9 @@ def _parse_float_vec(vec):
 class XportReader(BaseIterator):
     __doc__ = _xport_reader_doc
 
-    def __init__(self, filepath_or_buffer, index=None, encoding='ISO-8859-1',
-                 chunksize=None):
+    def __init__(
+        self, filepath_or_buffer, index=None, encoding="ISO-8859-1", chunksize=None
+    ):
 
         self._encoding = encoding
         self._lines_read = 0
@@ -236,12 +264,15 @@ class XportReader(BaseIterator):
         self._chunksize = chunksize
 
         if isinstance(filepath_or_buffer, str):
-            (filepath_or_buffer, encoding,
-             compression, should_close) = get_filepath_or_buffer(
-                filepath_or_buffer, encoding=encoding)
+            (
+                filepath_or_buffer,
+                encoding,
+                compression,
+                should_close,
+            ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)
 
-        if isinstance(filepath_or_buffer, (str, compat.text_type, bytes)):
-            self.filepath_or_buffer = open(filepath_or_buffer, 'rb')
+        if isinstance(filepath_or_buffer, (str, bytes)):
+            self.filepath_or_buffer = open(filepath_or_buffer, "rb")
         else:
             # Copy to BytesIO, and ensure no encoding
             contents = filepath_or_buffer.read()
@@ -249,7 +280,7 @@ class XportReader(BaseIterator):
                 contents = contents.encode(self._encoding)
             except UnicodeEncodeError:
                 pass
-            self.filepath_or_buffer = compat.BytesIO(contents)
+            self.filepath_or_buffer = BytesIO(contents)
 
         self._read_header()
 
@@ -269,23 +300,22 @@ class XportReader(BaseIterator):
             raise ValueError("Header record is not an XPORT file.")
 
         line2 = self._get_row()
-        fif = [['prefix', 24], ['version', 8], ['OS', 8],
-               ['_', 24], ['created', 16]]
+        fif = [["prefix", 24], ["version", 8], ["OS", 8], ["_", 24], ["created", 16]]
         file_info = _split_line(line2, fif)
-        if file_info['prefix'] != "SAS     SAS     SASLIB":
+        if file_info["prefix"] != "SAS     SAS     SASLIB":
             self.close()
             raise ValueError("Header record has invalid prefix.")
-        file_info['created'] = _parse_date(file_info['created'])
+        file_info["created"] = _parse_date(file_info["created"])
         self.file_info = file_info
 
         line3 = self._get_row()
-        file_info['modified'] = _parse_date(line3[:16])
+        file_info["modified"] = _parse_date(line3[:16])
 
         # read member header
         header1 = self._get_row()
         header2 = self._get_row()
         headflag1 = header1.startswith(_correct_header1)
-        headflag2 = (header2 == _correct_header2)
+        headflag2 = header2 == _correct_header2
         if not (headflag1 and headflag2):
             self.close()
             raise ValueError("Member header not found")
@@ -293,17 +323,24 @@ class XportReader(BaseIterator):
         fieldnamelength = int(header1[-5:-2])
 
         # member info
-        mem = [['prefix', 8], ['set_name', 8], ['sasdata', 8],
-               ['version', 8], ['OS', 8], ['_', 24], ['created', 16]]
+        mem = [
+            ["prefix", 8],
+            ["set_name", 8],
+            ["sasdata", 8],
+            ["version", 8],
+            ["OS", 8],
+            ["_", 24],
+            ["created", 16],
+        ]
         member_info = _split_line(self._get_row(), mem)
-        mem = [['modified', 16], ['_', 16], ['label', 40], ['type', 8]]
+        mem = [["modified", 16], ["_", 16], ["label", 40], ["type", 8]]
         member_info.update(_split_line(self._get_row(), mem))
-        member_info['modified'] = _parse_date(member_info['modified'])
-        member_info['created'] = _parse_date(member_info['created'])
+        member_info["modified"] = _parse_date(member_info["modified"])
+        member_info["created"] = _parse_date(member_info["created"])
         self.member_info = member_info
 
         # read field names
-        types = {1: 'numeric', 2: 'char'}
+        types = {1: "numeric", 2: "char"}
         fieldcount = int(self._get_row()[54:58])
         datalength = fieldnamelength * fieldcount
         # round up to nearest 80
@@ -314,19 +351,21 @@ class XportReader(BaseIterator):
         obs_length = 0
         while len(fielddata) >= fieldnamelength:
             # pull data for one field
-            field, fielddata = (fielddata[:fieldnamelength],
-                                fielddata[fieldnamelength:])
+            field, fielddata = (
+                fielddata[:fieldnamelength],
+                fielddata[fieldnamelength:],
+            )
 
             # rest at end gets ignored, so if field is short, pad out
             # to match struct pattern below
             field = field.ljust(140)
 
-            fieldstruct = struct.unpack('>hhhh8s40s8shhh2s8shhl52s', field)
+            fieldstruct = struct.unpack(">hhhh8s40s8shhh2s8shhl52s", field)
             field = dict(zip(_fieldkeys, fieldstruct))
-            del field['_']
-            field['ntype'] = types[field['ntype']]
-            fl = field['field_length']
-            if field['ntype'] == 'numeric' and ((fl < 2) or (fl > 8)):
+            del field["_"]
+            field["ntype"] = types[field["ntype"]]
+            fl = field["field_length"]
+            if field["ntype"] == "numeric" and ((fl < 2) or (fl > 8)):
                 self.close()
                 msg = "Floating field width {0} is not between 2 and 8."
                 raise TypeError(msg.format(fl))
@@ -337,7 +376,7 @@ class XportReader(BaseIterator):
                 except AttributeError:
                     pass
 
-            obs_length += field['field_length']
+            obs_length += field["field_length"]
             fields += [field]
 
         header = self._get_row()
@@ -350,11 +389,13 @@ class XportReader(BaseIterator):
         self.record_start = self.filepath_or_buffer.tell()
 
         self.nobs = self._record_count()
-        self.columns = [x['name'].decode() for x in self.fields]
+        self.columns = [x["name"].decode() for x in self.fields]
 
         # Setup the dtype.
-        dtypel = [('s' + str(i), "S" + str(field['field_length']))
-                  for i, field in enumerate(self.fields)]
+        dtypel = [
+            ("s" + str(i), "S" + str(field["field_length"]))
+            for i, field in enumerate(self.fields)
+        ]
         dtype = np.dtype(dtypel)
         self._dtype = dtype
 
@@ -372,8 +413,7 @@ class XportReader(BaseIterator):
         """
 
         self.filepath_or_buffer.seek(0, 2)
-        total_records_length = (self.filepath_or_buffer.tell() -
-                                self.record_start)
+        total_records_length = self.filepath_or_buffer.tell() - self.record_start
 
         if total_records_length % 80 != 0:
             warnings.warn("xport file may be corrupted")
@@ -416,10 +456,13 @@ class XportReader(BaseIterator):
         return self.read(nrows=size)
 
     def _missing_double(self, vec):
-        v = vec.view(dtype='u1,u1,u2,u4')
-        miss = (v['f1'] == 0) & (v['f2'] == 0) & (v['f3'] == 0)
-        miss1 = (((v['f0'] >= 0x41) & (v['f0'] <= 0x5a)) |
-                 (v['f0'] == 0x5f) | (v['f0'] == 0x2e))
+        v = vec.view(dtype="u1,u1,u2,u4")
+        miss = (v["f1"] == 0) & (v["f2"] == 0) & (v["f3"] == 0)
+        miss1 = (
+            ((v["f0"] >= 0x41) & (v["f0"] <= 0x5A))
+            | (v["f0"] == 0x5F)
+            | (v["f0"] == 0x2E)
+        )
         miss &= miss1
         return miss
 
@@ -439,19 +482,19 @@ class XportReader(BaseIterator):
 
         df = pd.DataFrame(index=range(read_lines))
         for j, x in enumerate(self.columns):
-            vec = data['s%d' % j]
-            ntype = self.fields[j]['ntype']
+            vec = data["s%d" % j]
+            ntype = self.fields[j]["ntype"]
             if ntype == "numeric":
-                vec = _handle_truncated_float_vec(
-                    vec, self.fields[j]['field_length'])
+                vec = _handle_truncated_float_vec(vec, self.fields[j]["field_length"])
                 miss = self._missing_double(vec)
                 v = _parse_float_vec(vec)
                 v[miss] = np.nan
-            elif self.fields[j]['ntype'] == 'char':
+            elif self.fields[j]["ntype"] == "char":
                 v = [y.rstrip() for y in vec]
-                if compat.PY3:
-                    if self._encoding is not None:
-                        v = [y.decode(self._encoding) for y in v]
+
+                if self._encoding is not None:
+                    v = [y.decode(self._encoding) for y in v]
+
             df[x] = v
 
         if self._index is None:

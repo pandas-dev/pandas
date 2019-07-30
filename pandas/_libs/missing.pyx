@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 
@@ -16,10 +14,11 @@ from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, c_NaT as NaT, is_null_datetimelike)
 
 
-cdef float64_t INF = <float64_t>np.inf
-cdef float64_t NEGINF = -INF
+cdef:
+    float64_t INF = <float64_t>np.inf
+    float64_t NEGINF = -INF
 
-cdef int64_t NPY_NAT = util.get_nat()
+    int64_t NPY_NAT = util.get_nat()
 
 
 cpdef bint checknull(object val):
@@ -81,11 +80,8 @@ cpdef bint checknull_old(object val):
 
 
 cdef inline bint _check_none_nan_inf_neginf(object val):
-    try:
-        return val is None or (isinstance(val, float) and
-                               (val != val or val == INF or val == NEGINF))
-    except ValueError:
-        return False
+    return val is None or (isinstance(val, float) and
+                           (val != val or val == INF or val == NEGINF))
 
 
 @cython.wraparound(False)

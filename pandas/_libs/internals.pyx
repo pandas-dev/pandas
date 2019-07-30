@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 
@@ -23,10 +21,11 @@ from pandas._libs.algos import ensure_int64
 
 cdef class BlockPlacement:
     # __slots__ = '_as_slice', '_as_array', '_len'
-    cdef slice _as_slice
-    cdef object _as_array
+    cdef:
+        slice _as_slice
+        object _as_array
 
-    cdef bint _has_slice, _has_array, _is_known_slice_like
+        bint _has_slice, _has_array, _is_known_slice_like
 
     def __init__(self, val):
         cdef:
@@ -383,7 +382,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
 
         object blkno
         list group_order
-        dict group_slices
+        dict group_dict
         int64_t[:] res_view
 
     n = blknos.shape[0]

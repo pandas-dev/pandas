@@ -245,7 +245,7 @@ API changes
 
 .. _whatsnew_0140.display:
 
-Display Changes
+Display changes
 ~~~~~~~~~~~~~~~
 
 - The default way of printing large DataFrames has changed. DataFrames
@@ -301,7 +301,7 @@ Display Changes
 
 .. _whatsnew_0140.parsing:
 
-Text Parsing API Changes
+Text parsing API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 :func:`read_csv`/:func:`read_table` will now be noisier w.r.t invalid options rather than falling back to the ``PythonParser``.
@@ -321,10 +321,10 @@ Text Parsing API Changes
 
 .. _whatsnew_0140.groupby:
 
-Groupby API Changes
+Groupby API changes
 ~~~~~~~~~~~~~~~~~~~
 
-More consistent behaviour for some groupby methods:
+More consistent behavior for some groupby methods:
 
 - groupby ``head`` and ``tail`` now act more like ``filter`` rather than an aggregation:
 
@@ -473,7 +473,7 @@ Some other enhancements to the sql functions include:
 
 .. _whatsnew_0140.slicers:
 
-MultiIndexing Using Slicers
+MultiIndexing using slicers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In 0.14.0 we added a new way to slice MultiIndexed objects.
@@ -625,7 +625,7 @@ Plotting
 
 .. _whatsnew_0140.prior_deprecations:
 
-Prior Version Deprecations/Changes
+Prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There are prior version deprecations that are taking effect as of 0.14.0.
@@ -731,7 +731,7 @@ Deprecations
 
 .. _whatsnew_0140.knownissues:
 
-Known Issues
+Known issues
 ~~~~~~~~~~~~
 
 - OpenPyXL 2.0.0 breaks backwards compatibility (:issue:`7169`)
@@ -816,7 +816,7 @@ Enhancements
 - Implemented ``Panel.pct_change`` (:issue:`6904`)
 - Added ``how`` option to rolling-moment functions to dictate how to handle resampling; :func:`rolling_max` defaults to max,
   :func:`rolling_min` defaults to min, and all others default to mean (:issue:`6297`)
-- ``CustomBuisnessMonthBegin`` and ``CustomBusinessMonthEnd`` are now available (:issue:`6866`)
+- ``CustomBusinessMonthBegin`` and ``CustomBusinessMonthEnd`` are now available (:issue:`6866`)
 - :meth:`Series.quantile` and :meth:`DataFrame.quantile` now accept an array of
   quantiles.
 - :meth:`~DataFrame.describe` now accepts an array of percentiles to include in the summary statistics (:issue:`4196`)

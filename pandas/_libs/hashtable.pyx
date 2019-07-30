@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 cimport cython
 
 from cpython cimport (PyObject, Py_INCREF,
@@ -46,15 +44,16 @@ cdef int64_t NPY_NAT = util.get_nat()
 _SIZE_HINT_LIMIT = (1 << 20) + 7
 
 
-cdef size_t _INIT_VEC_CAP = 128
+cdef Py_ssize_t _INIT_VEC_CAP = 128
 
 include "hashtable_class_helper.pxi"
 include "hashtable_func_helper.pxi"
 
 cdef class Factorizer:
-    cdef public PyObjectHashTable table
-    cdef public ObjectVector uniques
-    cdef public Py_ssize_t count
+    cdef public:
+        PyObjectHashTable table
+        ObjectVector uniques
+        Py_ssize_t count
 
     def __init__(self, size_hint):
         self.table = PyObjectHashTable(size_hint)
@@ -96,9 +95,10 @@ cdef class Factorizer:
 
 
 cdef class Int64Factorizer:
-    cdef public Int64HashTable table
-    cdef public Int64Vector uniques
-    cdef public Py_ssize_t count
+    cdef public:
+        Int64HashTable table
+        Int64Vector uniques
+        Py_ssize_t count
 
     def __init__(self, size_hint):
         self.table = Int64HashTable(size_hint)
@@ -140,7 +140,7 @@ cdef class Int64Factorizer:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def unique_label_indices(ndarray[int64_t, ndim=1] labels):
+def unique_label_indices(const int64_t[:] labels):
     """
     indices of the first occurrences of the unique labels
     *excluding* -1. equivalent to:
@@ -168,6 +168,6 @@ def unique_label_indices(ndarray[int64_t, ndim=1] labels):
     kh_destroy_int64(table)
 
     arr = idx.to_array()
-    arr = arr[labels[arr].argsort()]
+    arr = arr[np.asarray(labels)[arr].argsort()]
 
     return arr[1:] if arr.size != 0 and labels[arr[0]] == -1 else arr

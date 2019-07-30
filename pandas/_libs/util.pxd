@@ -15,21 +15,6 @@ cdef extern from "numpy/arrayobject.h":
         NPY_ARRAY_F_CONTIGUOUS
 
 
-cdef extern from *:
-    """
-    // returns ASCII or UTF8 (py3) view on python str
-    // python object owns memory, should not be freed
-    static const char* get_c_string(PyObject* obj) {
-    #if PY_VERSION_HEX >= 0x03000000
-        return PyUnicode_AsUTF8(obj);
-    #else
-        return PyString_AsString(obj);
-    #endif
-    }
-    """
-    const char *get_c_string(object) except NULL
-
-
 cdef extern from "src/headers/stdint.h":
     enum: UINT8_MAX
     enum: UINT16_MAX

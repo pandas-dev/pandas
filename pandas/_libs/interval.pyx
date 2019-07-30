@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numbers
 from operator import le, lt
 
@@ -18,18 +17,19 @@ cnp.import_array()
 
 
 cimport pandas._libs.util as util
-util.import_array()
 
 from pandas._libs.hashtable cimport Int64Vector, Int64VectorData
+from pandas._libs.tslibs.util cimport is_integer_object, is_float_object
 
 from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timezones cimport tz_compare
 
 
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
 
-cdef class IntervalMixin(object):
+cdef class IntervalMixin:
 
     @property
     def closed_left(self):
@@ -105,12 +105,60 @@ cdef class IntervalMixin(object):
     @property
     def length(self):
         """Return the length of the Interval"""
-        try:
-            return self.right - self.left
-        except TypeError:
-            # length not defined for some types, e.g. string
-            msg = 'cannot compute length between {left!r} and {right!r}'
-            raise TypeError(msg.format(left=self.left, right=self.right))
+        return self.right - self.left
+
+    @property
+    def is_empty(self):
+        """
+        Indicates if an interval is empty, meaning it contains no points.
+
+        .. versionadded:: 0.25.0
+
+        Returns
+        -------
+        bool or ndarray
+            A boolean indicating if a scalar :class:`Interval` is empty, or a
+            boolean ``ndarray`` positionally indicating if an ``Interval`` in
+            an :class:`~arrays.IntervalArray` or :class:`IntervalIndex` is
+            empty.
+
+        Examples
+        --------
+        An :class:`Interval` that contains points is not empty:
+
+        >>> pd.Interval(0, 1, closed='right').is_empty
+        False
+
+        An ``Interval`` that does not contain any points is empty:
+
+        >>> pd.Interval(0, 0, closed='right').is_empty
+        True
+        >>> pd.Interval(0, 0, closed='left').is_empty
+        True
+        >>> pd.Interval(0, 0, closed='neither').is_empty
+        True
+
+        An ``Interval`` that contains a single point is not empty:
+
+        >>> pd.Interval(0, 0, closed='both').is_empty
+        False
+
+        An :class:`~arrays.IntervalArray` or :class:`IntervalIndex` returns a
+        boolean ``ndarray`` positionally indicating if an ``Interval`` is
+        empty:
+
+        >>> ivs = [pd.Interval(0, 0, closed='neither'),
+        ...        pd.Interval(1, 2, closed='neither')]
+        >>> pd.arrays.IntervalArray(ivs).is_empty
+        array([ True, False])
+
+        Missing values are not considered empty:
+
+        >>> ivs = [pd.Interval(0, 0, closed='neither'), np.nan]
+        >>> pd.IntervalIndex(ivs).is_empty
+        array([ True, False])
+        """
+        return (self.right == self.left) & (self.closed != 'both')
 
     def _check_closed_matches(self, other, name='other'):
         """Check if the closed attribute of `other` matches.
@@ -151,9 +199,6 @@ cdef class Interval(IntervalMixin):
         Left bound for the interval.
     right : orderable scalar
         Right bound for the interval.
-    closed : {'left', 'right', 'both', 'neither'}, default 'right'
-        Whether the interval is closed on the left-side, right-side, both or
-        neither.
     closed : {'right', 'left', 'both', 'neither'}, default 'right'
         Whether the interval is closed on the left-side, right-side, both or
         neither. See the Notes for more detailed explanation.
@@ -254,6 +299,10 @@ cdef class Interval(IntervalMixin):
     def __init__(self, left, right, str closed='right'):
         # note: it is faster to just do these checks than to use a special
         # constructor (__cinit__/__new__) to avoid them
+
+        self._validate_endpoint(left)
+        self._validate_endpoint(right)
+
         if closed not in _VALID_CLOSED:
             msg = "invalid option for 'closed': {closed}".format(closed=closed)
             raise ValueError(msg)
@@ -269,6 +318,14 @@ cdef class Interval(IntervalMixin):
         self.left = left
         self.right = right
         self.closed = closed
+
+    def _validate_endpoint(self, endpoint):
+        # GH 23013
+        if not (is_integer_object(endpoint) or is_float_object(endpoint) or
+                isinstance(endpoint, (Timestamp, Timedelta))):
+            msg = ("Only numeric, Timestamp and Timedelta endpoints "
+                   "are allowed when constructing an Interval.")
+            raise ValueError(msg)
 
     def __hash__(self):
         return hash((self.left, self.right, self.closed))

@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
-
-from pandas.compat import long
 
 from pandas import Timedelta, Timestamp
 import pandas.util.testing as tm
@@ -13,7 +10,7 @@ from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
 
 
-class TestTimestampArithmetic(object):
+class TestTimestampArithmetic:
     def test_overflow_offset(self):
         # no overflow expected
 
@@ -32,11 +29,13 @@ class TestTimestampArithmetic(object):
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         # ends up multiplying really large numbers which overflow
 
-        stamp = Timestamp('2017-01-13 00:00:00', freq='D')
+        stamp = Timestamp("2017-01-13 00:00:00", freq="D")
         offset_overflow = 20169940 * offsets.Day(1)
-        msg = ("the add operation between "
-               r"\<-?\d+ \* Days\> and \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} "
-               "will overflow")
+        msg = (
+            "the add operation between "
+            r"\<-?\d+ \* Days\> and \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} "
+            "will overflow"
+        )
 
         with pytest.raises(OverflowError, match=msg):
             stamp + offset_overflow
@@ -63,7 +62,7 @@ class TestTimestampArithmetic(object):
             stamp - offset_overflow
 
     def test_delta_preserve_nanos(self):
-        val = Timestamp(long(1337299200000000123))
+        val = Timestamp(1337299200000000123)
         result = val + timedelta(1)
         assert result.nanosecond == val.nanosecond
 
@@ -80,7 +79,7 @@ class TestTimestampArithmetic(object):
         td = timedelta(seconds=1)
         # build a timestamp with a frequency, since then it supports
         # addition/subtraction of integers
-        ts = Timestamp(dt, freq='D')
+        ts = Timestamp(dt, freq="D")
 
         with tm.assert_produces_warning(FutureWarning):
             # GH#22535 add/sub with integers is deprecated
@@ -95,13 +94,23 @@ class TestTimestampArithmetic(object):
 
         # Timestamp +/- datetime64 not supported, so not tested (could possibly
         # assert error raised?)
-        td64 = np.timedelta64(1, 'D')
+        td64 = np.timedelta64(1, "D")
         assert type(ts + td64) == Timestamp
         assert type(ts - td64) == Timestamp
 
-    def test_addition_subtraction_preserve_frequency(self):
-        ts = Timestamp('2014-03-05', freq='D')
-        td = timedelta(days=1)
+    @pytest.mark.parametrize(
+        "freq, td, td64",
+        [
+            ("S", timedelta(seconds=1), np.timedelta64(1, "s")),
+            ("min", timedelta(minutes=1), np.timedelta64(1, "m")),
+            ("H", timedelta(hours=1), np.timedelta64(1, "h")),
+            ("D", timedelta(days=1), np.timedelta64(1, "D")),
+            ("W", timedelta(weeks=1), np.timedelta64(1, "W")),
+            ("M", None, np.timedelta64(1, "M")),
+        ],
+    )
+    def test_addition_subtraction_preserve_frequency(self, freq, td, td64):
+        ts = Timestamp("2014-03-05 00:00:00", freq=freq)
         original_freq = ts.freq
 
         with tm.assert_produces_warning(FutureWarning):
@@ -109,9 +118,36 @@ class TestTimestampArithmetic(object):
             assert (ts + 1).freq == original_freq
             assert (ts - 1).freq == original_freq
 
-        assert (ts + td).freq == original_freq
-        assert (ts - td).freq == original_freq
+        assert (ts + 1 * original_freq).freq == original_freq
+        assert (ts - 1 * original_freq).freq == original_freq
 
-        td64 = np.timedelta64(1, 'D')
+        if td is not None:
+            # timedelta does not support months as unit
+            assert (ts + td).freq == original_freq
+            assert (ts - td).freq == original_freq
+
         assert (ts + td64).freq == original_freq
         assert (ts - td64).freq == original_freq
+
+    @pytest.mark.parametrize(
+        "td", [Timedelta(hours=3), np.timedelta64(3, "h"), timedelta(hours=3)]
+    )
+    def test_radd_tdscalar(self, td):
+        # GH#24775 timedelta64+Timestamp should not raise
+        ts = Timestamp.now()
+        assert td + ts == ts + td
+
+    @pytest.mark.parametrize(
+        "other,expected_difference",
+        [
+            (np.timedelta64(-123, "ns"), -123),
+            (np.timedelta64(1234567898, "ns"), 1234567898),
+            (np.timedelta64(-123, "us"), -123000),
+            (np.timedelta64(-123, "ms"), -123000000),
+        ],
+    )
+    def test_timestamp_add_timedelta64_unit(self, other, expected_difference):
+        ts = Timestamp(datetime.utcnow())
+        result = ts + other
+        valdiff = result.value - ts.value
+        assert valdiff == expected_difference

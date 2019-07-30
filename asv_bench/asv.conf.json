@@ -107,7 +107,7 @@
     // `asv` will cache wheels of the recent builds in each
     // environment, making them faster to install next time.  This is
     // number of builds to keep, per environment.
-    "wheel_cache_size": 8,
+    "build_cache_size": 8,
 
     // The commits after which the regression search in `asv publish`
     // should start looking for regressions. Dictionary whose keys are
@@ -118,9 +118,8 @@
     // skipped for the matching benchmark.
     //
     "regressions_first_commits": {
-        ".*": "v0.20.0"
+        ".*": "0409521665"
     },
     "regression_thresholds": {
-        ".*": 0.05
     }
 }

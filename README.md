@@ -26,8 +26,9 @@
   <td>Package Status</td>
   <td>
 		<a href="https://pypi.org/project/pandas/">
-		<img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" /></td>
+		<img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" />
 		</a>
+  </td>
 </tr>
 <tr>
   <td>License</td>
@@ -73,8 +74,8 @@
 	<td>Gitter</td>
 	<td>
 		<a href="https://gitter.im/pydata/pandas">
-		<img src="https://badges.gitter.im/Join%20Chat.svg"
-	</a>
+		<img src="https://badges.gitter.im/Join%20Chat.svg" />
+		</a>
 	</td>
 </tr>
 </table>
@@ -163,9 +164,9 @@ pip install pandas
 ```
 
 ## Dependencies
-- [NumPy](https://www.numpy.org): 1.12.0 or higher
+- [NumPy](https://www.numpy.org): 1.13.3 or higher
 - [python-dateutil](https://labix.org/python-dateutil): 2.5.0 or higher
-- [pytz](https://pythonhosted.org/pytz): 2011k or higher
+- [pytz](https://pythonhosted.org/pytz): 2015.4 or higher
 
 See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies)
 for recommended and optional dependencies.
@@ -223,7 +224,7 @@ Most development discussion is taking place on github in this repo. Further, the
 
 All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
 
-A detailed overview on how to contribute can be found in the **[contributing guide](https://pandas-docs.github.io/pandas-docs-travis/contributing.html)**. There is also an [overview](.github/CONTRIBUTING.md) on GitHub.
+A detailed overview on how to contribute can be found in the **[contributing guide](https://dev.pandas.io/contributing.html)**. There is also an [overview](.github/CONTRIBUTING.md) on GitHub.
 
 If you are simply looking to start working with the pandas codebase, navigate to the [GitHub "issues" tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [good first issue](https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open) where you could start out.
 
