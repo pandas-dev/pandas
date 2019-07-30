@@ -956,7 +956,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         warnings.warn(
             "`real` has be deprecated and will be removed in a future "
-            "version. To eliminate this warning for a Series ser, use "
+            "version. To eliminate this warning for a Series `ser`, use "
             "`np.real(ser.to_array())` or `ser.to_array().real`.",
             FutureWarning,
             stacklevel=2,
@@ -976,7 +976,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         warnings.warn(
             "`imag` has be deprecated and will be removed in a future "
-            "version. To eliminate this warning for a Series ser, use "
+            "version. To eliminate this warning for a Series `ser`, use "
             "`np.imag(ser.to_array())` or `ser.to_array().imag`.",
             FutureWarning,
             stacklevel=2,
