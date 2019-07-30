@@ -611,13 +611,17 @@ def _normalize(table, normalize, margins, margins_name="All"):
         table = table.fillna(0)
 
     elif margins is True:
-
+        # keep index and column of pivoted table
+        table_index = table.index
+        table_columns = table.columns
+        # drop margins created in pivot_table and only keep the core
         column_margin = table.loc[:, margins_name].drop(margins_name)
-        index_margin = table.loc[margins_name, :].drop(margins_name)
+        # separate cases between multiindex and index
+        if isinstance(table_index, MultiIndex):
+            index_margin = table.loc[margins_name, :].drop(margins_name, axis=1)
+        else:
+            index_margin = table.loc[margins_name, :].drop(margins_name)
         table = table.drop(margins_name, axis=1).drop(margins_name)
-        # to keep index and columns names
-        table_index_names = table.index.names
-        table_columns_names = table.columns.names
 
         # Normalize core
         table = _normalize(table, normalize=normalize, margins=False)
@@ -627,11 +631,19 @@ def _normalize(table, normalize, margins, margins_name="All"):
             column_margin = column_margin / column_margin.sum()
             table = concat([table, column_margin], axis=1)
             table = table.fillna(0)
+            table.columns = table_columns
 
         elif normalize == "index":
-            index_margin = index_margin / index_margin.sum()
+            # index_margin is a dataframe, and use a hacky way: sum(axis=1)[0]
+            # to get the normalized result, and use sum() instead for series
+            if isinstance(index_margin, ABCDataFrame):
+                sum_index_margin = index_margin.sum(axis=1)[0]
+            else:
+                sum_index_margin = index_margin.sum()
+            index_margin = index_margin / sum_index_margin
             table = table.append(index_margin)
             table = table.fillna(0)
+            table.index = table_index
 
         elif normalize == "all" or normalize is True:
             column_margin = column_margin / column_margin.sum()
@@ -641,12 +653,11 @@ def _normalize(table, normalize, margins, margins_name="All"):
             table = table.append(index_margin)
 
             table = table.fillna(0)
+            table.index = table_index
+            table.columns = table_columns
 
         else:
             raise ValueError("Not a valid normalize argument")
-
-        table.index.names = table_index_names
-        table.columns.names = table_columns_names
 
     else:
         raise ValueError("Not a valid margins argument")
