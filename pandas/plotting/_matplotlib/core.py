@@ -274,9 +274,9 @@ class MPLPlot:
     def draw(self):
         self.plt.draw_if_interactive()
 
-    def generate(self):
+    def generate(self, include_bool=False):
         self._args_adjust()
-        self._compute_plot_data()
+        self._compute_plot_data(include_bool=include_bool)
         self._setup_subplots()
         self._make_plot()
         self._add_table()
@@ -388,7 +388,7 @@ class MPLPlot:
             else:
                 return self.axes[0]
 
-    def _compute_plot_data(self):
+    def _compute_plot_data(self, include_bool=False):
         data = self.data
 
         if isinstance(data, ABCSeries):
@@ -400,8 +400,11 @@ class MPLPlot:
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)
+        select_include_type = [np.number, "datetime", "datetimetz", "timedelta"]
+        if include_bool:
+            select_include_type.append(np.bool_)
         numeric_data = data.select_dtypes(
-            include=[np.number, "datetime", "datetimetz", "timedelta"]
+            include=select_include_type
         )
 
         try:
