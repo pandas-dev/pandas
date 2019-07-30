@@ -225,13 +225,11 @@ class TestConfig:
         with pytest.raises(ValueError, match=msg):
             self.cf.set_option("a", "ab")
 
-        msg = "Value must be a positive integer or None"
+        msg = "Value must be a positive integer, 0 or None"
         with pytest.raises(ValueError, match=msg):
             self.cf.register_option(
                 "a.b.c.d3", "NO", "doc", validator=self.cf.is_pos_int
             )
-
-        msg = "Value must be a positive integer or None"
         with pytest.raises(ValueError, match=msg):
             self.cf.register_option("a.b.c.d3", -2, "doc", validator=self.cf.is_pos_int)
 
