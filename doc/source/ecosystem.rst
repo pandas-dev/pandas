@@ -72,6 +72,17 @@ the latest web technologies. Its goal is to provide elegant, concise constructio
 graphics in the style of Protovis/D3, while delivering high-performance interactivity over
 large data to thin clients.
 
+`Pandas-Bokeh <https://github.com/PatrikHlobil/Pandas-Bokeh>`__ provides a high level API
+for Bokeh that can be loaded as a native Pandas plotting backend via
+
+.. code:: python
+
+    pd.set_option("plotting.backend", "pandas_bokeh")
+
+It is very similar to the matplotlib plotting backend, but provides interactive
+web-based charts and maps.
+
+
 `seaborn <https://seaborn.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
