@@ -8,7 +8,6 @@ from io import StringIO
 import re
 from shutil import get_terminal_size
 from typing import (
-    IO,
     TYPE_CHECKING,
     Any,
     Callable,
@@ -731,11 +730,6 @@ class DataFrameFormatter(TableFormatter):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
-        # Note: the to_string method only accepts IO whereas to_html and
-        # to_latex accept FilePathOrBuffer, will raise
-        # AttributeError: 'str' object has no attribute 'writelines'
-        self.buf = cast(IO, self.buf)
-
         from pandas import Series
 
         frame = self.frame
@@ -908,9 +902,6 @@ class DataFrameFormatter(TableFormatter):
         Klass = NotebookFormatter if notebook else HTMLFormatter
         html = Klass(self, classes=classes, border=border).render()
         if hasattr(self.buf, "write"):
-            # Note: only TextIO is supported, a BytesIO object will raise
-            # TypeError: a bytes-like object is required, not 'str'
-            self.buf = cast(TextIO, self.buf)
             buffer_put_lines(self.buf, html)
         elif isinstance(self.buf, str):
             with open(self.buf, "w") as f:
