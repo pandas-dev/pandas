@@ -3,8 +3,6 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas._libs import lib
-
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
 
@@ -452,9 +450,3 @@ class TestFromIntervals(TestClassConstructors):
     @pytest.mark.skip(reason="parent class test that is not applicable")
     def test_index_mixed_closed(self):
         pass
-
-
-def test_infer_dtype_interval():
-    idx = IntervalIndex.from_breaks(range(5), closed="both")
-    inferred = lib.infer_dtype(idx, skipna=False)
-    assert inferred == 'interval'
