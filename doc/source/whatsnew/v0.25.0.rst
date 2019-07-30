@@ -224,7 +224,6 @@ Other enhancements
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
-- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
 - :func:`merge_asof` now gives a more clear error message when merge keys are categoricals that are not equal (:issue:`26136`)
 - :meth:`pandas.core.window.Rolling` supports exponential (or Poisson) window type (:issue:`21303`)
 - Error message for missing required imports now includes the original import error's text (:issue:`23868`)
