@@ -27,7 +27,6 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
 import pandas.core.common as com
-from pandas.core.construction import extract_array
 
 _cpython_optimized_encoders = (
     "utf-8",
@@ -1951,7 +1950,7 @@ class StringMethods(NoNewAttributesMixin):
         # see _libs/lib.pyx for list of inferred types
         allowed_types = ["string", "empty", "bytes", "mixed", "mixed-integer"]
 
-        values = extract_array(data)  # unpack Series / Index
+        values = getattr(data, "values", data)  # Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
 
         try:
