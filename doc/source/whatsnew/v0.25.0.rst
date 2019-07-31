@@ -974,6 +974,7 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``cdate_range`` (:issue:`17691`)
 - Removed the previously deprecated ``True`` option for the ``dropna`` keyword argument in :func:`SeriesGroupBy.nth` (:issue:`17493`)
 - Removed the previously deprecated ``convert`` keyword argument in :meth:`Series.take` and :meth:`DataFrame.take` (:issue:`17352`)
+- Removed the previously deprecated behavior of arithmetic operations with ``datetime.date`` objects (:issue:`21152`)
 
 .. _whatsnew_0250.performance:
 

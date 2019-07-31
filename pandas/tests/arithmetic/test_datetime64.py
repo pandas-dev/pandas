@@ -227,56 +227,17 @@ class TestDatetime64SeriesComparison:
         expected = Series([x > val for x in series])
         tm.assert_series_equal(result, expected)
 
-    def test_dt64_ser_cmp_date_warning(self):
-        # https://github.com/pandas-dev/pandas/issues/21359
-        # Remove this test and enble invalid test below
-        ser = pd.Series(pd.date_range("20010101", periods=10), name="dates")
-        date = ser.iloc[0].to_pydatetime().date()
-
-        with tm.assert_produces_warning(FutureWarning) as m:
-            result = ser == date
-        expected = pd.Series([True] + [False] * 9, name="dates")
-        tm.assert_series_equal(result, expected)
-        assert "Comparing Series of datetimes " in str(m[0].message)
-        assert "will not compare equal" in str(m[0].message)
-
-        with tm.assert_produces_warning(FutureWarning) as m:
-            result = ser != date
-        tm.assert_series_equal(result, ~expected)
-        assert "will not compare equal" in str(m[0].message)
-
-        with tm.assert_produces_warning(FutureWarning) as m:
-            result = ser <= date
-        tm.assert_series_equal(result, expected)
-        assert "a TypeError will be raised" in str(m[0].message)
-
-        with tm.assert_produces_warning(FutureWarning) as m:
-            result = ser < date
-        tm.assert_series_equal(result, pd.Series([False] * 10, name="dates"))
-        assert "a TypeError will be raised" in str(m[0].message)
-
-        with tm.assert_produces_warning(FutureWarning) as m:
-            result = ser >= date
-        tm.assert_series_equal(result, pd.Series([True] * 10, name="dates"))
-        assert "a TypeError will be raised" in str(m[0].message)
-
-        with tm.assert_produces_warning(FutureWarning) as m:
-            result = ser > date
-        tm.assert_series_equal(result, pd.Series([False] + [True] * 9, name="dates"))
-        assert "a TypeError will be raised" in str(m[0].message)
-
-    @pytest.mark.skip(reason="GH#21359")
     def test_dt64ser_cmp_date_invalid(self, box_with_array):
         # GH#19800 datetime.date comparison raises to
         # match DatetimeIndex/Timestamp.  This also matches the behavior
         # of stdlib datetime.datetime
 
         ser = pd.date_range("20010101", periods=10)
-        date = ser.iloc[0].to_pydatetime().date()
+        date = ser[0].to_pydatetime().date()
 
         ser = tm.box_expected(ser, box_with_array)
-        assert not (ser == date).any()
-        assert (ser != date).all()
+        assert_all(~(ser == date))
+        assert_all(ser != date)
         with pytest.raises(TypeError):
             ser > date
         with pytest.raises(TypeError):
