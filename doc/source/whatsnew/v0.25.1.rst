@@ -42,7 +42,7 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
-    
+
 -
 -
 -

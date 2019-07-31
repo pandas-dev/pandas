@@ -1,5 +1,5 @@
-import numpy as np
 import datetime
+import numpy as np
 import pytest
 import pytz
 
@@ -1283,7 +1283,7 @@ class TestAsOfMerge:
         )
 
         result = pd.merge_asof(
-            left, right, on="time", tolerance=pd.Timedelta("1ms"), direction="nearest"
+            left, right, on="time", tolerance=Timedelta("1ms"), direction="nearest"
         )
 
         assert_frame_equal(result, expected)
