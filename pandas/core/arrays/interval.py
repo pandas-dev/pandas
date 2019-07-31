@@ -33,6 +33,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core.algorithms import take, value_counts
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
@@ -206,7 +207,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             left = left.astype(right.dtype)
 
         if type(left) != type(right):
-            msg = "must not have differing left [{ltype}] and right " "[{rtype}] types"
+            msg = "must not have differing left [{ltype}] and right [{rtype}] types"
             raise ValueError(
                 msg.format(ltype=type(left).__name__, rtype=type(right).__name__)
             )
@@ -458,13 +459,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     lhs, rhs = d
                 except ValueError:
                     msg = (
-                        "{name}.from_tuples requires tuples of " "length 2, got {tpl}"
+                        "{name}.from_tuples requires tuples of length 2, got {tpl}"
                     ).format(name=name, tpl=d)
                     raise ValueError(msg)
                 except TypeError:
-                    msg = (
-                        "{name}.from_tuples received an invalid " "item, {tpl}"
-                    ).format(name=name, tpl=d)
+                    msg = ("{name}.from_tuples received an invalid item, {tpl}").format(
+                        name=name, tpl=d
+                    )
                     raise TypeError(msg)
             left.append(lhs)
             right.append(rhs)
@@ -590,7 +591,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         filled : IntervalArray with NA/NaN filled
         """
         if method is not None:
-            raise TypeError("Filling by method is not supported for " "IntervalArray.")
+            raise TypeError("Filling by method is not supported for IntervalArray.")
         if limit is not None:
             raise TypeError("limit is not supported for IntervalArray.")
 
@@ -796,8 +797,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             When `indices` contains negative values other than ``-1``
             and `allow_fill` is True.
         """
-        from pandas.core.algorithms import take
-
         nv.validate_take(tuple(), kwargs)
 
         fill_left = fill_right = fill_value
@@ -843,8 +842,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Series.value_counts
         """
         # TODO: implement this is a non-naive way!
-        from pandas.core.algorithms import value_counts
-
         return value_counts(np.asarray(self), dropna=dropna)
 
     # Formatting
@@ -1206,7 +1203,7 @@ def maybe_convert_platform_interval(values):
     """
     if isinstance(values, (list, tuple)) and len(values) == 0:
         # GH 19016
-        # empty lists/tuples get object dtype by default, but this is not
+        # empty lists/tuples get object dtype by default, but this is
         # prohibited for IntervalArray, so coerce to integer instead
         return np.array([], dtype=np.int64)
     elif is_categorical_dtype(values):
