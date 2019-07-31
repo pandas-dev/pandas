@@ -1220,7 +1220,6 @@ class Block(PandasObject):
             fill_value=fill_value,
             dtype=self.dtype,
         )
-        values = self._try_coerce_result(values)
 
         blocks = [self.make_block_same_class(values, ndim=self.ndim)]
         return self._maybe_downcast(blocks, downcast)
@@ -2277,13 +2276,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             raise TypeError(other)
 
         return other
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray) and result.dtype.kind == "i":
-            # needed for _interpolate_with_ffill
-            result = result.view("M8[ns]")
-        return result
 
     def to_native_types(
         self, slicer=None, na_rep=None, date_format=None, quoting=None, **kwargs
