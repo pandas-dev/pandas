@@ -615,14 +615,13 @@ def _normalize(table, normalize, margins, margins_name="All"):
         # keep index and column of pivoted table
         table_index = table.index
         table_columns = table.columns
-        # drop margins created in pivot_table and only keep the core
-        column_margin = table.loc[:, margins_name].drop(margins_name)
-        # separate cases between multiindex and index
-        if isinstance(table_index, MultiIndex):
-            index_margin = table.loc[margins_name, :].drop(margins_name, axis=1)
-        else:
-            index_margin = table.loc[margins_name, :].drop(margins_name)
-        table = table.drop(margins_name, axis=1).drop(margins_name)
+
+        # save the column and index margin
+        column_margin = table.iloc[: -1, -1]
+        index_margin = table.iloc[-1, : -1]
+
+        # keep the core table
+        table = table.iloc[: -1, : -1]
 
         # Normalize core
         table = _normalize(table, normalize=normalize, margins=False)
