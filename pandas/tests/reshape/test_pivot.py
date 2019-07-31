@@ -2479,6 +2479,6 @@ class TestCrosstab:
         expected.columns = Index(['large', 'small', 'Sub-Total'], dtype='object',
                                  name='C')
         expected.index = MultiIndex(levels=[['bar', 'foo'], ['one', 'two']],
-                                    codes=[[1, 1, 2, 2], [1, 2, 1, 2]],
+                                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
                                     names=['A', 'B'])
         tm.assert_frame_equal(result, expected)
