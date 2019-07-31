@@ -24,6 +24,7 @@ Intervals           :class:`IntervalDtype`    :class:`Interval`  :ref:`api.array
 Nullable Integer    :class:`Int64Dtype`, ...  (none)             :ref:`api.arrays.integer_na`
 Categorical         :class:`CategoricalDtype` (none)             :ref:`api.arrays.categorical`
 Sparse              :class:`SparseDtype`      (none)             :ref:`api.arrays.sparse`
+Text                :class:`StringDtype`      :class:`str`       :ref:`api.arrays.string`
 =================== ========================= ================== =============================
 
 Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
@@ -459,6 +460,29 @@ The ``Series.sparse`` accessor may be used to access sparse-specific attributes
 and methods if the :class:`Series` contains sparse values. See
 :ref:`api.series.sparse` for more.
 
+
+.. _api.arrays.string:
+
+Text data
+---------
+
+When working with text data, where each valid element is a string, we recommend using
+:ref:`StringDtype` (with the alias ``"string"``).
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   arrays.StringArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   StringDtype
+
+The ``Series.str`` accessor is available for ``Series`` backed by a :ref:`arrays.StringArray`.
+See :ref:`api.series.str` for more.
 
 
 .. Dtype attributes which are manually listed in their docstrings: including

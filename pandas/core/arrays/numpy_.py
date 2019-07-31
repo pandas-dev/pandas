@@ -236,7 +236,11 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             value = np.asarray(value)
 
         values = self._ndarray
-        t = np.result_type(value, values)
+        if isinstance(value, str):
+            # Avoid issues with result_type and typecodes.
+            t = object
+        else:
+            t = np.result_type(value, values)
         if t != self._ndarray.dtype:
             values = values.astype(t, casting="safe")
             values[key] = value

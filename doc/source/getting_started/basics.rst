@@ -1704,13 +1704,20 @@ built-in string methods. For example:
 
  .. ipython:: python
 
-  s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+  s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'],
+                dtype="string")
   s.str.lower()
 
 Powerful pattern-matching methods are provided as well, but note that
 pattern-matching generally uses `regular expressions
 <https://docs.python.org/3/library/re.html>`__ by default (and in some cases
 always uses them).
+
+.. note::
+
+   Prior to pandas 1.0, string methods were only available on ``object`` -dtype
+   ``Series``. Pandas 1.0 added the :class:`StringDtype` which is dedicated
+   to strings. See :ref:`text.types` for more.
 
 Please see :ref:`Vectorized String Methods <text.string_methods>` for a complete
 description.

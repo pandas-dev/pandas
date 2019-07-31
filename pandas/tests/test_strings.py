@@ -6,6 +6,8 @@ from numpy import nan as NA
 from numpy.random import randint
 import pytest
 
+from pandas._libs import lib
+
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings
 import pandas.util.testing as tm
@@ -3269,3 +3271,26 @@ class TestStringMethods:
         result = s.str.casefold()
 
         tm.assert_series_equal(result, expected)
+
+
+def test_string_array(any_string_method):
+    data = ["a", "bb", np.nan, "ccc"]
+    a = Series(data, dtype=object)
+    b = Series(data, dtype="string")
+    method_name, args, kwargs = any_string_method
+
+    expected = getattr(a.str, method_name)(*args, **kwargs)
+    result = getattr(b.str, method_name)(*args, **kwargs)
+
+    if isinstance(expected, Series):
+        if expected.dtype == "object" and lib.is_string_array(
+            expected.values, skipna=True
+        ):
+            assert result.dtype == "string"
+            result = result.astype(object)
+        tm.assert_series_equal(result, expected)
+    elif isinstance(expected, DataFrame):
+        columns = expected.select_dtypes(include="object").columns
+        assert all(result[columns].dtypes == "string")
+        result[columns] = result[columns].astype(object)
+    tm.assert_equal(result, expected)

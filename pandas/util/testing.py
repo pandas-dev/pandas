@@ -1434,6 +1434,9 @@ def assert_equal(left, right, **kwargs):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):
         assert_numpy_array_equal(left, right, **kwargs)
+    elif isinstance(left, str):
+        assert kwargs == {}
+        return left == right
     else:
         raise NotImplementedError(type(left))
 

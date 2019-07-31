@@ -70,6 +70,7 @@ class TestPDApi(Base):
         "SparseDataFrame",
         "SparseDtype",
         "SparseSeries",
+        "StringDtype",
         "Timedelta",
         "TimedeltaIndex",
         "Timestamp",

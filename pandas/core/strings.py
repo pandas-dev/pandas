@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_categorical_dtype,
+    is_extension_array_dtype,
     is_integer,
     is_list_like,
     is_re,
@@ -817,12 +818,15 @@ def _str_extract_frame(arr, pat, flags=0):
         result_index = arr.index
     except AttributeError:
         result_index = None
-    return DataFrame(
+    result = DataFrame(
         [groups_or_na(val) for val in arr],
         columns=columns,
         index=result_index,
         dtype=object,
     )
+    if arr.dtype.name == "string":
+        result = result.astype("string")
+    return result
 
 
 def str_extract(arr, pat, flags=0, expand=True):
@@ -912,7 +916,7 @@ def str_extract(arr, pat, flags=0, expand=True):
         return _str_extract_frame(arr._orig, pat, flags=flags)
     else:
         result, name = _str_extract_noexpand(arr._parent, pat, flags=flags)
-        return arr._wrap_result(result, name=name, expand=expand)
+        return arr._wrap_result(result, name=name, expand=expand, returns_string=True)
 
 
 def str_extractall(arr, pat, flags=0):
@@ -1020,7 +1024,9 @@ def str_extractall(arr, pat, flags=0):
 
     index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
 
-    result = arr._constructor_expanddim(match_list, index=index, columns=columns)
+    result = arr._constructor_expanddim(
+        match_list, index=index, columns=columns, dtype=arr.dtype
+    )
     return result
 
 
@@ -1858,11 +1864,18 @@ def forbid_nonstring_types(forbidden, name=None):
     return _forbid_nonstring_types
 
 
-def _noarg_wrapper(f, name=None, docstring=None, forbidden_types=["bytes"], **kargs):
+def _noarg_wrapper(
+    f,
+    name=None,
+    docstring=None,
+    forbidden_types=["bytes"],
+    returns_string=True,
+    **kargs
+):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper(self):
         result = _na_map(f, self._parent, **kargs)
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=returns_string)
 
     wrapper.__name__ = f.__name__ if name is None else name
     if docstring is not None:
@@ -1874,22 +1887,28 @@ def _noarg_wrapper(f, name=None, docstring=None, forbidden_types=["bytes"], **ka
 
 
 def _pat_wrapper(
-    f, flags=False, na=False, name=None, forbidden_types=["bytes"], **kwargs
+    f,
+    flags=False,
+    na=False,
+    name=None,
+    forbidden_types=["bytes"],
+    returns_string=True,
+    **kwargs
 ):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper1(self, pat):
         result = f(self._parent, pat)
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=returns_string)
 
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper2(self, pat, flags=0, **kwargs):
         result = f(self._parent, pat, flags=flags, **kwargs)
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=returns_string)
 
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper3(self, pat, na=np.nan):
         result = f(self._parent, pat, na=na)
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=returns_string)
 
     wrapper = wrapper3 if na else wrapper2 if flags else wrapper1
 
@@ -1926,6 +1945,7 @@ class StringMethods(NoNewAttributesMixin):
     def __init__(self, data):
         self._inferred_dtype = self._validate(data)
         self._is_categorical = is_categorical_dtype(data)
+        self._is_string = data.dtype.name == "string"
 
         # .values.categories works for both Series/Index
         self._parent = data.values.categories if self._is_categorical else data
@@ -1967,6 +1987,9 @@ class StringMethods(NoNewAttributesMixin):
         values = getattr(data, "values", data)  # Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
 
+        if is_extension_array_dtype(values.dtype):
+            return str(values.dtype)
+
         try:
             inferred_dtype = lib.infer_dtype(values, skipna=True)
         except ValueError:
@@ -1992,7 +2015,13 @@ class StringMethods(NoNewAttributesMixin):
             g = self.get(i)
 
     def _wrap_result(
-        self, result, use_codes=True, name=None, expand=None, fill_value=np.nan
+        self,
+        result,
+        use_codes=True,
+        name=None,
+        expand=None,
+        fill_value=np.nan,
+        returns_string=True,
     ):
 
         from pandas import Index, Series, MultiIndex
@@ -2069,11 +2098,14 @@ class StringMethods(NoNewAttributesMixin):
             index = self._orig.index
             if expand:
                 cons = self._orig._constructor_expanddim
-                return cons(result, columns=name, index=index)
+                result = cons(result, columns=name, index=index)
             else:
                 # Must be a Series
                 cons = self._orig._constructor
-                return cons(result, name=name, index=index)
+                result = cons(result, name=name, index=index)
+            if self._is_string and returns_string:
+                result = result.astype("string")
+            return result
 
     def _get_series_list(self, others):
         """
@@ -2339,7 +2371,7 @@ class StringMethods(NoNewAttributesMixin):
             result = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
             result = Series(
-                result, dtype=object, index=data.index, name=self._orig.name
+                result, dtype=self._orig.dtype, index=data.index, name=self._orig.name
             )
         return result
 
@@ -2479,13 +2511,13 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def split(self, pat=None, n=-1, expand=False):
         result = str_split(self._parent, pat, n=n)
-        return self._wrap_result(result, expand=expand)
+        return self._wrap_result(result, expand=expand, returns_string=expand)
 
     @Appender(_shared_docs["str_split"] % {"side": "end", "method": "rsplit"})
     @forbid_nonstring_types(["bytes"])
     def rsplit(self, pat=None, n=-1, expand=False):
         result = str_rsplit(self._parent, pat, n=n)
-        return self._wrap_result(result, expand=expand)
+        return self._wrap_result(result, expand=expand, returns_string=expand)
 
     _shared_docs[
         "str_partition"
@@ -2586,7 +2618,7 @@ class StringMethods(NoNewAttributesMixin):
     def partition(self, sep=" ", expand=True):
         f = lambda x: x.partition(sep)
         result = _na_map(f, self._parent)
-        return self._wrap_result(result, expand=expand)
+        return self._wrap_result(result, expand=expand, returns_string=expand)
 
     @Appender(
         _shared_docs["str_partition"]
@@ -2602,7 +2634,7 @@ class StringMethods(NoNewAttributesMixin):
     def rpartition(self, sep=" ", expand=True):
         f = lambda x: x.rpartition(sep)
         result = _na_map(f, self._parent)
-        return self._wrap_result(result, expand=expand)
+        return self._wrap_result(result, expand=expand, returns_string=expand)
 
     @copy(str_get)
     def get(self, i):
@@ -2621,13 +2653,13 @@ class StringMethods(NoNewAttributesMixin):
         result = str_contains(
             self._parent, pat, case=case, flags=flags, na=na, regex=regex
         )
-        return self._wrap_result(result, fill_value=na)
+        return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @copy(str_match)
     @forbid_nonstring_types(["bytes"])
     def match(self, pat, case=True, flags=0, na=np.nan):
         result = str_match(self._parent, pat, case=case, flags=flags, na=na)
-        return self._wrap_result(result, fill_value=na)
+        return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @copy(str_replace)
     @forbid_nonstring_types(["bytes"])
@@ -2762,13 +2794,14 @@ class StringMethods(NoNewAttributesMixin):
     def decode(self, encoding, errors="strict"):
         # need to allow bytes here
         result = str_decode(self._parent, encoding, errors)
-        return self._wrap_result(result)
+        # TODO: Not sure how to handle this.
+        return self._wrap_result(result, returns_string=False)
 
     @copy(str_encode)
     @forbid_nonstring_types(["bytes"])
     def encode(self, encoding, errors="strict"):
         result = str_encode(self._parent, encoding, errors)
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=False)
 
     _shared_docs[
         "str_strip"
@@ -2869,7 +2902,11 @@ class StringMethods(NoNewAttributesMixin):
         data = self._orig.astype(str) if self._is_categorical else self._parent
         result, name = str_get_dummies(data, sep)
         return self._wrap_result(
-            result, use_codes=(not self._is_categorical), name=name, expand=True
+            result,
+            use_codes=(not self._is_categorical),
+            name=name,
+            expand=True,
+            returns_string=False,
         )
 
     @copy(str_translate)
@@ -2878,10 +2915,16 @@ class StringMethods(NoNewAttributesMixin):
         result = str_translate(self._parent, table)
         return self._wrap_result(result)
 
-    count = _pat_wrapper(str_count, flags=True, name="count")
-    startswith = _pat_wrapper(str_startswith, na=True, name="startswith")
-    endswith = _pat_wrapper(str_endswith, na=True, name="endswith")
-    findall = _pat_wrapper(str_findall, flags=True, name="findall")
+    count = _pat_wrapper(str_count, flags=True, name="count", returns_string=False)
+    startswith = _pat_wrapper(
+        str_startswith, na=True, name="startswith", returns_string=False
+    )
+    endswith = _pat_wrapper(
+        str_endswith, na=True, name="endswith", returns_string=False
+    )
+    findall = _pat_wrapper(
+        str_findall, flags=True, name="findall", returns_string=False
+    )
 
     @copy(str_extract)
     @forbid_nonstring_types(["bytes"])
@@ -2929,7 +2972,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def find(self, sub, start=0, end=None):
         result = str_find(self._parent, sub, start=start, end=end, side="left")
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=False)
 
     @Appender(
         _shared_docs["find"]
@@ -2942,7 +2985,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def rfind(self, sub, start=0, end=None):
         result = str_find(self._parent, sub, start=start, end=end, side="right")
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
     def normalize(self, form):
@@ -3004,7 +3047,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def index(self, sub, start=0, end=None):
         result = str_index(self._parent, sub, start=start, end=end, side="left")
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=False)
 
     @Appender(
         _shared_docs["index"]
@@ -3018,7 +3061,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def rindex(self, sub, start=0, end=None):
         result = str_index(self._parent, sub, start=start, end=end, side="right")
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=False)
 
     _shared_docs[
         "len"
@@ -3067,7 +3110,11 @@ class StringMethods(NoNewAttributesMixin):
     dtype: float64
     """
     len = _noarg_wrapper(
-        len, docstring=_shared_docs["len"], forbidden_types=None, dtype=int
+        len,
+        docstring=_shared_docs["len"],
+        forbidden_types=None,
+        dtype=int,
+        returns_string=False,
     )
 
     _shared_docs[
@@ -3339,46 +3386,55 @@ class StringMethods(NoNewAttributesMixin):
         lambda x: x.isalnum(),
         name="isalnum",
         docstring=_shared_docs["ismethods"] % _doc_args["isalnum"],
+        returns_string=False,
     )
     isalpha = _noarg_wrapper(
         lambda x: x.isalpha(),
         name="isalpha",
         docstring=_shared_docs["ismethods"] % _doc_args["isalpha"],
+        returns_string=False,
     )
     isdigit = _noarg_wrapper(
         lambda x: x.isdigit(),
         name="isdigit",
         docstring=_shared_docs["ismethods"] % _doc_args["isdigit"],
+        returns_string=False,
     )
     isspace = _noarg_wrapper(
         lambda x: x.isspace(),
         name="isspace",
         docstring=_shared_docs["ismethods"] % _doc_args["isspace"],
+        returns_string=False,
     )
     islower = _noarg_wrapper(
         lambda x: x.islower(),
         name="islower",
         docstring=_shared_docs["ismethods"] % _doc_args["islower"],
+        returns_string=False,
     )
     isupper = _noarg_wrapper(
         lambda x: x.isupper(),
         name="isupper",
         docstring=_shared_docs["ismethods"] % _doc_args["isupper"],
+        returns_string=False,
     )
     istitle = _noarg_wrapper(
         lambda x: x.istitle(),
         name="istitle",
         docstring=_shared_docs["ismethods"] % _doc_args["istitle"],
+        returns_string=False,
     )
     isnumeric = _noarg_wrapper(
         lambda x: x.isnumeric(),
         name="isnumeric",
         docstring=_shared_docs["ismethods"] % _doc_args["isnumeric"],
+        returns_string=False,
     )
     isdecimal = _noarg_wrapper(
         lambda x: x.isdecimal(),
         name="isdecimal",
         docstring=_shared_docs["ismethods"] % _doc_args["isdecimal"],
+        returns_string=False,
     )
 
     @classmethod

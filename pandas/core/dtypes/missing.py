@@ -128,6 +128,7 @@ isnull = isna
 
 
 def _isna_new(obj):
+
     if is_scalar(obj):
         return libmissing.checknull(obj)
     # hack (for now) because MI registers as ndarray
