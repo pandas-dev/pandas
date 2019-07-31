@@ -721,7 +721,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
     return result, tz_out
 
 
-cdef inline ignore_errors_out_of_bounds_fallback(ndarray[object] values):
+cdef ignore_errors_out_of_bounds_fallback(ndarray[object] values):
     """
     Fallback for array_to_datetime if an OutOfBoundsDatetime is raised
     and errors == "ignore"

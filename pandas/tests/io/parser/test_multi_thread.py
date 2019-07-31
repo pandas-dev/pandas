@@ -29,9 +29,7 @@ def _construct_dataframe(num_rows):
     df["foo"] = "foo"
     df["bar"] = "bar"
     df["baz"] = "baz"
-    df["date"] = pd.date_range("20000101 09:00:00",
-                               periods=num_rows,
-                               freq="s")
+    df["date"] = pd.date_range("20000101 09:00:00", periods=num_rows, freq="s")
     df["int"] = np.arange(num_rows, dtype="int64")
     return df
 
@@ -44,8 +42,10 @@ def test_multi_thread_string_io_read_csv(all_parsers):
 
     bytes_to_df = [
         "\n".join(
-            ["%d,%d,%d" % (i, i, i) for i in range(max_row_range)]
-        ).encode() for _ in range(num_files)]
+            ["{i:d},{i:d},{i:d}".format(i=i) for i in range(max_row_range)]
+        ).encode()
+        for _ in range(num_files)
+    ]
     files = [BytesIO(b) for b in bytes_to_df]
 
     # Read all files in many threads.
@@ -77,6 +77,7 @@ def _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks):
     -------
     df : DataFrame
     """
+
     def reader(arg):
         """
         Create a reader for part of the CSV.
@@ -98,16 +99,21 @@ def _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks):
         start, nrows = arg
 
         if not start:
-            return parser.read_csv(path, index_col=0, header=0,
-                                   nrows=nrows, parse_dates=["date"])
+            return parser.read_csv(
+                path, index_col=0, header=0, nrows=nrows, parse_dates=["date"]
+            )
 
-        return parser.read_csv(path, index_col=0, header=None,
-                               skiprows=int(start) + 1,
-                               nrows=nrows, parse_dates=[9])
+        return parser.read_csv(
+            path,
+            index_col=0,
+            header=None,
+            skiprows=int(start) + 1,
+            nrows=nrows,
+            parse_dates=[9],
+        )
 
     tasks = [
-        (num_rows * i // num_tasks,
-         num_rows // num_tasks) for i in range(num_tasks)
+        (num_rows * i // num_tasks, num_rows // num_tasks) for i in range(num_tasks)
     ]
 
     pool = ThreadPool(processes=num_tasks)
@@ -134,6 +140,7 @@ def test_multi_thread_path_multipart_read_csv(all_parsers):
     with tm.ensure_clean(file_name) as path:
         df.to_csv(path)
 
-        final_dataframe = _generate_multi_thread_dataframe(parser, path,
-                                                           num_rows, num_tasks)
+        final_dataframe = _generate_multi_thread_dataframe(
+            parser, path, num_rows, num_tasks
+        )
         tm.assert_frame_equal(df, final_dataframe)
