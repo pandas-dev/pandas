@@ -2482,3 +2482,19 @@ class TestCrosstab:
                                     codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
                                     names=['A', 'B'])
         tm.assert_frame_equal(result, expected)
+
+        # normalize on both index and column
+        result = pd.crosstab([df.A, df.B], df.C, margins=True, margins_name='Sub-Total',
+                             normalize=True)
+        expected = pd.DataFrame([[0.111111, 0.111111, 0.222222],
+                                 [0.111111, 0.111111, 0.222222],
+                                 [0.222222, 0.111111, 0.333333],
+                                 [0.000000, 0.222222, 0.222222],
+                                 [0.444444, 0.555555, 1]])
+        expected.columns = Index(['large', 'small', 'Sub-Total'], dtype='object',
+                                 name='C')
+        expected.index = MultiIndex(levels=[['Sub-Total', 'bar', 'foo'],
+                                            ['', 'one', 'two']],
+                                    codes=[[1, 1, 2, 2, 0], [1, 2, 1, 2, 0]],
+                                    names=['A', 'B'])
+        tm.assert_frame_equal(result, expected)
