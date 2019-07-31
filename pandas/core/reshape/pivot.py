@@ -616,11 +616,11 @@ def _normalize(table, normalize, margins, margins_name="All"):
         table_columns = table.columns
 
         # save the column and index margin
-        column_margin = table.iloc[: -1, -1]
-        index_margin = table.iloc[-1, : -1]
+        column_margin = table.iloc[:-1, -1]
+        index_margin = table.iloc[-1, :-1]
 
         # keep the core table
-        table = table.iloc[: -1, : -1]
+        table = table.iloc[:-1, :-1]
 
         # Normalize core
         table = _normalize(table, normalize=normalize, margins=False)
