@@ -288,7 +288,6 @@ def json_normalize(
         if len(path) > 1:
             for obj in data:
                 for val, key in zip(meta, meta_keys):
-                    # if level + 1 == len(val):
                     seen_meta[key] = _pull_field(obj, val[0])
 
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
