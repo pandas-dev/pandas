@@ -64,7 +64,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 
--
+- Improved the warnings for the deprecated methods :meth:`Series.real` and :meth:`Series.imag` (:issue:`27610`)
 -
 -
 
@@ -128,7 +128,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
--
+- A ``KeyError`` is now raised if ``.unstack()`` is called on a :class:`Series` or :class:`DataFrame` with a flat :class:`Index` passing a name which is not the correct one (:issue:`18303`)
 -
 -
 
