@@ -478,12 +478,12 @@ class BaseGrouper:
         elif is_datetime64_any_dtype(values):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
-                    "datetime64 type does not support {} " "operations".format(how)
+                    "datetime64 type does not support {} operations".format(how)
                 )
         elif is_timedelta64_dtype(values):
             if how in ["prod", "cumprod"]:
                 raise NotImplementedError(
-                    "timedelta64 type does not support {} " "operations".format(how)
+                    "timedelta64 type does not support {} operations".format(how)
                 )
 
         arity = self._cython_arity.get(how, 1)
@@ -500,7 +500,7 @@ class BaseGrouper:
                 values = values.T
             if arity > 1:
                 raise NotImplementedError(
-                    "arity of more than 1 is not " "supported for the 'how' argument"
+                    "arity of more than 1 is not supported for the 'how' argument"
                 )
             out_shape = (self.ngroups,) + values.shape[1:]
 
@@ -615,9 +615,7 @@ class BaseGrouper:
     ):
         if values.ndim > 3:
             # punting for now
-            raise NotImplementedError(
-                "number of dimensions is currently " "limited to 3"
-            )
+            raise NotImplementedError("number of dimensions is currently limited to 3")
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
@@ -642,9 +640,7 @@ class BaseGrouper:
         comp_ids, _, ngroups = self.group_info
         if values.ndim > 3:
             # punting for now
-            raise NotImplementedError(
-                "number of dimensions is currently " "limited to 3"
-            )
+            raise NotImplementedError("number of dimensions is currently limited to 3")
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
