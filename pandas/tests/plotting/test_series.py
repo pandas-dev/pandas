@@ -168,6 +168,7 @@ class TestSeriesPlots(TestPlotBase):
         self._check_legend_labels(ax, labels=["LABEL"])
 
     def test_boolean(self):
+        # GH 23719
         s = Series([False, False, True])
         _check_plot_works(s.plot, include_bool=True)
 

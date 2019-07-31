@@ -401,7 +401,7 @@ class MPLPlot:
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)
         select_include_type = [np.number, "datetime", "datetimetz", "timedelta"]
-        if include_bool:
+        if include_bool is True:
             select_include_type.append(np.bool_)
         numeric_data = data.select_dtypes(
             include=select_include_type
