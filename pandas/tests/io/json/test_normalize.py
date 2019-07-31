@@ -173,17 +173,17 @@ class TestJSONNormalize:
 
     def test_simple_normalize_with_separator(self, deep_nested):
         # GH 14883
-        # result = json_normalize({"A": {"A": 1, "B": 2}})
-        # expected = DataFrame([[1, 2]], columns=["A.A", "A.B"])
-        # tm.assert_frame_equal(result.reindex_like(expected), expected)
-        #
-        # result = json_normalize({"A": {"A": 1, "B": 2}}, sep="_")
-        # expected = DataFrame([[1, 2]], columns=["A_A", "A_B"])
-        # tm.assert_frame_equal(result.reindex_like(expected), expected)
-        #
-        # result = json_normalize({"A": {"A": 1, "B": 2}}, sep="\u03c3")
-        # expected = DataFrame([[1, 2]], columns=["A\u03c3A", "A\u03c3B"])
-        # tm.assert_frame_equal(result.reindex_like(expected), expected)
+        result = json_normalize({"A": {"A": 1, "B": 2}})
+        expected = DataFrame([[1, 2]], columns=["A.A", "A.B"])
+        tm.assert_frame_equal(result.reindex_like(expected), expected)
+
+        result = json_normalize({"A": {"A": 1, "B": 2}}, sep="_")
+        expected = DataFrame([[1, 2]], columns=["A_A", "A_B"])
+        tm.assert_frame_equal(result.reindex_like(expected), expected)
+
+        result = json_normalize({"A": {"A": 1, "B": 2}}, sep="\u03c3")
+        expected = DataFrame([[1, 2]], columns=["A\u03c3A", "A\u03c3B"])
+        tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         result = json_normalize(
             deep_nested,
@@ -297,41 +297,9 @@ class TestJSONNormalize:
         )
         ex_data = {
             0: [
-                "D",
-                "a",
-                "d",
-                "e",
-                "B",
-                "r",
-                "o",
-                "w",
-                "a",
-                "r",
-                "d",
-                "P",
-                "a",
-                "l",
-                "m",
-                " ",
-                "B",
-                "e",
-                "a",
-                "c",
-                "h",
-                "S",
-                "u",
-                "m",
-                "m",
-                "i",
-                "t",
-                "C",
-                "u",
-                "y",
-                "a",
-                "h",
-                "o",
-                "g",
-                "a",
+                i
+                for word in ["Dade", "Broward", "Palm Beach", "Summit", "Cuyahoga"]
+                for i in word
             ],
             "state": ["Florida"] * 21 + ["Ohio"] * 14,
             "shortname": ["FL"] * 21 + ["OH"] * 14,

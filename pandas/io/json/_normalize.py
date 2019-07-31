@@ -305,7 +305,6 @@ def json_normalize(
                 # For repeating the metadata later
                 lengths.append(len(recs))
                 for val, key in zip(meta, meta_keys):
-
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                         meta_vals[key].append(meta_val)
