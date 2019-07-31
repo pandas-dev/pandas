@@ -470,7 +470,9 @@ def sanitize_array(data, index, dtype=None, copy=False, raise_cast_failure=False
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
-    if issubclass(subarr.dtype.type, str):
+    if not (
+        is_extension_array_dtype(subarr.dtype) or is_extension_array_dtype(dtype)
+    ) and issubclass(subarr.dtype.type, str):
         # GH#16605
         # If not empty convert the data to dtype
         # GH#19853: If data is a scalar, subarr has already the result

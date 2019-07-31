@@ -7,7 +7,7 @@ import pandas.util.testing as tm
 
 pytest.importorskip("pyarrow", minversion="0.10.0")
 
-from .bool import ArrowBoolArray, ArrowBoolDtype  # isort:skip
+from .arrays import ArrowBoolArray, ArrowBoolDtype  # isort:skip
 
 
 @pytest.fixture
