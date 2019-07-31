@@ -14,6 +14,13 @@ if TYPE_CHECKING:
     from pandas.core.frame import DataFrame  # noqa: F401
     from pandas.core.series import Series  # noqa: F401
     from pandas.core.sparse.series import SparseSeries  # noqa: F401
+    from typing_extensions import Literal
+
+    IgnoreRaise = Literal["ignore", "raise"]
+    FirstLast = Literal["first", "last"]
+else:
+    IgnoreRaise = str
+    FirstLast = str
 
 
 AnyArrayLike = TypeVar(

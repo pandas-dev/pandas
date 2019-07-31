@@ -64,7 +64,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import Axis, Dtype, Level
+from pandas._typing import Axis, Dtype, FirstLast, IgnoreRaise, Level
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -88,13 +88,6 @@ from pandas.tseries.frequencies import to_offset
 
 if TYPE_CHECKING:
     from pandas import Series, DataFrame
-    from typing_extensions import Literal
-
-    Errors = Literal["ignore", "raise"]
-    How = Literal["first", "last"]
-else:
-    Errors = str
-    How = str
 
 bool_t = bool
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
@@ -3953,7 +3946,7 @@ class NDFrame(PandasObject, SelectionMixin):
         labels,
         axis: Axis,
         level: Optional[Level] = None,
-        errors: Errors = "raise",
+        errors: IgnoreRaise = "raise",
     ) -> FrameOrSeries:
         """
         Drop labels from specified axis. Used in the ``drop`` method
@@ -9042,7 +9035,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace: bool_t = False,
         axis: Optional[Axis] = None,
         level: Optional[Level] = None,
-        errors: Errors = "raise",
+        errors: IgnoreRaise = "raise",
         try_cast: bool_t = False,
     ) -> Optional[FrameOrSeries]:
         """
@@ -10899,7 +10892,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Also returns None for empty %(klass)s.
         """
 
-    def _find_valid_index(self, how: How):
+    def _find_valid_index(self, how: FirstLast):
         """
         Retrieves the index of the first valid value.
 
