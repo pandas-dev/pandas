@@ -173,6 +173,8 @@ def _isna_old(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
+    elif isinstance(obj, type):
+        return False
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass)):
         return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
