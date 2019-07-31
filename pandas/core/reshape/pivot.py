@@ -611,7 +611,6 @@ def _normalize(table, normalize, margins, margins_name="All"):
         table = table.fillna(0)
 
     elif margins is True:
-
         # keep index and column of pivoted table
         table_index = table.index
         table_columns = table.columns
