@@ -4,12 +4,17 @@
 Roadmap
 =======
 
-This page provides an overview of the major themes in pandas' development. Implementation
-of these goals may be hastened with dedicated funding or interest from contributors.
+This page provides an overview of the major themes in pandas' development. Each of
+these items requires a relatively large amount of effort to implement. Implementation
+may be hastened with dedicated funding or interest from contributors.
 
-An item being on the roadmap does not mean that pandas will *necessarily* happen, even
+An item being on the roadmap does not mean that it will *necessarily* happen, even
 with unlimited funding. During the implementation period we may discover issues
 preventing the adoption of the feature.
+
+Additionally, an item *not* being on the roadmap does not exclude it from inclusion
+in pandas. The roadmap is intended for larger, fundamental changes to the project that
+are likely to take months or years of developer time.
 
 See :ref:`roadmap.evolution` for proposing changes to this document.
 
