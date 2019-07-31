@@ -94,12 +94,9 @@ from pandas.core.index import (
 )
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.multi import maybe_droplevels
 from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexing import (
-    check_bool_indexer,
-    convert_to_index_sliceable,
-    maybe_droplevels,
-)
+from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
@@ -313,11 +310,11 @@ class DataFrame(NDFrame):
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, or list-like objects
 
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
            If data is a dict, column order follows insertion-order for
            Python 3.6 and later.
 
-        .. versionchanged :: 0.25.0
+        .. versionchanged:: 0.25.0
            If data is a list of dicts, column order follows insertion-order
            Python 3.6 and later.
 
@@ -382,7 +379,7 @@ class DataFrame(NDFrame):
 
     _constructor_sliced = Series  # type: Type[Series]
     _deprecations = NDFrame._deprecations | frozenset(
-        ["get_value", "set_value", "from_items"]
+        ["from_items"]
     )  # type: FrozenSet[str]
     _accessors = set()  # type: Set[str]
 
@@ -1176,9 +1173,7 @@ class DataFrame(NDFrame):
                     data, index = list(data.values()), list(data.keys())
         elif orient == "columns":
             if columns is not None:
-                raise ValueError(
-                    "cannot use columns parameter with " "orient='columns'"
-                )
+                raise ValueError("cannot use columns parameter with orient='columns'")
         else:  # pragma: no cover
             raise ValueError("only recognize index or columns for orient")
 
@@ -1330,7 +1325,7 @@ class DataFrame(NDFrame):
         """
         if not self.columns.is_unique:
             warnings.warn(
-                "DataFrame columns are not unique, some " "columns will be omitted.",
+                "DataFrame columns are not unique, some columns will be omitted.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -1811,9 +1806,9 @@ class DataFrame(NDFrame):
                 formats.append(dtype_mapping)
             else:
                 element = "row" if i < index_len else "column"
-                msg = (
-                    "Invalid dtype {dtype} specified for " "{element} {name}"
-                ).format(dtype=dtype_mapping, element=element, name=name)
+                msg = ("Invalid dtype {dtype} specified for {element} {name}").format(
+                    dtype=dtype_mapping, element=element, name=name
+                )
                 raise ValueError(msg)
 
         return np.rec.fromarrays(arrays, dtype={"names": names, "formats": formats})
@@ -2043,9 +2038,6 @@ class DataFrame(NDFrame):
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
             values. Each label must be 80 characters or smaller.
-
-            .. versionadded:: 0.19.0
-
         version : {114, 117}, default 114
             Version to use in the output dta file.  Version 114 can be used
             read by Stata 10 and later.  Version 117 can be read by Stata 13
@@ -2074,8 +2066,6 @@ class DataFrame(NDFrame):
             * Column listed in convert_dates is not in DataFrame
             * Categorical label contains more than 32,000 characters
 
-            .. versionadded:: 0.19.0
-
         See Also
         --------
         read_stata : Import Stata data files.
@@ -2094,9 +2084,7 @@ class DataFrame(NDFrame):
             raise ValueError("Only formats 114 and 117 supported.")
         if version == 114:
             if convert_strl is not None:
-                raise ValueError(
-                    "strl support is only available when using " "format 117"
-                )
+                raise ValueError("strl support is only available when using format 117")
             from pandas.io.stata import StataWriter as statawriter
         else:
             from pandas.io.stata import StataWriter117 as statawriter
@@ -2265,9 +2253,6 @@ class DataFrame(NDFrame):
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
-
-            .. versionadded:: 0.19.0
-
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
 
@@ -2513,7 +2498,7 @@ class DataFrame(NDFrame):
             # returns size in human readable format
             for x in ["bytes", "KB", "MB", "GB", "TB"]:
                 if num < 1024.0:
-                    return "{num:3.1f}{size_q} " "{x}".format(
+                    return "{num:3.1f}{size_q} {x}".format(
                         num=num, size_q=size_qualifier, x=x
                     )
                 num /= 1024.0
@@ -2601,12 +2586,12 @@ class DataFrame(NDFrame):
         ...              for t in dtypes])
         >>> df = pd.DataFrame(data)
         >>> df.head()
-           int64  float64  complex128  object  bool
-        0      1      1.0    1.0+0.0j       1  True
-        1      1      1.0    1.0+0.0j       1  True
-        2      1      1.0    1.0+0.0j       1  True
-        3      1      1.0    1.0+0.0j       1  True
-        4      1      1.0    1.0+0.0j       1  True
+           int64  float64            complex128  object  bool
+        0      1      1.0    1.000000+0.000000j       1  True
+        1      1      1.0    1.000000+0.000000j       1  True
+        2      1      1.0    1.000000+0.000000j       1  True
+        3      1      1.0    1.000000+0.000000j       1  True
+        4      1      1.0    1.000000+0.000000j       1  True
 
         >>> df.memory_usage()
         Index           128
@@ -2785,113 +2770,7 @@ class DataFrame(NDFrame):
         self._data = dm._data
 
     # ----------------------------------------------------------------------
-    # Getting and setting elements
-
-    def get_value(self, index, col, takeable=False):
-        """
-        Quickly retrieve single value at passed column and index.
-
-        .. deprecated:: 0.21.0
-            Use .at[] or .iat[] accessors instead.
-
-        Parameters
-        ----------
-        index : row label
-        col : column label
-        takeable : interpret the index/col as indexers, default False
-
-        Returns
-        -------
-        scalar
-        """
-
-        warnings.warn(
-            "get_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._get_value(index, col, takeable=takeable)
-
-    def _get_value(self, index, col, takeable=False):
-
-        if takeable:
-            series = self._iget_item_cache(col)
-            return com.maybe_box_datetimelike(series._values[index])
-
-        series = self._get_item_cache(col)
-        engine = self.index._engine
-
-        try:
-            return engine.get_value(series._values, index)
-        except KeyError:
-            # GH 20629
-            if self.index.nlevels > 1:
-                # partial indexing forbidden
-                raise
-        except (TypeError, ValueError):
-            pass
-
-        # we cannot handle direct indexing
-        # use positional
-        col = self.columns.get_loc(col)
-        index = self.index.get_loc(index)
-        return self._get_value(index, col, takeable=True)
-
-    _get_value.__doc__ = get_value.__doc__
-
-    def set_value(self, index, col, value, takeable=False):
-        """
-        Put single value at passed column and index.
-
-        .. deprecated:: 0.21.0
-            Use .at[] or .iat[] accessors instead.
-
-        Parameters
-        ----------
-        index : row label
-        col : column label
-        value : scalar
-        takeable : interpret the index/col as indexers, default False
-
-        Returns
-        -------
-        DataFrame
-            If label pair is contained, will be reference to calling DataFrame,
-            otherwise a new object.
-        """
-        warnings.warn(
-            "set_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._set_value(index, col, value, takeable=takeable)
-
-    def _set_value(self, index, col, value, takeable=False):
-        try:
-            if takeable is True:
-                series = self._iget_item_cache(col)
-                return series._set_value(index, value, takeable=True)
-
-            series = self._get_item_cache(col)
-            engine = self.index._engine
-            engine.set_value(series._values, index, value)
-            return self
-        except (KeyError, TypeError):
-
-            # set using a non-recursive method & reset the cache
-            if takeable:
-                self.iloc[index, col] = value
-            else:
-                self.loc[index, col] = value
-            self._item_cache.pop(col, None)
-
-            return self
-
-    _set_value.__doc__ = set_value.__doc__
+    # Indexing Methods
 
     def _ixs(self, i: int, axis: int = 0):
         """
@@ -2908,8 +2787,6 @@ class DataFrame(NDFrame):
         if axis == 0:
             label = self.index[i]
             new_values = self._data.fast_xs(i)
-            if is_scalar(new_values):
-                return new_values
 
             # if we are a copy, mark as such
             copy = isinstance(new_values, np.ndarray) and new_values.base is None
@@ -2955,11 +2832,13 @@ class DataFrame(NDFrame):
         # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
+            # either we have a slice or we have a string that can be converted
+            #  to a slice for partial-string date indexing
             return self._slice(indexer, axis=0)
 
         # Do we have a (boolean) DataFrame?
         if isinstance(key, DataFrame):
-            return self._getitem_frame(key)
+            return self.where(key)
 
         # Do we have a (boolean) 1d indexer?
         if com.is_bool_indexer(key):
@@ -2978,7 +2857,7 @@ class DataFrame(NDFrame):
         else:
             if is_iterator(key):
                 key = list(key)
-            indexer = self.loc._convert_to_indexer(key, axis=1, raise_missing=True)
+            indexer = self.loc._get_listlike_indexer(key, axis=1, raise_missing=True)[1]
 
         # take() does not accept boolean indexers
         if getattr(indexer, "dtype", None) == bool:
@@ -3004,7 +2883,7 @@ class DataFrame(NDFrame):
         # with all other indexing behavior
         if isinstance(key, Series) and not key.index.equals(self.index):
             warnings.warn(
-                "Boolean Series key will be reindexed to match " "DataFrame index.",
+                "Boolean Series key will be reindexed to match DataFrame index.",
                 UserWarning,
                 stacklevel=3,
             )
@@ -3020,6 +2899,7 @@ class DataFrame(NDFrame):
         return self.take(indexer, axis=0)
 
     def _getitem_multilevel(self, key):
+        # self.columns is a MultiIndex
         loc = self.columns.get_loc(key)
         if isinstance(loc, (slice, Series, np.ndarray, Index)):
             new_columns = self.columns[loc]
@@ -3056,10 +2936,200 @@ class DataFrame(NDFrame):
         else:
             return self._get_item_cache(key)
 
-    def _getitem_frame(self, key):
+    def _get_value(self, index, col, takeable: bool = False):
+        """
+        Quickly retrieve single value at passed column and index.
+
+        Parameters
+        ----------
+        index : row label
+        col : column label
+        takeable : interpret the index/col as indexers, default False
+
+        Returns
+        -------
+        scalar
+        """
+        if takeable:
+            series = self._iget_item_cache(col)
+            return com.maybe_box_datetimelike(series._values[index])
+
+        series = self._get_item_cache(col)
+        engine = self.index._engine
+
+        try:
+            return engine.get_value(series._values, index)
+        except KeyError:
+            # GH 20629
+            if self.index.nlevels > 1:
+                # partial indexing forbidden
+                raise
+        except (TypeError, ValueError):
+            pass
+
+        # we cannot handle direct indexing
+        # use positional
+        col = self.columns.get_loc(col)
+        index = self.index.get_loc(index)
+        return self._get_value(index, col, takeable=True)
+
+    def __setitem__(self, key, value):
+        key = com.apply_if_callable(key, self)
+
+        # see if we can slice the rows
+        indexer = convert_to_index_sliceable(self, key)
+        if indexer is not None:
+            # either we have a slice or we have a string that can be converted
+            #  to a slice for partial-string date indexing
+            return self._setitem_slice(indexer, value)
+
+        if isinstance(key, DataFrame) or getattr(key, "ndim", None) == 2:
+            self._setitem_frame(key, value)
+        elif isinstance(key, (Series, np.ndarray, list, Index)):
+            self._setitem_array(key, value)
+        else:
+            # set column
+            self._set_item(key, value)
+
+    def _setitem_slice(self, key, value):
+        self._check_setitem_copy()
+        self.loc[key] = value
+
+    def _setitem_array(self, key, value):
+        # also raises Exception if object array with NA values
+        if com.is_bool_indexer(key):
+            if len(key) != len(self.index):
+                raise ValueError(
+                    "Item wrong length %d instead of %d!" % (len(key), len(self.index))
+                )
+            key = check_bool_indexer(self.index, key)
+            indexer = key.nonzero()[0]
+            self._check_setitem_copy()
+            self.loc._setitem_with_indexer(indexer, value)
+        else:
+            if isinstance(value, DataFrame):
+                if len(value.columns) != len(key):
+                    raise ValueError("Columns must be same length as key")
+                for k1, k2 in zip(key, value.columns):
+                    self[k1] = value[k2]
+            else:
+                indexer = self.loc._get_listlike_indexer(
+                    key, axis=1, raise_missing=False
+                )[1]
+                self._check_setitem_copy()
+                self.loc._setitem_with_indexer((slice(None), indexer), value)
+
+    def _setitem_frame(self, key, value):
+        # support boolean setting with DataFrame input, e.g.
+        # df[df > df2] = 0
+        if isinstance(key, np.ndarray):
+            if key.shape != self.shape:
+                raise ValueError("Array conditional must be same shape as self")
+            key = self._constructor(key, **self._construct_axes_dict())
+
         if key.values.size and not is_bool_dtype(key.values):
-            raise ValueError("Must pass DataFrame with boolean values only")
-        return self.where(key)
+            raise TypeError(
+                "Must pass DataFrame or 2-d ndarray with boolean values only"
+            )
+
+        self._check_inplace_setting(value)
+        self._check_setitem_copy()
+        self._where(-key, value, inplace=True)
+
+    def _set_item(self, key, value):
+        """
+        Add series to DataFrame in specified column.
+
+        If series is a numpy-array (not a Series/TimeSeries), it must be the
+        same length as the DataFrames index or an error will be thrown.
+
+        Series/TimeSeries will be conformed to the DataFrames index to
+        ensure homogeneity.
+        """
+
+        self._ensure_valid_index(value)
+        value = self._sanitize_column(key, value)
+        NDFrame._set_item(self, key, value)
+
+        # check if we are modifying a copy
+        # try to set first as we want an invalid
+        # value exception to occur first
+        if len(self):
+            self._check_setitem_copy()
+
+    def _set_value(self, index, col, value, takeable: bool = False):
+        """
+        Put single value at passed column and index.
+
+        Parameters
+        ----------
+        index : row label
+        col : column label
+        value : scalar
+        takeable : interpret the index/col as indexers, default False
+
+        Returns
+        -------
+        DataFrame
+            If label pair is contained, will be reference to calling DataFrame,
+            otherwise a new object.
+        """
+        try:
+            if takeable is True:
+                series = self._iget_item_cache(col)
+                return series._set_value(index, value, takeable=True)
+
+            series = self._get_item_cache(col)
+            engine = self.index._engine
+            engine.set_value(series._values, index, value)
+            return self
+        except (KeyError, TypeError):
+
+            # set using a non-recursive method & reset the cache
+            if takeable:
+                self.iloc[index, col] = value
+            else:
+                self.loc[index, col] = value
+            self._item_cache.pop(col, None)
+
+            return self
+
+    def _ensure_valid_index(self, value):
+        """
+        Ensure that if we don't have an index, that we can create one from the
+        passed value.
+        """
+        # GH5632, make sure that we are a Series convertible
+        if not len(self.index) and is_list_like(value):
+            try:
+                value = Series(value)
+            except (ValueError, NotImplementedError, TypeError):
+                raise ValueError(
+                    "Cannot set a frame with no defined index "
+                    "and a value that cannot be converted to a "
+                    "Series"
+                )
+
+            self._data = self._data.reindex_axis(
+                value.index.copy(), axis=1, fill_value=np.nan
+            )
+
+    def _box_item_values(self, key, values):
+        items = self.columns[self.columns.get_loc(key)]
+        if values.ndim == 2:
+            return self._constructor(values.T, columns=items, index=self.index)
+        else:
+            return self._box_col_values(values, items)
+
+    def _box_col_values(self, values, items):
+        """
+        Provide boxed values for a column.
+        """
+        klass = self._constructor_sliced
+        return klass(values, index=self.index, name=items, fastpath=True)
+
+    # ----------------------------------------------------------------------
+    # Unsorted
 
     def query(self, expr, inplace=False, **kwargs):
         """
@@ -3086,8 +3156,6 @@ class DataFrame(NDFrame):
         **kwargs
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by :meth:`DataFrame.query`.
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------
@@ -3206,8 +3274,6 @@ class DataFrame(NDFrame):
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
             a new DataFrame is returned.
-
-            .. versionadded:: 0.18.0.
         kwargs : dict
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by
@@ -3391,7 +3457,7 @@ class DataFrame(NDFrame):
         selection = tuple(map(frozenset, (include, exclude)))
 
         if not any(selection):
-            raise ValueError("at least one of include or exclude must be " "nonempty")
+            raise ValueError("at least one of include or exclude must be nonempty")
 
         # convert the myriad valid dtypes object to a single representation
         include, exclude = map(
@@ -3435,120 +3501,6 @@ class DataFrame(NDFrame):
 
         dtype_indexer = include_these & exclude_these
         return self.loc[_get_info_slice(self, dtype_indexer)]
-
-    def _box_item_values(self, key, values):
-        items = self.columns[self.columns.get_loc(key)]
-        if values.ndim == 2:
-            return self._constructor(values.T, columns=items, index=self.index)
-        else:
-            return self._box_col_values(values, items)
-
-    def _box_col_values(self, values, items):
-        """
-        Provide boxed values for a column.
-        """
-        klass = self._constructor_sliced
-        return klass(values, index=self.index, name=items, fastpath=True)
-
-    def __setitem__(self, key, value):
-        key = com.apply_if_callable(key, self)
-
-        # see if we can slice the rows
-        indexer = convert_to_index_sliceable(self, key)
-        if indexer is not None:
-            return self._setitem_slice(indexer, value)
-
-        if isinstance(key, DataFrame) or getattr(key, "ndim", None) == 2:
-            self._setitem_frame(key, value)
-        elif isinstance(key, (Series, np.ndarray, list, Index)):
-            self._setitem_array(key, value)
-        else:
-            # set column
-            self._set_item(key, value)
-
-    def _setitem_slice(self, key, value):
-        self._check_setitem_copy()
-        self.loc._setitem_with_indexer(key, value)
-
-    def _setitem_array(self, key, value):
-        # also raises Exception if object array with NA values
-        if com.is_bool_indexer(key):
-            if len(key) != len(self.index):
-                raise ValueError(
-                    "Item wrong length %d instead of %d!" % (len(key), len(self.index))
-                )
-            key = check_bool_indexer(self.index, key)
-            indexer = key.nonzero()[0]
-            self._check_setitem_copy()
-            self.loc._setitem_with_indexer(indexer, value)
-        else:
-            if isinstance(value, DataFrame):
-                if len(value.columns) != len(key):
-                    raise ValueError("Columns must be same length as key")
-                for k1, k2 in zip(key, value.columns):
-                    self[k1] = value[k2]
-            else:
-                indexer = self.loc._convert_to_indexer(key, axis=1)
-                self._check_setitem_copy()
-                self.loc._setitem_with_indexer((slice(None), indexer), value)
-
-    def _setitem_frame(self, key, value):
-        # support boolean setting with DataFrame input, e.g.
-        # df[df > df2] = 0
-        if isinstance(key, np.ndarray):
-            if key.shape != self.shape:
-                raise ValueError("Array conditional must be same shape as self")
-            key = self._constructor(key, **self._construct_axes_dict())
-
-        if key.values.size and not is_bool_dtype(key.values):
-            raise TypeError(
-                "Must pass DataFrame or 2-d ndarray with boolean values only"
-            )
-
-        self._check_inplace_setting(value)
-        self._check_setitem_copy()
-        self._where(-key, value, inplace=True)
-
-    def _ensure_valid_index(self, value):
-        """
-        Ensure that if we don't have an index, that we can create one from the
-        passed value.
-        """
-        # GH5632, make sure that we are a Series convertible
-        if not len(self.index) and is_list_like(value):
-            try:
-                value = Series(value)
-            except (ValueError, NotImplementedError, TypeError):
-                raise ValueError(
-                    "Cannot set a frame with no defined index "
-                    "and a value that cannot be converted to a "
-                    "Series"
-                )
-
-            self._data = self._data.reindex_axis(
-                value.index.copy(), axis=1, fill_value=np.nan
-            )
-
-    def _set_item(self, key, value):
-        """
-        Add series to DataFrame in specified column.
-
-        If series is a numpy-array (not a Series/TimeSeries), it must be the
-        same length as the DataFrames index or an error will be thrown.
-
-        Series/TimeSeries will be conformed to the DataFrames index to
-        ensure homogeneity.
-        """
-
-        self._ensure_valid_index(value)
-        value = self._sanitize_column(key, value)
-        NDFrame._set_item(self, key, value)
-
-        # check if we are modifying a copy
-        # try to set first as we want an invalid
-        # value exception to occur first
-        if len(self):
-            self._check_setitem_copy()
 
     def insert(self, loc, column, value, allow_duplicates=False):
         """
@@ -3603,7 +3555,7 @@ class DataFrame(NDFrame):
         or modified columns. All items are computed first, and then assigned
         in alphabetical order.
 
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
 
            Keyword argument order is maintained for Python 3.6 and later.
 
@@ -3698,7 +3650,7 @@ class DataFrame(NDFrame):
 
                     # other
                     raise TypeError(
-                        "incompatible index of inserted column " "with frame index"
+                        "incompatible index of inserted column with frame index"
                     )
             return value
 
@@ -4381,7 +4333,7 @@ class DataFrame(NDFrame):
                     found = col in self.columns
                 except TypeError:
                     raise TypeError(
-                        err_msg + " Received column of " "type {}".format(type(col))
+                        err_msg + " Received column of type {}".format(type(col))
                     )
                 else:
                     if not found:
@@ -5303,11 +5255,6 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
-
-        .. versionchanged:: 0.18.1
-
-           The indexes ``i`` and ``j`` are now optional, and default to
-           the two innermost levels of the index.
         """
         result = self.copy()
 
@@ -5676,7 +5623,7 @@ class DataFrame(NDFrame):
             If 'raise', will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
 
-            .. versionchanged :: 0.24.0
+            .. versionchanged:: 0.24.0
                Changed from `raise_conflict=False|True`
                to `errors='ignore'|'raise'`.
 
@@ -5763,9 +5710,7 @@ class DataFrame(NDFrame):
         if join != "left":  # pragma: no cover
             raise NotImplementedError("Only left join is supported")
         if errors not in ["ignore", "raise"]:
-            raise ValueError(
-                "The parameter errors must be either " "'ignore' or 'raise'"
-            )
+            raise ValueError("The parameter errors must be either 'ignore' or 'raise'")
 
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
@@ -5822,7 +5767,7 @@ class DataFrame(NDFrame):
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
 
-            .. versionchanged :: 0.23.0
+            .. versionchanged:: 0.23.0
                Also accept list of column names.
 
         Returns
@@ -5951,7 +5896,7 @@ class DataFrame(NDFrame):
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
-            .. versionchanged :: 0.25.0
+            .. versionchanged:: 0.25.0
 
         Returns
         -------
@@ -6323,8 +6268,6 @@ class DataFrame(NDFrame):
             Level(s) of index to unstack, can pass level name
         fill_value : replace NaN with this value if the unstack produces
             missing values
-
-            .. versionadded:: 0.18.0
 
         Returns
         -------
@@ -7264,7 +7207,7 @@ class DataFrame(NDFrame):
         else:
             if on is not None:
                 raise ValueError(
-                    "Joining multiple DataFrames only supported" " for joining on index"
+                    "Joining multiple DataFrames only supported for joining on index"
                 )
 
             frames = [self] + list(other)
@@ -7425,7 +7368,7 @@ class DataFrame(NDFrame):
             # Dispatch to Series.round
             new_cols = [_series_round(v, decimals) for _, v in self.items()]
         else:
-            raise TypeError("decimals must be an integer, a dict-like or a " "Series")
+            raise TypeError("decimals must be an integer, a dict-like or a Series")
 
         if len(new_cols) > 0:
             return self._constructor(
@@ -8213,8 +8156,6 @@ class DataFrame(NDFrame):
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
 
-            .. versionadded:: 0.18.0
-
         Returns
         -------
         Series or DataFrame
@@ -8265,6 +8206,13 @@ class DataFrame(NDFrame):
 
         if is_transposed:
             data = data.T
+
+        if len(data.columns) == 0:
+            # GH#23925 _get_numeric_data may have dropped all columns
+            cols = Index([], name=self.columns.name)
+            if is_list_like(q):
+                return self._constructor([], index=q, columns=cols)
+            return self._constructor_sliced([], index=cols, name=q)
 
         result = data._data.quantile(
             qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
@@ -8422,11 +8370,11 @@ class DataFrame(NDFrame):
             )
         elif isinstance(values, Series):
             if not values.index.is_unique:
-                raise ValueError("cannot compute isin with " "a duplicate axis.")
+                raise ValueError("cannot compute isin with a duplicate axis.")
             return self.eq(values.reindex_like(self), axis="index")
         elif isinstance(values, DataFrame):
             if not (values.columns.is_unique and values.index.is_unique):
-                raise ValueError("cannot compute isin with " "a duplicate axis.")
+                raise ValueError("cannot compute isin with a duplicate axis.")
             return self.eq(values.reindex_like(self))
         else:
             if not is_list_like(values):

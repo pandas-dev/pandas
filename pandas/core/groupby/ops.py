@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
     ensure_int_or_float,
-    ensure_object,
     ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
@@ -468,12 +467,12 @@ class BaseGrouper:
         elif is_datetime64_any_dtype(values):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
-                    "datetime64 type does not support {} " "operations".format(how)
+                    "datetime64 type does not support {} operations".format(how)
                 )
         elif is_timedelta64_dtype(values):
             if how in ["prod", "cumprod"]:
                 raise NotImplementedError(
-                    "timedelta64 type does not support {} " "operations".format(how)
+                    "timedelta64 type does not support {} operations".format(how)
                 )
 
         arity = self._cython_arity.get(how, 1)
@@ -490,7 +489,7 @@ class BaseGrouper:
                 values = values.T
             if arity > 1:
                 raise NotImplementedError(
-                    "arity of more than 1 is not " "supported for the 'how' argument"
+                    "arity of more than 1 is not supported for the 'how' argument"
                 )
             out_shape = (self.ngroups,) + values.shape[1:]
 
@@ -567,15 +566,8 @@ class BaseGrouper:
                 result[mask] = np.nan
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
-            if result.ndim == 2:
-                try:
-                    result = lib.row_bool_subset(result, (counts > 0).view(np.uint8))
-                except ValueError:
-                    result = lib.row_bool_subset_object(
-                        ensure_object(result), (counts > 0).view(np.uint8)
-                    )
-            else:
-                result = result[counts > 0]
+            assert result.ndim != 2
+            result = result[counts > 0]
 
         if vdim == 1 and arity == 1:
             result = result[:, 0]
@@ -612,9 +604,7 @@ class BaseGrouper:
     ):
         if values.ndim > 3:
             # punting for now
-            raise NotImplementedError(
-                "number of dimensions is currently " "limited to 3"
-            )
+            raise NotImplementedError("number of dimensions is currently limited to 3")
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
@@ -639,9 +629,7 @@ class BaseGrouper:
         comp_ids, _, ngroups = self.group_info
         if values.ndim > 3:
             # punting for now
-            raise NotImplementedError(
-                "number of dimensions is currently " "limited to 3"
-            )
+            raise NotImplementedError("number of dimensions is currently limited to 3")
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 

@@ -277,12 +277,9 @@ class TestSeriesAlterAxes:
         # inplace=True
         # The FutureWarning comes from the fact that we would like to have
         # inplace default to False some day
-        for inplace, warn in [(None, FutureWarning), (True, None)]:
-            result = ser.copy()
-            kwargs = {"inplace": inplace}
-            with tm.assert_produces_warning(warn):
-                result.set_axis(list("abcd"), axis=axis_series, **kwargs)
-            tm.assert_series_equal(result, expected)
+        result = ser.copy()
+        result.set_axis(list("abcd"), axis=axis_series, inplace=True)
+        tm.assert_series_equal(result, expected)
 
     def test_set_axis_inplace(self):
         # GH14636
@@ -322,9 +319,9 @@ class TestSeriesAlterAxes:
 
         # KeyError raised for series index when passed level name is missing
         s = Series(range(4))
-        with pytest.raises(KeyError, match="must be same as name"):
+        with pytest.raises(KeyError, match="does not match index name"):
             s.reset_index("wrong", drop=True)
-        with pytest.raises(KeyError, match="must be same as name"):
+        with pytest.raises(KeyError, match="does not match index name"):
             s.reset_index("wrong")
 
         # KeyError raised for series when level to be dropped is missing

@@ -157,13 +157,13 @@ def is_scalar(val: object) -> bool:
 
     return (cnp.PyArray_IsAnyScalar(val)
             # PyArray_IsAnyScalar is always False for bytearrays on Py3
-            or isinstance(val, (Fraction, Number))
-            # We differ from numpy, which claims that None is not scalar;
-            # see np.isscalar
-            or val is None
             or PyDate_Check(val)
             or PyDelta_Check(val)
             or PyTime_Check(val)
+            # We differ from numpy, which claims that None is not scalar;
+            # see np.isscalar
+            or val is None
+            or isinstance(val, (Fraction, Number))
             or util.is_period_object(val)
             or is_decimal(val)
             or is_interval(val)
@@ -690,50 +690,6 @@ def generate_bins_dt64(ndarray[int64_t] values, const int64_t[:] binner,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def row_bool_subset(const float64_t[:, :] values,
-                    ndarray[uint8_t, cast=True] mask):
-    cdef:
-        Py_ssize_t i, j, n, k, pos = 0
-        ndarray[float64_t, ndim=2] out
-
-    n, k = (<object>values).shape
-    assert (n == len(mask))
-
-    out = np.empty((mask.sum(), k), dtype=np.float64)
-
-    for i in range(n):
-        if mask[i]:
-            for j in range(k):
-                out[pos, j] = values[i, j]
-            pos += 1
-
-    return out
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def row_bool_subset_object(ndarray[object, ndim=2] values,
-                           ndarray[uint8_t, cast=True] mask):
-    cdef:
-        Py_ssize_t i, j, n, k, pos = 0
-        ndarray[object, ndim=2] out
-
-    n, k = (<object>values).shape
-    assert (n == len(mask))
-
-    out = np.empty((mask.sum(), k), dtype=object)
-
-    for i in range(n):
-        if mask[i]:
-            for j in range(k):
-                out[pos, j] = values[i, j]
-            pos += 1
-
-    return out
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def get_level_sorter(const int64_t[:] label,
                      const int64_t[:] starts):
     """
@@ -997,6 +953,7 @@ cdef class Seen:
 
     cdef:
         bint int_             # seen_int
+        bint nat_             # seen nat
         bint bool_            # seen_bool
         bint null_            # seen_null
         bint uint_            # seen_uint (unsigned integer)
@@ -1020,6 +977,7 @@ cdef class Seen:
             initial methods to convert to numeric fail.
         """
         self.int_ = 0
+        self.nat_ = 0
         self.bool_ = 0
         self.null_ = 0
         self.uint_ = 0
@@ -1099,11 +1057,13 @@ cdef class Seen:
 
     @property
     def is_bool(self):
-        return not (self.datetime_ or self.numeric_ or self.timedelta_)
+        return not (self.datetime_ or self.numeric_ or self.timedelta_
+                    or self.nat_)
 
     @property
     def is_float_or_complex(self):
-        return not (self.bool_ or self.datetime_ or self.timedelta_)
+        return not (self.bool_ or self.datetime_ or self.timedelta_
+                    or self.nat_)
 
 
 cdef _try_infer_map(v):
@@ -1236,7 +1196,9 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         # e.g. categoricals
         try:
             values = getattr(value, '_values', getattr(value, 'values', value))
-        except:
+        except TypeError:
+            # This gets hit if we have an EA, since cython expects `values`
+            #  to be an ndarray
             value = _try_infer_map(value)
             if value is not None:
                 return value
@@ -1251,8 +1213,6 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         from pandas.core.dtypes.cast import (
             construct_1d_object_array_from_listlike)
         values = construct_1d_object_array_from_listlike(value)
-
-    values = getattr(values, 'values', values)
 
     # make contiguous
     values = values.ravel()
@@ -1305,7 +1265,10 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         if is_integer_array(values):
             return 'integer'
         elif is_integer_float_array(values):
-            return 'mixed-integer-float'
+            if is_integer_na_array(values):
+                return 'integer-na'
+            else:
+                return 'mixed-integer-float'
         return 'mixed-integer'
 
     elif PyDateTime_Check(val):
@@ -1330,7 +1293,10 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         if is_float_array(values):
             return 'floating'
         elif is_integer_float_array(values):
-            return 'mixed-integer-float'
+            if is_integer_na_array(values):
+                return 'integer-na'
+            else:
+                return 'mixed-integer-float'
 
     elif util.is_bool_object(val):
         if is_bool_array(values, skipna=skipna):
@@ -1563,6 +1529,19 @@ cpdef bint is_integer_array(ndarray values):
     cdef:
         IntegerValidator validator = IntegerValidator(len(values),
                                                       values.dtype)
+    return validator.validate(values)
+
+
+cdef class IntegerNaValidator(Validator):
+    cdef inline bint is_value_typed(self, object value) except -1:
+        return (util.is_integer_object(value)
+                or (util.is_nan(value) and util.is_float_object(value)))
+
+
+cdef bint is_integer_na_array(ndarray values):
+    cdef:
+        IntegerNaValidator validator = IntegerNaValidator(len(values),
+                                                          values.dtype)
     return validator.validate(values)
 
 
@@ -2002,12 +1981,11 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             seen.null_ = 1
             floats[i] = complexes[i] = fnan
         elif val is NaT:
+            seen.nat_ = 1
             if convert_datetime:
                 idatetimes[i] = NPY_NAT
-                seen.datetime_ = 1
             if convert_timedelta:
                 itimedeltas[i] = NPY_NAT
-                seen.timedelta_ = 1
             if not (convert_datetime or convert_timedelta):
                 seen.object_ = 1
                 break
@@ -2101,11 +2079,20 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             else:
                 if not seen.bool_:
                     if seen.datetime_:
-                        if not seen.numeric_:
+                        if not seen.numeric_ and not seen.timedelta_:
                             return datetimes
                     elif seen.timedelta_:
                         if not seen.numeric_:
                             return timedeltas
+                    elif seen.nat_:
+                        if not seen.numeric_:
+                            if convert_datetime and convert_timedelta:
+                                # TODO: array full of NaT ambiguity resolve here needed
+                                pass
+                            elif convert_datetime:
+                                return datetimes
+                            elif convert_timedelta:
+                                return timedeltas
                     else:
                         if seen.complex_:
                             return complexes
@@ -2132,11 +2119,20 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             else:
                 if not seen.bool_:
                     if seen.datetime_:
-                        if not seen.numeric_:
+                        if not seen.numeric_ and not seen.timedelta_:
                             return datetimes
                     elif seen.timedelta_:
                         if not seen.numeric_:
                             return timedeltas
+                    elif seen.nat_:
+                        if not seen.numeric_:
+                            if convert_datetime and convert_timedelta:
+                                # TODO: array full of NaT ambiguity resolve here needed
+                                pass
+                            elif convert_datetime:
+                                return datetimes
+                            elif convert_timedelta:
+                                return timedeltas
                     else:
                         if seen.complex_:
                             if not seen.int_:

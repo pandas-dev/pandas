@@ -21,7 +21,12 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_string_like,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCMultiIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndexClass,
+    ABCMultiIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
@@ -59,6 +64,9 @@ def cat_core(list_of_columns: List, sep: str):
     nd.array
         The concatenation of list_of_columns with sep
     """
+    if sep == "":
+        # no need to interleave sep if it is empty
+        return np.sum(list_of_columns, axis=0)
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
     return np.sum(list_with_sep, axis=0)
@@ -603,7 +611,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
         if is_compiled_re:
             if (case is not None) or (flags != 0):
                 raise ValueError(
-                    "case and flags cannot be set" " when pat is a compiled regex"
+                    "case and flags cannot be set when pat is a compiled regex"
                 )
         else:
             # not a compiled regex
@@ -623,10 +631,10 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     else:
         if is_compiled_re:
             raise ValueError(
-                "Cannot use a compiled regex as replacement " "pattern with regex=False"
+                "Cannot use a compiled regex as replacement pattern with regex=False"
             )
         if callable(repl):
-            raise ValueError("Cannot use a callable replacement when " "regex=False")
+            raise ValueError("Cannot use a callable replacement when regex=False")
         f = lambda x: x.replace(pat, repl, n)
 
     return _na_map(f, arr)
@@ -763,7 +771,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
     Index.
 
     """
-    from pandas import DataFrame, Index
+    from pandas import DataFrame
 
     regex = re.compile(pat, flags=flags)
     groups_or_na = _groups_or_na_fun(regex)
@@ -772,7 +780,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
         result = np.array([groups_or_na(val)[0] for val in arr], dtype=object)
         name = _get_single_group_name(regex)
     else:
-        if isinstance(arr, Index):
+        if isinstance(arr, ABCIndexClass):
             raise ValueError("only one regex group is supported with Index")
         name = None
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
@@ -836,8 +844,6 @@ def str_extract(arr, pat, flags=0, expand=True):
         If True, return DataFrame with one column per capture group.
         If False, return a Series/Index if there is one capture group
         or DataFrame if there are multiple capture groups.
-
-        .. versionadded:: 0.18.0
 
     Returns
     -------
@@ -915,8 +921,6 @@ def str_extractall(arr, pat, flags=0):
     matches of regular expression pat. When each subject string in the
     Series has exactly one match, extractall(pat).xs(0, level='match')
     is the same as extract(pat).
-
-    .. versionadded:: 0.18.0
 
     Parameters
     ----------
@@ -1948,7 +1952,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         if isinstance(data, ABCMultiIndex):
             raise AttributeError(
-                "Can only use .str accessor with Index, " "not MultiIndex"
+                "Can only use .str accessor with Index, not MultiIndex"
             )
 
         # see _libs/lib.pyx for list of inferred types
@@ -1961,7 +1965,7 @@ class StringMethods(NoNewAttributesMixin):
         inferred_dtype = lib.infer_dtype(values, skipna=True)
 
         if inferred_dtype not in allowed_types:
-            raise AttributeError("Can only use .str accessor with string " "values!")
+            raise AttributeError("Can only use .str accessor with string values!")
         return inferred_dtype
 
     def __getitem__(self, key):
@@ -2003,7 +2007,7 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
-        elif expand is True and not isinstance(self._orig, Index):
+        elif expand is True and not isinstance(self._orig, ABCIndexClass):
             # required when expand=True is explicitly specified
             # not needed when inferred
 
@@ -2036,7 +2040,7 @@ class StringMethods(NoNewAttributesMixin):
 
         # Wait until we are sure result is a Series or Index before
         # checking attributes (GH 12180)
-        if isinstance(self._orig, Index):
+        if isinstance(self._orig, ABCIndexClass):
             # if result is a boolean np.array, return the np.array
             # instead of wrapping it into a boolean Index (GH 8875)
             if is_bool_dtype(result):
@@ -2062,7 +2066,7 @@ class StringMethods(NoNewAttributesMixin):
                 cons = self._orig._constructor
                 return cons(result, name=name, index=index)
 
-    def _get_series_list(self, others, ignore_index=False):
+    def _get_series_list(self, others):
         """
         Auxiliary function for :meth:`str.cat`. Turn potentially mixed input
         into a list of Series (elements without an index must match the length
@@ -2070,120 +2074,56 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        others : Series, Index, DataFrame, np.ndarray, list-like or list-like
-            of objects that are Series, Index or np.ndarray (1-dim)
-        ignore_index : boolean, default False
-            Determines whether to forcefully align others with index of caller
+        others : Series, DataFrame, np.ndarray, list-like or list-like of
+            objects that are either Series, Index or np.ndarray (1-dim)
 
         Returns
         -------
-        tuple : (others transformed into list of Series,
-                 boolean whether FutureWarning should be raised)
+        list : others transformed into list of Series
         """
-
-        # Once str.cat defaults to alignment, this function can be simplified;
-        # will not need `ignore_index` and the second boolean output anymore
-
-        from pandas import Index, Series, DataFrame
+        from pandas import Series, DataFrame
 
         # self._orig is either Series or Index
-        idx = self._orig if isinstance(self._orig, Index) else self._orig.index
-
-        err_msg = (
-            "others must be Series, Index, DataFrame, np.ndarray or "
-            "list-like (either containing only strings or containing "
-            "only objects of type Series/Index/list-like/np.ndarray)"
-        )
+        idx = self._orig if isinstance(self._orig, ABCIndexClass) else self._orig.index
 
         # Generally speaking, all objects without an index inherit the index
         # `idx` of the calling Series/Index - i.e. must have matching length.
-        # Objects with an index (i.e. Series/Index/DataFrame) keep their own
-        # index, *unless* ignore_index is set to True.
-        if isinstance(others, Series):
-            warn = not others.index.equals(idx)
-            # only reconstruct Series when absolutely necessary
-            los = [
-                Series(others.values, index=idx) if ignore_index and warn else others
-            ]
-            return (los, warn)
-        elif isinstance(others, Index):
-            warn = not others.equals(idx)
-            los = [Series(others.values, index=(idx if ignore_index else others))]
-            return (los, warn)
-        elif isinstance(others, DataFrame):
-            warn = not others.index.equals(idx)
-            if ignore_index and warn:
-                # without copy, this could change "others"
-                # that was passed to str.cat
-                others = others.copy()
-                others.index = idx
-            return ([others[x] for x in others], warn)
+        # Objects with an index (i.e. Series/Index/DataFrame) keep their own.
+        if isinstance(others, ABCSeries):
+            return [others]
+        elif isinstance(others, ABCIndexClass):
+            return [Series(others.values, index=others)]
+        elif isinstance(others, ABCDataFrame):
+            return [others[x] for x in others]
         elif isinstance(others, np.ndarray) and others.ndim == 2:
             others = DataFrame(others, index=idx)
-            return ([others[x] for x in others], False)
+            return [others[x] for x in others]
         elif is_list_like(others, allow_sets=False):
             others = list(others)  # ensure iterators do not get read twice etc
 
             # in case of list-like `others`, all elements must be
-            # either one-dimensional list-likes or scalars
-            if all(is_list_like(x, allow_sets=False) for x in others):
+            # either Series/Index/np.ndarray (1-dim)...
+            if all(
+                isinstance(x, (ABCSeries, ABCIndexClass))
+                or (isinstance(x, np.ndarray) and x.ndim == 1)
+                for x in others
+            ):
                 los = []
-                join_warn = False
-                depr_warn = False
-                # iterate through list and append list of series for each
-                # element (which we check to be one-dimensional and non-nested)
-                while others:
-                    nxt = others.pop(0)  # nxt is guaranteed list-like by above
-
-                    # GH 21950 - DeprecationWarning
-                    # only allowing Series/Index/np.ndarray[1-dim] will greatly
-                    # simply this function post-deprecation.
-                    if not (
-                        isinstance(nxt, (Series, Index))
-                        or (isinstance(nxt, np.ndarray) and nxt.ndim == 1)
-                    ):
-                        depr_warn = True
-
-                    if not isinstance(nxt, (DataFrame, Series, Index, np.ndarray)):
-                        # safety for non-persistent list-likes (e.g. iterators)
-                        # do not map indexed/typed objects; info needed below
-                        nxt = list(nxt)
-
-                    # known types for which we can avoid deep inspection
-                    no_deep = (
-                        isinstance(nxt, np.ndarray) and nxt.ndim == 1
-                    ) or isinstance(nxt, (Series, Index))
-                    # nested list-likes are forbidden:
-                    # -> elements of nxt must not be list-like
-                    is_legal = (no_deep and nxt.dtype == object) or all(
-                        not is_list_like(x) for x in nxt
-                    )
-
-                    # DataFrame is false positive of is_legal
-                    # because "x in df" returns column names
-                    if not is_legal or isinstance(nxt, DataFrame):
-                        raise TypeError(err_msg)
-
-                    nxt, wnx = self._get_series_list(nxt, ignore_index=ignore_index)
-                    los = los + nxt
-                    join_warn = join_warn or wnx
-
-                if depr_warn:
-                    warnings.warn(
-                        "list-likes other than Series, Index, or "
-                        "np.ndarray WITHIN another list-like are "
-                        "deprecated and will be removed in a future "
-                        "version.",
-                        FutureWarning,
-                        stacklevel=4,
-                    )
-                return (los, join_warn)
+                while others:  # iterate through list and append each element
+                    los = los + self._get_series_list(others.pop(0))
+                return los
+            # ... or just strings
             elif all(not is_list_like(x) for x in others):
-                return ([Series(others, index=idx)], False)
-        raise TypeError(err_msg)
+                return [Series(others, index=idx)]
+        raise TypeError(
+            "others must be Series, Index, DataFrame, np.ndarrary "
+            "or list-like (either containing only strings or "
+            "containing only objects of type Series/Index/"
+            "np.ndarray[1-dim])"
+        )
 
     @forbid_nonstring_types(["bytes", "mixed", "mixed-integer"])
-    def cat(self, others=None, sep=None, na_rep=None, join=None):
+    def cat(self, others=None, sep=None, na_rep=None, join="left"):
         """
         Concatenate strings in the Series/Index with given separator.
 
@@ -2217,16 +2157,15 @@ class StringMethods(NoNewAttributesMixin):
             - If `na_rep` is None, and `others` is not None, a row containing a
               missing value in any of the columns (before concatenation) will
               have a missing value in the result.
-        join : {'left', 'right', 'outer', 'inner'}, default None
+        join : {'left', 'right', 'outer', 'inner'}, default 'left'
             Determines the join-style between the calling Series/Index and any
             Series/Index/DataFrame in `others` (objects without an index need
-            to match the length of the calling Series/Index). If None,
-            alignment is disabled, but this option will be removed in a future
-            version of pandas and replaced with a default of `'left'`. To
-            disable alignment, use `.values` on any Series/Index/DataFrame in
-            `others`.
+            to match the length of the calling Series/Index). To disable
+            alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
             .. versionadded:: 0.23.0
+            .. versionchanged:: 1.0.0
+                Changed default of `join` from None to `'left'`.
 
         Returns
         -------
@@ -2325,7 +2264,7 @@ class StringMethods(NoNewAttributesMixin):
         if sep is None:
             sep = ""
 
-        if isinstance(self._orig, Index):
+        if isinstance(self._orig, ABCIndexClass):
             data = Series(self._orig, index=self._orig)
         else:  # Series
             data = self._orig
@@ -2342,38 +2281,13 @@ class StringMethods(NoNewAttributesMixin):
 
         try:
             # turn anything in "others" into lists of Series
-            others, warn = self._get_series_list(others, ignore_index=(join is None))
+            others = self._get_series_list(others)
         except ValueError:  # do not catch TypeError raised by _get_series_list
-            if join is None:
-                raise ValueError(
-                    "All arrays must be same length, except "
-                    "those having an index if `join` is not None"
-                )
-            else:
-                raise ValueError(
-                    "If `others` contains arrays or lists (or "
-                    "other list-likes without an index), these "
-                    "must all be of the same length as the "
-                    "calling Series/Index."
-                )
-
-        if join is None and warn:
-            warnings.warn(
-                "A future version of pandas will perform index "
-                "alignment when `others` is a Series/Index/"
-                "DataFrame (or a list-like containing one). To "
-                "disable alignment (the behavior before v.0.23) and "
-                "silence this warning, use `.values` on any Series/"
-                "Index/DataFrame in `others`. To enable alignment "
-                "and silence this warning, pass `join='left'|"
-                "'outer'|'inner'|'right'`. The future default will "
-                "be `join='left'`.",
-                FutureWarning,
-                stacklevel=3,
+            raise ValueError(
+                "If `others` contains arrays or lists (or other "
+                "list-likes without an index), these must all be "
+                "of the same length as the calling Series/Index."
             )
-
-        # if join is None, _get_series_list already force-aligned indexes
-        join = "left" if join is None else join
 
         # align if required
         if any(not data.index.equals(x.index) for x in others):
@@ -2411,7 +2325,7 @@ class StringMethods(NoNewAttributesMixin):
             # no NaNs - can just concatenate
             result = cat_safe(all_cols, sep)
 
-        if isinstance(self._orig, Index):
+        if isinstance(self._orig, ABCIndexClass):
             # add dtype for case that result is all-NA
             result = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
@@ -2655,7 +2569,7 @@ class StringMethods(NoNewAttributesMixin):
             "side": "first",
             "return": "3 elements containing the string itself, followed by two "
             "empty strings",
-            "also": "rpartition : Split the string at the last occurrence of " "`sep`.",
+            "also": "rpartition : Split the string at the last occurrence of `sep`.",
         }
     )
     @deprecate_kwarg(old_arg_name="pat", new_arg_name="sep")
@@ -2671,7 +2585,7 @@ class StringMethods(NoNewAttributesMixin):
             "side": "last",
             "return": "3 elements containing two empty strings, followed by the "
             "string itself",
-            "also": "partition : Split the string at the first occurrence of " "`sep`.",
+            "also": "partition : Split the string at the first occurrence of `sep`.",
         }
     )
     @deprecate_kwarg(old_arg_name="pat", new_arg_name="sep")

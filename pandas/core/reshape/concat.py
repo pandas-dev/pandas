@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.generic import ABCSparseDataFrame
 
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core import common as com
@@ -290,7 +290,7 @@ class _Concatenator:
             self.intersect = True
         else:  # pragma: no cover
             raise ValueError(
-                "Only can inner (intersect) or outer (union) " "join the other axis"
+                "Only can inner (intersect) or outer (union) join the other axis"
             )
 
         if isinstance(objs, dict):
@@ -439,13 +439,13 @@ class _Concatenator:
                 mgr = self.objs[0]._data.concat(
                     [x._data for x in self.objs], self.new_axes
                 )
-                cons = _concat._get_series_result_type(mgr, self.objs)
+                cons = _get_series_result_type(mgr, self.objs)
                 return cons(mgr, name=name).__finalize__(self, method="concat")
 
             # combine as columns in a frame
             else:
                 data = dict(zip(range(len(self.objs)), self.objs))
-                cons = _concat._get_series_result_type(data)
+                cons = _get_series_result_type(data)
 
                 index, columns = self.new_axes
                 df = cons(data, index=index)
@@ -475,7 +475,7 @@ class _Concatenator:
             if not self.copy:
                 new_data._consolidate_inplace()
 
-            cons = _concat._get_frame_result_type(new_data, self.objs)
+            cons = _get_frame_result_type(new_data, self.objs)
             return cons._from_axes(new_data, self.new_axes).__finalize__(
                 self, method="concat"
             )
@@ -708,3 +708,37 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     return MultiIndex(
         levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
     )
+
+
+def _get_series_result_type(result, objs=None):
+    """
+    return appropriate class of Series concat
+    input is either dict or array-like
+    """
+    from pandas import SparseSeries, SparseDataFrame, DataFrame
+
+    # concat Series with axis 1
+    if isinstance(result, dict):
+        # concat Series with axis 1
+        if all(isinstance(c, (SparseSeries, SparseDataFrame)) for c in result.values()):
+            return SparseDataFrame
+        else:
+            return DataFrame
+
+    # otherwise it is a SingleBlockManager (axis = 0)
+    return objs[0]._constructor
+
+
+def _get_frame_result_type(result, objs):
+    """
+    return appropriate class of DataFrame-like concat
+    if all blocks are sparse, return SparseDataFrame
+    otherwise, return 1st obj
+    """
+
+    if result.blocks and (any(isinstance(obj, ABCSparseDataFrame) for obj in objs)):
+        from pandas.core.sparse.api import SparseDataFrame
+
+        return SparseDataFrame
+    else:
+        return next(obj for obj in objs if not isinstance(obj, ABCSparseDataFrame))

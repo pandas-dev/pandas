@@ -34,12 +34,17 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndexClass,
+    ABCPeriodArray,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas._typing import DatetimeLikeScalar
-from pandas.core import missing, nanops
+from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
 import pandas.core.common as com
 
@@ -926,6 +931,21 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
+    # pow is invalid for all three subclasses; TimedeltaArray will override
+    #  the multiplication and division ops
+    __pow__ = ops.make_invalid_op("__pow__")
+    __rpow__ = ops.make_invalid_op("__rpow__")
+    __mul__ = ops.make_invalid_op("__mul__")
+    __rmul__ = ops.make_invalid_op("__rmul__")
+    __truediv__ = ops.make_invalid_op("__truediv__")
+    __rtruediv__ = ops.make_invalid_op("__rtruediv__")
+    __floordiv__ = ops.make_invalid_op("__floordiv__")
+    __rfloordiv__ = ops.make_invalid_op("__rfloordiv__")
+    __mod__ = ops.make_invalid_op("__mod__")
+    __rmod__ = ops.make_invalid_op("__rmod__")
+    __divmod__ = ops.make_invalid_op("__divmod__")
+    __rdivmod__ = ops.make_invalid_op("__rdivmod__")
+
     def _add_datetimelike_scalar(self, other):
         # Overriden by TimedeltaArray
         raise TypeError(
@@ -1077,7 +1097,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             )
 
         if len(self) != len(other):
-            raise ValueError("cannot subtract arrays/indices of " "unequal length")
+            raise ValueError("cannot subtract arrays/indices of unequal length")
         if self.freq != other.freq:
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr
@@ -1664,11 +1684,10 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
     i8 1d array
     """
     from pandas import Index
-    from pandas.core.arrays import PeriodArray
 
     if lib.is_scalar(other) and isna(other):
         return iNaT
-    elif isinstance(other, (PeriodArray, ABCIndexClass, DatetimeLikeArrayMixin)):
+    elif isinstance(other, (ABCPeriodArray, ABCIndexClass, DatetimeLikeArrayMixin)):
         # convert tz if needed
         if getattr(other, "tz", None) is not None:
             if to_utc:

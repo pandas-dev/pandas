@@ -9,12 +9,13 @@ import numpy as np
 from pandas._libs import algos as libalgos, index as libindex, lib
 import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array
-from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
+from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
+from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
 from pandas.core.dtypes.common import (
     ensure_categorical,
@@ -45,7 +46,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDateOffset,
@@ -55,7 +56,6 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCPeriodIndex,
     ABCSeries,
-    ABCTimedeltaArray,
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import array_equivalent, isna
@@ -126,28 +126,8 @@ def _make_comparison_op(op, cls):
 
 def _make_arithmetic_op(op, cls):
     def index_arithmetic_method(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame)):
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCTimedeltaIndex)):
             return NotImplemented
-        elif isinstance(other, ABCTimedeltaIndex):
-            # Defer to subclass implementation
-            return NotImplemented
-        elif isinstance(
-            other, (np.ndarray, ABCTimedeltaArray)
-        ) and is_timedelta64_dtype(other):
-            # GH#22390; wrap in Series for op, this will in turn wrap in
-            # TimedeltaIndex, but will correctly raise TypeError instead of
-            # NullFrequencyError for add/sub ops
-            from pandas import Series
-
-            other = Series(other)
-            out = op(self, other)
-            return Index(out, name=self.name)
-
-        # handle time-based others
-        if isinstance(other, (ABCDateOffset, np.timedelta64, timedelta)):
-            return self._evaluate_with_timedelta_like(other, op)
-
-        other = self._validate_for_numeric_binop(other, op)
 
         from pandas import Series
 
@@ -396,9 +376,7 @@ class Index(IndexOpsMixin, PandasObject):
                             data = maybe_cast_to_integer_array(data, dtype, copy=copy)
                         elif inferred in ["floating", "mixed-integer-float"]:
                             if isna(data).any():
-                                raise ValueError(
-                                    "cannot convert float " "NaN to integer"
-                                )
+                                raise ValueError("cannot convert float NaN to integer")
 
                             if inferred == "mixed-integer-float":
                                 data = maybe_cast_to_integer_array(data, dtype)
@@ -472,7 +450,8 @@ class Index(IndexOpsMixin, PandasObject):
                         pass
 
                     return Index(subarr, copy=copy, dtype=object, name=name)
-                elif inferred in ["floating", "mixed-integer-float"]:
+                elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
+                    # TODO: Returns IntegerArray for integer-na case in the future
                     from .numeric import Float64Index
 
                     return Float64Index(subarr, copy=copy, name=name)
@@ -489,19 +468,15 @@ class Index(IndexOpsMixin, PandasObject):
                     pass
                 elif inferred != "string":
                     if inferred.startswith("datetime"):
-                        if (
-                            lib.is_datetime_with_singletz_array(subarr)
-                            or "tz" in kwargs
-                        ):
-                            # only when subarr has the same tz
-                            from pandas import DatetimeIndex
+                        from pandas import DatetimeIndex
 
-                            try:
-                                return DatetimeIndex(
-                                    subarr, copy=copy, name=name, **kwargs
-                                )
-                            except OutOfBoundsDatetime:
-                                pass
+                        try:
+                            return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
+                        except (ValueError, OutOfBoundsDatetime):
+                            # GH 27011
+                            # If we have mixed timezones, just send it
+                            # down the base constructor
+                            pass
 
                     elif inferred.startswith("timedelta"):
                         from pandas import TimedeltaIndex
@@ -808,8 +783,6 @@ class Index(IndexOpsMixin, PandasObject):
             If copy is set to False and internal requirements on dtype are
             satisfied, the original data is used to create a new Index
             or the original Index is returned.
-
-            .. versionadded:: 0.19.0
 
         Returns
         -------
@@ -1208,7 +1181,7 @@ class Index(IndexOpsMixin, PandasObject):
         .. deprecated:: 0.23.0
         """
         warnings.warn(
-            "'summary' is deprecated and will be removed in a " "future version.",
+            "'summary' is deprecated and will be removed in a future version.",
             FutureWarning,
             stacklevel=2,
         )
@@ -1547,10 +1520,14 @@ class Index(IndexOpsMixin, PandasObject):
                 )
             elif level > 0:
                 raise IndexError(
-                    "Too many levels:" " Index has only 1 level, not %d" % (level + 1)
+                    "Too many levels: Index has only 1 level, not %d" % (level + 1)
                 )
         elif level != self.name:
-            raise KeyError("Level %s must be same as name (%s)" % (level, self.name))
+            raise KeyError(
+                "Requested level ({}) does not match index name ({})".format(
+                    level, self.name
+                )
+            )
 
     def _get_level_number(self, level):
         self._validate_index_level(level)
@@ -1811,7 +1788,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self.inferred_type in ["integer"]
 
     def is_floating(self):
-        return self.inferred_type in ["floating", "mixed-integer-float"]
+        return self.inferred_type in ["floating", "mixed-integer-float", "integer-na"]
 
     def is_numeric(self):
         return self.inferred_type in ["integer", "floating"]
@@ -2563,7 +2540,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             if len(indexer) > 0:
                 other_diff = algos.take_nd(rvals, indexer, allow_fill=False)
-                result = _concat._concat_compat((lvals, other_diff))
+                result = concat_compat((lvals, other_diff))
 
             else:
                 result = lvals
@@ -2809,7 +2786,7 @@ class Index(IndexOpsMixin, PandasObject):
         right_indexer = (indexer == -1).nonzero()[0]
         right_diff = other.values.take(right_indexer)
 
-        the_diff = _concat._concat_compat([left_diff, right_diff])
+        the_diff = concat_compat([left_diff, right_diff])
         if sort is None:
             try:
                 the_diff = sorting.safe_sort(the_diff)
@@ -2975,7 +2952,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self.is_unique:
             raise InvalidIndexError(
-                "Reindexing only valid with uniquely" " valued Index objects"
+                "Reindexing only valid with uniquely valued Index objects"
             )
 
         if method == "pad" or method == "backfill":
@@ -3002,7 +2979,7 @@ class Index(IndexOpsMixin, PandasObject):
         # override this method on subclasses
         tolerance = np.asarray(tolerance)
         if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match " "target index size")
+            raise ValueError("list-like tolerance size must match target index size")
         return tolerance
 
     def _get_fill_indexer(self, target, method, limit=None, tolerance=None):
@@ -3120,6 +3097,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if self.inferred_type not in [
                     "floating",
                     "mixed-integer-float",
+                    "integer-na",
                     "string",
                     "unicode",
                     "mixed",
@@ -3197,7 +3175,7 @@ class Index(IndexOpsMixin, PandasObject):
                     self.get_loc(stop)
                 is_positional = False
         except KeyError:
-            if self.inferred_type == "mixed-integer-float":
+            if self.inferred_type in ["mixed-integer-float", "integer-na"]:
                 raise
 
         if is_null_slicer:
@@ -3734,9 +3712,7 @@ class Index(IndexOpsMixin, PandasObject):
             return lib.get_level_sorter(lab, ensure_int64(starts))
 
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
-            raise TypeError(
-                "Join on level between two MultiIndex objects " "is ambiguous"
-            )
+            raise TypeError("Join on level between two MultiIndex objects is ambiguous")
 
         left, right = self, other
 
@@ -3750,7 +3726,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not right.is_unique:
             raise NotImplementedError(
-                "Index._join_level on non-unique index " "is not implemented"
+                "Index._join_level on non-unique index is not implemented"
             )
 
         new_level, left_lev_indexer, right_lev_indexer = old_level.join(
@@ -4013,8 +3989,6 @@ class Index(IndexOpsMixin, PandasObject):
         Return an Index of same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from
         other.
-
-        .. versionadded:: 0.19.0
 
         Parameters
         ----------
@@ -4578,9 +4552,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Use sort_values instead.
         """
-        raise TypeError(
-            "cannot sort an Index object in-place, use " "sort_values instead"
-        )
+        raise TypeError("cannot sort an Index object in-place, use sort_values instead")
 
     def shift(self, periods=1, freq=None):
         """
@@ -4904,11 +4876,6 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         values : set or list-like
             Sought values.
-
-            .. versionadded:: 0.18.1
-
-               Support for values as a set.
-
         level : str or int, optional
             Name or position of the index level to use (if the index is a
             `MultiIndex`).
@@ -5234,7 +5201,7 @@ class Index(IndexOpsMixin, PandasObject):
                 pass
             else:
                 if not tz_compare(ts_start.tzinfo, ts_end.tzinfo):
-                    raise ValueError("Both dates must have the " "same UTC offset")
+                    raise ValueError("Both dates must have the same UTC offset")
 
         start_slice = None
         if start is not None:
@@ -5337,32 +5304,6 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Generated Arithmetic, Comparison, and Unary Methods
 
-    def _evaluate_with_timedelta_like(self, other, op):
-        # Timedelta knows how to operate with np.array, so dispatch to that
-        # operation and then wrap the results
-        if self._is_numeric_dtype and op.__name__ in ["add", "sub", "radd", "rsub"]:
-            raise TypeError(
-                "Operation {opname} between {cls} and {other} "
-                "is invalid".format(
-                    opname=op.__name__, cls=self.dtype, other=type(other).__name__
-                )
-            )
-
-        other = Timedelta(other)
-        values = self.values
-
-        with np.errstate(all="ignore"):
-            result = op(values, other)
-
-        attrs = self._get_attributes_dict()
-        attrs = self._maybe_update_attributes(attrs)
-        if op == divmod:
-            return Index(result[0], **attrs), Index(result[1], **attrs)
-        return Index(result, **attrs)
-
-    def _evaluate_with_datetime_like(self, other, op):
-        raise TypeError("can only perform ops with datetime like values")
-
     @classmethod
     def _add_comparison_methods(cls):
         """
@@ -5452,12 +5393,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(other, (Index, ABCSeries, np.ndarray)):
             if len(self) != len(other):
-                raise ValueError("cannot evaluate a numeric op with " "unequal lengths")
+                raise ValueError("cannot evaluate a numeric op with unequal lengths")
             other = com.values_from_object(other)
             if other.dtype.kind not in ["f", "i", "u"]:
-                raise TypeError(
-                    "cannot evaluate a numeric op " "with a non-numeric dtype"
-                )
+                raise TypeError("cannot evaluate a numeric op with a non-numeric dtype")
         elif isinstance(other, (ABCDateOffset, np.timedelta64, timedelta)):
             # higher up to handle
             pass
@@ -5626,7 +5565,7 @@ class Index(IndexOpsMixin, PandasObject):
             return logical_func
 
         cls.all = _make_logical_function(
-            "all", "Return whether all elements " "are True.", np.all
+            "all", "Return whether all elements are True.", np.all
         )
         cls.any = _make_logical_function(
             "any", "Return whether any element is True.", np.any

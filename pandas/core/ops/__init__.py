@@ -423,8 +423,8 @@ def masked_arith_op(x, y, op):
     # For Series `x` is 1D so ravel() is a no-op; calling it anyway makes
     # the logic valid for both Series and DataFrame ops.
     xrav = x.ravel()
-    assert isinstance(x, (np.ndarray, ABCSeries)), type(x)
-    if isinstance(y, (np.ndarray, ABCSeries, ABCIndexClass)):
+    assert isinstance(x, np.ndarray), type(x)
+    if isinstance(y, np.ndarray):
         dtype = find_common_type([x.dtype, y.dtype])
         result = np.empty(x.size, dtype=dtype)
 
@@ -442,7 +442,7 @@ def masked_arith_op(x, y, op):
 
         if mask.any():
             with np.errstate(all="ignore"):
-                result[mask] = op(xrav[mask], com.values_from_object(yrav[mask]))
+                result[mask] = op(xrav[mask], yrav[mask])
 
     else:
         assert is_scalar(y), type(y)
@@ -1137,7 +1137,7 @@ def _comp_method_SERIES(cls, op, special):
             return NotImplemented
 
         elif isinstance(other, ABCSeries) and not self._indexed_same(other):
-            raise ValueError("Can only compare identically-labeled " "Series objects")
+            raise ValueError("Can only compare identically-labeled Series objects")
 
         elif is_categorical_dtype(self):
             # Dispatch to Categorical implementation; pd.CategoricalIndex
@@ -1376,9 +1376,7 @@ def _align_method_FRAME(left, right, axis):
     """ convert rhs to meet lhs dims if input is list, tuple or np.ndarray """
 
     def to_series(right):
-        msg = (
-            "Unable to coerce to Series, length must be {req_len}: " "given {given_len}"
-        )
+        msg = "Unable to coerce to Series, length must be {req_len}: given {given_len}"
         if axis is not None and left._get_axis_name(axis) == "index":
             if len(left.index) != len(right):
                 raise ValueError(
@@ -1536,7 +1534,7 @@ def _comp_method_FRAME(cls, func, special):
             # Another DataFrame
             if not self._indexed_same(other):
                 raise ValueError(
-                    "Can only compare identically-labeled " "DataFrame objects"
+                    "Can only compare identically-labeled DataFrame objects"
                 )
             return dispatch_to_series(self, other, func, str_rep)
 

@@ -47,6 +47,7 @@ from pandas.core.base import (
     SpecificationError,
 )
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
@@ -261,7 +262,7 @@ The current implementation imposes three requirements on f:
 
 * f must return a value that either has the same shape as the input
   subframe or can be broadcast to the shape of the input subframe.
-  For example, f returns a scalar it will be broadcast to have the
+  For example, if `f` returns a scalar it will be broadcast to have the
   same shape as the input subframe.
 * if this is a DataFrame, f must support application column-by-column
   in the subframe. If f also supports application to the entire subframe,
@@ -461,7 +462,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         name_sample = names[0]
         if isinstance(index_sample, tuple):
             if not isinstance(name_sample, tuple):
-                msg = "must supply a tuple to get_group with multiple" " grouping keys"
+                msg = "must supply a tuple to get_group with multiple grouping keys"
                 raise ValueError(msg)
             if not len(name_sample) == len(index_sample):
                 try:
@@ -714,7 +715,7 @@ b  2""",
 
             else:
                 raise ValueError(
-                    "func must be a callable if args or " "kwargs are supplied"
+                    "func must be a callable if args or kwargs are supplied"
                 )
         else:
             f = func
@@ -803,10 +804,9 @@ b  2""",
                 # Prior results _may_ have been generated in UTC.
                 # Ensure we localize to UTC first before converting
                 # to the target timezone
+                arr = extract_array(obj)
                 try:
-                    result = obj._values._from_sequence(
-                        result, dtype="datetime64[ns, UTC]"
-                    )
+                    result = arr._from_sequence(result, dtype="datetime64[ns, UTC]")
                     result = result.astype(dtype)
                 except TypeError:
                     # _try_cast was called at a point where the result
@@ -1872,7 +1872,7 @@ class GroupBy(_GroupBy):
         def pre_processor(vals: np.ndarray) -> Tuple[np.ndarray, Optional[Type]]:
             if is_object_dtype(vals):
                 raise TypeError(
-                    "'quantile' cannot be performed against " "'object' dtypes!"
+                    "'quantile' cannot be performed against 'object' dtypes!"
                 )
 
             inference = None
@@ -2201,9 +2201,7 @@ class GroupBy(_GroupBy):
         `Series` or `DataFrame`  with filled values
         """
         if result_is_index and aggregate:
-            raise ValueError(
-                "'result_is_index' and 'aggregate' cannot both " "be True!"
-            )
+            raise ValueError("'result_is_index' and 'aggregate' cannot both be True!")
         if post_processing:
             if not callable(pre_processing):
                 raise ValueError("'post_processing' must be a callable!")
@@ -2212,7 +2210,7 @@ class GroupBy(_GroupBy):
                 raise ValueError("'pre_processing' must be a callable!")
             if not needs_values:
                 raise ValueError(
-                    "Cannot use 'pre_processing' without " "specifying 'needs_values'!"
+                    "Cannot use 'pre_processing' without specifying 'needs_values'!"
                 )
 
         labels, _, ngroups = grouper.group_info

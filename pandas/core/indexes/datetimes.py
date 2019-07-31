@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_string_like,
 )
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
@@ -608,7 +608,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
             right_chunk = right.values[:loc]
-            dates = _concat._concat_compat((left.values, right_chunk))
+            dates = concat_compat((left.values, right_chunk))
             return self._shallow_copy(dates)
         # DTIs are not in the "correct" order and we want
         # to sort
@@ -624,7 +624,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
             right_chunk = right.values[loc:]
-            dates = _concat._concat_compat((left.values, right_chunk))
+            dates = concat_compat((left.values, right_chunk))
             return self._shallow_copy(dates)
         else:
             return left
@@ -778,6 +778,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             not in (
                 "floating",
                 "integer",
+                "integer-na",
                 "mixed-integer",
                 "mixed-integer-float",
                 "mixed",
@@ -803,11 +804,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if isinstance(other, DatetimeIndex):
             if self.tz is not None:
                 if other.tz is None:
-                    raise TypeError(
-                        "Cannot join tz-naive with tz-aware " "DatetimeIndex"
-                    )
+                    raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
             elif other.tz is not None:
-                raise TypeError("Cannot join tz-naive with tz-aware " "DatetimeIndex")
+                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
 
             if not timezones.tz_compare(self.tz, other.tz):
                 this = self.tz_convert("UTC")
@@ -1048,7 +1047,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if isinstance(key, time):
             if method is not None:
                 raise NotImplementedError(
-                    "cannot yet lookup inexact labels " "when key is a time object"
+                    "cannot yet lookup inexact labels when key is a time object"
                 )
             return self.indexer_at_time(key)
 

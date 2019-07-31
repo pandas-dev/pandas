@@ -50,20 +50,21 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
--
+- Bug in :class:`Index` where a numpy object array with a timezone aware :class:`Timestamp` and ``np.nan`` would not return a :class:`DatetimeIndex` (:issue:`27011`)
 -
 -
 
 Numeric
 ^^^^^^^
--
+- Bug in :meth:`Series.interpolate` when using a timezone aware :class:`DatetimeIndex` (:issue:`27548`)
+- Bug when printing negative floating point complex numbers would raise an ``IndexError`` (:issue:`27484`)
 -
 -
 
 Conversion
 ^^^^^^^^^^
 
--
+- Improved the warnings for the deprecated methods :meth:`Series.real` and :meth:`Series.imag` (:issue:`27610`)
 -
 -
 
@@ -113,21 +114,21 @@ I/O
 Plotting
 ^^^^^^^^
 
--
+- Added a pandas_plotting_backends entrypoint group for registering plot backends. See :ref:`extending.plotting-backends` for more (:issue:`26747`).
 -
 -
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
+- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
 -
 -
 
 Reshaping
 ^^^^^^^^^
 
--
+- A ``KeyError`` is now raised if ``.unstack()`` is called on a :class:`Series` or :class:`DataFrame` with a flat :class:`Index` passing a name which is not the correct one (:issue:`18303`)
 -
 -
 

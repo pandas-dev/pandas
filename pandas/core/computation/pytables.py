@@ -306,7 +306,7 @@ class ConditionBinOp(BinOp):
         #    self.condition = "~(%s)" % self.condition
         # return self
         raise NotImplementedError(
-            "cannot use an invert condition when " "passing to numexpr"
+            "cannot use an invert condition when passing to numexpr"
         )
 
     def format(self):
@@ -474,9 +474,7 @@ def _validate_where(w):
     """
 
     if not (isinstance(w, (Expr, str)) or is_list_like(w)):
-        raise TypeError(
-            "where must be passed as a string, Expr, " "or list-like of Exprs"
-        )
+        raise TypeError("where must be passed as a string, Expr, or list-like of Exprs")
 
     return w
 

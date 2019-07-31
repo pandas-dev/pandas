@@ -25,6 +25,7 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
+from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.tools.numeric import to_numeric
 
@@ -186,6 +187,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             "floating",
             "integer",
             "mixed-integer",
+            "integer-na",
             "mixed-integer-float",
         ]:
             raise TypeError(
@@ -420,8 +422,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 yield self._data[i]
 
     def take(self, indexer, allow_fill=False, fill_value=None):
-        from pandas.api.extensions import take
-
         # we always fill with 1 internally
         # to avoid upcasting
         data_fill_value = 1 if isna(fill_value) else fill_value
