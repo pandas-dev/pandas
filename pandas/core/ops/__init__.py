@@ -5,13 +5,11 @@ This is not a public API.
 """
 import datetime
 import operator
-import textwrap
 from typing import Any, Callable
-import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, Timestamp, lib, ops as libops
+from pandas._libs import Timedelta, lib, ops as libops
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -1150,32 +1148,8 @@ def _comp_method_SERIES(cls, op, special):
         elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
             # Dispatch to DatetimeIndex to ensure identical
             # Series/Index behavior
-            if isinstance(other, datetime.date) and not isinstance(
-                other, datetime.datetime
-            ):
-                # https://github.com/pandas-dev/pandas/issues/21152
-                # Compatibility for difference between Series comparison w/
-                # datetime and date
-                msg = (
-                    "Comparing Series of datetimes with 'datetime.date'.  "
-                    "Currently, the 'datetime.date' is coerced to a "
-                    "datetime. In the future pandas will not coerce, "
-                    "and {future}. "
-                    "To retain the current behavior, "
-                    "convert the 'datetime.date' to a datetime with "
-                    "'pd.Timestamp'."
-                )
-
-                if op in {operator.lt, operator.le, operator.gt, operator.ge}:
-                    future = "a TypeError will be raised"
-                else:
-                    future = "'the values will not compare equal to the 'datetime.date'"
-                msg = "\n".join(textwrap.wrap(msg.format(future=future)))
-                warnings.warn(msg, FutureWarning, stacklevel=2)
-                other = Timestamp(other)
 
             res_values = dispatch_to_index_op(op, self, other, pd.DatetimeIndex)
-
             return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_timedelta64_dtype(self):
