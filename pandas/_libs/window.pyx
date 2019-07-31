@@ -1837,7 +1837,7 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
                       int64_t minp, int ddof):
     """
     Calculates weighted rolling variance using West's online algorithm
-    
+
     Paper: https://dl.acm.org/citation.cfm?id=359153
     """
     cdef:
