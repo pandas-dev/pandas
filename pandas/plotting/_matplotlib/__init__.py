@@ -46,7 +46,7 @@ if get_option("plotting.matplotlib.register_converters"):
     register(explicit=False)
 
 
-def plot(data, kind, include_bool=False, **kwargs):
+def plot(data, kind, **kwargs):
     # Importing pyplot at the top of the file (before the converters are
     # registered) causes problems in matplotlib 2 (converters seem to not
     # work)
@@ -59,7 +59,7 @@ def plot(data, kind, include_bool=False, **kwargs):
                 ax = plt.gca()
             kwargs["ax"] = getattr(ax, "left_ax", ax)
     plot_obj = PLOT_CLASSES[kind](data, **kwargs)
-    plot_obj.generate(include_bool=include_bool)
+    plot_obj.generate()
     plot_obj.draw()
     return plot_obj.result
 
