@@ -589,28 +589,24 @@ class TestAsOfMerge:
         # ok, though has dupes
         merge_asof(trades, self.quotes, on="time", by="ticker")
 
-    def test_tolerance(self):
+    @pytest.mark.parametrize(
+        "tolerance",
+        [
+            Timedelta("1day"),
+            pytest.param(
+                datetime.timedelta(days=1),
+                marks=pytest.mark.xfail(reason="not implemented", strict=True),
+            ),
+        ],
+        ids=["pd.Timedelta", "datetime.timedelta"],
+    )
+    def test_tolerance(self, tolerance):
 
         trades = self.trades
         quotes = self.quotes
 
-        result = merge_asof(
-            trades, quotes, on="time", by="ticker", tolerance=Timedelta("1day")
-        )
+        result = merge_asof(trades, quotes, on="time", by="ticker", tolerance=tolerance)
         expected = self.tolerance
-        assert_frame_equal(result, expected)
-
-    def test_datetime_timedelta_tolerance(self):
-        # this will fail
-
-        trades = self.trades
-        quotes = self.quotes
-
-        result = merge_asof(
-            trades, quotes, on="time", by="ticker", tolerance=datetime.timedelta(days=1)
-        )
-        expected = self.tolerance
-
         assert_frame_equal(result, expected)
 
     def test_tolerance_forward(self):
