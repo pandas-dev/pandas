@@ -463,18 +463,6 @@ def interpolate_2d(
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
     """
-    if is_datetime64tz_dtype(values):
-        naive = values.view("M8[ns]")
-        result = interpolate_2d(
-            naive,
-            method=method,
-            axis=axis,
-            limit=limit,
-            fill_value=fill_value,
-            dtype=dtype,
-        )
-        return type(values)._from_sequence(result, dtype=values.dtype)
-
     orig_values = values
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
