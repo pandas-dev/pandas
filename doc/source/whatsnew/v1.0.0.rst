@@ -45,6 +45,7 @@ Backwards incompatible API changes
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
+- :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 -
 -
 

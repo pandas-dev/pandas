@@ -778,6 +778,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             not in (
                 "floating",
                 "integer",
+                "integer-na",
                 "mixed-integer",
                 "mixed-integer-float",
                 "mixed",
