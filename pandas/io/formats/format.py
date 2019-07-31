@@ -3,6 +3,7 @@ Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
 
+import codecs
 from contextlib import contextmanager
 from functools import partial
 from io import StringIO
@@ -479,8 +480,6 @@ class TableFormatter:
         if hasattr(buf, "write"):
             yield buf
         elif isinstance(buf, str):
-            import codecs
-
             with codecs.open(buf, "w", encoding=encoding) as f:
                 yield f
         else:
