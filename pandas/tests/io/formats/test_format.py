@@ -44,12 +44,20 @@ use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
 
 @pytest.fixture(params=["string", "pathlike", "buffer"])
-def filepath_or_buffer(request, tmp_path):
+def filepath_or_buffer_id(request):
+    """
+    A fixture yielding test ids for filepath_or_buffer testing.
+    """
+    return request.param
+
+
+@pytest.fixture
+def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
     """
     A fixture yeilding a string representing a filepath, a path-like object
     and a StringIO buffer. Also checks that buffer is not closed.
     """
-    if request.param == "buffer":
+    if filepath_or_buffer_id == "buffer":
         buf = StringIO()
         yield buf
         assert not buf.closed
@@ -58,10 +66,29 @@ def filepath_or_buffer(request, tmp_path):
             assert isinstance(tmp_path, Path)
         else:
             assert hasattr(tmp_path, "__fspath__")
-        if request.param == "pathlike":
+        if filepath_or_buffer_id == "pathlike":
             yield tmp_path / "foo"
         else:
             yield str(tmp_path / "foo")
+
+
+@pytest.fixture
+def assert_filepath_or_buffer_equals(filepath_or_buffer, filepath_or_buffer_id):
+    """
+    Assertion helper for checking filepath_or_buffer.
+    """
+
+    def _assert_filepath_or_buffer_equals(expected):
+        if filepath_or_buffer_id == "string":
+            with open(filepath_or_buffer) as f:
+                result = f.read()
+        elif filepath_or_buffer_id == "pathlike":
+            result = filepath_or_buffer.read_text()
+        elif filepath_or_buffer_id == "buffer":
+            result = filepath_or_buffer.getvalue()
+        assert result == expected
+
+    return _assert_filepath_or_buffer_equals
 
 
 def curpath():
@@ -3167,16 +3194,18 @@ def test_repr_html_ipython_config(ip):
 
 
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
-def test_filepath_or_buffer_arg(float_frame, method, filepath_or_buffer):
+def test_filepath_or_buffer_arg(
+    float_frame, method, filepath_or_buffer, assert_filepath_or_buffer_equals
+):
     df = float_frame
     expected = getattr(df, method)()
 
     getattr(df, method)(buf=filepath_or_buffer)
-    if isinstance(filepath_or_buffer, str):
-        with open(filepath_or_buffer) as f:
-            result = f.read()
-    elif hasattr(filepath_or_buffer, "__fspath__"):
-        result = filepath_or_buffer.read_text()
-    else:
-        result = filepath_or_buffer.getvalue()
-    assert result == expected
+    assert_filepath_or_buffer_equals(expected)
+
+
+@pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
+def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
+    msg = "buf is not a file name and it has no write method"
+    with pytest.raises(TypeError, match=msg):
+        getattr(float_frame, method)(buf=object())
