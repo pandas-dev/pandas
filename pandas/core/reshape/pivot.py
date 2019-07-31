@@ -634,13 +634,7 @@ def _normalize(table, normalize, margins, margins_name="All"):
             table.columns = table_columns
 
         elif normalize == "index":
-            # index_margin is a dataframe, and use a hacky way: sum(axis=1)[0]
-            # to get the normalized result, and use sum() instead for series
-            if isinstance(index_margin, ABCDataFrame):
-                sum_index_margin = index_margin.sum(axis=1)[0]
-            else:
-                sum_index_margin = index_margin.sum()
-            index_margin = index_margin / sum_index_margin
+            index_margin = index_margin / index_margin.sum()
             table = table.append(index_margin)
             table = table.fillna(0)
             table.index = table_index
