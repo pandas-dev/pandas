@@ -155,9 +155,23 @@ class TestMoments(Base):
         rs = DataFrame(vals).rolling(5, win_type="boxcar", center=True).mean()
         tm.assert_frame_equal(DataFrame(xp), rs)
 
-        # invalid method
-        with pytest.raises(AttributeError):
-            (DataFrame(vals).rolling(5, win_type="boxcar", center=True).std())
+        # std
+        xp = np.array(
+            [
+                [np.nan, np.nan],
+                [np.nan, np.nan],
+                [3.789706, 4.068313],
+                [3.429232, 3.237411],
+                [3.589269, 3.220810],
+                [3.405195, 2.380655],
+                [3.281839, 2.369869],
+                [3.676846, 1.801799],
+                [np.nan, np.nan],
+                [np.nan, np.nan],
+            ]
+        )
+        rs = DataFrame(vals).rolling(5, win_type="boxcar", center=True).std()
+        tm.assert_frame_equal(DataFrame(xp), rs)
 
         # sum
         xp = np.array(

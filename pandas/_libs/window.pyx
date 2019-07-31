@@ -1755,6 +1755,135 @@ def _roll_weighted_sum_mean(float64_t[:] values, float64_t[:] weights,
 
 
 # ----------------------------------------------------------------------
+# Rolling var for weighted window
+
+
+cdef inline float64_t calc_weighted_var(float64_t t,
+                                        float64_t sum_w,
+                                        Py_ssize_t win,
+                                        int ddof,
+                                        float64_t nobs,
+                                        int64_t minp) nogil:
+    cdef:
+        float64_t result
+
+    # Variance is unchanged if no observation is added or removed
+    if (nobs >= minp) and (nobs > ddof):
+
+        # pathological case
+        if nobs == 1:
+            result = 0
+        else:
+            result = t * win / ((win - <float64_t>ddof) * sum_w)
+            if result < 0:
+                result = 0
+    else:
+        result = NaN
+
+    return result
+
+
+cdef inline void add_weighted_var(float64_t val,
+                                  float64_t w,
+                                  float64_t *t,
+                                  float64_t *sum_w,
+                                  float64_t *mean,
+                                  float64_t *nobs) nogil:
+    cdef:
+        float64_t temp, q, r
+
+    if isnan(val):
+        return
+
+    nobs[0] = nobs[0] + 1
+
+    q = val - mean[0]
+    temp = sum_w[0] + w
+    r = q * w / temp
+
+    mean[0] = mean[0] + r
+    t[0] = t[0] + r * sum_w[0] * q
+    sum_w[0] = temp
+
+
+cdef inline void remove_weighted_var(float64_t val,
+                                     float64_t w,
+                                     float64_t *t,
+                                     float64_t *sum_w,
+                                     float64_t *mean,
+                                     float64_t *nobs) nogil:
+    cdef:
+        float64_t temp, q, r
+
+    if notnan(val):
+        nobs[0] = nobs[0] - 1
+
+        if nobs[0]:
+            q = val - mean[0]
+            temp = sum_w[0] - w
+            r = q * w / temp
+
+            mean[0] = mean[0] - r
+            t[0] = t[0] - r * sum_w[0] * q
+            sum_w[0] = temp
+
+        else:
+            t[0] = 0
+            sum_w[0] = 0
+            mean[0] = 0
+
+
+def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
+                      int64_t minp, int ddof):
+    """
+    Calculates weighted rolling variance using West's online algorithm
+    
+    Paper: https://dl.acm.org/citation.cfm?id=359153
+    """
+    cdef:
+        float64_t t = 0, sum_w = 0, mean = 0, nobs = 0
+        float64_t val, pre_val, w, pre_w
+        Py_ssize_t i, n, win_n
+        float64_t[:] output
+
+    n = len(values)
+    win_n = len(weights)
+    output = np.empty(n, dtype=float)
+
+    with nogil:
+
+        for i in range(win_n):
+            add_weighted_var(values[i], weights[i], &t,
+                             &sum_w, &mean, &nobs)
+
+            output[i] = calc_weighted_var(t, sum_w, win_n,
+                                          ddof, nobs, minp)
+
+        for i in range(win_n, n):
+            val = values[i]
+            pre_val = values[i - win_n]
+
+            w = weights[i % win_n]
+            pre_w = weights[(i - win_n) % win_n]
+
+            if notnan(val):
+                if pre_val == pre_val:
+                    remove_weighted_var(pre_val, pre_w, &t,
+                                        &sum_w, &mean, &nobs)
+
+                add_weighted_var(val, w, &t, &sum_w, &mean, &nobs)
+
+            elif pre_val == pre_val:
+                remove_weighted_var(pre_val, pre_w, &t,
+                                    &sum_w, &mean, &nobs)
+
+            output[i] = calc_weighted_var(t, sum_w, win_n,
+                                          ddof, nobs, minp)
+
+    return output
+
+
+# ----------------------------------------------------------------------
 # Exponentially weighted moving average
 
 

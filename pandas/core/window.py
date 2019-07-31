@@ -5,7 +5,7 @@ similar to how we have a Groupby object.
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
-from typing import Callable, List, Optional, Set, Union
+from typing import Callable, List, Optional, Set, Tuple, Union
 import warnings
 
 import numpy as np
@@ -172,6 +172,17 @@ class _Window(PandasObject, SelectionMixin):
 
     def _dir_additions(self):
         return self.obj._dir_additions()
+
+    def _get_kwargs(self, **kwargs) -> Tuple[dict, dict]:
+        """
+        Separate kwargs for rolling and window functions.
+
+        Returns
+        -------
+        tuple of (roll_kwargs : dict, window_kwargs : dict)
+            kwargs for rolling and window function
+        """
+        return kwargs, dict()
 
     def _get_window(self, other=None, **kwargs) -> int:
         """
@@ -405,6 +416,8 @@ class _Window(PandasObject, SelectionMixin):
         -------
         y : type of input
         """
+        roll_kwargs, window_kwargs = self._get_kwargs(**kwargs)
+
         if center is None:
             center = self.center
 
@@ -412,7 +425,7 @@ class _Window(PandasObject, SelectionMixin):
             check_minp = _use_window
 
         if window is None:
-            window = self._get_window(**kwargs)
+            window = self._get_window(**window_kwargs)
 
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
@@ -445,7 +458,9 @@ class _Window(PandasObject, SelectionMixin):
                         "in libwindow.{func}".format(func=func)
                     )
 
-                func = self._get_roll_func(cfunc, check_minp, index_as_array, **kwargs)
+                func = self._get_roll_func(
+                    cfunc, check_minp, index_as_array, **roll_kwargs
+                )
 
             # calculation function
             if center:
@@ -608,6 +623,126 @@ class _Window(PandasObject, SelectionMixin):
     1    NaN
     2    2.0
     3    3.0
+    dtype: float64
+    """
+    )
+
+    _shared_docs["var"] = dedent(
+        """
+    Calculate unbiased %(name)s variance.
+
+    Normalized by N-1 by default. This can be changed using the `ddof`
+    argument.
+
+    Parameters
+    ----------
+    ddof : int, default 1
+        Delta Degrees of Freedom.  The divisor used in calculations
+        is ``N - ddof``, where ``N`` represents the number of elements.
+    *args, **kwargs
+        For NumPy compatibility. No additional arguments are used.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returns the same object type as the caller of the %(name)s calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.var : Equivalent method for Series.
+    DataFrame.var : Equivalent method for DataFrame.
+    numpy.var : Equivalent method for Numpy array.
+
+    Notes
+    -----
+    The default `ddof` of 1 used in :meth:`Series.var` is different than the
+    default `ddof` of 0 in :func:`numpy.var`.
+
+    A minimum of 1 period is required for the rolling calculation.
+
+    Examples
+    --------
+    >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
+    >>> s.rolling(3).var()
+    0         NaN
+    1         NaN
+    2    0.333333
+    3    1.000000
+    4    1.000000
+    5    1.333333
+    6    0.000000
+    dtype: float64
+
+    >>> s.expanding(3).var()
+    0         NaN
+    1         NaN
+    2    0.333333
+    3    0.916667
+    4    0.800000
+    5    0.700000
+    6    0.619048
+    dtype: float64
+    """
+    )
+
+    _shared_docs["std"] = dedent(
+        """
+    Calculate %(name)s standard deviation.
+
+    Normalized by N-1 by default. This can be changed using the `ddof`
+    argument.
+
+    Parameters
+    ----------
+    ddof : int, default 1
+        Delta Degrees of Freedom.  The divisor used in calculations
+        is ``N - ddof``, where ``N`` represents the number of elements.
+    *args, **kwargs
+        For NumPy compatibility. No additional arguments are used.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returns the same object type as the caller of the %(name)s calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.std : Equivalent method for Series.
+    DataFrame.std : Equivalent method for DataFrame.
+    numpy.std : Equivalent method for Numpy array.
+
+    Notes
+    -----
+    The default `ddof` of 1 used in Series.std is different than the default
+    `ddof` of 0 in numpy.std.
+
+    A minimum of one period is required for the rolling calculation.
+
+    Examples
+    --------
+    >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
+    >>> s.rolling(3).std()
+    0         NaN
+    1         NaN
+    2    0.577350
+    3    1.000000
+    4    1.000000
+    5    1.154701
+    6    0.000000
+    dtype: float64
+
+    >>> s.expanding(3).std()
+    0         NaN
+    1         NaN
+    2    0.577350
+    3    0.957427
+    4    0.894427
+    5    0.836660
+    6    0.786796
     dtype: float64
     """
     )
@@ -785,10 +920,52 @@ class Window(_Window):
         else:
             raise ValueError("Invalid window {0}".format(window))
 
+    def _get_kwargs(self, **kwargs) -> Tuple[dict, dict]:
+        """
+        Validate arguments for the window function, then separate
+        them from arguments of rolling function.
+
+        Returns
+        -------
+        tuple of (roll_kwargs : dict, window_kwargs : dict)
+            kwargs for rolling and window function
+        """
+        # the below may pop from kwargs
+        def _validate_win_type(win_type, kwargs):
+            arg_map = {
+                "kaiser": ["beta"],
+                "gaussian": ["std"],
+                "general_gaussian": ["power", "width"],
+                "slepian": ["width"],
+                "exponential": ["tau"],
+            }
+
+            if win_type in arg_map:
+                win_args = _pop_args(win_type, arg_map[win_type], kwargs)
+                if win_type == "exponential":
+                    # exponential window requires the first arg (center)
+                    # to be set to None (necessary for symmetric window)
+                    win_args.insert(0, None)
+
+                return tuple([win_type] + win_args)
+
+            return win_type
+
+        def _pop_args(win_type, arg_names, kwargs):
+            msg = "%s window requires %%s" % win_type
+            all_args = []
+            for n in arg_names:
+                if n not in kwargs:
+                    raise ValueError(msg % n)
+                all_args.append(kwargs.pop(n))
+            return all_args
+
+        win_type = _validate_win_type(self.win_type, kwargs)
+        return kwargs, dict(window=win_type)
+
     def _get_window(self, other=None, **kwargs) -> np.ndarray:
         """
-        Provide validation for the window type, return the window
-        which has already been validated.
+        Get the window, weights.
 
         Parameters
         ----------
@@ -807,46 +984,15 @@ class Window(_Window):
         elif is_integer(window):
             import scipy.signal as sig
 
-            # the below may pop from kwargs
-            def _validate_win_type(win_type, kwargs):
-                arg_map = {
-                    "kaiser": ["beta"],
-                    "gaussian": ["std"],
-                    "general_gaussian": ["power", "width"],
-                    "slepian": ["width"],
-                    "exponential": ["tau"],
-                }
-
-                if win_type in arg_map:
-                    win_args = _pop_args(win_type, arg_map[win_type], kwargs)
-                    if win_type == "exponential":
-                        # exponential window requires the first arg (center)
-                        # to be set to None (necessary for symmetric window)
-                        win_args.insert(0, None)
-
-                    return tuple([win_type] + win_args)
-
-                return win_type
-
-            def _pop_args(win_type, arg_names, kwargs):
-                msg = "%s window requires %%s" % win_type
-                all_args = []
-                for n in arg_names:
-                    if n not in kwargs:
-                        raise ValueError(msg % n)
-                    all_args.append(kwargs.pop(n))
-                return all_args
-
-            win_type = _validate_win_type(self.win_type, kwargs)
             # GH #15662. `False` makes symmetric window, rather than periodic.
-            return sig.get_window(win_type, window, False).astype(float)
+            return sig.get_window(Nx=window, fftbins=False, **kwargs).astype(float)
 
     def _get_roll_func(
         self, cfunc: Callable, check_minp: Callable, index: np.ndarray, **kwargs
     ) -> Callable:
         def func(arg, window, min_periods=None, closed=None):
             minp = check_minp(min_periods, len(window))
-            return cfunc(arg, window, minp)
+            return cfunc(arg, window, minp, **kwargs)
 
         return func
 
@@ -923,6 +1069,18 @@ class Window(_Window):
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         return self._apply("roll_weighted_mean", **kwargs)
+
+    @Substitution(name="window")
+    @Appender(_shared_docs["var"])
+    def var(self, ddof=1, *args, **kwargs):
+        nv.validate_window_func("var", args, kwargs)
+        return self._apply("roll_weighted_var", ddof=ddof, **kwargs)
+
+    @Substitution(name="window")
+    @Appender(_shared_docs["std"])
+    def std(self, ddof=1, *args, **kwargs):
+        nv.validate_window_func("std", args, kwargs)
+        return _zsqrt(self.var(ddof=ddof, **kwargs))
 
 
 class _GroupByMixin(GroupByMixin):
@@ -1216,66 +1374,6 @@ class _Rolling_and_Expanding(_Rolling):
     def median(self, **kwargs):
         return self._apply("roll_median_c", "median", **kwargs)
 
-    _shared_docs["std"] = dedent(
-        """
-    Calculate %(name)s standard deviation.
-
-    Normalized by N-1 by default. This can be changed using the `ddof`
-    argument.
-
-    Parameters
-    ----------
-    ddof : int, default 1
-        Delta Degrees of Freedom.  The divisor used in calculations
-        is ``N - ddof``, where ``N`` represents the number of elements.
-    *args, **kwargs
-        For NumPy compatibility. No additional arguments are used.
-
-    Returns
-    -------
-    Series or DataFrame
-        Returns the same object type as the caller of the %(name)s calculation.
-
-    See Also
-    --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.std : Equivalent method for Series.
-    DataFrame.std : Equivalent method for DataFrame.
-    numpy.std : Equivalent method for Numpy array.
-
-    Notes
-    -----
-    The default `ddof` of 1 used in Series.std is different than the default
-    `ddof` of 0 in numpy.std.
-
-    A minimum of one period is required for the rolling calculation.
-
-    Examples
-    --------
-    >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
-    >>> s.rolling(3).std()
-    0         NaN
-    1         NaN
-    2    0.577350
-    3    1.000000
-    4    1.000000
-    5    1.154701
-    6    0.000000
-    dtype: float64
-
-    >>> s.expanding(3).std()
-    0         NaN
-    1         NaN
-    2    0.577350
-    3    0.957427
-    4    0.894427
-    5    0.836660
-    6    0.786796
-    dtype: float64
-    """
-    )
-
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
         window = self._get_window()
@@ -1290,66 +1388,6 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply(
             f, "std", check_minp=_require_min_periods(1), ddof=ddof, **kwargs
         )
-
-    _shared_docs["var"] = dedent(
-        """
-    Calculate unbiased %(name)s variance.
-
-    Normalized by N-1 by default. This can be changed using the `ddof`
-    argument.
-
-    Parameters
-    ----------
-    ddof : int, default 1
-        Delta Degrees of Freedom.  The divisor used in calculations
-        is ``N - ddof``, where ``N`` represents the number of elements.
-    *args, **kwargs
-        For NumPy compatibility. No additional arguments are used.
-
-    Returns
-    -------
-    Series or DataFrame
-        Returns the same object type as the caller of the %(name)s calculation.
-
-    See Also
-    --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.var : Equivalent method for Series.
-    DataFrame.var : Equivalent method for DataFrame.
-    numpy.var : Equivalent method for Numpy array.
-
-    Notes
-    -----
-    The default `ddof` of 1 used in :meth:`Series.var` is different than the
-    default `ddof` of 0 in :func:`numpy.var`.
-
-    A minimum of 1 period is required for the rolling calculation.
-
-    Examples
-    --------
-    >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
-    >>> s.rolling(3).var()
-    0         NaN
-    1         NaN
-    2    0.333333
-    3    1.000000
-    4    1.000000
-    5    1.333333
-    6    0.000000
-    dtype: float64
-
-    >>> s.expanding(3).var()
-    0         NaN
-    1         NaN
-    2    0.333333
-    3    0.916667
-    4    0.800000
-    5    0.700000
-    6    0.619048
-    dtype: float64
-    """
-    )
 
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
