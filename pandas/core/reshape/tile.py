@@ -373,8 +373,7 @@ def _bins_to_cuts(
     if isinstance(bins, IntervalIndex):
         # we have a fast-path here
         ids = bins.get_indexer(x)
-        result = algos.take_nd(bins, ids)
-        result = Categorical(result, categories=bins, ordered=True)
+        result = Categorical.from_codes(ids, categories=bins, ordered=True)
         return result, bins
 
     unique_bins = algos.unique(bins)
