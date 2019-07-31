@@ -5,6 +5,7 @@ from functools import partial
 
 import numpy as np
 
+from pandas._libs import Timedelta, Timestamp
 from pandas._libs.lib import infer_dtype
 
 from pandas.core.dtypes.common import (
@@ -26,8 +27,6 @@ from pandas import (
     Interval,
     IntervalIndex,
     Series,
-    Timedelta,
-    Timestamp,
     to_datetime,
     to_timedelta,
 )
@@ -374,8 +373,7 @@ def _bins_to_cuts(
     if isinstance(bins, IntervalIndex):
         # we have a fast-path here
         ids = bins.get_indexer(x)
-        result = algos.take_nd(bins, ids)
-        result = Categorical(result, categories=bins, ordered=True)
+        result = Categorical.from_codes(ids, categories=bins, ordered=True)
         return result, bins
 
     unique_bins = algos.unique(bins)
