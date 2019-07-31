@@ -2449,6 +2449,7 @@ class TestCrosstab:
         tm.assert_frame_equal(result, expected)
 
     def test_margin_normalize(self):
+        # GH 27500
         df = pd.DataFrame({"A": ["foo", "foo", "foo", "foo", "foo",
                                  "bar", "bar", "bar", "bar"],
                            "B": ["one", "one", "one", "two", "two",
