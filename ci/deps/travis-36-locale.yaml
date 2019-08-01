@@ -29,7 +29,7 @@ dependencies:
   - s3fs=0.0.8
   - scipy
   - sqlalchemy=1.1.4
-  - xarray=0.8.2
+  - xarray=0.10
   - xlrd
   - xlsxwriter
   - xlwt
