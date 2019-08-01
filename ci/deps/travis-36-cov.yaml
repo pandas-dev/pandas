@@ -16,6 +16,7 @@ dependencies:
   - nomkl
   - numexpr
   - numpy=1.15.*
+  - odfpy
   - openpyxl
   - pandas-gbq
   # https://github.com/pydata/pandas-gbq/issues/271
@@ -38,7 +39,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest>=4.0.2
+  - pytest
   - pytest-xdist
   - pytest-cov
   - pytest-mock

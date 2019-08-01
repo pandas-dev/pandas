@@ -1,5 +1,4 @@
 import numbers
-import sys
 from typing import Type
 import warnings
 
@@ -12,13 +11,21 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
-    is_bool_dtype, is_float, is_float_dtype, is_integer, is_integer_dtype,
-    is_list_like, is_object_dtype, is_scalar)
+    is_bool_dtype,
+    is_float,
+    is_float_dtype,
+    is_integer,
+    is_integer_dtype,
+    is_list_like,
+    is_object_dtype,
+    is_scalar,
+)
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
+from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.tools.numeric import to_numeric
 
@@ -32,23 +39,23 @@ class _IntegerDtype(ExtensionDtype):
 
     The attributes name & type are set when these subclasses are created.
     """
+
     name = None  # type: str
     base = None
     type = None  # type: Type
     na_value = np.nan
 
     def __repr__(self):
-        sign = 'U' if self.is_unsigned_integer else ''
-        return "{sign}Int{size}Dtype()".format(sign=sign,
-                                               size=8 * self.itemsize)
+        sign = "U" if self.is_unsigned_integer else ""
+        return "{sign}Int{size}Dtype()".format(sign=sign, size=8 * self.itemsize)
 
     @cache_readonly
     def is_signed_integer(self):
-        return self.kind == 'i'
+        return self.kind == "i"
 
     @cache_readonly
     def is_unsigned_integer(self):
-        return self.kind == 'u'
+        return self.kind == "u"
 
     @property
     def _is_numeric(self):
@@ -111,15 +118,18 @@ def safe_cast(values, dtype, copy):
     """
 
     try:
-        return values.astype(dtype, casting='safe', copy=copy)
+        return values.astype(dtype, casting="safe", copy=copy)
     except TypeError:
 
         casted = values.astype(dtype, copy=copy)
         if (casted == values).all():
             return casted
 
-        raise TypeError("cannot safely cast non-equivalent {} to {}".format(
-            values.dtype, np.dtype(dtype)))
+        raise TypeError(
+            "cannot safely cast non-equivalent {} to {}".format(
+                values.dtype, np.dtype(dtype)
+            )
+        )
 
 
 def coerce_to_array(values, dtype, mask=None, copy=False):
@@ -139,13 +149,14 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     tuple of (values, mask)
     """
     # if values is integer numpy array, preserve it's dtype
-    if dtype is None and hasattr(values, 'dtype'):
+    if dtype is None and hasattr(values, "dtype"):
         if is_integer_dtype(values.dtype):
             dtype = values.dtype
 
     if dtype is not None:
-        if (isinstance(dtype, str) and
-                (dtype.startswith("Int") or dtype.startswith("UInt"))):
+        if isinstance(dtype, str) and (
+            dtype.startswith("Int") or dtype.startswith("UInt")
+        ):
             # Avoid DeprecationWarning from NumPy about np.dtype("Int64")
             # https://github.com/numpy/numpy/pull/7476
             dtype = dtype.lower()
@@ -169,20 +180,27 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     values = np.array(values, copy=copy)
     if is_object_dtype(values):
         inferred_type = lib.infer_dtype(values, skipna=True)
-        if inferred_type == 'empty':
+        if inferred_type == "empty":
             values = np.empty(len(values))
             values.fill(np.nan)
-        elif inferred_type not in ['floating', 'integer',
-                                   'mixed-integer', 'mixed-integer-float']:
-            raise TypeError("{} cannot be converted to an IntegerDtype".format(
-                values.dtype))
+        elif inferred_type not in [
+            "floating",
+            "integer",
+            "mixed-integer",
+            "integer-na",
+            "mixed-integer-float",
+        ]:
+            raise TypeError(
+                "{} cannot be converted to an IntegerDtype".format(values.dtype)
+            )
 
     elif is_bool_dtype(values) and is_integer_dtype(dtype):
         values = np.array(values, dtype=int, copy=copy)
 
     elif not (is_integer_dtype(values) or is_float_dtype(values)):
-        raise TypeError("{} cannot be converted to an IntegerDtype".format(
-            values.dtype))
+        raise TypeError(
+            "{} cannot be converted to an IntegerDtype".format(values.dtype)
+        )
 
     if mask is None:
         mask = isna(values)
@@ -196,7 +214,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
 
     # infer dtype if needed
     if dtype is None:
-        dtype = np.dtype('int64')
+        dtype = np.dtype("int64")
     else:
         dtype = dtype.type
 
@@ -284,13 +302,16 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return _dtypes[str(self._data.dtype)]
 
     def __init__(self, values, mask, copy=False):
-        if not (isinstance(values, np.ndarray)
-                and is_integer_dtype(values.dtype)):
-            raise TypeError("values should be integer numpy array. Use "
-                            "the 'integer_array' function instead")
+        if not (isinstance(values, np.ndarray) and is_integer_dtype(values.dtype)):
+            raise TypeError(
+                "values should be integer numpy array. Use "
+                "the 'integer_array' function instead"
+            )
         if not (isinstance(mask, np.ndarray) and is_bool_dtype(mask.dtype)):
-            raise TypeError("mask should be boolean numpy array. Use "
-                            "the 'integer_array' function instead")
+            raise TypeError(
+                "mask should be boolean numpy array. Use "
+                "the 'integer_array' function instead"
+            )
 
         if copy:
             values = values.copy()
@@ -315,8 +336,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def _formatter(self, boxed=False):
         def fmt(x):
             if isna(x):
-                return 'NaN'
+                return "NaN"
             return str(x)
+
         return fmt
 
     def __getitem__(self, item):
@@ -350,10 +372,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         # For IntegerArray inputs, we apply the ufunc to ._data
         # and mask the result.
-        if method == 'reduce':
+        if method == "reduce":
             # Not clear how to handle missing values in reductions. Raise.
             raise NotImplementedError("The 'reduce' method is not supported.")
-        out = kwargs.get('out', ())
+        out = kwargs.get("out", ())
 
         for x in inputs + out:
             if not isinstance(x, self._HANDLED_TYPES + (IntegerArray,)):
@@ -361,7 +383,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         # for binary ops, use our custom dunder methods
         result = ops.maybe_dispatch_ufunc_to_dunder_op(
-            self, ufunc, method, *inputs, **kwargs)
+            self, ufunc, method, *inputs, **kwargs
+        )
         if result is not NotImplemented:
             return result
 
@@ -399,16 +422,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 yield self._data[i]
 
     def take(self, indexer, allow_fill=False, fill_value=None):
-        from pandas.api.extensions import take
-
         # we always fill with 1 internally
         # to avoid upcasting
         data_fill_value = 1 if isna(fill_value) else fill_value
-        result = take(self._data, indexer, fill_value=data_fill_value,
-                      allow_fill=allow_fill)
+        result = take(
+            self._data, indexer, fill_value=data_fill_value, allow_fill=allow_fill
+        )
 
-        mask = take(self._mask, indexer, fill_value=True,
-                    allow_fill=allow_fill)
+        mask = take(self._mask, indexer, fill_value=True, allow_fill=allow_fill)
 
         # if we are filling
         # we only fill where the indexer is null
@@ -545,9 +566,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             # appending to an Index *always* infers
             # w/o passing the dtype
             array = np.append(array, [self._mask.sum()])
-            index = Index(np.concatenate(
-                [index.values,
-                 np.array([np.nan], dtype=object)]), dtype=object)
+            index = Index(
+                np.concatenate([index.values, np.array([np.nan], dtype=object)]),
+                dtype=object,
+            )
 
         return Series(array, index=index)
 
@@ -585,7 +607,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             elif is_list_like(other):
                 other = np.asarray(other)
                 if other.ndim > 0 and len(self) != len(other):
-                    raise ValueError('Lengths must match to compare')
+                    raise ValueError("Lengths must match to compare")
 
             other = lib.item_from_zerodim(other)
 
@@ -593,7 +615,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             # comparisons, this will raise in the future
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                with np.errstate(all='ignore'):
+                with np.errstate(all="ignore"):
                     result = op(self._data, other)
 
             # nans propagate
@@ -602,10 +624,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             else:
                 mask = self._mask | mask
 
-            result[mask] = op_name == 'ne'
+            result[mask] = op_name == "ne"
             return result
 
-        name = '__{name}__'.format(name=op.__name__)
+        name = "__{name}__".format(name=op.__name__)
         return set_function_name(cmp_method, name, cls)
 
     def _reduce(self, name, skipna=True, **kwargs):
@@ -614,19 +636,19 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         # coerce to a nan-aware float if needed
         if mask.any():
-            data = self._data.astype('float64')
+            data = self._data.astype("float64")
             data[mask] = self._na_value
 
-        op = getattr(nanops, 'nan' + name)
+        op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask)
 
         # if we have a boolean op, don't coerce
-        if name in ['any', 'all']:
+        if name in ["any", "all"]:
             pass
 
         # if we have a preservable numeric op,
         # provide coercion back to an integer type if possible
-        elif name in ['sum', 'min', 'max', 'prod'] and notna(result):
+        elif name in ["sum", "min", "max", "prod"] and notna(result):
             int_result = int(result)
             if int_result == result:
                 result = int_result
@@ -651,8 +673,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         # if we have a float operand we are by-definition
         # a float result
         # or our op is a divide
-        if ((is_float_dtype(other) or is_float(other)) or
-                (op_name in ['rtruediv', 'truediv', 'rdiv', 'div'])):
+        if (is_float_dtype(other) or is_float(other)) or (
+            op_name in ["rtruediv", "truediv"]
+        ):
             result[mask] = np.nan
             return result
 
@@ -669,14 +692,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 # Rely on pandas to unbox and dispatch to us.
                 return NotImplemented
 
-            if getattr(other, 'ndim', 0) > 1:
-                raise NotImplementedError(
-                    "can only perform ops with 1-d structures")
+            if getattr(other, "ndim", 0) > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
 
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
 
-            elif getattr(other, 'ndim', None) == 0:
+            elif getattr(other, "ndim", None) == 0:
                 other = other.item()
 
             elif is_list_like(other):
@@ -685,8 +707,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                     other = other.item()
                 elif other.ndim == 1:
                     if not (is_float_dtype(other) or is_integer_dtype(other)):
-                        raise TypeError(
-                            "can only perform ops with numeric values")
+                        raise TypeError("can only perform ops with numeric values")
             else:
                 if not (is_float(other) or is_integer(other)):
                     raise TypeError("can only perform ops with numeric values")
@@ -698,32 +719,32 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 mask = self._mask | mask
 
             # 1 ** np.nan is 1. So we have to unmask those.
-            if op_name == 'pow':
+            if op_name == "pow":
                 mask = np.where(self == 1, False, mask)
 
-            elif op_name == 'rpow':
+            elif op_name == "rpow":
                 mask = np.where(other == 1, False, mask)
 
-            with np.errstate(all='ignore'):
+            with np.errstate(all="ignore"):
                 result = op(self._data, other)
 
             # divmod returns a tuple
-            if op_name == 'divmod':
+            if op_name == "divmod":
                 div, mod = result
-                return (self._maybe_mask_result(div, mask, other, 'floordiv'),
-                        self._maybe_mask_result(mod, mask, other, 'mod'))
+                return (
+                    self._maybe_mask_result(div, mask, other, "floordiv"),
+                    self._maybe_mask_result(mod, mask, other, "mod"),
+                )
 
             return self._maybe_mask_result(result, mask, other, op_name)
 
-        name = '__{name}__'.format(name=op.__name__)
+        name = "__{name}__".format(name=op.__name__)
         return set_function_name(integer_arithmetic_method, name, cls)
 
 
 IntegerArray._add_arithmetic_ops()
 IntegerArray._add_comparison_ops()
 
-
-module = sys.modules[__name__]
 
 _dtype_docstring = """
 An ExtensionDtype for {dtype} integer data.
@@ -739,76 +760,108 @@ None
 
 # create the Dtype
 Int8Dtype = register_extension_dtype(
-    type('Int8Dtype', (_IntegerDtype, ), {
-        'type': np.int8,
-        'name': 'Int8',
-        '__doc__': _dtype_docstring.format(dtype='int8')
-    })
+    type(
+        "Int8Dtype",
+        (_IntegerDtype,),
+        {
+            "type": np.int8,
+            "name": "Int8",
+            "__doc__": _dtype_docstring.format(dtype="int8"),
+        },
+    )
 )
 
 Int16Dtype = register_extension_dtype(
-    type('Int16Dtype', (_IntegerDtype, ), {
-        'type': np.int16,
-        'name': 'Int16',
-        '__doc__': _dtype_docstring.format(dtype='int16')
-    })
+    type(
+        "Int16Dtype",
+        (_IntegerDtype,),
+        {
+            "type": np.int16,
+            "name": "Int16",
+            "__doc__": _dtype_docstring.format(dtype="int16"),
+        },
+    )
 )
 
 Int32Dtype = register_extension_dtype(
-    type('Int32Dtype', (_IntegerDtype, ), {
-        'type': np.int32,
-        'name': 'Int32',
-        '__doc__': _dtype_docstring.format(dtype='int32')
-    })
+    type(
+        "Int32Dtype",
+        (_IntegerDtype,),
+        {
+            "type": np.int32,
+            "name": "Int32",
+            "__doc__": _dtype_docstring.format(dtype="int32"),
+        },
+    )
 )
 
 Int64Dtype = register_extension_dtype(
-    type('Int64Dtype', (_IntegerDtype, ), {
-        'type': np.int64,
-        'name': 'Int64',
-        '__doc__': _dtype_docstring.format(dtype='int64')
-    })
+    type(
+        "Int64Dtype",
+        (_IntegerDtype,),
+        {
+            "type": np.int64,
+            "name": "Int64",
+            "__doc__": _dtype_docstring.format(dtype="int64"),
+        },
+    )
 )
 
 UInt8Dtype = register_extension_dtype(
-    type('UInt8Dtype', (_IntegerDtype, ), {
-        'type': np.uint8,
-        'name': 'UInt8',
-        '__doc__': _dtype_docstring.format(dtype='uint8')
-    })
+    type(
+        "UInt8Dtype",
+        (_IntegerDtype,),
+        {
+            "type": np.uint8,
+            "name": "UInt8",
+            "__doc__": _dtype_docstring.format(dtype="uint8"),
+        },
+    )
 )
 
 UInt16Dtype = register_extension_dtype(
-    type('UInt16Dtype', (_IntegerDtype, ), {
-        'type': np.uint16,
-        'name': 'UInt16',
-        '__doc__': _dtype_docstring.format(dtype='uint16')
-    })
+    type(
+        "UInt16Dtype",
+        (_IntegerDtype,),
+        {
+            "type": np.uint16,
+            "name": "UInt16",
+            "__doc__": _dtype_docstring.format(dtype="uint16"),
+        },
+    )
 )
 
 UInt32Dtype = register_extension_dtype(
-    type('UInt32Dtype', (_IntegerDtype, ), {
-        'type': np.uint32,
-        'name': 'UInt32',
-        '__doc__': _dtype_docstring.format(dtype='uint32')
-    })
+    type(
+        "UInt32Dtype",
+        (_IntegerDtype,),
+        {
+            "type": np.uint32,
+            "name": "UInt32",
+            "__doc__": _dtype_docstring.format(dtype="uint32"),
+        },
+    )
 )
 
 UInt64Dtype = register_extension_dtype(
-    type('UInt64Dtype', (_IntegerDtype, ), {
-        'type': np.uint64,
-        'name': 'UInt64',
-        '__doc__': _dtype_docstring.format(dtype='uint64')
-    })
+    type(
+        "UInt64Dtype",
+        (_IntegerDtype,),
+        {
+            "type": np.uint64,
+            "name": "UInt64",
+            "__doc__": _dtype_docstring.format(dtype="uint64"),
+        },
+    )
 )
 
 _dtypes = {
-    'int8': Int8Dtype(),
-    'int16': Int16Dtype(),
-    'int32': Int32Dtype(),
-    'int64': Int64Dtype(),
-    'uint8': UInt8Dtype(),
-    'uint16': UInt16Dtype(),
-    'uint32': UInt32Dtype(),
-    'uint64': UInt64Dtype(),
+    "int8": Int8Dtype(),
+    "int16": Int16Dtype(),
+    "int32": Int32Dtype(),
+    "int64": Int64Dtype(),
+    "uint8": UInt8Dtype(),
+    "uint16": UInt16Dtype(),
+    "uint32": UInt32Dtype(),
+    "uint64": UInt64Dtype(),
 }

@@ -251,8 +251,6 @@ Series can also have a ``name`` attribute:
 The Series ``name`` will be assigned automatically in many cases, in particular
 when taking 1D slices of DataFrame as you will see below.
 
-.. versionadded:: 0.18.0
-
 You can rename a Series with the :meth:`pandas.Series.rename` method.
 
 .. ipython:: python
@@ -752,6 +750,11 @@ The ufunc is applied to the underlying array in a Series.
 
    ser = pd.Series([1, 2, 3, 4])
    np.exp(ser)
+
+.. versionchanged:: 0.25.0
+
+   When multiple ``Series`` are passed to a ufunc, they are aligned before
+   performing the operation.
 
 Like other parts of the library, pandas will automatically align labeled inputs
 as part of a ufunc with multiple inputs. For example, using :meth:`numpy.remainder`

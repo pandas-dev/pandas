@@ -416,3 +416,47 @@ Below is an example to define two original properties, "internal_cache" as a tem
    # properties defined in _metadata are retained
    >>> df[['A', 'B']].added_property
    property
+
+.. _extending.plotting-backends:
+
+Plotting backends
+-----------------
+
+Starting in 0.25 pandas can be extended with third-party plotting backends. The
+main idea is letting users select a plotting backend different than the provided
+one based on Matplotlib. For example:
+
+.. code-block:: python
+
+    >>> pd.set_option('plotting.backend', 'backend.module')
+    >>> pd.Series([1, 2, 3]).plot()
+
+This would be more or less equivalent to:
+
+.. code-block:: python
+
+    >>> import backend.module
+    >>> backend.module.plot(pd.Series([1, 2, 3]))
+
+The backend module can then use other visualization tools (Bokeh, Altair,...)
+to generate the plots.
+
+Libraries implementing the plotting backend should use `entry points <https://setuptools.readthedocs.io/en/latest/setuptools.html#dynamic-discovery-of-services-and-plugins>`__
+to make their backend discoverable to pandas. The key is ``"pandas_plotting_backends"``. For example, pandas
+registers the default "matplotlib" backend as follows.
+
+.. code-block:: python
+
+   # in setup.py
+   setup(  # noqa: F821
+       ...,
+       entry_points={
+           "pandas_plotting_backends": [
+               "matplotlib = pandas:plotting._matplotlib",
+           ],
+       },
+   )
+
+
+More information on how to implement a third-party plotting backend can be found at
+https://github.com/pandas-dev/pandas/blob/master/pandas/plotting/__init__.py#L1.

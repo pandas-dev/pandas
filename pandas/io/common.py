@@ -12,14 +12,23 @@ import os
 import pathlib
 from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
-    urlencode, urljoin, urlparse as parse_url, uses_netloc, uses_params,
-    uses_relative)
+    urlencode,
+    urljoin,
+    urlparse as parse_url,
+    uses_netloc,
+    uses_params,
+    uses_relative,
+)
 from urllib.request import pathname2url, urlopen
 import zipfile
 
 from pandas.errors import (  # noqa
-    AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
-    ParserWarning)
+    AbstractMethodError,
+    DtypeWarning,
+    EmptyDataError,
+    ParserError,
+    ParserWarning,
+)
 
 from pandas.core.dtypes.common import is_file_like
 
@@ -29,13 +38,29 @@ CParserError = ParserError
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = {'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
-              'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan',
-              '-nan', ''}
+_NA_VALUES = {
+    "-1.#IND",
+    "1.#QNAN",
+    "1.#IND",
+    "-1.#QNAN",
+    "#N/A N/A",
+    "#N/A",
+    "N/A",
+    "n/a",
+    "NA",
+    "#NA",
+    "NULL",
+    "null",
+    "NaN",
+    "-NaN",
+    "nan",
+    "-nan",
+    "",
+}
 
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
-_VALID_URLS.discard('')
+_VALID_URLS.discard("")
 
 
 class BaseIterator:
@@ -88,10 +113,12 @@ def _expand_user(filepath_or_buffer):
 
 def _validate_header_arg(header):
     if isinstance(header, bool):
-        raise TypeError("Passing a bool to header is invalid. "
-                        "Use header=None for no header or "
-                        "header=int or list-like of ints to specify "
-                        "the row(s) making up the column names")
+        raise TypeError(
+            "Passing a bool to header is invalid. "
+            "Use header=None for no header or "
+            "header=int or list-like of ints to specify "
+            "the row(s) making up the column names"
+        )
 
 
 def _stringify_path(filepath_or_buffer):
@@ -116,7 +143,7 @@ def _stringify_path(filepath_or_buffer):
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
-    if hasattr(filepath_or_buffer, '__fspath__'):
+    if hasattr(filepath_or_buffer, "__fspath__"):
         return filepath_or_buffer.__fspath__()
     elif isinstance(filepath_or_buffer, pathlib.Path):
         return str(filepath_or_buffer)
@@ -126,7 +153,7 @@ def _stringify_path(filepath_or_buffer):
 def is_s3_url(url):
     """Check for an s3, s3n, or s3a url"""
     try:
-        return parse_url(url).scheme in ['s3', 's3n', 's3a']
+        return parse_url(url).scheme in ["s3", "s3n", "s3a"]
     except Exception:
         return False
 
@@ -134,13 +161,14 @@ def is_s3_url(url):
 def is_gcs_url(url):
     """Check for a gcs url"""
     try:
-        return parse_url(url).scheme in ['gcs', 'gs']
+        return parse_url(url).scheme in ["gcs", "gs"]
     except Exception:
         return False
 
 
-def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
-                           compression=None, mode=None):
+def get_filepath_or_buffer(
+    filepath_or_buffer, encoding=None, compression=None, mode=None
+):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -164,27 +192,27 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
 
     if _is_url(filepath_or_buffer):
         req = urlopen(filepath_or_buffer)
-        content_encoding = req.headers.get('Content-Encoding', None)
-        if content_encoding == 'gzip':
+        content_encoding = req.headers.get("Content-Encoding", None)
+        if content_encoding == "gzip":
             # Override compression based on Content-Encoding header
-            compression = 'gzip'
+            compression = "gzip"
         reader = BytesIO(req.read())
         req.close()
         return reader, encoding, compression, True
 
     if is_s3_url(filepath_or_buffer):
         from pandas.io import s3
-        return s3.get_filepath_or_buffer(filepath_or_buffer,
-                                         encoding=encoding,
-                                         compression=compression,
-                                         mode=mode)
+
+        return s3.get_filepath_or_buffer(
+            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
+        )
 
     if is_gcs_url(filepath_or_buffer):
         from pandas.io import gcs
-        return gcs.get_filepath_or_buffer(filepath_or_buffer,
-                                          encoding=encoding,
-                                          compression=compression,
-                                          mode=mode)
+
+        return gcs.get_filepath_or_buffer(
+            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
+        )
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return _expand_user(filepath_or_buffer), None, compression, False
@@ -208,15 +236,10 @@ def file_path_to_url(path):
     -------
     a valid FILE URL
     """
-    return urljoin('file:', pathname2url(path))
+    return urljoin("file:", pathname2url(path))
 
 
-_compression_to_extension = {
-    'gzip': '.gz',
-    'bz2': '.bz2',
-    'zip': '.zip',
-    'xz': '.xz',
-}
+_compression_to_extension = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": ".xz"}
 
 
 def _infer_compression(filepath_or_buffer, compression):
@@ -250,7 +273,7 @@ def _infer_compression(filepath_or_buffer, compression):
         return None
 
     # Infer compression
-    if compression == 'infer':
+    if compression == "infer":
         # Convert all path types (e.g. pathlib.Path) to strings
         filepath_or_buffer = _stringify_path(filepath_or_buffer)
         if not isinstance(filepath_or_buffer, str):
@@ -267,14 +290,15 @@ def _infer_compression(filepath_or_buffer, compression):
     if compression in _compression_to_extension:
         return compression
 
-    msg = 'Unrecognized compression type: {}'.format(compression)
-    valid = ['infer', None] + sorted(_compression_to_extension)
-    msg += '\nValid compression types are {}'.format(valid)
+    msg = "Unrecognized compression type: {}".format(compression)
+    valid = ["infer", None] + sorted(_compression_to_extension)
+    msg += "\nValid compression types are {}".format(valid)
     raise ValueError(msg)
 
 
-def _get_handle(path_or_buf, mode, encoding=None, compression=None,
-                memory_map=False, is_text=True):
+def _get_handle(
+    path_or_buf, mode, encoding=None, compression=None, memory_map=False, is_text=True
+):
     """
     Get file handle for given path/buffer and mode.
 
@@ -304,6 +328,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     """
     try:
         from s3fs import S3File
+
         need_text_wrapping = (BytesIO, S3File)
     except ImportError:
         need_text_wrapping = (BytesIO,)
@@ -321,45 +346,47 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     if compression:
 
         # GZ Compression
-        if compression == 'gzip':
+        if compression == "gzip":
             if is_path:
                 f = gzip.open(path_or_buf, mode)
             else:
                 f = gzip.GzipFile(fileobj=path_or_buf)
 
         # BZ Compression
-        elif compression == 'bz2':
+        elif compression == "bz2":
             if is_path:
                 f = bz2.BZ2File(path_or_buf, mode)
             else:
                 f = bz2.BZ2File(path_or_buf)
 
         # ZIP Compression
-        elif compression == 'zip':
+        elif compression == "zip":
             zf = BytesZipFile(path_or_buf, mode)
             # Ensure the container is closed as well.
             handles.append(zf)
-            if zf.mode == 'w':
+            if zf.mode == "w":
                 f = zf
-            elif zf.mode == 'r':
+            elif zf.mode == "r":
                 zip_names = zf.namelist()
                 if len(zip_names) == 1:
                     f = zf.open(zip_names.pop())
                 elif len(zip_names) == 0:
-                    raise ValueError('Zero files found in ZIP file {}'
-                                     .format(path_or_buf))
+                    raise ValueError(
+                        "Zero files found in ZIP file {}".format(path_or_buf)
+                    )
                 else:
-                    raise ValueError('Multiple files found in ZIP file.'
-                                     ' Only one file per ZIP: {}'
-                                     .format(zip_names))
+                    raise ValueError(
+                        "Multiple files found in ZIP file."
+                        " Only one file per ZIP: {}".format(zip_names)
+                    )
 
         # XZ Compression
-        elif compression == 'xz':
+        elif compression == "xz":
             f = lzma.LZMAFile(path_or_buf, mode)
 
         # Unrecognized Compression
         else:
-            msg = 'Unrecognized compression type: {}'.format(compression)
+            msg = "Unrecognized compression type: {}".format(compression)
             raise ValueError(msg)
 
         handles.append(f)
@@ -370,7 +397,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
             f = open(path_or_buf, mode, encoding=encoding, newline="")
         elif is_text:
             # No explicit encoding
-            f = open(path_or_buf, mode, errors='replace', newline="")
+            f = open(path_or_buf, mode, errors="replace", newline="")
         else:
             # Binary mode
             f = open(path_or_buf, mode)
@@ -379,10 +406,11 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     # Convert BytesIO or file objects passed with an encoding
     if is_text and (compression or isinstance(f, need_text_wrapping)):
         from io import TextIOWrapper
-        f = TextIOWrapper(f, encoding=encoding, newline='')
+
+        f = TextIOWrapper(f, encoding=encoding, newline="")
         handles.append(f)
 
-    if memory_map and hasattr(f, 'fileno'):
+    if memory_map and hasattr(f, "fileno"):
         try:
             g = MMapWrapper(f)
             f.close()
@@ -405,10 +433,11 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     BytesIO provides attributes of file-like object and ZipFile.writestr writes
     bytes strings into a member of the archive.
     """
+
     # GH 17778
     def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED, **kwargs):
-        if mode in ['wb', 'rb']:
-            mode = mode.replace('b', '')
+        if mode in ["wb", "rb"]:
+            mode = mode.replace("b", "")
         super().__init__(file, mode, compression, **kwargs)
 
     def write(self, data):
@@ -446,12 +475,12 @@ class MMapWrapper(BaseIterator):
 
         # readline returns bytes, not str, but Python's CSV reader
         # expects str, so convert the output to str before continuing
-        newline = newline.decode('utf-8')
+        newline = newline.decode("utf-8")
 
         # mmap doesn't raise if reading past the allocated
         # data but instead returns an empty string, so raise
         # if that is returned
-        if newline == '':
+        if newline == "":
             raise StopIteration
         return newline
 

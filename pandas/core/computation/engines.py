@@ -5,8 +5,7 @@ Engine classes for :func:`~pandas.eval`
 import abc
 
 from pandas.core.computation.align import _align, _reconstruct_object
-from pandas.core.computation.ops import (
-    UndefinedVariableError, _mathops, _reductions)
+from pandas.core.computation.ops import UndefinedVariableError, _mathops, _reductions
 
 import pandas.io.formats.printing as printing
 
@@ -29,10 +28,11 @@ def _check_ne_builtin_clash(expr):
     overlap = names & _ne_builtins
 
     if overlap:
-        s = ', '.join(map(repr, overlap))
-        raise NumExprClobberingError('Variables in expression "{expr}" '
-                                     'overlap with builtins: ({s})'
-                                     .format(expr=expr, s=s))
+        s = ", ".join(map(repr, overlap))
+        raise NumExprClobberingError(
+            'Variables in expression "{expr}" '
+            "overlap with builtins: ({s})".format(expr=expr, s=s)
+        )
 
 
 class AbstractEngine(metaclass=abc.ABCMeta):
@@ -68,8 +68,9 @@ class AbstractEngine(metaclass=abc.ABCMeta):
 
         # make sure no names in resolvers and locals/globals clash
         res = self._evaluate()
-        return _reconstruct_object(self.result_type, res, self.aligned_axes,
-                                   self.expr.terms.return_type)
+        return _reconstruct_object(
+            self.result_type, res, self.aligned_axes, self.expr.terms.return_type
+        )
 
     @property
     def _is_aligned(self):
@@ -95,6 +96,7 @@ class AbstractEngine(metaclass=abc.ABCMeta):
 class NumExprEngine(AbstractEngine):
 
     """NumExpr engine class"""
+
     has_neg_frac = True
 
     def __init__(self, expr):
@@ -112,7 +114,7 @@ class NumExprEngine(AbstractEngine):
         try:
             env = self.expr.env
             scope = env.full_scope
-            truediv = scope['truediv']
+            truediv = scope["truediv"]
             _check_ne_builtin_clash(self.expr)
             return ne.evaluate(s, local_dict=scope, truediv=truediv)
         except KeyError as e:
@@ -130,6 +132,7 @@ class PythonEngine(AbstractEngine):
 
     Mostly for testing purposes.
     """
+
     has_neg_frac = False
 
     def __init__(self, expr):
@@ -142,4 +145,4 @@ class PythonEngine(AbstractEngine):
         pass
 
 
-_engines = {'numexpr': NumExprEngine, 'python': PythonEngine}
+_engines = {"numexpr": NumExprEngine, "python": PythonEngine}

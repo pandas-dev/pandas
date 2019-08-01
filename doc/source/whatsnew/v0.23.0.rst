@@ -31,7 +31,7 @@ Check the :ref:`API Changes <whatsnew_0230.api_breaking>` and :ref:`deprecations
 .. warning::
 
    Starting January 1, 2019, pandas feature releases will support Python 3 only.
-   See :ref:`install.dropping-27` for more.
+   See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more.
 
 .. contents:: What's new in v0.23.0
     :local:
@@ -935,13 +935,23 @@ In previous versions, the default value for the ``ordered`` parameter was ``Fals
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: ipython
 
-    from pandas.api.types import CategoricalDtype
-    cat = pd.Categorical(list('abcaba'), ordered=True, categories=list('cba'))
-    cat
-    cdt = CategoricalDtype(categories=list('cbad'))
-    cat.astype(cdt)
+    In [2]: from pandas.api.types import CategoricalDtype
+
+    In [3]: cat = pd.Categorical(list('abcaba'), ordered=True, categories=list('cba'))
+
+    In [4]: cat
+    Out[4]:
+    [a, b, c, a, b, a]
+    Categories (3, object): [c < b < a]
+
+    In [5]: cdt = CategoricalDtype(categories=list('cbad'))
+
+    In [6]: cat.astype(cdt)
+    Out[6]:
+    [a, b, c, a, b, a]
+    Categories (4, object): [c < b < a < d]
 
 Notice in the example above that the converted ``Categorical`` has retained ``ordered=True``.  Had the default value for ``ordered`` remained as ``False``, the converted ``Categorical`` would have become unordered, despite ``ordered=False`` never being explicitly specified.  To change the value of ``ordered``, explicitly pass it to the new dtype, e.g. ``CategoricalDtype(categories=list('cbad'), ordered=False)``.
 

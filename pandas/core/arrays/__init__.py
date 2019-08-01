@@ -1,6 +1,8 @@
-from .array_ import array  # noqa: F401
 from .base import (  # noqa: F401
-    ExtensionArray, ExtensionOpsMixin, ExtensionScalarOpsMixin)
+    ExtensionArray,
+    ExtensionOpsMixin,
+    ExtensionScalarOpsMixin,
+)
 from .categorical import Categorical  # noqa: F401
 from .datetimes import DatetimeArray  # noqa: F401
 from .integer import IntegerArray, integer_array  # noqa: F401

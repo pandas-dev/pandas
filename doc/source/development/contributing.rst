@@ -288,7 +288,7 @@ complex changes to the documentation as well.
 Some other important things to know about the docs:
 
 * The *pandas* documentation consists of two parts: the docstrings in the code
-  itself and the docs in this folder ``pandas/doc/``.
+  itself and the docs in this folder ``doc/``.
 
   The docstrings provide a clear explanation of the usage of the individual
   functions, while the documentation in this folder consists of tutorial-like
@@ -404,11 +404,11 @@ Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 So how do you build the docs? Navigate to your local
-``pandas/doc/`` directory in the console and run::
+``doc/`` directory in the console and run::
 
     python make.py html
 
-Then you can find the HTML output in the folder ``pandas/doc/build/html/``.
+Then you can find the HTML output in the folder ``doc/build/html/``.
 
 The first time you build the docs, it will take quite a while because it has to run
 all the code examples and build all the generated docstring pages. In subsequent
@@ -448,7 +448,7 @@ You can also specify to use multiple cores to speed up the documentation build::
 Open the following file in a web browser to see the full documentation you
 just built::
 
-    pandas/docs/build/html/index.html
+    doc/build/html/index.html
 
 And you'll have the satisfaction of seeing your new and improved documentation!
 
@@ -562,22 +562,37 @@ many errors as possible, but it may not correct *all* of them. Thus, it is
 recommended that you run ``cpplint`` to double check and make any other style
 fixes manually.
 
-Python (PEP8)
-~~~~~~~~~~~~~
+Python (PEP8 / black)
+~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* uses the `PEP8 <http://www.python.org/dev/peps/pep-0008/>`_ standard.
-There are several tools to ensure you abide by this standard. Here are *some* of
-the more common ``PEP8`` issues:
+*pandas* follows the `PEP8 <http://www.python.org/dev/peps/pep-0008/>`_ standard
+and uses `Black <https://black.readthedocs.io/en/stable/>`_ and
+`Flake8 <http://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
+format throughout the project.
 
-* we restrict line-length to 79 characters to promote readability
-* passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
+:ref:`Continuous Integration <contributing.ci>` will run those tools and
+report any stylistic errors in your code. Therefore, it is helpful before
+submitting code to run the check yourself::
 
-:ref:`Continuous Integration <contributing.ci>` will run
-the `flake8 <https://pypi.org/project/flake8>`_ tool
-and report any stylistic errors in your code. Therefore, it is helpful before
-submitting code to run the check yourself on the diff::
-
+   black pandas
    git diff upstream/master -u -- "*.py" | flake8 --diff
+
+to auto-format your code. Additionally, many editors have plugins that will
+apply ``black`` as you edit files.
+
+Optionally, you may wish to setup `pre-commit hooks <https://pre-commit.com/>`_
+to automatically run ``black`` and ``flake8`` when you make a git commit. This
+can be done by installing ``pre-commit``::
+
+   pip install pre-commit
+
+and then running::
+
+   pre-commit install
+
+from the root of the pandas repository. Now ``black`` and ``flake8`` will be run
+each time you commit changes. You can skip these checks with
+``git commit --no-verify``.
 
 This command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
