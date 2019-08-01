@@ -6,7 +6,7 @@ Roadmap
 
 This page provides an overview of the major themes in pandas' development. Each of
 these items requires a relatively large amount of effort to implement. Implementation
-may be hastened with dedicated funding or interest from contributors.
+may be expedited with dedicated funding or interest from contributors.
 
 An item being on the roadmap does not mean that it will *necessarily* happen, even
 with unlimited funding. During the implementation period we may discover issues
