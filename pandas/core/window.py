@@ -985,7 +985,8 @@ class Window(_Window):
             import scipy.signal as sig
 
             # GH #15662. `False` makes symmetric window, rather than periodic.
-            return sig.get_window(Nx=window, fftbins=False, **kwargs).astype(float)
+            kwargs.update(dict(Nx=window, fftbins=False))
+            return sig.get_window(**kwargs).astype(float)
 
     def _get_roll_func(
         self, cfunc: Callable, check_minp: Callable, index: np.ndarray, **kwargs
