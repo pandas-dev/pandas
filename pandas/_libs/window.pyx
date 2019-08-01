@@ -1761,7 +1761,7 @@ def _roll_weighted_sum_mean(float64_t[:] values, float64_t[:] weights,
 cdef inline float64_t calc_weighted_var(float64_t t,
                                         float64_t sum_w,
                                         Py_ssize_t win,
-                                        int ddof,
+                                        unsigned int ddof,
                                         float64_t nobs,
                                         int64_t minp) nogil:
     cdef:
@@ -1774,7 +1774,7 @@ cdef inline float64_t calc_weighted_var(float64_t t,
         if nobs == 1:
             result = 0
         else:
-            result = t * win / ((win - <float64_t>ddof) * sum_w)
+            result = t * win / ((win - ddof) * sum_w)
             if result < 0:
                 result = 0
     else:
@@ -1834,7 +1834,7 @@ cdef inline void remove_weighted_var(float64_t val,
 
 
 def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
-                      int64_t minp, int ddof):
+                      int64_t minp, unsigned int ddof):
     """
     Calculates weighted rolling variance using West's online algorithm
 

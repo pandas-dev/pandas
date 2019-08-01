@@ -5,7 +5,7 @@ similar to how we have a Groupby object.
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
-from typing import Callable, List, Optional, Set, Tuple, Union
+from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 import warnings
 
 import numpy as np
@@ -173,7 +173,7 @@ class _Window(PandasObject, SelectionMixin):
     def _dir_additions(self):
         return self.obj._dir_additions()
 
-    def _get_kwargs(self, **kwargs) -> Tuple[dict, dict]:
+    def _get_kwargs(self, **kwargs) -> Tuple[Dict, Dict]:
         """
         Separate kwargs for rolling and window functions.
 
@@ -920,7 +920,7 @@ class Window(_Window):
         else:
             raise ValueError("Invalid window {0}".format(window))
 
-    def _get_kwargs(self, **kwargs) -> Tuple[dict, dict]:
+    def _get_kwargs(self, **kwargs) -> Tuple[Dict, Dict]:
         """
         Validate arguments for the window function, then separate
         them from arguments of rolling function.
