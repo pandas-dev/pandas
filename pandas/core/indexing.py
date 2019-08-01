@@ -1704,6 +1704,11 @@ class _LocIndexer(_LocationIndexer):
             if isinstance(ax, MultiIndex):
                 return False
 
+            if isinstance(k, str) and ax.is_all_dates:
+                # partial string indexing, df.loc['2000', 'A']
+                # should not be considered scalar
+                return False
+
             if not ax.is_unique:
                 return False
 
