@@ -179,11 +179,14 @@ class TestDatetimeArray:
         a[0] = pd.Timestamp("2000", tz="US/Central")
         assert a.freq is None
 
-    @pytest.mark.parametrize("obj", [
-        pd.Timestamp.now(),
-        pd.Timestamp.now().to_datetime64(),
-        pd.Timestamp.now().to_pydatetime(),
-    ])
+    @pytest.mark.parametrize(
+        "obj",
+        [
+            pd.Timestamp.now(),
+            pd.Timestamp.now().to_datetime64(),
+            pd.Timestamp.now().to_pydatetime(),
+        ],
+    )
     def test_setitem_objects(self, obj):
         # make sure we accept datetime64 and datetime in addition to Timestamp
         dti = pd.date_range("2000", periods=2, freq="D")
