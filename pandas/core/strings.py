@@ -1957,8 +1957,11 @@ class StringMethods(NoNewAttributesMixin):
         values = getattr(data, "values", data)  # Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
 
-        # missing values obfuscate type inference -> skip
-        inferred_dtype = lib.infer_dtype(values, skipna=True)
+        try:
+            inferred_dtype = lib.infer_dtype(values, skipna=True)
+        except ValueError:
+            # GH#27571 mostly occurs with ExtensionArray
+            inferred_dtype = None
 
         if inferred_dtype not in allowed_types:
             raise AttributeError("Can only use .str accessor with string " "values!")
