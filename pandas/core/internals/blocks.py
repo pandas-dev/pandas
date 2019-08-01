@@ -2230,7 +2230,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if tipo is not None:
             if self.is_datetimetz:
                 # require exact match, since non-nano does not exist
-                return is_dtype_equal(tipo, self.dtype)
+                return is_dtype_equal(tipo, self.dtype) or is_valid_nat_for_dtype(
+                    element, self.dtype
+                )
 
             # GH#27419 if we get a non-nano datetime64 object
             return is_datetime64_dtype(tipo)
@@ -2500,26 +2502,28 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # We support filling a DatetimeTZ with a `value` whose timezone
         # is different by coercing to object.
-        try:
+        if self._can_hold_element(value):
             return super().fillna(value, limit, inplace, downcast)
-        except (ValueError, TypeError):
-            # different timezones, or a non-tz
-            return self.astype(object).fillna(
-                value, limit=limit, inplace=inplace, downcast=downcast
-            )
+
+        # different timezones, or a non-tz
+        return self.astype(object).fillna(
+            value, limit=limit, inplace=inplace, downcast=downcast
+        )
 
     def setitem(self, indexer, value):
         # https://github.com/pandas-dev/pandas/issues/24020
         # Need a dedicated setitem until #24020 (type promotion in setitem
         # for extension arrays) is designed and implemented.
-        try:
+        if self._can_hold_element(value) or (
+            isinstance(indexer, np.ndarray) and indexer.size == 0
+        ):
             return super().setitem(indexer, value)
-        except (ValueError, TypeError):
-            obj_vals = self.values.astype(object)
-            newb = make_block(
-                obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
-            )
-            return newb.setitem(indexer, value)
+
+        obj_vals = self.values.astype(object)
+        newb = make_block(
+            obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
+        )
+        return newb.setitem(indexer, value)
 
     def equals(self, other):
         # override for significant performance improvement
