@@ -6640,7 +6640,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 for k, v in items:
                     keys, values = list(zip(*v.items())) or ([], [])
-                    if set(keys) & set(values):
+                    # add another check to avoid boolean being regarded
+                    # as binary in python set
+                    if set(keys) & set(values) and set(map(str, keys)) & set(
+                        map(str, values)
+                    ):
                         raise ValueError(
                             "Replacement not allowed with "
                             "overlapping keys and values"

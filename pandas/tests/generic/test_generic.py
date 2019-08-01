@@ -948,3 +948,15 @@ class TestNDFrame:
         df = DataFrame([1])
         with tm.assert_produces_warning(FutureWarning):
             df.get_dtype_counts()
+
+    def test_boolean_in_replace(self):
+        # GH 27660
+        df = DataFrame({"col": [False, True, 0, 1]})
+
+        result = df.replace({"col": {False: 0, True: 1}})
+        expected = DataFrame({"col": [0, 1, 0, 1]})
+        assert_frame_equal(result, expected)
+
+        msg = "Replacement not allowed with overlapping keys and values"
+        with pytest.raises(ValueError, match=msg):
+            df.replace({"col": {0: 1, 1: "a"}})
