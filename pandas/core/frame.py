@@ -7218,12 +7218,12 @@ class DataFrame(NDFrame):
             if can_concat:
                 if how == "left":
                     res = concat(
-                        frames, axis=1, join="outer", verify_integrity=True, sort=sort
+                        frames, axis=1, join="outer", verify_integrity=True, #sort=sort
                     )
                     return res.reindex(self.index, copy=False)
                 else:
                     return concat(
-                        frames, axis=1, join=how, verify_integrity=True, sort=sort
+                        frames, axis=1, join=how, verify_integrity=True,# sort=sort
                     )
 
             joined = frames[0]
