@@ -121,7 +121,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
             return
         except TypeError:
             warnings.warn(
-                "to_clipboard in excel mode requires a single " "character separator."
+                "to_clipboard in excel mode requires a single character separator."
             )
     elif sep is not None:
         warnings.warn("to_clipboard with excel=False ignores the sep argument")

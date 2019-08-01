@@ -340,4 +340,4 @@ class CombinedDatetimelikeProperties(
         except Exception:
             pass  # we raise an attribute error anyway
 
-        raise AttributeError("Can only use .dt accessor with datetimelike " "values")
+        raise AttributeError("Can only use .dt accessor with datetimelike values")

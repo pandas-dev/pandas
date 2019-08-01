@@ -121,7 +121,7 @@ class SparseDtype(ExtensionDtype):
 
         if not is_scalar(fill_value):
             raise ValueError(
-                "fill_value must be a scalar. Got {} " "instead".format(fill_value)
+                "fill_value must be a scalar. Got {} instead".format(fill_value)
             )
         self._dtype = dtype
         self._fill_value = fill_value
@@ -1139,7 +1139,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def take(self, indices, allow_fill=False, fill_value=None):
         if is_scalar(indices):
             raise ValueError(
-                "'indices' must be an array, not a " "scalar '{}'.".format(indices)
+                "'indices' must be an array, not a scalar '{}'.".format(indices)
             )
         indices = np.asarray(indices, dtype=np.int32)
 
@@ -1176,7 +1176,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 taken.fill(fill_value)
                 return taken
             else:
-                raise IndexError("cannot do a non-empty take from an empty " "axes.")
+                raise IndexError("cannot do a non-empty take from an empty axes.")
 
         sp_indexer = self.sp_index.lookup_array(indices)
 
@@ -1226,7 +1226,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         if (indices.max() >= n) or (indices.min() < -n):
             if n == 0:
-                raise IndexError("cannot do a non-empty take from an " "empty axes.")
+                raise IndexError("cannot do a non-empty take from an empty axes.")
             else:
                 raise IndexError("out of bounds value in 'indices'.")
 
@@ -2102,7 +2102,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
 
-    .. versionadded :: 0.25.0
+    .. versionadded:: 0.25.0
     """
 
     def _validate(self, data):
