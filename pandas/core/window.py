@@ -920,7 +920,7 @@ class Window(_Window):
         else:
             raise ValueError("Invalid window {0}".format(window))
 
-    def _get_kwargs(self, **kwargs) -> Tuple[Dict, Dict]:
+    def _get_kwargs(self, **kwargs) -> Tuple[Dict, Dict[str, Union[str, Tuple]]]:
         """
         Validate arguments for the window function, then separate
         them from arguments of rolling function.
