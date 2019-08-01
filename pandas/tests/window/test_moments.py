@@ -173,6 +173,24 @@ class TestMoments(Base):
         rs = DataFrame(vals).rolling(5, win_type="boxcar", center=True).std()
         tm.assert_frame_equal(DataFrame(xp), rs)
 
+        # var
+        xp = np.array(
+            [
+                [np.nan, np.nan],
+                [np.nan, np.nan],
+                [14.36187, 16.55117],
+                [11.75963, 10.48083],
+                [12.88285, 10.37362],
+                [11.59535, 5.66752],
+                [10.77047, 5.61628],
+                [13.51920, 3.24648],
+                [np.nan, np.nan],
+                [np.nan, np.nan],
+            ]
+        )
+        rs = DataFrame(vals).rolling(5, win_type="boxcar", center=True).var()
+        tm.assert_frame_equal(DataFrame(xp), rs)
+
         # sum
         xp = np.array(
             [
