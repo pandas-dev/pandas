@@ -25,6 +25,7 @@ Other enhancements
 Bug fixes
 ~~~~~~~~~
 
+- Bug in :meth:`DataFrame.read_excel` with `engine='ods'` when `sheet_name` argument references a non-existent sheet (:issue:`27676`)
 
 Categorical
 ^^^^^^^^^^^
