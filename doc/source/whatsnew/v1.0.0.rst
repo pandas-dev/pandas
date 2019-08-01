@@ -166,7 +166,7 @@ Groupby/resample/rolling
 
 -
 -
-- Bug in :meth:`groupby` does not offer implicit selection by column names when ``axis`` set to 1 (:issue:`27614)
+- Bug in :meth:`DataFrame.groupby` not offering selection by column name when ``axis=1`` (:issue:`27614)
 
 Reshaping
 ^^^^^^^^^
