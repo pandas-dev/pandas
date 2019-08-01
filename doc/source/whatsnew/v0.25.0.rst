@@ -1267,4 +1267,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: 0.24.x..HEAD
+.. contributors:: v0.24.x..HEAD
