@@ -5,8 +5,8 @@ Roadmap
 =======
 
 This page provides an overview of the major themes in pandas' development. Each of
-these items requires a relatively large amount of effort to implement. Implementation
-may be expedited with dedicated funding or interest from contributors.
+these items requires a relatively large amount of effort to implement. These may
+be achieved more quickly with dedicated funding or interest from contributors.
 
 An item being on the roadmap does not mean that it will *necessarily* happen, even
 with unlimited funding. During the implementation period we may discover issues
@@ -14,7 +14,8 @@ preventing the adoption of the feature.
 
 Additionally, an item *not* being on the roadmap does not exclude it from inclusion
 in pandas. The roadmap is intended for larger, fundamental changes to the project that
-are likely to take months or years of developer time.
+are likely to take months or years of developer time. Smaller-scoped items will continue
+to be tracked on our `issue tracker <https://github.com/pandas-dev/pandas/issues>`__.
 
 See :ref:`roadmap.evolution` for proposing changes to this document.
 
