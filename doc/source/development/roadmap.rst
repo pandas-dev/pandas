@@ -185,7 +185,7 @@ The proposal should include
 5. API Change: Any API changes that may result from the proposal.
 
 That proposal may then be submitted as a GitHub issue, where the pandas maintainers
-can review and comment on the design. The `pandas mailing list<https://mail.python.org/mailman/listinfo/pandas-dev>`_
+can review and comment on the design. The `pandas mailing list <https://mail.python.org/mailman/listinfo/pandas-dev>`__
 should be notified of the proposal.
 
 When there's agreement that an implementation
