@@ -596,6 +596,21 @@ class TestTypeInference:
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "integer"
 
+    @pytest.mark.parametrize(
+        "arr, skipna",
+        [
+            (np.array([1, 2, np.nan, np.nan, 3], dtype="O"), False),
+            (np.array([1, 2, np.nan, np.nan, 3], dtype="O"), True),
+            (np.array([1, 2, 3, np.int64(4), np.int32(5), np.nan], dtype="O"), False),
+            (np.array([1, 2, 3, np.int64(4), np.int32(5), np.nan], dtype="O"), True),
+        ],
+    )
+    def test_integer_na(self, arr, skipna):
+        # GH 27392
+        result = lib.infer_dtype(arr, skipna=skipna)
+        expected = "integer" if skipna else "integer-na"
+        assert result == expected
+
     def test_deprecation(self):
         # GH 24050
         arr = np.array([1, 2, 3], dtype=object)
@@ -1152,6 +1167,17 @@ class TestTypeInference:
 
         result = lib.infer_dtype(Series(arr), skipna=True)
         assert result == "categorical"
+
+    def test_interval(self):
+        idx = pd.IntervalIndex.from_breaks(range(5), closed="both")
+        inferred = lib.infer_dtype(idx, skipna=False)
+        assert inferred == "interval"
+
+        inferred = lib.infer_dtype(idx._data, skipna=False)
+        assert inferred == "interval"
+
+        inferred = lib.infer_dtype(pd.Series(idx), skipna=False)
+        assert inferred == "interval"
 
 
 class TestNumberScalar:

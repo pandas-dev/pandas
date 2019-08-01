@@ -1058,7 +1058,7 @@ class IntervalIndex(IntervalMixin, Index):
         if isinstance(item, Interval):
             if item.closed != self.closed:
                 raise ValueError(
-                    "inserted item must be closed on the same " "side as the index"
+                    "inserted item must be closed on the same side as the index"
                 )
             left_insert = item.left
             right_insert = item.right
@@ -1067,7 +1067,7 @@ class IntervalIndex(IntervalMixin, Index):
             left_insert = right_insert = item
         else:
             raise ValueError(
-                "can only insert Interval objects and NA into " "an IntervalIndex"
+                "can only insert Interval objects and NA into an IntervalIndex"
             )
 
         new_left = self.left.insert(loc, left_insert)
