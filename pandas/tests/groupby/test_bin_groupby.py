@@ -126,27 +126,29 @@ class TestReducer:
         from pandas.core.series import Series
 
         arr = np.random.randn(100, 4)
-        result = reduction.reduce(arr, np.sum, labels=Index(np.arange(4)))
+        result = reduction.do_reduce(arr, np.sum, labels=Index(np.arange(4)))
         expected = arr.sum(0)
         assert_almost_equal(result, expected)
 
-        result = reduction.reduce(arr, np.sum, axis=1, labels=Index(np.arange(100)))
+        result = reduction.do_reduce(arr, np.sum, axis=1, labels=Index(np.arange(100)))
         expected = arr.sum(1)
         assert_almost_equal(result, expected)
 
         dummy = Series(0.0, index=np.arange(100))
-        result = reduction.reduce(arr, np.sum, dummy=dummy, labels=Index(np.arange(4)))
+        result = reduction.do_reduce(
+            arr, np.sum, dummy=dummy, labels=Index(np.arange(4))
+        )
         expected = arr.sum(0)
         assert_almost_equal(result, expected)
 
         dummy = Series(0.0, index=np.arange(4))
-        result = reduction.reduce(
+        result = reduction.do_reduce(
             arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
         )
         expected = arr.sum(1)
         assert_almost_equal(result, expected)
 
-        result = reduction.reduce(
+        result = reduction.do_reduce(
             arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
         )
         assert_almost_equal(result, expected)

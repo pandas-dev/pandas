@@ -628,7 +628,7 @@ cdef class BlockSlider:
             arr.shape[1] = 0
 
 
-def reduce(arr, f, axis=0, dummy=None, labels=None):
+def do_reduce(arr, f, axis=0, dummy=None, labels=None):
     """
 
     Parameters

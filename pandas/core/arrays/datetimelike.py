@@ -57,20 +57,9 @@ from .base import ExtensionArray, ExtensionOpsMixin
 class AttributesMixin:
     _data = None  # type: np.ndarray
 
-    @property
-    def _attributes(self):
-        # Inheriting subclass should implement _attributes as a list of strings
-        raise AbstractMethodError(self)
-
     @classmethod
     def _simple_new(cls, values, **kwargs):
         raise AbstractMethodError(cls)
-
-    def _get_attributes_dict(self):
-        """
-        return an attributes dict for my class
-        """
-        return {k: getattr(self, k, None) for k in self._attributes}
 
     @property
     def _scalar_type(self) -> Type[DatetimeLikeScalar]:
@@ -224,8 +213,8 @@ class TimelikeOps:
 
             .. versionadded:: 0.24.0
 
-        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
-default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta,
+            default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
