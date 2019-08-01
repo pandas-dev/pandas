@@ -1758,15 +1758,6 @@ class Categorical(ExtensionArray, PandasObject):
         return np.array(self)
 
     def view(self, dtype=None):
-        """
-        Return a view of myself.
-
-        For internal compatibility with numpy arrays.
-
-        Returns
-        -------
-        view : Categorical
-        """
         if dtype is not None:
             raise NotImplementedError(dtype)
         return self._constructor(values=self._codes, dtype=self.dtype, fastpath=True)

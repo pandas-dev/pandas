@@ -867,6 +867,11 @@ class ExtensionArray:
         """
         Return a view on the array.
 
+        Parameters
+        ----------
+        dtype : str, np.dtype, or ExtensionDtype, optional
+            Default None
+
         Returns
         -------
         ExtensionArray
