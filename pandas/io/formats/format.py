@@ -5,8 +5,10 @@ and latex files. This module also applies to display formatting.
 
 import codecs
 from contextlib import contextmanager
+import decimal
 from functools import partial
 from io import StringIO
+import math
 import re
 from shutil import get_terminal_size
 from typing import (
@@ -1799,9 +1801,6 @@ class EngFormatter:
 
         @return: engineering formatted string
         """
-        import decimal
-        import math
-
         dnum = decimal.Decimal(str(num))
 
         if decimal.Decimal.is_nan(dnum):

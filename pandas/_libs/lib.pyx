@@ -925,6 +925,7 @@ _TYPE_MAP = {
     'M': 'datetime64',
     'timedelta64[ns]': 'timedelta64',
     'm': 'timedelta64',
+    'interval': 'interval',
 }
 
 # types only exist on certain platform

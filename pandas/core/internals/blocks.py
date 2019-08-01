@@ -760,7 +760,7 @@ class Block(PandasObject):
         values[mask] = na_rep
         return values
 
-    # block actions ####
+    # block actions #
     def copy(self, deep=True):
         """ copy constructor """
         values = self.values
@@ -1220,7 +1220,6 @@ class Block(PandasObject):
             fill_value=fill_value,
             dtype=self.dtype,
         )
-        values = self._try_coerce_result(values)
 
         blocks = [self.make_block_same_class(values, ndim=self.ndim)]
         return self._maybe_downcast(blocks, downcast)
@@ -1539,16 +1538,14 @@ class Block(PandasObject):
             ).reshape(len(values), len(qs))
         else:
             # asarray needed for Sparse, see GH#24600
-            # Note: we use self.values below instead of values because the
-            #  `asi8` conversion above will behave differently under `isna`
-            mask = np.asarray(isna(self.values))
+            mask = np.asarray(isna(values))
             result = nanpercentile(
                 values,
                 np.array(qs) * 100,
                 axis=axis,
                 na_value=self.fill_value,
                 mask=mask,
-                ndim=self.ndim,
+                ndim=values.ndim,
                 interpolation=interpolation,
             )
 
@@ -2277,13 +2274,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             raise TypeError(other)
 
         return other
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray) and result.dtype.kind == "i":
-            # needed for _interpolate_with_ffill
-            result = result.view("M8[ns]")
-        return result
 
     def to_native_types(
         self, slicer=None, na_rep=None, date_format=None, quoting=None, **kwargs
