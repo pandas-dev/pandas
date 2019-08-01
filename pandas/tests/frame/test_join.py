@@ -24,14 +24,6 @@ def right():
     return DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
 
 
-@pytest.fixture(params=[True, False, None])
-def sort_kw(request):
-    """Boolean sort keyword for join.
-    Includes the default of None.
-    """
-    return request.param
-
-
 @pytest.mark.parametrize(
     "how, sort, expected",
     [
@@ -203,6 +195,7 @@ def test_join_left_sequence_non_unique_index():
     tm.assert_frame_equal(joined, expected)
 
 
+@pytest.mark.parametrize("sort_kw", [True, False, None])
 def test_suppress_future_warning_with_sort_kw(sort_kw):
     a = DataFrame({"col1": [1, 2]}, index=["c", "a"])
 
