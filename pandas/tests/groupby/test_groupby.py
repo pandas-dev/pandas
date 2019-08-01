@@ -1862,12 +1862,12 @@ def test_groupby_groups_in_BaseGrouper():
     assert result.groups == expected.groups
 
 
-@pytest.mark.parametrize('group_name', [
-    'x', ['x']
-])
+@pytest.mark.parametrize("group_name", ["x", ["x"]])
 def test_groupby_axis_1(group_name):
     # GH 27614
-    df = pd.DataFrame(np.arange(12).reshape(3, 4), index=[0, 1, 0], columns=[10, 20, 10, 20])
+    df = pd.DataFrame(
+        np.arange(12).reshape(3, 4), index=[0, 1, 0], columns=[10, 20, 10, 20]
+    )
     df.index.name = "y"
     df.columns.name = "x"
 
