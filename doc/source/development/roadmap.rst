@@ -30,7 +30,7 @@ These problems are especially pronounced for nested data.
 
 We'd like to improve the handling of extension arrays throughout the library,
 making their behavior more consistent with the handling of NumPy arrays. We'll do this
-by cleaning up pandas' internals and adding new methods do the extension array interface.
+by cleaning up pandas' internals and adding new methods to the extension array interface.
 
 String data type
 ----------------
