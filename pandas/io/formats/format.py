@@ -2,9 +2,10 @@
 Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
-
+import decimal
 from functools import partial
 from io import StringIO
+import math
 import re
 from shutil import get_terminal_size
 from typing import (
@@ -862,7 +863,7 @@ class DataFrameFormatter(TableFormatter):
             with codecs.open(self.buf, "w", encoding=encoding) as f:
                 latex_renderer.write_result(f)
         else:
-            raise TypeError("buf is not a file name and it has no write " "method")
+            raise TypeError("buf is not a file name and it has no write method")
 
     def _format_col(self, i: int) -> List[str]:
         frame = self.tr_frame
@@ -907,7 +908,7 @@ class DataFrameFormatter(TableFormatter):
             with open(self.buf, "w") as f:
                 buffer_put_lines(f, html)
         else:
-            raise TypeError("buf is not a file name and it has no write " " method")
+            raise TypeError("buf is not a file name and it has no write  method")
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
         from pandas.core.index import _sparsify
@@ -1782,9 +1783,6 @@ class EngFormatter:
 
         @return: engineering formatted string
         """
-        import decimal
-        import math
-
         dnum = decimal.Decimal(str(num))
 
         if decimal.Decimal.is_nan(dnum):
