@@ -78,7 +78,7 @@ Strings
 
 Interval
 ^^^^^^^^
-
+- Bug in :class:`IntervalIndex` where `dir(obj)` would raise ``ValueError`` (:issue:`27571`)
 -
 -
 -

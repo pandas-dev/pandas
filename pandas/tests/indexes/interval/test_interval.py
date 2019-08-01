@@ -1095,3 +1095,10 @@ class TestIntervalIndex(Base):
         )
         year_2017_index = pd.IntervalIndex([year_2017])
         assert not year_2017_index.is_all_dates
+
+
+def test_dir():
+    # GH#27571 dir(interval_index) should not raise
+    index = IntervalIndex.from_arrays([0, 1], [1, 2])
+    result = dir(index)
+    assert "str" not in result
