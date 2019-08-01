@@ -975,8 +975,6 @@ class BlockManager(PandasObject):
         """
         block = self.blocks[self._blknos[i]]
         values = block.iget(self._blklocs[i])
-        if values.ndim != 1:
-            return values
 
         # shortcut for select a single-dim from a 2-dim BM
         return SingleBlockManager(

@@ -53,7 +53,7 @@ def to_feather(df, path):
 
     if df.index.name is not None:
         raise ValueError(
-            "feather does not serialize index meta-data on a " "default index"
+            "feather does not serialize index meta-data on a default index"
         )
 
     # validate columns

@@ -1206,7 +1206,7 @@ class GroupBy(_GroupBy):
             )
         except GroupByError:
             raise
-        except Exception:  # pragma: no cover
+        except Exception:
             with _group_selection_context(self):
                 f = lambda x: x.mean(axis=self.axis, **kwargs)
                 return self._python_agg_general(f)
@@ -1232,7 +1232,7 @@ class GroupBy(_GroupBy):
             )
         except GroupByError:
             raise
-        except Exception:  # pragma: no cover
+        except Exception:
 
             def f(x):
                 if isinstance(x, np.ndarray):
@@ -2470,7 +2470,7 @@ def groupby(obj, by, **kwds):
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         klass = DataFrameGroupBy
-    else:  # pragma: no cover
+    else:
         raise TypeError("invalid type: {}".format(obj))
 
     return klass(obj, by, **kwds)
