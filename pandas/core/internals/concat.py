@@ -183,7 +183,7 @@ class JoinUnit:
             fill_value = upcasted_na
 
             if self.is_na:
-                if self.block.is_object:
+                if getattr(self.block, "is_object", False):
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
@@ -191,16 +191,18 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if self.block.is_datetimetz or is_datetime64tz_dtype(empty_dtype):
+                if getattr(self.block, "is_datetimetz", False) or is_datetime64tz_dtype(
+                    empty_dtype
+                ):
                     if self.block is None:
                         array = empty_dtype.construct_array_type()
                         return array(
                             np.full(self.shape[1], fill_value.value), dtype=empty_dtype
                         )
                     pass
-                elif self.block.is_categorical:
+                elif getattr(self.block, "is_categorical", False):
                     pass
-                elif self.block.is_extension:
+                elif getattr(self.block, "is_extension", False):
                     pass
                 else:
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)

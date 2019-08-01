@@ -343,7 +343,7 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     def __init__(
         self,
-        obj,
+        obj: NDFrame,
         keys=None,
         axis=0,
         level=None,
@@ -360,8 +360,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         self._selection = selection
 
-        if isinstance(obj, NDFrame):
-            obj._consolidate_inplace()
+        assert isinstance(obj, NDFrame), type(obj)
+        obj._consolidate_inplace()
 
         self.level = level
 
