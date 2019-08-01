@@ -485,6 +485,12 @@ class TestReaders:
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
+    def test_nonexistent_sheetname_raises():
+        # Specifying a non-existent sheet_name parameter should throw an error
+        # with the sheet name.
+        with pytest.raises(ValueError, match="sheet xyz not found"):
+            pd.read_excel("blank" + read_ext, sheet_name="xyz")
+
     def test_excel_read_buffer(self, read_ext):
 
         pth = "test1" + read_ext

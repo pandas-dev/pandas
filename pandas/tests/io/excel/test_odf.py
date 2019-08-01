@@ -23,13 +23,6 @@ def test_read_invalid_types_raises():
         pd.read_excel("invalid_value_type.ods")
 
 
-def test_nonexistent_sheetname_raises():
-    # Specifying a non-existent sheet_name parameter should throw an error
-    # with the sheet name.
-    with pytest.raises(ValueError, match="sheet xyz not found"):
-        pd.read_excel("blank.ods", sheet_name="xyz")
-
-
 def test_read_writer_table():
     # Also test reading tables from an text OpenDocument file
     # (.odt)
