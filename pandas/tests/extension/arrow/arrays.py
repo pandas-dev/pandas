@@ -78,6 +78,9 @@ class ArrowExtensionArray(ExtensionArray):
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return cls.from_scalars(scalars)
 
+    def __repr__(self):
+        return "{cls}({data})".format(cls=type(self).__name__, data=repr(self._data))
+
     def __getitem__(self, item):
         if pd.api.types.is_scalar(item):
             return self._data.to_pandas()[item]
@@ -162,9 +165,6 @@ class ArrowBoolArray(ArrowExtensionArray):
         self._data = values
         self._dtype = ArrowBoolDtype()
 
-    def __repr__(self):
-        return "ArrowBoolArray({})".format(repr(self._data))
-
 
 class ArrowStringArray(ArrowExtensionArray):
     def __init__(self, values):
@@ -174,6 +174,3 @@ class ArrowStringArray(ArrowExtensionArray):
         assert values.type == pa.string()
         self._data = values
         self._dtype = ArrowStringDtype()
-
-    def __repr__(self):
-        return "ArrowStringArray({})".format(repr(self._data))
