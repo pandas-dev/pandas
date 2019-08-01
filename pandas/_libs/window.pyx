@@ -1789,6 +1789,12 @@ cdef inline void add_weighted_var(float64_t val,
                                   float64_t *sum_w,
                                   float64_t *mean,
                                   float64_t *nobs) nogil:
+    """
+    Update mean (mean), sum of weights (sum_w) and sum of weighted
+    squared differences (t) to include value (val) and weight (w)
+    pair in variance calculation.
+    """
+
     cdef:
         float64_t temp, q, r
 
@@ -1812,6 +1818,12 @@ cdef inline void remove_weighted_var(float64_t val,
                                      float64_t *sum_w,
                                      float64_t *mean,
                                      float64_t *nobs) nogil:
+    """
+    Update mean (mean), sum of weights (sum_w) and sum of weighted
+    squared differences (t) to remove value (val) and weight (w)
+    pair from variance calculation.
+    """
+
     cdef:
         float64_t temp, q, r
 
@@ -1836,10 +1848,11 @@ cdef inline void remove_weighted_var(float64_t val,
 def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
                       int64_t minp, unsigned int ddof):
     """
-    Calculates weighted rolling variance using West's online algorithm
+    Calculates weighted rolling variance using West's online algorithm.
 
     Paper: https://dl.acm.org/citation.cfm?id=359153
     """
+
     cdef:
         float64_t t = 0, sum_w = 0, mean = 0, nobs = 0
         float64_t val, pre_val, w, pre_w
