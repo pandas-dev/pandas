@@ -133,10 +133,7 @@ Installing a C compiler
 Pandas uses C extensions (mostly written using Cython) to speed up certain
 operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
-platform you're using. Follow the `CPython contributing guide
-<https://devguide.python.org/setup/#compile-and-build>`_ for getting a
-compiler installed. You don't need to do any of the ``./configure`` or ``make``
-steps; you only need to install the compiler.
+platform you're using.
 
 For Windows developers, when using Python 3.5 and later, it is sufficient to
 install `Visual Studio 2017 <https://visualstudio.com/>`_ with the
