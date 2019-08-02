@@ -491,9 +491,7 @@ class TableFormatter:
         raise AbstractMethodError(self)
 
     def get_result(
-        self,
-        buf: Optional[FilePathOrBuffer] = None,
-        encoding: Optional[str] = None,
+        self, buf: Optional[FilePathOrBuffer] = None, encoding: Optional[str] = None
     ) -> Optional[str]:
         with self.get_buffer(buf, encoding=encoding) as f:
             self.write_result(buf=f)
