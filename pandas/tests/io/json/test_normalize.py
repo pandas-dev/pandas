@@ -304,13 +304,10 @@ class TestJSONNormalize:
             "state": ["Florida"] * 21 + ["Ohio"] * 14,
             "shortname": ["FL"] * 21 + ["OH"] * 14,
             "info.governor": ["Rick Scott"] * 21 + ["John Kasich"] * 14,
-            "population": [12345] * 4
-            + [40000] * 7
-            + [60000] * 10
-            + [1234] * 6
-            + [1337] * 8,
         }
-        expected = DataFrame(ex_data, columns=result.columns)
+        expected = DataFrame(
+            ex_data, columns=[0, "state", "shortname", "info.governor"]
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_meta_name_conflict(self):

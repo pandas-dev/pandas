@@ -288,6 +288,8 @@ def json_normalize(
         if len(path) > 1:
             for obj in data:
                 for val, key in zip(meta, meta_keys):
+                    # Pull value for all the keys in case meta path and
+                    # record path are on two branches
                     seen_meta[key] = _pull_field(obj, val[0])
 
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
@@ -304,15 +306,24 @@ def json_normalize(
                 # For repeating the metadata later
                 lengths.append(len(recs))
                 for val, key in zip(meta, meta_keys):
+                    # Extract the value of the key when the level
+                    # is at the meta path end
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                         meta_vals[key].append(meta_val)
+                    # Extract the value of the key from seen_meta when
+                    # meta path and record path are on two branches
                     elif seen_meta:
                         meta_val = seen_meta[key]
-                        if isinstance(meta_val, list):
-                            meta_vals[key].append(meta_val[ind][val[level]])
-                        else:
-                            meta_vals[key].append(meta_val[val[level]])
+                        meta_vals[key] += [
+                            # The list case
+                            meta_val[ind][val[level]]
+                            if isinstance(meta_val, list)
+                            # The dict case
+                            else meta_val[val[level]]
+                        ]
+                    # At top level, seen_meta is empty, pull from data
+                    # directly and raise KeyError if not found
                     else:
                         try:
                             meta_val = _pull_field(obj, val[level:])
