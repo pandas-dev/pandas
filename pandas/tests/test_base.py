@@ -418,7 +418,7 @@ class TestIndexOps(Ops):
                     values = o._shallow_copy(v)
                 else:
                     o = o.copy()
-                    o[0:2] = iNaT
+                    o[0:2] = pd.NaT
                     values = o._values
 
             elif needs_i8_conversion(o):
