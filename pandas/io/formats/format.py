@@ -469,7 +469,7 @@ class TableFormatter:
 
     @contextmanager
     def get_buffer(
-        self, buf: Optional[FilePathOrBuffer[str]], encoding: Optional[str] = None
+        self, buf: Optional[FilePathOrBuffer], encoding: Optional[str] = None
     ):
         if buf is not None:
             buf = _stringify_path(buf)
@@ -492,7 +492,7 @@ class TableFormatter:
 
     def get_result(
         self,
-        buf: Optional[FilePathOrBuffer[str]] = None,
+        buf: Optional[FilePathOrBuffer] = None,
         encoding: Optional[str] = None,
     ) -> Optional[str]:
         with self.get_buffer(buf, encoding=encoding) as f:
@@ -861,12 +861,12 @@ class DataFrameFormatter(TableFormatter):
             st = ed
         return "\n\n".join(str_lst)
 
-    def to_string(self, buf: Optional[FilePathOrBuffer[str]] = None) -> Optional[str]:
+    def to_string(self, buf: Optional[FilePathOrBuffer] = None) -> Optional[str]:
         return self.get_result(buf=buf)
 
     def to_latex(
         self,
-        buf: Optional[FilePathOrBuffer[str]] = None,
+        buf: Optional[FilePathOrBuffer] = None,
         column_format: Optional[str] = None,
         longtable: bool = False,
         encoding: Optional[str] = None,
@@ -904,7 +904,7 @@ class DataFrameFormatter(TableFormatter):
 
     def to_html(
         self,
-        buf: Optional[FilePathOrBuffer[str]] = None,
+        buf: Optional[FilePathOrBuffer] = None,
         classes: Optional[Union[str, List, Tuple]] = None,
         notebook: bool = False,
         border: Optional[int] = None,

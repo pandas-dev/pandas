@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, AnyStr, Optional, TypeVar, Union
+from typing import IO, TYPE_CHECKING, Optional, TypeVar, Union
 
 import numpy as np
 
@@ -22,7 +22,7 @@ AnyArrayLike = TypeVar(
 ArrayLike = TypeVar("ArrayLike", "ExtensionArray", np.ndarray)
 DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timedelta")
 Dtype = Union[str, np.dtype, "ExtensionDtype"]
-FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
+FilePathOrBuffer = Union[str, Path, IO]
 
 FrameOrSeries = TypeVar("FrameOrSeries", "Series", "DataFrame")
 Scalar = Union[str, int, float]
