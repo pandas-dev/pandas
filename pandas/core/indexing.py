@@ -1704,7 +1704,7 @@ class _LocIndexer(_LocationIndexer):
             if isinstance(ax, MultiIndex):
                 return False
 
-            if isinstance(k, str) and ax.is_all_dates:
+            if isinstance(k, str) and ax._supports_partial_string_indexing:
                 # partial string indexing, df.loc['2000', 'A']
                 # should not be considered scalar
                 return False
@@ -1724,7 +1724,10 @@ class _LocIndexer(_LocationIndexer):
         """Translate any partial string timestamp matches in key, returning the
         new key (GH 10331)"""
         if isinstance(labels, MultiIndex):
-            if isinstance(key, str) and labels.levels[0].is_all_dates:
+            if (
+                isinstance(key, str)
+                and labels.levels[0]._supports_partial_string_indexing
+            ):
                 # Convert key '2016-01-01' to
                 # ('2016-01-01'[, slice(None, None, None)]+)
                 key = tuple([key] + [slice(None)] * (len(labels.levels) - 1))
@@ -1734,7 +1737,10 @@ class _LocIndexer(_LocationIndexer):
                 # (..., slice('2016-01-01', '2016-01-01', None), ...)
                 new_key = []
                 for i, component in enumerate(key):
-                    if isinstance(component, str) and labels.levels[i].is_all_dates:
+                    if (
+                        isinstance(component, str)
+                        and labels.levels[i]._supports_partial_string_indexing
+                    ):
                         new_key.append(slice(component, component, None))
                     else:
                         new_key.append(component)
@@ -2339,7 +2345,7 @@ def convert_to_index_sliceable(obj, key):
 
         # We might have a datetimelike string that we can translate to a
         # slice here via partial string indexing
-        if idx.is_all_dates:
+        if idx._supports_partial_string_indexing:
             try:
                 return idx._get_string_slice(key)
             except (KeyError, ValueError, NotImplementedError):
