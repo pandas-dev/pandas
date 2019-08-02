@@ -355,7 +355,7 @@ class ExtensionArray:
         """
         Extension Arrays are only allowed to be 1-dimensional.
         """
-        return len(self.shape)
+        return 1
 
     @property
     def nbytes(self) -> int:
@@ -863,7 +863,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def view(self, dtype=None) -> ABCExtensionArray:
+    def view(self, dtype=None) -> Union[ABCExtensionArray, np.ndarray]:
         """
         Return a view on the array.
 
@@ -874,7 +874,7 @@ class ExtensionArray:
 
         Returns
         -------
-        ExtensionArray
+        ExtensionArray or np.ndarray
         """
         # NB:
         # - This must return a *new* object referencing the same data, not self.
