@@ -52,7 +52,7 @@ class TestPivotTable:
     @pytest.mark.xfail(
         not _np_version_under1p17,
         reason="failing occasionally on numpy > 1.17",
-        strict=False,
+        strict=True,
     )
     def test_pivot_table_multi(self):
         res_sparse = pd.pivot_table(
