@@ -437,7 +437,7 @@ class Block(PandasObject):
 
         return self.split_and_operate(mask, f, inplace)
 
-    def split_and_operate(self, mask, f, inplace):
+    def split_and_operate(self, mask, f, inplace: bool):
         """
         split the block per-column, and apply the callable f
         per-column, return a new block for each. Handle
@@ -496,17 +496,15 @@ class Block(PandasObject):
 
         return new_blocks
 
-    def _maybe_downcast(self, blocks, downcast=None):
+    def _maybe_downcast(self, blocks: List["Block"], downcast=None) -> List["Block"]:
 
         # no need to downcast our float
         # unless indicated
-        if downcast is None and self.is_float:
-            return blocks
-        elif downcast is None and (self.is_timedelta or self.is_datetime):
+        if downcast is None and (
+            self.is_float or self.is_timedelta or self.is_datetime
+        ):
             return blocks
 
-        if not isinstance(blocks, list):
-            blocks = [blocks]
         return _extend_blocks([b.downcast(downcast) for b in blocks])
 
     def downcast(self, dtypes=None):
@@ -1351,7 +1349,15 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
+    def where(
+        self,
+        other,
+        cond,
+        align=True,
+        errors="raise",
+        try_cast: bool = False,
+        axis: int = 0,
+    ) -> List["Block"]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1450,7 +1456,7 @@ class Block(PandasObject):
             if try_cast:
                 result = self._try_cast_result(result)
 
-            return self.make_block(result)
+            return [self.make_block(result)]
 
         # might need to separate out blocks
         axis = cond.ndim - 1
@@ -1482,9 +1488,9 @@ class Block(PandasObject):
         new_columns : Index
             All columns of the unstacked BlockManager.
         n_rows : int
-            Only used in ExtensionBlock.unstack
+            Only used in ExtensionBlock._unstack
         fill_value : int
-            Only used in ExtensionBlock.unstack
+            Only used in ExtensionBlock._unstack
 
         Returns
         -------
@@ -1558,7 +1564,7 @@ class Block(PandasObject):
             result = result[..., 0]
             result = lib.item_from_zerodim(result)
 
-        ndim = getattr(result, "ndim", None) or 0
+        ndim = np.ndim(result)
         return make_block(result, placement=np.arange(len(result)), ndim=ndim)
 
     def _replace_coerce(
@@ -1946,7 +1952,15 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             )
         ]
 
-    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
+    def where(
+        self,
+        other,
+        cond,
+        align=True,
+        errors="raise",
+        try_cast: bool = False,
+        axis: int = 0,
+    ) -> List["Block"]:
         if isinstance(other, ABCDataFrame):
             # ExtensionArrays are 1-D, so if we get here then
             # `other` should be a DataFrame with a single column.
@@ -1991,7 +2005,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                 np.where(cond, self.values, other), dtype=dtype
             )
 
-        return self.make_block_same_class(result, placement=self.mgr_locs)
+        return [self.make_block_same_class(result, placement=self.mgr_locs)]
 
     @property
     def _ftype(self):
@@ -2743,7 +2757,7 @@ class ObjectBlock(Block):
 
         return blocks
 
-    def _maybe_downcast(self, blocks, downcast=None):
+    def _maybe_downcast(self, blocks: List["Block"], downcast=None) -> List["Block"]:
 
         if downcast is not None:
             return blocks
@@ -3078,7 +3092,15 @@ class CategoricalBlock(ExtensionBlock):
             values, placement=placement or slice(0, len(values), 1), ndim=self.ndim
         )
 
-    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
+    def where(
+        self,
+        other,
+        cond,
+        align=True,
+        errors="raise",
+        try_cast: bool = False,
+        axis: int = 0,
+    ) -> List["Block"]:
         # TODO(CategoricalBlock.where):
         # This can all be deleted in favor of ExtensionBlock.where once
         # we enforce the deprecation.

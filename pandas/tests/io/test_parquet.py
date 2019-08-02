@@ -33,6 +33,10 @@ try:
 except ImportError:
     _HAVE_FASTPARQUET = False
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
+)
+
 
 # setup engines & skips
 @pytest.fixture(
