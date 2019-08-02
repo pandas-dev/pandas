@@ -182,7 +182,7 @@ Sparse
 
 Build Changes
 ^^^^^^^^^^^^^
-- Fixed pyqt development dependency (:issue:`26838`)
+- Fixed pyqt development dependency issue (:issue:`26838`)
 
 
 ExtensionArray
