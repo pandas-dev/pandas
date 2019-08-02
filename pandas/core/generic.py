@@ -6190,6 +6190,8 @@ class NDFrame(PandasObject, SelectionMixin):
             axis = 0
         axis = self._get_axis_number(axis)
 
+        from pandas import DataFrame
+
         if value is None:
 
             if self._is_mixed_type and axis == 1:
@@ -6252,7 +6254,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_data = self._data.fillna(
                     value=value, limit=limit, inplace=inplace, downcast=downcast
                 )
-            elif isinstance(value, ABCDataFrame) and self.ndim == 2:
+            elif isinstance(value, DataFrame) and self.ndim == 2:
                 new_data = self.where(self.notna(), value)
             else:
                 raise ValueError("invalid fill value with a %s" % type(value))

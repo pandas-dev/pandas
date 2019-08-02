@@ -265,8 +265,6 @@ class _Window(PandasObject, SelectionMixin):
             # coerce if necessary
             if block is not None:
                 if is_timedelta64_dtype(block.values.dtype):
-                    # TODO: do we know what result.dtype is at this point?
-                    #  i.e. can we just do an astype?
                     from pandas import to_timedelta
 
                     result = to_timedelta(result.ravel(), unit="ns").values.reshape(

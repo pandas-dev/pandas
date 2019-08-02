@@ -508,7 +508,7 @@ def test_datetime():
     desc_result = grouped.describe()
 
     idx = cats.codes.argsort()
-    ord_labels = cats.take(idx)  # TODO: deprecate take<->take_nd alias
+    ord_labels = cats.take_nd(idx)
     ord_data = data.take(idx)
     expected = ord_data.groupby(ord_labels, observed=False).describe()
     assert_frame_equal(desc_result, expected)
