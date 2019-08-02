@@ -152,7 +152,7 @@ ExtensionArray
 
 Other
 ^^^^^
-
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when replacing timezone-aware timestamps using a dict-like replacer (:issue:`27720`)
 -
 -
 -
