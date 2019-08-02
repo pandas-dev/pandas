@@ -29,14 +29,16 @@ from pandas.util._validators import validate_kwargs
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_float,
+    is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_extension_array_dtype,
+    is_integer_dtype,
     is_numeric_dtype,
+    is_object_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.api.types import is_datetime64_dtype, is_integer_dtype, is_object_dtype
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.base import (
