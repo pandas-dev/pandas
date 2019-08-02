@@ -144,7 +144,7 @@ def maybe_downcast_to_dtype(result, dtype):
                 result = to_datetime(result).tz_localize("utc")
                 result = result.tz_convert(dtype.tz)
 
-    elif dtype.type == Period:
+    elif dtype.type is Period:
         # TODO(DatetimeArray): merge with previous elif
         from pandas.core.arrays import PeriodArray
 
