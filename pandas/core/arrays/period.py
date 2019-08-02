@@ -286,13 +286,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if start is not None or end is not None:
             if field_count > 0:
                 raise ValueError(
-                    "Can either instantiate from fields " "or endpoints, but not both"
+                    "Can either instantiate from fields or endpoints, but not both"
                 )
             subarr, freq = _get_ordinal_range(start, end, periods, freq)
         elif field_count > 0:
             subarr, freq = _range_from_fields(freq=freq, **fields)
         else:
-            raise ValueError("Not enough parameters to construct " "Period range")
+            raise ValueError("Not enough parameters to construct Period range")
 
         return subarr, freq
 
@@ -839,7 +839,7 @@ def period_array(
         dtype = None
 
     if is_float_dtype(data) and len(data) > 0:
-        raise TypeError("PeriodIndex does not allow " "floating point in construction")
+        raise TypeError("PeriodIndex does not allow floating point in construction")
 
     data = ensure_object(data)
 
@@ -875,7 +875,7 @@ def validate_dtype_freq(dtype, freq):
         if freq is None:
             freq = dtype.freq
         elif freq != dtype.freq:
-            raise IncompatibleFrequency("specified freq and dtype " "are different")
+            raise IncompatibleFrequency("specified freq and dtype are different")
     return freq
 
 

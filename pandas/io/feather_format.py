@@ -53,7 +53,7 @@ def to_feather(df, path):
 
     if df.index.name is not None:
         raise ValueError(
-            "feather does not serialize index meta-data on a " "default index"
+            "feather does not serialize index meta-data on a default index"
         )
 
     # validate columns
@@ -71,7 +71,7 @@ def read_feather(path, columns=None, use_threads=True):
     """
     Load a feather-format object from the file path.
 
-    .. versionadded 0.20.0
+    .. versionadded:: 0.20.0
 
     Parameters
     ----------
@@ -90,16 +90,16 @@ def read_feather(path, columns=None, use_threads=True):
     columns : sequence, default None
         If not provided, all columns are read.
 
-        .. versionadded 0.24.0
+        .. versionadded:: 0.24.0
     nthreads : int, default 1
         Number of CPU threads to use when reading to pandas.DataFrame.
 
-       .. versionadded 0.21.0
-       .. deprecated 0.24.0
+       .. versionadded:: 0.21.0
+       .. deprecated:: 0.24.0
     use_threads : bool, default True
         Whether to parallelize reading using multiple threads.
 
-       .. versionadded 0.24.0
+       .. versionadded:: 0.24.0
 
     Returns
     -------

@@ -1860,3 +1860,25 @@ def test_groupby_groups_in_BaseGrouper():
     result = df.groupby(["beta", pd.Grouper(level="alpha")])
     expected = df.groupby(["beta", "alpha"])
     assert result.groups == expected.groups
+
+
+@pytest.mark.parametrize("group_name", ["x", ["x"]])
+def test_groupby_axis_1(group_name):
+    # GH 27614
+    df = pd.DataFrame(
+        np.arange(12).reshape(3, 4), index=[0, 1, 0], columns=[10, 20, 10, 20]
+    )
+    df.index.name = "y"
+    df.columns.name = "x"
+
+    results = df.groupby(group_name, axis=1).sum()
+    expected = df.T.groupby(group_name).sum().T
+    assert_frame_equal(results, expected)
+
+    # test on MI column
+    iterables = [["bar", "baz", "foo"], ["one", "two"]]
+    mi = pd.MultiIndex.from_product(iterables=iterables, names=["x", "x1"])
+    df = pd.DataFrame(np.arange(18).reshape(3, 6), index=[0, 1, 0], columns=mi)
+    results = df.groupby(group_name, axis=1).sum()
+    expected = df.T.groupby(group_name).sum().T
+    assert_frame_equal(results, expected)
