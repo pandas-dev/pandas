@@ -6,15 +6,13 @@ from pandas._libs import groupby, lib, reduction
 
 from pandas.core.dtypes.common import ensure_int64
 
-from pandas import Index, isna
+from pandas import Index, Series, isna
 from pandas.core.groupby.ops import generate_bins_generic
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 
 def test_series_grouper():
-    from pandas import Series
-
     obj = Series(np.random.randn(10))
     dummy = obj[:0]
 
@@ -31,8 +29,6 @@ def test_series_grouper():
 
 
 def test_series_bin_grouper():
-    from pandas import Series
-
     obj = Series(np.random.randn(10))
     dummy = obj[:0]
 
@@ -123,32 +119,32 @@ class TestMoments:
 
 class TestReducer:
     def test_int_index(self):
-        from pandas.core.series import Series
-
         arr = np.random.randn(100, 4)
-        result = reduction.do_reduce(arr, np.sum, labels=Index(np.arange(4)))
+        result = reduction.compute_reduction(arr, np.sum, labels=Index(np.arange(4)))
         expected = arr.sum(0)
         assert_almost_equal(result, expected)
 
-        result = reduction.do_reduce(arr, np.sum, axis=1, labels=Index(np.arange(100)))
+        result = reduction.compute_reduction(
+            arr, np.sum, axis=1, labels=Index(np.arange(100))
+        )
         expected = arr.sum(1)
         assert_almost_equal(result, expected)
 
         dummy = Series(0.0, index=np.arange(100))
-        result = reduction.do_reduce(
+        result = reduction.compute_reduction(
             arr, np.sum, dummy=dummy, labels=Index(np.arange(4))
         )
         expected = arr.sum(0)
         assert_almost_equal(result, expected)
 
         dummy = Series(0.0, index=np.arange(4))
-        result = reduction.do_reduce(
+        result = reduction.compute_reduction(
             arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
         )
         expected = arr.sum(1)
         assert_almost_equal(result, expected)
 
-        result = reduction.do_reduce(
+        result = reduction.compute_reduction(
             arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
         )
         assert_almost_equal(result, expected)

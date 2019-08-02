@@ -213,8 +213,8 @@ class TimelikeOps:
 
             .. versionadded:: 0.24.0
 
-        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta,
-            default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
+default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
