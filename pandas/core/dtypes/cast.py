@@ -46,6 +46,7 @@ from .common import (
 )
 from .dtypes import DatetimeTZDtype, ExtensionDtype, PeriodDtype
 from .generic import (
+    ABCDataFrame,
     ABCDatetimeArray,
     ABCDatetimeIndex,
     ABCPeriodArray,
@@ -98,6 +99,9 @@ def maybe_downcast_to_dtype(result, dtype):
     do_round = False
 
     if is_scalar(result):
+        return result
+    elif isinstance(result, ABCDataFrame):
+        # occurs in pivot_table doctest
         return result
 
     if isinstance(dtype, str):
