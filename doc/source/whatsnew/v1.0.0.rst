@@ -31,7 +31,7 @@ Other enhancements
 
 .. _whatsnew_1000.api_breaking:
 
--
+- Implemented :meth:`pandas.core.window.Window.var` and :meth:`pandas.core.window.Window.std` functions (:issue:`26597`)
 -
 
 Backwards incompatible API changes

@@ -12,7 +12,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- Implemented :meth:`pandas.core.window.Window.var` and :meth:`pandas.core.window.Window.std` functions (:issue:`26597`)
+-
 -
 -
 
