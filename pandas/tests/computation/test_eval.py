@@ -1789,9 +1789,10 @@ class TestMathPythonPython:
         self.check_result_type(np.float32, np.float32)
         self.check_result_type(np.float64, np.float64)
 
-    def test_result_types2(self):
+    @td.skip_if_windows
+    def test_result_complex128(self):
         # xref https://github.com/pandas-dev/pandas/issues/12293
-        # at one point this was unreliable on complex128
+        #  this fails on Windows, apparently a floating point precision issue
 
         # Did not test complex64 because DataFrame is converting it to
         # complex128. Due to https://github.com/pandas-dev/pandas/issues/10952
