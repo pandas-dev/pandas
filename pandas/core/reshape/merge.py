@@ -35,7 +35,6 @@ from pandas.core.dtypes.common import (
     is_number,
     is_numeric_dtype,
     is_object_dtype,
-    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import isnull, na_value_for_dtype
@@ -1636,11 +1635,7 @@ class _AsOfMerge(_OrderedMerge):
                 )
             )
 
-            if (
-                is_datetime64_dtype(lt)
-                or is_datetime64tz_dtype(lt)
-                or is_timedelta64_dtype(lt)
-            ):
+            if is_datetimelike(lt):
                 if not isinstance(self.tolerance, Timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
