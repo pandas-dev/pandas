@@ -805,7 +805,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     def _get_string_slice(self, key):
         if not self.is_monotonic:
-            raise ValueError("Partial indexing only valid for " "ordered time series")
+            raise ValueError("Partial indexing only valid for ordered time series")
 
         key, parsed, reso = parse_time_string(key, self.freq)
         grp = resolution.Resolution.get_freq_group(reso)
@@ -822,7 +822,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     def _convert_tolerance(self, tolerance, target):
         tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance, target)
         if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match " "target index size")
+            raise ValueError("list-like tolerance size must match target index size")
         return self._maybe_convert_timedelta(tolerance)
 
     def insert(self, loc, item):
@@ -935,7 +935,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         """
         warnings.warn(
-            "`item` has been deprecated and will be removed in a " "future version",
+            "`item` has been deprecated and will be removed in a future version",
             FutureWarning,
             stacklevel=2,
         )
@@ -943,10 +943,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         if len(self) == 1:
             return self[0]
         else:
+            # TODO: is this still necessary?
             # copy numpy's message here because Py26 raises an IndexError
-            raise ValueError(
-                "can only convert an array of size 1 to a " "Python scalar"
-            )
+            raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     @property
     def data(self):

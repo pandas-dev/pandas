@@ -499,9 +499,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             value = self._unbox_scalar(value)
         elif is_valid_nat_for_dtype(value, self.dtype):
             value = iNaT
-        elif not isna(value) and lib.is_integer(value) and value == iNaT:
-            # exclude misc e.g. object() and any NAs not allowed above
-            value = iNaT
         else:
             msg = (
                 "'value' should be a '{scalar}', 'NaT', or array of those. "
@@ -1097,7 +1094,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             )
 
         if len(self) != len(other):
-            raise ValueError("cannot subtract arrays/indices of " "unequal length")
+            raise ValueError("cannot subtract arrays/indices of unequal length")
         if self.freq != other.freq:
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr
