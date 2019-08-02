@@ -43,18 +43,27 @@ class ArrowBoolDtype(ExtensionDtype):
         return True
 
 
-class ArrowBoolArray(ExtensionArray):
-    def __init__(self, values):
-        if not isinstance(values, pa.ChunkedArray):
-            raise ValueError
+@register_extension_dtype
+class ArrowStringDtype(ExtensionDtype):
 
-        assert values.type == pa.bool_()
-        self._data = values
-        self._dtype = ArrowBoolDtype()
+    type = str
+    kind = "U"
+    name = "arrow_string"
+    na_value = pa.NULL
 
-    def __repr__(self):
-        return "ArrowBoolArray({})".format(repr(self._data))
+    @classmethod
+    def construct_from_string(cls, string):
+        if string == cls.name:
+            return cls()
+        else:
+            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
 
+    @classmethod
+    def construct_array_type(cls):
+        return ArrowStringArray
+
+
+class ArrowExtensionArray(ExtensionArray):
     @classmethod
     def from_scalars(cls, values):
         arr = pa.chunked_array([pa.array(np.asarray(values))])
@@ -68,6 +77,9 @@ class ArrowBoolArray(ExtensionArray):
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return cls.from_scalars(scalars)
+
+    def __repr__(self):
+        return "{cls}({data})".format(cls=type(self).__name__, data=repr(self._data))
 
     def __getitem__(self, item):
         if pd.api.types.is_scalar(item):
@@ -142,3 +154,23 @@ class ArrowBoolArray(ExtensionArray):
 
     def all(self, axis=0, out=None):
         return self._data.to_pandas().all()
+
+
+class ArrowBoolArray(ArrowExtensionArray):
+    def __init__(self, values):
+        if not isinstance(values, pa.ChunkedArray):
+            raise ValueError
+
+        assert values.type == pa.bool_()
+        self._data = values
+        self._dtype = ArrowBoolDtype()
+
+
+class ArrowStringArray(ArrowExtensionArray):
+    def __init__(self, values):
+        if not isinstance(values, pa.ChunkedArray):
+            raise ValueError
+
+        assert values.type == pa.string()
+        self._data = values
+        self._dtype = ArrowStringDtype()
