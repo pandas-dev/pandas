@@ -1419,63 +1419,63 @@ default 'raise'
         "Y",
         """
         The year of the datetime.
-        """
+        """,
     )
     month = _field_accessor(
         "month",
         "M",
         """
         The month as January=1, December=12.
-        """
+        """,
     )
     day = _field_accessor(
         "day",
         "D",
         """
         The month as January=1, December=12.
-        """
+        """,
     )
     hour = _field_accessor(
         "hour",
         "h",
         """
         The hours of the datetime.
-        """
+        """,
     )
     minute = _field_accessor(
         "minute",
         "m",
         """
         The minutes of the datetime.
-        """
+        """,
     )
     second = _field_accessor(
         "second",
         "s",
         """
         The seconds of the datetime.
-        """
+        """,
     )
     microsecond = _field_accessor(
         "microsecond",
         "us",
         """
         The microseconds of the datetime.
-        """
+        """,
     )
     nanosecond = _field_accessor(
         "nanosecond",
         "ns",
         """
         The nanoseconds of the datetime.
-        """
+        """,
     )
     weekofyear = _field_accessor(
         "weekofyear",
         "woy",
         """
         The week ordinal of the year.
-        """
+        """,
     )
     week = weekofyear
     _dayofweek_doc = """
@@ -1528,21 +1528,21 @@ default 'raise'
         "doy",
         """
         The ordinal day of the year.
-        """
+        """,
     )
     quarter = _field_accessor(
         "quarter",
         "q",
         """
         The quarter of the date.
-        """
+        """,
     )
     days_in_month = _field_accessor(
         "days_in_month",
         "dim",
         """
         The number of days in the month.
-        """
+        """,
     )
     daysinmonth = days_in_month
     _is_month_doc = """

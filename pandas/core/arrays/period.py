@@ -347,49 +347,49 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         0,
         """
         The year of the period.
-        """
+        """,
     )
     month = _field_accessor(
         "month",
         3,
         """
         The month as January=1, December=12.
-        """
+        """,
     )
     day = _field_accessor(
         "day",
         4,
         """
         The days of the period.
-        """
+        """,
     )
     hour = _field_accessor(
         "hour",
         5,
         """
         The hour of the period.
-        """
+        """,
     )
     minute = _field_accessor(
         "minute",
         6,
         """
         The minute of the period.
-        """
+        """,
     )
     second = _field_accessor(
         "second",
         7,
         """
         The second of the period.
-        """
+        """,
     )
     weekofyear = _field_accessor(
         "week",
         8,
         """
         The week ordinal of the year.
-        """
+        """,
     )
     week = weekofyear
     dayofweek = _field_accessor(
@@ -397,7 +397,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         10,
         """
         The day of the week with Monday=0, Sunday=6.
-        """
+        """,
     )
     weekday = dayofweek
     dayofyear = day_of_year = _field_accessor(
@@ -405,14 +405,14 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         9,
         """
         The ordinal day of the year.
-        """
+        """,
     )
     quarter = _field_accessor(
         "quarter",
         2,
         """
         The quarter of the date.
-        """
+        """,
     )
     qyear = _field_accessor("qyear", 1)
     days_in_month = _field_accessor(
@@ -420,7 +420,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         11,
         """
         The number of days in the month.
-        """
+        """,
     )
     daysinmonth = days_in_month
 
