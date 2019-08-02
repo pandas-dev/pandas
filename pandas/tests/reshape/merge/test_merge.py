@@ -2178,4 +2178,4 @@ def test_right_merge_preserves_row_order():
 
     result = pop.merge(ppl, on=("name", "country"), how="right")
 
-    assert_frame_equal(result, expected)
+    assert_frame_equal(expected, result)
