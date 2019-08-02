@@ -1760,7 +1760,7 @@ def _roll_weighted_sum_mean(float64_t[:] values, float64_t[:] weights,
 
 cdef inline float64_t calc_weighted_var(float64_t t,
                                         float64_t sum_w,
-                                        Py_ssize_t win,
+                                        Py_ssize_t win_n,
                                         unsigned int ddof,
                                         float64_t nobs,
                                         int64_t minp) nogil:
@@ -1774,7 +1774,7 @@ cdef inline float64_t calc_weighted_var(float64_t t,
         if nobs == 1:
             result = 0
         else:
-            result = t * win / ((win - ddof) * sum_w)
+            result = t * win_n / ((win_n - ddof) * sum_w)
             if result < 0:
                 result = 0
     else:
@@ -1790,9 +1790,11 @@ cdef inline void add_weighted_var(float64_t val,
                                   float64_t *mean,
                                   float64_t *nobs) nogil:
     """
-    Update mean (mean), sum of weights (sum_w) and sum of weighted
-    squared differences (t) to include value (val) and weight (w)
-    pair in variance calculation.
+    Update weighted mean (mean), sum of weights (sum_w) and sum of
+    weighted squared differences (t) to include value (val) and
+    weight (w) pair in variance calculation using West's method.
+
+    Paper: https://dl.acm.org/citation.cfm?id=359153
     """
 
     cdef:
@@ -1819,9 +1821,11 @@ cdef inline void remove_weighted_var(float64_t val,
                                      float64_t *mean,
                                      float64_t *nobs) nogil:
     """
-    Update mean (mean), sum of weights (sum_w) and sum of weighted
-    squared differences (t) to remove value (val) and weight (w)
-    pair from variance calculation.
+    Update weighted mean (mean), sum of weights (sum_w) and sum
+    of weighted squared differences (t) to remove value (val) and
+    weight (w) pair from variance calculation using West's method.
+
+    Paper: https://dl.acm.org/citation.cfm?id=359153
     """
 
     cdef:
