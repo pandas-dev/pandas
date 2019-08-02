@@ -468,6 +468,13 @@ Concatenating pandas objects together with :func:`concat`:
 
    pd.concat(pieces)
 
+.. note::
+   Adding a column to a ``DataFrame`` is relatively fast. However, adding
+   a row requires a copy, and may be expensive. We recommend passing a
+   pre-built list of records to the ``DataFrame`` constructor instead
+   of building a ``DataFrame`` by iteratively appending records to it.
+   See :ref:`Appending to dataframe <merging.concatenation>` for more.
+
 Join
 ~~~~
 
@@ -490,21 +497,6 @@ Another example that can be given is:
    left
    right
    pd.merge(left, right, on='key')
-
-
-Append
-~~~~~~
-
-Append rows to a dataframe. See the :ref:`Appending <merging.concatenation>`
-section.
-
-.. ipython:: python
-
-   df = pd.DataFrame(np.random.randn(8, 4), columns=['A', 'B', 'C', 'D'])
-   df
-   s = df.iloc[3]
-   df.append(s, ignore_index=True)
-
 
 Grouping
 --------
