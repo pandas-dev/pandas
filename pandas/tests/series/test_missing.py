@@ -1533,6 +1533,17 @@ class TestSeriesInterpolateData:
         )
         assert_series_equal(result, expected)
 
+    def test_interp_pad_datetime64tz_values(self):
+        # GH#27628 missing.interpolate_2d should handle datetimetz values
+        dti = pd.date_range("2015-04-05", periods=3, tz="US/Central")
+        ser = pd.Series(dti)
+        ser[1] = pd.NaT
+        result = ser.interpolate(method="pad")
+
+        expected = pd.Series(dti)
+        expected[1] = expected[0]
+        tm.assert_series_equal(result, expected)
+
     def test_interp_limit_no_nans(self):
         # GH 7173
         s = pd.Series([1.0, 2.0, 3.0])

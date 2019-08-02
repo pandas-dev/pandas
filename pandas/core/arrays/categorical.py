@@ -94,13 +94,13 @@ def _cat_compare_op(op):
         if not self.ordered:
             if op in ["__lt__", "__gt__", "__le__", "__ge__"]:
                 raise TypeError(
-                    "Unordered Categoricals can only compare " "equality or not"
+                    "Unordered Categoricals can only compare equality or not"
                 )
         if isinstance(other, Categorical):
             # Two Categoricals can only be be compared if the categories are
             # the same (maybe up to ordering, depending on ordered)
 
-            msg = "Categoricals can only be compared if " "'categories' are the same."
+            msg = "Categoricals can only be compared if 'categories' are the same."
             if len(self.categories) != len(other.categories):
                 raise TypeError(msg + " Categories are different lengths")
             elif self.ordered and not (self.categories == other.categories).all():
@@ -110,7 +110,7 @@ def _cat_compare_op(op):
 
             if not (self.ordered == other.ordered):
                 raise TypeError(
-                    "Categoricals can only be compared if " "'ordered' is the same"
+                    "Categoricals can only be compared if 'ordered' is the same"
                 )
             if not self.ordered and not self.categories.equals(other.categories):
                 # both unordered and different order
@@ -389,7 +389,7 @@ class Categorical(ExtensionArray, PandasObject):
 
                 # FIXME
                 raise NotImplementedError(
-                    "> 1 ndim Categorical are not " "supported at this time"
+                    "> 1 ndim Categorical are not supported at this time"
                 )
 
             # we're inferring from values
@@ -682,7 +682,7 @@ class Categorical(ExtensionArray, PandasObject):
                 raise ValueError(msg)
 
         if len(codes) and (codes.max() >= len(dtype.categories) or codes.min() < -1):
-            raise ValueError("codes need to be between -1 and " "len(categories)-1")
+            raise ValueError("codes need to be between -1 and len(categories)-1")
 
         return cls(codes, dtype=dtype, fastpath=True)
 
@@ -1007,7 +1007,7 @@ class Categorical(ExtensionArray, PandasObject):
         inplace = validate_bool_kwarg(inplace, "inplace")
         if set(self.dtype.categories) != set(new_categories):
             raise ValueError(
-                "items in new_categories are not the same as in " "old categories"
+                "items in new_categories are not the same as in old categories"
             )
         return self.set_categories(new_categories, ordered=ordered, inplace=inplace)
 
@@ -1459,7 +1459,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Replace specific elements in the Categorical with given values.
         """
-        raise NotImplementedError(("'put' is not yet implemented " "for Categorical"))
+        raise NotImplementedError(("'put' is not yet implemented for Categorical"))
 
     def dropna(self):
         """
@@ -1804,7 +1804,7 @@ class Categorical(ExtensionArray, PandasObject):
             value = np.nan
         if limit is not None:
             raise NotImplementedError(
-                "specifying a limit for fillna has not " "been implemented yet"
+                "specifying a limit for fillna has not been implemented yet"
             )
 
         codes = self._codes
@@ -2162,12 +2162,12 @@ class Categorical(ExtensionArray, PandasObject):
             # in a 2-d case be passd (slice(None),....)
             if len(key) == 2:
                 if not com.is_null_slice(key[0]):
-                    raise AssertionError("invalid slicing for a 1-ndim " "categorical")
+                    raise AssertionError("invalid slicing for a 1-ndim categorical")
                 key = key[1]
             elif len(key) == 1:
                 key = key[0]
             else:
-                raise AssertionError("invalid slicing for a 1-ndim " "categorical")
+                raise AssertionError("invalid slicing for a 1-ndim categorical")
 
         # slicing in Series or Categorical
         elif isinstance(key, slice):
@@ -2555,9 +2555,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     @staticmethod
     def _validate(data):
         if not is_categorical_dtype(data.dtype):
-            raise AttributeError(
-                "Can only use .cat accessor with a " "'category' dtype"
-            )
+            raise AttributeError("Can only use .cat accessor with a 'category' dtype")
 
     def _delegate_property_get(self, name):
         return getattr(self._parent, name)
@@ -2601,7 +2599,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         # need to be updated. `name` will need to be removed from
         # `ok_for_cat`.
         warn(
-            "`Series.cat.name` has been deprecated. Use `Series.name` " "instead.",
+            "`Series.cat.name` has been deprecated. Use `Series.name` instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -2613,7 +2611,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         # need to be updated. `index` will need to be removed from
         # ok_for_cat`.
         warn(
-            "`Series.cat.index` has been deprecated. Use `Series.index` " "instead.",
+            "`Series.cat.index` has been deprecated. Use `Series.index` instead.",
             FutureWarning,
             stacklevel=2,
         )

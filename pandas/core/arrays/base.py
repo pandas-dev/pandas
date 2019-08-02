@@ -14,15 +14,18 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
+from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_array_like, is_list_like
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas._typing import ArrayLike
 from pandas.core import ops
+from pandas.core.algorithms import _factorize_array, unique
 from pandas.core.arrays._reshaping import can_safe_ravel, tuplify_shape
+from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargsort
 
 _not_implemented_message = "{} does not implement {}."
@@ -511,10 +514,6 @@ class ExtensionArray:
         -------
         filled : ExtensionArray with NA/NaN filled
         """
-        from pandas.api.types import is_array_like
-        from pandas.util._validators import validate_fillna_kwargs
-        from pandas.core.missing import pad_1d, backfill_1d
-
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
@@ -611,8 +610,6 @@ class ExtensionArray:
         -------
         uniques : ExtensionArray
         """
-        from pandas import unique
-
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
 
@@ -727,8 +724,6 @@ class ExtensionArray:
         #    original ExtensionArray.
         # 2. ExtensionArray.factorize.
         #    Complete control over factorization.
-        from pandas.core.algorithms import _factorize_array
-
         arr, na_value = self._values_for_factorize()
 
         labels, uniques = _factorize_array(
@@ -919,7 +914,7 @@ class ExtensionArray:
     def __repr__(self):
         from pandas.io.formats.printing import format_object_summary
 
-        template = "{class_name}" "{data}\n" "Length: {length}, dtype: {dtype}"
+        template = "{class_name}{data}\nLength: {length}, dtype: {dtype}"
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
