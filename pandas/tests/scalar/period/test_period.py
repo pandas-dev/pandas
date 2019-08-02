@@ -1591,6 +1591,7 @@ def test_small_year_parsing():
         #  reproduce locally on py35.
         if PY35:
             pytest.xfail(
-                reason="Parsing as Period('0007-01-01', 'D') on PY35 for reasons unknown."
+                reason="Parsing as Period('0007-01-01', 'D') on PY35 "
+                "for reasons unknown."
             )
         raise
