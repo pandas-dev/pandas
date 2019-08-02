@@ -107,7 +107,7 @@ MultiIndex
 I/O
 ^^^
 
-- Fix bug in :meth:`io.json.json_normalize` when nested meta paths with a nested record_path (:issue:`27220`)
+- Fix bug in :meth:`io.json.json_normalize` when nested meta paths with a nested record path. (:issue:`27220`)
 -
 -
 
