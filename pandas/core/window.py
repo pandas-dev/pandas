@@ -186,7 +186,7 @@ class _Window(PandasObject, SelectionMixin):
 
     def _get_window(self, other=None, **kwargs) -> int:
         """
-        Returns window lenght
+        Returns window length
 
         Parameters
         ----------
@@ -406,7 +406,7 @@ class _Window(PandasObject, SelectionMixin):
         name : str, optional
            name of this function
         window : int/str, default to _get_window()
-            window lenght or offset
+            window length or offset
         center : bool, default to self.center
         check_minp : function, default to _use_window
         **kwargs
