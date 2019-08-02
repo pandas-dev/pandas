@@ -1,5 +1,6 @@
 import json
 
+import sys
 import numpy as np
 import pytest
 
@@ -287,6 +288,7 @@ class TestJSONNormalize:
         expected = DataFrame(ex_data, columns=result.columns)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(sys.version_info < (3, 6), reason="drop support for 3.5 soon")
     def test_nested_meta_path_with_nested_record_path(self, state_data):
         # GH 27220
         result = json_normalize(
