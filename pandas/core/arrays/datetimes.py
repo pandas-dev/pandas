@@ -1414,17 +1414,69 @@ default 'raise'
 
         return tslib.ints_to_pydatetime(timestamps, box="date")
 
-    year = _field_accessor("year", "Y", "The year of the datetime.")
-    month = _field_accessor("month", "M", "The month as January=1, December=12. ")
-    day = _field_accessor("day", "D", "The days of the datetime.")
-    hour = _field_accessor("hour", "h", "The hours of the datetime.")
-    minute = _field_accessor("minute", "m", "The minutes of the datetime.")
-    second = _field_accessor("second", "s", "The seconds of the datetime.")
-    microsecond = _field_accessor(
-        "microsecond", "us", "The microseconds of the datetime."
+    year = _field_accessor(
+        "year",
+        "Y",
+        """
+        The year of the datetime.
+        """
     )
-    nanosecond = _field_accessor("nanosecond", "ns", "The nanoseconds of the datetime.")
-    weekofyear = _field_accessor("weekofyear", "woy", "The week ordinal of the year.")
+    month = _field_accessor(
+        "month",
+        "M",
+        """
+        The month as January=1, December=12.
+        """
+    )
+    day = _field_accessor(
+        "day",
+        "D",
+        """
+        The month as January=1, December=12.
+        """
+    )
+    hour = _field_accessor(
+        "hour",
+        "h",
+        """
+        The hours of the datetime.
+        """
+    )
+    minute = _field_accessor(
+        "minute",
+        "m",
+        """
+        The minutes of the datetime.
+        """
+    )
+    second = _field_accessor(
+        "second",
+        "s",
+        """
+        The seconds of the datetime.
+        """
+    )
+    microsecond = _field_accessor(
+        "microsecond",
+        "us",
+        """
+        The microseconds of the datetime.
+        """
+    )
+    nanosecond = _field_accessor(
+        "nanosecond",
+        "ns",
+        """
+        The nanoseconds of the datetime.
+        """
+    )
+    weekofyear = _field_accessor(
+        "weekofyear",
+        "woy",
+        """
+        The week ordinal of the year.
+        """
+    )
     week = weekofyear
     _dayofweek_doc = """
     The day of the week with Monday=0, Sunday=6.
@@ -1466,13 +1518,31 @@ default 'raise'
     weekday_name = _field_accessor(
         "weekday_name",
         "weekday_name",
-        "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0",
+        """
+        The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0
+        """,
     )
 
-    dayofyear = _field_accessor("dayofyear", "doy", "The ordinal day of the year.")
-    quarter = _field_accessor("quarter", "q", "The quarter of the date.")
+    dayofyear = _field_accessor(
+        "dayofyear",
+        "doy",
+        """
+        The ordinal day of the year.
+        """
+    )
+    quarter = _field_accessor(
+        "quarter",
+        "q",
+        """
+        The quarter of the date.
+        """
+    )
     days_in_month = _field_accessor(
-        "days_in_month", "dim", "The number of days in the month."
+        "days_in_month",
+        "dim",
+        """
+        The number of days in the month.
+        """
     )
     daysinmonth = days_in_month
     _is_month_doc = """
