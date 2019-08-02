@@ -875,13 +875,11 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
-
-        Notes
-        -----
-        - This must return a *new* object, not self.
-        - The only case that *must* be implemented is with dtype=None,
-          giving a view with the same dtype as self.
         """
+        # NB:
+        # - This must return a *new* object referencing the same data, not self.
+        # - The only case that *must* be implemented is with dtype=None,
+        #   giving a view with the same dtype as self.
         if dtype is not None:
             raise NotImplementedError(dtype)
         return self[:]
