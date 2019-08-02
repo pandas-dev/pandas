@@ -607,10 +607,10 @@ def _get_grouper(
         elif is_in_axis(gpr):  # df.groupby('name')
             if gpr in obj:
                 if validate:
-                    obj._check_label_or_level_ambiguity(gpr)
+                    obj._check_label_or_level_ambiguity(gpr, axis=axis)
                 in_axis, name, gpr = True, gpr, obj[gpr]
                 exclusions.append(name)
-            elif obj._is_level_reference(gpr):
+            elif obj._is_level_reference(gpr, axis=axis):
                 in_axis, name, level, gpr = False, None, gpr, None
             else:
                 raise KeyError(gpr)
