@@ -135,6 +135,9 @@ operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
 platform you're using.
 
+For Mac users, you will need to install the Apple Developer Tools. Once you have done that, 
+the easiest thing is to use `cc` (the clang LLVM compiler), from the command line.
+
 For Windows developers, when using Python 3.5 and later, it is sufficient to
 install `Visual Studio 2017 <https://visualstudio.com/>`_ with the
 **Python development workload** and the **Python native development tools**
