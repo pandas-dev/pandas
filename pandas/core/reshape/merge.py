@@ -567,10 +567,10 @@ class _MergeOperation:
         indicator: bool = False,
         validate=None,
     ):
-        _left = _validate_operand(left)
-        _right = _validate_operand(right)
-        self.left = self.orig_left = _left
-        self.right = self.orig_right = _right
+        left = validate_operand(left)
+        right = validate_operand(right)
+        self.left = self.orig_left = left
+        self.right = self.orig_right = right
         self.how = how
         self.axis = axis
 
@@ -1292,6 +1292,9 @@ def _get_join_indexers(
         right_keys
     ), "left_key and right_keys must be the same length"
 
+    # bind `sort` arg. of _factorize_keys
+    fkeys = partial(_factorize_keys, sort=sort)
+
     # get left & right join labels and num. of levels at each location
     mapped = (
         _factorize_keys(left_keys[n], right_keys[n], sort=sort)
@@ -1306,15 +1309,20 @@ def _get_join_indexers(
     # factorize keys to a dense i8 space
     # `count` is the num. of unique keys
     # set(lkey) | set(rkey) == range(count)
-    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
 
+    # flip left and right keys if performing a right merge
+    # to preserve right merge row order (GH 27453)
+    if how == "right":
+        factorized_rkey, factorized_lkey, count = fkeys(rkey, lkey)
+    else:
+        factorized_lkey, factorized_rkey, count = fkeys(lkey, rkey)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
     if how == "left":
         kwargs["sort"] = sort
     join_func = _join_functions[how]
 
-    return join_func(lkey, rkey, count, **kwargs)
+    return join_func(factorized_lkey, factorized_rkey, count, **kwargs)
 
 
 def _restore_dropped_levels_multijoin(

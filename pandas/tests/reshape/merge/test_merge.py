@@ -1286,17 +1286,17 @@ class TestMerge:
         # GH 24212
         # pd.merge gets [0, 1, 2, -1, -1, -1] as left_indexer, ensure that
         # -1 is interpreted as a missing value instead of the last element
-        df1 = pd.DataFrame({"a": [1, 2, 3], "key": [0, 2, 2]}, index=index)
-        df2 = pd.DataFrame({"b": [1, 2, 3, 4, 5]})
+        df1 = pd.DataFrame({"a": [0, 1, 2], "key": [0, 1, 2]}, index=index)
+        df2 = pd.DataFrame({"b": [0, 1, 2, 3, 4, 5]})
         result = df1.merge(df2, left_on="key", right_index=True, how=how)
         expected = pd.DataFrame(
             [
-                [1.0, 0, 1],
-                [2.0, 2, 3],
-                [3.0, 2, 3],
-                [np.nan, 1, 2],
-                [np.nan, 3, 4],
-                [np.nan, 4, 5],
+                [0, 0, 0],
+                [1, 1, 1],
+                [2, 2, 2],
+                [np.nan, 3, 3],
+                [np.nan, 4, 4],
+                [np.nan, 5, 5],
             ],
             columns=["a", "key", "b"],
         )
@@ -2167,3 +2167,63 @@ def test_merge_datetime_upcast_dtype():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+def test_merge_preserves_row_order(how):
+    # GH 27453
+    population = [
+        ("Jenn", "Jamaica", 3),
+        ("Beth", "Bulgaria", 7),
+        ("Carl", "Canada", 30),
+    ]
+    columns = ["name", "country", "population"]
+    population_df = DataFrame(population, columns=columns)
+
+    people = [("Abe", "America"), ("Beth", "Bulgaria"), ("Carl", "Canada")]
+    columns = ["name", "country"]
+    people_df = DataFrame(people, columns=columns)
+
+    expected_data = [
+        ("Abe", "America", np.nan),
+        ("Beth", "Bulgaria", 7),
+        ("Carl", "Canada", 30),
+    ]
+    expected_cols = ["name", "country", "population"]
+    expected = DataFrame(expected_data, columns=expected_cols)
+
+    result = pop.merge(ppl, on=("name", "country"), how="right")
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_left_merge_preserves_row_order():
+    # GH 27453
+    population = [
+        ("Jenn", "Jamaica", 3),
+        ("Beth", "Bulgaria", 7),
+        ("Carl", "Canada", 30),
+    ]
+    columns = ["name", "country", "population"]
+    pop = DataFrame(population, columns=columns)
+
+    people = [("Abe", "America"), ("Beth", "Bulgaria"), ("Carl", "Canada")]
+    columns = ["name", "country"]
+    ppl = DataFrame(people, columns=columns)
+
+    expected_data = [
+        ("Abe", "America", np.nan),
+        ("Beth", "Bulgaria", 7),
+        ("Carl", "Canada", 30),
+    ]
+    expected_cols = ["name", "country", "population"]
+    expected = DataFrame(expected_data, columns=expected_cols)
+
+    result = ppl.merge(pop, on=("name", "country"), how="left")
+    if how == "right":
+        left_df, right_df = population_df, people_df
+    elif how == "left":
+        left_df, right_df = people_df, population_df
+
+    result = left_df.merge(right_df, on=("name", "country"), how=how)
+    tm.assert_frame_equal(expected, result)

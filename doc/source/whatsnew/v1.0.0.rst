@@ -1244,8 +1244,13 @@ Reshaping
 - Bug in :func:`melt` where supplying mixed strings and numeric values for ``id_vars`` or ``value_vars`` would incorrectly raise a ``ValueError`` (:issue:`29718`)
 - Dtypes are now preserved when transposing a ``DataFrame`` where each column is the same extension dtype (:issue:`30091`)
 - Bug in :func:`merge_asof` merging on a tz-aware ``left_index`` and ``right_on`` a tz-aware column (:issue:`29864`)
+<<<<<<< HEAD
 - Improved error message and docstring in :func:`cut` and :func:`qcut` when `labels=True` (:issue:`13318`)
 - Bug in missing `fill_na` parameter to :meth:`DataFrame.unstack` with list of levels (:issue:`30740`)
+- :meth:`DataFrame.merge` now preserves right frame's row order when executing a right merge (:issue:`27453`)
+=======
+>>>>>>> 2b1b67592... changes requested by jreback
+-
 
 Sparse
 ^^^^^^
