@@ -463,6 +463,7 @@ def interpolate_2d(
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
     """
+    orig_values = values
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
@@ -489,6 +490,10 @@ def interpolate_2d(
     # reshape back
     if ndim == 1:
         values = values[0]
+
+    if orig_values.dtype.kind == "M":
+        # convert float back to datetime64
+        values = values.astype(orig_values.dtype)
 
     return values
 

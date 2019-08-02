@@ -99,7 +99,7 @@ class NumericIndex(Index):
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(tolerance)
         if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match " "target index size")
+            raise ValueError("list-like tolerance size must match target index size")
         if not np.issubdtype(tolerance.dtype, np.number):
             if tolerance.ndim > 0:
                 raise ValueError(
@@ -255,7 +255,7 @@ class Int64Index(IntegerIndex):
         """
         if not issubclass(data.dtype.type, np.signedinteger):
             if not np.array_equal(data, subarr):
-                raise TypeError("Unsafe NumPy casting, you must " "explicitly cast")
+                raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
     def _is_compatible_with_other(self, other):
         return super()._is_compatible_with_other(other) or all(
@@ -329,7 +329,7 @@ class UInt64Index(IntegerIndex):
         """
         if not issubclass(data.dtype.type, np.unsignedinteger):
             if not np.array_equal(data, subarr):
-                raise TypeError("Unsafe NumPy casting, you must " "explicitly cast")
+                raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
     def _is_compatible_with_other(self, other):
         return super()._is_compatible_with_other(other) or all(
