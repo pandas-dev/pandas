@@ -452,16 +452,7 @@ class BaseGrouper:
 
     def _cython_operation(self, kind, values, how, axis, min_count=-1, **kwargs):
         assert kind in ["transform", "aggregate"]
-
-        if is_datetime64tz_dtype(values):
-            # TODO: possible need to reshape?  kludge can be avoided when
-            #  2D EA is allowed.
-            naive = values.view("M8[ns]")
-            result, names = self._cython_operation(
-                kind, naive, how=how, axis=axis, min_count=min_count, **kwargs
-            )
-            result = type(values)(result.astype(np.int64), dtype=values.dtype)
-            return result, names
+        orig_values = values
 
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
@@ -485,6 +476,12 @@ class BaseGrouper:
                 raise NotImplementedError(
                     "timedelta64 type does not support {} operations".format(how)
                 )
+
+        if is_datetime64tz_dtype(values.dtype):
+            # Cast to naive; we'll cast back at the end of the function
+            # TODO: possible need to reshape?  kludge can be avoided when
+            #  2D EA is allowed.
+            values = values.view("M8[ns]")
 
         arity = self._cython_arity.get(how, 1)
 
@@ -591,6 +588,9 @@ class BaseGrouper:
 
         if swapped:
             result = result.swapaxes(0, axis)
+
+        if is_datetime64tz_dtype(orig_values.dtype):
+            result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
 
         return result, names
 
