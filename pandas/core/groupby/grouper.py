@@ -21,11 +21,11 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
+from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
 from pandas.core.groupby.ops import BaseGrouper
 from pandas.core.index import CategoricalIndex, Index, MultiIndex
@@ -424,7 +424,7 @@ class Grouping:
 
 
 def _get_grouper(
-    obj: NDFrame,
+    obj: FrameOrSeries,
     key=None,
     axis=0,
     level=None,
