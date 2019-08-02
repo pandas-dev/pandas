@@ -1287,4 +1287,4 @@ class TestAsOfMerge:
             left, right, on="time", tolerance=Timedelta("1ms"), direction="nearest"
         )
 
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_names=False)
