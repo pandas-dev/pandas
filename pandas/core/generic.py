@@ -3563,7 +3563,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def _box_item_values(self, key, values):
         raise AbstractMethodError(self)
 
-    def _slice(self, slob: slice, axis=0, kind=None):
+    def _slice(self, slobj: slice, axis=0, kind=None):
         """
         Construct a slice of this container.
 
