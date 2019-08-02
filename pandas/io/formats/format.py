@@ -2,6 +2,9 @@
 Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
+
+import codecs
+from contextlib import contextmanager
 import decimal
 from functools import partial
 from io import StringIO
@@ -9,6 +12,7 @@ import math
 import re
 from shutil import get_terminal_size
 from typing import (
+    IO,
     TYPE_CHECKING,
     Any,
     Callable,
@@ -16,7 +20,6 @@ from typing import (
     Iterable,
     List,
     Optional,
-    TextIO,
     Tuple,
     Type,
     Union,
@@ -34,6 +37,7 @@ from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
+from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -67,7 +71,7 @@ from pandas.core.index import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-from pandas.io.common import _expand_user, _stringify_path
+from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
@@ -161,7 +165,7 @@ class CategoricalFormatter:
     def __init__(
         self,
         categorical: "Categorical",
-        buf: Optional[TextIO] = None,
+        buf: Optional[IO[str]] = None,
         length: bool = True,
         na_rep: str = "NaN",
         footer: bool = True,
@@ -224,7 +228,7 @@ class SeriesFormatter:
     def __init__(
         self,
         series: "Series",
-        buf: Optional[TextIO] = None,
+        buf: Optional[IO[str]] = None,
         length: bool = True,
         header: bool = True,
         index: bool = True,
@@ -463,6 +467,40 @@ class TableFormatter:
                 i = self.columns[i]
             return self.formatters.get(i, None)
 
+    @contextmanager
+    def get_buffer(
+        self, buf: Optional[FilePathOrBuffer[str]], encoding: Optional[str] = None
+    ):
+        if buf is not None:
+            buf = _stringify_path(buf)
+        else:
+            buf = StringIO()
+
+        if encoding is None:
+            encoding = "utf-8"
+
+        if hasattr(buf, "write"):
+            yield buf
+        elif isinstance(buf, str):
+            with codecs.open(buf, "w", encoding=encoding) as f:
+                yield f
+        else:
+            raise TypeError("buf is not a file name and it has no write method")
+
+    def write_result(self, buf: IO[str]) -> None:
+        raise AbstractMethodError(self)
+
+    def get_result(
+        self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
+    ) -> Optional[str]:
+        with self.get_buffer(buf, encoding=encoding) as f:
+            self.write_result(buf=f)
+            if buf is None:
+                return f.getvalue()
+            return None
+
 
 class DataFrameFormatter(TableFormatter):
     """
@@ -480,7 +518,6 @@ class DataFrameFormatter(TableFormatter):
     def __init__(
         self,
         frame: "DataFrame",
-        buf: Optional[FilePathOrBuffer] = None,
         columns: Optional[List[str]] = None,
         col_space: Optional[Union[str, int]] = None,
         header: Union[bool, List[str]] = True,
@@ -502,10 +539,6 @@ class DataFrameFormatter(TableFormatter):
         **kwds
     ):
         self.frame = frame
-        if buf is not None:
-            self.buf = _expand_user(_stringify_path(buf))
-        else:
-            self.buf = StringIO()
         self.show_index_names = index_names
 
         if sparsify is None:
@@ -727,7 +760,7 @@ class DataFrameFormatter(TableFormatter):
                 strcols[ix].insert(row_num + n_header_rows, dot_str)
         return strcols
 
-    def to_string(self) -> None:
+    def write_result(self, buf: IO[str]) -> None:
         """
         Render a DataFrame to a console-friendly tabular output.
         """
@@ -782,10 +815,10 @@ class DataFrameFormatter(TableFormatter):
                 self._chk_truncate()
                 strcols = self._to_str_columns()
                 text = self.adj.adjoin(1, *strcols)
-        self.buf.writelines(text)
+        buf.writelines(text)
 
         if self.should_show_dimensions:
-            self.buf.write(
+            buf.write(
                 "\n\n[{nrows} rows x {ncols} columns]".format(
                     nrows=len(frame), ncols=len(frame.columns)
                 )
@@ -828,42 +861,33 @@ class DataFrameFormatter(TableFormatter):
             st = ed
         return "\n\n".join(str_lst)
 
+    def to_string(self, buf: Optional[FilePathOrBuffer[str]] = None) -> Optional[str]:
+        return self.get_result(buf=buf)
+
     def to_latex(
         self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
         column_format: Optional[str] = None,
         longtable: bool = False,
         encoding: Optional[str] = None,
         multicolumn: bool = False,
         multicolumn_format: Optional[str] = None,
         multirow: bool = False,
-    ) -> None:
+    ) -> Optional[str]:
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
 
         from pandas.io.formats.latex import LatexFormatter
 
-        latex_renderer = LatexFormatter(
+        return LatexFormatter(
             self,
             column_format=column_format,
             longtable=longtable,
             multicolumn=multicolumn,
             multicolumn_format=multicolumn_format,
             multirow=multirow,
-        )
-
-        if encoding is None:
-            encoding = "utf-8"
-
-        if hasattr(self.buf, "write"):
-            latex_renderer.write_result(self.buf)
-        elif isinstance(self.buf, str):
-            import codecs
-
-            with codecs.open(self.buf, "w", encoding=encoding) as f:
-                latex_renderer.write_result(f)
-        else:
-            raise TypeError("buf is not a file name and it has no write method")
+        ).get_result(buf=buf, encoding=encoding)
 
     def _format_col(self, i: int) -> List[str]:
         frame = self.tr_frame
@@ -880,10 +904,11 @@ class DataFrameFormatter(TableFormatter):
 
     def to_html(
         self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
         classes: Optional[Union[str, List, Tuple]] = None,
         notebook: bool = False,
         border: Optional[int] = None,
-    ) -> None:
+    ) -> Optional[str]:
         """
         Render a DataFrame to a html table.
 
@@ -901,14 +926,7 @@ class DataFrameFormatter(TableFormatter):
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
-        html = Klass(self, classes=classes, border=border).render()
-        if hasattr(self.buf, "write"):
-            buffer_put_lines(self.buf, html)
-        elif isinstance(self.buf, str):
-            with open(self.buf, "w") as f:
-                buffer_put_lines(f, html)
-        else:
-            raise TypeError("buf is not a file name and it has no write  method")
+        return Klass(self, classes=classes, border=border).get_result(buf=buf)
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
         from pandas.core.index import _sparsify
@@ -1901,7 +1919,7 @@ def get_level_lengths(
     return result
 
 
-def buffer_put_lines(buf: TextIO, lines: List[str]) -> None:
+def buffer_put_lines(buf: IO[str], lines: List[str]) -> None:
     """
     Appends lines to a buffer.
 

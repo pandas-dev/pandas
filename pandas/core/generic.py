@@ -3018,7 +3018,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         formatter = DataFrameFormatter(
             self,
-            buf=buf,
             columns=columns,
             col_space=col_space,
             na_rep=na_rep,
@@ -3032,7 +3031,8 @@ class NDFrame(PandasObject, SelectionMixin):
             escape=escape,
             decimal=decimal,
         )
-        formatter.to_latex(
+        return formatter.to_latex(
+            buf=buf,
             column_format=column_format,
             longtable=longtable,
             encoding=encoding,
@@ -3040,9 +3040,6 @@ class NDFrame(PandasObject, SelectionMixin):
             multicolumn_format=multicolumn_format,
             multirow=multirow,
         )
-
-        if buf is None:
-            return formatter.buf.getvalue()
 
     def to_csv(
         self,
