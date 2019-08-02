@@ -1013,6 +1013,18 @@ class TestPeriodIndexArithmetic:
         with pytest.raises(TypeError):
             other - obj
 
+    # ---------------------------------------------------------------
+    # Unsorted
+
+    def test_parr_add_sub_index(self):
+        # Check that PeriodArray defers to Index on arithmetic ops
+        pi = pd.period_range("2000-12-31", periods=3)
+        parr = pi._data
+
+        result = parr - pi
+        expected = pi - pi
+        tm.assert_index_equal(result, expected)
+
 
 class TestPeriodSeriesArithmetic:
     def test_ops_series_timedelta(self):

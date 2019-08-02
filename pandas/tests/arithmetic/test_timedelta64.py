@@ -480,6 +480,25 @@ class TestTimedelta64ArithmeticUnsorted:
         tm.assert_index_equal(result1, result4)
         tm.assert_index_equal(result2, result3)
 
+    def test_tda_add_sub_index(self):
+        # Check that TimedeltaArray defers to Index on arithmetic ops
+        tdi = TimedeltaIndex(["1 days", pd.NaT, "2 days"])
+        tda = tdi._data
+
+        dti = pd.date_range("1999-12-31", periods=3, freq="D")
+
+        result = tda + dti
+        expected = tdi + dti
+        tm.assert_index_equal(result, expected)
+
+        result = tda + tdi
+        expected = tdi + tdi
+        tm.assert_index_equal(result, expected)
+
+        result = tda - tdi
+        expected = tdi - tdi
+        tm.assert_index_equal(result, expected)
+
 
 class TestAddSubNaTMasking:
     # TODO: parametrize over boxes
