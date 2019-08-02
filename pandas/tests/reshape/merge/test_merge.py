@@ -2162,11 +2162,11 @@ def test_right_merge_preserves_row_order():
         ("Carl", "Canada", 30),
     ]
     columns = ["name", "country", "population"]
-    pop = pd.DataFrame.from_records(population, columns=columns)
+    pop = DataFrame.from_records(population, columns=columns)
 
     people = [("Abe", "America"), ("Beth", "Bulgaria"), ("Carl", "Canada")]
     columns = ["name", "country"]
-    ppl = pd.DataFrame.from_records(people, columns=columns)
+    ppl = DataFrame.from_records(people, columns=columns)
 
     expected_data = [
         ("Abe", "America", np.nan),
