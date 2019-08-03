@@ -671,7 +671,7 @@ class NDFrameGroupBy(GroupBy):
             except Exception:
                 pass
 
-        if len(output) == 0:  # pragma: no cover
+        if len(output) == 0:
             raise TypeError("Transform function invalid for data types")
 
         columns = obj.columns
