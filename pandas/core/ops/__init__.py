@@ -319,6 +319,7 @@ def _get_op_name(op, special):
 # -----------------------------------------------------------------------------
 # Masking NA values and fallbacks for operations numpy does not support
 
+
 def fill_binop(left, right, fill_value):
     """
     If a non-None fill_value is given, replace null entries in left and right
@@ -445,6 +446,7 @@ def masked_arith_op(x, y, op):
 
 # -----------------------------------------------------------------------------
 # Dispatch logic
+
 
 def should_series_dispatch(left, right, op):
     """
@@ -612,6 +614,7 @@ def dispatch_to_extension_op(op, left, right):
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
 # methods
+
 
 def _get_method_wrappers(cls):
     """
