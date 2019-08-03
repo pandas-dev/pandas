@@ -4312,8 +4312,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._concat_same_dtype(to_concat, name=name)
         return Index._concat_same_dtype(self, to_concat, name=name)
 
-    @classmethod
-    def _concat_same_dtype(cls, to_concat, name):
+    def _concat_same_dtype(self, to_concat, name):
         """
         Concatenate to_concat which has the same class.
         """
