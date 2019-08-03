@@ -41,9 +41,9 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import ops
 from pandas.core.algorithms import checked_add_with_arr
 import pandas.core.common as com
+from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
@@ -90,14 +90,14 @@ def _td_array_cmp(cls, op):
                 other = Timedelta(other)
             except ValueError:
                 # failed to parse as timedelta
-                return ops.invalid_comparison(self, other, op)
+                return invalid_comparison(self, other, op)
 
             result = op(self.view("i8"), other.value)
             if isna(other):
                 result.fill(nat_result)
 
         elif not is_list_like(other):
-            return ops.invalid_comparison(self, other, op)
+            return invalid_comparison(self, other, op)
 
         elif len(other) != len(self):
             raise ValueError("Lengths must match")
@@ -106,7 +106,7 @@ def _td_array_cmp(cls, op):
             try:
                 other = type(self)._from_sequence(other)._data
             except (ValueError, TypeError):
-                return ops.invalid_comparison(self, other, op)
+                return invalid_comparison(self, other, op)
 
             result = op(self.view("i8"), other.view("i8"))
             result = com.values_from_object(result)

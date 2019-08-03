@@ -44,9 +44,10 @@ from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas._typing import DatetimeLikeScalar
-from pandas.core import missing, nanops, ops
+from pandas.core import missing, nanops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
 import pandas.core.common as com
+from pandas.core.ops.invalid import make_invalid_op
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
@@ -930,18 +931,18 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
     # pow is invalid for all three subclasses; TimedeltaArray will override
     #  the multiplication and division ops
-    __pow__ = ops.make_invalid_op("__pow__")
-    __rpow__ = ops.make_invalid_op("__rpow__")
-    __mul__ = ops.make_invalid_op("__mul__")
-    __rmul__ = ops.make_invalid_op("__rmul__")
-    __truediv__ = ops.make_invalid_op("__truediv__")
-    __rtruediv__ = ops.make_invalid_op("__rtruediv__")
-    __floordiv__ = ops.make_invalid_op("__floordiv__")
-    __rfloordiv__ = ops.make_invalid_op("__rfloordiv__")
-    __mod__ = ops.make_invalid_op("__mod__")
-    __rmod__ = ops.make_invalid_op("__rmod__")
-    __divmod__ = ops.make_invalid_op("__divmod__")
-    __rdivmod__ = ops.make_invalid_op("__rdivmod__")
+    __pow__ = make_invalid_op("__pow__")
+    __rpow__ = make_invalid_op("__rpow__")
+    __mul__ = make_invalid_op("__mul__")
+    __rmul__ = make_invalid_op("__rmul__")
+    __truediv__ = make_invalid_op("__truediv__")
+    __rtruediv__ = make_invalid_op("__rtruediv__")
+    __floordiv__ = make_invalid_op("__floordiv__")
+    __rfloordiv__ = make_invalid_op("__rfloordiv__")
+    __mod__ = make_invalid_op("__mod__")
+    __rmod__ = make_invalid_op("__rmod__")
+    __divmod__ = make_invalid_op("__divmod__")
+    __rdivmod__ = make_invalid_op("__rdivmod__")
 
     def _add_datetimelike_scalar(self, other):
         # Overriden by TimedeltaArray
