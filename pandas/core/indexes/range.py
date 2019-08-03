@@ -645,8 +645,7 @@ class RangeIndex(Int64Index):
 
         return super().join(other, how, level, return_indexers, sort)
 
-    @classmethod
-    def _concat_same_dtype(cls, indexes, name):
+    def _concat_same_dtype(self, indexes, name):
         """
         Concatenates multiple RangeIndex instances. All members of "indexes" must
         be of type RangeIndex; result will be RangeIndex if possible, Int64Index
@@ -689,11 +688,11 @@ class RangeIndex(Int64Index):
             # Get the stop value from "next" or alternatively
             # from the last non-empty index
             stop = non_empty_indexes[-1].stop if next_ is None else next_
-            return cls(start, stop, step).rename(name)
+            return RangeIndex(start, stop, step).rename(name)
 
         # Here all "indexes" had 0 length, i.e. were empty.
         # In this case return an empty range index.
-        return cls(0, 0).rename(name)
+        return RangeIndex(0, 0).rename(name)
 
     def __len__(self):
         """
