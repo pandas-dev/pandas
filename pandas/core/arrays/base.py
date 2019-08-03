@@ -874,7 +874,7 @@ class ExtensionArray:
 
         Returns
         -------
-        ExtensionArray or np.ndarray
+        ExtensionArray
         """
         # NB:
         # - This must return a *new* object referencing the same data, not self.
