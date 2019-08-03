@@ -497,9 +497,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             value = self._unbox_scalar(value)
         elif is_valid_nat_for_dtype(value, self.dtype):
             value = iNaT
-        elif not isna(value) and lib.is_integer(value) and value == iNaT:
-            # exclude misc e.g. object() and any NAs not allowed above
-            value = iNaT
         else:
             msg = (
                 "'value' should be a '{scalar}', 'NaT', or array of those. "
