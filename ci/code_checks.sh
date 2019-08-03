@@ -110,7 +110,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     # Imports - Check formatting using isort see setup.cfg for settings
     MSG='Check import format using isort ' ; echo $MSG
     if [[ "$AZURE" == "true" ]]; then
-        isort --recursive --check-only pandas asv_bench | awk '{print "##vso[task.logissue type=error;sourcepath="$2";]"substr($0, index($3, $7))""}'
+        isort --recursive --check-only pandas asv_bench | awk '{ORS=""} {print "##vso[task.logissue type=error;sourcepath="$2";]"} {$1=$2=""; print $0}'
     else
         isort --recursive --check-only pandas asv_bench |  awk -F ':' '{print $0}'
     fi
