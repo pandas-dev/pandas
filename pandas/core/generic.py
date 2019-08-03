@@ -92,6 +92,7 @@ if TYPE_CHECKING:
 
 bool_t = bool
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
+_T = TypeVar("_T")
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -276,7 +277,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # Construction
 
     @property
-    def _constructor(self: FrameOrSeries) -> FrameOrSeries:
+    def _constructor(self: FrameOrSeries) -> Type[FrameOrSeries]:
         """Used when a manipulation result has the same dimensions as the
         original.
         """
@@ -2020,7 +2021,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __array_wrap__(self: FrameOrSeries, result, context=None) -> FrameOrSeries:
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
-        return self._constructor(result, **d).__finalize__(self)
+        # https://github.com/python/mypy/issues/5382
+        return self._constructor(result, **d).__finalize__(self)  # type: ignore
 
     # ideally we would define this to avoid the getattr checks, but
     # is slower
@@ -5287,7 +5289,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Consolidation of internals
 
-    def _protect_consolidate(self, f: Callable[..., bool_t]) -> bool_t:
+    def _protect_consolidate(self, f: Callable[..., _T]) -> _T:
         """Consolidate _data -- if the blocks have changed, then clear the
         cache
         """
@@ -9056,7 +9058,10 @@ class NDFrame(PandasObject, SelectionMixin):
                 cond = np.asanyarray(cond)
             if cond.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
-            cond = self._constructor(cond, **self._construct_axes_dict())
+            # https://github.com/python/mypy/issues/5382
+            cond = self._constructor(  # type: ignore
+                cond, **self._construct_axes_dict()
+            )
 
         # make sure we are boolean
         fill_value = bool(inplace)
@@ -9148,7 +9153,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
             # we are the same shape, so create an actual object for alignment
             else:
-                other = self._constructor(other, **self._construct_axes_dict())
+                # https://github.com/python/mypy/issues/5382
+                other = self._constructor(  # type: ignore
+                    other, **self._construct_axes_dict()
+                )
 
         if axis is None:
             axis = 0
