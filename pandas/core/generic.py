@@ -21,6 +21,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 import warnings
 import weakref
@@ -64,7 +65,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import Axis, Dtype, FirstLast, IgnoreRaise, Level
+from pandas._typing import Axis, AxisInt, AxisStr, Dtype, FirstLast, IgnoreRaise, Level
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -176,9 +177,9 @@ class NDFrame(PandasObject, SelectionMixin):
     _metadata = []  # type: List[str]
     _is_copy = None
     _data = None  # type: BlockManager
-    _AXIS_ALIASES = None  # type: Dict[str, int]
-    _AXIS_NAMES = None  # type: Dict[int, str]
-    _AXIS_NUMBERS = None  # type: Dict[str, int]
+    _AXIS_ALIASES = None  # type: Dict[AxisStr, AxisInt]
+    _AXIS_NAMES = None  # type: Dict[AxisInt, AxisStr]
+    _AXIS_NUMBERS = None  # type: Dict[AxisStr, AxisInt]
     _AXIS_REVERSED = None
     _AXIS_LEN = None  # type: int
 
@@ -209,7 +210,11 @@ class NDFrame(PandasObject, SelectionMixin):
         object.__setattr__(self, "_item_cache", {})
 
     def _init_mgr(
-        self, mgr: BlockManager, axes: Dict[str, Any], dtype=None, copy: bool = False
+        self,
+        mgr: BlockManager,
+        axes: Dict[AxisStr, Any],
+        dtype=None,
+        copy: bool = False,
     ) -> BlockManager:
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
@@ -359,7 +364,7 @@ class NDFrame(PandasObject, SelectionMixin):
         assert not isinstance(ns, dict)
 
     def _construct_axes_dict(
-        self, axes: Optional[Iterable[str]] = None, **kwargs
+        self, axes: Optional[Iterable[AxisStr]] = None, **kwargs
     ) -> Dict[str, Index]:
         """Return an axes dictionary for myself."""
         d = {a: self._get_axis(a) for a in (axes or self._AXIS_ORDERS)}
@@ -434,7 +439,7 @@ class NDFrame(PandasObject, SelectionMixin):
             return cls(data, **d)
 
     @classmethod
-    def _get_axis_number(cls, axis) -> int:
+    def _get_axis_number(cls, axis) -> AxisInt:
         axis = cls._AXIS_ALIASES.get(axis, axis)
         if is_integer(axis):
             if axis in cls._AXIS_NAMES:
@@ -447,9 +452,10 @@ class NDFrame(PandasObject, SelectionMixin):
         raise ValueError("No axis named {0} for object type {1}".format(axis, cls))
 
     @classmethod
-    def _get_axis_name(cls, axis) -> str:
+    def _get_axis_name(cls, axis) -> AxisStr:
         axis = cls._AXIS_ALIASES.get(axis, axis)
         if isinstance(axis, str):
+            axis = cast(AxisStr, axis)
             if axis in cls._AXIS_NUMBERS:
                 return axis
         else:
@@ -464,7 +470,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return getattr(self, name)
 
     @classmethod
-    def _get_block_manager_axis(cls, axis: Axis) -> int:
+    def _get_block_manager_axis(cls, axis: Axis) -> AxisInt:
         """Map the axis to the block_manager axis."""
         axis = cls._get_axis_number(axis)
         if cls._AXIS_REVERSED:
@@ -701,7 +707,7 @@ class NDFrame(PandasObject, SelectionMixin):
             obj.set_axis(labels, axis=axis, inplace=True)
             return obj
 
-    def _set_axis(self, axis: int, labels) -> None:
+    def _set_axis(self, axis: AxisInt, labels) -> None:
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
 
@@ -1779,7 +1785,7 @@ class NDFrame(PandasObject, SelectionMixin):
             future version
         """
         axis = self._get_axis_number(axis)
-        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
+        other_axes = [cast(AxisInt, ax) for ax in range(self._AXIS_LEN) if ax != axis]
 
         if self._is_label_reference(key, axis=axis):
             self._check_label_or_level_ambiguity(key, axis=axis)
@@ -3970,7 +3976,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_axis = ax.drop(labels, level=level, errors=errors)
             else:
                 new_axis = ax.drop(labels, errors=errors)
-            result = self.reindex(**{axis_name: new_axis})
+            result = self.reindex(**{cast(str, axis_name): new_axis})
 
         # Case for non-unique axis
         else:

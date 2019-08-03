@@ -18,10 +18,15 @@ if TYPE_CHECKING:
 
     IgnoreRaise = Literal["ignore", "raise"]
     FirstLast = Literal["first", "last"]
+    AxisInt = Literal[0, 1]
+    AxisStr = Literal["index", "columns"]
+    Axis = Literal[AxisInt, AxisStr]
 else:
     IgnoreRaise = str
     FirstLast = str
-
+    AxisInt = int
+    AxisStr = str
+    Axis = Union[str, int]
 
 AnyArrayLike = TypeVar(
     "AnyArrayLike", "ExtensionArray", "Index", "Series", "SparseSeries", np.ndarray
@@ -33,6 +38,5 @@ FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
 FrameOrSeries = TypeVar("FrameOrSeries", "Series", "DataFrame")
 Scalar = Union[str, int, float]
-Axis = Union[str, int]
 Ordered = Optional[bool]
 Level = Union[str, int]
