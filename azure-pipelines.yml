@@ -30,14 +30,11 @@ jobs:
     displayName: 'Setting environment variables'
 
   # Do not require a conda environment
-  - script: |
-#      export PATH=$HOME/miniconda3/bin:$PATH
-      ci/code_checks.sh patterns
+  - script: ci/code_checks.sh patterns
     displayName: 'Looking for unwanted patterns'
     condition: true
 
   - script: |
-#      export PATH=$HOME/miniconda3/bin:$PATH
       sudo apt-get install -y libc6-dev-i386
       ci/setup_env.sh
     displayName: 'Setup environment and build pandas'
@@ -45,14 +42,12 @@ jobs:
 
   # Do not require pandas
   - script: |
-#      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh lint
     displayName: 'Linting'
     condition: true
 
   - script: |
-#      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh dependencies
     displayName: 'Dependencies consistency'
@@ -60,42 +55,36 @@ jobs:
 
   # Require pandas
   - script: |
-#      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh code
     displayName: 'Checks on imported code'
     condition: true
 
   - script: |
-#      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh doctests
     displayName: 'Running doctests'
     condition: true
 
   - script: |
-#      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh docstrings
     displayName: 'Docstring validation'
     condition: true
 
   - script: |
-#      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh typing
     displayName: 'Typing validation'
     condition: true
 
   - script: |
-#      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       pytest --capture=no --strict scripts
     displayName: 'Testing docstring validaton script'
     condition: true
 
   - script: |
-#      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       cd asv_bench
       asv check -E existing
@@ -122,18 +111,15 @@ jobs:
     vmImage: ubuntu-16.04
   timeoutInMinutes: 90
   steps:
-  - script: |
-      echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
+  - script: echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
     displayName: 'Setting environment variables'
 
   - script: |
-#      export PATH=$HOME/miniconda3/bin:$PATH
       sudo apt-get install -y libc6-dev-i386
       ci/setup_env.sh
     displayName: 'Setup environment and build pandas'
 
   - script: |
-#      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       # Next we should simply have `doc/make.py --warnings-are-errors`, everything else is required because the ipython directive doesn't fail the build on errors (https://github.com/ipython/ipython/issues/11547)
       doc/make.py --warnings-are-errors | tee sphinx.log ; SPHINX_RET=${PIPESTATUS[0]}
@@ -141,20 +127,20 @@ jobs:
       exit $(( $SPHINX_RET + $IPY_RET ))
     displayName: 'Build documentation'
 
-  - script: |
-      cd doc/build/html
-      git init
-      touch .nojekyll
-      echo "dev.pandas.io" > CNAME
-      printf "User-agent: *\nDisallow: /" > robots.txt
-      git add --all .
-      git config user.email "pandas-dev@python.org"
-      git config user.name "pandas-docs-bot"
-      git commit -m "pandas documentation in master"
-    displayName: 'Create git repo for docs build'
-    condition : |
-      and(not(eq(variables['Build.Reason'], 'PullRequest')),
-          eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+#  - script: |
+#      cd doc/build/html
+#      git init
+#      touch .nojekyll
+#      echo "dev.pandas.io" > CNAME
+#      printf "User-agent: *\nDisallow: /" > robots.txt
+#      git add --all .
+#      git config user.email "pandas-dev@python.org"
+#      git config user.name "pandas-docs-bot"
+#      git commit -m "pandas documentation in master"
+#    displayName: 'Create git repo for docs build'
+#    condition : |
+#      and(not(eq(variables['Build.Reason'], 'PullRequest')),
+#          eq(variables['Build.SourceBranch'], 'refs/heads/master'))
 
   # For `InstallSSHKey@0` to work, next steps are required:
   # 1. Generate a pair of private/public keys (i.e. `ssh-keygen -t rsa -b 4096 -C "your_email@example.com"`)
