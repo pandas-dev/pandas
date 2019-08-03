@@ -10,7 +10,8 @@ import lzma
 import mmap
 import os
 import pathlib
-from typing import IO, AnyStr, BinaryIO, Optional, TextIO, Type
+from pathlib import Path
+from typing import IO, AnyStr, BinaryIO, Optional, TextIO, Tuple, Type, Union, overload
 from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
     urlencode,
@@ -126,9 +127,17 @@ def _validate_header_arg(header) -> None:
         )
 
 
-def _stringify_path(
-    filepath_or_buffer: FilePathOrBuffer[AnyStr]
-) -> FilePathOrBuffer[AnyStr]:
+@overload
+def _stringify_path(filepath_or_buffer: Union[str, Path]) -> str:
+    ...
+
+
+@overload
+def _stringify_path(filepath_or_buffer: IO[AnyStr]) -> IO[AnyStr]:
+    ...
+
+
+def _stringify_path(filepath_or_buffer):
     """Attempt to convert a path-like object to a string.
 
     Parameters
@@ -174,11 +183,28 @@ def is_gcs_url(url) -> bool:
         return False
 
 
+@overload
 def get_filepath_or_buffer(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: IO[AnyStr],
     encoding: Optional[str] = None,
     compression: Optional[str] = None,
     mode: Optional[str] = None,
+) -> Tuple[IO[AnyStr], Optional[str], Optional[str], bool]:
+    ...
+
+
+@overload
+def get_filepath_or_buffer(
+    filepath_or_buffer: Union[str, Path],
+    encoding: Optional[str] = None,
+    compression: Optional[str] = None,
+    mode: Optional[str] = None,
+) -> Tuple[Union[str, IO], Optional[str], Optional[str], bool]:
+    ...
+
+
+def get_filepath_or_buffer(
+    filepath_or_buffer, encoding=None, compression=None, mode=None
 ):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.

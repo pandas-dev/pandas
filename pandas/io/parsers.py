@@ -458,7 +458,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     finally:
         parser.close()
 
-    if should_close:
+    if should_close and not isinstance(fp_or_buf, str):
         try:
             fp_or_buf.close()
         except ValueError:
