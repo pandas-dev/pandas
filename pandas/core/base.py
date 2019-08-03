@@ -687,8 +687,9 @@ class IndexOpsMixin:
 
     T = property(
         transpose,
-        doc="""\nReturn the transpose, which is by
-                                definition self.\n""",
+        doc="""
+        Return the transpose, which is by definition self.
+        """,
     )
 
     @property
