@@ -397,6 +397,11 @@ class _OpenpyxlWriter(ExcelWriter):
 
         _style_cache = {}
 
+        # Update sheet list
+        self.sheets = {}
+        for wks in self.book.worksheets:
+            self.sheets[wks.title] = wks
+
         if sheet_name in self.sheets:
             wks = self.sheets[sheet_name]
         else:
