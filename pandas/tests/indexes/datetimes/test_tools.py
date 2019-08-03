@@ -1623,6 +1623,16 @@ class TestToDatetimeMisc:
         tm.assert_index_equal(expected, idx5)
         tm.assert_index_equal(expected, idx6)
 
+    def test_to_datetime_dta_tz(self):
+        dti = date_range("2015-04-05", periods=3).rename("foo")
+        expected = dti.tz_localize("UTC")
+        result = to_datetime(dti, utc=True)
+        tm.assert_index_equal(result, expected)
+
+        dta = dti._data
+        result = to_datetime(dta, utc=True)
+        tm.assert_equal(result, expected._data)
+
 
 class TestGuessDatetimeFormat:
     @td.skip_if_not_us_locale
