@@ -123,19 +123,21 @@ cdef class _NaT(datetime):
             return c_NaT
         elif getattr(other, '_typ', None) in ['dateoffset', 'series',
                                               'period', 'datetimeindex',
-                                              'timedeltaindex']:
+                                              'timedeltaindex',
+                                              'timedeltaarray']:
             # Duplicate logic in _Timestamp.__add__ to avoid needing
             # to subclass; allows us to @final(_Timestamp.__add__)
             return NotImplemented
+        # FIXME: aren't there a tone of cases where this will be wrong?
         return c_NaT
 
     def __sub__(self, other):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
         # to subclass; allows us to @final(_Timestamp.__sub__)
         if PyDateTime_Check(other):
-            return NaT
+            return c_NaT
         elif PyDelta_Check(other):
-            return NaT
+            return c_NaT
 
         elif getattr(other, '_typ', None) == 'datetimeindex':
             # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
@@ -151,10 +153,11 @@ cdef class _NaT(datetime):
             return self + neg_other
 
         elif getattr(other, '_typ', None) in ['period', 'series',
-                                              'periodindex', 'dateoffset']:
+                                              'periodindex', 'dateoffset',
+                                              'timedeltaarray']:
             return NotImplemented
-
-        return NaT
+        # FIXME: aren't there a tone of cases where this will be wrong?
+        return c_NaT
 
     def __pos__(self):
         return NaT
