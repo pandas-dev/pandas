@@ -111,7 +111,9 @@ jobs:
     vmImage: ubuntu-16.04
   timeoutInMinutes: 90
   steps:
-  - script: echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
+  - script: |
+      echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
+      echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
     displayName: 'Setting environment variables'
 
   - script: |

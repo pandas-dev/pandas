@@ -18,6 +18,7 @@ jobs:
 
   steps:
     - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+    - powershell: Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
       displayName: 'Add conda to PATH'
     - script: conda update -q -n base conda
       displayName: Update conda
@@ -52,7 +53,6 @@ jobs:
         }
       displayName: 'Check for test failures'
     - script: |
-        export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         python ci/print_skipped.py
       displayName: 'Print skipped tests'
