@@ -990,6 +990,7 @@ def _arith_method_SERIES(cls, op, special):
 
         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
             from pandas.core.arrays import DatetimeArray
+
             result = dispatch_to_extension_op(op, DatetimeArray(left), right)
             return construct_result(left, result, index=left.index, name=res_name)
 
@@ -1001,7 +1002,9 @@ def _arith_method_SERIES(cls, op, special):
             return construct_result(left, result, index=left.index, name=res_name)
 
         elif is_timedelta64_dtype(left):
-            result = dispatch_to_index_op(op, left, right, pd.TimedeltaIndex)
+            from pandas.core.arrays import TimedeltaArray
+
+            result = dispatch_to_extension_op(op, TimedeltaArray(left), right)
             return construct_result(left, result, index=left.index, name=res_name)
 
         elif is_timedelta64_dtype(right):
@@ -1151,11 +1154,13 @@ def _comp_method_SERIES(cls, op, special):
             # Dispatch to DatetimeIndex to ensure identical
             # Series/Index behavior
             from pandas.core.arrays import DatetimeArray
+
             res_values = dispatch_to_extension_op(op, DatetimeArray(self), other)
             return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_timedelta64_dtype(self):
             from pandas.core.arrays import TimedeltaArray
+
             res_values = dispatch_to_extension_op(op, TimedeltaArray(self), other)
             return self._constructor(res_values, index=self.index, name=res_name)
 
