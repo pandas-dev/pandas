@@ -173,6 +173,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     _data = None
 
     _engine_type = libindex.PeriodEngine
+    _supports_partial_string_indexing = True
 
     # ------------------------------------------------------------------------
     # Index Constructors
