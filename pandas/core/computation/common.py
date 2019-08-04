@@ -40,4 +40,4 @@ class NameResolutionError(NameError):
 
 class StringMixin:
     # TODO: delete this class. Removing this ATM caused a failure.
-    ...
+    pass

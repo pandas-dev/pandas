@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import is_list_like
 import pandas as pd
 import pandas.core.common as com
 from pandas.core.computation import expr, ops
-from pandas.core.computation.common import StringMixin, _ensure_decoded
+from pandas.core.computation.common import _ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.ops import UndefinedVariableError, is_term
 
@@ -31,8 +31,7 @@ class Scope(expr.Scope):
 class Term(ops.Term):
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, str) else cls
-        supr_new = StringMixin.__new__
-        return supr_new(klass)
+        return object.__new__(klass)
 
     def __init__(self, name, env, side=None, encoding=None):
         super().__init__(name, env, side=side, encoding=encoding)
