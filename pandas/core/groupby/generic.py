@@ -361,7 +361,7 @@ class NDFrameGroupBy(GroupBy):
         # GH12824.
         def first_not_none(values):
             try:
-                return next(com._not_none(*values))
+                return next(com.not_none(*values))
             except StopIteration:
                 return None
 
@@ -671,7 +671,7 @@ class NDFrameGroupBy(GroupBy):
             except Exception:
                 pass
 
-        if len(output) == 0:  # pragma: no cover
+        if len(output) == 0:
             raise TypeError("Transform function invalid for data types")
 
         columns = obj.columns

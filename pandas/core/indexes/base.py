@@ -243,6 +243,9 @@ class Index(IndexOpsMixin, PandasObject):
     _infer_as_myclass = False
 
     _engine_type = libindex.ObjectEngine
+    # whether we support partial string indexing. Overridden
+    # in DatetimeIndex and PeriodIndex
+    _supports_partial_string_indexing = False
 
     _accessors = {"str"}
 
@@ -450,7 +453,8 @@ class Index(IndexOpsMixin, PandasObject):
                         pass
 
                     return Index(subarr, copy=copy, dtype=object, name=name)
-                elif inferred in ["floating", "mixed-integer-float"]:
+                elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
+                    # TODO: Returns IntegerArray for integer-na case in the future
                     from .numeric import Float64Index
 
                     return Float64Index(subarr, copy=copy, name=name)
@@ -1787,7 +1791,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self.inferred_type in ["integer"]
 
     def is_floating(self):
-        return self.inferred_type in ["floating", "mixed-integer-float"]
+        return self.inferred_type in ["floating", "mixed-integer-float", "integer-na"]
 
     def is_numeric(self):
         return self.inferred_type in ["integer", "floating"]
@@ -3096,6 +3100,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if self.inferred_type not in [
                     "floating",
                     "mixed-integer-float",
+                    "integer-na",
                     "string",
                     "unicode",
                     "mixed",
@@ -3173,7 +3178,7 @@ class Index(IndexOpsMixin, PandasObject):
                     self.get_loc(stop)
                 is_positional = False
         except KeyError:
-            if self.inferred_type == "mixed-integer-float":
+            if self.inferred_type in ["mixed-integer-float", "integer-na"]:
                 raise
 
         if is_null_slicer:
@@ -3586,8 +3591,8 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.reshape.merge import _restore_dropped_levels_multijoin
 
         # figure out join names
-        self_names = set(com._not_none(*self.names))
-        other_names = set(com._not_none(*other.names))
+        self_names = set(com.not_none(*self.names))
+        other_names = set(com.not_none(*other.names))
         overlap = self_names & other_names
 
         # need at least 1 in common

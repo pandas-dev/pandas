@@ -552,10 +552,10 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, False)
 
-    def astype(self, dtype, copy=False, errors="raise", values=None, **kwargs):
-        return self._astype(dtype, copy=copy, errors=errors, values=values, **kwargs)
+    def astype(self, dtype, copy=False, errors="raise", **kwargs):
+        return self._astype(dtype, copy=copy, errors=errors, **kwargs)
 
-    def _astype(self, dtype, copy=False, errors="raise", values=None, **kwargs):
+    def _astype(self, dtype, copy=False, errors="raise", **kwargs):
         """Coerce to the new type
 
         Parameters
@@ -599,7 +599,7 @@ class Block(PandasObject):
 
             categories = kwargs.get("categories", None)
             ordered = kwargs.get("ordered", None)
-            if com._any_not_none(categories, ordered):
+            if com.any_not_none(categories, ordered):
                 dtype = CategoricalDtype(categories, ordered)
 
             if is_categorical_dtype(self.values):
@@ -616,42 +616,39 @@ class Block(PandasObject):
                 return self.copy()
             return self
 
-        if values is None:
-            try:
-                # force the copy here
-                if self.is_extension:
-                    values = self.values.astype(dtype)
-                else:
-                    if issubclass(dtype.type, str):
-
-                        # use native type formatting for datetime/tz/timedelta
-                        if self.is_datelike:
-                            values = self.to_native_types()
-
-                        # astype formatting
-                        else:
-                            values = self.get_values()
-
-                    else:
-                        values = self.get_values(dtype=dtype)
-
-                    # _astype_nansafe works fine with 1-d only
-                    vals1d = values.ravel()
-                    values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
-
-                # TODO(extension)
-                # should we make this attribute?
-                if isinstance(values, np.ndarray):
-                    values = values.reshape(self.shape)
-
-            except Exception:
-                # e.g. astype_nansafe can fail on object-dtype of strings
-                #  trying to convert to float
-                if errors == "raise":
-                    raise
-                newb = self.copy() if copy else self
+        try:
+            # force the copy here
+            if self.is_extension:
+                values = self.values.astype(dtype)
             else:
-                newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
+                if issubclass(dtype.type, str):
+
+                    # use native type formatting for datetime/tz/timedelta
+                    if self.is_datelike:
+                        values = self.to_native_types()
+
+                    # astype formatting
+                    else:
+                        values = self.get_values()
+
+                else:
+                    values = self.get_values(dtype=dtype)
+
+                # _astype_nansafe works fine with 1-d only
+                vals1d = values.ravel()
+                values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
+
+            # TODO(extension)
+            # should we make this attribute?
+            if isinstance(values, np.ndarray):
+                values = values.reshape(self.shape)
+
+        except Exception:
+            # e.g. astype_nansafe can fail on object-dtype of strings
+            #  trying to convert to float
+            if errors == "raise":
+                raise
+            newb = self.copy() if copy else self
         else:
             newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
 
@@ -763,7 +760,7 @@ class Block(PandasObject):
         values[mask] = na_rep
         return values
 
-    # block actions ####
+    # block actions #
     def copy(self, deep=True):
         """ copy constructor """
         values = self.values
@@ -1223,7 +1220,6 @@ class Block(PandasObject):
             fill_value=fill_value,
             dtype=self.dtype,
         )
-        values = self._try_coerce_result(values)
 
         blocks = [self.make_block_same_class(values, ndim=self.ndim)]
         return self._maybe_downcast(blocks, downcast)
@@ -1526,18 +1522,7 @@ class Block(PandasObject):
         # We should always have ndim == 2 becase Series dispatches to DataFrame
         assert self.ndim == 2
 
-        if self.is_datetimetz:
-            # TODO: cleanup this special case.
-            # We need to operate on i8 values for datetimetz
-            # but `Block.get_values()` returns an ndarray of objects
-            # right now. We need an API for "values to do numeric-like ops on"
-            values = self.values.view("M8[ns]")
-
-            # TODO: NonConsolidatableMixin shape
-            # Usual shape inconsistencies for ExtensionBlocks
-            values = values[None, :]
-        else:
-            values = self.get_values()
+        values = self.get_values()
 
         is_empty = values.shape[axis] == 0
         orig_scalar = not is_list_like(qs)
@@ -1553,16 +1538,14 @@ class Block(PandasObject):
             ).reshape(len(values), len(qs))
         else:
             # asarray needed for Sparse, see GH#24600
-            # Note: we use self.values below instead of values because the
-            #  `asi8` conversion above will behave differently under `isna`
-            mask = np.asarray(isna(self.values))
+            mask = np.asarray(isna(values))
             result = nanpercentile(
                 values,
                 np.array(qs) * 100,
                 axis=axis,
                 na_value=self.fill_value,
                 mask=mask,
-                ndim=self.ndim,
+                ndim=values.ndim,
                 interpolation=interpolation,
             )
 
@@ -1576,7 +1559,6 @@ class Block(PandasObject):
             result = lib.item_from_zerodim(result)
 
         ndim = getattr(result, "ndim", None) or 0
-        result = self._try_coerce_result(result)
         return make_block(result, placement=np.arange(len(result)), ndim=ndim)
 
     def _replace_coerce(
@@ -2248,7 +2230,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if tipo is not None:
             if self.is_datetimetz:
                 # require exact match, since non-nano does not exist
-                return is_dtype_equal(tipo, self.dtype)
+                return is_dtype_equal(tipo, self.dtype) or is_valid_nat_for_dtype(
+                    element, self.dtype
+                )
 
             # GH#27419 if we get a non-nano datetime64 object
             return is_datetime64_dtype(tipo)
@@ -2292,13 +2276,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             raise TypeError(other)
 
         return other
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray) and result.dtype.kind == "i":
-            # needed for _interpolate_with_ffill
-            result = result.view("M8[ns]")
-        return result
 
     def to_native_types(
         self, slicer=None, na_rep=None, date_format=None, quoting=None, **kwargs
@@ -2477,20 +2454,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
                 result = self._holder._from_sequence(
                     result.astype(np.int64), freq=None, dtype=self.values.dtype
                 )
-            elif result.dtype == "M8[ns]":
-                # otherwise we get here via quantile and already have M8[ns]
-                result = self._holder._simple_new(
-                    result, freq=None, dtype=self.values.dtype
-                )
 
-        elif isinstance(result, np.datetime64):
-            # also for post-quantile
-            result = self._box_func(result)
         return result
-
-    @property
-    def _box_func(self):
-        return lambda x: tslibs.Timestamp(x, tz=self.dtype.tz)
 
     def diff(self, n, axis=0):
         """1st discrete difference
@@ -2537,32 +2502,47 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # We support filling a DatetimeTZ with a `value` whose timezone
         # is different by coercing to object.
-        try:
+        if self._can_hold_element(value):
             return super().fillna(value, limit, inplace, downcast)
-        except (ValueError, TypeError):
-            # different timezones, or a non-tz
-            return self.astype(object).fillna(
-                value, limit=limit, inplace=inplace, downcast=downcast
-            )
+
+        # different timezones, or a non-tz
+        return self.astype(object).fillna(
+            value, limit=limit, inplace=inplace, downcast=downcast
+        )
 
     def setitem(self, indexer, value):
         # https://github.com/pandas-dev/pandas/issues/24020
         # Need a dedicated setitem until #24020 (type promotion in setitem
         # for extension arrays) is designed and implemented.
-        try:
+        if self._can_hold_element(value) or (
+            isinstance(indexer, np.ndarray) and indexer.size == 0
+        ):
             return super().setitem(indexer, value)
-        except (ValueError, TypeError):
-            obj_vals = self.values.astype(object)
-            newb = make_block(
-                obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
-            )
-            return newb.setitem(indexer, value)
+
+        obj_vals = self.values.astype(object)
+        newb = make_block(
+            obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
+        )
+        return newb.setitem(indexer, value)
 
     def equals(self, other):
         # override for significant performance improvement
         if self.dtype != other.dtype or self.shape != other.shape:
             return False
         return (self.values.view("i8") == other.values.view("i8")).all()
+
+    def quantile(self, qs, interpolation="linear", axis=0):
+        naive = self.values.view("M8[ns]")
+
+        # kludge for 2D block with 1D values
+        naive = naive.reshape(self.shape)
+
+        blk = self.make_block(naive)
+        res_blk = blk.quantile(qs, interpolation=interpolation, axis=axis)
+
+        # ravel is kludge for 2D block with 1D values, assumes column-like
+        aware = self._holder(res_blk.values.ravel(), dtype=self.dtype)
+        return self.make_block_same_class(aware, ndim=res_blk.ndim)
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
