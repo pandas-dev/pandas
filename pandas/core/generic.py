@@ -1124,7 +1124,7 @@ class NDFrame(PandasObject, SelectionMixin):
             v = axes.get(self._AXIS_NAMES[axis])
             if v is None:
                 continue
-            f = com._get_rename_function(v)
+            f = com.get_rename_function(v)
             baxis = self._get_block_manager_axis(axis)
             if level is not None:
                 level = self.axes[axis]._get_level_number(level)
@@ -1312,7 +1312,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if non_mapper:
                     newnames = v
                 else:
-                    f = com._get_rename_function(v)
+                    f = com.get_rename_function(v)
                     curnames = self._get_axis(axis).names
                     newnames = [f(name) for name in curnames]
                 result._set_axis_name(newnames, axis=axis, inplace=True)
@@ -4993,7 +4993,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs["pipe"] % _shared_doc_kwargs)
     def pipe(self, func, *args, **kwargs):
-        return com._pipe(self, func, *args, **kwargs)
+        return com.pipe(self, func, *args, **kwargs)
 
     _shared_docs["aggregate"] = dedent(
         """

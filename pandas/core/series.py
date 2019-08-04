@@ -1182,7 +1182,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_values_tuple(self, key):
         # mpl hackaround
-        if com._any_none(*key):
+        if com.any_none(*key):
             return self._get_values(key)
 
         if not isinstance(self.index, MultiIndex):

@@ -1958,7 +1958,7 @@ def _should_fill(lname, rname):
 
 
 def _any(x):
-    return x is not None and com._any_not_none(*x)
+    return x is not None and com.any_not_none(*x)
 
 
 def validate_operand(obj):
