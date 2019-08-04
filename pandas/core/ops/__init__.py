@@ -49,16 +49,15 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas as pd
 from pandas._typing import ArrayLike
 import pandas.core.common as com
-
-from . import missing
-from .docstrings import (
+from pandas.core.ops import missing
+from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
     _make_flex_doc,
     _op_descriptions,
 )
-from .invalid import invalid_comparison
-from .roperator import (  # noqa:F401
+from pandas.core.ops.invalid import invalid_comparison
+from pandas.core.ops.roperator import (  # noqa:F401
     radd,
     rand_,
     rdiv,
