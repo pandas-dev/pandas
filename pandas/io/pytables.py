@@ -998,7 +998,7 @@ class HDFStore:
                 return None
 
         # remove the node
-        if com._all_none(where, start, stop):
+        if com.all_none(where, start, stop):
             s.group._f_remove(recursive=True)
 
         # delete from the table
@@ -2634,7 +2634,7 @@ class Fixed:
         support fully deleting the node in its entirety (only) - where
         specification must be None
         """
-        if com._all_none(where, start, stop):
+        if com.all_none(where, start, stop):
             self._handle.remove_node(self.group, recursive=True)
             return None
 

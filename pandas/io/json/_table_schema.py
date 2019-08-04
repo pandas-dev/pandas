@@ -76,7 +76,7 @@ def as_json_table_type(x):
 
 def set_default_names(data):
     """Sets index names to 'index' for regular, or 'level_x' for Multi"""
-    if com._all_not_none(*data.index.names):
+    if com.all_not_none(*data.index.names):
         nms = data.index.names
         if len(nms) == 1 and data.index.name == "index":
             warnings.warn("Index name of 'index' is not round-trippable")
