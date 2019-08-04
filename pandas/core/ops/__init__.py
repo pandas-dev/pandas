@@ -1150,12 +1150,13 @@ def _comp_method_SERIES(cls, op, special):
         elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
             # Dispatch to DatetimeIndex to ensure identical
             # Series/Index behavior
-
-            res_values = dispatch_to_index_op(op, self, other, pd.DatetimeIndex)
+            from pandas.core.arrays import DatetimeArray
+            res_values = dispatch_to_extension_op(op, DatetimeArray(self), other)
             return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_timedelta64_dtype(self):
-            res_values = dispatch_to_index_op(op, self, other, pd.TimedeltaIndex)
+            from pandas.core.arrays import TimedeltaArray
+            res_values = dispatch_to_extension_op(op, TimedeltaArray(self), other)
             return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_extension_array_dtype(self) or (
