@@ -1122,9 +1122,7 @@ def _comp_method_SERIES(cls, op, special):
             # Note: the `not is_scalar(other)` condition rules out
             # e.g. other == "category"
             res_values = dispatch_to_extension_op(op, self, other)
-            return self._constructor(
-                res_values, index=self.index, name=res_name
-            ).rename(res_name)
+            return self._constructor(res_values, index=self.index).rename(res_name)
 
         elif isinstance(other, ABCSeries):
             # By this point we have checked that self._indexed_same(other)
