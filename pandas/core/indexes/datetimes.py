@@ -238,6 +238,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     )
 
     _engine_type = libindex.DatetimeEngine
+    _supports_partial_string_indexing = True
 
     _tz = None
     _freq = None
