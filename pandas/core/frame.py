@@ -732,7 +732,6 @@ class DataFrame(NDFrame):
 
         formatter = fmt.DataFrameFormatter(
             self,
-            buf=buf,
             columns=columns,
             col_space=col_space,
             na_rep=na_rep,
@@ -750,11 +749,7 @@ class DataFrame(NDFrame):
             decimal=decimal,
             line_width=line_width,
         )
-        formatter.to_string()
-
-        if buf is None:
-            result = formatter.buf.getvalue()
-            return result
+        return formatter.to_string(buf=buf)
 
     # ----------------------------------------------------------------------
 
@@ -2273,7 +2268,6 @@ class DataFrame(NDFrame):
 
         formatter = fmt.DataFrameFormatter(
             self,
-            buf=buf,
             columns=columns,
             col_space=col_space,
             na_rep=na_rep,
@@ -2294,10 +2288,9 @@ class DataFrame(NDFrame):
             render_links=render_links,
         )
         # TODO: a generic formatter wld b in DataFrameFormatter
-        formatter.to_html(classes=classes, notebook=notebook, border=border)
-
-        if buf is None:
-            return formatter.buf.getvalue()
+        return formatter.to_html(
+            buf=buf, classes=classes, notebook=notebook, border=border
+        )
 
     # ----------------------------------------------------------------------
 

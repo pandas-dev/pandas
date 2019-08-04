@@ -12,6 +12,7 @@ from pandas.errors import PerformanceWarning
 import pandas as pd
 from pandas import Period, PeriodIndex, Series, period_range
 from pandas.core import ops
+from pandas.core.arrays import TimedeltaArray
 import pandas.util.testing as tm
 
 from pandas.tseries.frequencies import to_offset
@@ -1003,6 +1004,33 @@ class TestPeriodIndexArithmetic:
 
         obj = tm.box_expected(pi, box, transpose=transpose)
         expected = tm.box_expected(expected, box, transpose=transpose)
+
+        result = obj + other
+        tm.assert_equal(result, expected)
+        result = other + obj
+        tm.assert_equal(result, expected)
+        result = obj - other
+        tm.assert_equal(result, expected)
+        with pytest.raises(TypeError):
+            other - obj
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            np.array(["NaT"] * 9, dtype="m8[ns]"),
+            TimedeltaArray._from_sequence(["NaT"] * 9),
+        ],
+    )
+    def test_parr_add_sub_tdt64_nat_array(self, box_df_fail, other):
+        # FIXME: DataFrame fails because when when operating column-wise
+        #  timedelta64 entries become NaT and are treated like datetimes
+        box = box_df_fail
+
+        pi = pd.period_range("1994-04-01", periods=9, freq="19D")
+        expected = pd.PeriodIndex(["NaT"] * 9, freq="19D")
+
+        obj = tm.box_expected(pi, box)
+        expected = tm.box_expected(expected, box)
 
         result = obj + other
         tm.assert_equal(result, expected)
