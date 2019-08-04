@@ -483,24 +483,6 @@ class BaseGrouper:
             #  2D EA is allowed.
             values = values.view("M8[ns]")
 
-        arity = self._cython_arity.get(how, 1)
-
-        vdim = values.ndim
-        swapped = False
-        if vdim == 1:
-            values = values[:, None]
-            out_shape = (self.ngroups, arity)
-        else:
-            if axis > 0:
-                swapped = True
-                assert axis == 1, axis
-                values = values.T
-            if arity > 1:
-                raise NotImplementedError(
-                    "arity of more than 1 is not supported for the 'how' argument"
-                )
-            out_shape = (self.ngroups,) + values.shape[1:]
-
         is_datetimelike = needs_i8_conversion(values.dtype)
         is_numeric = is_numeric_dtype(values.dtype)
 
@@ -520,6 +502,24 @@ class BaseGrouper:
             values = ensure_float64(values)
         else:
             values = values.astype(object)
+
+        arity = self._cython_arity.get(how, 1)
+
+        vdim = values.ndim
+        swapped = False
+        if vdim == 1:
+            values = values[:, None]
+            out_shape = (self.ngroups, arity)
+        else:
+            if axis > 0:
+                swapped = True
+                assert axis == 1, axis
+                values = values.T
+            if arity > 1:
+                raise NotImplementedError(
+                    "arity of more than 1 is not supported for the 'how' argument"
+                )
+            out_shape = (self.ngroups,) + values.shape[1:]
 
         try:
             func = self._get_cython_function(kind, how, values, is_numeric)
