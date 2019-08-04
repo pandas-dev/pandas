@@ -334,7 +334,7 @@ def _convert_listlike_datetimes(
                 return DatetimeIndex(arg, tz=tz, name=name)
             except ValueError:
                 pass
-        elif box and tz:
+        elif tz:
             # DatetimeArray, DatetimeIndex
             return arg.tz_localize(tz)
 

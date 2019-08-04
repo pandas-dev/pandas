@@ -1629,7 +1629,7 @@ class TestToDatetimeMisc:
         result = to_datetime(dti, utc=True)
         tm.assert_index_equal(result, expected)
 
-        dta = dti._data
+        dta = dti.array
         result = to_datetime(dta, utc=True)
         tm.assert_equal(result, expected._data)
 
