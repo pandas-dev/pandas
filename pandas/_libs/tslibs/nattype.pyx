@@ -123,7 +123,9 @@ cdef class _NaT(datetime):
             return c_NaT
         elif getattr(other, '_typ', None) in ['dateoffset', 'series',
                                               'period', 'datetimeindex',
-                                              'timedeltaindex']:
+                                              'datetimearray',
+                                              'timedeltaindex',
+                                              'timedeltaarray']:
             # Duplicate logic in _Timestamp.__add__ to avoid needing
             # to subclass; allows us to @final(_Timestamp.__add__)
             return NotImplemented
@@ -151,9 +153,10 @@ cdef class _NaT(datetime):
             return self + neg_other
 
         elif getattr(other, '_typ', None) in ['period', 'series',
-                                              'periodindex', 'dateoffset']:
+                                              'periodindex', 'dateoffset',
+                                              'datetimearray',
+                                              'timedeltaarray']:
             return NotImplemented
-
         return NaT
 
     def __pos__(self):
