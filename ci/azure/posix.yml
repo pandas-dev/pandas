@@ -61,12 +61,10 @@ jobs:
         echo '##vso[task.prependpath]$HOME/miniconda3/bin'
       displayName: 'Setup environment and build pandas'
     - script: |
-#        export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         ci/run_tests.sh
       displayName: 'Test'
     - script: |
-#        export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
     - task: PublishTestResults@2
       inputs:
@@ -98,7 +96,6 @@ jobs:
         }
       displayName: 'Check for test failures'
     - script: |
-#        export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         python ci/print_skipped.py
       displayName: 'Print skipped tests'

@@ -17,8 +17,9 @@ jobs:
         CONDA_PY: "37"
 
   steps:
-    - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
-    - powershell: Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
+    - powershell: |
+        Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+        Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
       displayName: 'Add conda to PATH'
     - script: conda update -q -n base conda
       displayName: Update conda
