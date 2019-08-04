@@ -1014,7 +1014,7 @@ def _arith_method_SERIES(cls, op, special):
         elif is_timedelta64_dtype(right):
             # We should only get here with non-scalar values for right
             #  upcast by maybe_upcast_for_op
-            assert not is_scalar(right) and not isinstance(right, np.ndarray)
+            assert not isinstance(right, (np.timedelta64, np.ndarray))
 
             result = op(left._values, right)
 
