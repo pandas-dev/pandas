@@ -9,7 +9,12 @@ from pandas.util._decorators import Appender
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDatetimeArray,
+    ABCIndexClass,
+    ABCSeries,
+    ABCTimedeltaArray,
+)
 from pandas.core.dtypes.inference import is_array_like, is_list_like
 from pandas.core.dtypes.missing import isna
 
@@ -125,7 +130,11 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
-            raise ValueError("'values' must be a NumPy array.")
+            raise ValueError(
+                "'values' must be a NumPy array, not {typ}".format(
+                    typ=type(values).__name__
+                )
+            )
 
         if values.ndim != 1:
             raise ValueError("PandasArray must be 1-dimensional.")
@@ -437,8 +446,12 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     @classmethod
     def _create_arithmetic_method(cls, op):
         def arithmetic_method(self, other):
-            if isinstance(other, (ABCIndexClass, ABCSeries)):
+            if isinstance(
+                other, (ABCIndexClass, ABCSeries, ABCDatetimeArray, ABCTimedeltaArray)
+            ):
+                # Defer to DatetimeArray, TimedeltaArray
                 return NotImplemented
+                # TODO: also for IntegerArray?
 
             elif isinstance(other, cls):
                 other = other._ndarray

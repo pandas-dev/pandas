@@ -190,9 +190,7 @@ class DatelikeOps:
                'March 10, 2018, 09:00:02 AM'],
               dtype='object')
         """
-        from pandas import Index
-
-        return Index(self._format_native_types(date_format=date_format))
+        return self._format_native_types(date_format=date_format)
 
 
 class TimelikeOps:
@@ -1029,9 +1027,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         if isinstance(other, np.ndarray):
             # ndarray[timedelta64]; wrap in TimedeltaIndex for op
-            from pandas import TimedeltaIndex
+            from pandas.core.arrays import TimedeltaArray
 
-            other = TimedeltaIndex(other)
+            other = TimedeltaArray._from_sequence(other)
 
         self_i8 = self.asi8
         other_i8 = other.asi8

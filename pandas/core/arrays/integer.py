@@ -21,7 +21,12 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDatetimeArray,
+    ABCIndexClass,
+    ABCSeries,
+    ABCTimedeltaArray,
+)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
@@ -688,8 +693,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             op_name = op.__name__
             mask = None
 
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
+            if isinstance(
+                other, (ABCSeries, ABCIndexClass, ABCDatetimeArray, ABCTimedeltaArray)
+            ):
                 # Rely on pandas to unbox and dispatch to us.
+                # Defer to DatetimeArray, TimedeltaArray
                 return NotImplemented
 
             if getattr(other, "ndim", 0) > 1:
