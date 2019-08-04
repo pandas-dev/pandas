@@ -3,7 +3,7 @@
 {{ header }}
 
 ==============================
- Essential Basic Functionality
+ Essential basic functionality
 ==============================
 
 Here we discuss a lot of the essential functionality common to the pandas data
@@ -16,13 +16,10 @@ the previous section:
    s = pd.Series(np.random.randn(5), index=['a', 'b', 'c', 'd', 'e'])
    df = pd.DataFrame(np.random.randn(8, 3), index=index,
                      columns=['A', 'B', 'C'])
-   wp = pd.Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
-                 major_axis=pd.date_range('1/1/2000', periods=5),
-                 minor_axis=['A', 'B', 'C', 'D'])
 
 .. _basics.head_tail:
 
-Head and Tail
+Head and tail
 -------------
 
 To view a small sample of a Series or DataFrame object, use the
@@ -37,7 +34,7 @@ of elements to display is five, but you may pass a custom number.
 
 .. _basics.attrs:
 
-Attributes and Underlying Data
+Attributes and underlying data
 ------------------------------
 
 pandas objects have a number of attributes enabling you to access the metadata
@@ -46,7 +43,6 @@ pandas objects have a number of attributes enabling you to access the metadata
 * Axis labels
     * **Series**: *index* (only axis)
     * **DataFrame**: *index* (rows) and *columns*
-    * **Panel**: *items*, *major_axis*, and *minor_axis*
 
 Note, **these attributes can be safely assigned to**!
 
@@ -118,7 +114,7 @@ columns, :meth:`DataFrame.to_numpy` will return the underlying data:
 
    df.to_numpy()
 
-If a DataFrame or Panel contains homogeneously-typed data, the ndarray can
+If a DataFrame contains homogeneously-typed data, the ndarray can
 actually be modified in-place, and the changes will be reflected in the data
 structure. For heterogeneous data (e.g. some of the DataFrame's columns are not
 all the same dtype), this will not be the case. The values attribute itself,
@@ -239,26 +235,6 @@ Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
                                           names=['first', 'second'])
    dfmi.sub(column, axis=0, level='second')
 
-With Panel, describing the matching behavior is a bit more difficult, so
-the arithmetic methods instead (and perhaps confusingly?) give you the option
-to specify the *broadcast axis*. For example, suppose we wished to demean the
-data over a particular axis. This can be accomplished by taking the mean over
-an axis and broadcasting over the same axis:
-
-.. ipython:: python
-
-   major_mean = wp.mean(axis='major')
-   major_mean
-   wp.sub(major_mean, axis='major')
-
-And similarly for ``axis="items"`` and ``axis="minor"``.
-
-.. note::
-
-   I could be convinced to make the **axis** argument in the DataFrame methods
-   match the broadcasting behavior of Panel. Though it would require a
-   transition period so users can change their code...
-
 Series and Index also support the :func:`divmod` builtin. This function takes
 the floor division and modulo operation at the same time returning a two-tuple
 of the same type as the left hand side. For example:
@@ -310,7 +286,7 @@ using ``fillna`` if you wish).
 
 .. _basics.compare:
 
-Flexible Comparisons
+Flexible comparisons
 ~~~~~~~~~~~~~~~~~~~~
 
 Series and DataFrame have the binary comparison methods ``eq``, ``ne``, ``lt``, ``gt``,
@@ -328,7 +304,7 @@ indexing operations, see the section on :ref:`Boolean indexing<indexing.boolean>
 
 .. _basics.reductions:
 
-Boolean Reductions
+Boolean reductions
 ~~~~~~~~~~~~~~~~~~
 
 You can apply the reductions: :attr:`~DataFrame.empty`, :meth:`~DataFrame.any`,
@@ -407,7 +383,7 @@ This is because NaNs do not compare as equals:
 
    np.nan == np.nan
 
-So, NDFrames (such as Series, DataFrames, and Panels)
+So, NDFrames (such as Series and DataFrames)
 have an :meth:`~DataFrame.equals` method for testing equality, with NaNs in
 corresponding locations treated as equal.
 
@@ -492,7 +468,7 @@ which we illustrate:
    df2
    df1.combine_first(df2)
 
-General DataFrame Combine
+General DataFrame combine
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~DataFrame.combine_first` method above calls the more general
@@ -515,7 +491,7 @@ Descriptive statistics
 
 There exists a large number of methods for computing descriptive statistics and
 other related operations on :ref:`Series <api.series.stats>`, :ref:`DataFrame
-<api.dataframe.stats>`, and :ref:`Panel <api.panel.stats>`. Most of these
+<api.dataframe.stats>`. Most of these
 are aggregations (hence producing a lower-dimensional result) like
 :meth:`~DataFrame.sum`, :meth:`~DataFrame.mean`, and :meth:`~DataFrame.quantile`,
 but some of them, like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod`,
@@ -525,8 +501,6 @@ specified by name or integer:
 
 * **Series**: no axis argument needed
 * **DataFrame**: "index" (axis=0, default), "columns" (axis=1)
-* **Panel**: "items" (axis=0), "major" (axis=1, default), "minor"
-  (axis=2)
 
 For example:
 
@@ -669,7 +643,7 @@ there for details about accepted inputs.
 
 .. _basics.idxmin:
 
-Index of Min/Max Values
+Index of min/max values
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~DataFrame.idxmin` and :meth:`~DataFrame.idxmax` functions on Series
@@ -703,7 +677,7 @@ matching index:
 
 .. _basics.discretization:
 
-Value counts (histogramming) / Mode
+Value counts (histogramming) / mode
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~Series.value_counts` Series method and top-level function computes a histogram
@@ -778,7 +752,7 @@ on an entire ``DataFrame`` or ``Series``, row- or column-wise, or elementwise.
 
 .. _basics.pipe:
 
-Tablewise Function Application
+Tablewise function application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``DataFrames`` and ``Series`` can of course just be passed into functions.
@@ -810,6 +784,7 @@ In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
 For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.ols, 'data')`` to ``pipe``:
 
 .. ipython:: python
+   :okwarning:
 
    import statsmodels.formula.api as sm
 
@@ -832,7 +807,7 @@ We encourage you to view the source code of :meth:`~DataFrame.pipe`.
 .. _R: https://www.r-project.org
 
 
-Row or Column-wise Function Application
+Row or column-wise function application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Arbitrary functions can be applied along the axes of a DataFrame
@@ -1013,7 +988,7 @@ not noted for a particular column will be ``NaN``:
 
 .. _basics.aggregation.mixed_dtypes:
 
-Mixed Dtypes
+Mixed dtypes
 ++++++++++++
 
 When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
@@ -1132,7 +1107,7 @@ selective transforms.
 
 .. _basics.elementwise:
 
-Applying Elementwise Functions
+Applying elementwise functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since not all functions can be vectorized (accept NumPy arrays and return
@@ -1447,8 +1422,6 @@ The :meth:`~DataFrame.rename` method also provides an ``inplace`` named
 parameter that is by default ``False`` and copies the underlying data. Pass
 ``inplace=True`` to rename the data in place.
 
-.. versionadded:: 0.18.0
-
 Finally, :meth:`~Series.rename` also accepts a scalar or list-like
 for altering the ``Series.name`` attribute.
 
@@ -1481,15 +1454,13 @@ Iteration
 
 The behavior of basic iteration over pandas objects depends on the type.
 When iterating over a Series, it is regarded as array-like, and basic iteration
-produces the values. Other data structures, like DataFrame and Panel,
-follow the dict-like convention of iterating over the "keys" of the
-objects.
+produces the values. DataFrames follow the dict-like convention of iterating
+over the "keys" of the objects.
 
 In short, basic iteration (``for i in object``) produces:
 
 * **Series**: values
 * **DataFrame**: column labels
-* **Panel**: item labels
 
 Thus, for example, iterating over a DataFrame gives you the column names:
 
@@ -1502,7 +1473,7 @@ Thus, for example, iterating over a DataFrame gives you the column names:
        print(col)
 
 
-Pandas objects also have the dict-like :meth:`~DataFrame.iteritems` method to
+Pandas objects also have the dict-like :meth:`~DataFrame.items` method to
 iterate over the (key, value) pairs.
 
 To iterate over the rows of a DataFrame, you can use the following methods:
@@ -1551,23 +1522,22 @@ To iterate over the rows of a DataFrame, you can use the following methods:
 
     df
 
-iteritems
-~~~~~~~~~
+items
+~~~~~
 
-Consistent with the dict-like interface, :meth:`~DataFrame.iteritems` iterates
+Consistent with the dict-like interface, :meth:`~DataFrame.items` iterates
 through key-value pairs:
 
 * **Series**: (index, scalar value) pairs
 * **DataFrame**: (column, Series) pairs
-* **Panel**: (item, DataFrame) pairs
 
 For example:
 
 .. ipython:: python
 
-   for item, frame in wp.iteritems():
-       print(item)
-       print(frame)
+   for label, ser in df.items():
+       print(label)
+       print(ser)
 
 .. _basics.iterrows:
 
@@ -1755,7 +1725,7 @@ sorting by column values, and sorting by a combination of both.
 
 .. _basics.sort_index:
 
-By Index
+By index
 ~~~~~~~~
 
 The :meth:`Series.sort_index` and :meth:`DataFrame.sort_index` methods are
@@ -1782,7 +1752,7 @@ used to sort a pandas object by its index levels.
 
 .. _basics.sort_values:
 
-By Values
+By values
 ~~~~~~~~~
 
 The :meth:`Series.sort_values` method is used to sort a `Series` by its values. The
@@ -1814,7 +1784,7 @@ argument:
 
 .. _basics.sort_indexes_and_values:
 
-By Indexes and Values
+By indexes and values
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.23.0
@@ -1997,11 +1967,11 @@ dtype of the column will be chosen to accommodate all of the data types
    pd.Series([1, 2, 3, 6., 'foo'])
 
 The number of columns of each type in a ``DataFrame`` can be found by calling
-:meth:`~DataFrame.get_dtype_counts`.
+``DataFrame.dtypes.value_counts()``.
 
 .. ipython:: python
 
-   dft.get_dtype_counts()
+   dft.dtypes.value_counts()
 
 Numeric dtypes will propagate and can coexist in DataFrames.
 If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``,
@@ -2090,8 +2060,6 @@ Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`.
    dft[['a', 'b']] = dft[['a', 'b']].astype(np.uint8)
    dft
    dft.dtypes
-
-.. versionadded:: 0.19.0
 
 Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFrame.astype`.
 

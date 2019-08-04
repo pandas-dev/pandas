@@ -3,7 +3,7 @@
 {{ header }}
 
 **************************
-Reshaping and Pivot Tables
+Reshaping and pivot tables
 **************************
 
 Reshaping by pivoting DataFrame objects
@@ -186,7 +186,7 @@ removed.
 
 .. _reshaping.stack_multiple:
 
-Multiple Levels
+Multiple levels
 ~~~~~~~~~~~~~~~
 
 You may also stack or unstack more than one level at a time by passing a list
@@ -214,7 +214,7 @@ not a mixture of the two).
     # from above is equivalent to:
     df.stack(level=[1, 2])
 
-Missing Data
+Missing data
 ~~~~~~~~~~~~
 
 These functions are intelligent about handling missing data and do not expect
@@ -253,8 +253,6 @@ values will be set to ``NaN``.
    df3 = df.iloc[[0, 1, 4, 7], [1, 2]]
    df3
    df3.unstack()
-
-.. versionadded:: 0.18.0
 
 Alternatively, unstack takes an optional ``fill_value`` argument, for specifying
 the value of missing data.
@@ -486,8 +484,6 @@ not contain any instances of a particular category.
 Normalization
 ~~~~~~~~~~~~~
 
-.. versionadded:: 0.18.1
-
 Frequency tables can also be normalized to show percentages rather than counts
 using the ``normalize`` argument:
 
@@ -509,7 +505,7 @@ each group defined by the first two ``Series``:
 
    pd.crosstab(df.A, df.B, values=df.C, aggfunc=np.sum)
 
-Adding Margins
+Adding margins
 ~~~~~~~~~~~~~~
 
 Finally, one can also add margins or normalize this output.
@@ -630,8 +626,6 @@ the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:
     from_dict = pd.get_dummies(df, prefix={'B': 'from_B', 'A': 'from_A'})
     from_dict
 
-.. versionadded:: 0.18.0
-
 Sometimes it will be useful to only keep k-1 levels of a categorical
 variable to avoid collinearity when feeding the result to statistical models.
 You can switch to this mode by turn on ``drop_first``.
@@ -695,7 +689,7 @@ handling of NaN:
     In [2]: pd.factorize(x, sort=True)
     Out[2]:
     (array([ 2,  2, -1,  3,  0,  1]),
-     Index([3.14, inf, u'A', u'B'], dtype='object'))
+     Index([3.14, inf, 'A', 'B'], dtype='object'))
 
     In [3]: np.unique(x, return_inverse=True)[::-1]
     Out[3]: (array([3, 3, 0, 4, 1, 2]), array([nan, 3.14, inf, 'A', 'B'], dtype=object))
@@ -705,7 +699,7 @@ handling of NaN:
     you can use  ``df["cat_col"] = pd.Categorical(df["col"])`` or
     ``df["cat_col"] = df["col"].astype("category")``. For full docs on :class:`~pandas.Categorical`,
     see the :ref:`Categorical introduction <categorical>` and the
-    :ref:`API documentation <api.categorical>`.
+    :ref:`API documentation <api.arrays.categorical>`.
 
 Examples
 --------
@@ -727,7 +721,7 @@ DataFrame will be pivoted in the answers below.
 
    df
 
-Pivoting with Single Aggregations
+Pivoting with single aggregations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Suppose we wanted to pivot ``df`` such that the ``col`` values are columns,
@@ -775,7 +769,7 @@ and rows occur together a.k.a. "cross tabulation". To do this, we can pass
 
    df.pivot_table(index='row', columns='col', fill_value=0, aggfunc='size')
 
-Pivoting with Multiple Aggregations
+Pivoting with multiple aggregations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can also perform multiple aggregations. For example, to perform both a
@@ -801,3 +795,53 @@ Note to subdivide over multiple columns we can pass in a list to the
 
    df.pivot_table(
        values=['val0'], index='row', columns=['item', 'col'], aggfunc=['mean'])
+
+.. _reshaping.explode:
+
+Exploding a list-like column
+----------------------------
+
+.. versionadded:: 0.25.0
+
+Sometimes the values in a column are list-like.
+
+.. ipython:: python
+
+   keys = ['panda1', 'panda2', 'panda3']
+   values = [['eats', 'shoots'], ['shoots', 'leaves'], ['eats', 'leaves']]
+   df = pd.DataFrame({'keys': keys, 'values': values})
+   df
+
+We can 'explode' the ``values`` column, transforming each list-like to a separate row, by using :meth:`~Series.explode`. This will replicate the index values from the original row:
+
+.. ipython:: python
+
+   df['values'].explode()
+
+You can also explode the column in the ``DataFrame``.
+
+.. ipython:: python
+
+   df.explode('values')
+
+:meth:`Series.explode` will replace empty lists with ``np.nan`` and preserve scalar entries. The dtype of the resulting ``Series`` is always ``object``.
+
+.. ipython:: python
+
+   s = pd.Series([[1, 2, 3], 'foo', [], ['a', 'b']])
+   s
+   s.explode()
+
+Here is a typical usecase. You have comma separated strings in a column and want to expand this.
+
+.. ipython:: python
+
+    df = pd.DataFrame([{'var1': 'a,b,c', 'var2': 1},
+                       {'var1': 'd,e,f', 'var2': 2}])
+    df
+
+Creating a long form DataFrame is now straightforward using explode and chained operations
+
+.. ipython:: python
+
+   df.assign(var1=df.var1.str.split(',')).explode('var1')

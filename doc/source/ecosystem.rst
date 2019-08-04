@@ -3,7 +3,7 @@
 {{ header }}
 
 ****************
-pandas Ecosystem
+Pandas ecosystem
 ****************
 
 Increasingly, packages are being built on top of pandas to address specific needs
@@ -26,7 +26,7 @@ substantial projects that you feel should be on this list, please let us know.
 
 .. _ecosystem.stats:
 
-Statistics and Machine Learning
+Statistics and machine learning
 -------------------------------
 
 `Statsmodels <https://www.statsmodels.org/>`__
@@ -217,7 +217,7 @@ Pandas DataFrames with timeseries indexes.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 PyDatastream is a Python interface to the
 `Thomson Dataworks Enterprise (DWE/Datastream) <http://dataworks.thomson.com/Dataworks/Enterprise/1.0/>`__
-SOAP API to return indexed Pandas DataFrames or Panels with financial data.
+SOAP API to return indexed Pandas DataFrames with financial data.
 This package requires valid credentials for this API (non free).
 
 `pandaSDMX <https://pandasdmx.readthedocs.io>`__
@@ -243,7 +243,7 @@ you can obtain for free on the FRED website.
 
 .. _ecosystem.domain:
 
-Domain Specific
+Domain specific
 ---------------
 
 `Geopandas <https://github.com/kjordahl/geopandas>`__
@@ -284,6 +284,11 @@ provides a familiar ``DataFrame`` interface for out-of-core, parallel and distri
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Dask-ML enables parallel and distributed machine learning using Dask alongside existing machine learning libraries like Scikit-Learn, XGBoost, and TensorFlow.
+
+`Koalas <https://koalas.readthedocs.io/en/latest/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Koalas provides a familiar pandas DataFrame interface on top of Apache Spark. It enables users to leverage multi-cores on one machine or a cluster of machines to speed up or scale their DataFrame code.
 
 `Odo <http://odo.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -327,7 +332,7 @@ and check that they're *actually* true.
 
 .. _ecosystem.extensions:
 
-Extension Data Types
+Extension data types
 --------------------
 
 Pandas provides an interface for defining
@@ -358,4 +363,5 @@ Library        Accessor   Classes
 ============== ========== =========================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
-.. _pdvega: https://jakevdp.github.io/pdvega/
+.. _pdvega: https://altair-viz.github.io/pdvega/
+

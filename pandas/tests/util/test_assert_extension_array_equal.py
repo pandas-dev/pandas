@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
@@ -7,10 +5,14 @@ from pandas.core.arrays.sparse import SparseArray
 from pandas.util.testing import assert_extension_array_equal
 
 
-@pytest.mark.parametrize("kwargs", [
-    dict(),  # Default is check_exact=False
-    dict(check_exact=False), dict(check_exact=True)
-])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        dict(),  # Default is check_exact=False
+        dict(check_exact=False),
+        dict(check_exact=True),
+    ],
+)
 def test_assert_extension_array_equal_not_exact(kwargs):
     # see gh-23709
     arr1 = SparseArray([-0.17387645482451206, 0.3414148016424936])
@@ -30,9 +32,9 @@ ExtensionArray values are different \\(50\\.0 %\\)
         assert_extension_array_equal(arr1, arr2, **kwargs)
 
 
-@pytest.mark.parametrize("check_less_precise", [
-    True, False, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
-])
+@pytest.mark.parametrize(
+    "check_less_precise", [True, False, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+)
 def test_assert_extension_array_equal_less_precise(check_less_precise):
     arr1 = SparseArray([0.5, 0.123456])
     arr2 = SparseArray([0.5, 0.123457])
@@ -95,8 +97,11 @@ def test_assert_extension_array_equal_non_extension_array(side):
     extension_array = SparseArray(numpy_array)
 
     msg = "{side} is not an ExtensionArray".format(side=side)
-    args = ((numpy_array, extension_array) if side == "left"
-            else (extension_array, numpy_array))
+    args = (
+        (numpy_array, extension_array)
+        if side == "left"
+        else (extension_array, numpy_array)
+    )
 
     with pytest.raises(AssertionError, match=msg):
         assert_extension_array_equal(*args)

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 
@@ -82,11 +80,8 @@ cpdef bint checknull_old(object val):
 
 
 cdef inline bint _check_none_nan_inf_neginf(object val):
-    try:
-        return val is None or (isinstance(val, float) and
-                               (val != val or val == INF or val == NEGINF))
-    except ValueError:
-        return False
+    return val is None or (isinstance(val, float) and
+                           (val != val or val == INF or val == NEGINF))
 
 
 @cython.wraparound(False)

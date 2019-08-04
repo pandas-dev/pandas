@@ -15,11 +15,29 @@ jobs:
           PATTERN: "not slow and not network"
 
       ${{ if eq(parameters.name, 'Linux') }}:
+        py35_compat:
+          ENV_FILE: ci/deps/azure-35-compat.yaml
+          CONDA_PY: "35"
+          PATTERN: "not slow and not network"
+
+        py36_locale_slow_old_np:
+          ENV_FILE: ci/deps/azure-36-locale.yaml
+          CONDA_PY: "36"
+          PATTERN: "slow"
+          LOCALE_OVERRIDE: "zh_CN.UTF-8"
+          EXTRA_APT: "language-pack-zh-hans"
+
         py36_locale_slow:
           ENV_FILE: ci/deps/azure-36-locale_slow.yaml
           CONDA_PY: "36"
           PATTERN: "not slow and not network"
           LOCALE_OVERRIDE: "it_IT.UTF-8"
+
+        py36_32bit:
+          ENV_FILE: ci/deps/azure-36-32bit.yaml
+          CONDA_PY: "36"
+          PATTERN: "not slow and not network"
+          BITS32: "yes"
 
         py37_locale:
           ENV_FILE: ci/deps/azure-37-locale.yaml
@@ -38,17 +56,9 @@ jobs:
   steps:
     - script: |
         if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386 $EXTRA_APT; fi
-        echo "Installing Miniconda"
-        ci/incremental/install_miniconda.sh
-        export PATH=$HOME/miniconda3/bin:$PATH
-        echo "Setting up Conda environment"
-        ci/incremental/setup_conda_environment.sh
-      displayName: 'Before Install'
-    - script: |
-        export PATH=$HOME/miniconda3/bin:$PATH
-        source activate pandas-dev
-        ci/incremental/build.sh
-      displayName: 'Build'
+        echo "Creating Environment"
+        ci/setup_env.sh
+      displayName: 'Setup environment and build pandas'
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
@@ -85,4 +95,9 @@ jobs:
           # note that this will produce $LASTEXITCODE=1
           Write-Error "$($matches[1]) tests failed"
         }
-      displayName: Check for test failures
+      displayName: 'Check for test failures'
+    - script: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        python ci/print_skipped.py
+      displayName: 'Print skipped tests'

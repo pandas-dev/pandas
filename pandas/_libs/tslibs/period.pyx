@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
 
 from cpython cimport (
@@ -29,7 +28,7 @@ cdef extern from "src/datetime/np_datetime.h":
                                            npy_datetimestruct *d) nogil
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.util cimport is_period_object, is_string_object
+from pandas._libs.tslibs.util cimport is_period_object
 
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
@@ -40,7 +39,6 @@ cimport pandas._libs.tslibs.ccalendar as ccalendar
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek, get_day_of_year, is_leapyear)
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
-from pandas._libs.tslibs.conversion cimport tz_convert_utc_to_tzlocal
 from pandas._libs.tslibs.frequencies cimport (
     get_freq_code, get_base_alias, get_to_timestamp_base, get_freq_str,
     get_rule_month)
@@ -51,9 +49,10 @@ from pandas._libs.tslibs.nattype cimport (
     _nat_scalar_rules, NPY_NAT, is_null_datetimelike, c_NaT as NaT)
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.offsets import _Tick
+from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
+
 
 cdef:
-    bint PY2 = str == bytes
     enum:
         INT32_MIN = -2147483648
 
@@ -1287,9 +1286,6 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
 
             result = result.replace(str_extra_fmts[i], repl)
 
-    if PY2:
-        result = result.decode('utf-8', 'ignore')
-
     return result
 
 
@@ -1560,7 +1556,7 @@ class IncompatibleFrequency(ValueError):
     pass
 
 
-cdef class _Period(object):
+cdef class _Period:
 
     cdef readonly:
         int64_t ordinal
@@ -2212,10 +2208,6 @@ cdef class _Period(object):
     def now(cls, freq=None):
         return Period(datetime.now(), freq=freq)
 
-    # HACK IT UP AND YOU BETTER FIX IT SOON
-    def __str__(self):
-        return self.__unicode__()
-
     @property
     def freqstr(self):
         return self.freq.freqstr
@@ -2225,12 +2217,9 @@ cdef class _Period(object):
         formatted = period_format(self.ordinal, base)
         return "Period('%s', '%s')" % (formatted, self.freqstr)
 
-    def __unicode__(self):
+    def __str__(self):
         """
         Return a string representation for a particular DataFrame
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
         """
         base, mult = get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
@@ -2394,7 +2383,7 @@ class Period(_Period):
 
     Parameters
     ----------
-    value : Period or compat.string_types, default None
+    value : Period or str, default None
         The time period represented (e.g., '4Q2005')
     freq : str, default None
         One of pandas period strings or corresponding objects
@@ -2461,7 +2450,7 @@ class Period(_Period):
         elif is_null_datetimelike(value) or value in nat_strings:
             ordinal = NPY_NAT
 
-        elif is_string_object(value) or util.is_integer_object(value):
+        elif isinstance(value, str) or util.is_integer_object(value):
             if util.is_integer_object(value):
                 value = str(value)
             value = value.upper()

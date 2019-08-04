@@ -7,9 +7,9 @@ dependencies:
   - bottleneck
   - boost-cpp<1.67
   - fastparquet>=0.2.1
-  - matplotlib
+  - matplotlib=3.0.2
   - numexpr
-  - numpy=1.14*
+  - numpy=1.15.*
   - openpyxl
   - parquet-cpp
   - pyarrow
@@ -26,5 +26,5 @@ dependencies:
   - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
+  - pytest-azurepipelines
   - hypothesis>=3.58.0
-  - isort

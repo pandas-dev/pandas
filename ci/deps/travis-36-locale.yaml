@@ -4,26 +4,32 @@ channels:
   - conda-forge
 dependencies:
   - beautifulsoup4
+  - blosc=1.14.3
+  - python-blosc
   - cython>=0.28.2
+  - fastparquet=0.2.1
+  - gcsfs=0.2.2
   - html5lib
   - ipython
   - jinja2
-  - lxml
-  - matplotlib
+  - lxml=3.8.0
+  - matplotlib=3.0.*
+  - moto
   - nomkl
   - numexpr
   - numpy
   - openpyxl
-  - psycopg2
-  - pymysql
+  - pandas-gbq=0.8.0
+  - psycopg2=2.6.2
+  - pymysql=0.7.11
   - pytables
   - python-dateutil
-  - python=3.6*
+  - python=3.6.*
   - pytz
-  - s3fs
+  - s3fs=0.0.8
   - scipy
-  - sqlalchemy
-  - xarray
+  - sqlalchemy=1.1.4
+  - xarray=0.8.2
   - xlrd
   - xlsxwriter
   - xlwt
@@ -31,7 +37,6 @@ dependencies:
   - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
-  - moto
-  - isort
+  - pip
   - pip:
     - hypothesis>=3.58.0

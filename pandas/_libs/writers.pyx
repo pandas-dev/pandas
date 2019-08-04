@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 
@@ -16,7 +14,6 @@ from numpy cimport ndarray, uint8_t
 
 ctypedef fused pandas_string:
     str
-    unicode
     bytes
 
 

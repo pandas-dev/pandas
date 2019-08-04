@@ -1,6 +1,7 @@
 import numbers
 
 import numpy as np
+from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
 from pandas.compat.numpy import function as nv
@@ -10,10 +11,12 @@ from pandas.util._validators import validate_fillna_kwargs
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like, is_list_like
+from pandas.core.dtypes.missing import isna
 
 from pandas import compat
 from pandas.core import nanops
-from pandas.core.algorithms import searchsorted
+from pandas.core.algorithms import searchsorted, take, unique
+from pandas.core.construction import extract_array
 from pandas.core.missing import backfill_1d, pad_1d
 
 from .base import ExtensionArray, ExtensionOpsMixin
@@ -32,7 +35,8 @@ class PandasDtype(ExtensionDtype):
     ----------
     dtype : numpy.dtype
     """
-    _metadata = ('_dtype',)
+
+    _metadata = ("_dtype",)
 
     def __init__(self, dtype):
         dtype = np.dtype(dtype)
@@ -59,11 +63,11 @@ class PandasDtype(ExtensionDtype):
     @property
     def _is_numeric(self):
         # exclude object, str, unicode, void.
-        return self.kind in set('biufc')
+        return self.kind in set("biufc")
 
     @property
     def _is_boolean(self):
-        return self.kind == 'b'
+        return self.kind == "b"
 
     @classmethod
     def construct_from_string(cls, string):
@@ -82,20 +86,6 @@ class PandasDtype(ExtensionDtype):
         return self._dtype.itemsize
 
 
-# TODO(NumPy1.13): remove this
-# Compat for NumPy 1.12, which doesn't provide NDArrayOperatorsMixin
-# or __array_ufunc__, so those operations won't be available to people
-# on older NumPys.
-#
-# We would normally write this as bases=(...), then "class Foo(*bases):
-# but Python2 doesn't allow unpacking tuples in the class statement.
-# So, we fall back to "object", to avoid writing a metaclass.
-try:
-    from numpy.lib.mixins import NDArrayOperatorsMixin
-except ImportError:
-    NDArrayOperatorsMixin = object
-
-
 class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     """
     A pandas ExtensionArray for NumPy data.
@@ -112,10 +102,15 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     copy : bool, default False
         Whether to copy `values`.
 
-    Notes
-    -----
-    Operations like ``+`` and applying ufuncs requires NumPy>=1.13.
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
+
     # If you're wondering why pd.Series(cls) doesn't put the array in an
     # ExtensionBlock, search for `ABCPandasArray`. We check for
     # that _typ to ensure that that users don't unnecessarily use EAs inside
@@ -180,7 +175,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         # numpy.lib.mixins.NDArrayOperatorsMixin.html
         # The primary modification is not boxing scalar return values
         # in PandasArray, since pandas' ExtensionArrays are 1-d.
-        out = kwargs.get('out', ())
+        out = kwargs.get("out", ())
         for x in inputs + out:
             # Only support operations with instances of _HANDLED_TYPES.
             # Use PandasArray instead of type(self) for isinstance to
@@ -190,12 +185,11 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
                 return NotImplemented
 
         # Defer to the implementation of the ufunc on unwrapped values.
-        inputs = tuple(x._ndarray if isinstance(x, PandasArray) else x
-                       for x in inputs)
+        inputs = tuple(x._ndarray if isinstance(x, PandasArray) else x for x in inputs)
         if out:
-            kwargs['out'] = tuple(
-                x._ndarray if isinstance(x, PandasArray) else x
-                for x in out)
+            kwargs["out"] = tuple(
+                x._ndarray if isinstance(x, PandasArray) else x for x in out
+            )
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
         if type(result) is tuple and len(result):
@@ -206,7 +200,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             else:
                 # but not scalar reductions
                 return result
-        elif method == 'at':
+        elif method == "at":
             # no return value
             return None
         else:
@@ -229,8 +223,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return result
 
     def __setitem__(self, key, value):
-        from pandas.core.internals.arrays import extract_array
-
         value = extract_array(value, extract_numpy=True)
 
         if not lib.is_scalar(key) and is_list_like(key):
@@ -242,7 +234,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         values = self._ndarray
         t = np.result_type(value, values)
         if t != self._ndarray.dtype:
-            values = values.astype(t, casting='safe')
+            values = values.astype(t, casting="safe")
             values[key] = value
             self._dtype = PandasDtype(t)
             self._ndarray = values
@@ -257,8 +249,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return self._ndarray.nbytes
 
     def isna(self):
-        from pandas import isna
-
         return isna(self._ndarray)
 
     def fillna(self, value=None, method=None, limit=None):
@@ -269,15 +259,16 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
         if is_array_like(value):
             if len(value) != len(self):
-                raise ValueError("Length of 'value' does not match. Got ({}) "
-                                 " expected {}".format(len(value), len(self)))
+                raise ValueError(
+                    "Length of 'value' does not match. Got ({}) "
+                    " expected {}".format(len(value), len(self))
+                )
             value = value[mask]
 
         if mask.any():
             if method is not None:
-                func = pad_1d if method == 'pad' else backfill_1d
-                new_values = func(self._ndarray, limit=limit,
-                                  mask=mask)
+                func = pad_1d if method == "pad" else backfill_1d
+                new_values = func(self._ndarray, limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values, dtype=self.dtype)
             else:
                 # fill with value
@@ -288,13 +279,12 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return new_values
 
     def take(self, indices, allow_fill=False, fill_value=None):
-        from pandas.core.algorithms import take
-
-        result = take(self._ndarray, indices, allow_fill=allow_fill,
-                      fill_value=fill_value)
+        result = take(
+            self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value
+        )
         return type(self)(result)
 
-    def copy(self, deep=False):
+    def copy(self):
         return type(self)(self._ndarray.copy())
 
     def _values_for_argsort(self):
@@ -304,8 +294,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return self._ndarray, -1
 
     def unique(self):
-        from pandas import unique
-
         return type(self)(unique(self._ndarray))
 
     # ------------------------------------------------------------------------
@@ -316,9 +304,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if meth:
             return meth(skipna=skipna, **kwargs)
         else:
-            msg = (
-                "'{}' does not implement reduction '{}'"
-            )
+            msg = "'{}' does not implement reduction '{}'"
             raise TypeError(msg.format(type(self).__name__, name))
 
     def any(self, axis=None, out=None, keepdims=False, skipna=True):
@@ -337,67 +323,80 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         nv.validate_max((), dict(out=out, keepdims=keepdims))
         return nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)
 
-    def sum(self, axis=None, dtype=None, out=None, keepdims=False,
-            initial=None, skipna=True, min_count=0):
-        nv.validate_sum((), dict(dtype=dtype, out=out, keepdims=keepdims,
-                                 initial=initial))
-        return nanops.nansum(self._ndarray, axis=axis, skipna=skipna,
-                             min_count=min_count)
+    def sum(
+        self,
+        axis=None,
+        dtype=None,
+        out=None,
+        keepdims=False,
+        initial=None,
+        skipna=True,
+        min_count=0,
+    ):
+        nv.validate_sum(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
+        )
+        return nanops.nansum(
+            self._ndarray, axis=axis, skipna=skipna, min_count=min_count
+        )
 
-    def prod(self, axis=None, dtype=None, out=None, keepdims=False,
-             initial=None, skipna=True, min_count=0):
-        nv.validate_prod((), dict(dtype=dtype, out=out, keepdims=keepdims,
-                                  initial=initial))
-        return nanops.nanprod(self._ndarray, axis=axis, skipna=skipna,
-                              min_count=min_count)
+    def prod(
+        self,
+        axis=None,
+        dtype=None,
+        out=None,
+        keepdims=False,
+        initial=None,
+        skipna=True,
+        min_count=0,
+    ):
+        nv.validate_prod(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
+        )
+        return nanops.nanprod(
+            self._ndarray, axis=axis, skipna=skipna, min_count=min_count
+        )
 
-    def mean(self, axis=None, dtype=None, out=None, keepdims=False,
-             skipna=True):
+    def mean(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
         nv.validate_mean((), dict(dtype=dtype, out=out, keepdims=keepdims))
         return nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
 
-    def median(self, axis=None, out=None, overwrite_input=False,
-               keepdims=False, skipna=True):
-        nv.validate_median((), dict(out=out, overwrite_input=overwrite_input,
-                                    keepdims=keepdims))
+    def median(
+        self, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True
+    ):
+        nv.validate_median(
+            (), dict(out=out, overwrite_input=overwrite_input, keepdims=keepdims)
+        )
         return nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
 
-    def std(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False,
-            skipna=True):
-        nv.validate_stat_ddof_func((), dict(dtype=dtype, out=out,
-                                            keepdims=keepdims),
-                                   fname='std')
-        return nanops.nanstd(self._ndarray, axis=axis, skipna=skipna,
-                             ddof=ddof)
+    def std(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):
+        nv.validate_stat_ddof_func(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="std"
+        )
+        return nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
 
-    def var(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False,
-            skipna=True):
-        nv.validate_stat_ddof_func((), dict(dtype=dtype, out=out,
-                                            keepdims=keepdims),
-                                   fname='var')
-        return nanops.nanvar(self._ndarray, axis=axis, skipna=skipna,
-                             ddof=ddof)
+    def var(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):
+        nv.validate_stat_ddof_func(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="var"
+        )
+        return nanops.nanvar(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
 
-    def sem(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False,
-            skipna=True):
-        nv.validate_stat_ddof_func((), dict(dtype=dtype, out=out,
-                                            keepdims=keepdims),
-                                   fname='sem')
-        return nanops.nansem(self._ndarray, axis=axis, skipna=skipna,
-                             ddof=ddof)
+    def sem(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):
+        nv.validate_stat_ddof_func(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="sem"
+        )
+        return nanops.nansem(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
 
-    def kurt(self, axis=None, dtype=None, out=None, keepdims=False,
-             skipna=True):
-        nv.validate_stat_ddof_func((), dict(dtype=dtype, out=out,
-                                            keepdims=keepdims),
-                                   fname='kurt')
+    def kurt(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+        nv.validate_stat_ddof_func(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="kurt"
+        )
         return nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)
 
-    def skew(self, axis=None, dtype=None, out=None, keepdims=False,
-             skipna=True):
-        nv.validate_stat_ddof_func((), dict(dtype=dtype, out=out,
-                                            keepdims=keepdims),
-                                   fname='skew')
+    def skew(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+        nv.validate_stat_ddof_func(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="skew"
+        )
         return nanops.nanskew(self._ndarray, axis=axis, skipna=skipna)
 
     # ------------------------------------------------------------------------
@@ -426,9 +425,8 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return result
 
     @Appender(ExtensionArray.searchsorted.__doc__)
-    def searchsorted(self, value, side='left', sorter=None):
-        return searchsorted(self.to_numpy(), value,
-                            side=side, sorter=sorter)
+    def searchsorted(self, value, side="left", sorter=None):
+        return searchsorted(self.to_numpy(), value, side=side, sorter=sorter)
 
     # ------------------------------------------------------------------------
     # Ops
@@ -454,9 +452,9 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
             return cls(result)
 
-        return compat.set_function_name(arithmetic_method,
-                                        "__{}__".format(op.__name__),
-                                        cls)
+        return compat.set_function_name(
+            arithmetic_method, "__{}__".format(op.__name__), cls
+        )
 
     _create_comparison_method = _create_arithmetic_method
 

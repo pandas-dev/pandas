@@ -3,7 +3,7 @@
 {{ header }}
 
 ********************
-10 Minutes to pandas
+10 minutes to pandas
 ********************
 
 This is a short introduction to pandas, geared mainly for new users.
@@ -16,7 +16,7 @@ Customarily, we import as follows:
    import numpy as np
    import pandas as pd
 
-Object Creation
+Object creation
 ---------------
 
 See the :ref:`Data Structure Intro section <dsintro>`.
@@ -83,7 +83,7 @@ As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
 tab completed. ``E`` is there as well; the rest of the attributes have been
 truncated for brevity.
 
-Viewing Data
+Viewing data
 ------------
 
 See the :ref:`Basics section <basics>`.
@@ -183,7 +183,7 @@ Selecting via ``[]``, which slices the rows.
    df[0:3]
    df['20130102':'20130104']
 
-Selection by Label
+Selection by label
 ~~~~~~~~~~~~~~~~~~
 
 See more in :ref:`Selection by Label <indexing.label>`.
@@ -224,7 +224,7 @@ For getting fast access to a scalar (equivalent to the prior method):
 
    df.at[dates[0], 'A']
 
-Selection by Position
+Selection by position
 ~~~~~~~~~~~~~~~~~~~~~
 
 See more in :ref:`Selection by Position <indexing.integer>`.
@@ -271,7 +271,7 @@ For getting fast access to a scalar (equivalent to the prior method):
 
    df.iat[1, 1]
 
-Boolean Indexing
+Boolean indexing
 ~~~~~~~~~~~~~~~~
 
 Using a single column's values to select data.
@@ -340,7 +340,7 @@ A ``where`` operation with setting.
    df2
 
 
-Missing Data
+Missing data
 ------------
 
 pandas primarily uses the value ``np.nan`` to represent missing data. It is by
@@ -449,8 +449,8 @@ Merge
 Concat
 ~~~~~~
 
-pandas provides various facilities for easily combining together Series,
-DataFrame, and Panel objects with various kinds of set logic for the indexes
+pandas provides various facilities for easily combining together Series and
+DataFrame objects with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
 
@@ -580,7 +580,7 @@ With a "stacked" DataFrame or Series (having a ``MultiIndex`` as the
    stacked.unstack(1)
    stacked.unstack(0)
 
-Pivot Tables
+Pivot tables
 ~~~~~~~~~~~~
 See the section on :ref:`Pivot Tables <reshaping.pivot>`.
 
@@ -600,7 +600,7 @@ We can produce pivot tables from this data very easily:
    pd.pivot_table(df, values='D', index=['A', 'B'], columns=['C'])
 
 
-Time Series
+Time series
 -----------
 
 pandas has simple, powerful, and efficient functionality for performing
@@ -734,7 +734,7 @@ of the columns with labels:
    @savefig frame_plot_basic.png
    plt.legend(loc='best')
 
-Getting Data In/Out
+Getting data in/out
 -------------------
 
 CSV

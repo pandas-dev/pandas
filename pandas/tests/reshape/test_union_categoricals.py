@@ -8,45 +8,48 @@ from pandas import Categorical, CategoricalIndex, Series
 from pandas.util import testing as tm
 
 
-class TestUnionCategoricals(object):
-
+class TestUnionCategoricals:
     def test_union_categorical(self):
         # GH 13361
         data = [
-            (list('abc'), list('abd'), list('abcabd')),
+            (list("abc"), list("abd"), list("abcabd")),
             ([0, 1, 2], [2, 3, 4], [0, 1, 2, 2, 3, 4]),
             ([0, 1.2, 2], [2, 3.4, 4], [0, 1.2, 2, 2, 3.4, 4]),
-
-            (['b', 'b', np.nan, 'a'], ['a', np.nan, 'c'],
-             ['b', 'b', np.nan, 'a', 'a', np.nan, 'c']),
-
-            (pd.date_range('2014-01-01', '2014-01-05'),
-             pd.date_range('2014-01-06', '2014-01-07'),
-             pd.date_range('2014-01-01', '2014-01-07')),
-
-            (pd.date_range('2014-01-01', '2014-01-05', tz='US/Central'),
-             pd.date_range('2014-01-06', '2014-01-07', tz='US/Central'),
-             pd.date_range('2014-01-01', '2014-01-07', tz='US/Central')),
-
-            (pd.period_range('2014-01-01', '2014-01-05'),
-             pd.period_range('2014-01-06', '2014-01-07'),
-             pd.period_range('2014-01-01', '2014-01-07')),
+            (
+                ["b", "b", np.nan, "a"],
+                ["a", np.nan, "c"],
+                ["b", "b", np.nan, "a", "a", np.nan, "c"],
+            ),
+            (
+                pd.date_range("2014-01-01", "2014-01-05"),
+                pd.date_range("2014-01-06", "2014-01-07"),
+                pd.date_range("2014-01-01", "2014-01-07"),
+            ),
+            (
+                pd.date_range("2014-01-01", "2014-01-05", tz="US/Central"),
+                pd.date_range("2014-01-06", "2014-01-07", tz="US/Central"),
+                pd.date_range("2014-01-01", "2014-01-07", tz="US/Central"),
+            ),
+            (
+                pd.period_range("2014-01-01", "2014-01-05"),
+                pd.period_range("2014-01-06", "2014-01-07"),
+                pd.period_range("2014-01-01", "2014-01-07"),
+            ),
         ]
 
         for a, b, combined in data:
             for box in [Categorical, CategoricalIndex, Series]:
-                result = union_categoricals([box(Categorical(a)),
-                                             box(Categorical(b))])
+                result = union_categoricals([box(Categorical(a)), box(Categorical(b))])
                 expected = Categorical(combined)
-                tm.assert_categorical_equal(result, expected,
-                                            check_category_order=True)
+                tm.assert_categorical_equal(result, expected, check_category_order=True)
 
         # new categories ordered by appearance
-        s = Categorical(['x', 'y', 'z'])
-        s2 = Categorical(['a', 'b', 'c'])
+        s = Categorical(["x", "y", "z"])
+        s2 = Categorical(["a", "b", "c"])
         result = union_categoricals([s, s2])
-        expected = Categorical(['x', 'y', 'z', 'a', 'b', 'c'],
-                               categories=['x', 'y', 'z', 'a', 'b', 'c'])
+        expected = Categorical(
+            ["x", "y", "z", "a", "b", "c"], categories=["x", "y", "z", "a", "b", "c"]
+        )
         tm.assert_categorical_equal(result, expected)
 
         s = Categorical([0, 1.2, 2], ordered=True)
@@ -58,60 +61,66 @@ class TestUnionCategoricals(object):
         # must exactly match types
         s = Categorical([0, 1.2, 2])
         s2 = Categorical([2, 3, 4])
-        msg = 'dtype of categories must be the same'
+        msg = "dtype of categories must be the same"
         with pytest.raises(TypeError, match=msg):
             union_categoricals([s, s2])
 
-        msg = 'No Categoricals to union'
+        msg = "No Categoricals to union"
         with pytest.raises(ValueError, match=msg):
             union_categoricals([])
 
     def test_union_categoricals_nan(self):
         # GH 13759
-        res = union_categoricals([pd.Categorical([1, 2, np.nan]),
-                                  pd.Categorical([3, 2, np.nan])])
+        res = union_categoricals(
+            [pd.Categorical([1, 2, np.nan]), pd.Categorical([3, 2, np.nan])]
+        )
         exp = Categorical([1, 2, np.nan, 3, 2, np.nan])
         tm.assert_categorical_equal(res, exp)
 
-        res = union_categoricals([pd.Categorical(['A', 'B']),
-                                  pd.Categorical(['B', 'B', np.nan])])
-        exp = Categorical(['A', 'B', 'B', 'B', np.nan])
+        res = union_categoricals(
+            [pd.Categorical(["A", "B"]), pd.Categorical(["B", "B", np.nan])]
+        )
+        exp = Categorical(["A", "B", "B", "B", np.nan])
         tm.assert_categorical_equal(res, exp)
 
-        val1 = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-03-01'),
-                pd.NaT]
-        val2 = [pd.NaT, pd.Timestamp('2011-01-01'),
-                pd.Timestamp('2011-02-01')]
+        val1 = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-03-01"), pd.NaT]
+        val2 = [pd.NaT, pd.Timestamp("2011-01-01"), pd.Timestamp("2011-02-01")]
 
         res = union_categoricals([pd.Categorical(val1), pd.Categorical(val2)])
-        exp = Categorical(val1 + val2,
-                          categories=[pd.Timestamp('2011-01-01'),
-                                      pd.Timestamp('2011-03-01'),
-                                      pd.Timestamp('2011-02-01')])
+        exp = Categorical(
+            val1 + val2,
+            categories=[
+                pd.Timestamp("2011-01-01"),
+                pd.Timestamp("2011-03-01"),
+                pd.Timestamp("2011-02-01"),
+            ],
+        )
         tm.assert_categorical_equal(res, exp)
 
         # all NaN
-        res = union_categoricals([pd.Categorical(np.array([np.nan, np.nan],
-                                                          dtype=object)),
-                                  pd.Categorical(['X'])])
-        exp = Categorical([np.nan, np.nan, 'X'])
+        res = union_categoricals(
+            [
+                pd.Categorical(np.array([np.nan, np.nan], dtype=object)),
+                pd.Categorical(["X"]),
+            ]
+        )
+        exp = Categorical([np.nan, np.nan, "X"])
         tm.assert_categorical_equal(res, exp)
 
-        res = union_categoricals([pd.Categorical([np.nan, np.nan]),
-                                  pd.Categorical([np.nan, np.nan])])
+        res = union_categoricals(
+            [pd.Categorical([np.nan, np.nan]), pd.Categorical([np.nan, np.nan])]
+        )
         exp = Categorical([np.nan, np.nan, np.nan, np.nan])
         tm.assert_categorical_equal(res, exp)
 
     def test_union_categoricals_empty(self):
         # GH 13759
-        res = union_categoricals([pd.Categorical([]),
-                                  pd.Categorical([])])
+        res = union_categoricals([pd.Categorical([]), pd.Categorical([])])
         exp = Categorical([])
         tm.assert_categorical_equal(res, exp)
 
-        res = union_categoricals([Categorical([]),
-                                  Categorical(['1'])])
-        exp = Categorical(['1'])
+        res = union_categoricals([Categorical([]), Categorical(["1"])])
+        exp = Categorical(["1"])
         tm.assert_categorical_equal(res, exp)
 
     def test_union_categorical_same_category(self):
@@ -119,31 +128,30 @@ class TestUnionCategoricals(object):
         c1 = Categorical([1, 2, 3, 4], categories=[1, 2, 3, 4])
         c2 = Categorical([3, 2, 1, np.nan], categories=[1, 2, 3, 4])
         res = union_categoricals([c1, c2])
-        exp = Categorical([1, 2, 3, 4, 3, 2, 1, np.nan],
-                          categories=[1, 2, 3, 4])
+        exp = Categorical([1, 2, 3, 4, 3, 2, 1, np.nan], categories=[1, 2, 3, 4])
         tm.assert_categorical_equal(res, exp)
 
-        c1 = Categorical(['z', 'z', 'z'], categories=['x', 'y', 'z'])
-        c2 = Categorical(['x', 'x', 'x'], categories=['x', 'y', 'z'])
+        c1 = Categorical(["z", "z", "z"], categories=["x", "y", "z"])
+        c2 = Categorical(["x", "x", "x"], categories=["x", "y", "z"])
         res = union_categoricals([c1, c2])
-        exp = Categorical(['z', 'z', 'z', 'x', 'x', 'x'],
-                          categories=['x', 'y', 'z'])
+        exp = Categorical(["z", "z", "z", "x", "x", "x"], categories=["x", "y", "z"])
         tm.assert_categorical_equal(res, exp)
 
     def test_union_categorical_same_categories_different_order(self):
         # https://github.com/pandas-dev/pandas/issues/19096
-        c1 = Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c'])
-        c2 = Categorical(['a', 'b', 'c'], categories=['b', 'a', 'c'])
+        c1 = Categorical(["a", "b", "c"], categories=["a", "b", "c"])
+        c2 = Categorical(["a", "b", "c"], categories=["b", "a", "c"])
         result = union_categoricals([c1, c2])
-        expected = Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
-                               categories=['a', 'b', 'c'])
+        expected = Categorical(
+            ["a", "b", "c", "a", "b", "c"], categories=["a", "b", "c"]
+        )
         tm.assert_categorical_equal(result, expected)
 
     def test_union_categoricals_ordered(self):
         c1 = Categorical([1, 2, 3], ordered=True)
         c2 = Categorical([1, 2, 3], ordered=False)
 
-        msg = 'Categorical.ordered must be the same'
+        msg = "Categorical.ordered must be the same"
         with pytest.raises(TypeError, match=msg):
             union_categoricals([c1, c2])
 
@@ -174,7 +182,7 @@ class TestUnionCategoricals(object):
         exp = Categorical([1, 2, 3, 1, 2, 3])
         tm.assert_categorical_equal(res, exp)
 
-        msg = 'Categorical.ordered must be the same'
+        msg = "Categorical.ordered must be the same"
         with pytest.raises(TypeError, match=msg):
             union_categoricals([c1, c2], ignore_order=False)
 
@@ -183,8 +191,7 @@ class TestUnionCategoricals(object):
         tm.assert_categorical_equal(res, exp)
 
         res = union_categoricals([c1, c1], ignore_order=False)
-        exp = Categorical([1, 2, 3, 1, 2, 3],
-                          categories=[1, 2, 3], ordered=True)
+        exp = Categorical([1, 2, 3, 1, 2, 3], categories=[1, 2, 3], ordered=True)
         tm.assert_categorical_equal(res, exp)
 
         c1 = Categorical([1, 2, 3, np.nan], ordered=True)
@@ -201,8 +208,7 @@ class TestUnionCategoricals(object):
         exp = Categorical([1, 2, 3, 1, 2, 3])
         tm.assert_categorical_equal(res, exp)
 
-        res = union_categoricals([c2, c1], ignore_order=True,
-                                 sort_categories=True)
+        res = union_categoricals([c2, c1], ignore_order=True, sort_categories=True)
         exp = Categorical([1, 2, 3, 1, 2, 3], categories=[1, 2, 3])
         tm.assert_categorical_equal(res, exp)
 
@@ -221,41 +227,38 @@ class TestUnionCategoricals(object):
 
     def test_union_categoricals_sort(self):
         # GH 13846
-        c1 = Categorical(['x', 'y', 'z'])
-        c2 = Categorical(['a', 'b', 'c'])
+        c1 = Categorical(["x", "y", "z"])
+        c2 = Categorical(["a", "b", "c"])
         result = union_categoricals([c1, c2], sort_categories=True)
-        expected = Categorical(['x', 'y', 'z', 'a', 'b', 'c'],
-                               categories=['a', 'b', 'c', 'x', 'y', 'z'])
+        expected = Categorical(
+            ["x", "y", "z", "a", "b", "c"], categories=["a", "b", "c", "x", "y", "z"]
+        )
         tm.assert_categorical_equal(result, expected)
 
         # fastpath
-        c1 = Categorical(['a', 'b'], categories=['b', 'a', 'c'])
-        c2 = Categorical(['b', 'c'], categories=['b', 'a', 'c'])
+        c1 = Categorical(["a", "b"], categories=["b", "a", "c"])
+        c2 = Categorical(["b", "c"], categories=["b", "a", "c"])
         result = union_categoricals([c1, c2], sort_categories=True)
-        expected = Categorical(['a', 'b', 'b', 'c'],
-                               categories=['a', 'b', 'c'])
+        expected = Categorical(["a", "b", "b", "c"], categories=["a", "b", "c"])
         tm.assert_categorical_equal(result, expected)
 
-        c1 = Categorical(['a', 'b'], categories=['c', 'a', 'b'])
-        c2 = Categorical(['b', 'c'], categories=['c', 'a', 'b'])
+        c1 = Categorical(["a", "b"], categories=["c", "a", "b"])
+        c2 = Categorical(["b", "c"], categories=["c", "a", "b"])
         result = union_categoricals([c1, c2], sort_categories=True)
-        expected = Categorical(['a', 'b', 'b', 'c'],
-                               categories=['a', 'b', 'c'])
+        expected = Categorical(["a", "b", "b", "c"], categories=["a", "b", "c"])
         tm.assert_categorical_equal(result, expected)
 
         # fastpath - skip resort
-        c1 = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
-        c2 = Categorical(['b', 'c'], categories=['a', 'b', 'c'])
+        c1 = Categorical(["a", "b"], categories=["a", "b", "c"])
+        c2 = Categorical(["b", "c"], categories=["a", "b", "c"])
         result = union_categoricals([c1, c2], sort_categories=True)
-        expected = Categorical(['a', 'b', 'b', 'c'],
-                               categories=['a', 'b', 'c'])
+        expected = Categorical(["a", "b", "b", "c"], categories=["a", "b", "c"])
         tm.assert_categorical_equal(result, expected)
 
-        c1 = Categorical(['x', np.nan])
-        c2 = Categorical([np.nan, 'b'])
+        c1 = Categorical(["x", np.nan])
+        c2 = Categorical([np.nan, "b"])
         result = union_categoricals([c1, c2], sort_categories=True)
-        expected = Categorical(['x', np.nan, np.nan, 'b'],
-                               categories=['b', 'x'])
+        expected = Categorical(["x", np.nan, np.nan, "b"], categories=["b", "x"])
         tm.assert_categorical_equal(result, expected)
 
         c1 = Categorical([np.nan])
@@ -270,41 +273,39 @@ class TestUnionCategoricals(object):
         expected = Categorical([])
         tm.assert_categorical_equal(result, expected)
 
-        c1 = Categorical(['b', 'a'], categories=['b', 'a', 'c'], ordered=True)
-        c2 = Categorical(['a', 'c'], categories=['b', 'a', 'c'], ordered=True)
+        c1 = Categorical(["b", "a"], categories=["b", "a", "c"], ordered=True)
+        c2 = Categorical(["a", "c"], categories=["b", "a", "c"], ordered=True)
         with pytest.raises(TypeError):
             union_categoricals([c1, c2], sort_categories=True)
 
     def test_union_categoricals_sort_false(self):
         # GH 13846
-        c1 = Categorical(['x', 'y', 'z'])
-        c2 = Categorical(['a', 'b', 'c'])
+        c1 = Categorical(["x", "y", "z"])
+        c2 = Categorical(["a", "b", "c"])
         result = union_categoricals([c1, c2], sort_categories=False)
-        expected = Categorical(['x', 'y', 'z', 'a', 'b', 'c'],
-                               categories=['x', 'y', 'z', 'a', 'b', 'c'])
+        expected = Categorical(
+            ["x", "y", "z", "a", "b", "c"], categories=["x", "y", "z", "a", "b", "c"]
+        )
         tm.assert_categorical_equal(result, expected)
 
         # fastpath
-        c1 = Categorical(['a', 'b'], categories=['b', 'a', 'c'])
-        c2 = Categorical(['b', 'c'], categories=['b', 'a', 'c'])
+        c1 = Categorical(["a", "b"], categories=["b", "a", "c"])
+        c2 = Categorical(["b", "c"], categories=["b", "a", "c"])
         result = union_categoricals([c1, c2], sort_categories=False)
-        expected = Categorical(['a', 'b', 'b', 'c'],
-                               categories=['b', 'a', 'c'])
+        expected = Categorical(["a", "b", "b", "c"], categories=["b", "a", "c"])
         tm.assert_categorical_equal(result, expected)
 
         # fastpath - skip resort
-        c1 = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
-        c2 = Categorical(['b', 'c'], categories=['a', 'b', 'c'])
+        c1 = Categorical(["a", "b"], categories=["a", "b", "c"])
+        c2 = Categorical(["b", "c"], categories=["a", "b", "c"])
         result = union_categoricals([c1, c2], sort_categories=False)
-        expected = Categorical(['a', 'b', 'b', 'c'],
-                               categories=['a', 'b', 'c'])
+        expected = Categorical(["a", "b", "b", "c"], categories=["a", "b", "c"])
         tm.assert_categorical_equal(result, expected)
 
-        c1 = Categorical(['x', np.nan])
-        c2 = Categorical([np.nan, 'b'])
+        c1 = Categorical(["x", np.nan])
+        c2 = Categorical([np.nan, "b"])
         result = union_categoricals([c1, c2], sort_categories=False)
-        expected = Categorical(['x', np.nan, np.nan, 'b'],
-                               categories=['x', 'b'])
+        expected = Categorical(["x", np.nan, np.nan, "b"], categories=["x", "b"])
         tm.assert_categorical_equal(result, expected)
 
         c1 = Categorical([np.nan])
@@ -319,19 +320,20 @@ class TestUnionCategoricals(object):
         expected = Categorical([])
         tm.assert_categorical_equal(result, expected)
 
-        c1 = Categorical(['b', 'a'], categories=['b', 'a', 'c'], ordered=True)
-        c2 = Categorical(['a', 'c'], categories=['b', 'a', 'c'], ordered=True)
+        c1 = Categorical(["b", "a"], categories=["b", "a", "c"], ordered=True)
+        c2 = Categorical(["a", "c"], categories=["b", "a", "c"], ordered=True)
         result = union_categoricals([c1, c2], sort_categories=False)
-        expected = Categorical(['b', 'a', 'a', 'c'],
-                               categories=['b', 'a', 'c'], ordered=True)
+        expected = Categorical(
+            ["b", "a", "a", "c"], categories=["b", "a", "c"], ordered=True
+        )
         tm.assert_categorical_equal(result, expected)
 
     def test_union_categorical_unwrap(self):
         # GH 14173
-        c1 = Categorical(['a', 'b'])
-        c2 = pd.Series(['b', 'c'], dtype='category')
+        c1 = Categorical(["a", "b"])
+        c2 = pd.Series(["b", "c"], dtype="category")
         result = union_categoricals([c1, c2])
-        expected = Categorical(['a', 'b', 'b', 'c'])
+        expected = Categorical(["a", "b", "b", "c"])
         tm.assert_categorical_equal(result, expected)
 
         c2 = CategoricalIndex(c2)
@@ -343,4 +345,4 @@ class TestUnionCategoricals(object):
         tm.assert_categorical_equal(result, expected)
 
         with pytest.raises(TypeError):
-            union_categoricals([c1, ['a', 'b', 'c']])
+            union_categoricals([c1, ["a", "b", "c"]])
