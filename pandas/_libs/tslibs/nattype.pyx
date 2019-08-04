@@ -123,6 +123,7 @@ cdef class _NaT(datetime):
             return c_NaT
         elif getattr(other, '_typ', None) in ['dateoffset', 'series',
                                               'period', 'datetimeindex',
+                                              'datetimearray',
                                               'timedeltaindex',
                                               'timedeltaarray']:
             # Duplicate logic in _Timestamp.__add__ to avoid needing
@@ -154,6 +155,7 @@ cdef class _NaT(datetime):
 
         elif getattr(other, '_typ', None) in ['period', 'series',
                                               'periodindex', 'dateoffset',
+                                              'datetimearray',
                                               'timedeltaarray']:
             return NotImplemented
         # FIXME: aren't there a tone of cases where this will be wrong?
