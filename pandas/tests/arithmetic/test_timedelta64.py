@@ -483,7 +483,7 @@ class TestTimedelta64ArithmeticUnsorted:
     def test_tda_add_sub_index(self):
         # Check that TimedeltaArray defers to Index on arithmetic ops
         tdi = TimedeltaIndex(["1 days", pd.NaT, "2 days"])
-        tda = tdi._data
+        tda = tdi.array
 
         dti = pd.date_range("1999-12-31", periods=3, freq="D")
 

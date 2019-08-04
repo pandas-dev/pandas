@@ -2252,7 +2252,7 @@ class TestDatetimeIndexArithmetic:
     def test_dta_add_sub_index(self, tz_naive_fixture):
         # Check that DatetimeArray defers to Index classes
         dti = date_range("20130101", periods=3, tz=tz_naive_fixture)
-        dta = dti._data
+        dta = dti.array
         result = dta - dti
         expected = dti - dti
         tm.assert_index_equal(result, expected)
