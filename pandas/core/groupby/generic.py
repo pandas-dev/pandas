@@ -361,7 +361,7 @@ class NDFrameGroupBy(GroupBy):
         # GH12824.
         def first_not_none(values):
             try:
-                return next(com._not_none(*values))
+                return next(com.not_none(*values))
             except StopIteration:
                 return None
 

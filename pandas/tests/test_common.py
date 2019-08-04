@@ -33,14 +33,14 @@ def test_get_callable_name():
 
 
 def test_any_none():
-    assert com._any_none(1, 2, 3, None)
-    assert not com._any_none(1, 2, 3, 4)
+    assert com.any_none(1, 2, 3, None)
+    assert not com.any_none(1, 2, 3, 4)
 
 
 def test_all_not_none():
-    assert com._all_not_none(1, 2, 3, 4)
-    assert not com._all_not_none(1, 2, 3, None)
-    assert not com._all_not_none(None, None, None, None)
+    assert com.all_not_none(1, 2, 3, 4)
+    assert not com.all_not_none(1, 2, 3, None)
+    assert not com.all_not_none(None, None, None, None)
 
 
 def test_random_state():
