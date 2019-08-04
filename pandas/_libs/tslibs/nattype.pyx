@@ -129,16 +129,15 @@ cdef class _NaT(datetime):
             # Duplicate logic in _Timestamp.__add__ to avoid needing
             # to subclass; allows us to @final(_Timestamp.__add__)
             return NotImplemented
-        # FIXME: aren't there a tone of cases where this will be wrong?
         return c_NaT
 
     def __sub__(self, other):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
         # to subclass; allows us to @final(_Timestamp.__sub__)
         if PyDateTime_Check(other):
-            return c_NaT
+            return NaT
         elif PyDelta_Check(other):
-            return c_NaT
+            return NaT
 
         elif getattr(other, '_typ', None) == 'datetimeindex':
             # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
@@ -158,8 +157,7 @@ cdef class _NaT(datetime):
                                               'datetimearray',
                                               'timedeltaarray']:
             return NotImplemented
-        # FIXME: aren't there a tone of cases where this will be wrong?
-        return c_NaT
+        return NaT
 
     def __pos__(self):
         return NaT
