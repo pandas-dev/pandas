@@ -37,12 +37,14 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeArray,
+    ABCDatetimeIndex,
     ABCIndex,
     ABCIndexClass,
     ABCSeries,
     ABCSparseArray,
     ABCSparseSeries,
     ABCTimedeltaArray,
+    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, notna
 
@@ -91,7 +93,7 @@ def get_op_result_name(left, right):
     name : object
         Usually a string
     """
-    # `left` is always a pd.Series when called from within ops
+    # `left` is always a Series when called from within ops
     if isinstance(right, (ABCSeries, ABCIndexClass)):
         name = _maybe_match_name(left, right)
     else:
@@ -656,13 +658,16 @@ def dispatch_to_extension_op(op, left, right):
     else:
         new_right = right
 
-    res_values = op(new_left, new_right)
-    res_name = get_op_result_name(left, right)
-
-    if op.__name__ in ["divmod", "rdivmod"]:
-        return _construct_divmod_result(left, res_values, left.index, res_name)
-
-    return _construct_result(left, res_values, left.index, res_name)
+    try:
+        res_values = op(new_left, new_right)
+    except NullFrequencyError:
+        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
+        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
+        raise TypeError(
+            "incompatible type for a datetime/timedelta "
+            "operation [{name}]".format(name=op.__name__)
+        )
+    return res_values
 
 
 # -----------------------------------------------------------------------------
@@ -996,7 +1001,8 @@ def _arith_method_SERIES(cls, op, special):
             is_extension_array_dtype(right) and not is_scalar(right)
         ):
             # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
-            return dispatch_to_extension_op(op, left, right)
+            result = dispatch_to_extension_op(op, left, right)
+            return construct_result(left, result, index=left.index, name=res_name)
 
         elif is_timedelta64_dtype(left):
             result = dispatch_to_index_op(op, left, right, pd.TimedeltaIndex)
@@ -1015,7 +1021,7 @@ def _arith_method_SERIES(cls, op, special):
                 right = np.broadcast_to(right, left.shape)
                 right = pd.TimedeltaIndex(right)
 
-            assert isinstance(right, (pd.TimedeltaIndex, ABCTimedeltaArray, ABCSeries))
+            assert isinstance(right, (ABCTimedeltaIndex, ABCTimedeltaArray, ABCSeries))
             try:
                 result = op(left._values, right)
             except NullFrequencyError:
@@ -1033,7 +1039,7 @@ def _arith_method_SERIES(cls, op, special):
             #  does inference in the case where `result` has object-dtype.
             return construct_result(left, result, index=left.index, name=res_name)
 
-        elif isinstance(right, (ABCDatetimeArray, pd.DatetimeIndex)):
+        elif isinstance(right, (ABCDatetimeArray, ABCDatetimeIndex)):
             result = op(left._values, right)
             return construct_result(left, result, index=left.index, name=res_name)
 
@@ -1140,7 +1146,7 @@ def _comp_method_SERIES(cls, op, special):
             raise ValueError("Can only compare identically-labeled Series objects")
 
         elif is_categorical_dtype(self):
-            # Dispatch to Categorical implementation; pd.CategoricalIndex
+            # Dispatch to Categorical implementation; CategoricalIndex
             # behavior is non-canonical GH#19513
             res_values = dispatch_to_index_op(op, self, other, pd.Categorical)
             return self._constructor(res_values, index=self.index, name=res_name)
@@ -1161,7 +1167,10 @@ def _comp_method_SERIES(cls, op, special):
         ):
             # Note: the `not is_scalar(other)` condition rules out
             # e.g. other == "category"
-            return dispatch_to_extension_op(op, self, other)
+            res_values = dispatch_to_extension_op(op, self, other)
+            return self._constructor(
+                res_values, index=self.index, name=res_name
+            ).rename(res_name)
 
         elif isinstance(other, ABCSeries):
             # By this point we have checked that self._indexed_same(other)
