@@ -821,7 +821,7 @@ def is_one_of_factory(legal_values):
     return inner
 
 
-def is_pos_int(value):
+def is_nonnegative_int(value):
     """
     Verify that value is None or a positive int.
 
@@ -832,7 +832,8 @@ def is_pos_int(value):
 
     Raises
     ------
-    ValueError if the value is not equal to a positive integer, 0 or None.
+    ValueError
+        When the value is not None or is a negative integer
     """
 
     if value is None:
@@ -842,7 +843,7 @@ def is_pos_int(value):
         if value >= 0:
             return
 
-    msg = "Value must be a positive integer, 0 or None"
+    msg = "Value must be a nonnegative integer or None"
     raise ValueError(msg)
 
 
