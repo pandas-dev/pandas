@@ -5,7 +5,7 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import Any, Callable
+from typing import Any, Callable, Tuple
 
 import numpy as np
 
@@ -43,8 +43,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCSparseArray,
     ABCSparseSeries,
-    ABCTimedeltaArray,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, notna
 
@@ -136,7 +134,7 @@ def _maybe_match_name(a, b):
     return None
 
 
-def maybe_upcast_for_op(obj):
+def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
     """
     Cast non-pandas objects to pandas types to unify behavior of arithmetic
     and comparison operations.
@@ -144,6 +142,7 @@ def maybe_upcast_for_op(obj):
     Parameters
     ----------
     obj: object
+    shape : tuple[int]
 
     Returns
     -------
@@ -159,13 +158,22 @@ def maybe_upcast_for_op(obj):
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
         return Timedelta(obj)
-    elif isinstance(obj, np.timedelta64) and not isna(obj):
+    elif isinstance(obj, np.timedelta64):
+        if isna(obj):
+            # wrapping timedelta64("NaT") in Timedelta returns NaT,
+            #  which would incorrectly be treated as a datetime-NaT, so
+            #  we broadcast and wrap in a Series
+            right = np.broadcast_to(obj, shape)
+
+            # Note: we use Series instead of TimedeltaIndex to avoid having
+            #  to worry about catching NullFrequencyError.
+            return pd.Series(right)
+
         # In particular non-nanosecond timedelta64 needs to be cast to
         #  nanoseconds, or else we get undesired behavior like
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
-        # The isna check is to avoid casting timedelta64("NaT"), which would
-        #  return NaT and incorrectly be treated as a datetime-NaT.
         return Timedelta(obj)
+
     elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
         # GH#22390 Unfortunately we need to special-case right-hand
         # timedelta64 dtypes because numpy casts integer dtypes to
@@ -944,7 +952,7 @@ def _arith_method_SERIES(cls, op, special):
 
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
-        right = maybe_upcast_for_op(right)
+        right = maybe_upcast_for_op(right, left.shape)
 
         if is_categorical_dtype(left):
             raise TypeError(
@@ -972,31 +980,11 @@ def _arith_method_SERIES(cls, op, special):
             return construct_result(left, result, index=left.index, name=res_name)
 
         elif is_timedelta64_dtype(right):
-            # We should only get here with non-scalar or timedelta64('NaT')
-            #  values for right
-            # Note: we cannot use dispatch_to_extension_op because
-            #  that may incorrectly raise TypeError when we
-            #  should get NullFrequencyError
-            orig_right = right
-            if is_scalar(right):
-                # broadcast and wrap in a TimedeltaIndex
-                assert np.isnat(right)
-                right = np.broadcast_to(right, left.shape)
-                right = pd.TimedeltaIndex(right)
+            # We should only get here with non-scalar values for right
+            #  upcast by maybe_upcast_for_op
+            assert not isinstance(right, (np.timedelta64, np.ndarray))
 
-            assert isinstance(right, (ABCTimedeltaIndex, ABCTimedeltaArray, ABCSeries))
-            try:
-                result = op(left._values, right)
-            except NullFrequencyError:
-                if orig_right is not right:
-                    # i.e. scalar timedelta64('NaT')
-                    #  We get a NullFrequencyError because we broadcast to
-                    #  TimedeltaIndex, but this should be TypeError.
-                    raise TypeError(
-                        "incompatible type for a datetime/timedelta "
-                        "operation [{name}]".format(name=op.__name__)
-                    )
-                raise
+            result = op(left._values, right)
 
             # We do not pass dtype to ensure that the Series constructor
             #  does inference in the case where `result` has object-dtype.
