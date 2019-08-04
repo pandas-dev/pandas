@@ -9,14 +9,8 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import DataError
-from pandas.core.window.helpers import _get_center_of_mass
-from pandas.core.window.rolling import (
-    _doc_template,
-    _flex_binary_moment,
-    _Rolling,
-    _shared_docs,
-    _zsqrt,
-)
+from pandas.core.window.common import _doc_template, _get_center_of_mass, _shared_docs
+from pandas.core.window.rolling import _flex_binary_moment, _Rolling, _zsqrt
 
 _bias_template = """
         Parameters

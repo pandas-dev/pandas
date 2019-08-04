@@ -8,7 +8,60 @@ from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.common as com
+from pandas.core.generic import _shared_docs
+from pandas.core.groupby.base import GroupByMixin
 from pandas.core.index import MultiIndex
+
+_shared_docs = dict(**_shared_docs)
+_doc_template = """
+        Returns
+        -------
+        Series or DataFrame
+            Return type is determined by the caller.
+
+        See Also
+        --------
+        Series.%(name)s : Series %(name)s.
+        DataFrame.%(name)s : DataFrame %(name)s.
+"""
+
+
+class _GroupByMixin(GroupByMixin):
+    """
+    Provide the groupby facilities.
+    """
+
+    def __init__(self, obj, *args, **kwargs):
+        parent = kwargs.pop("parent", None)  # noqa
+        groupby = kwargs.pop("groupby", None)
+        if groupby is None:
+            groupby, obj = obj, obj.obj
+        self._groupby = groupby
+        self._groupby.mutated = True
+        self._groupby.grouper.mutated = True
+        super().__init__(obj, *args, **kwargs)
+
+    count = GroupByMixin._dispatch("count")
+    corr = GroupByMixin._dispatch("corr", other=None, pairwise=None)
+    cov = GroupByMixin._dispatch("cov", other=None, pairwise=None)
+
+    def _apply(
+        self, func, name=None, window=None, center=None, check_minp=None, **kwargs
+    ):
+        """
+        Dispatch to apply; we are stripping all of the _apply kwargs and
+        performing the original function call on the grouped object.
+        """
+
+        def f(x, name=name, *args):
+            x = self._shallow_copy(x)
+
+            if isinstance(name, str):
+                return getattr(x, name)(*args, **kwargs)
+
+            return x.apply(name, *args, **kwargs)
+
+        return self._groupby.apply(f)
 
 
 def _flex_binary_moment(arg1, arg2, f, pairwise=False):

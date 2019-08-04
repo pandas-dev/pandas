@@ -10,7 +10,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, concat, isna, notna
-from pandas.core.window.helpers import _flex_binary_moment
+from pandas.core.window.common import _flex_binary_moment
 from pandas.tests.window.common import Base
 import pandas.util.testing as tm
 

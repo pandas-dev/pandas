@@ -5,12 +5,8 @@ from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-from pandas.core.window.rolling import (
-    _doc_template,
-    _GroupByMixin,
-    _Rolling_and_Expanding,
-    _shared_docs,
-)
+from pandas.core.window.common import _doc_template, _GroupByMixin, _shared_docs
+from pandas.core.window.rolling import _Rolling_and_Expanding
 
 
 class Expanding(_Rolling_and_Expanding):
