@@ -176,40 +176,28 @@ def any_none(*args):
     """
     Returns a boolean indicating if any argument is None.
     """
-    for arg in args:
-        if arg is None:
-            return True
-    return False
+    return any(arg is None for arg in args)
 
 
 def all_none(*args):
     """
     Returns a boolean indicating if all arguments are None.
     """
-    for arg in args:
-        if arg is not None:
-            return False
-    return True
+    return all(arg is None for arg in args)
 
 
 def any_not_none(*args):
     """
     Returns a boolean indicating if any argument is not None.
     """
-    for arg in args:
-        if arg is not None:
-            return True
-    return False
+    return any(arg is not None for arg in args)
 
 
 def all_not_none(*args):
     """
     Returns a boolean indicating if all arguments are not None.
     """
-    for arg in args:
-        if arg is None:
-            return False
-    return True
+    return all(arg is not None for arg in args)
 
 
 def count_not_none(*args):
