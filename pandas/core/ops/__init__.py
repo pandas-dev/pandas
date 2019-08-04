@@ -989,13 +989,9 @@ def _arith_method_SERIES(cls, op, special):
             )
 
         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
-            # Give dispatch_to_index_op a chance for tests like
-            # test_dt64_series_add_intlike, which the index dispatching handles
-            # specifically.
-            result = dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
-            return construct_result(
-                left, result, index=left.index, name=res_name, dtype=result.dtype
-            )
+            from pandas.core.arrays import DatetimeArray
+            result = dispatch_to_extension_op(op, DatetimeArray(left), right)
+            return construct_result(left, result, index=left.index, name=res_name)
 
         elif is_extension_array_dtype(left) or (
             is_extension_array_dtype(right) and not is_scalar(right)
@@ -1148,7 +1144,7 @@ def _comp_method_SERIES(cls, op, special):
         elif is_categorical_dtype(self):
             # Dispatch to Categorical implementation; CategoricalIndex
             # behavior is non-canonical GH#19513
-            res_values = dispatch_to_index_op(op, self, other, pd.Categorical)
+            res_values = dispatch_to_extension_op(op, self, other)
             return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
