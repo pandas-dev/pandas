@@ -68,6 +68,7 @@ import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
 from pandas.core.ops import _align_method_FRAME
 
+from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
@@ -2881,6 +2882,7 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             return xarray.Dataset.from_dataframe(self)
 
+    @Substitution(returns=fmt.return_docstring)
     def to_latex(
         self,
         buf=None,
@@ -2914,7 +2916,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        buf : file descriptor or None
+        buf : str, Path or StringIO-like, optional, default None
             Buffer to write to. If None, the output is returned as a string.
         columns : list of label, optional
             The subset of columns to write. Writes all columns by default.
@@ -2979,13 +2981,7 @@ class NDFrame(PandasObject, SelectionMixin):
             from the pandas config module.
 
             .. versionadded:: 0.20.0
-
-        Returns
-        -------
-        str or None
-            If buf is None, returns the resulting LateX format as a
-            string. Otherwise returns None.
-
+        %(returns)s
         See Also
         --------
         DataFrame.to_string : Render a DataFrame to a console-friendly
