@@ -64,8 +64,7 @@ jobs:
         source activate pandas-dev
         ci/run_tests.sh
       displayName: 'Test'
-    - script: |
-        source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+    - script: source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
     - task: PublishTestResults@2
       inputs:
         testResultsFiles: 'test-data-*.xml'
