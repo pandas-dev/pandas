@@ -1743,7 +1743,7 @@ def _trim_zeros_float(
 
 def _has_names(index: Index) -> bool:
     if isinstance(index, ABCMultiIndex):
-        return com._any_not_none(*index.names)
+        return com.any_not_none(*index.names)
     else:
         return index.name is not None
 

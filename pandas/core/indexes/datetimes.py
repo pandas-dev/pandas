@@ -1569,7 +1569,7 @@ def date_range(
                   dtype='datetime64[ns]', freq='D')
     """
 
-    if freq is None and com._any_none(periods, start, end):
+    if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
     dtarr = DatetimeArray._generate_range(

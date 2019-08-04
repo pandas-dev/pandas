@@ -316,7 +316,7 @@ class Styler:
 
         if (
             self.data.index.names
-            and com._any_not_none(*self.data.index.names)
+            and com.any_not_none(*self.data.index.names)
             and not hidden_index
         ):
             index_header_row = []
@@ -1405,7 +1405,7 @@ class Styler:
         ...    .pipe(format_conversion)
         ...    .set_caption("Results with minimum conversion highlighted."))
         """
-        return com._pipe(self, func, *args, **kwargs)
+        return com.pipe(self, func, *args, **kwargs)
 
 
 def _is_visible(idx_row, idx_col, lengths):

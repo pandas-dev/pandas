@@ -1318,7 +1318,7 @@ def _is_type_compatible(a, b):
         (is_number(a) and is_number(b))
         or (is_ts_compat(a) and is_ts_compat(b))
         or (is_td_compat(a) and is_td_compat(b))
-        or com._any_none(a, b)
+        or com.any_none(a, b)
     )
 
 
@@ -1416,7 +1416,7 @@ def interval_range(
     end = com.maybe_box_datetimelike(end)
     endpoint = start if start is not None else end
 
-    if freq is None and com._any_none(periods, start, end):
+    if freq is None and com.any_none(periods, start, end):
         freq = 1 if is_number(endpoint) else "D"
 
     if com.count_not_none(start, end, periods, freq) != 3:
@@ -1463,7 +1463,7 @@ def interval_range(
 
     if is_number(endpoint):
         # force consistency between start/end/freq (lower end if freq skips it)
-        if com._all_not_none(start, end, freq):
+        if com.all_not_none(start, end, freq):
             end -= (end - start) % freq
 
         # compute the period/start/end if unspecified (at most one)
@@ -1475,7 +1475,7 @@ def interval_range(
             end = start + (periods - 1) * freq
 
         breaks = np.linspace(start, end, periods)
-        if all(is_integer(x) for x in com._not_none(start, end, freq)):
+        if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
             breaks = maybe_downcast_to_dtype(breaks, "int64")
     else:
