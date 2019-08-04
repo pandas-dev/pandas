@@ -243,6 +243,9 @@ class Index(IndexOpsMixin, PandasObject):
     _infer_as_myclass = False
 
     _engine_type = libindex.ObjectEngine
+    # whether we support partial string indexing. Overridden
+    # in DatetimeIndex and PeriodIndex
+    _supports_partial_string_indexing = False
 
     _accessors = {"str"}
 
@@ -3588,8 +3591,8 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.reshape.merge import _restore_dropped_levels_multijoin
 
         # figure out join names
-        self_names = set(com._not_none(*self.names))
-        other_names = set(com._not_none(*other.names))
+        self_names = set(com.not_none(*self.names))
+        other_names = set(com.not_none(*other.names))
         overlap = self_names & other_names
 
         # need at least 1 in common

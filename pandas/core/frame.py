@@ -7210,10 +7210,14 @@ class DataFrame(NDFrame):
             # join indexes only using concat
             if can_concat:
                 if how == "left":
-                    res = concat(frames, axis=1, join="outer", verify_integrity=True)
+                    res = concat(
+                        frames, axis=1, join="outer", verify_integrity=True, sort=sort
+                    )
                     return res.reindex(self.index, copy=False)
                 else:
-                    return concat(frames, axis=1, join=how, verify_integrity=True)
+                    return concat(
+                        frames, axis=1, join=how, verify_integrity=True, sort=sort
+                    )
 
             joined = frames[0]
 
