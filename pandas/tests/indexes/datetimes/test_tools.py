@@ -1623,15 +1623,17 @@ class TestToDatetimeMisc:
         tm.assert_index_equal(expected, idx5)
         tm.assert_index_equal(expected, idx6)
 
-    def test_to_datetime_dta_tz(self):
+    @pytest.mark.parametrize("klass", [DatetimeIndex, DatetimeArray])
+    def test_to_datetime_dta_tz(self, klass):
+        # GH#27733
         dti = date_range("2015-04-05", periods=3).rename("foo")
         expected = dti.tz_localize("UTC")
-        result = to_datetime(dti, utc=True)
-        tm.assert_index_equal(result, expected)
 
-        dta = dti.array
-        result = to_datetime(dta, utc=True)
-        tm.assert_equal(result, expected._data)
+        obj = klass(dti)
+        expected = klass(expected)
+
+        result = to_datetime(obj, utc=True)
+        tm.assert_equal(result, expected)
 
 
 class TestGuessDatetimeFormat:
