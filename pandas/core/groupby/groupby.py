@@ -1563,7 +1563,7 @@ class GroupBy(_GroupBy):
         """
         Return a rolling grouper, providing rolling functionality per group.
         """
-        from pandas.core.window import RollingGroupby
+        from pandas.core.window.rolling import RollingGroupby
 
         return RollingGroupby(self, *args, **kwargs)
 
@@ -1574,7 +1574,7 @@ class GroupBy(_GroupBy):
         Return an expanding grouper, providing expanding
         functionality per group.
         """
-        from pandas.core.window import ExpandingGroupby
+        from pandas.core.window.expanding import ExpandingGroupby
 
         return ExpandingGroupby(self, *args, **kwargs)
 

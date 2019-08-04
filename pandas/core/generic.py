@@ -10690,9 +10690,13 @@ class NDFrame(PandasObject, SelectionMixin):
         the doc strings again.
         """
 
-        from pandas.core import window as rwindow
+        from pandas.core.window import (
+            ewm as lib_ewm,
+            expanding as lib_expanding,
+            rolling as lib_rolling,
+        )
 
-        @Appender(rwindow.rolling.__doc__)
+        @Appender(lib_rolling.rolling.__doc__)
         def rolling(
             self,
             window,
@@ -10704,7 +10708,7 @@ class NDFrame(PandasObject, SelectionMixin):
             closed=None,
         ):
             axis = self._get_axis_number(axis)
-            return rwindow.rolling(
+            return lib_rolling.rolling(
                 self,
                 window=window,
                 min_periods=min_periods,
@@ -10717,16 +10721,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.rolling = rolling
 
-        @Appender(rwindow.expanding.__doc__)
+        @Appender(lib_expanding.expanding.__doc__)
         def expanding(self, min_periods=1, center=False, axis=0):
             axis = self._get_axis_number(axis)
-            return rwindow.expanding(
+            return lib_expanding.expanding(
                 self, min_periods=min_periods, center=center, axis=axis
             )
 
         cls.expanding = expanding
 
-        @Appender(rwindow.ewm.__doc__)
+        @Appender(lib_ewm.ewm.__doc__)
         def ewm(
             self,
             com=None,
@@ -10739,7 +10743,7 @@ class NDFrame(PandasObject, SelectionMixin):
             axis=0,
         ):
             axis = self._get_axis_number(axis)
-            return rwindow.ewm(
+            return lib_ewm.ewm(
                 self,
                 com=com,
                 span=span,

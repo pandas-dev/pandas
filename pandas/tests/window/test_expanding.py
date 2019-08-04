@@ -5,7 +5,7 @@ from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import DataFrame, Series
-import pandas.core.window as rwindow
+from pandas.core.window.expanding import Expanding
 from pandas.tests.window.common import Base
 import pandas.util.testing as tm
 
@@ -42,7 +42,7 @@ class TestExpanding(Base):
     @pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
     def test_numpy_compat(self, method):
         # see gh-12811
-        e = rwindow.Expanding(Series([2, 4, 6]), window=2)
+        e = Expanding(Series([2, 4, 6]), window=2)
 
         msg = "numpy operations are not valid with window objects"
 
