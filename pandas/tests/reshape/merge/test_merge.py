@@ -2179,3 +2179,29 @@ def test_right_merge_preserves_row_order():
     result = pop.merge(ppl, on=("name", "country"), how="right")
 
     assert_frame_equal(expected, result)
+
+
+def test_left_merge_preserves_row_order():
+    population = [
+        ("Jenn", "Jamaica", 3),
+        ("Beth", "Bulgaria", 7),
+        ("Carl", "Canada", 30),
+    ]
+    columns = ["name", "country", "population"]
+    pop = DataFrame.from_records(population, columns=columns)
+
+    people = [("Abe", "America"), ("Beth", "Bulgaria"), ("Carl", "Canada")]
+    columns = ["name", "country"]
+    ppl = DataFrame.from_records(people, columns=columns)
+
+    expected_data = [
+        ("Abe", "America", np.nan),
+        ("Beth", "Bulgaria", 7),
+        ("Carl", "Canada", 30),
+    ]
+    expected_cols = ["name", "country", "population"]
+    expected = DataFrame.from_records(expected_data, columns=expected_cols)
+
+    result = ppl.merge(pop, on=("name", "country"), how="left")
+
+    assert_frame_equal(expected, result)
