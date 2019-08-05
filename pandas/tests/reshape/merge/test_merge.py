@@ -1289,17 +1289,17 @@ class TestMerge:
         # GH 24212
         # pd.merge gets [0, 1, 2, -1, -1, -1] as left_indexer, ensure that
         # -1 is interpreted as a missing value instead of the last element
-        df1 = pd.DataFrame({"a": [1, 2, 3], "key": [0, 2, 2]}, index=index)
-        df2 = pd.DataFrame({"b": [1, 2, 3, 4, 5]})
+        df1 = pd.DataFrame({"a": [0, 1, 2], "key": [0, 1, 2]}, index=index)
+        df2 = pd.DataFrame({"b": [0, 1, 2, 3, 4, 5]})
         result = df1.merge(df2, left_on="key", right_index=True, how=how)
         expected = pd.DataFrame(
             [
-                [1.0, 0, 1],
-                [2.0, 2, 3],
-                [3.0, 2, 3],
-                [np.nan, 1, 2],
-                [np.nan, 3, 4],
-                [np.nan, 4, 5],
+                [0, 0, 0],
+                [1, 1, 1],
+                [2, 2, 2],
+                [np.nan, 3, 3],
+                [np.nan, 4, 4],
+                [np.nan, 5, 5],
             ],
             columns=["a", "key", "b"],
         )
