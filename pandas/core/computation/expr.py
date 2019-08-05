@@ -13,7 +13,6 @@ import numpy as np
 
 import pandas as pd
 from pandas.core import common as com
-from pandas.core.base import StringMixin
 from pandas.core.computation.common import (
     _BACKTICK_QUOTED_STRING,
     _remove_spaces_column_name,
@@ -799,7 +798,7 @@ class PythonExprVisitor(BaseExprVisitor):
         super().__init__(env, engine, parser, preparser=preparser)
 
 
-class Expr(StringMixin):
+class Expr:
 
     """Object encapsulating an expression.
 
@@ -831,7 +830,7 @@ class Expr(StringMixin):
     def __call__(self):
         return self.terms(self.env)
 
-    def __str__(self):
+    def __repr__(self):
         return printing.pprint_thing(self.terms)
 
     def __len__(self):
