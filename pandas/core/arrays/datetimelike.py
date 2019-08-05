@@ -161,8 +161,8 @@ class DatelikeOps:
 
         Returns
         -------
-        Index
-            Index of formatted strings.
+        ndarray
+            ndarray of formatted strings.
 
         See Also
         --------
@@ -180,7 +180,7 @@ class DatelikeOps:
                'March 10, 2018, 09:00:02 AM'],
               dtype='object')
         """
-        return self._format_native_types(date_format=date_format)
+        return self._format_native_types(date_format=date_format).astype(object)
 
 
 class TimelikeOps:
