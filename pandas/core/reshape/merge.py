@@ -566,13 +566,6 @@ class _MergeOperation:
         indicator: bool = False,
         validate=None,
     ):
-
-        # if how == "right":
-        #     left, right = right, left
-        #     left_index, right_index = right_index, left_index
-        #     left_on, right_on = right_on, left_on
-        #     how = "left"
-
         left = validate_operand(left)
         right = validate_operand(right)
         self.left = self.orig_left = left
@@ -1315,6 +1308,7 @@ def _get_join_indexers(
 
     # bind `sort` arg. of _factorize_keys
     fkeys = partial(_factorize_keys, sort=sort)
+
     # get left & right join labels and num. of levels at each location
     mapped = (
         _factorize_keys(left_keys[n], right_keys[n], sort=sort)
@@ -1330,6 +1324,7 @@ def _get_join_indexers(
     # `count` is the num. of unique keys
     # set(lkey) | set(rkey) == range(count)
     lkey, rkey, count = fkeys(lkey, rkey)
+
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
     if _how == "left":
