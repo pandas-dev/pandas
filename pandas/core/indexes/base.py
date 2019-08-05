@@ -70,7 +70,8 @@ import pandas.core.common as com
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
-from pandas.core.ops import get_op_result_name, make_invalid_op
+from pandas.core.ops import get_op_result_name
+from pandas.core.ops.invalid import make_invalid_op
 import pandas.core.sorting as sorting
 from pandas.core.strings import StringMethods
 
@@ -4713,7 +4714,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise
 
             try:
-                return libindex.get_value_box(s, key)
+                return libindex.get_value_at(s, key)
             except IndexError:
                 raise
             except TypeError:
