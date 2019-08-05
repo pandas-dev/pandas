@@ -4714,7 +4714,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise
 
             try:
-                return libindex.get_value_box(s, key)
+                return libindex.get_value_at(s, key)
             except IndexError:
                 raise
             except TypeError:

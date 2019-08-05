@@ -173,8 +173,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         "ceil",
     ]
 
-    # Needed so that NaT.__richcmp__(DateTimeArray) operates pointwise
-    ndim = 1
+    # Note: ndim must be defined to ensure NaT.__richcmp(TimedeltaArray)
+    #  operates pointwise.
 
     @property
     def _box_func(self):
