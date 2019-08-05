@@ -1823,7 +1823,7 @@ def _simple_blockify(tuples, dtype):
     """
     values, placement = _stack_arrays(tuples, dtype)
 
-    # CHECK DTYPE?
+    # TODO: CHECK DTYPE?
     if dtype is not None and values.dtype != dtype:  # pragma: no cover
         values = values.astype(dtype)
 
