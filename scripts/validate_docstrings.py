@@ -240,7 +240,6 @@ def get_api_items(api_doc_fd):
 
 
 class Docstring:
-    DIRECTIVES = ["deprecated", "versionadded", "versionchanged"]
     DIRECTIVE_WITHOUT_TWO_COLONS = re.compile(
         rf"^\s*.. ({'|'.join(DIRECTIVES)})(?!::)", re.I | re.M
     )
