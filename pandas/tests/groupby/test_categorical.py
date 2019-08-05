@@ -4,8 +4,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY37
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -209,7 +207,7 @@ def test_level_get_group(observed):
     assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(PY37, reason="flaky on 3.7, xref gh-21636", strict=False)
+# GH#21636 previously flaky on py37
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138
