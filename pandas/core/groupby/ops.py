@@ -906,7 +906,7 @@ class DataSplitter:
         return self.data.take(self.sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj):
-        return sdata.iloc[slice_obj]
+        raise AbstractMethodError(self)
 
     def apply(self, f):
         raise AbstractMethodError(self)
@@ -933,7 +933,7 @@ class FrameSplitter(DataSplitter):
         if self.axis == 0:
             return sdata.iloc[slice_obj]
         else:
-            return sdata._slice(slice_obj, axis=1)  # .loc[:, slice_obj]
+            return sdata._slice(slice_obj, axis=1)
 
 
 def get_splitter(data, *args, **kwargs):

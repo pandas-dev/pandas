@@ -2703,7 +2703,7 @@ def _convert_to_list_like(list_like):
     elif is_scalar(list_like):
         return [list_like]
     else:
-        # is this reached?
+        # TODO: is this reached?
         return [list_like]
 
 

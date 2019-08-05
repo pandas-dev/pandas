@@ -1280,7 +1280,8 @@ class Timedelta(_Timedelta):
         else:
             raise ValueError(
                 "Value must be Timedelta, string, integer, "
-                "float, timedelta or convertible")
+                "float, timedelta or convertible, not {typ}"
+                .format(typ=type(value).__name__))
 
         if is_timedelta64_object(value):
             value = value.view('i8')

@@ -161,7 +161,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     # array priority higher than numpy scalars
     __array_priority__ = 1000
-    _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
     _scalar_type = Period
 
