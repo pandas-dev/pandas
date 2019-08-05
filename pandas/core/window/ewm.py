@@ -6,7 +6,7 @@ import pandas._libs.window as libwindow
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.base import DataError
 from pandas.core.window.common import _doc_template, _get_center_of_mass, _shared_docs
@@ -386,13 +386,3 @@ class EWM(_Rolling):
         return _flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
         )
-
-
-def ewm(obj, **kwds):
-    if not isinstance(obj, (ABCSeries, ABCDataFrame)):
-        raise TypeError("invalid type: %s" % type(obj))
-
-    return EWM(obj, **kwds)
-
-
-ewm.__doc__ = EWM.__doc__

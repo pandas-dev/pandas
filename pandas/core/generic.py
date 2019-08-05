@@ -10690,13 +10690,11 @@ class NDFrame(PandasObject, SelectionMixin):
         the doc strings again.
         """
 
-        from pandas.core.window import (
-            ewm as lib_ewm,
-            expanding as lib_expanding,
-            rolling as lib_rolling,
-        )
+        from pandas.core.window.ewm import EWM
+        from pandas.core.window.expanding import Expanding
+        from pandas.core.window.rolling import Rolling, Window
 
-        @Appender(lib_rolling.rolling.__doc__)
+        @Appender(Rolling.__doc__)
         def rolling(
             self,
             window,
@@ -10707,8 +10705,24 @@ class NDFrame(PandasObject, SelectionMixin):
             axis=0,
             closed=None,
         ):
+            if not isinstance(self, (ABCSeries, ABCDataFrame)):
+                raise TypeError("invalid type: {}".format(type(self)))
+
             axis = self._get_axis_number(axis)
-            return lib_rolling.rolling(
+
+            if win_type is not None:
+                return Window(
+                    self,
+                    window=window,
+                    min_periods=min_periods,
+                    center=center,
+                    win_type=win_type,
+                    on=on,
+                    axis=axis,
+                    closed=closed,
+                )
+
+            return Rolling(
                 self,
                 window=window,
                 min_periods=min_periods,
@@ -10721,16 +10735,17 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.rolling = rolling
 
-        @Appender(lib_expanding.expanding.__doc__)
+        @Appender(Expanding.__doc__)
         def expanding(self, min_periods=1, center=False, axis=0):
+            if not isinstance(self, (ABCSeries, ABCDataFrame)):
+                raise TypeError("invalid type: {}".format(type(self)))
+
             axis = self._get_axis_number(axis)
-            return lib_expanding.expanding(
-                self, min_periods=min_periods, center=center, axis=axis
-            )
+            return Expanding(self, min_periods=min_periods, center=center, axis=axis)
 
         cls.expanding = expanding
 
-        @Appender(lib_ewm.ewm.__doc__)
+        @Appender(EWM.__doc__)
         def ewm(
             self,
             com=None,
@@ -10742,8 +10757,11 @@ class NDFrame(PandasObject, SelectionMixin):
             ignore_na=False,
             axis=0,
         ):
+            if not isinstance(self, (ABCSeries, ABCDataFrame)):
+                raise TypeError("invalid type: {}".format(type(self)))
+
             axis = self._get_axis_number(axis)
-            return lib_ewm.ewm(
+            return EWM(
                 self,
                 com=com,
                 span=span,

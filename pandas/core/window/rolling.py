@@ -1901,6 +1901,9 @@ class Rolling(_Rolling_and_Expanding):
         return super().corr(other=other, pairwise=pairwise, **kwargs)
 
 
+Rolling.__doc__ = Window.__doc__
+
+
 class RollingGroupby(_GroupByMixin, Rolling):
     """
     Provide a rolling groupby implementation.
@@ -1928,16 +1931,3 @@ class RollingGroupby(_GroupByMixin, Rolling):
         level.
         """
         pass
-
-
-def rolling(obj, win_type=None, **kwds):
-    if not isinstance(obj, (ABCSeries, ABCDataFrame)):
-        raise TypeError("invalid type: %s" % type(obj))
-
-    if win_type is not None:
-        return Window(obj, win_type=win_type, **kwds)
-
-    return Rolling(obj, **kwds)
-
-
-rolling.__doc__ = Window.__doc__
