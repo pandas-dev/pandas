@@ -440,7 +440,7 @@ class TestSparseDataFrameConcat:
         "fill_value,sparse_idx,dense_idx",
         itertools.product([None, 0, 1, np.nan], [0, 1], [1, 0]),
     )
-    @pytest.mark.xfail(reason="The iloc fails and I can't make expected", strict=False)
+    @pytest.mark.xfail(reason="The iloc fails and I can't make expected", strict=True)
     def test_concat_sparse_dense_cols(self, fill_value, sparse_idx, dense_idx):
         # See GH16874, GH18914 and #18686 for why this should be a DataFrame
         from pandas.core.dtypes.common import is_sparse

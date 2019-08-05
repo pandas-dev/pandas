@@ -11,6 +11,7 @@ import platform
 import struct
 import sys
 
+PY35 = sys.version_info[:2] == (3, 5)
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
 PYPY = platform.python_implementation() == "PyPy"

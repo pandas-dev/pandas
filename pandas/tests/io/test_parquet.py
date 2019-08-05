@@ -33,6 +33,10 @@ try:
 except ImportError:
     _HAVE_FASTPARQUET = False
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
+)
+
 
 # setup engines & skips
 @pytest.fixture(
@@ -408,8 +412,6 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
-    # TODO: This doesn't fail on all systems; track down which
-    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)", strict=False)
     def test_basic_subset_columns(self, pa, df_full):
         # GH18628
 

@@ -741,10 +741,7 @@ class TestToDatetime:
         )
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "cache",
-        [pytest.param(True, marks=pytest.mark.skipif(True, reason="GH 18111")), False],
-    )
+    @pytest.mark.parametrize("cache", [True, False])
     def test_datetime_bool(self, cache):
         # GH13176
         with pytest.raises(TypeError):
