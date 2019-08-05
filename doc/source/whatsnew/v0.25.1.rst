@@ -82,7 +82,7 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- Bug in partial-string indexing returning a NumPy array rather than a ``Series`` when indexing with a scalar like ``.loc['2015']`` (:issue:`27516`)
 -
 -
 
@@ -125,7 +125,7 @@ Reshaping
 ^^^^^^^^^
 
 - A ``KeyError`` is now raised if ``.unstack()`` is called on a :class:`Series` or :class:`DataFrame` with a flat :class:`Index` passing a name which is not the correct one (:issue:`18303`)
--
+- :meth:`DataFrame.join` now suppresses the ``FutureWarning`` when the sort parameter is specified (:issue:`21952`)
 -
 
 Sparse
