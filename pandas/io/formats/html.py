@@ -4,7 +4,7 @@ Module for formatting output data in HTML.
 
 from collections import OrderedDict
 from textwrap import dedent
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, cast
+from typing import IO, Any, Dict, Iterable, List, Optional, Tuple, Union, cast
 
 from pandas._config import get_option
 
@@ -16,6 +16,7 @@ from pandas.io.common import _is_url
 from pandas.io.formats.format import (
     DataFrameFormatter,
     TableFormatter,
+    buffer_put_lines,
     get_level_lengths,
 )
 from pandas.io.formats.printing import pprint_thing
@@ -202,6 +203,9 @@ class HTMLFormatter(TableFormatter):
             )
 
         return self.elements
+
+    def write_result(self, buf: IO[str]) -> None:
+        buffer_put_lines(buf, self.render())
 
     def _write_table(self, indent: int = 0) -> None:
         _classes = ["dataframe"]  # Default class.

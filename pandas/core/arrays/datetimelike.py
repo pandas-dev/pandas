@@ -57,20 +57,9 @@ from .base import ExtensionArray, ExtensionOpsMixin
 class AttributesMixin:
     _data = None  # type: np.ndarray
 
-    @property
-    def _attributes(self):
-        # Inheriting subclass should implement _attributes as a list of strings
-        raise AbstractMethodError(self)
-
     @classmethod
     def _simple_new(cls, values, **kwargs):
         raise AbstractMethodError(cls)
-
-    def _get_attributes_dict(self):
-        """
-        return an attributes dict for my class
-        """
-        return {k: getattr(self, k, None) for k in self._attributes}
 
     @property
     def _scalar_type(self) -> Type[DatetimeLikeScalar]:
@@ -473,6 +462,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # to a period in from_sequence). For DatetimeArray, it's Timestamp...
         # I don't know if mypy can do that, possibly with Generics.
         # https://mypy.readthedocs.io/en/latest/generics.html
+        if lib.is_scalar(value) and not isna(value):
+            value = com.maybe_box_datetimelike(value)
 
         if is_list_like(value):
             is_slice = isinstance(key, slice)
@@ -498,9 +489,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             self._check_compatible_with(value)
             value = self._unbox_scalar(value)
         elif is_valid_nat_for_dtype(value, self.dtype):
-            value = iNaT
-        elif not isna(value) and lib.is_integer(value) and value == iNaT:
-            # exclude misc e.g. object() and any NAs not allowed above
             value = iNaT
         else:
             msg = (
