@@ -18,11 +18,11 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     infer_dtype_from_scalar,
+    maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     maybe_infer_dtype_type,
     maybe_promote,
     maybe_upcast,
-    maybe_downcast_numeric,
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (

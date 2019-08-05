@@ -22,7 +22,10 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
-    maybe_convert_objects, maybe_downcast_to_dtype, maybe_downcast_numeric)
+    maybe_convert_objects,
+    maybe_downcast_numeric,
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
