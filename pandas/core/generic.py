@@ -3556,7 +3556,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def _box_item_values(self, key, values):
         raise AbstractMethodError(self)
 
-    def _slice(self, slobj, axis=0, kind=None):
+    def _slice(self, slobj: slice, axis=0, kind=None):
         """
         Construct a slice of this container.
 
@@ -6183,8 +6183,6 @@ class NDFrame(PandasObject, SelectionMixin):
             axis = 0
         axis = self._get_axis_number(axis)
 
-        from pandas import DataFrame
-
         if value is None:
 
             if self._is_mixed_type and axis == 1:
@@ -6247,7 +6245,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_data = self._data.fillna(
                     value=value, limit=limit, inplace=inplace, downcast=downcast
                 )
-            elif isinstance(value, DataFrame) and self.ndim == 2:
+            elif isinstance(value, ABCDataFrame) and self.ndim == 2:
                 new_data = self.where(self.notna(), value)
             else:
                 raise ValueError("invalid fill value with a %s" % type(value))
@@ -6651,9 +6649,8 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
 
             # need a non-zero len on all axes
-            for a in self._AXIS_ORDERS:
-                if not len(self._get_axis(a)):
-                    return self
+            if not self.size:
+                return self
 
             new_data = self._data
             if is_dict_like(to_replace):
