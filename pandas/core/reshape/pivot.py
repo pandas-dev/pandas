@@ -615,7 +615,12 @@ def _normalize(table, normalize, margins, margins_name="All"):
         table_index = table.index
         table_columns = table.columns
 
-        # save the column and index margin
+        # save the column and index margin, and check margin name
+        # is in (for MI cases) or equal to last index/column
+        if (margins_name not in table.iloc[-1, :].name) | (
+            margins_name != table.iloc[:, -1].name
+        ):
+            raise ValueError("{} not in pivoted DataFrame".format(margins_name))
         column_margin = table.iloc[:-1, -1]
         index_margin = table.iloc[-1, :-1]
 
