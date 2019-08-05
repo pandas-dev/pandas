@@ -51,6 +51,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDateOffset,
     ABCDatetimeArray,
+    ABCDatetimeIndex,
     ABCIndexClass,
     ABCMultiIndex,
     ABCPandasArray,
@@ -4313,14 +4314,25 @@ class Index(IndexOpsMixin, PandasObject):
 
         if len(typs) == 1:
             return self._concat_same_dtype(to_concat, name=name)
-        return _concat._concat_index_asobject(to_concat, name=name)
+        return Index._concat_same_dtype(self, to_concat, name=name)
 
     def _concat_same_dtype(self, to_concat, name):
         """
         Concatenate to_concat which has the same class.
         """
         # must be overridden in specific classes
-        return _concat._concat_index_asobject(to_concat, name)
+        klasses = (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex, ExtensionArray)
+        to_concat = [
+            x.astype(object) if isinstance(x, klasses) else x for x in to_concat
+        ]
+
+        self = to_concat[0]
+        attribs = self._get_attributes_dict()
+        attribs["name"] = name
+
+        to_concat = [x._values if isinstance(x, Index) else x for x in to_concat]
+
+        return self._shallow_copy_with_infer(np.concatenate(to_concat), **attribs)
 
     def putmask(self, mask, value):
         """

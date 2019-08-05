@@ -5491,30 +5491,29 @@ The top-level function :func:`read_spss` can read (but not write) SPSS
 `sav` (.sav) and  `zsav` (.zsav) format files.
 
 SPSS files contain column names. By default the
-whole file is read, categorical columns are converted into ``pd.Categorical``
+whole file is read, categorical columns are converted into ``pd.Categorical``,
 and a ``DataFrame`` with all columns is returned.
 
-Specify a ``usecols`` to obtain a subset of columns. Specify ``convert_categoricals=False``
+Specify the ``usecols`` parameter to obtain a subset of columns. Specify ``convert_categoricals=False``
 to avoid converting categorical columns into ``pd.Categorical``.
 
-Read a spss file:
+Read an SPSS file:
 
 .. code-block:: python
 
-    df = pd.read_spss('spss_data.zsav')
+    df = pd.read_spss('spss_data.sav')
 
-Extract a subset of columns ``usecols`` from SPSS file and
+Extract a subset of columns contained in ``usecols`` from an SPSS file and
 avoid converting categorical columns into ``pd.Categorical``:
 
 .. code-block:: python
 
-    df = pd.read_spss('spss_data.zsav', usecols=['foo', 'bar'],
+    df = pd.read_spss('spss_data.sav', usecols=['foo', 'bar'],
                       convert_categoricals=False)
 
-More info_ about the sav and zsav file format is available from the IBM
-web site.
+More information about the `sav` and `zsav` file format is available here_.
 
-.. _info: https://www.ibm.com/support/knowledgecenter/en/SSLVMB_22.0.0/com.ibm.spss.statistics.help/spss/base/savedatatypes.htm
+.. _here: https://www.ibm.com/support/knowledgecenter/en/SSLVMB_22.0.0/com.ibm.spss.statistics.help/spss/base/savedatatypes.htm
 
 .. _io.other:
 
