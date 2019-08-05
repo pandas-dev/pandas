@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
-from typing import Optional
+from typing import Dict, Optional
 import warnings
 
 import numpy as np
@@ -37,37 +37,13 @@ from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
 import pandas.core.nanops as nanops
 
-_shared_docs = dict()
+_shared_docs = dict()  # type: Dict[str, str]
 _indexops_doc_kwargs = dict(
     klass="IndexOpsMixin",
     inplace="",
     unique="IndexOpsMixin",
     duplicated="IndexOpsMixin",
 )
-
-
-class StringMixin:
-    """
-    Implements string methods so long as object defines a `__str__` method.
-    """
-
-    # side note - this could be made into a metaclass if more than one
-    #             object needs
-
-    # ----------------------------------------------------------------------
-    # Formatting
-
-    def __str__(self):
-        """
-        Return a string representation for a particular Object
-        """
-        raise AbstractMethodError(self)
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular object.
-        """
-        return str(self)
 
 
 class PandasObject(DirNamesMixin):
@@ -437,7 +413,7 @@ class SelectionMixin:
                 colg = self._gotitem(name, ndim=1, subset=subset)
                 if colg.ndim != 1:
                     raise SpecificationError(
-                        "nested dictionary is ambiguous " "in aggregation"
+                        "nested dictionary is ambiguous in aggregation"
                     )
                 return colg.aggregate(how, _level=(_level or 0) + 1)
 
@@ -634,9 +610,7 @@ class SelectionMixin:
 
             result = Series(results, index=keys, name=self.name)
             if is_nested_object(result):
-                raise ValueError(
-                    "cannot combine transform and " "aggregation operations"
-                )
+                raise ValueError("cannot combine transform and aggregation operations")
             return result
 
     def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
@@ -689,8 +663,9 @@ class IndexOpsMixin:
 
     T = property(
         transpose,
-        doc="""\nReturn the transpose, which is by
-                                definition self.\n""",
+        doc="""
+        Return the transpose, which is by definition self.
+        """,
     )
 
     @property
@@ -735,7 +710,7 @@ class IndexOpsMixin:
             The first element of %(klass)s.
         """
         warnings.warn(
-            "`item` has been deprecated and will be removed in a " "future version",
+            "`item` has been deprecated and will be removed in a future version",
             FutureWarning,
             stacklevel=2,
         )

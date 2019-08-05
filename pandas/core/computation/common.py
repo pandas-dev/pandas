@@ -36,3 +36,8 @@ def _remove_spaces_column_name(name):
 
 class NameResolutionError(NameError):
     pass
+
+
+class StringMixin:
+    # TODO: delete this class. Removing this ATM caused a failure.
+    pass

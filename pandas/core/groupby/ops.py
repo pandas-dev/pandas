@@ -25,6 +25,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
+    is_datetime64tz_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_sparse,
@@ -451,6 +452,7 @@ class BaseGrouper:
 
     def _cython_operation(self, kind, values, how, axis, min_count=-1, **kwargs):
         assert kind in ["transform", "aggregate"]
+        orig_values = values
 
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
@@ -467,31 +469,19 @@ class BaseGrouper:
         elif is_datetime64_any_dtype(values):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
-                    "datetime64 type does not support {} " "operations".format(how)
+                    "datetime64 type does not support {} operations".format(how)
                 )
         elif is_timedelta64_dtype(values):
             if how in ["prod", "cumprod"]:
                 raise NotImplementedError(
-                    "timedelta64 type does not support {} " "operations".format(how)
+                    "timedelta64 type does not support {} operations".format(how)
                 )
 
-        arity = self._cython_arity.get(how, 1)
-
-        vdim = values.ndim
-        swapped = False
-        if vdim == 1:
-            values = values[:, None]
-            out_shape = (self.ngroups, arity)
-        else:
-            if axis > 0:
-                swapped = True
-                assert axis == 1, axis
-                values = values.T
-            if arity > 1:
-                raise NotImplementedError(
-                    "arity of more than 1 is not " "supported for the 'how' argument"
-                )
-            out_shape = (self.ngroups,) + values.shape[1:]
+        if is_datetime64tz_dtype(values.dtype):
+            # Cast to naive; we'll cast back at the end of the function
+            # TODO: possible need to reshape?  kludge can be avoided when
+            #  2D EA is allowed.
+            values = values.view("M8[ns]")
 
         is_datetimelike = needs_i8_conversion(values.dtype)
         is_numeric = is_numeric_dtype(values.dtype)
@@ -512,6 +502,24 @@ class BaseGrouper:
             values = ensure_float64(values)
         else:
             values = values.astype(object)
+
+        arity = self._cython_arity.get(how, 1)
+
+        vdim = values.ndim
+        swapped = False
+        if vdim == 1:
+            values = values[:, None]
+            out_shape = (self.ngroups, arity)
+        else:
+            if axis > 0:
+                swapped = True
+                assert axis == 1, axis
+                values = values.T
+            if arity > 1:
+                raise NotImplementedError(
+                    "arity of more than 1 is not supported for the 'how' argument"
+                )
+            out_shape = (self.ngroups,) + values.shape[1:]
 
         try:
             func = self._get_cython_function(kind, how, values, is_numeric)
@@ -581,6 +589,9 @@ class BaseGrouper:
         if swapped:
             result = result.swapaxes(0, axis)
 
+        if is_datetime64tz_dtype(orig_values.dtype):
+            result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
+
         return result, names
 
     def aggregate(self, values, how, axis=0, min_count=-1):
@@ -604,9 +615,7 @@ class BaseGrouper:
     ):
         if values.ndim > 3:
             # punting for now
-            raise NotImplementedError(
-                "number of dimensions is currently " "limited to 3"
-            )
+            raise NotImplementedError("number of dimensions is currently limited to 3")
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
@@ -631,9 +640,7 @@ class BaseGrouper:
         comp_ids, _, ngroups = self.group_info
         if values.ndim > 3:
             # punting for now
-            raise NotImplementedError(
-                "number of dimensions is currently " "limited to 3"
-            )
+            raise NotImplementedError("number of dimensions is currently limited to 3")
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
@@ -910,7 +917,7 @@ class DataSplitter:
         return self.data.take(self.sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj):
-        return sdata.iloc[slice_obj]
+        raise AbstractMethodError(self)
 
     def apply(self, f):
         raise AbstractMethodError(self)
@@ -937,7 +944,7 @@ class FrameSplitter(DataSplitter):
         if self.axis == 0:
             return sdata.iloc[slice_obj]
         else:
-            return sdata._slice(slice_obj, axis=1)  # .loc[:, slice_obj]
+            return sdata._slice(slice_obj, axis=1)
 
 
 def get_splitter(data, *args, **kwargs):

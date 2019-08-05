@@ -704,6 +704,7 @@ def _is_convertible_to_index(other):
         "floating",
         "mixed-integer",
         "integer",
+        "integer-na",
         "mixed-integer-float",
         "mixed",
     ):
@@ -779,7 +780,7 @@ def timedelta_range(
                 '5 days 00:00:00'],
                dtype='timedelta64[ns]', freq=None)
     """
-    if freq is None and com._any_none(periods, start, end):
+    if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
     freq, freq_infer = dtl.maybe_infer_freq(freq)

@@ -29,14 +29,16 @@ from pandas.util._validators import validate_kwargs
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_float,
+    is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_extension_array_dtype,
+    is_integer_dtype,
     is_numeric_dtype,
+    is_object_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.api.types import is_datetime64_dtype, is_integer_dtype, is_object_dtype
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.base import (
@@ -343,7 +345,7 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     def __init__(
         self,
-        obj,
+        obj: NDFrame,
         keys=None,
         axis=0,
         level=None,
@@ -360,8 +362,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         self._selection = selection
 
-        if isinstance(obj, NDFrame):
-            obj._consolidate_inplace()
+        assert isinstance(obj, NDFrame), type(obj)
+        obj._consolidate_inplace()
 
         self.level = level
 
@@ -462,7 +464,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         name_sample = names[0]
         if isinstance(index_sample, tuple):
             if not isinstance(name_sample, tuple):
-                msg = "must supply a tuple to get_group with multiple" " grouping keys"
+                msg = "must supply a tuple to get_group with multiple grouping keys"
                 raise ValueError(msg)
             if not len(name_sample) == len(index_sample):
                 try:
@@ -590,7 +592,7 @@ b  2""",
     )
     @Appender(_pipe_template)
     def pipe(self, func, *args, **kwargs):
-        return com._pipe(self, func, *args, **kwargs)
+        return com.pipe(self, func, *args, **kwargs)
 
     plot = property(GroupByPlot)
 
@@ -715,7 +717,7 @@ b  2""",
 
             else:
                 raise ValueError(
-                    "func must be a callable if args or " "kwargs are supplied"
+                    "func must be a callable if args or kwargs are supplied"
                 )
         else:
             f = func
@@ -928,7 +930,7 @@ b  2""",
         def reset_identity(values):
             # reset the identities of the components
             # of the values to prevent aliasing
-            for v in com._not_none(*values):
+            for v in com.not_none(*values):
                 ax = v._get_axis(self.axis)
                 ax._reset_identity()
             return values
@@ -1206,7 +1208,7 @@ class GroupBy(_GroupBy):
             )
         except GroupByError:
             raise
-        except Exception:  # pragma: no cover
+        except Exception:
             with _group_selection_context(self):
                 f = lambda x: x.mean(axis=self.axis, **kwargs)
                 return self._python_agg_general(f)
@@ -1232,7 +1234,7 @@ class GroupBy(_GroupBy):
             )
         except GroupByError:
             raise
-        except Exception:  # pragma: no cover
+        except Exception:
 
             def f(x):
                 if isinstance(x, np.ndarray):
@@ -1872,7 +1874,7 @@ class GroupBy(_GroupBy):
         def pre_processor(vals: np.ndarray) -> Tuple[np.ndarray, Optional[Type]]:
             if is_object_dtype(vals):
                 raise TypeError(
-                    "'quantile' cannot be performed against " "'object' dtypes!"
+                    "'quantile' cannot be performed against 'object' dtypes!"
                 )
 
             inference = None
@@ -2201,9 +2203,7 @@ class GroupBy(_GroupBy):
         `Series` or `DataFrame`  with filled values
         """
         if result_is_index and aggregate:
-            raise ValueError(
-                "'result_is_index' and 'aggregate' cannot both " "be True!"
-            )
+            raise ValueError("'result_is_index' and 'aggregate' cannot both be True!")
         if post_processing:
             if not callable(pre_processing):
                 raise ValueError("'post_processing' must be a callable!")
@@ -2212,7 +2212,7 @@ class GroupBy(_GroupBy):
                 raise ValueError("'pre_processing' must be a callable!")
             if not needs_values:
                 raise ValueError(
-                    "Cannot use 'pre_processing' without " "specifying 'needs_values'!"
+                    "Cannot use 'pre_processing' without specifying 'needs_values'!"
                 )
 
         labels, _, ngroups = grouper.group_info
@@ -2472,7 +2472,7 @@ def groupby(obj, by, **kwds):
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         klass = DataFrameGroupBy
-    else:  # pragma: no cover
+    else:
         raise TypeError("invalid type: {}".format(obj))
 
     return klass(obj, by, **kwds)

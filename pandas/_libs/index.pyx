@@ -47,10 +47,6 @@ cpdef get_value_at(ndarray arr, object loc, object tz=None):
     return util.get_value_at(arr, loc)
 
 
-def get_value_box(arr: ndarray, loc: object) -> object:
-    return get_value_at(arr, loc, tz=None)
-
-
 # Don't populate hash tables in monotonic indexes larger than this
 _SIZE_CUTOFF = 1000000
 
