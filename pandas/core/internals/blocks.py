@@ -687,17 +687,6 @@ class Block(PandasObject):
             return issubclass(tipo.type, dtype)
         return isinstance(element, dtype)
 
-    def _try_cast_result(self, result):
-        """ try to cast the result to our original type, we may have
-        roundtripped thru object in the mean-time
-        """
-        return maybe_downcast_numeric(result, self.dtype)
-        if result.dtype == self.dtype:
-            return result
-
-        # may need to change the dtype here
-        return maybe_downcast_to_dtype(result, self.dtype)
-
     def _try_coerce_args(self, other):
         """ provide coercion to our input arguments """
 
@@ -1432,7 +1421,7 @@ class Block(PandasObject):
         for m in [mask, ~mask]:
             if m.any():
                 taken = result.take(m.nonzero()[0], axis=axis)
-                r = self._try_cast_result(taken)  # Note: removing this breaks stuff
+                r = maybe_downcast_numeric(taken, self.dtype)
                 nb = self.make_block(r.T, placement=self.mgr_locs[m])
                 result_blocks.append(nb)
 
@@ -1664,9 +1653,6 @@ class NonConsolidatableMixIn:
 
         new_values[mask] = new
         return [self.make_block(values=new_values)]
-
-    def _try_cast_result(self, result):
-        return result
 
     def _get_unstack_items(self, unstacker, new_columns):
         """

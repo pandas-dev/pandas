@@ -454,6 +454,8 @@ class BaseGrouper:
         assert kind in ["transform", "aggregate"]
         orig_values = values
 
+        # FIXME: Why is this necessary?  Shouldn't it be handled by the
+        #  datetime64tz check already in place below?
         if is_datetime64tz_dtype(values):
             # TODO: possible need to reshape?  kludge can be avoided when
             #  2D EA is allowed.
@@ -464,7 +466,6 @@ class BaseGrouper:
             result = type(values)(result.astype(np.int64), dtype=values.dtype)
             return result, names
 
-        orig_values = values
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
 
