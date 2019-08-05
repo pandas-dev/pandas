@@ -1047,7 +1047,7 @@ class TestPeriodIndexArithmetic:
     def test_parr_add_sub_index(self):
         # Check that PeriodArray defers to Index on arithmetic ops
         pi = pd.period_range("2000-12-31", periods=3)
-        parr = pi._data
+        parr = pi.array
 
         result = parr - pi
         expected = pi - pi
