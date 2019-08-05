@@ -6649,9 +6649,8 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
 
             # need a non-zero len on all axes
-            for a in self._AXIS_ORDERS:
-                if not len(self._get_axis(a)):
-                    return self
+            if not self.size:
+                return self
 
             new_data = self._data
             if is_dict_like(to_replace):
