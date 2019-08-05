@@ -573,13 +573,6 @@ class BaseGrouper:
                 result = result.astype("float64")
                 result[mask] = np.nan
 
-        if (
-            is_datetimelike
-            and kind == "aggregate"
-            and not is_datetime64tz_dtype(orig_values.dtype)
-        ):
-            result = result.astype(orig_values.dtype)
-
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
             assert result.ndim != 2
             result = result[counts > 0]
@@ -598,6 +591,8 @@ class BaseGrouper:
 
         if is_datetime64tz_dtype(orig_values.dtype):
             result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
+        elif is_datetimelike and kind == "aggregate":
+            result = result.astype(orig_values.dtype)
 
         return result, names
 
