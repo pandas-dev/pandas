@@ -411,7 +411,7 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_append_to_another(self):
-        # hits _concat_index_asobject
+        # hits Index._concat_same_dtype
         fst = Index(["a", "b"])
         snd = CategoricalIndex(["d", "e"])
         result = fst.append(snd)

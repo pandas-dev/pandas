@@ -17,7 +17,6 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
     ABCFloat64Index,
     ABCInt64Index,
@@ -129,7 +128,8 @@ class NumericIndex(Index):
         pass
 
     def _concat_same_dtype(self, indexes, name):
-        return _concat._concat_index_same_dtype(indexes).rename(name)
+        result = type(indexes[0])(np.concatenate([x._values for x in indexes]))
+        return result.rename(name)
 
     @property
     def is_all_dates(self):
