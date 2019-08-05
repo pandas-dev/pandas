@@ -49,15 +49,15 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas as pd
 from pandas._typing import ArrayLike
 from pandas.core.construction import extract_array
-
-from . import missing
-from .docstrings import (
+from pandas.core.ops import missing
+from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
     _make_flex_doc,
     _op_descriptions,
 )
-from .roperator import (  # noqa:F401
+from pandas.core.ops.invalid import invalid_comparison
+from pandas.core.ops.roperator import (  # noqa:F401
     radd,
     rand_,
     rdiv,
@@ -183,29 +183,6 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
 
 
 # -----------------------------------------------------------------------------
-
-
-def make_invalid_op(name):
-    """
-    Return a binary method that always raises a TypeError.
-
-    Parameters
-    ----------
-    name : str
-
-    Returns
-    -------
-    invalid_op : function
-    """
-
-    def invalid_op(self, other=None):
-        raise TypeError(
-            "cannot perform {name} with this index type: "
-            "{typ}".format(name=name, typ=type(self).__name__)
-        )
-
-    invalid_op.__name__ = name
-    return invalid_op
 
 
 def _gen_eval_kwargs(name):
@@ -474,38 +451,6 @@ def masked_arith_op(x, y, op):
     result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
     result = result.reshape(x.shape)  # 2D compat
     return result
-
-
-def invalid_comparison(left, right, op):
-    """
-    If a comparison has mismatched types and is not necessarily meaningful,
-    follow python3 conventions by:
-
-        - returning all-False for equality
-        - returning all-True for inequality
-        - raising TypeError otherwise
-
-    Parameters
-    ----------
-    left : array-like
-    right : scalar, array-like
-    op : operator.{eq, ne, lt, le, gt}
-
-    Raises
-    ------
-    TypeError : on inequality comparisons
-    """
-    if op is operator.eq:
-        res_values = np.zeros(left.shape, dtype=bool)
-    elif op is operator.ne:
-        res_values = np.ones(left.shape, dtype=bool)
-    else:
-        raise TypeError(
-            "Invalid comparison between dtype={dtype} and {typ}".format(
-                dtype=left.dtype, typ=type(right).__name__
-            )
-        )
-    return res_values
 
 
 # -----------------------------------------------------------------------------
