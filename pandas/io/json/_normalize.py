@@ -310,18 +310,16 @@ def json_normalize(
                     # is at the meta path end
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
-                        meta_vals[key].append(meta_val)
                     # Extract the value of the key from seen_meta when
                     # meta path and record path are on two branches
                     elif seen_meta:
-                        meta_val = seen_meta[key]
-                        meta_vals[key] += [
-                            # The list case
-                            meta_val[ind][val[level]]
-                            if isinstance(meta_val, list)
-                            # The dict case
-                            else meta_val[val[level]]
-                        ]
+                        meta_val_obj = seen_meta[key]
+                        # Both the list case and the dict case are covered
+                        meta_val = (
+                            meta_val_obj[ind][val[level]]
+                            if isinstance(meta_val_obj, list)
+                            else meta_val_obj[val[level]]
+                        )
                     # At top level, seen_meta is empty, pull from data
                     # directly and raise KeyError if not found
                     else:
@@ -336,7 +334,7 @@ def json_normalize(
                                     "errors='ignore' as key "
                                     "{err} is not always present".format(err=e)
                                 )
-                        meta_vals[key].append(meta_val)
+                    meta_vals[key].append(meta_val)
 
                 records.extend(recs)
 
