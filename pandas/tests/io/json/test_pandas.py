@@ -115,43 +115,34 @@ class TestPandasContainer:
         unser = read_json(df.to_json(orient="values"), orient="values")
         tm.assert_numpy_array_equal(df.values, unser.values)
 
-    def test_frame_non_unique_columns(self):
+    @pytest.mark.parametrize("orient", ["split", "values"])
+    @pytest.mark.parametrize("data", [
+        [["a", "b"], ["c", "d"]],
+        [[1.5, 2.5], [3.5, 4.5]],
+        [[1, 2.5], [3, 4.5]],
+        [[Timestamp("20130101"), 3.5], [Timestamp("20130102"), 4.5]]
+    ])
+    def test_frame_non_unique_columns(self, orient, data):
+        df = DataFrame(data, index=[1, 2], columns=["x", "x"])
+
+        if orient == "values":
+            if not df.select_dtypes(include=['datetime64']).empty:
+                pytest.skip("Doesnt roundtrip with datetimes")
+
+            unser = read_json(df.to_json(orient="values"), orient="values")
+            tm.assert_numpy_array_equal(df.values, unser.values)
+        else:
+            assert_frame_equal(
+                df, read_json(df.to_json(orient="split"), orient="split", convert_dates=["x"])
+            )        
+
+    @pytest.mark.parametrize("orient", ["index", "columns", "records"])
+    def test_frame_non_unique_columns_raises(self, orient):
         df = DataFrame([["a", "b"], ["c", "d"]], index=[1, 2], columns=["x", "x"])
 
-        msg = "DataFrame columns must be unique for orient='index'"
+        msg = "DataFrame columns must be unique for orient='{}'".format(orient)
         with pytest.raises(ValueError, match=msg):
-            df.to_json(orient="index")
-        msg = "DataFrame columns must be unique for orient='columns'"
-        with pytest.raises(ValueError, match=msg):
-            df.to_json(orient="columns")
-        msg = "DataFrame columns must be unique for orient='records'"
-        with pytest.raises(ValueError, match=msg):
-            df.to_json(orient="records")
-
-        assert_frame_equal(
-            df, read_json(df.to_json(orient="split"), orient="split", dtype=False)
-        )
-        unser = read_json(df.to_json(orient="values"), orient="values")
-        tm.assert_numpy_array_equal(df.values, unser.values)
-
-        # GH4377; duplicate columns not processing correctly
-        df = DataFrame([["a", "b"], ["c", "d"]], index=[1, 2], columns=["x", "y"])
-        result = read_json(df.to_json(orient="split"), orient="split")
-        assert_frame_equal(result, df)
-
-        def _check(df):
-            result = read_json(
-                df.to_json(orient="split"), orient="split", convert_dates=["x"]
-            )
-            assert_frame_equal(result, df)
-
-        for o in [
-            [["a", "b"], ["c", "d"]],
-            [[1.5, 2.5], [3.5, 4.5]],
-            [[1, 2.5], [3, 4.5]],
-            [[Timestamp("20130101"), 3.5], [Timestamp("20130102"), 4.5]],
-        ]:
-            _check(DataFrame(o, index=[1, 2], columns=["x", "x"]))
+            df.to_json(orient=orient)
 
     def test_frame_from_json_to_json(self):
         def _check_orient(
