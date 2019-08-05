@@ -417,9 +417,6 @@ class Block(PandasObject):
         if self._can_hold_element(value):
             # equivalent: self._try_coerce_args(value) would not raise
             blocks = self.putmask(mask, value, inplace=inplace)
-            blocks = [
-                b.make_block(values=self._try_coerce_result(b.values)) for b in blocks
-            ]
             return self._maybe_downcast(blocks, downcast)
 
         # we can't process the value, but nothing to do
@@ -599,7 +596,7 @@ class Block(PandasObject):
 
             categories = kwargs.get("categories", None)
             ordered = kwargs.get("ordered", None)
-            if com._any_not_none(categories, ordered):
+            if com.any_not_none(categories, ordered):
                 dtype = CategoricalDtype(categories, ordered)
 
             if is_categorical_dtype(self.values):
@@ -734,12 +731,7 @@ class Block(PandasObject):
 
         return other
 
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-        return result
-
     def _try_coerce_and_cast_result(self, result, dtype=None):
-        result = self._try_coerce_result(result)
         result = self._try_cast_result(result, dtype=dtype)
         return result
 
@@ -1406,7 +1398,7 @@ class Block(PandasObject):
 
             try:
                 fastres = expressions.where(cond, values, other)
-                return self._try_coerce_result(fastres)
+                return fastres
             except Exception as detail:
                 if errors == "raise":
                     raise TypeError(
@@ -1692,7 +1684,6 @@ class NonConsolidatableMixIn:
         mask = _safe_reshape(mask, new_values.shape)
 
         new_values[mask] = new
-        new_values = self._try_coerce_result(new_values)
         return [self.make_block(values=new_values)]
 
     def _try_cast_result(self, result, dtype=None):
@@ -1869,20 +1860,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             slicer = slicer[1]
 
         return self.values[slicer]
-
-    def _try_cast_result(self, result, dtype=None):
-        """
-        if we have an operation that operates on for example floats
-        we want to try to cast back to our EA here if possible
-
-        result could be a 2-D numpy array, e.g. the result of
-        a numeric operation; but it must be shape (1, X) because
-        we by-definition operate on the ExtensionBlocks one-by-one
-
-        result could also be an EA Array itself, in which case it
-        is already a 1-D array
-        """
-        return result
 
     def formatting_values(self):
         # Deprecating the ability to override _formatting_values.
@@ -2230,7 +2207,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if tipo is not None:
             if self.is_datetimetz:
                 # require exact match, since non-nano does not exist
-                return is_dtype_equal(tipo, self.dtype)
+                return is_dtype_equal(tipo, self.dtype) or is_valid_nat_for_dtype(
+                    element, self.dtype
+                )
 
             # GH#27419 if we get a non-nano datetime64 object
             return is_datetime64_dtype(tipo)
@@ -2441,20 +2420,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
         return other
 
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray):
-            if result.ndim == 2:
-                # kludge for 2D blocks with 1D EAs
-                result = result[0, :]
-            if result.dtype == np.float64:
-                # needed for post-groupby.median
-                result = self._holder._from_sequence(
-                    result.astype(np.int64), freq=None, dtype=self.values.dtype
-                )
-
-        return result
-
     def diff(self, n, axis=0):
         """1st discrete difference
 
@@ -2500,26 +2465,28 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # We support filling a DatetimeTZ with a `value` whose timezone
         # is different by coercing to object.
-        try:
+        if self._can_hold_element(value):
             return super().fillna(value, limit, inplace, downcast)
-        except (ValueError, TypeError):
-            # different timezones, or a non-tz
-            return self.astype(object).fillna(
-                value, limit=limit, inplace=inplace, downcast=downcast
-            )
+
+        # different timezones, or a non-tz
+        return self.astype(object).fillna(
+            value, limit=limit, inplace=inplace, downcast=downcast
+        )
 
     def setitem(self, indexer, value):
         # https://github.com/pandas-dev/pandas/issues/24020
         # Need a dedicated setitem until #24020 (type promotion in setitem
         # for extension arrays) is designed and implemented.
-        try:
+        if self._can_hold_element(value) or (
+            isinstance(indexer, np.ndarray) and indexer.size == 0
+        ):
             return super().setitem(indexer, value)
-        except (ValueError, TypeError):
-            obj_vals = self.values.astype(object)
-            newb = make_block(
-                obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
-            )
-            return newb.setitem(indexer, value)
+
+        obj_vals = self.values.astype(object)
+        newb = make_block(
+            obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
+        )
+        return newb.setitem(indexer, value)
 
     def equals(self, other):
         # override for significant performance improvement
@@ -2614,10 +2581,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             raise TypeError(other)
 
         return other
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args / try_operate """
-        return result
 
     def should_store(self, value):
         return issubclass(
@@ -3026,16 +2989,6 @@ class CategoricalBlock(ExtensionBlock):
         array
         """
         return np.object_
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-
-        # GH12564: CategoricalBlock is 1-dim only
-        # while returned results could be any dim
-        if (not is_categorical_dtype(result)) and isinstance(result, np.ndarray):
-            result = _block_shape(result, ndim=self.ndim)
-
-        return result
 
     def to_dense(self):
         # Categorical.get_values returns a DatetimeIndex for datetime
