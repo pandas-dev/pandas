@@ -454,18 +454,6 @@ class BaseGrouper:
         assert kind in ["transform", "aggregate"]
         orig_values = values
 
-        # FIXME: Why is this necessary?  Shouldn't it be handled by the
-        #  datetime64tz check already in place below?
-        if is_datetime64tz_dtype(values):
-            # TODO: possible need to reshape?  kludge can be avoided when
-            #  2D EA is allowed.
-            naive = values.view("M8[ns]")
-            result, names = self._cython_operation(
-                kind, naive, how=how, axis=axis, min_count=min_count, **kwargs
-            )
-            result = type(values)(result.astype(np.int64), dtype=values.dtype)
-            return result, names
-
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
 
@@ -585,7 +573,11 @@ class BaseGrouper:
                 result = result.astype("float64")
                 result[mask] = np.nan
 
-        if is_datetimelike and kind == "aggregate":
+        if (
+            is_datetimelike
+            and kind == "aggregate"
+            and not is_datetime64tz_dtype(orig_values.dtype)
+        ):
             result = result.astype(orig_values.dtype)
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
