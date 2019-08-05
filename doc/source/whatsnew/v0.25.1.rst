@@ -111,6 +111,8 @@ Plotting
 ^^^^^^^^
 
 - Added a pandas_plotting_backends entrypoint group for registering plot backends. See :ref:`extending.plotting-backends` for more (:issue:`26747`).
+- Fixed the re-instatement of Matplotlib datetime converters after calling
+  `pandas.plotting.deregister_matplotlib_converters()` (:issue:`27481`).
 -
 -
 
