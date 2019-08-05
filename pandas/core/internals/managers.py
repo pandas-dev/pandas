@@ -908,7 +908,7 @@ class BlockManager(PandasObject):
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
-                result[rl] = blk._try_coerce_result(blk.iget((i, loc)))
+                result[rl] = blk.iget((i, loc))
 
         if is_extension_array_dtype(dtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
