@@ -59,9 +59,7 @@ from pandas.io.formats.printing import pprint_thing
 
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 DIRECTIVES = ["versionadded", "versionchanged", "deprecated"]
-DIRECTIVE_PATTERN = re.compile(
-    rf"^\s*.. ({'|'.join(DIRECTIVES)})(?!::)", re.I | re.M
-)
+DIRECTIVE_PATTERN = re.compile(rf"^\s*.. ({'|'.join(DIRECTIVES)})(?!::)", re.I | re.M)
 ALLOWED_SECTIONS = [
     "Parameters",
     "Attributes",
@@ -243,7 +241,6 @@ def get_api_items(api_doc_fd):
 
 
 class Docstring:
-
     def __init__(self, name):
         self.name = name
         obj = self._load_obj(name)

@@ -904,8 +904,10 @@ class TestValidator:
             (
                 "BadGenericDocStrings",
                 "directives_without_two_colons",
-                ("reST directives ['versionchanged', 'versionadded', "
-                 "'deprecated'] must be followed by two colons",),
+                (
+                    "reST directives ['versionchanged', 'versionadded', "
+                    "'deprecated'] must be followed by two colons",
+                ),
             ),
             (
                 "BadSeeAlso",
