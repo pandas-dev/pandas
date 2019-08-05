@@ -666,6 +666,7 @@ class TestDatetimeIndexComparisons:
     # Raising in __eq__ will fallback to NumPy, which warns, fails,
     # then re-raises the original exception. So we just need to ignore.
     @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
+    @pytest.mark.filterwarnings("ignore:Converting timezone-aware:FutureWarning")
     def test_scalar_comparison_tzawareness(
         self, op, other, tz_aware_fixture, box_with_array
     ):
@@ -2249,6 +2250,23 @@ class TestDatetimeIndexArithmetic:
 
     # -------------------------------------------------------------
 
+    def test_dta_add_sub_index(self, tz_naive_fixture):
+        # Check that DatetimeArray defers to Index classes
+        dti = date_range("20130101", periods=3, tz=tz_naive_fixture)
+        dta = dti.array
+        result = dta - dti
+        expected = dti - dti
+        tm.assert_index_equal(result, expected)
+
+        tdi = result
+        result = dta + tdi
+        expected = dti + tdi
+        tm.assert_index_equal(result, expected)
+
+        result = dta - tdi
+        expected = dti - tdi
+        tm.assert_index_equal(result, expected)
+
     def test_sub_dti_dti(self):
         # previously performed setop (deprecated in 0.16.0), now changed to
         # return subtraction -> TimeDeltaIndex (GH ...)
@@ -2554,6 +2572,7 @@ def test_shift_months(years, months):
     tm.assert_index_equal(actual, expected)
 
 
+# FIXME: this belongs in scalar tests
 class SubDatetime(datetime):
     pass
 
