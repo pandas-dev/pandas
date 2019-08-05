@@ -1184,7 +1184,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)  # type: ignore
     _resolution = cache_readonly(DatetimeArray._resolution.fget)  # type: ignore
 
-    #strftime = ea_passthrough(DatetimeArray.strftime)
     _has_same_tz = ea_passthrough(DatetimeArray._has_same_tz)
 
     @property
