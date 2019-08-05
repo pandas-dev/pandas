@@ -125,13 +125,14 @@ def maybe_downcast_to_dtype(result, dtype):
             else:
                 dtype = "object"
 
-    if isinstance(dtype, str):
         dtype = np.dtype(dtype)
+
 
     try:
 
-        # don't allow upcasts here (except if empty)
+        # This can fail if we have SparseDType, which doesnt have itemsize
         if dtype.kind == result.dtype.kind:
+            # don't allow upcasts here (except if empty)
             if result.dtype.itemsize <= dtype.itemsize and np.prod(result.shape):
                 return result
 
@@ -194,7 +195,65 @@ def maybe_downcast_to_dtype(result, dtype):
             return PeriodArray(result, freq=dtype.freq)
 
     except Exception:
+        # TODO: catch more specific
         pass
+
+    return result
+
+
+# TODO: de-duplicate with maybe_downcast_to_dtype
+def maybe_downcast_numeric(result, dtype):
+    """ try to cast to the specified dtype (e.g. convert back to bool/int
+    or could be an astype of float64->float32
+    """
+
+    if result.dtype == dtype:
+        return result
+
+    if dtype.kind == result.dtype.kind:
+        # don't allow upcasts here (except if empty)
+        if result.dtype.itemsize <= dtype.itemsize and np.prod(result.shape):
+            return result
+
+    if is_bool_dtype(dtype) or is_integer_dtype(dtype):
+
+        # if we don't have any elements, just astype it
+        if not np.prod(result.shape):
+            return result.astype(dtype)
+
+        # do a test on the first element, if it fails then we are done
+        r = result.ravel()
+        arr = np.array([r[0]])
+
+        # if we have any nulls, then we are done
+        if isna(arr).any() or not np.allclose(
+            arr, arr.astype(dtype), rtol=0
+        ):
+            return result
+
+        # a comparable, e.g. a Decimal may slip in here
+        elif not isinstance(
+            r[0], (np.integer, np.floating, np.bool, int, float, bool)
+        ):
+            return result
+
+        if (
+            issubclass(result.dtype.type, (np.object_, np.number))
+            and notna(result).all()
+        ):
+            new_result = result.astype(dtype)
+            try:
+                if np.allclose(new_result, result, rtol=0):
+                    return new_result
+            except Exception:
+
+                # comparison of an object dtype with a number type could
+                # hit here
+                if (new_result == result).all():
+                    return new_result
+    elif issubclass(dtype.type, np.floating) and not is_bool_dtype(result.dtype):
+        return result.astype(dtype)
+
 
     return result
 

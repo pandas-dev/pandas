@@ -22,6 +22,7 @@ from pandas.core.dtypes.cast import (
     maybe_infer_dtype_type,
     maybe_promote,
     maybe_upcast,
+    maybe_downcast_numeric,
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
@@ -693,16 +694,9 @@ class Block(PandasObject):
         """ try to cast the result to our original type, we may have
         roundtripped thru object in the mean-time
         """
+        return maybe_downcast_numeric(result, self.dtype)
         if result.dtype == self.dtype:
             return result
-
-        if self.dtype.kind == result.dtype.kind:
-            # don't allow upcasts here (except if empty)
-            if result.dtype.itemsize <= self.dtype.itemsize and result.size:
-                return result
-
-            if result.dtype.itemsize > self.dtype.itemsize:
-                return result.astype(self.dtype)
 
         # may need to change the dtype here
         return maybe_downcast_to_dtype(result, self.dtype)

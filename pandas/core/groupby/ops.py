@@ -463,6 +463,7 @@ class BaseGrouper:
             result = type(values)(result.astype(np.int64), dtype=values.dtype)
             return result, names
 
+        orig_values = values
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
 
@@ -575,6 +576,9 @@ class BaseGrouper:
             if mask.any():
                 result = result.astype("float64")
                 result[mask] = np.nan
+
+        if is_datetimelike and kind == "aggregate":
+            result = result.astype(orig_values.dtype)
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
             assert result.ndim != 2
