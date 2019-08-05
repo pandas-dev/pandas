@@ -328,7 +328,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # Constructors
 
-    _attributes = ["freq", "tz"]
     _dtype = None  # type: Union[np.dtype, DatetimeTZDtype]
     _freq = None
 
