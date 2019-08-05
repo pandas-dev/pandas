@@ -1038,10 +1038,6 @@ class TestReplaceSeriesCoercion(CoercionBase):
         "from_key", ["datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"]
     )
     def test_replace_series_datetime_tz(self, how, to_key, from_key):
-        how = "series"
-        from_key = "datetime64[ns, US/Eastern]"
-        to_key = "timedelta64[ns]"
-
         index = pd.Index([3, 4], name="xyz")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
