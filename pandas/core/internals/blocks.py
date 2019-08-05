@@ -549,10 +549,10 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, False)
 
-    def astype(self, dtype, copy=False, errors="raise", values=None, **kwargs):
-        return self._astype(dtype, copy=copy, errors=errors, values=values, **kwargs)
+    def astype(self, dtype, copy=False, errors="raise", **kwargs):
+        return self._astype(dtype, copy=copy, errors=errors, **kwargs)
 
-    def _astype(self, dtype, copy=False, errors="raise", values=None, **kwargs):
+    def _astype(self, dtype, copy=False, errors="raise", **kwargs):
         """Coerce to the new type
 
         Parameters
@@ -596,7 +596,7 @@ class Block(PandasObject):
 
             categories = kwargs.get("categories", None)
             ordered = kwargs.get("ordered", None)
-            if com._any_not_none(categories, ordered):
+            if com.any_not_none(categories, ordered):
                 dtype = CategoricalDtype(categories, ordered)
 
             if is_categorical_dtype(self.values):
@@ -613,42 +613,39 @@ class Block(PandasObject):
                 return self.copy()
             return self
 
-        if values is None:
-            try:
-                # force the copy here
-                if self.is_extension:
-                    values = self.values.astype(dtype)
-                else:
-                    if issubclass(dtype.type, str):
-
-                        # use native type formatting for datetime/tz/timedelta
-                        if self.is_datelike:
-                            values = self.to_native_types()
-
-                        # astype formatting
-                        else:
-                            values = self.get_values()
-
-                    else:
-                        values = self.get_values(dtype=dtype)
-
-                    # _astype_nansafe works fine with 1-d only
-                    vals1d = values.ravel()
-                    values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
-
-                # TODO(extension)
-                # should we make this attribute?
-                if isinstance(values, np.ndarray):
-                    values = values.reshape(self.shape)
-
-            except Exception:
-                # e.g. astype_nansafe can fail on object-dtype of strings
-                #  trying to convert to float
-                if errors == "raise":
-                    raise
-                newb = self.copy() if copy else self
+        try:
+            # force the copy here
+            if self.is_extension:
+                values = self.values.astype(dtype)
             else:
-                newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
+                if issubclass(dtype.type, str):
+
+                    # use native type formatting for datetime/tz/timedelta
+                    if self.is_datelike:
+                        values = self.to_native_types()
+
+                    # astype formatting
+                    else:
+                        values = self.get_values()
+
+                else:
+                    values = self.get_values(dtype=dtype)
+
+                # _astype_nansafe works fine with 1-d only
+                vals1d = values.ravel()
+                values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
+
+            # TODO(extension)
+            # should we make this attribute?
+            if isinstance(values, np.ndarray):
+                values = values.reshape(self.shape)
+
+        except Exception:
+            # e.g. astype_nansafe can fail on object-dtype of strings
+            #  trying to convert to float
+            if errors == "raise":
+                raise
+            newb = self.copy() if copy else self
         else:
             newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
 
@@ -740,7 +737,7 @@ class Block(PandasObject):
         values[mask] = na_rep
         return values
 
-    # block actions ####
+    # block actions #
     def copy(self, deep=True):
         """ copy constructor """
         values = self.values
@@ -1512,16 +1509,14 @@ class Block(PandasObject):
             ).reshape(len(values), len(qs))
         else:
             # asarray needed for Sparse, see GH#24600
-            # Note: we use self.values below instead of values because the
-            #  `asi8` conversion above will behave differently under `isna`
-            mask = np.asarray(isna(self.values))
+            mask = np.asarray(isna(values))
             result = nanpercentile(
                 values,
                 np.array(qs) * 100,
                 axis=axis,
                 na_value=self.fill_value,
                 mask=mask,
-                ndim=self.ndim,
+                ndim=values.ndim,
                 interpolation=interpolation,
             )
 
@@ -2190,7 +2185,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if tipo is not None:
             if self.is_datetimetz:
                 # require exact match, since non-nano does not exist
-                return is_dtype_equal(tipo, self.dtype)
+                return is_dtype_equal(tipo, self.dtype) or is_valid_nat_for_dtype(
+                    element, self.dtype
+                )
 
             # GH#27419 if we get a non-nano datetime64 object
             return is_datetime64_dtype(tipo)
@@ -2446,26 +2443,28 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # We support filling a DatetimeTZ with a `value` whose timezone
         # is different by coercing to object.
-        try:
+        if self._can_hold_element(value):
             return super().fillna(value, limit, inplace, downcast)
-        except (ValueError, TypeError):
-            # different timezones, or a non-tz
-            return self.astype(object).fillna(
-                value, limit=limit, inplace=inplace, downcast=downcast
-            )
+
+        # different timezones, or a non-tz
+        return self.astype(object).fillna(
+            value, limit=limit, inplace=inplace, downcast=downcast
+        )
 
     def setitem(self, indexer, value):
         # https://github.com/pandas-dev/pandas/issues/24020
         # Need a dedicated setitem until #24020 (type promotion in setitem
         # for extension arrays) is designed and implemented.
-        try:
+        if self._can_hold_element(value) or (
+            isinstance(indexer, np.ndarray) and indexer.size == 0
+        ):
             return super().setitem(indexer, value)
-        except (ValueError, TypeError):
-            obj_vals = self.values.astype(object)
-            newb = make_block(
-                obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
-            )
-            return newb.setitem(indexer, value)
+
+        obj_vals = self.values.astype(object)
+        newb = make_block(
+            obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
+        )
+        return newb.setitem(indexer, value)
 
     def equals(self, other):
         # override for significant performance improvement

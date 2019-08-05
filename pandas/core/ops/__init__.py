@@ -5,13 +5,11 @@ This is not a public API.
 """
 import datetime
 import operator
-import textwrap
-from typing import Any, Callable
-import warnings
+from typing import Any, Callable, Tuple
 
 import numpy as np
 
-from pandas._libs import Timedelta, Timestamp, lib, ops as libops
+from pandas._libs import Timedelta, lib, ops as libops
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -44,7 +42,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCSparseArray,
     ABCSparseSeries,
-    ABCTimedeltaArray,
 )
 from pandas.core.dtypes.missing import isna, notna
 
@@ -136,7 +133,7 @@ def _maybe_match_name(a, b):
     return None
 
 
-def maybe_upcast_for_op(obj):
+def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
     """
     Cast non-pandas objects to pandas types to unify behavior of arithmetic
     and comparison operations.
@@ -144,6 +141,7 @@ def maybe_upcast_for_op(obj):
     Parameters
     ----------
     obj: object
+    shape : tuple[int]
 
     Returns
     -------
@@ -159,13 +157,22 @@ def maybe_upcast_for_op(obj):
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
         return Timedelta(obj)
-    elif isinstance(obj, np.timedelta64) and not isna(obj):
+    elif isinstance(obj, np.timedelta64):
+        if isna(obj):
+            # wrapping timedelta64("NaT") in Timedelta returns NaT,
+            #  which would incorrectly be treated as a datetime-NaT, so
+            #  we broadcast and wrap in a Series
+            right = np.broadcast_to(obj, shape)
+
+            # Note: we use Series instead of TimedeltaIndex to avoid having
+            #  to worry about catching NullFrequencyError.
+            return pd.Series(right)
+
         # In particular non-nanosecond timedelta64 needs to be cast to
         #  nanoseconds, or else we get undesired behavior like
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
-        # The isna check is to avoid casting timedelta64("NaT"), which would
-        #  return NaT and incorrectly be treated as a datetime-NaT.
         return Timedelta(obj)
+
     elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
         # GH#22390 Unfortunately we need to special-case right-hand
         # timedelta64 dtypes because numpy casts integer dtypes to
@@ -977,7 +984,7 @@ def _arith_method_SERIES(cls, op, special):
 
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
-        right = maybe_upcast_for_op(right)
+        right = maybe_upcast_for_op(right, left.shape)
 
         if is_categorical_dtype(left):
             raise TypeError(
@@ -1005,31 +1012,11 @@ def _arith_method_SERIES(cls, op, special):
             return construct_result(left, result, index=left.index, name=res_name)
 
         elif is_timedelta64_dtype(right):
-            # We should only get here with non-scalar or timedelta64('NaT')
-            #  values for right
-            # Note: we cannot use dispatch_to_index_op because
-            #  that may incorrectly raise TypeError when we
-            #  should get NullFrequencyError
-            orig_right = right
-            if is_scalar(right):
-                # broadcast and wrap in a TimedeltaIndex
-                assert np.isnat(right)
-                right = np.broadcast_to(right, left.shape)
-                right = pd.TimedeltaIndex(right)
+            # We should only get here with non-scalar values for right
+            #  upcast by maybe_upcast_for_op
+            assert not isinstance(right, (np.timedelta64, np.ndarray))
 
-            assert isinstance(right, (pd.TimedeltaIndex, ABCTimedeltaArray, ABCSeries))
-            try:
-                result = op(left._values, right)
-            except NullFrequencyError:
-                if orig_right is not right:
-                    # i.e. scalar timedelta64('NaT')
-                    #  We get a NullFrequencyError because we broadcast to
-                    #  TimedeltaIndex, but this should be TypeError.
-                    raise TypeError(
-                        "incompatible type for a datetime/timedelta "
-                        "operation [{name}]".format(name=op.__name__)
-                    )
-                raise
+            result = op(left._values, right)
 
             # We do not pass dtype to ensure that the Series constructor
             #  does inference in the case where `result` has object-dtype.
@@ -1139,7 +1126,7 @@ def _comp_method_SERIES(cls, op, special):
             return NotImplemented
 
         elif isinstance(other, ABCSeries) and not self._indexed_same(other):
-            raise ValueError("Can only compare identically-labeled " "Series objects")
+            raise ValueError("Can only compare identically-labeled Series objects")
 
         elif is_categorical_dtype(self):
             # Dispatch to Categorical implementation; pd.CategoricalIndex
@@ -1150,34 +1137,8 @@ def _comp_method_SERIES(cls, op, special):
         elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
             # Dispatch to DatetimeIndex to ensure identical
             # Series/Index behavior
-            if isinstance(other, datetime.date) and not isinstance(
-                other, datetime.datetime
-            ):
-                # https://github.com/pandas-dev/pandas/issues/21152
-                # Compatibility for difference between Series comparison w/
-                # datetime and date
-                msg = (
-                    "Comparing Series of datetimes with 'datetime.date'.  "
-                    "Currently, the 'datetime.date' is coerced to a "
-                    "datetime. In the future pandas will not coerce, "
-                    "and {future}. "
-                    "To retain the current behavior, "
-                    "convert the 'datetime.date' to a datetime with "
-                    "'pd.Timestamp'."
-                )
-
-                if op in {operator.lt, operator.le, operator.gt, operator.ge}:
-                    future = "a TypeError will be raised"
-                else:
-                    future = (
-                        "'the values will not compare equal to the " "'datetime.date'"
-                    )
-                msg = "\n".join(textwrap.wrap(msg.format(future=future)))
-                warnings.warn(msg, FutureWarning, stacklevel=2)
-                other = Timestamp(other)
 
             res_values = dispatch_to_index_op(op, self, other, pd.DatetimeIndex)
-
             return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_timedelta64_dtype(self):
@@ -1404,9 +1365,7 @@ def _align_method_FRAME(left, right, axis):
     """ convert rhs to meet lhs dims if input is list, tuple or np.ndarray """
 
     def to_series(right):
-        msg = (
-            "Unable to coerce to Series, length must be {req_len}: " "given {given_len}"
-        )
+        msg = "Unable to coerce to Series, length must be {req_len}: given {given_len}"
         if axis is not None and left._get_axis_name(axis) == "index":
             if len(left.index) != len(right):
                 raise ValueError(
@@ -1564,7 +1523,7 @@ def _comp_method_FRAME(cls, func, special):
             # Another DataFrame
             if not self._indexed_same(other):
                 raise ValueError(
-                    "Can only compare identically-labeled " "DataFrame objects"
+                    "Can only compare identically-labeled DataFrame objects"
                 )
             return dispatch_to_series(self, other, func, str_rep)
 

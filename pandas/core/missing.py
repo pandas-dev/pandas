@@ -119,7 +119,7 @@ def clean_interp_method(method, **kwargs):
         "from_derivatives",
     ]
     if method in ("spline", "polynomial") and order is None:
-        raise ValueError("You must specify the order of the spline or " "polynomial.")
+        raise ValueError("You must specify the order of the spline or polynomial.")
     if method not in valid:
         raise ValueError(
             "method must be one of {valid}. Got '{method}' "
@@ -176,7 +176,7 @@ def interpolate_1d(
     valid_limit_directions = ["forward", "backward", "both"]
     limit_direction = limit_direction.lower()
     if limit_direction not in valid_limit_directions:
-        msg = "Invalid limit_direction: expecting one of {valid!r}, " "got {invalid!r}."
+        msg = "Invalid limit_direction: expecting one of {valid!r}, got {invalid!r}."
         raise ValueError(
             msg.format(valid=valid_limit_directions, invalid=limit_direction)
         )
@@ -322,7 +322,7 @@ def _interpolate_scipy_wrapper(
             alt_methods["pchip"] = interpolate.pchip_interpolate
         except AttributeError:
             raise ImportError(
-                "Your version of Scipy does not support " "PCHIP interpolation."
+                "Your version of Scipy does not support PCHIP interpolation."
             )
     elif method == "akima":
         alt_methods["akima"] = _akima_interpolate
@@ -463,18 +463,6 @@ def interpolate_2d(
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
     """
-    if is_datetime64tz_dtype(values):
-        naive = values.view("M8[ns]")
-        result = interpolate_2d(
-            naive,
-            method=method,
-            axis=axis,
-            limit=limit,
-            fill_value=fill_value,
-            dtype=dtype,
-        )
-        return type(values)._from_sequence(result, dtype=values.dtype)
-
     orig_values = values
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)

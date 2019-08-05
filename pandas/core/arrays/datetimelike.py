@@ -473,6 +473,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # to a period in from_sequence). For DatetimeArray, it's Timestamp...
         # I don't know if mypy can do that, possibly with Generics.
         # https://mypy.readthedocs.io/en/latest/generics.html
+        if lib.is_scalar(value) and not isna(value):
+            value = com.maybe_box_datetimelike(value)
 
         if is_list_like(value):
             is_slice = isinstance(key, slice)
@@ -498,9 +500,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             self._check_compatible_with(value)
             value = self._unbox_scalar(value)
         elif is_valid_nat_for_dtype(value, self.dtype):
-            value = iNaT
-        elif not isna(value) and lib.is_integer(value) and value == iNaT:
-            # exclude misc e.g. object() and any NAs not allowed above
             value = iNaT
         else:
             msg = (
@@ -1097,7 +1096,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             )
 
         if len(self) != len(other):
-            raise ValueError("cannot subtract arrays/indices of " "unequal length")
+            raise ValueError("cannot subtract arrays/indices of unequal length")
         if self.freq != other.freq:
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr

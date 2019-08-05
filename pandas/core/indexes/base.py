@@ -243,6 +243,9 @@ class Index(IndexOpsMixin, PandasObject):
     _infer_as_myclass = False
 
     _engine_type = libindex.ObjectEngine
+    # whether we support partial string indexing. Overridden
+    # in DatetimeIndex and PeriodIndex
+    _supports_partial_string_indexing = False
 
     _accessors = {"str"}
 
@@ -376,9 +379,7 @@ class Index(IndexOpsMixin, PandasObject):
                             data = maybe_cast_to_integer_array(data, dtype, copy=copy)
                         elif inferred in ["floating", "mixed-integer-float"]:
                             if isna(data).any():
-                                raise ValueError(
-                                    "cannot convert float " "NaN to integer"
-                                )
+                                raise ValueError("cannot convert float NaN to integer")
 
                             if inferred == "mixed-integer-float":
                                 data = maybe_cast_to_integer_array(data, dtype)
@@ -452,7 +453,8 @@ class Index(IndexOpsMixin, PandasObject):
                         pass
 
                     return Index(subarr, copy=copy, dtype=object, name=name)
-                elif inferred in ["floating", "mixed-integer-float"]:
+                elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
+                    # TODO: Returns IntegerArray for integer-na case in the future
                     from .numeric import Float64Index
 
                     return Float64Index(subarr, copy=copy, name=name)
@@ -1182,7 +1184,7 @@ class Index(IndexOpsMixin, PandasObject):
         .. deprecated:: 0.23.0
         """
         warnings.warn(
-            "'summary' is deprecated and will be removed in a " "future version.",
+            "'summary' is deprecated and will be removed in a future version.",
             FutureWarning,
             stacklevel=2,
         )
@@ -1521,10 +1523,14 @@ class Index(IndexOpsMixin, PandasObject):
                 )
             elif level > 0:
                 raise IndexError(
-                    "Too many levels:" " Index has only 1 level, not %d" % (level + 1)
+                    "Too many levels: Index has only 1 level, not %d" % (level + 1)
                 )
         elif level != self.name:
-            raise KeyError("Level %s must be same as name (%s)" % (level, self.name))
+            raise KeyError(
+                "Requested level ({}) does not match index name ({})".format(
+                    level, self.name
+                )
+            )
 
     def _get_level_number(self, level):
         self._validate_index_level(level)
@@ -1785,7 +1791,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self.inferred_type in ["integer"]
 
     def is_floating(self):
-        return self.inferred_type in ["floating", "mixed-integer-float"]
+        return self.inferred_type in ["floating", "mixed-integer-float", "integer-na"]
 
     def is_numeric(self):
         return self.inferred_type in ["integer", "floating"]
@@ -2949,7 +2955,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self.is_unique:
             raise InvalidIndexError(
-                "Reindexing only valid with uniquely" " valued Index objects"
+                "Reindexing only valid with uniquely valued Index objects"
             )
 
         if method == "pad" or method == "backfill":
@@ -2976,7 +2982,7 @@ class Index(IndexOpsMixin, PandasObject):
         # override this method on subclasses
         tolerance = np.asarray(tolerance)
         if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match " "target index size")
+            raise ValueError("list-like tolerance size must match target index size")
         return tolerance
 
     def _get_fill_indexer(self, target, method, limit=None, tolerance=None):
@@ -3094,6 +3100,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if self.inferred_type not in [
                     "floating",
                     "mixed-integer-float",
+                    "integer-na",
                     "string",
                     "unicode",
                     "mixed",
@@ -3171,7 +3178,7 @@ class Index(IndexOpsMixin, PandasObject):
                     self.get_loc(stop)
                 is_positional = False
         except KeyError:
-            if self.inferred_type == "mixed-integer-float":
+            if self.inferred_type in ["mixed-integer-float", "integer-na"]:
                 raise
 
         if is_null_slicer:
@@ -3584,8 +3591,8 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.reshape.merge import _restore_dropped_levels_multijoin
 
         # figure out join names
-        self_names = set(com._not_none(*self.names))
-        other_names = set(com._not_none(*other.names))
+        self_names = set(com.not_none(*self.names))
+        other_names = set(com.not_none(*other.names))
         overlap = self_names & other_names
 
         # need at least 1 in common
@@ -3708,9 +3715,7 @@ class Index(IndexOpsMixin, PandasObject):
             return lib.get_level_sorter(lab, ensure_int64(starts))
 
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
-            raise TypeError(
-                "Join on level between two MultiIndex objects " "is ambiguous"
-            )
+            raise TypeError("Join on level between two MultiIndex objects is ambiguous")
 
         left, right = self, other
 
@@ -3724,7 +3729,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not right.is_unique:
             raise NotImplementedError(
-                "Index._join_level on non-unique index " "is not implemented"
+                "Index._join_level on non-unique index is not implemented"
             )
 
         new_level, left_lev_indexer, right_lev_indexer = old_level.join(
@@ -4550,9 +4555,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Use sort_values instead.
         """
-        raise TypeError(
-            "cannot sort an Index object in-place, use " "sort_values instead"
-        )
+        raise TypeError("cannot sort an Index object in-place, use sort_values instead")
 
     def shift(self, periods=1, freq=None):
         """
@@ -5201,7 +5204,7 @@ class Index(IndexOpsMixin, PandasObject):
                 pass
             else:
                 if not tz_compare(ts_start.tzinfo, ts_end.tzinfo):
-                    raise ValueError("Both dates must have the " "same UTC offset")
+                    raise ValueError("Both dates must have the same UTC offset")
 
         start_slice = None
         if start is not None:
@@ -5393,12 +5396,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(other, (Index, ABCSeries, np.ndarray)):
             if len(self) != len(other):
-                raise ValueError("cannot evaluate a numeric op with " "unequal lengths")
+                raise ValueError("cannot evaluate a numeric op with unequal lengths")
             other = com.values_from_object(other)
             if other.dtype.kind not in ["f", "i", "u"]:
-                raise TypeError(
-                    "cannot evaluate a numeric op " "with a non-numeric dtype"
-                )
+                raise TypeError("cannot evaluate a numeric op with a non-numeric dtype")
         elif isinstance(other, (ABCDateOffset, np.timedelta64, timedelta)):
             # higher up to handle
             pass
@@ -5567,7 +5568,7 @@ class Index(IndexOpsMixin, PandasObject):
             return logical_func
 
         cls.all = _make_logical_function(
-            "all", "Return whether all elements " "are True.", np.all
+            "all", "Return whether all elements are True.", np.all
         )
         cls.any = _make_logical_function(
             "any", "Return whether any element is True.", np.any
