@@ -238,6 +238,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     )
 
     _engine_type = libindex.DatetimeEngine
+    _supports_partial_string_indexing = True
 
     _tz = None
     _freq = None
@@ -778,6 +779,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             not in (
                 "floating",
                 "integer",
+                "integer-na",
                 "mixed-integer",
                 "mixed-integer-float",
                 "mixed",
@@ -1568,7 +1570,7 @@ def date_range(
                   dtype='datetime64[ns]', freq='D')
     """
 
-    if freq is None and com._any_none(periods, start, end):
+    if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
     dtarr = DatetimeArray._generate_range(
