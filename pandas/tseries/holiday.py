@@ -345,8 +345,8 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     """
 
     rules = []  # type: List[Holiday]
-    start_date = Timestamp(datetime(1970, 1, 1))
-    end_date = Timestamp(datetime(2030, 12, 31))
+    start_date = Timestamp(datetime(1960, 1, 1))
+    end_date = Timestamp(datetime(2080, 12, 31))
     _cache = None
 
     def __init__(self, name=None, rules=None):
