@@ -1,23 +1,59 @@
-from numpy import nan
-from pandas import Series
-import pandas.util.testing as tm
+from pandas import (
+    Series,
+    date_range,
+)
+from pandas.tests.series.common import TestData
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.util.testing import assert_series_equal
 
+class TestDiff(TestData):
+    def test_diff(self):
+        # Just run the function
+        self.ts.diff()
 
-def test_diff():
-    '''
-    Tests the pd.Series diff function on boolean series.
-    '''
-    data = Series(
-        [0, -1, -2, -3, -4, -3, -2, -1, 0]
-    )
-    filtered = data.between(-2, 0, inclusive=True)
-    diff_boolean = filtered.diff()
-    expected_boolean = Series(
-        [nan, False, False, True, False, False, True, False, False]
-    )
-    tm.assert_series_equal(diff_boolean, expected_boolean)
-    diff_data = data.diff()
-    expected_data = Series(
-        [nan, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0]
-    )
-    tm.assert_series_equal(diff_data, expected_data)
+        # int dtype
+        a = 10000000000000000
+        b = a + 1
+        s = Series([a, b])
+
+        rs = s.diff()
+        assert rs[1] == 1
+
+        # neg n
+        rs = self.ts.diff(-1)
+        xp = self.ts - self.ts.shift(-1)
+        assert_series_equal(rs, xp)
+
+        # 0
+        rs = self.ts.diff(0)
+        xp = self.ts - self.ts
+        assert_series_equal(rs, xp)
+
+        # datetime diff (GH3100)
+        s = Series(date_range("20130102", periods=5))
+        rs = s - s.shift(1)
+        xp = s.diff()
+        assert_series_equal(rs, xp)
+
+        # timedelta diff
+        nrs = rs - rs.shift(1)
+        nxp = xp.diff()
+        assert_series_equal(nrs, nxp)
+
+        # with tz
+        s = Series(
+            date_range("2000-01-01 09:00:00", periods=5, tz="US/Eastern"), name="foo"
+        )
+        result = s.diff()
+        assert_series_equal(
+            result, Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
+        )
+
+        # boolean series
+        s = Series(
+            [False, True, True, False, False]
+        )
+        result = s.diff()
+        assert_series_equal(
+            result, Series[nan, True, False, True, False]
+        )
