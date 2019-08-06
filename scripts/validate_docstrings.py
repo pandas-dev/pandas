@@ -59,6 +59,7 @@ from pandas.io.formats.printing import pprint_thing
 
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 DIRECTIVES = ["versionadded", "versionchanged", "deprecated"]
+DIRECTIVE_PATTERN = re.compile(rf"^\s*\.\. ({'|'.join(DIRECTIVES)})(?!::)", re.I | re.M)
 ALLOWED_SECTIONS = [
     "Parameters",
     "Attributes",
@@ -93,6 +94,7 @@ ERROR_MSGS = {
     "GL07": "Sections are in the wrong order. Correct order is: " "{correct_sections}",
     "GL08": "The object does not have a docstring",
     "GL09": "Deprecation warning should precede extended summary",
+    "GL10": "reST directives {directives} must be followed by two colons",
     "SS01": "No summary found (a short summary in a single line should be "
     "present at the beginning of the docstring)",
     "SS02": "Summary does not start with a capital letter",
@@ -478,6 +480,10 @@ class Docstring:
     def correct_parameters(self):
         return not bool(self.parameter_mismatches)
 
+    @property
+    def directives_without_two_colons(self):
+        return DIRECTIVE_PATTERN.findall(self.raw_doc)
+
     def parameter_type(self, param):
         return self.doc_parameters[param][0]
 
@@ -696,6 +702,10 @@ def get_validation_data(doc):
 
     if doc.deprecated and not doc.extended_summary.startswith(".. deprecated:: "):
         errs.append(error("GL09"))
+
+    directives_without_two_colons = doc.directives_without_two_colons
+    if directives_without_two_colons:
+        errs.append(error("GL10", directives=directives_without_two_colons))
 
     if not doc.summary:
         errs.append(error("SS01"))
