@@ -133,4 +133,3 @@ else
 fi
 
 echo "done"
-echo "$PATH"
