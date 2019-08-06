@@ -27,7 +27,8 @@ class TestDiff(TestData):
         rs = self.ts.diff(0)
         xp = self.ts - self.ts
         assert_series_equal(rs, xp)
-
+        
+    def test_datetime_diff(self):
         # datetime diff (GH3100)
         s = Series(date_range("20130102", periods=5))
         rs = s - s.shift(1)
