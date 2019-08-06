@@ -732,7 +732,6 @@ class DataFrame(NDFrame):
 
         formatter = fmt.DataFrameFormatter(
             self,
-            buf=buf,
             columns=columns,
             col_space=col_space,
             na_rep=na_rep,
@@ -750,11 +749,7 @@ class DataFrame(NDFrame):
             decimal=decimal,
             line_width=line_width,
         )
-        formatter.to_string()
-
-        if buf is None:
-            result = formatter.buf.getvalue()
-            return result
+        return formatter.to_string(buf=buf)
 
     # ----------------------------------------------------------------------
 
@@ -2273,7 +2268,6 @@ class DataFrame(NDFrame):
 
         formatter = fmt.DataFrameFormatter(
             self,
-            buf=buf,
             columns=columns,
             col_space=col_space,
             na_rep=na_rep,
@@ -2294,10 +2288,9 @@ class DataFrame(NDFrame):
             render_links=render_links,
         )
         # TODO: a generic formatter wld b in DataFrameFormatter
-        formatter.to_html(classes=classes, notebook=notebook, border=border)
-
-        if buf is None:
-            return formatter.buf.getvalue()
+        return formatter.to_html(
+            buf=buf, classes=classes, notebook=notebook, border=border
+        )
 
     # ----------------------------------------------------------------------
 
@@ -7217,10 +7210,14 @@ class DataFrame(NDFrame):
             # join indexes only using concat
             if can_concat:
                 if how == "left":
-                    res = concat(frames, axis=1, join="outer", verify_integrity=True)
+                    res = concat(
+                        frames, axis=1, join="outer", verify_integrity=True, sort=sort
+                    )
                     return res.reindex(self.index, copy=False)
                 else:
-                    return concat(frames, axis=1, join=how, verify_integrity=True)
+                    return concat(
+                        frames, axis=1, join=how, verify_integrity=True, sort=sort
+                    )
 
             joined = frames[0]
 

@@ -7,7 +7,7 @@ from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, lib
+from pandas._libs import Timedelta, Timestamp, internals as libinternals, lib
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -602,9 +602,10 @@ class BlockManager(PandasObject):
             """
             if isna(s):
                 return isna(values)
-            if hasattr(s, "asm8"):
+            if isinstance(s, (Timedelta, Timestamp)) and getattr(s, "tz", None) is None:
+
                 return _compare_or_regex_search(
-                    maybe_convert_objects(values), getattr(s, "asm8"), regex
+                    maybe_convert_objects(values), s.asm8, regex
                 )
             return _compare_or_regex_search(values, s, regex)
 
@@ -908,7 +909,7 @@ class BlockManager(PandasObject):
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
-                result[rl] = blk._try_coerce_result(blk.iget((i, loc)))
+                result[rl] = blk.iget((i, loc))
 
         if is_extension_array_dtype(dtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
@@ -1822,7 +1823,7 @@ def _simple_blockify(tuples, dtype):
     """
     values, placement = _stack_arrays(tuples, dtype)
 
-    # CHECK DTYPE?
+    # TODO: CHECK DTYPE?
     if dtype is not None and values.dtype != dtype:  # pragma: no cover
         values = values.astype(dtype)
 

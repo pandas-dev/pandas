@@ -68,6 +68,7 @@ import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
 from pandas.core.ops import _align_method_FRAME
 
+from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
@@ -1124,7 +1125,7 @@ class NDFrame(PandasObject, SelectionMixin):
             v = axes.get(self._AXIS_NAMES[axis])
             if v is None:
                 continue
-            f = com._get_rename_function(v)
+            f = com.get_rename_function(v)
             baxis = self._get_block_manager_axis(axis)
             if level is not None:
                 level = self.axes[axis]._get_level_number(level)
@@ -1312,7 +1313,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if non_mapper:
                     newnames = v
                 else:
-                    f = com._get_rename_function(v)
+                    f = com.get_rename_function(v)
                     curnames = self._get_axis(axis).names
                     newnames = [f(name) for name in curnames]
                 result._set_axis_name(newnames, axis=axis, inplace=True)
@@ -2881,6 +2882,7 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             return xarray.Dataset.from_dataframe(self)
 
+    @Substitution(returns=fmt.return_docstring)
     def to_latex(
         self,
         buf=None,
@@ -2914,7 +2916,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        buf : file descriptor or None
+        buf : str, Path or StringIO-like, optional, default None
             Buffer to write to. If None, the output is returned as a string.
         columns : list of label, optional
             The subset of columns to write. Writes all columns by default.
@@ -2979,13 +2981,7 @@ class NDFrame(PandasObject, SelectionMixin):
             from the pandas config module.
 
             .. versionadded:: 0.20.0
-
-        Returns
-        -------
-        str or None
-            If buf is None, returns the resulting LateX format as a
-            string. Otherwise returns None.
-
+        %(returns)s
         See Also
         --------
         DataFrame.to_string : Render a DataFrame to a console-friendly
@@ -3018,7 +3014,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         formatter = DataFrameFormatter(
             self,
-            buf=buf,
             columns=columns,
             col_space=col_space,
             na_rep=na_rep,
@@ -3032,7 +3027,8 @@ class NDFrame(PandasObject, SelectionMixin):
             escape=escape,
             decimal=decimal,
         )
-        formatter.to_latex(
+        return formatter.to_latex(
+            buf=buf,
             column_format=column_format,
             longtable=longtable,
             encoding=encoding,
@@ -3040,9 +3036,6 @@ class NDFrame(PandasObject, SelectionMixin):
             multicolumn_format=multicolumn_format,
             multirow=multirow,
         )
-
-        if buf is None:
-            return formatter.buf.getvalue()
 
     def to_csv(
         self,
@@ -3563,7 +3556,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def _box_item_values(self, key, values):
         raise AbstractMethodError(self)
 
-    def _slice(self, slobj, axis=0, kind=None):
+    def _slice(self, slobj: slice, axis=0, kind=None):
         """
         Construct a slice of this container.
 
@@ -4996,7 +4989,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs["pipe"] % _shared_doc_kwargs)
     def pipe(self, func, *args, **kwargs):
-        return com._pipe(self, func, *args, **kwargs)
+        return com.pipe(self, func, *args, **kwargs)
 
     _shared_docs["aggregate"] = dedent(
         """
@@ -6190,8 +6183,6 @@ class NDFrame(PandasObject, SelectionMixin):
             axis = 0
         axis = self._get_axis_number(axis)
 
-        from pandas import DataFrame
-
         if value is None:
 
             if self._is_mixed_type and axis == 1:
@@ -6254,7 +6245,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_data = self._data.fillna(
                     value=value, limit=limit, inplace=inplace, downcast=downcast
                 )
-            elif isinstance(value, DataFrame) and self.ndim == 2:
+            elif isinstance(value, ABCDataFrame) and self.ndim == 2:
                 new_data = self.where(self.notna(), value)
             else:
                 raise ValueError("invalid fill value with a %s" % type(value))
@@ -6658,9 +6649,8 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
 
             # need a non-zero len on all axes
-            for a in self._AXIS_ORDERS:
-                if not len(self._get_axis(a)):
-                    return self
+            if not self.size:
+                return self
 
             new_data = self._data
             if is_dict_like(to_replace):

@@ -20,12 +20,11 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import (
+    ABCCategoricalIndex,
     ABCDatetimeArray,
-    ABCDatetimeIndex,
     ABCIndexClass,
-    ABCPeriodIndex,
     ABCRangeIndex,
-    ABCTimedeltaIndex,
+    ABCSeries,
 )
 
 
@@ -285,14 +284,14 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     [b, c, a, b]
     Categories (3, object): [b, c, a]
     """
-    from pandas import Index, Categorical, CategoricalIndex, Series
+    from pandas import Index, Categorical
     from pandas.core.arrays.categorical import _recode_for_categories
 
     if len(to_union) == 0:
         raise ValueError("No Categoricals to union")
 
     def _maybe_unwrap(x):
-        if isinstance(x, (CategoricalIndex, Series)):
+        if isinstance(x, (ABCCategoricalIndex, ABCSeries)):
             return x.values
         elif isinstance(x, Categorical):
             return x
@@ -450,31 +449,6 @@ def _concat_datetimetz(to_concat, name=None):
         return sample._concat_same_type(to_concat)
 
 
-def _concat_index_same_dtype(indexes, klass=None):
-    klass = klass if klass is not None else indexes[0].__class__
-    return klass(np.concatenate([x._values for x in indexes]))
-
-
-def _concat_index_asobject(to_concat, name=None):
-    """
-    concat all inputs as object. DatetimeIndex, TimedeltaIndex and
-    PeriodIndex are converted to object dtype before concatenation
-    """
-    from pandas import Index
-    from pandas.core.arrays import ExtensionArray
-
-    klasses = (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex, ExtensionArray)
-    to_concat = [x.astype(object) if isinstance(x, klasses) else x for x in to_concat]
-
-    self = to_concat[0]
-    attribs = self._get_attributes_dict()
-    attribs["name"] = name
-
-    to_concat = [x._values if isinstance(x, Index) else x for x in to_concat]
-
-    return self._shallow_copy_with_infer(np.concatenate(to_concat), **attribs)
-
-
 def _concat_sparse(to_concat, axis=0, typs=None):
     """
     provide concatenation of an sparse/dense array of arrays each of which is a
@@ -505,52 +479,3 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     ]
 
     return SparseArray._concat_same_type(to_concat)
-
-
-def _concat_rangeindex_same_dtype(indexes):
-    """
-    Concatenates multiple RangeIndex instances. All members of "indexes" must
-    be of type RangeIndex; result will be RangeIndex if possible, Int64Index
-    otherwise. E.g.:
-    indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
-    indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Int64Index([0,1,2,4,5])
-    """
-    from pandas import Int64Index, RangeIndex
-
-    start = step = next_ = None
-
-    # Filter the empty indexes
-    non_empty_indexes = [obj for obj in indexes if len(obj)]
-
-    for obj in non_empty_indexes:
-        rng = obj._range  # type: range
-
-        if start is None:
-            # This is set by the first non-empty index
-            start = rng.start
-            if step is None and len(rng) > 1:
-                step = rng.step
-        elif step is None:
-            # First non-empty index had only one element
-            if rng.start == start:
-                return _concat_index_same_dtype(indexes, klass=Int64Index)
-            step = rng.start - start
-
-        non_consecutive = (step != rng.step and len(rng) > 1) or (
-            next_ is not None and rng.start != next_
-        )
-        if non_consecutive:
-            return _concat_index_same_dtype(indexes, klass=Int64Index)
-
-        if step is not None:
-            next_ = rng[-1] + step
-
-    if non_empty_indexes:
-        # Get the stop value from "next" or alternatively
-        # from the last non-empty index
-        stop = non_empty_indexes[-1].stop if next_ is None else next_
-        return RangeIndex(start, stop, step)
-
-    # Here all "indexes" had 0 length, i.e. were empty.
-    # In this case return an empty range index.
-    return RangeIndex(0, 0)
