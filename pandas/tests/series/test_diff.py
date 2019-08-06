@@ -6,7 +6,7 @@ from pandas.util.testing import assert_series_equal
 
 
 class TestDiff(TestData):
-    def test_diff(self):
+    def test_ts_diff(self):
         # Just run the function
         self.ts.diff()
 
@@ -47,7 +47,8 @@ class TestDiff(TestData):
         assert_series_equal(
             result, Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
         )
-
+        
+    def test_boolean_diff(self):
         # boolean series
         s = Series([False, True, True, False, False])
         result = s.diff()
