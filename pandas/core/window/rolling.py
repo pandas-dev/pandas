@@ -242,8 +242,10 @@ class _Window(PandasObject, SelectionMixin):
             except (ValueError, TypeError):
                 raise TypeError("cannot handle this type -> {0}".format(values.dtype))
 
-        # Always convert inf to nan
-        values[np.isinf(values)] = np.NaN
+        # Convert inf to nan for C funcs
+        inf = np.isinf(values)
+        if inf.any():
+            values = np.where(inf, np.nan, values)
 
         return values
 
