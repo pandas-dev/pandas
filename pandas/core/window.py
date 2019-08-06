@@ -249,8 +249,8 @@ class _Window(PandasObject, SelectionMixin):
         # Convert inf to nan for C funcs
         inf = np.isinf(values)
         if inf.any():
-            values = values.copy()  # GH-27766, Don't write into user's data
-            values[inf] = np.nan
+            # GH-27766, Don't write into user's data
+            values = np.where(inf, np.nan, values)
 
         return values
 
