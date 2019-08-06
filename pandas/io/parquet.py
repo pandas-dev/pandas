@@ -185,6 +185,7 @@ class FastParquetImpl(BaseImpl):
     def read(self, path, columns=None, **kwargs):
         if is_s3_url(path):
             from pandas.io.s3 import get_file_and_filesystem
+
             # When path is s3:// an S3File is returned.
             # We need to retain the original path(str) while also
             # pass the S3File().open function to fsatparquet impl.
