@@ -186,7 +186,7 @@ Sparse
 
 Build Changes
 ^^^^^^^^^^^^^
-- Fixed pyqt development dependency issue due to different pyqt package name in conda and PyPI (:issue:`26838`)
+- Fixed pyqt development dependency issue because of different pyqt package name in conda and PyPI (:issue:`26838`)
 
 
 ExtensionArray
