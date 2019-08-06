@@ -8,6 +8,7 @@ from pandas.errors import AbstractMethodError
 from pandas import DataFrame, get_option
 
 from pandas.io.common import get_filepath_or_buffer, is_s3_url
+from pandas.io.s3 import get_file_and_filesystem
 
 
 def get_engine(engine):
@@ -187,9 +188,9 @@ class FastParquetImpl(BaseImpl):
             # When path is s3:// an S3File is returned.
             # We need to retain the original path(str) while also
             # pass the S3File().open function to fsatparquet impl.
-            s3, _, _, should_close = get_filepath_or_buffer(path)
+            s3, filesystem = get_file_and_filesystem(path)
             try:
-                parquet_file = self.api.ParquetFile(path, open_with=s3.s3.open)
+                parquet_file = self.api.ParquetFile(path, open_with=filesystem.open)
             finally:
                 s3.close()
         else:

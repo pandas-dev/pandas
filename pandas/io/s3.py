@@ -14,9 +14,7 @@ def _strip_schema(url):
     return result.netloc + result.path
 
 
-def get_filepath_or_buffer(
-    filepath_or_buffer, encoding=None, compression=None, mode=None
-):
+def get_file_and_filesystem(filepath_or_buffer, encoding=None, mode=None):
     from botocore.exceptions import NoCredentialsError
 
     if mode is None:
@@ -24,7 +22,7 @@ def get_filepath_or_buffer(
 
     fs = s3fs.S3FileSystem(anon=False)
     try:
-        filepath_or_buffer = fs.open(_strip_schema(filepath_or_buffer), mode)
+        file = fs.open(_strip_schema(filepath_or_buffer), mode)
     except (FileNotFoundError, NoCredentialsError):
         # boto3 has troubles when trying to access a public file
         # when credentialed...
@@ -33,5 +31,14 @@ def get_filepath_or_buffer(
         # A NoCredentialsError is raised if you don't have creds
         # for that bucket.
         fs = s3fs.S3FileSystem(anon=True)
-        filepath_or_buffer = fs.open(_strip_schema(filepath_or_buffer), mode)
-    return filepath_or_buffer, None, compression, True
+        file = fs.open(_strip_schema(filepath_or_buffer), mode)
+    return file, fs
+
+
+def get_filepath_or_buffer(
+    filepath_or_buffer, encoding=None, compression=None, mode=None
+):
+    file, _fs = get_file_and_filesystem(
+        filepath_or_buffer, encoding=encoding, mode=mode
+    )
+    return file, None, compression, True
