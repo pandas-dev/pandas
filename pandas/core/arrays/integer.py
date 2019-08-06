@@ -693,9 +693,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             op_name = op.__name__
             mask = None
 
-            if isinstance(
-                other, (ABCSeries, ABCIndexClass)
-            ):
+            if isinstance(other, (ABCSeries, ABCIndexClass)):
                 # Rely on pandas to unbox and dispatch to us.
                 # Defer to DatetimeArray, TimedeltaArray
                 return NotImplemented
