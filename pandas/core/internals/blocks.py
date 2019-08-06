@@ -273,6 +273,8 @@ class Block(PandasObject):
             )
         if placement is None:
             placement = self.mgr_locs
+        if ndim is None:
+            ndim = self.ndim
         return make_block(
             values, placement=placement, ndim=ndim, klass=self.__class__, dtype=dtype
         )
