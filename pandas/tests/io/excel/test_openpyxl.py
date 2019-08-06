@@ -78,10 +78,11 @@ def test_write_cells_merge_styled(ext):
 
 
 @pytest.mark.parametrize(
-    "mode,expected", [("w", ["baz"]), ("a", ["foo", "bar", "baz"])]
+    "mode,expected", [("w", ["new_sheet"]), ("a", ["foo", "bar", "existing_sheet", "new_sheet"])]
 )
 def test_write_append_mode(ext, mode, expected):
-    df = DataFrame([1], columns=["baz"])
+    df_new_sheet = DataFrame([1], columns=["new_sheet"])
+    df_existing_sheet = DataFrame([1], columns=["existing_sheet"])
 
     with ensure_clean(ext) as f:
         wb = openpyxl.Workbook()
@@ -89,10 +90,13 @@ def test_write_append_mode(ext, mode, expected):
         wb.worksheets[0]["A1"].value = "foo"
         wb.create_sheet("bar")
         wb.worksheets[1]["A1"].value = "bar"
+        wb.create_sheet("existing_sheet")
         wb.save(f)
 
         writer = ExcelWriter(f, engine="openpyxl", mode=mode)
-        df.to_excel(writer, sheet_name="baz", index=False)
+        if mode == "a":
+            df_existing_sheet.to_excel(writer, sheet_name="existing_sheet", index=False)
+        df_new_sheet.to_excel(writer, sheet_name="new_sheet", index=False)
         writer.save()
 
         wb2 = openpyxl.load_workbook(f)
