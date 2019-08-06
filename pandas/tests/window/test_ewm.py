@@ -4,7 +4,7 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 
 from pandas import DataFrame, Series
-from pandas.core.window.ewm import EWM
+from pandas.core.window import EWM
 from pandas.tests.window.common import Base
 
 

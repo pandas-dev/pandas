@@ -10683,9 +10683,7 @@ class NDFrame(PandasObject, SelectionMixin):
         the doc strings again.
         """
 
-        from pandas.core.window.ewm import EWM
-        from pandas.core.window.expanding import Expanding
-        from pandas.core.window.rolling import Rolling, Window
+        from pandas.core.window import EWM, Expanding, Rolling, Window
 
         @Appender(Rolling.__doc__)
         def rolling(
@@ -10698,9 +10696,6 @@ class NDFrame(PandasObject, SelectionMixin):
             axis=0,
             closed=None,
         ):
-            if not isinstance(self, (ABCSeries, ABCDataFrame)):
-                raise TypeError("invalid type: {}".format(type(self)))
-
             axis = self._get_axis_number(axis)
 
             if win_type is not None:
@@ -10730,9 +10725,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         @Appender(Expanding.__doc__)
         def expanding(self, min_periods=1, center=False, axis=0):
-            if not isinstance(self, (ABCSeries, ABCDataFrame)):
-                raise TypeError("invalid type: {}".format(type(self)))
-
             axis = self._get_axis_number(axis)
             return Expanding(self, min_periods=min_periods, center=center, axis=axis)
 
@@ -10750,9 +10742,6 @@ class NDFrame(PandasObject, SelectionMixin):
             ignore_na=False,
             axis=0,
         ):
-            if not isinstance(self, (ABCSeries, ABCDataFrame)):
-                raise TypeError("invalid type: {}".format(type(self)))
-
             axis = self._get_axis_number(axis)
             return EWM(
                 self,

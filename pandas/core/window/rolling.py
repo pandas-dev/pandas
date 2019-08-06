@@ -115,6 +115,8 @@ class _Window(PandasObject, SelectionMixin):
             "neither",
         ]:
             raise ValueError("closed must be 'right', 'left', 'both' or 'neither'")
+        if not isinstance(self.obj, (ABCSeries, ABCDataFrame)):
+            raise TypeError("invalid type: {}".format(type(self)))
 
     def _create_blocks(self):
         """

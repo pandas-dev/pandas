@@ -5,7 +5,7 @@ from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import DataFrame, Series
-from pandas.core.window.expanding import Expanding
+from pandas.core.window import Expanding
 from pandas.tests.window.common import Base
 import pandas.util.testing as tm
 
