@@ -14,19 +14,7 @@ if TYPE_CHECKING:
     from pandas.core.frame import DataFrame  # noqa: F401
     from pandas.core.series import Series  # noqa: F401
     from pandas.core.sparse.series import SparseSeries  # noqa: F401
-    from typing_extensions import Literal
 
-    IgnoreRaise = Literal["ignore", "raise"]
-    FirstLast = Literal["first", "last"]
-    AxisInt = Literal[0, 1]
-    AxisStr = Literal["index", "columns"]
-    Axis = Literal[AxisInt, AxisStr]
-else:
-    IgnoreRaise = str
-    FirstLast = str
-    AxisInt = int
-    AxisStr = str
-    Axis = Union[str, int]
 
 AnyArrayLike = TypeVar(
     "AnyArrayLike", "ExtensionArray", "Index", "Series", "SparseSeries", np.ndarray
@@ -38,5 +26,6 @@ FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
 FrameOrSeries = TypeVar("FrameOrSeries", "Series", "DataFrame")
 Scalar = Union[str, int, float]
+Axis = Union[str, int]
 Ordered = Optional[bool]
 Level = Union[str, int]

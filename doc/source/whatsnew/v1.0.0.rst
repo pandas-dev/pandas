@@ -42,45 +42,6 @@ Backwards incompatible API changes
 - :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
 -
 
-.. _whatsnew_1000.api_breaking.deps:
-
-Increased minimum versions for dependencies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Supporting Python 3.6, we are not able to take advantage of new types added to the typing module. The typing_extensions module
-contains both backports of these changes as well as experimental types that will eventually be added to the typing module.
-
-If installed, we now require:
-
-+-------------------------+-----------------+----------+
-| Package                 | Minimum Version | Required |
-+=========================+=================+==========+
-|                         |                 |          |
-+-------------------------+-----------------+----------+
-|                         |                 |          |
-+-------------------------+-----------------+----------+
-| typing_extensions (dev) |                 |          |
-+-------------------------+-----------------+----------+
-
-For `optional libraries <https://dev.pandas.io/install.html#dependencies>`_ the general recommendation is to use the latest version.
-The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
-Optional libraries below the lowest tested version may still work, but are not considered supported.
-
-+-----------------+-----------------+
-| Package         | Minimum Version |
-+=================+=================+
-|                 |                 |
-+-----------------+-----------------+
-|                 |                 |
-+-----------------+-----------------+
-|                 |                 |
-+-----------------+-----------------+
-|                 |                 |
-+-----------------+-----------------+
-
-See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
-
-
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
