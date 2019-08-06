@@ -27,7 +27,7 @@ class TestDiff(TestData):
         rs = self.ts.diff(0)
         xp = self.ts - self.ts
         assert_series_equal(rs, xp)
-        
+
         # datetime diff (GH3100)
         s = Series(date_range("20130102", periods=5))
         rs = s - s.shift(1)
@@ -47,13 +47,13 @@ class TestDiff(TestData):
         assert_series_equal(
             result, Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
         )
-        
+
         # boolean series
         s = Series([False, True, True, False, False])
         result = s.diff()
         assert_series_equal(result, Series([nan, True, False, True, False]))
-        
+
         # boolean nan series
         s = Series([False, True, nan, False, False])
         result = s.diff()
-        assert_series_equal(result, Series([nan, 1, nan, nan, 0], dtype = "object"))
+        assert_series_equal(result, Series([nan, 1, nan, nan, 0], dtype="object"))
