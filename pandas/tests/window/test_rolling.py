@@ -328,8 +328,9 @@ class TestRolling(Base):
         tm.assert_frame_equal(result, expected)
 
     def test_readonly_array(self):
+        # GH-27766
         arr = np.array([1, 3, np.nan, 3, 5])
         arr.setflags(write=False)
-        tm.assert_series_equal(
-            pd.Series(arr).rolling(2).mean(), pd.Series([np.nan, 2, np.nan, np.nan, 4])
-        )
+        result = pd.Series(arr).rolling(2).mean()
+        expected = pd.Series([np.nan, 2, np.nan, np.nan, 4])
+        tm.assert_series_equal(result, expected)
