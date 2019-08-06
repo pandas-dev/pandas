@@ -326,3 +326,10 @@ class TestRolling(Base):
 
         result = df.rolling(2, axis=axis_frame).count()
         tm.assert_frame_equal(result, expected)
+
+    def test_readonly_array(self):
+        arr = np.array([1, 3, np.nan, 3, 5])
+        arr.setflags(write=False)
+        tm.assert_series_equal(
+            pd.Series(arr).rolling(2).mean(), pd.Series([np.nan, 2, np.nan, np.nan, 4])
+        )
