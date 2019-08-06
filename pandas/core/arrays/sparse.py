@@ -1781,11 +1781,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_comparison_method(cls, op):
-        def cmp_method(self, other):
-            op_name = op.__name__
+        op_name = op.__name__
+        if op_name in {"and_", "or_"}:
+            op_name = op_name[:-1]
 
-            if op_name in {"and_", "or_"}:
-                op_name = op_name[:-1]
+        def cmp_method(self, other):
 
             if isinstance(other, (ABCSeries, ABCIndexClass)):
                 # Rely on pandas to unbox and dispatch to us.

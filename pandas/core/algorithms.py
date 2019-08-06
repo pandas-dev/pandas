@@ -838,7 +838,7 @@ def duplicated(values, keep="first"):
     return f(values, keep=keep)
 
 
-def mode(values, dropna=True):
+def mode(values, dropna: bool = True):
     """
     Returns the mode(s) of an array.
 
@@ -1901,7 +1901,7 @@ _diff_special = {
 }
 
 
-def diff(arr, n, axis=0):
+def diff(arr, n: int, axis: int = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1917,7 +1917,6 @@ def diff(arr, n, axis=0):
     Returns
     -------
     shifted
-
     """
 
     n = int(n)
