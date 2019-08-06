@@ -1038,11 +1038,10 @@ def _comp_method_SERIES(cls, op, special):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
 
-        if is_list_like(other) and len(other) != len(self):
-            raise ValueError("Lengths must match")
-
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
+        elif is_list_like(other) and len(other) != len(self):
+            raise ValueError("Lengths must match")
 
         elif is_categorical_dtype(self):
             # Dispatch to Categorical implementation; CategoricalIndex
