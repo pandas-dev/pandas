@@ -56,12 +56,13 @@ jobs:
   steps:
     - script: |
         if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386 $EXTRA_APT; fi
+        echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
         echo "Creating Environment"
         ci/setup_env.sh
-        echo '##vso[task.prependpath]$HOME/miniconda3/bin'
       displayName: 'Setup environment and build pandas'
     - script: |
         source activate pandas-dev
+        echo "$PATH"
         ci/run_tests.sh
       displayName: 'Test'
     - script: source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
