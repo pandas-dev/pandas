@@ -591,6 +591,8 @@ class BaseGrouper:
 
         if is_datetime64tz_dtype(orig_values.dtype):
             result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
+        elif is_datetimelike and kind == "aggregate":
+            result = result.astype(orig_values.dtype)
 
         return result, names
 
