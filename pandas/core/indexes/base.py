@@ -5603,7 +5603,7 @@ class Index(IndexOpsMixin, PandasObject):
         return (len(self),)
 
 
-Index._add_numeric_methods_disabled()
+Index._add_numeric_methods_binary()
 Index._add_logical_methods()
 Index._add_comparison_methods()
 

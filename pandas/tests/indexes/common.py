@@ -168,21 +168,31 @@ class Base:
     def test_numeric_compat(self):
 
         idx = self.create_index()
-        with pytest.raises(TypeError, match="cannot perform __mul__"):
-            idx * 1
-        with pytest.raises(TypeError, match="cannot perform __rmul__"):
-            1 * idx
+        if isinstance(
+            idx,
+            (IntervalIndex, CategoricalIndex, MultiIndex, PeriodIndex, DatetimeIndex),
+        ):
+            err_msg = "cannot perform __r?mul__|unsupported operand type"
+            with pytest.raises(TypeError, match=err_msg):
+                idx * 1
+            with pytest.raises(TypeError, match=err_msg):
+                1 * idx
+        else:
+            result = idx * 1
+            tm.assert_index_equal(result, idx)
+            result = 1 * idx
+            tm.assert_index_equal(result, idx)
 
-        div_err = "cannot perform __truediv__"
+        div_err = "cannot perform __[a-z]+__|unsupported operand type"
         with pytest.raises(TypeError, match=div_err):
             idx / 1
 
-        div_err = div_err.replace(" __", " __r")
-        with pytest.raises(TypeError, match=div_err):
+        div_err = div_err + "|division by zero|division or modulo by zero"
+        with pytest.raises((ZeroDivisionError, TypeError), match=div_err):
             1 / idx
-        with pytest.raises(TypeError, match="cannot perform __floordiv__"):
+        with pytest.raises((ZeroDivisionError, TypeError), match=div_err):
             idx // 1
-        with pytest.raises(TypeError, match="cannot perform __rfloordiv__"):
+        with pytest.raises((ZeroDivisionError, TypeError), match=div_err):
             1 // idx
 
     def test_logical_compat(self):

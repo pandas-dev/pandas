@@ -432,6 +432,10 @@ def masked_arith_op(x, y, op):
                 result[mask] = op(xrav[mask], yrav[mask])
 
     else:
+        if isinstance(y, list):
+            # reached via pandas/tests/arithmetic/test_object.py test_sub_fail
+            raise TypeError("Invalid operand type for {op}".format(op=op))
+
         assert is_scalar(y), type(y)
         assert isinstance(x, np.ndarray), type(x)
         # mask is only meaningful for x

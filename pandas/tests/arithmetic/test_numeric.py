@@ -507,20 +507,6 @@ class TestMultiplicationDivision:
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
     # for non-timestamp/timedelta/period dtypes
 
-    @pytest.mark.parametrize(
-        "box",
-        [
-            pytest.param(
-                pd.Index,
-                marks=pytest.mark.xfail(
-                    reason="Index.__div__ always raises", raises=TypeError
-                ),
-            ),
-            pd.Series,
-            pd.DataFrame,
-        ],
-        ids=lambda x: x.__name__,
-    )
     def test_divide_decimal(self, box):
         # resolves issue GH#9787
         ser = Series([Decimal(10)])
