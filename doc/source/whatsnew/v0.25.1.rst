@@ -153,7 +153,7 @@ ExtensionArray
 Other
 ^^^^^
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when replacing timezone-aware timestamps using a dict-like replacer (:issue:`27720`)
--
+- Bug in :meth:`Series.diff` where a boolean series would cause a TypeError (the - operator is deprecated) when using NumPy >= 0.13.0
 -
 -
 
