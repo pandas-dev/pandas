@@ -31,7 +31,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
-
+- Bug in :func:`to_datetime` where passing a timezone-naive :class:`DatetimeArray` or :class:`DatetimeIndex` and ``utc=True`` would incorrectly return a timezone-naive result (:issue:`27733`)
 -
 -
 -
@@ -153,7 +153,7 @@ ExtensionArray
 
 Other
 ^^^^^
-
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when replacing timezone-aware timestamps using a dict-like replacer (:issue:`27720`)
 -
 -
 -
