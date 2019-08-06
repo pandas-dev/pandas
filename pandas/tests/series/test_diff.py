@@ -1,7 +1,7 @@
 from numpy import nan
 from pandas import Series, date_range
-from pandas.tests.series.common import TestData
 from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.tests.series.common import TestData
 from pandas.util.testing import assert_series_equal
 
 
