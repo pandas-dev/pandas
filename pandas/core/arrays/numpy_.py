@@ -442,9 +442,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     def _create_arithmetic_method(cls, op):
         def arithmetic_method(self, other):
             if isinstance(other, (ABCIndexClass, ABCSeries)):
-                # Defer to DatetimeArray, TimedeltaArray
                 return NotImplemented
-                # TODO: also for IntegerArray?
 
             elif isinstance(other, cls):
                 other = other._ndarray
