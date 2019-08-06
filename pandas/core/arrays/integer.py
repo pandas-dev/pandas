@@ -690,7 +690,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             if isinstance(other, (ABCSeries, ABCIndexClass)):
                 # Rely on pandas to unbox and dispatch to us.
-                # Defer to DatetimeArray, TimedeltaArray
                 return NotImplemented
 
             if getattr(other, "ndim", 0) > 1:
