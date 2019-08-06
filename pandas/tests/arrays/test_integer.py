@@ -1,3 +1,5 @@
+import operator
+
 import numpy as np
 import pytest
 
@@ -16,6 +18,7 @@ from pandas.core.arrays.integer import (
     UInt32Dtype,
     UInt64Dtype,
 )
+from pandas.core.ops import roperator
 from pandas.tests.extension.base import BaseOpsUtil
 import pandas.util.testing as tm
 
@@ -342,6 +345,31 @@ class TestArithmeticOps(BaseOpsUtil):
         expected = np.array([1.0, np.nan])
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.xfail(reason="_add_sub_int_array does not recognize IntArray", raises=TypeError, strict=True)
+    @pytest.mark.parametrize("other", [
+        pd.TimedeltaIndex(np.arange(100).astype("m8[h]"), freq="h"),
+        pd.date_range("2099-04-05", periods=100),
+        pd.date_range("2099-04-05", periods=100, tz="Asia/Tokyo"),
+    ])
+    @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub, roperator.rsub])
+    @pytest.mark.parametrize("use_array", [True, False])
+    def test_intna_with_datetimelike(self, data, other, op, use_array):
+        if use_array:
+            other = other.array
+
+        with pytest.warns(FutureWarning, match="Addition/subtraction of integers"):
+            expected = op(data._data, other)
+
+        if use_array:
+            expected[data._mask] = pd.NaT
+        else:
+            # Index is not mutable, need edit underlying
+            expected._data[data._mask] = pd.NaT
+
+        with pytest.warns(FutureWarning, match="Addition/subtraction of integers"):
+            result = op(data, other)
+        tm.assert_equal(result, expected)
+
 
 class TestComparisonOps(BaseOpsUtil):
     def _compare_other(self, data, op_name, other):
@@ -379,7 +407,6 @@ class TestComparisonOps(BaseOpsUtil):
 
 
 class TestCasting:
-    pass
 
     @pytest.mark.parametrize("dropna", [True, False])
     def test_construct_index(self, all_data, dropna):
