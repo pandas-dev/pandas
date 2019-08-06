@@ -44,9 +44,10 @@ from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas._typing import DatetimeLikeScalar
-from pandas.core import missing, nanops, ops
+from pandas.core import missing, nanops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
 import pandas.core.common as com
+from pandas.core.ops.invalid import make_invalid_op
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
@@ -57,20 +58,9 @@ from .base import ExtensionArray, ExtensionOpsMixin
 class AttributesMixin:
     _data = None  # type: np.ndarray
 
-    @property
-    def _attributes(self):
-        # Inheriting subclass should implement _attributes as a list of strings
-        raise AbstractMethodError(self)
-
     @classmethod
     def _simple_new(cls, values, **kwargs):
         raise AbstractMethodError(cls)
-
-    def _get_attributes_dict(self):
-        """
-        return an attributes dict for my class
-        """
-        return {k: getattr(self, k, None) for k in self._attributes}
 
     @property
     def _scalar_type(self) -> Type[DatetimeLikeScalar]:
@@ -473,6 +463,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # to a period in from_sequence). For DatetimeArray, it's Timestamp...
         # I don't know if mypy can do that, possibly with Generics.
         # https://mypy.readthedocs.io/en/latest/generics.html
+        if lib.is_scalar(value) and not isna(value):
+            value = com.maybe_box_datetimelike(value)
 
         if is_list_like(value):
             is_slice = isinstance(key, slice)
@@ -930,18 +922,18 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
     # pow is invalid for all three subclasses; TimedeltaArray will override
     #  the multiplication and division ops
-    __pow__ = ops.make_invalid_op("__pow__")
-    __rpow__ = ops.make_invalid_op("__rpow__")
-    __mul__ = ops.make_invalid_op("__mul__")
-    __rmul__ = ops.make_invalid_op("__rmul__")
-    __truediv__ = ops.make_invalid_op("__truediv__")
-    __rtruediv__ = ops.make_invalid_op("__rtruediv__")
-    __floordiv__ = ops.make_invalid_op("__floordiv__")
-    __rfloordiv__ = ops.make_invalid_op("__rfloordiv__")
-    __mod__ = ops.make_invalid_op("__mod__")
-    __rmod__ = ops.make_invalid_op("__rmod__")
-    __divmod__ = ops.make_invalid_op("__divmod__")
-    __rdivmod__ = ops.make_invalid_op("__rdivmod__")
+    __pow__ = make_invalid_op("__pow__")
+    __rpow__ = make_invalid_op("__rpow__")
+    __mul__ = make_invalid_op("__mul__")
+    __rmul__ = make_invalid_op("__rmul__")
+    __truediv__ = make_invalid_op("__truediv__")
+    __rtruediv__ = make_invalid_op("__rtruediv__")
+    __floordiv__ = make_invalid_op("__floordiv__")
+    __rfloordiv__ = make_invalid_op("__rfloordiv__")
+    __mod__ = make_invalid_op("__mod__")
+    __rmod__ = make_invalid_op("__rmod__")
+    __divmod__ = make_invalid_op("__divmod__")
+    __rdivmod__ = make_invalid_op("__rdivmod__")
 
     def _add_datetimelike_scalar(self, other):
         # Overriden by TimedeltaArray
@@ -1216,7 +1208,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
     def __add__(self, other):
         other = lib.item_from_zerodim(other)
-        if isinstance(other, (ABCSeries, ABCDataFrame)):
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
             return NotImplemented
 
         # scalar others
@@ -1282,7 +1274,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
     def __sub__(self, other):
         other = lib.item_from_zerodim(other)
-        if isinstance(other, (ABCSeries, ABCDataFrame)):
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
             return NotImplemented
 
         # scalar others
@@ -1349,7 +1341,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return result
 
     def __rsub__(self, other):
-        if is_datetime64_dtype(other) and is_timedelta64_dtype(self):
+        if is_datetime64_any_dtype(other) and is_timedelta64_dtype(self):
             # ndarray[datetime64] cannot be subtracted from self, so
             # we need to wrap in DatetimeArray/Index and flip the operation
             if not isinstance(other, DatetimeLikeArrayMixin):
