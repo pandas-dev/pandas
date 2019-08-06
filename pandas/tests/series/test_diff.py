@@ -1,3 +1,4 @@
+from numpy import nan
 from pandas import (
     Series,
     date_range,
