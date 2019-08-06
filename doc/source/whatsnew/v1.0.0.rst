@@ -158,7 +158,7 @@ I/O
 Plotting
 ^^^^^^^^
 
-- Bug in :meth:`Series.plot` not able to plot boolean data (:issue:`23719`)
+- Bug in :meth:`Series.plot` not able to plot boolean values (:issue:`23719`)
 -
 
 Groupby/resample/rolling
