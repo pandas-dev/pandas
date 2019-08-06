@@ -1,11 +1,9 @@
 from numpy import nan
-from pandas import (
-    Series,
-    date_range,
-)
+from pandas import Series, date_range
 from pandas.tests.series.common import TestData
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.util.testing import assert_series_equal
+
 
 class TestDiff(TestData):
     def test_diff(self):
@@ -51,10 +49,6 @@ class TestDiff(TestData):
         )
 
         # boolean series
-        s = Series(
-            [False, True, True, False, False]
-        )
+        s = Series([False, True, True, False, False])
         result = s.diff()
-        assert_series_equal(
-            result, Series[nan, True, False, True, False]
-        )
+        assert_series_equal(result, Series[nan, True, False, True, False])
