@@ -6,7 +6,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Series
-from pandas.core.window.rolling import Window
+from pandas.core.window import Window
 from pandas.tests.window.common import Base
 
 
