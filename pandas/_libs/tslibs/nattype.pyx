@@ -115,46 +115,51 @@ cdef class _NaT(datetime):
         return PyObject_RichCompare(other, self, op)
 
     def __add__(self, other):
+        if self is not c_NaT:
+            # cython __radd__ semantics
+            self, other = other, self
+
         if PyDateTime_Check(other):
             return c_NaT
-
+        elif PyDelta_Check(other):
+            return c_NaT
+        elif is_datetime64_object(other) or is_timedelta64_object(other):
+            return c_NaT
         elif hasattr(other, 'delta'):
             # Timedelta, offsets.Tick, offsets.Week
             return c_NaT
-        elif getattr(other, '_typ', None) in ['dateoffset', 'series',
-                                              'period', 'datetimeindex',
-                                              'timedeltaindex']:
-            # Duplicate logic in _Timestamp.__add__ to avoid needing
-            # to subclass; allows us to @final(_Timestamp.__add__)
-            return NotImplemented
-        return c_NaT
+
+        elif is_integer_object(other) or util.is_period_object(other):
+            # For Period compat
+            # TODO: the integer behavior is deprecated, remove it
+            return c_NaT
+
+        return NotImplemented  # TODO: need to handle ndarrays
 
     def __sub__(self, other):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
         # to subclass; allows us to @final(_Timestamp.__sub__)
+
+        if self is not c_NaT:
+            # cython __rsub__ semantics
+            self, other = other, self
+
         if PyDateTime_Check(other):
-            return NaT
+            return c_NaT
         elif PyDelta_Check(other):
-            return NaT
-
-        elif getattr(other, '_typ', None) == 'datetimeindex':
-            # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-            return -other.__sub__(self)
-
-        elif getattr(other, '_typ', None) == 'timedeltaindex':
-            # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-            return (-other).__add__(self)
-
+            return c_NaT
+        elif is_datetime64_object(other) or is_timedelta64_object(other):
+            return c_NaT
         elif hasattr(other, 'delta'):
             # offsets.Tick, offsets.Week
-            neg_other = -other
-            return self + neg_other
+            return c_NaT
 
-        elif getattr(other, '_typ', None) in ['period', 'series',
-                                              'periodindex', 'dateoffset']:
-            return NotImplemented
+        elif is_integer_object(other) or util.is_period_object(other):
+            # For Period compat
+            # TODO: the integer behavior is deprecated, remove it
+            return c_NaT
 
-        return NaT
+        return NotImplemented  # TODO: need to handle ndarrays
 
     def __pos__(self):
         return NaT

@@ -331,8 +331,9 @@ _ops = {
     "value,val_type",
     [
         (2, "scalar"),
-        (1.5, "scalar"),
-        (np.nan, "scalar"),
+        (1.5, "floating"),
+        (np.nan, "floating"),
+        ("foo", "str"),
         (timedelta(3600), "timedelta"),
         (Timedelta("5s"), "timedelta"),
         (datetime(2014, 1, 1), "timestamp"),
@@ -346,6 +347,14 @@ def test_nat_arithmetic_scalar(op_name, value, val_type):
     # see gh-6873
     invalid_ops = {
         "scalar": {"right_div_left"},
+        "floating": {
+            "right_div_left",
+            "left_minus_right",
+            "right_minus_left",
+            "left_plus_right",
+            "right_plus_left",
+        },
+        "str": set(_ops.keys()),
         "timedelta": {"left_times_right", "right_times_left"},
         "timestamp": {
             "left_times_right",
@@ -364,6 +373,14 @@ def test_nat_arithmetic_scalar(op_name, value, val_type):
             and isinstance(value, Timedelta)
         ):
             msg = "Cannot multiply"
+        elif val_type == "str":
+            # un-specific check here because the message comes from str
+            #  and varies by method
+            msg = (
+                "can only concatenate str|"
+                "unsupported operand type|"
+                "can't multiply sequence"
+            )
         else:
             msg = "unsupported operand type"
 
