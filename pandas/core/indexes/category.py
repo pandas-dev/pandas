@@ -899,7 +899,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             opname = "__{op}__".format(op=op.__name__)
 
             def _evaluate_compare(self, other):
-                result = op(self.array, other)
+                with np.errstate(all="ignore"):
+                    result = op(self.array, other)
                 if isinstance(result, ABCSeries):
                     # Dispatch to pd.Categorical returned NotImplemented
                     # and we got a Series back; down-cast to ndarray
