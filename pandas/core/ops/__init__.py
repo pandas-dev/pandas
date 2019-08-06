@@ -1040,7 +1040,11 @@ def _comp_method_SERIES(cls, op, special):
 
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
-        elif is_list_like(other) and len(other) != len(self):
+        elif (
+            is_list_like(other)
+            and len(other) != len(self)
+            and not isinstance(other, (set, frozenset))
+        ):
             raise ValueError("Lengths must match")
 
         elif is_categorical_dtype(self):
