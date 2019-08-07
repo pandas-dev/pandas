@@ -68,13 +68,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import (
-    Categorical,
-    DatetimeArray,
-    ExtensionArray,
-    PandasDtype,
-    TimedeltaArray,
-)
+from pandas.core.arrays import Categorical, DatetimeArray, PandasDtype, TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -208,10 +202,6 @@ class Block(PandasObject):
         this should be the pure internal API format
         """
         return self.values
-
-    def formatting_values(self):
-        """Return the internal values used by the DataFrame/SeriesFormatter"""
-        return self.internal_values()
 
     def get_values(self, dtype=None):
         """
@@ -1830,21 +1820,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             slicer = slicer[1]
 
         return self.values[slicer]
-
-    def formatting_values(self):
-        # Deprecating the ability to override _formatting_values.
-        # Do the warning here, it's only user in pandas, since we
-        # have to check if the subclass overrode it.
-        fv = getattr(type(self.values), "_formatting_values", None)
-        if fv and fv != ExtensionArray._formatting_values:
-            msg = (
-                "'ExtensionArray._formatting_values' is deprecated. "
-                "Specify 'ExtensionArray._formatter' instead."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=10)
-            return self.values._formatting_values()
-
-        return self.values
 
     def concat_same_type(self, to_concat, placement=None):
         """
