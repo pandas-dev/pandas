@@ -92,6 +92,9 @@ cdef class _NaT(datetime):
     #    int64_t value
     #    object freq
 
+    # higher than np.ndarray and np.matrix
+    __array_priority__ = 100
+
     def __hash__(_NaT self):
         # py3k needs this defined here
         return hash(self.value)
@@ -134,15 +137,26 @@ cdef class _NaT(datetime):
             # TODO: the integer behavior is deprecated, remove it
             return c_NaT
 
-        return NotImplemented  # TODO: need to handle ndarrays
+        elif util.is_array(other):
+            if other.dtype.kind in 'mM':
+                # If we are adding to datetime64, we treat NaT as timedelta
+                #  Either way, result dtype is datetime64
+                result = np.empty(other.shape, dtype="datetime64[ns]")
+                result.fill("NaT")
+                return result
+
+        return NotImplemented
 
     def __sub__(self, other):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
         # to subclass; allows us to @final(_Timestamp.__sub__)
+        cdef:
+            bint is_rsub = False
 
         if self is not c_NaT:
             # cython __rsub__ semantics
             self, other = other, self
+            is_rsub = True
 
         if PyDateTime_Check(other):
             return c_NaT
@@ -159,7 +173,29 @@ cdef class _NaT(datetime):
             # TODO: the integer behavior is deprecated, remove it
             return c_NaT
 
-        return NotImplemented  # TODO: need to handle ndarrays
+        elif util.is_array(other):
+            if other.dtype.kind == 'm':
+                if not is_rsub:
+                    # NaT - timedelta64 we treat NaT as datetime64, so result
+                    #  is datetime64
+                    result = np.empty(other.shape, dtype="datetime64[ns]")
+                    result.fill("NaT")
+                    return result
+
+                # timedelta64 - NaT we have to treat NaT as timedelta64
+                #  for this to be meaningful, and the result is timedelta64
+                result = np.empty(other.shape, dtype="timedelta64[ns]")
+                result.fill("NaT")
+                return result
+
+            elif other.dtype.kind == 'M':
+                # We treat NaT as a datetime, so regardless of whether this is
+                #  NaT - other or other - NaT, the result is timedelta64
+                result = np.empty(other.shape, dtype="timedelta64[ns]")
+                result.fill("NaT")
+                return result
+
+        return NotImplemented
 
     def __pos__(self):
         return NaT

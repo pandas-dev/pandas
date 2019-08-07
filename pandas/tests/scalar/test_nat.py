@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import operator
 
 import numpy as np
 import pytest
@@ -19,6 +20,7 @@ from pandas import (
     isna,
 )
 from pandas.core.arrays import PeriodArray
+from pandas.core.ops import roperator
 from pandas.util import testing as tm
 
 
@@ -441,6 +443,28 @@ def test_nat_arithmetic_td64_vector(op_name, box):
     vec = box(["1 day", "2 day"], dtype="timedelta64[ns]")
     box_nat = box([NaT, NaT], dtype="timedelta64[ns]")
     tm.assert_equal(_ops[op_name](vec, NaT), box_nat)
+
+
+@pytest.mark.parametrize(
+    "dtype,op,out_dtype",
+    [
+        ("datetime64[ns]", operator.add, "datetime64[ns]"),
+        ("datetime64[ns]", roperator.radd, "datetime64[ns]"),
+        ("datetime64[ns]", operator.sub, "timedelta64[ns]"),
+        ("datetime64[ns]", roperator.rsub, "timedelta64[ns]"),
+        ("timedelta64[ns]", operator.add, "datetime64[ns]"),
+        ("timedelta64[ns]", roperator.radd, "datetime64[ns]"),
+        ("timedelta64[ns]", operator.sub, "datetime64[ns]"),
+        ("timedelta64[ns]", roperator.rsub, "timedelta64[ns]"),
+    ],
+)
+def test_nat_arithmetic_ndarray(dtype, op, out_dtype):
+    other = np.arange(10).astype(dtype)
+    result = op(NaT, other)
+
+    expected = np.empty(other.shape, dtype=out_dtype)
+    expected.fill("NaT")
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_nat_pinned_docstrings():
