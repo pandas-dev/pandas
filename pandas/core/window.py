@@ -246,8 +246,10 @@ class _Window(PandasObject, SelectionMixin):
             except (ValueError, TypeError):
                 raise TypeError("cannot handle this type -> {0}".format(values.dtype))
 
-        # Always convert inf to nan
-        values[np.isinf(values)] = np.NaN
+        # Convert inf to nan for C funcs
+        inf = np.isinf(values)
+        if inf.any():
+            values = np.where(inf, np.nan, values)
 
         return values
 
@@ -265,6 +267,8 @@ class _Window(PandasObject, SelectionMixin):
             # coerce if necessary
             if block is not None:
                 if is_timedelta64_dtype(block.values.dtype):
+                    # TODO: do we know what result.dtype is at this point?
+                    #  i.e. can we just do an astype?
                     from pandas import to_timedelta
 
                     result = to_timedelta(result.ravel(), unit="ns").values.reshape(

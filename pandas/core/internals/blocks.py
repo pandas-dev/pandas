@@ -18,6 +18,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     infer_dtype_from_scalar,
+    maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     maybe_infer_dtype_type,
     maybe_promote,
@@ -55,7 +56,6 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
     ABCExtensionArray,
-    ABCIndexClass,
     ABCPandasArray,
     ABCSeries,
 )
@@ -417,9 +417,6 @@ class Block(PandasObject):
         if self._can_hold_element(value):
             # equivalent: self._try_coerce_args(value) would not raise
             blocks = self.putmask(mask, value, inplace=inplace)
-            blocks = [
-                b.make_block(values=self._try_coerce_result(b.values)) for b in blocks
-            ]
             return self._maybe_downcast(blocks, downcast)
 
         # we can't process the value, but nothing to do
@@ -437,7 +434,7 @@ class Block(PandasObject):
 
         return self.split_and_operate(mask, f, inplace)
 
-    def split_and_operate(self, mask, f, inplace):
+    def split_and_operate(self, mask, f, inplace: bool):
         """
         split the block per-column, and apply the callable f
         per-column, return a new block for each. Handle
@@ -496,17 +493,15 @@ class Block(PandasObject):
 
         return new_blocks
 
-    def _maybe_downcast(self, blocks, downcast=None):
+    def _maybe_downcast(self, blocks: List["Block"], downcast=None) -> List["Block"]:
 
         # no need to downcast our float
         # unless indicated
-        if downcast is None and self.is_float:
-            return blocks
-        elif downcast is None and (self.is_timedelta or self.is_datetime):
+        if downcast is None and (
+            self.is_float or self.is_timedelta or self.is_datetime
+        ):
             return blocks
 
-        if not isinstance(blocks, list):
-            blocks = [blocks]
         return _extend_blocks([b.downcast(downcast) for b in blocks])
 
     def downcast(self, dtypes=None):
@@ -690,28 +685,6 @@ class Block(PandasObject):
             return issubclass(tipo.type, dtype)
         return isinstance(element, dtype)
 
-    def _try_cast_result(self, result, dtype=None):
-        """ try to cast the result to our original type, we may have
-        roundtripped thru object in the mean-time
-        """
-        if dtype is None:
-            dtype = self.dtype
-
-        if self.is_integer or self.is_bool or self.is_datetime:
-            pass
-        elif self.is_float and result.dtype == self.dtype:
-            # protect against a bool/object showing up here
-            if isinstance(dtype, str) and dtype == "infer":
-                return result
-
-            # This is only reached via Block.setitem, where dtype is always
-            #  either "infer", self.dtype, or values.dtype.
-            assert dtype == self.dtype, (dtype, self.dtype)
-            return result
-
-        # may need to change the dtype here
-        return maybe_downcast_to_dtype(result, dtype)
-
     def _try_coerce_args(self, other):
         """ provide coercion to our input arguments """
 
@@ -733,15 +706,6 @@ class Block(PandasObject):
             )
 
         return other
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-        return result
-
-    def _try_coerce_and_cast_result(self, result, dtype=None):
-        result = self._try_coerce_result(result)
-        result = self._try_cast_result(result, dtype=dtype)
-        return result
 
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
@@ -935,8 +899,6 @@ class Block(PandasObject):
         else:
             values[indexer] = value
 
-        # coerce and try to infer the dtypes of the result
-        values = self._try_coerce_and_cast_result(values, dtype)
         if transpose:
             values = values.T
         block = self.make_block(values)
@@ -1351,7 +1313,15 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
+    def where(
+        self,
+        other,
+        cond,
+        align=True,
+        errors="raise",
+        try_cast: bool = False,
+        axis: int = 0,
+    ) -> List["Block"]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1406,7 +1376,7 @@ class Block(PandasObject):
 
             try:
                 fastres = expressions.where(cond, values, other)
-                return self._try_coerce_result(fastres)
+                return fastres
             except Exception as detail:
                 if errors == "raise":
                     raise TypeError(
@@ -1446,11 +1416,7 @@ class Block(PandasObject):
             if transpose:
                 result = result.T
 
-            # try to cast if requested
-            if try_cast:
-                result = self._try_cast_result(result)
-
-            return self.make_block(result)
+            return [self.make_block(result)]
 
         # might need to separate out blocks
         axis = cond.ndim - 1
@@ -1461,7 +1427,7 @@ class Block(PandasObject):
         for m in [mask, ~mask]:
             if m.any():
                 taken = result.take(m.nonzero()[0], axis=axis)
-                r = self._try_cast_result(taken)
+                r = maybe_downcast_numeric(taken, self.dtype)
                 nb = self.make_block(r.T, placement=self.mgr_locs[m])
                 result_blocks.append(nb)
 
@@ -1482,9 +1448,9 @@ class Block(PandasObject):
         new_columns : Index
             All columns of the unstacked BlockManager.
         n_rows : int
-            Only used in ExtensionBlock.unstack
+            Only used in ExtensionBlock._unstack
         fill_value : int
-            Only used in ExtensionBlock.unstack
+            Only used in ExtensionBlock._unstack
 
         Returns
         -------
@@ -1558,7 +1524,7 @@ class Block(PandasObject):
             result = result[..., 0]
             result = lib.item_from_zerodim(result)
 
-        ndim = getattr(result, "ndim", None) or 0
+        ndim = np.ndim(result)
         return make_block(result, placement=np.arange(len(result)), ndim=ndim)
 
     def _replace_coerce(
@@ -1692,11 +1658,7 @@ class NonConsolidatableMixIn:
         mask = _safe_reshape(mask, new_values.shape)
 
         new_values[mask] = new
-        new_values = self._try_coerce_result(new_values)
         return [self.make_block(values=new_values)]
-
-    def _try_cast_result(self, result, dtype=None):
-        return result
 
     def _get_unstack_items(self, unstacker, new_columns):
         """
@@ -1749,7 +1711,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         super().__init__(values, placement, ndim)
 
     def _maybe_coerce_values(self, values):
-        """Unbox to an extension array.
+        """
+        Unbox to an extension array.
 
         This will unbox an ExtensionArray stored in an Index or Series.
         ExtensionArrays pass through. No dtype coercion is done.
@@ -1762,9 +1725,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         -------
         ExtensionArray
         """
-        if isinstance(values, (ABCIndexClass, ABCSeries)):
-            values = values._values
-        return values
+        return extract_array(values)
 
     @property
     def _holder(self):
@@ -1870,20 +1831,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         return self.values[slicer]
 
-    def _try_cast_result(self, result, dtype=None):
-        """
-        if we have an operation that operates on for example floats
-        we want to try to cast back to our EA here if possible
-
-        result could be a 2-D numpy array, e.g. the result of
-        a numeric operation; but it must be shape (1, X) because
-        we by-definition operate on the ExtensionBlocks one-by-one
-
-        result could also be an EA Array itself, in which case it
-        is already a 1-D array
-        """
-        return result
-
     def formatting_values(self):
         # Deprecating the ability to override _formatting_values.
         # Do the warning here, it's only user in pandas, since we
@@ -1946,7 +1893,15 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             )
         ]
 
-    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
+    def where(
+        self,
+        other,
+        cond,
+        align=True,
+        errors="raise",
+        try_cast: bool = False,
+        axis: int = 0,
+    ) -> List["Block"]:
         if isinstance(other, ABCDataFrame):
             # ExtensionArrays are 1-D, so if we get here then
             # `other` should be a DataFrame with a single column.
@@ -1991,7 +1946,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                 np.where(cond, self.values, other), dtype=dtype
             )
 
-        return self.make_block_same_class(result, placement=self.mgr_locs)
+        return [self.make_block_same_class(result, placement=self.mgr_locs)]
 
     @property
     def _ftype(self):
@@ -2443,20 +2398,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
         return other
 
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray):
-            if result.ndim == 2:
-                # kludge for 2D blocks with 1D EAs
-                result = result[0, :]
-            if result.dtype == np.float64:
-                # needed for post-groupby.median
-                result = self._holder._from_sequence(
-                    result.astype(np.int64), freq=None, dtype=self.values.dtype
-                )
-
-        return result
-
     def diff(self, n, axis=0):
         """1st discrete difference
 
@@ -2619,10 +2560,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
         return other
 
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args / try_operate """
-        return result
-
     def should_store(self, value):
         return issubclass(
             value.dtype.type, np.timedelta64
@@ -2747,7 +2684,7 @@ class ObjectBlock(Block):
 
         return blocks
 
-    def _maybe_downcast(self, blocks, downcast=None):
+    def _maybe_downcast(self, blocks: List["Block"], downcast=None) -> List["Block"]:
 
         if downcast is not None:
             return blocks
@@ -3031,16 +2968,6 @@ class CategoricalBlock(ExtensionBlock):
         """
         return np.object_
 
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-
-        # GH12564: CategoricalBlock is 1-dim only
-        # while returned results could be any dim
-        if (not is_categorical_dtype(result)) and isinstance(result, np.ndarray):
-            result = _block_shape(result, ndim=self.ndim)
-
-        return result
-
     def to_dense(self):
         # Categorical.get_values returns a DatetimeIndex for datetime
         # categories, so we can't simply use `np.asarray(self.values)` like
@@ -3082,7 +3009,15 @@ class CategoricalBlock(ExtensionBlock):
             values, placement=placement or slice(0, len(values), 1), ndim=self.ndim
         )
 
-    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
+    def where(
+        self,
+        other,
+        cond,
+        align=True,
+        errors="raise",
+        try_cast: bool = False,
+        axis: int = 0,
+    ) -> List["Block"]:
         # TODO(CategoricalBlock.where):
         # This can all be deleted in favor of ExtensionBlock.where once
         # we enforce the deprecation.
