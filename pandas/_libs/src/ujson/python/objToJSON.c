@@ -53,6 +53,7 @@ static PyTypeObject *cls_dataframe;
 static PyTypeObject *cls_series;
 static PyTypeObject *cls_index;
 static PyTypeObject *cls_nat;
+PyObject *cls_timestamp;
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
@@ -164,6 +165,7 @@ void *initObjToJSON(void)
         cls_index = (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Index");
         cls_series =
             (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Series");
+        cls_timestamp = PyObject_GetAttrString(mod_pandas, "Timestamp");
         Py_DECREF(mod_pandas);
     }
 
@@ -1592,7 +1594,7 @@ void NpyArr_freeLabels(char **labels, npy_intp len) {
  * this has instead just stringified any input save for datetime values,
  * which may need to be represented in various formats.
  */
-char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
+char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                            npy_intp num) {
     // NOTE this function steals a reference to labels.
     PyObject *item = NULL;
@@ -1639,10 +1641,45 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
 	  break;
 	}
 
-	PyObject *str = PyObject_Str(item);
-	cLabel = PyUnicode_AsUTF8(str);
-	len = strlen(cLabel);
-	Py_DECREF(str);
+	// Using a date as a key we need to special case the formatting
+	if (enc->datetimeIso && (PyTypeNum_ISDATETIME(type_num) ||
+				 PyDateTime_Check(item) || PyDate_Check(item))) {
+	  PyObject *argList = Py_BuildValue("(O)", item);
+
+	  if (argList == NULL) {
+	    Py_DECREF(item);
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+	  }
+
+	  PyObject *ts = PyObject_CallObject(cls_timestamp, argList);
+	  Py_DECREF(argList);
+	  if (ts == NULL) {
+	    Py_DECREF(item);
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+	  }
+
+	  PyObject *iso = PyObject_CallMethod(ts, "isoformat", NULL);
+	  Py_DECREF(ts);
+	  if (iso == NULL) {
+	    Py_DECREF(item);
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+	  }
+
+	  cLabel = PyUnicode_AsUTF8(iso);
+	  Py_DECREF(iso);
+	  len = strlen(cLabel);
+	} else {  // Otherwise use the str representation as the key
+	  PyObject *str = PyObject_Str(item);
+	  cLabel = PyUnicode_AsUTF8(str);
+	  Py_DECREF(str);	  
+	  len = strlen(cLabel);
+	}
 
 	Py_DECREF(item);
 	// Add 1 to include NULL terminator
@@ -1960,7 +1997,7 @@ ISITERABLE:
             }
             pc->columnLabelsLen = PyArray_DIM(pc->newObj, 0);
             pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values,
-                                                   (JSONObjectEncoder *)enc,
+                                                   enc,
                                                    pc->columnLabelsLen);
             if (!pc->columnLabels) {
                 goto INVALID;
@@ -2063,7 +2100,7 @@ ISITERABLE:
             }
             pc->columnLabelsLen = PyObject_Size(tmpObj);
             pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values,
-                                                   (JSONObjectEncoder *)enc,
+                                                   enc,
                                                    pc->columnLabelsLen);
             Py_DECREF(tmpObj);
             if (!pc->columnLabels) {
@@ -2086,7 +2123,7 @@ ISITERABLE:
             pc->rowLabelsLen = PyObject_Size(tmpObj);
             pc->rowLabels =
                 NpyArr_encodeLabels((PyArrayObject *)values,
-                                    (JSONObjectEncoder *)enc, pc->rowLabelsLen);
+                                    enc, pc->rowLabelsLen);
             Py_DECREF(tmpObj);
             tmpObj = (enc->outputFormat == INDEX
                           ? PyObject_GetAttrString(obj, "columns")
@@ -2105,7 +2142,7 @@ ISITERABLE:
             }
             pc->columnLabelsLen = PyObject_Size(tmpObj);
             pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values,
-                                                   (JSONObjectEncoder *)enc,
+                                                   enc,
                                                    pc->columnLabelsLen);
             Py_DECREF(tmpObj);
             if (!pc->columnLabels) {
