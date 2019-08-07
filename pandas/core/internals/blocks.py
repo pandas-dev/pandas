@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 import functools
 import inspect
 import re
@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Timestamp, lib, tslib, tslibs
+from pandas._libs import NaT, lib, tslib
 from pandas._libs.index import convert_scalar
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
@@ -55,7 +55,6 @@ from pandas.core.dtypes.concat import concat_categorical, concat_datetime
 from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeIndex,
     ABCExtensionArray,
     ABCPandasArray,
     ABCSeries,
@@ -65,7 +64,6 @@ from pandas.core.dtypes.missing import (
     array_equivalent,
     is_valid_nat_for_dtype,
     isna,
-    notna,
 )
 
 import pandas.core.algorithms as algos
@@ -685,28 +683,6 @@ class Block(PandasObject):
         if tipo is not None:
             return issubclass(tipo.type, dtype)
         return isinstance(element, dtype)
-
-    def _try_coerce_args(self, other):
-        """ provide coercion to our input arguments """
-
-        if np.any(notna(other)) and not self._can_hold_element(other):
-            # coercion issues
-            # let higher levels handle
-            raise TypeError(
-                "cannot convert {} to an {}".format(
-                    type(other).__name__,
-                    type(self).__name__.lower().replace("Block", ""),
-                )
-            )
-        if np.any(isna(other)) and not self._can_hold_na:
-            raise TypeError(
-                "cannot convert {} to an {}".format(
-                    type(other).__name__,
-                    type(self).__name__.lower().replace("Block", ""),
-                )
-            )
-
-        return other
 
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
@@ -1386,7 +1362,10 @@ class Block(PandasObject):
                 and np.isnan(other)
             ):
                 # np.where will cast integer array to floats in this case
-                other = self._try_coerce_args(other)
+                if not self._can_hold_element(other):
+                    raise TypeError
+                if lib.is_scalar(other) and isinstance(values, np.ndarray):
+                    other = convert_scalar(values, other)
 
             try:
                 fastres = expressions.where(cond, values, other)
@@ -2213,38 +2192,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         return is_valid_nat_for_dtype(element, self.dtype)
 
-    def _try_coerce_args(self, other):
-        """
-        Coerce other to dtype 'i8'. NaN and NaT convert to
-        the smallest i8, and will correctly round-trip to NaT if converted
-        back in _try_coerce_result. values is always ndarray-like, other
-        may not be
-
-        Parameters
-        ----------
-        other : ndarray-like or scalar
-
-        Returns
-        -------
-        base-type other
-        """
-        if is_valid_nat_for_dtype(other, self.dtype):
-            other = np.datetime64("NaT", "ns")
-        elif isinstance(other, (datetime, np.datetime64, date)):
-            other = Timestamp(other)
-            if other.tz is not None:
-                raise TypeError("cannot coerce a Timestamp with a tz on a naive Block")
-            other = other.asm8
-        elif hasattr(other, "dtype") and is_datetime64_dtype(other):
-            # TODO: can we get here with non-nano?
-            pass
-        else:
-            # coercion issues
-            # let higher levels handle
-            raise TypeError(other)
-
-        return other
-
     def to_native_types(
         self, slicer=None, na_rep=None, date_format=None, quoting=None, **kwargs
     ):
@@ -2382,35 +2329,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             return self.values[loc]
         return self.values[slicer]
 
-    def _try_coerce_args(self, other):
-        """
-        localize and return i8 for the values
-
-        Parameters
-        ----------
-        other : ndarray-like or scalar
-
-        Returns
-        -------
-        base-type other
-        """
-        if is_valid_nat_for_dtype(other, self.dtype):
-            other = np.datetime64("NaT", "ns")
-        elif isinstance(other, self._holder):
-            if not tz_compare(other.tz, self.values.tz):
-                raise ValueError("incompatible or non tz-aware value")
-
-        elif isinstance(other, (np.datetime64, datetime, date)):
-            other = tslibs.Timestamp(other)
-
-            # test we can have an equal time zone
-            if not tz_compare(other.tz, self.values.tz):
-                raise ValueError("incompatible or non tz-aware value")
-        else:
-            raise TypeError(other)
-
-        return other
-
     def diff(self, n, axis=0):
         """1st discrete difference
 
@@ -2544,34 +2462,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             )
             value = Timedelta(value, unit="s")
         return super().fillna(value, **kwargs)
-
-    def _try_coerce_args(self, other):
-        """
-        Coerce values and other to datetime64[ns], with null values
-        converted to datetime64("NaT", "ns").
-
-        Parameters
-        ----------
-        other : ndarray-like or scalar
-
-        Returns
-        -------
-        base-type other
-        """
-
-        if is_valid_nat_for_dtype(other, self.dtype):
-            other = np.timedelta64("NaT", "ns")
-        elif isinstance(other, (timedelta, np.timedelta64)):
-            other = Timedelta(other).to_timedelta64()
-        elif hasattr(other, "dtype") and is_timedelta64_dtype(other):
-            # TODO: can we get here with non-nano dtype?
-            pass
-        else:
-            # coercion issues
-            # let higher levels handle
-            raise TypeError(other)
-
-        return other
 
     def should_store(self, value):
         return issubclass(
@@ -2707,21 +2597,6 @@ class ObjectBlock(Block):
 
     def _can_hold_element(self, element):
         return True
-
-    def _try_coerce_args(self, other):
-        """ provide coercion to our input arguments """
-
-        if isinstance(other, ABCDatetimeIndex):
-            # May get a DatetimeIndex here. Unbox it.
-            other = other.array
-
-        if isinstance(other, DatetimeArray):
-            # hit in pandas/tests/indexing/test_coercion.py
-            # ::TestWhereCoercion::test_where_series_datetime64[datetime64tz]
-            # when falling back to ObjectBlock.where
-            other = other.astype(object)
-
-        return other
 
     def should_store(self, value):
         return not (

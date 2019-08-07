@@ -327,19 +327,16 @@ class TestBlock:
 
 
 class TestDatetimeBlock:
-    def test_try_coerce_arg(self):
+    def test_can_hold_element(self):
         block = create_block("datetime", [0])
 
         # coerce None
-        none_coerced = block._try_coerce_args(None)
-        assert pd.Timestamp(none_coerced) is pd.NaT
+        assert block._can_hold_element(None)
 
         # coerce different types of date bojects
         vals = (np.datetime64("2010-10-10"), datetime(2010, 10, 10), date(2010, 10, 10))
         for val in vals:
-            coerced = block._try_coerce_args(val)
-            assert np.datetime64 == type(coerced)
-            assert pd.Timestamp("2010-10-10") == pd.Timestamp(coerced)
+            assert block._can_hold_element(val)
 
 
 class TestBlockManager:
