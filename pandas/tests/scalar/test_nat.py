@@ -8,6 +8,8 @@ import pytz
 from pandas._libs.tslibs import iNaT
 import pandas.compat as compat
 
+from pandas.core.dtypes.common import is_datetime64_any_dtype
+
 from pandas import (
     DatetimeIndex,
     Index,
@@ -19,7 +21,7 @@ from pandas import (
     Timestamp,
     isna,
 )
-from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.ops import roperator
 from pandas.util import testing as tm
 
@@ -416,7 +418,9 @@ def test_nat_rfloordiv_timedelta(val, expected):
     "value",
     [
         DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
-        DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
+        DatetimeIndex(["2011-01-01", "2011-01-02"], tz="US/Eastern", name="x"),
+        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"]),
+        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"], tz="US/Pacific"),
         TimedeltaIndex(["1 day", "2 day"], name="x"),
     ],
 )
@@ -425,19 +429,24 @@ def test_nat_arithmetic_index(op_name, value):
     exp_name = "x"
     exp_data = [NaT] * 2
 
-    if isinstance(value, DatetimeIndex) and "plus" in op_name:
-        expected = DatetimeIndex(exp_data, name=exp_name, tz=value.tz)
+    if is_datetime64_any_dtype(value.dtype) and "plus" in op_name:
+        expected = DatetimeIndex(exp_data, tz=value.tz, name=exp_name)
     else:
         expected = TimedeltaIndex(exp_data, name=exp_name)
 
-    tm.assert_index_equal(_ops[op_name](NaT, value), expected)
+    if not isinstance(value, Index):
+        expected = expected.array
+
+    op = _ops[op_name]
+    result = op(NaT, value)
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     "op_name",
     ["left_plus_right", "right_plus_left", "left_minus_right", "right_minus_left"],
 )
-@pytest.mark.parametrize("box", [TimedeltaIndex, Series])
+@pytest.mark.parametrize("box", [TimedeltaIndex, Series, TimedeltaArray._from_sequence])
 def test_nat_arithmetic_td64_vector(op_name, box):
     # see gh-19124
     vec = box(["1 day", "2 day"], dtype="timedelta64[ns]")
