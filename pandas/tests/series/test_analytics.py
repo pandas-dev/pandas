@@ -5,6 +5,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
+from pandas.compat import PY35
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1482,7 +1483,17 @@ class TestCategoricalSeriesAnalytics:
 
     @pytest.mark.parametrize(
         "dtype",
-        ["int_", "uint", "float_", "unicode_", "timedelta64[h]", "datetime64[D]"],
+        [
+            "int_",
+            "uint",
+            "float_",
+            "unicode_",
+            "timedelta64[h]",
+            pytest.param(
+                "datetime64[D]",
+                marks=pytest.mark.xfail(not PY35, reason="GH#7996", strict=True),
+            ),
+        ],
     )
     def test_drop_duplicates_categorical_non_bool(self, dtype, ordered_fixture):
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
