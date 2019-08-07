@@ -1359,20 +1359,8 @@ class Block(PandasObject):
                 if lib.is_scalar(other) and isinstance(values, np.ndarray):
                     other = convert_scalar(values, other)
 
-            try:
-                fastres = expressions.where(cond, values, other)
-                return fastres
-            except Exception as detail:
-                if errors == "raise":
-                    raise TypeError(
-                        "Could not operate [{other!r}] with block values "
-                        "[{detail!s}]".format(other=other, detail=detail)
-                    )
-                else:
-                    # return the values
-                    result = np.empty(values.shape, dtype="float64")
-                    result.fill(np.nan)
-                    return result
+            fastres = expressions.where(cond, values, other)
+            return fastres
 
         if cond.ravel().all():
             result = values
