@@ -10,7 +10,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, concat, isna, notna
-import pandas.core.window as rwindow
+from pandas.core.window.common import _flex_binary_moment
 from pandas.tests.window.common import Base
 import pandas.util.testing as tm
 
@@ -1878,7 +1878,7 @@ class TestMomentsConsistency(Base):
             " np.ndarray/Series/DataFrame"
         )
         with pytest.raises(TypeError, match=msg):
-            rwindow._flex_binary_moment(5, 6, None)
+            _flex_binary_moment(5, 6, None)
 
     def test_corr_sanity(self):
         # GH 3155
