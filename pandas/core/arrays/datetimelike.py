@@ -162,7 +162,7 @@ class DatelikeOps:
         Returns
         -------
         ndarray
-            ndarray of formatted strings.
+            NumPy ndarray of formatted strings.
 
         See Also
         --------
