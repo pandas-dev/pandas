@@ -3,7 +3,7 @@ printing tools
 """
 
 import sys
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from pandas._config import get_option
 
@@ -150,7 +150,7 @@ def _pprint_dict(
 
 
 def pprint_thing(
-    thing,
+    thing: Any,
     _nest_lvl: int = 0,
     escape_chars: Optional[EscapeChars] = None,
     default_escapes: bool = False,
@@ -182,7 +182,7 @@ def pprint_thing(
     """
 
     def as_escaped_string(
-        thing: object, escape_chars: Optional[EscapeChars] = escape_chars
+        thing: Any, escape_chars: Optional[EscapeChars] = escape_chars
     ) -> str:
         translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r"}
         if isinstance(escape_chars, dict):
