@@ -29,13 +29,13 @@ dependencies:
   - s3fs=0.0.8
   - scipy
   - sqlalchemy=1.1.4
-  - xarray=0.8.2
+  - xarray=0.10
   - xlrd
   - xlsxwriter
   - xlwt
   # universal
-  - pytest>=4.0.2
-  - pytest-xdist
+  - pytest>=5.0.1
+  - pytest-xdist>=1.29.0
   - pytest-mock
   - pip
   - pip:

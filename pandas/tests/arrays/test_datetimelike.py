@@ -682,15 +682,15 @@ def test_casting_nat_setitem_array(array, casting_nats):
     [
         (
             pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
-            (np.datetime64("NaT", "ns"),),
+            (np.datetime64("NaT", "ns"), pd.NaT.value),
         ),
         (
             pd.date_range("2000-01-01", periods=3, freq="D")._data,
-            (np.timedelta64("NaT", "ns"),),
+            (np.timedelta64("NaT", "ns"), pd.NaT.value),
         ),
         (
             pd.period_range("2000-01-01", periods=3, freq="D")._data,
-            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")),
+            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns"), pd.NaT.value),
         ),
     ],
     ids=lambda x: type(x).__name__,

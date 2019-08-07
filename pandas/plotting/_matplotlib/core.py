@@ -663,7 +663,7 @@ class MPLPlot:
     def _get_index_name(self):
         if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
-            if com._any_not_none(*name):
+            if com.any_not_none(*name):
                 name = ",".join(pprint_thing(x) for x in name)
             else:
                 name = None
@@ -1063,7 +1063,7 @@ class LinePlot(MPLPlot):
             it = self._iter_data()
 
         stacking_id = self._get_stacking_id()
-        is_errorbar = com._any_not_none(*self.errors.values())
+        is_errorbar = com.any_not_none(*self.errors.values())
 
         colors = self._get_colors()
         for i, (label, y) in enumerate(it):
