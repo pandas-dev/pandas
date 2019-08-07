@@ -2999,10 +2999,9 @@ class NDFrame(PandasObject, SelectionMixin):
                name &    mask &    weapon \\
          \midrule
             Raphael &     red &       sai \\
-        Donatello &  purple &  bo staff \\
+          Donatello &  purple &  bo staff \\
         \bottomrule
         \end{tabular}
-
         """
         # Get defaults from the pandas config
         if self.ndim == 1:
