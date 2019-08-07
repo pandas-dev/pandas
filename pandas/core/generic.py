@@ -2993,7 +2993,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
         ...                    'mask': ['red', 'purple'],
         ...                    'weapon': ['sai', 'bo staff']})
-        >>> df.to_latex(index=False) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(df.to_latex(index=False)) # doctest: +NORMALIZE_WHITESPACE
         '\\begin{tabular}{lll}\n\\toprule\n      name &    mask &    weapon
         \\\\\n\\midrule\n   Raphael &     red &       sai \\\\\n Donatello &
          purple &  bo staff \\\\\n\\bottomrule\n\\end{tabular}\n'
