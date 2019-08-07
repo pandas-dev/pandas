@@ -1482,16 +1482,7 @@ class TestCategoricalSeriesAnalytics:
 
     @pytest.mark.parametrize(
         "dtype",
-        [
-            "int_",
-            "uint",
-            "float_",
-            "unicode_",
-            "timedelta64[h]",
-            pytest.param(
-                "datetime64[D]", marks=pytest.mark.xfail(reason="GH#7996", strict=True)
-            ),
-        ],
+        ["int_", "uint", "float_", "unicode_", "timedelta64[h]", "datetime64[D]"],
     )
     def test_drop_duplicates_categorical_non_bool(self, dtype, ordered_fixture):
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
