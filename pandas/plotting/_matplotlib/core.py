@@ -549,6 +549,8 @@ class MPLPlot:
             self.legend_labels.append(label)
 
     def _make_legend(self):
+        from matplotlib.axes import SubplotBase
+
         ax, leg = self._get_ax_legend(self.axes[0])
 
         handles = []
@@ -556,8 +558,6 @@ class MPLPlot:
         title = ""
 
         # set subplots to True if plt.subplots() uses and assign to ax
-        from matplotlib.axes import SubplotBase
-
         if isinstance(self.ax, SubplotBase):
             self.subplots = True
 
