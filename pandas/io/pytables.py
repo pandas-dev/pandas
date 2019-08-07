@@ -3202,7 +3202,9 @@ class BlockManagerFixed(GenericFixed):
             values = self.read_array(
                 "block{idx}_values".format(idx=i), start=_start, stop=_stop
             )
-            blk = make_block(values, placement=items.get_indexer(blk_items), ndim=len(axes))
+            blk = make_block(
+                values, placement=items.get_indexer(blk_items), ndim=len(axes)
+            )
             blocks.append(blk)
 
         return self.obj_type(BlockManager(blocks, axes))
