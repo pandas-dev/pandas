@@ -461,6 +461,35 @@ class ExtensionArray:
         result = nargsort(self, kind=kind, ascending=ascending, na_position="last")
         return result
 
+    def argmin(self):
+        """
+        Return the minimun argument indexer.
+
+        Returns
+        -------
+        scalar
+            Minimun argument indexer.
+
+        See Also
+        --------
+        Index.max : Return the maximum value of the object.
+        Series.min : Return the minimum value in a Series.
+        DataFrame.min : Return the minimum values in a DataFrame.
+        """
+        return self.argsort()[0]
+
+    def min(self):
+        min_idx = self.argmin()
+        return self[min_idx]
+
+    def argmax(self):
+        no_nan = self.isna().sum()
+        return self.argsort()[-1 - no_nan]
+
+    def max(self):
+        max_idx = self.argmax()
+        return self[max_idx]
+
     def fillna(self, value=None, method=None, limit=None):
         """
         Fill NA/NaN values using the specified method.

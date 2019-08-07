@@ -246,6 +246,20 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
         # Fails creating expected
         super().test_repeat(data, repeats, as_series, use_numpy)
 
+    def test_max(self):
+        # GH 24382
+        data = PandasArray(np.array([1, np.nan, 0]))
+        result = data.max()
+        expected = data[0]
+        assert result == expected
+
+    def test_min(self):
+        # GH 24382
+        data = PandasArray(np.array([1, np.nan, 0]))
+        result = data.min()
+        expected = data[2]
+        assert result == expected
+
 
 @skip_nested
 class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):

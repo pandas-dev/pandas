@@ -195,6 +195,14 @@ class TestMethods(base.BaseMethodsTests):
         if not data_for_sorting.ordered:
             raise pytest.skip(reason="searchsorted requires ordered data.")
 
+    def test_max(self):
+        # GH 24382
+        pass
+
+    def test_min(self):
+        # GH 24382
+        pass
+
 
 class TestCasting(base.BaseCastingTests):
     pass

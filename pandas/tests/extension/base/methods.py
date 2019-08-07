@@ -59,6 +59,30 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
         self.assert_series_equal(result, expected)
 
+    def test_argmax(self, data_missing_for_sorting):
+        # GH 24382
+        result = data_missing_for_sorting.argmax()
+        expected = 0
+        assert result == expected
+
+    def test_max(self, data_missing_for_sorting):
+        # GH 24382
+        result = data_missing_for_sorting.max()
+        expected = data_missing_for_sorting[0]
+        assert result == expected
+
+    def test_argmin(self, data_missing_for_sorting):
+        # GH 24382
+        result = data_missing_for_sorting.argmin()
+        expected = 2
+        assert result == expected
+
+    def test_min(self, data_missing_for_sorting):
+        # GH 24382
+        result = data_missing_for_sorting.min()
+        expected = data_missing_for_sorting[2]
+        assert result == expected
+
     @pytest.mark.parametrize(
         "na_position, expected",
         [

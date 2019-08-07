@@ -6,6 +6,7 @@ What's new in 0.25.1 (July XX, 2019)
 Enhancements
 ~~~~~~~~~~~~
 
+- Add :meth:`ExtensionArray.argmax`, :meth:`ExtensionArray.max`, :meth:`ExtensionArray.argmin` and :meth:`ExtensionArray.min` (:issue:`24382`)
 
 .. _whatsnew_0251.enhancements.other:
 
