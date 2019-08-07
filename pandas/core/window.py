@@ -173,24 +173,30 @@ class _Window(PandasObject, SelectionMixin):
     def _dir_additions(self):
         return self.obj._dir_additions()
 
-    def _get_kwargs(self, **kwargs) -> Tuple[Dict, Dict]:
+    def _get_win_type(self, kwargs: Dict):
         """
-        Separate kwargs for rolling and window functions.
-
-        Returns
-        -------
-        tuple of (roll_kwargs : dict, window_kwargs : dict)
-            kwargs for rolling and window function
-        """
-        return kwargs, dict()
-
-    def _get_window(self, other=None, **kwargs) -> int:
-        """
-        Returns window length
+        Exists for compatibility, overriden by subclass Window.
 
         Parameters
         ----------
-        other:
+        kwargs : dict
+            ignored, exists for compatibility
+
+        Returns
+        -------
+        None
+        """
+        return None
+
+    def _get_window(self, other=None, win_type: Optional[str] = None) -> int:
+        """
+        Return window length.
+
+        Parameters
+        ----------
+        other :
+            ignored, exists for compatibility
+        win_type :
             ignored, exists for compatibility
 
         Returns
@@ -416,7 +422,6 @@ class _Window(PandasObject, SelectionMixin):
         -------
         y : type of input
         """
-        roll_kwargs, window_kwargs = self._get_kwargs(**kwargs)
 
         if center is None:
             center = self.center
@@ -425,7 +430,8 @@ class _Window(PandasObject, SelectionMixin):
             check_minp = _use_window
 
         if window is None:
-            window = self._get_window(**window_kwargs)
+            win_type = self._get_win_type(kwargs)
+            window = self._get_window(win_type=win_type)
 
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
@@ -458,9 +464,7 @@ class _Window(PandasObject, SelectionMixin):
                         "in libwindow.{func}".format(func=func)
                     )
 
-                func = self._get_roll_func(
-                    cfunc, check_minp, index_as_array, **roll_kwargs
-                )
+                func = self._get_roll_func(cfunc, check_minp, index_as_array, **kwargs)
 
             # calculation function
             if center:
@@ -920,15 +924,18 @@ class Window(_Window):
         else:
             raise ValueError("Invalid window {0}".format(window))
 
-    def _get_kwargs(self, **kwargs) -> Tuple[Dict, Dict[str, Union[str, Tuple]]]:
+    def _get_win_type(self, kwargs: Dict) -> Union[str, Tuple]:
         """
-        Validate arguments for the window function, then separate
-        them from arguments of rolling function.
+        Extract arguments for the window type, provide validation for it
+        and return the validated window type.
+
+        Parameters
+        ----------
+        kwargs : dict
 
         Returns
         -------
-        tuple of (roll_kwargs : dict, window_kwargs : dict)
-            kwargs for rolling and window function
+        win_type : str, or tuple
         """
         # the below may pop from kwargs
         def _validate_win_type(win_type, kwargs):
@@ -960,17 +967,20 @@ class Window(_Window):
                 all_args.append(kwargs.pop(n))
             return all_args
 
-        win_type = _validate_win_type(self.win_type, kwargs)
-        return kwargs, dict(window=win_type)
+        return _validate_win_type(self.win_type, kwargs)
 
-    def _get_window(self, other=None, **kwargs) -> np.ndarray:
+    def _get_window(
+        self, other=None, win_type: Optional[Union[str, Tuple]] = None
+    ) -> np.ndarray:
         """
         Get the window, weights.
 
         Parameters
         ----------
-        other:
+        other :
             ignored, exists for compatibility
+        win_type : str, or tuple
+            type of window to create
 
         Returns
         -------
@@ -985,8 +995,7 @@ class Window(_Window):
             import scipy.signal as sig
 
             # GH #15662. `False` makes symmetric window, rather than periodic.
-            kwargs.update(dict(Nx=window, fftbins=False))
-            return sig.get_window(**kwargs).astype(float)
+            return sig.get_window(win_type, window, False).astype(float)
 
     def _get_roll_func(
         self, cfunc: Callable, check_minp: Callable, index: np.ndarray, **kwargs
@@ -2069,15 +2078,17 @@ class Expanding(_Rolling_and_Expanding):
     def _constructor(self):
         return Expanding
 
-    def _get_window(self, other=None, **kwargs):
+    def _get_window(self, other=None, win_type=None):
         """
         Get the window length over which to perform some operation.
 
         Parameters
         ----------
-        other : object, default None
+        other : Series, DataFrame, or ndarray, optional
             The other object that is involved in the operation.
             Such an object is involved for operations like covariance.
+        win_type :
+            ignored, exists for compatibility
 
         Returns
         -------
