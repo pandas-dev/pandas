@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, Timestamp, lib, tslib, tslibs
+from pandas._libs.index import convert_scalar
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -415,7 +416,7 @@ class Block(PandasObject):
                 return self.copy()
 
         if self._can_hold_element(value):
-            # equivalent: self._try_coerce_args(value) would not raise
+            # equivalent: _try_coerce_args(value) would not raise
             blocks = self.putmask(mask, value, inplace=inplace)
             return self._maybe_downcast(blocks, downcast)
 
@@ -765,7 +766,11 @@ class Block(PandasObject):
             )
 
         values = self.values
-        to_replace = self._try_coerce_args(to_replace)
+        if lib.is_scalar(to_replace) and isinstance(values, np.ndarray):
+            # The only non-DatetimeLike class that also has a non-trivial
+            #  try_coerce_args is ObjectBlock, but that overrides replace,
+            #  so does not get here.
+            to_replace = convert_scalar(values, to_replace)
 
         mask = missing.mask_missing(values, to_replace)
         if filter is not None:
@@ -827,7 +832,10 @@ class Block(PandasObject):
         # coerce if block dtype can store value
         values = self.values
         if self._can_hold_element(value):
-            value = self._try_coerce_args(value)
+            # We only get here for non-Extension Blocks, so _try_coerce_args
+            #  is only relevant for DatetimeBlock and TimedeltaBlock
+            if lib.is_scalar(value):
+                value = convert_scalar(values, value)
 
             # can keep its own dtype
             if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
@@ -935,7 +943,10 @@ class Block(PandasObject):
             new = self.fill_value
 
         if self._can_hold_element(new):
-            new = self._try_coerce_args(new)
+            # We only get here for non-Extension Blocks, so _try_coerce_args
+            #  is only relevant for DatetimeBlock and TimedeltaBlock
+            if lib.is_scalar(new):
+                new = convert_scalar(new_values, new)
 
             if transpose:
                 new_values = new_values.T
@@ -1173,7 +1184,10 @@ class Block(PandasObject):
                     return [self.copy()]
 
         values = self.values if inplace else self.values.copy()
-        fill_value = self._try_coerce_args(fill_value)
+
+        # We only get here for non-ExtensionBlock
+        fill_value = convert_scalar(self.values, fill_value)
+
         values = missing.interpolate_2d(
             values,
             method=method,
@@ -1650,7 +1664,6 @@ class NonConsolidatableMixIn:
         # use block's copy logic.
         # .values may be an Index which does shallow copy by default
         new_values = self.values if inplace else self.copy().values
-        new = self._try_coerce_args(new)
 
         if isinstance(new, np.ndarray) and len(new) == len(mask):
             new = new[mask]
