@@ -166,6 +166,15 @@ class MPLPlot:
             setattr(self, attr, value)
 
         self.ax = ax
+
+        # set subplots to True if plt.subplots() uses and assign to ax
+        from matplotlib.axes import SubplotBase
+        try:
+            ax_type = isinstance(self.ax, SubplotBase)
+        except TypeError:
+            ax_type = isinstance(self.ax[0], SubplotBase)
+        if ax_type:
+            self.subplots = True
         self.fig = fig
         self.axes = None
 
