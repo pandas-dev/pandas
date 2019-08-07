@@ -1490,8 +1490,7 @@ class TestCategoricalSeriesAnalytics:
             "unicode_",
             "timedelta64[h]",
             pytest.param(
-                "datetime64[D]",
-                marks=pytest.mark.xfail(not PY35, reason="GH#7996", strict=True),
+                "datetime64[D]", marks=pytest.mark.xfail(reason="GH#7996", strict=True)
             ),
         ],
     )
