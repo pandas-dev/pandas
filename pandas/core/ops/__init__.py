@@ -5,7 +5,7 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import Any, Callable
+from typing import Any, Callable, Tuple
 
 import numpy as np
 
@@ -37,18 +37,18 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeArray,
+    ABCDatetimeIndex,
     ABCIndex,
     ABCIndexClass,
     ABCSeries,
     ABCSparseArray,
     ABCSparseSeries,
-    ABCTimedeltaArray,
 )
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
 from pandas._typing import ArrayLike
-import pandas.core.common as com
+from pandas.core.construction import extract_array
 
 from . import missing
 from .docstrings import (
@@ -91,7 +91,7 @@ def get_op_result_name(left, right):
     name : object
         Usually a string
     """
-    # `left` is always a pd.Series when called from within ops
+    # `left` is always a Series when called from within ops
     if isinstance(right, (ABCSeries, ABCIndexClass)):
         name = _maybe_match_name(left, right)
     else:
@@ -134,7 +134,7 @@ def _maybe_match_name(a, b):
     return None
 
 
-def maybe_upcast_for_op(obj):
+def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
     """
     Cast non-pandas objects to pandas types to unify behavior of arithmetic
     and comparison operations.
@@ -142,6 +142,7 @@ def maybe_upcast_for_op(obj):
     Parameters
     ----------
     obj: object
+    shape : tuple[int]
 
     Returns
     -------
@@ -157,13 +158,22 @@ def maybe_upcast_for_op(obj):
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
         return Timedelta(obj)
-    elif isinstance(obj, np.timedelta64) and not isna(obj):
+    elif isinstance(obj, np.timedelta64):
+        if isna(obj):
+            # wrapping timedelta64("NaT") in Timedelta returns NaT,
+            #  which would incorrectly be treated as a datetime-NaT, so
+            #  we broadcast and wrap in a Series
+            right = np.broadcast_to(obj, shape)
+
+            # Note: we use Series instead of TimedeltaIndex to avoid having
+            #  to worry about catching NullFrequencyError.
+            return pd.Series(right)
+
         # In particular non-nanosecond timedelta64 needs to be cast to
         #  nanoseconds, or else we get undesired behavior like
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
-        # The isna check is to avoid casting timedelta64("NaT"), which would
-        #  return NaT and incorrectly be treated as a datetime-NaT.
         return Timedelta(obj)
+
     elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
         # GH#22390 Unfortunately we need to special-case right-hand
         # timedelta64 dtypes because numpy casts integer dtypes to
@@ -600,42 +610,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     return result
 
 
-def dispatch_to_index_op(op, left, right, index_class):
-    """
-    Wrap Series left in the given index_class to delegate the operation op
-    to the index implementation.  DatetimeIndex and TimedeltaIndex perform
-    type checking, timezone handling, overflow checks, etc.
-
-    Parameters
-    ----------
-    op : binary operator (operator.add, operator.sub, ...)
-    left : Series
-    right : object
-    index_class : DatetimeIndex or TimedeltaIndex
-
-    Returns
-    -------
-    result : object, usually DatetimeIndex, TimedeltaIndex, or Series
-    """
-    left_idx = index_class(left)
-
-    # avoid accidentally allowing integer add/sub.  For datetime64[tz] dtypes,
-    # left_idx may inherit a freq from a cached DatetimeIndex.
-    # See discussion in GH#19147.
-    if getattr(left_idx, "freq", None) is not None:
-        left_idx = left_idx._shallow_copy(freq=None)
-    try:
-        result = op(left_idx, right)
-    except NullFrequencyError:
-        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
-        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
-        raise TypeError(
-            "incompatible type for a datetime/timedelta "
-            "operation [{name}]".format(name=op.__name__)
-        )
-    return result
-
-
 def dispatch_to_extension_op(op, left, right):
     """
     Assume that left or right is a Series backed by an ExtensionArray,
@@ -656,13 +630,16 @@ def dispatch_to_extension_op(op, left, right):
     else:
         new_right = right
 
-    res_values = op(new_left, new_right)
-    res_name = get_op_result_name(left, right)
-
-    if op.__name__ in ["divmod", "rdivmod"]:
-        return _construct_divmod_result(left, res_values, left.index, res_name)
-
-    return _construct_result(left, res_values, left.index, res_name)
+    try:
+        res_values = op(new_left, new_right)
+    except NullFrequencyError:
+        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
+        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
+        raise TypeError(
+            "incompatible type for a datetime/timedelta "
+            "operation [{name}]".format(name=op.__name__)
+        )
+    return res_values
 
 
 # -----------------------------------------------------------------------------
@@ -975,7 +952,7 @@ def _arith_method_SERIES(cls, op, special):
 
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
-        right = maybe_upcast_for_op(right)
+        right = maybe_upcast_for_op(right, left.shape)
 
         if is_categorical_dtype(left):
             raise TypeError(
@@ -984,56 +961,36 @@ def _arith_method_SERIES(cls, op, special):
             )
 
         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
-            # Give dispatch_to_index_op a chance for tests like
-            # test_dt64_series_add_intlike, which the index dispatching handles
-            # specifically.
-            result = dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
-            return construct_result(
-                left, result, index=left.index, name=res_name, dtype=result.dtype
-            )
+            from pandas.core.arrays import DatetimeArray
+
+            result = dispatch_to_extension_op(op, DatetimeArray(left), right)
+            return construct_result(left, result, index=left.index, name=res_name)
 
         elif is_extension_array_dtype(left) or (
             is_extension_array_dtype(right) and not is_scalar(right)
         ):
             # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
-            return dispatch_to_extension_op(op, left, right)
+            result = dispatch_to_extension_op(op, left, right)
+            return construct_result(left, result, index=left.index, name=res_name)
 
         elif is_timedelta64_dtype(left):
-            result = dispatch_to_index_op(op, left, right, pd.TimedeltaIndex)
+            from pandas.core.arrays import TimedeltaArray
+
+            result = dispatch_to_extension_op(op, TimedeltaArray(left), right)
             return construct_result(left, result, index=left.index, name=res_name)
 
         elif is_timedelta64_dtype(right):
-            # We should only get here with non-scalar or timedelta64('NaT')
-            #  values for right
-            # Note: we cannot use dispatch_to_index_op because
-            #  that may incorrectly raise TypeError when we
-            #  should get NullFrequencyError
-            orig_right = right
-            if is_scalar(right):
-                # broadcast and wrap in a TimedeltaIndex
-                assert np.isnat(right)
-                right = np.broadcast_to(right, left.shape)
-                right = pd.TimedeltaIndex(right)
+            # We should only get here with non-scalar values for right
+            #  upcast by maybe_upcast_for_op
+            assert not isinstance(right, (np.timedelta64, np.ndarray))
 
-            assert isinstance(right, (pd.TimedeltaIndex, ABCTimedeltaArray, ABCSeries))
-            try:
-                result = op(left._values, right)
-            except NullFrequencyError:
-                if orig_right is not right:
-                    # i.e. scalar timedelta64('NaT')
-                    #  We get a NullFrequencyError because we broadcast to
-                    #  TimedeltaIndex, but this should be TypeError.
-                    raise TypeError(
-                        "incompatible type for a datetime/timedelta "
-                        "operation [{name}]".format(name=op.__name__)
-                    )
-                raise
+            result = op(left._values, right)
 
             # We do not pass dtype to ensure that the Series constructor
             #  does inference in the case where `result` has object-dtype.
             return construct_result(left, result, index=left.index, name=res_name)
 
-        elif isinstance(right, (ABCDatetimeArray, pd.DatetimeIndex)):
+        elif isinstance(right, (ABCDatetimeArray, ABCDatetimeIndex)):
             result = op(left._values, right)
             return construct_result(left, result, index=left.index, name=res_name)
 
@@ -1140,20 +1097,23 @@ def _comp_method_SERIES(cls, op, special):
             raise ValueError("Can only compare identically-labeled Series objects")
 
         elif is_categorical_dtype(self):
-            # Dispatch to Categorical implementation; pd.CategoricalIndex
+            # Dispatch to Categorical implementation; CategoricalIndex
             # behavior is non-canonical GH#19513
-            res_values = dispatch_to_index_op(op, self, other, pd.Categorical)
+            res_values = dispatch_to_extension_op(op, self, other)
             return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
             # Dispatch to DatetimeIndex to ensure identical
             # Series/Index behavior
+            from pandas.core.arrays import DatetimeArray
 
-            res_values = dispatch_to_index_op(op, self, other, pd.DatetimeIndex)
+            res_values = dispatch_to_extension_op(op, DatetimeArray(self), other)
             return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_timedelta64_dtype(self):
-            res_values = dispatch_to_index_op(op, self, other, pd.TimedeltaIndex)
+            from pandas.core.arrays import TimedeltaArray
+
+            res_values = dispatch_to_extension_op(op, TimedeltaArray(self), other)
             return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_extension_array_dtype(self) or (
@@ -1161,7 +1121,8 @@ def _comp_method_SERIES(cls, op, special):
         ):
             # Note: the `not is_scalar(other)` condition rules out
             # e.g. other == "category"
-            return dispatch_to_extension_op(op, self, other)
+            res_values = dispatch_to_extension_op(op, self, other)
+            return self._constructor(res_values, index=self.index).rename(res_name)
 
         elif isinstance(other, ABCSeries):
             # By this point we have checked that self._indexed_same(other)
@@ -1205,7 +1166,7 @@ def _comp_method_SERIES(cls, op, special):
                 )
 
             # always return a full value series here
-            res_values = com.values_from_object(res)
+            res_values = extract_array(res, extract_numpy=True)
             return self._constructor(
                 res_values, index=self.index, name=res_name, dtype="bool"
             )
