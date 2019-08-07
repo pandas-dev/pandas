@@ -22,22 +22,17 @@ jobs:
   timeoutInMinutes: 90
   steps:
   - script: |
-      # XXX next command should avoid redefining the path in every step, but
-      # made the process crash as it couldn't find deactivate
-      #echo '##vso[task.prependpath]$HOME/miniconda3/bin'
+      echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
       echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
       echo '##vso[task.setvariable variable=AZURE]true'
     displayName: 'Setting environment variables'
 
   # Do not require a conda environment
-  - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
-      ci/code_checks.sh patterns
+  - script: ci/code_checks.sh patterns
     displayName: 'Looking for unwanted patterns'
     condition: true
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       sudo apt-get install -y libc6-dev-i386
       ci/setup_env.sh
     displayName: 'Setup environment and build pandas'
@@ -45,14 +40,12 @@ jobs:
 
   # Do not require pandas
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh lint
     displayName: 'Linting'
     condition: true
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh dependencies
     displayName: 'Dependencies consistency'
@@ -60,42 +53,36 @@ jobs:
 
   # Require pandas
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh code
     displayName: 'Checks on imported code'
     condition: true
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh doctests
     displayName: 'Running doctests'
     condition: true
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh docstrings
     displayName: 'Docstring validation'
     condition: true
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh typing
     displayName: 'Typing validation'
     condition: true
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       pytest --capture=no --strict scripts
-    displayName: 'Testing docstring validaton script'
+    displayName: 'Testing docstring validation script'
     condition: true
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       cd asv_bench
       asv check -E existing
@@ -124,16 +111,15 @@ jobs:
   steps:
   - script: |
       echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
+      echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
     displayName: 'Setting environment variables'
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       sudo apt-get install -y libc6-dev-i386
       ci/setup_env.sh
     displayName: 'Setup environment and build pandas'
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       # Next we should simply have `doc/make.py --warnings-are-errors`, everything else is required because the ipython directive doesn't fail the build on errors (https://github.com/ipython/ipython/issues/11547)
       doc/make.py --warnings-are-errors | tee sphinx.log ; SPHINX_RET=${PIPESTATUS[0]}
