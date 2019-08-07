@@ -51,9 +51,4 @@ class TestDiff(TestData):
         # boolean series
         s = Series([False, True, True, False, False])
         result = s.diff()
-        assert_series_equal(result, Series([nan, True, False, True, False]))
-
-        # boolean nan series
-        s = Series([False, True, nan, False, False])
-        result = s.diff()
-        assert_series_equal(result, Series([nan, 1, nan, nan, 0], dtype="object"))
+        assert_series_equal(result, Series[nan, True, False, True, False])
