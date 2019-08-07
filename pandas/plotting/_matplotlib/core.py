@@ -557,6 +557,7 @@ class MPLPlot:
 
         # set subplots to True if plt.subplots() uses and assign to ax
         from matplotlib.axes import SubplotBase
+
         if isinstance(self.ax, SubplotBase):
             self.subplots = True
 
