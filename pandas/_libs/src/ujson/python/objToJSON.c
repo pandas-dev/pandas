@@ -54,6 +54,7 @@ static PyTypeObject *cls_series;
 static PyTypeObject *cls_index;
 static PyTypeObject *cls_nat;
 PyObject *cls_timestamp;
+PyObject *cls_timedelta;
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
@@ -166,6 +167,7 @@ void *initObjToJSON(void)
         cls_series =
             (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Series");
         cls_timestamp = PyObject_GetAttrString(mod_pandas, "Timestamp");
+	cls_timedelta = PyObject_GetAttrString(mod_pandas, "Timedelta");
         Py_DECREF(mod_pandas);
     }
 
@@ -1630,11 +1632,10 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 
     stride = PyArray_STRIDE(labels, 0);
     dataptr = PyArray_DATA(labels);
-    getitem = (PyArray_GetItemFunc *)PyArray_DESCR(labels)->f->getitem;
     type_num = PyArray_TYPE(labels);
 
     for (i = 0; i < num; i++) {
-        item = getitem(dataptr, labels);
+      item = PyArray_GETITEM(labels, dataptr);
         if (!item) {
 	  NpyArr_freeLabels(ret, num);
 	  ret = 0;
@@ -1642,7 +1643,38 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 	}
 
 	// Using a date as a key we need to special case the formatting
-	if (PyTypeNum_ISDATETIME(type_num) ||
+	if (enc->datetimeIso && (type_num == NPY_TIMEDELTA || PyDelta_Check(item))) {
+	  PyObject *argList = Py_BuildValue("(O)", item);
+	  if (argList == NULL) {
+	    Py_DECREF(item);
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+	  }
+
+	  PyObject *td = PyObject_CallObject(cls_timedelta, argList);
+	  Py_DECREF(argList);
+	  if (td == NULL) {
+	    Py_DECREF(item);
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+	  }	  
+
+	  PyObject *iso = PyObject_CallMethod(td, "isoformat", NULL);
+	  Py_DECREF(td);
+	  if (iso == NULL) {
+	    Py_DECREF(item);
+	    NpyArr_freeLabels(ret, num);
+	    ret = 0;
+	    break;
+	  }
+
+	  cLabel = PyUnicode_AsUTF8(iso);
+	  Py_DECREF(iso);
+	  len = strlen(cLabel);
+	}
+	else if (PyTypeNum_ISDATETIME(type_num) || 
 	    PyDateTime_Check(item) || PyDate_Check(item)) {
 	  PyObject *argList = Py_BuildValue("(O)", item);
 	  if (argList == NULL) {
@@ -1706,7 +1738,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 	    sprintf(buf, "%lld", value);
 	    len = strlen(cLabel);
 	  }
-	} else {  // Otherwise use the str representation as the key
+	} else {  // Fallack to string representation
 	  PyObject *str = PyObject_Str(item);
 	  cLabel = PyUnicode_AsUTF8(str);
 	  Py_DECREF(str);	  
