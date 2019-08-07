@@ -1029,6 +1029,15 @@ def _comp_method_SERIES(cls, op, special):
             self._get_axis_number(axis)
 
         res_name = get_op_result_name(self, other)
+        other = lib.item_from_zerodim(other)
+
+        # TODO: shouldn't we be applying finalize whenever
+        #  not isinstance(other, ABCSeries)?
+        finalizer = (
+            lambda x: x.__finalize__(self)
+            if isinstance(other, (np.ndarray, ABCIndexClass))
+            else x
+        )
 
         if isinstance(other, list):
             # TODO: same for tuples?
@@ -1041,11 +1050,18 @@ def _comp_method_SERIES(cls, op, special):
         elif isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
 
-        elif is_categorical_dtype(self):
+        elif (
+            is_list_like(other)
+            and len(other) != len(self)
+            and not isinstance(other, frozenset)
+        ):
+            # TODO: why are we treating len-1 frozenset differently?
+            raise ValueError("Lengths must match to compare")
+
+        if is_categorical_dtype(self):
             # Dispatch to Categorical implementation; CategoricalIndex
             # behavior is non-canonical GH#19513
             res_values = dispatch_to_extension_op(op, self, other)
-            return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
             # Dispatch to DatetimeIndex to ensure identical
@@ -1053,42 +1069,18 @@ def _comp_method_SERIES(cls, op, special):
             from pandas.core.arrays import DatetimeArray
 
             res_values = dispatch_to_extension_op(op, DatetimeArray(self), other)
-            return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_timedelta64_dtype(self):
             from pandas.core.arrays import TimedeltaArray
 
             res_values = dispatch_to_extension_op(op, TimedeltaArray(self), other)
-            return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_extension_array_dtype(self) or (
             is_extension_array_dtype(other) and not is_scalar(other)
         ):
             # Note: the `not is_scalar(other)` condition rules out
-            # e.g. other == "category"
+            #  e.g. other == "category"
             res_values = dispatch_to_extension_op(op, self, other)
-            return self._constructor(res_values, index=self.index).rename(res_name)
-
-        elif isinstance(other, ABCSeries):
-            # By this point we have checked that self._indexed_same(other)
-            res_values = na_op(self.values, other.values)
-            # rename is needed in case res_name is None and res_values.name
-            # is not.
-            return self._constructor(
-                res_values, index=self.index, name=res_name
-            ).rename(res_name)
-
-        elif isinstance(other, (np.ndarray, ABCIndexClass)):
-            # do not check length of zerodim array
-            # as it will broadcast
-            if other.ndim != 0 and len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
-
-            res_values = na_op(self.values, np.asarray(other))
-            result = self._constructor(res_values, index=self.index)
-            # rename is needed in case res_name is None and self.name
-            # is not.
-            return result.__finalize__(self).rename(res_name)
 
         elif is_scalar(other) and isna(other):
             # numpy does not like comparisons vs None
@@ -1096,25 +1088,22 @@ def _comp_method_SERIES(cls, op, special):
                 res_values = np.ones(len(self), dtype=bool)
             else:
                 res_values = np.zeros(len(self), dtype=bool)
-            return self._constructor(
-                res_values, index=self.index, name=res_name, dtype="bool"
-            )
 
         else:
-            values = self.to_numpy()
+            lvalues = extract_array(self, extract_numpy=True)
+            rvalues = extract_array(other, extract_numpy=True)
 
             with np.errstate(all="ignore"):
-                res = na_op(values, other)
-            if is_scalar(res):
+                res_values = na_op(lvalues, rvalues)
+            if is_scalar(res_values):
                 raise TypeError(
                     "Could not compare {typ} type with Series".format(typ=type(other))
                 )
 
-            # always return a full value series here
-            res_values = extract_array(res, extract_numpy=True)
-            return self._constructor(
-                res_values, index=self.index, name=res_name, dtype="bool"
-            )
+        result = self._constructor(res_values, index=self.index)
+        # rename is needed in case res_name is None and result.name
+        #  is not.
+        return finalizer(result).rename(res_name)
 
     wrapper.__name__ = op_name
     return wrapper
