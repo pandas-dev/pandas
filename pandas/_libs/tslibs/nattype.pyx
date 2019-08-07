@@ -106,12 +106,18 @@ cdef class _NaT(datetime):
         if ndim == -1:
             return _nat_scalar_rules[op]
 
+        if util.is_array(other):
+            result = np.empty(other.shape, dtype=np.bool_)
+            result.fill(_nat_scalar_rules[op])
+            return result
+
         if ndim == 0:
             if is_datetime64_object(other):
                 return _nat_scalar_rules[op]
             else:
                 raise TypeError('Cannot compare type %r with type %r' %
                                 (type(self).__name__, type(other).__name__))
+
         # Note: instead of passing "other, self, _reverse_ops[op]", we observe
         # that `_nat_scalar_rules` is invariant under `_reverse_ops`,
         # rendering it unnecessary.
