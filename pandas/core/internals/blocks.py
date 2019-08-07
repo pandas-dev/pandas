@@ -1046,7 +1046,7 @@ class Block(PandasObject):
             mytz = getattr(self.dtype, "tz", None)
             othertz = getattr(dtype, "tz", None)
 
-            if str(mytz) != str(othertz):
+            if str(mytz) != str(othertz):  # TODO: use tz_compare
                 return self.astype(object)
 
             raise AssertionError(
