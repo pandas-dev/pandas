@@ -78,7 +78,8 @@ def test_write_cells_merge_styled(ext):
 
 
 @pytest.mark.parametrize(
-    "mode,expected", [("w", ["new_sheet"]), ("a", ["foo", "bar", "existing_sheet", "new_sheet"])]
+    "mode,expected", [("w", ["new_sheet"]),
+                      ("a", ["foo", "bar", "existing_sheet", "new_sheet"])]
 )
 def test_write_append_mode(ext, mode, expected):
     df_new_sheet = DataFrame([1], columns=["new_sheet"])
