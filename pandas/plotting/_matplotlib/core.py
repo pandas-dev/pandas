@@ -167,14 +167,6 @@ class MPLPlot:
 
         self.ax = ax
 
-        # set subplots to True if plt.subplots() uses and assign to ax
-        from matplotlib.axes import SubplotBase
-        try:
-            ax_type = isinstance(self.ax, SubplotBase)
-        except TypeError:
-            ax_type = isinstance(self.ax[0], SubplotBase)
-        if ax_type:
-            self.subplots = True
         self.fig = fig
         self.axes = None
 
@@ -563,6 +555,11 @@ class MPLPlot:
         handles = []
         labels = []
         title = ""
+
+        # set subplots to True if plt.subplots() uses and assign to ax
+        from matplotlib.axes import SubplotBase
+        if isinstance(self.ax, SubplotBase):
+            self.subplots = True
 
         if not self.subplots:
             if leg is not None:
