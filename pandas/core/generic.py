@@ -2994,7 +2994,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    'mask': ['red', 'purple'],
         ...                    'weapon': ['sai', 'bo staff']})
         >>> print(df.to_latex(index=False)) # doctest: +NORMALIZE_WHITESPACE
-        '\begin{tabular}{lll}
+        \begin{tabular}{lll}
          \toprule
                name &    mask &    weapon \\
          \midrule
@@ -3003,7 +3003,6 @@ class NDFrame(PandasObject, SelectionMixin):
         \bottomrule
         \end{tabular}
 
-        '
         """
         # Get defaults from the pandas config
         if self.ndim == 1:
