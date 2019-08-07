@@ -1012,13 +1012,16 @@ class TestPandasContainer:
             result = read_json(dumps(data))[["id", infer_word]]
             assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("date,date_unit", [
-        ("20130101 20:43:42.123", None),
-        ("20130101 20:43:42", "s"),
-        ("20130101 20:43:42.123", "ms"),
-        ("20130101 20:43:42.123456", "us"),
-        ("20130101 20:43:42.123456789", "ns")
-    ])            
+    @pytest.mark.parametrize(
+        "date,date_unit",
+        [
+            ("20130101 20:43:42.123", None),
+            ("20130101 20:43:42", "s"),
+            ("20130101 20:43:42.123", "ms"),
+            ("20130101 20:43:42.123456", "us"),
+            ("20130101 20:43:42.123456789", "ns"),
+        ],
+    )
     def test_date_format_frame(self, date, date_unit):
         df = self.tsframe.copy()
 
@@ -1031,7 +1034,7 @@ class TestPandasContainer:
             json = df.to_json(date_format="iso")
         result = read_json(json)
         expected = df.copy()
-        #expected.index = expected.index.tz_localize("UTC")
+        # expected.index = expected.index.tz_localize("UTC")
         expected["date"] = expected["date"].dt.tz_localize("UTC")
         assert_frame_equal(result, expected)
 
@@ -1041,13 +1044,16 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             df.to_json(date_format="iso", date_unit="foo")
 
-    @pytest.mark.parametrize("date,date_unit", [
-        ("20130101 20:43:42.123", None),
-        ("20130101 20:43:42", "s"),
-        ("20130101 20:43:42.123", "ms"),
-        ("20130101 20:43:42.123456", "us"),
-        ("20130101 20:43:42.123456789", "ns")
-    ])
+    @pytest.mark.parametrize(
+        "date,date_unit",
+        [
+            ("20130101 20:43:42.123", None),
+            ("20130101 20:43:42", "s"),
+            ("20130101 20:43:42.123", "ms"),
+            ("20130101 20:43:42.123456", "us"),
+            ("20130101 20:43:42.123456789", "ns"),
+        ],
+    )
     def test_date_format_series(self, date, date_unit):
         ts = Series(Timestamp(date), index=self.ts.index)
         ts.iloc[1] = pd.NaT
@@ -1058,7 +1064,7 @@ class TestPandasContainer:
             json = ts.to_json(date_format="iso")
         result = read_json(json, typ="series")
         expected = ts.copy()
-        #expected.index = expected.index.tz_localize("UTC")
+        # expected.index = expected.index.tz_localize("UTC")
         expected = expected.dt.tz_localize("UTC")
         assert_series_equal(result, expected)
 
