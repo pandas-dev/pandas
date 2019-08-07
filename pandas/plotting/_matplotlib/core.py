@@ -166,7 +166,6 @@ class MPLPlot:
             setattr(self, attr, value)
 
         self.ax = ax
-
         self.fig = fig
         self.axes = None
 
