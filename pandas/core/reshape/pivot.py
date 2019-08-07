@@ -615,13 +615,21 @@ def _normalize(table, normalize, margins, margins_name="All"):
         table = table.fillna(0)
 
     elif margins is True:
+        # keep index and column of pivoted table
+        table_index = table.index
+        table_columns = table.columns
 
-        column_margin = table.loc[:, margins_name].drop(margins_name)
-        index_margin = table.loc[margins_name, :].drop(margins_name)
-        table = table.drop(margins_name, axis=1).drop(margins_name)
-        # to keep index and columns names
-        table_index_names = table.index.names
-        table_columns_names = table.columns.names
+        # check if margin name is in (for MI cases) or equal to last
+        # index/column and save the column and index margin
+        if (margins_name not in table.iloc[-1, :].name) | (
+            margins_name != table.iloc[:, -1].name
+        ):
+            raise ValueError("{} not in pivoted DataFrame".format(margins_name))
+        column_margin = table.iloc[:-1, -1]
+        index_margin = table.iloc[-1, :-1]
+
+        # keep the core table
+        table = table.iloc[:-1, :-1]
 
         # Normalize core
         table = _normalize(table, normalize=normalize, margins=False)
@@ -631,11 +639,13 @@ def _normalize(table, normalize, margins, margins_name="All"):
             column_margin = column_margin / column_margin.sum()
             table = concat([table, column_margin], axis=1)
             table = table.fillna(0)
+            table.columns = table_columns
 
         elif normalize == "index":
             index_margin = index_margin / index_margin.sum()
             table = table.append(index_margin)
             table = table.fillna(0)
+            table.index = table_index
 
         elif normalize == "all" or normalize is True:
             column_margin = column_margin / column_margin.sum()
@@ -645,12 +655,11 @@ def _normalize(table, normalize, margins, margins_name="All"):
             table = table.append(index_margin)
 
             table = table.fillna(0)
+            table.index = table_index
+            table.columns = table_columns
 
         else:
             raise ValueError("Not a valid normalize argument")
-
-        table.index.names = table_index_names
-        table.columns.names = table_columns_names
 
     else:
         raise ValueError("Not a valid margins argument")
