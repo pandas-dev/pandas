@@ -1039,27 +1039,28 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             df.to_json(date_format="iso", date_unit="foo")
 
-    def test_date_format_series(self):
-        def test_w_date(date, date_unit=None):
-            ts = Series(Timestamp(date), index=self.ts.index)
-            ts.iloc[1] = pd.NaT
-            ts.iloc[5] = pd.NaT
-            if date_unit:
-                json = ts.to_json(date_format="iso", date_unit=date_unit)
-            else:
-                json = ts.to_json(date_format="iso")
-            result = read_json(json, typ="series")
-            expected = ts.copy()
-            expected.index = expected.index.tz_localize("UTC")
-            expected = expected.dt.tz_localize("UTC")
-            assert_series_equal(result, expected)
+    @pytest.mark.parametrize("date,date_unit", [
+        ("20130101 20:43:42.123", None),
+        ("20130101 20:43:42", "s"),
+        ("20130101 20:43:42.123", "ms"),
+        ("20130101 20:43:42.123456789", "us"),
+        ("20130101 20:43:42.123456789", "ns")
+    ])
+    def test_date_format_series(self, date, date_unit):
+        ts = Series(Timestamp(date), index=self.ts.index)
+        ts.iloc[1] = pd.NaT
+        ts.iloc[5] = pd.NaT
+        if date_unit:
+            json = ts.to_json(date_format="iso", date_unit=date_unit)
+        else:
+            json = ts.to_json(date_format="iso")
+        result = read_json(json, typ="series")
+        expected = ts.copy()
+        expected.index = expected.index.tz_localize("UTC")
+        expected = expected.dt.tz_localize("UTC")
+        assert_series_equal(result, expected)
 
-        test_w_date("20130101 20:43:42.123")
-        test_w_date("20130101 20:43:42", date_unit="s")
-        test_w_date("20130101 20:43:42.123", date_unit="ms")
-        test_w_date("20130101 20:43:42.123456", date_unit="us")
-        test_w_date("20130101 20:43:42.123456789", date_unit="ns")
-
+    def test_date_format_series_raises(self):
         ts = Series(Timestamp("20130101 20:43:42.123"), index=self.ts.index)
         msg = "Invalid value 'foo' for option 'date_unit'"
         with pytest.raises(ValueError, match=msg):
