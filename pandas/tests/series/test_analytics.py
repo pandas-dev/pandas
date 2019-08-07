@@ -5,7 +5,6 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY35
 import pandas.util._test_decorators as td
 
 import pandas as pd
