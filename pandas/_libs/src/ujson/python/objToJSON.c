@@ -1642,10 +1642,9 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 	}
 
 	// Using a date as a key we need to special case the formatting
-	if (enc->datetimeIso && (PyTypeNum_ISDATETIME(type_num) ||
-				 PyDateTime_Check(item) || PyDate_Check(item))) {
+	if (PyTypeNum_ISDATETIME(type_num) ||
+	    PyDateTime_Check(item) || PyDate_Check(item)) {
 	  PyObject *argList = Py_BuildValue("(O)", item);
-
 	  if (argList == NULL) {
 	    Py_DECREF(item);
             NpyArr_freeLabels(ret, num);
@@ -1662,18 +1661,51 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             break;
 	  }
 
-	  PyObject *iso = PyObject_CallMethod(ts, "isoformat", NULL);
-	  Py_DECREF(ts);
-	  if (iso == NULL) {
-	    Py_DECREF(item);
-            NpyArr_freeLabels(ret, num);
-            ret = 0;
-            break;
-	  }
+	  if (enc->datetimeIso) {
+	    PyObject *iso = PyObject_CallMethod(ts, "isoformat", NULL);
+	    Py_DECREF(ts);
+	    if (iso == NULL) {
+	      Py_DECREF(item);
+	      NpyArr_freeLabels(ret, num);
+	      ret = 0;
+	      break;
+	    }
 
-	  cLabel = PyUnicode_AsUTF8(iso);
-	  Py_DECREF(iso);
-	  len = strlen(cLabel);
+	    cLabel = PyUnicode_AsUTF8(iso);
+	    Py_DECREF(iso);
+	    len = strlen(cLabel);
+	  } else {
+	    npy_int64 value;
+	    // TODO: refactor to not duplicate what goes on in beginTypeContext
+	    if (PyObject_HasAttrString(ts, "value")) {
+	      PRINTMARK();
+	      value = get_long_attr(ts, "value");
+	    } else {
+	      PRINTMARK();
+	      value =
+                total_seconds(ts) * 1000000000LL;  // nanoseconds per second
+	    }
+	    Py_DECREF(ts);
+
+	    switch (enc->datetimeUnit) {
+            case NPY_FR_ns:
+	      break;
+            case NPY_FR_us:
+	      value /= 1000LL;
+	      break;
+            case NPY_FR_ms:
+	      value /= 1000000LL;
+	      break;
+            case NPY_FR_s:
+	      value /= 1000000000LL;
+	      break;
+	    }
+
+	    char buf[21] = {0};  // 21 chars for 2**63 as string
+	    cLabel = buf;
+	    sprintf(buf, "%lld", value);
+	    len = strlen(cLabel);
+	  }
 	} else {  // Otherwise use the str representation as the key
 	  PyObject *str = PyObject_Str(item);
 	  cLabel = PyUnicode_AsUTF8(str);
