@@ -62,7 +62,6 @@ jobs:
       displayName: 'Setup environment and build pandas'
     - script: |
         source activate pandas-dev
-        echo "$PATH"
         ci/run_tests.sh
       displayName: 'Test'
     - script: source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
