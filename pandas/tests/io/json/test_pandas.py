@@ -1031,7 +1031,7 @@ class TestPandasContainer:
             json = df.to_json(date_format="iso")
         result = read_json(json)
         expected = df.copy()
-        expected.index = expected.index.tz_localize("UTC")
+        #expected.index = expected.index.tz_localize("UTC")
         expected["date"] = expected["date"].dt.tz_localize("UTC")
         assert_frame_equal(result, expected)
 
@@ -1058,7 +1058,7 @@ class TestPandasContainer:
             json = ts.to_json(date_format="iso")
         result = read_json(json, typ="series")
         expected = ts.copy()
-        expected.index = expected.index.tz_localize("UTC")
+        #expected.index = expected.index.tz_localize("UTC")
         expected = expected.dt.tz_localize("UTC")
         assert_series_equal(result, expected)
 
