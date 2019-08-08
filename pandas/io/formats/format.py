@@ -85,8 +85,8 @@ float_format_type = Union[str, Callable, "EngFormatter"]
 common_docstring = """
         Parameters
         ----------
-        buf : StringIO-like, optional
-            Buffer to write to.
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
         columns : sequence, optional, default None
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
@@ -156,8 +156,9 @@ _VALID_JUSTIFY_PARAMETERS = (
 return_docstring = """
         Returns
         -------
-        str (or unicode, depending on data and options)
-            String representation of the dataframe.
+        str or None
+            If buf is None, returns the result as a string. Otherwise returns
+            None.
     """
 
 
@@ -335,9 +336,11 @@ class SeriesFormatter:
         return fmt_index, have_header
 
     def _get_formatted_values(self) -> List[str]:
-        values_to_format = self.tr_series._formatting_values()
         return format_array(
-            values_to_format, None, float_format=self.float_format, na_rep=self.na_rep
+            self.tr_series._values,
+            None,
+            float_format=self.float_format,
+            na_rep=self.na_rep,
         )
 
     def to_string(self) -> str:
@@ -471,6 +474,10 @@ class TableFormatter:
     def get_buffer(
         self, buf: Optional[FilePathOrBuffer[str]], encoding: Optional[str] = None
     ):
+        """
+        Context manager to open, yield and close buffer for filenames or Path-like
+        objects, otherwise yield buf unchanged.
+        """
         if buf is not None:
             buf = _stringify_path(buf)
         else:
@@ -488,6 +495,9 @@ class TableFormatter:
             raise TypeError("buf is not a file name and it has no write method")
 
     def write_result(self, buf: IO[str]) -> None:
+        """
+        Write the result of serialization to buf.
+        """
         raise AbstractMethodError(self)
 
     def get_result(
@@ -495,6 +505,9 @@ class TableFormatter:
         buf: Optional[FilePathOrBuffer[str]] = None,
         encoding: Optional[str] = None,
     ) -> Optional[str]:
+        """
+        Perform serialization. Write to buf or return as string if buf is None.
+        """
         with self.get_buffer(buf, encoding=encoding) as f:
             self.write_result(buf=f)
             if buf is None:
@@ -892,9 +905,8 @@ class DataFrameFormatter(TableFormatter):
     def _format_col(self, i: int) -> List[str]:
         frame = self.tr_frame
         formatter = self._get_formatter(i)
-        values_to_format = frame.iloc[:, i]._formatting_values()
         return format_array(
-            values_to_format,
+            frame.iloc[:, i]._values,
             formatter,
             float_format=self.float_format,
             na_rep=self.na_rep,
@@ -1743,7 +1755,7 @@ def _trim_zeros_float(
 
 def _has_names(index: Index) -> bool:
     if isinstance(index, ABCMultiIndex):
-        return com._any_not_none(*index.names)
+        return com.any_not_none(*index.names)
     else:
         return index.name is not None
 

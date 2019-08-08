@@ -161,7 +161,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     # array priority higher than numpy scalars
     __array_priority__ = 1000
-    _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
     _scalar_type = Period
 
@@ -714,7 +713,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         assert isinstance(self.freq, Tick)  # checked by calling function
 
-        delta = self._check_timedeltalike_freq_compat(other)
+        if not np.all(isna(other)):
+            delta = self._check_timedeltalike_freq_compat(other)
+        else:
+            # all-NaT TimedeltaIndex is equivalent to a single scalar td64 NaT
+            return self + np.timedelta64("NaT")
+
         return self._addsub_int_array(delta, operator.add).asi8
 
     def _add_delta(self, other):

@@ -66,7 +66,6 @@ class ExtensionArray:
     unique
     _concat_same_type
     _formatter
-    _formatting_values
     _from_factorized
     _from_sequence
     _from_sequence_of_strings
@@ -907,21 +906,6 @@ class ExtensionArray:
         if boxed:
             return str
         return repr
-
-    def _formatting_values(self) -> np.ndarray:
-        # At the moment, this has to be an array since we use result.dtype
-        """
-        An array of values to be printed in, e.g. the Series repr
-
-        .. deprecated:: 0.24.0
-
-           Use :meth:`ExtensionArray._formatter` instead.
-
-        Returns
-        -------
-        array : ndarray
-        """
-        return np.array(self)
 
     # ------------------------------------------------------------------------
     # Reshaping
