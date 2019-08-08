@@ -1722,7 +1722,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 
 	    char buf[21] = {0};  // 21 chars for 2**63 as string
 	    cLabel = buf;
-	    sprintf(buf, "%ld", value);
+	    sprintf(buf, "%04" NPY_INT64_FMT, value);
 	    len = strlen(cLabel);
 	  }
 	} else {  // Fallack to string representation
