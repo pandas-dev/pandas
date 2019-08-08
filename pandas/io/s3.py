@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import IO, Any, Optional, Tuple
 from urllib.parse import urlparse as parse_url
 
 from pandas.compat._optional import import_optional_dependency
@@ -7,13 +7,9 @@ from pandas._typing import FilePathOrBuffer
 
 """ s3 support for remote file interactivity """
 
-
-if TYPE_CHECKING:
-    import s3fs
-else:
-    s3fs = import_optional_dependency(
-        "s3fs", extra="The s3fs package is required to handle s3 files."
-    )
+s3fs = import_optional_dependency(
+    "s3fs", extra="The s3fs package is required to handle s3 files."
+)
 
 
 def _strip_schema(url):
@@ -24,7 +20,7 @@ def _strip_schema(url):
 
 def get_file_and_filesystem(
     filepath_or_buffer: FilePathOrBuffer, mode: Optional[str] = None
-) -> Tuple[s3fs.S3File, s3fs.S3FileSystem]:
+) -> Tuple[IO, Any]:
     from botocore.exceptions import NoCredentialsError
 
     if mode is None:
@@ -50,6 +46,6 @@ def get_filepath_or_buffer(
     encoding: Optional[str] = None,
     compression: Optional[str] = None,
     mode: Optional[str] = None,
-) -> Tuple[s3fs.S3File, Optional[str], Optional[str], bool]:
+) -> Tuple[IO, Optional[str], Optional[str], bool]:
     file, _fs = get_file_and_filesystem(filepath_or_buffer, mode=mode)
     return file, None, compression, True
