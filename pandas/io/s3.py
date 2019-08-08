@@ -1,10 +1,12 @@
-from typing import Optional, Tuple, TYPE_CHECKING
-from pandas._typing import FilePathOrBuffer
-
-""" s3 support for remote file interactivity """
+from typing import TYPE_CHECKING, Optional, Tuple
 from urllib.parse import urlparse as parse_url
 
 from pandas.compat._optional import import_optional_dependency
+
+from pandas._typing import FilePathOrBuffer
+
+""" s3 support for remote file interactivity """
+
 
 if TYPE_CHECKING:
     import s3fs
