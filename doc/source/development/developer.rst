@@ -47,9 +47,9 @@ So that a ``pandas.DataFrame`` can be faithfully reconstructed, we store a
     }}
 
 The "descriptor" values ``<descr0>`` in the ``'index_columns'`` field are
-dictionaries with values as described below.
+strings (referring to a column) or dictionaries with values as described below.
 
-Here, ``<c0>``/``<ci0>`` and so forth are dictionaries containing the metadata
+The ``<c0>``/``<ci0>`` and so forth are dictionaries containing the metadata
 for each column, *including the index columns*. This has JSON form:
 
 .. code-block:: text
@@ -60,7 +60,7 @@ for each column, *including the index columns*. This has JSON form:
     'numpy_type': numpy_type,
     'metadata': metadata}
 
-See below for the detailed specification for these
+See below for the detailed specification for these.
 
 Index Metadata Descriptors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -73,9 +73,9 @@ descriptor format for these as is follows:
    index = pd.RangeIndex(0, 10, 2)
    {'kind': 'range',
     'name': index.name,
-    'start': index._start,
-    'stop': index._stop,
-    'step': index._step}
+    'start': index.start,
+    'stop': index.stop,
+    'step': index.step}
 
 Other index types must be serialized as data columns along with the other
 DataFrame columns. The metadata for these is a string indicating the name of
