@@ -126,16 +126,15 @@ class TestPandasContainer:
     def test_frame_non_unique_columns(self, orient, data):
         df = DataFrame(data, index=[1, 2], columns=["x", "x"])
 
+        result = read_json(df.to_json(orient=orient), orient=orient, convert_dates=["x"])
         if orient == "values":
-            if not df.select_dtypes(include=['datetime64']).empty:
-                pytest.skip("Doesnt roundtrip with datetimes")
+            expected = pd.DataFrame(data)
+            if expected.iloc[:, 0].dtype == "datetime64[ns]":
+                expected.iloc[:, 0] = expected.iloc[:, 0].astype(int) // 1_000_000
+        elif orient == "split":
+            expected = df
 
-            unser = read_json(df.to_json(orient="values"), orient="values")
-            tm.assert_numpy_array_equal(df.values, unser.values)
-        else:
-            assert_frame_equal(
-                df, read_json(df.to_json(orient="split"), orient="split", convert_dates=["x"])
-            )        
+        assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("orient", ["index", "columns", "records"])
     def test_frame_non_unique_columns_raises(self, orient):
