@@ -157,7 +157,7 @@ MultiIndex
 I/O
 ^^^
 
--
+- Bug in :meth:`DataFrame.to_json` where using a Tuple as a column or index value and using ``orient="columns"`` or ``orient="index"`` would produce invalid JSON (:issue:`20500`)
 -
 
 Plotting
