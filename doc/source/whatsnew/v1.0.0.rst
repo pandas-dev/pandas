@@ -6,7 +6,7 @@ What's new in 1.0.0 (??)
 .. warning::
 
    Starting with the 0.25.x series of releases, pandas only supports Python 3.5.3 and higher.
-   See :ref:`install.dropping-27` for more details.
+   See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more details.
 
 .. warning::
 
@@ -65,7 +65,8 @@ Removal of prior version deprecations/changes
 - Changed the the default value of `inplace` in :meth:`DataFrame.set_index` and :meth:`Series.set_axis`. It now defaults to False (:issue:`27600`)
 - :meth:`pandas.Series.str.cat` now defaults to aligning ``others``, using ``join='left'`` (:issue:`27611`)
 - :meth:`pandas.Series.str.cat` does not accept list-likes *within* list-likes anymore (:issue:`27611`)
--
+- Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
+- Removed the previously deprecated ``IntervalIndex.from_intervals`` in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 
 .. _whatsnew_1000.performance:
 
@@ -170,6 +171,7 @@ Groupby/resample/rolling
 
 -
 -
+- Bug in :meth:`DataFrame.groupby` not offering selection by column name when ``axis=1`` (:issue:`27614`)
 
 Reshaping
 ^^^^^^^^^
@@ -186,6 +188,7 @@ Sparse
 
 Build Changes
 ^^^^^^^^^^^^^
+- Fixed pyqt development dependency issue because of different pyqt package name in conda and PyPI (:issue:`26838`)
 
 
 ExtensionArray
@@ -193,6 +196,12 @@ ExtensionArray
 
 -
 -
+
+
+Other
+^^^^^
+- Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
+
 
 .. _whatsnew_1000.contributors:
 

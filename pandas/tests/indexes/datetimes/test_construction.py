@@ -759,6 +759,8 @@ class TestDatetimeIndex:
         assert result == expected
 
     # This is the desired future behavior
+    # Note: this xfail is not strict because the test passes with
+    #  None or any of the UTC variants for tz_naive_fixture
     @pytest.mark.xfail(reason="Future behavior", strict=False)
     @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     def test_construction_int_rountrip(self, tz_naive_fixture):
@@ -766,7 +768,7 @@ class TestDatetimeIndex:
         # TODO(GH-24559): Remove xfail
         tz = tz_naive_fixture
         result = 1293858000000000000
-        expected = DatetimeIndex([1293858000000000000], tz=tz).asi8[0]
+        expected = DatetimeIndex([result], tz=tz).asi8[0]
         assert result == expected
 
     def test_construction_from_replaced_timestamps_with_dst(self):
