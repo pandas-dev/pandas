@@ -98,11 +98,17 @@ class TestPandasContainer:
         assert_index_equal(df.columns, df_unser.columns)
         tm.assert_numpy_array_equal(df.values, df_unser.values)
 
-    @pytest.mark.parametrize("orient,expected", [
-        ("split", DataFrame([["a", "b"], ["c", "d"]], index=[1, 1], columns=["x", "y"])),
-        ("records", DataFrame([["a", "b"], ["c", "d"]], columns=["x", "y"])),
-        ("values", DataFrame([["a", "b"], ["c", "d"]]))
-    ])
+    @pytest.mark.parametrize(
+        "orient,expected",
+        [
+            (
+                "split",
+                DataFrame([["a", "b"], ["c", "d"]], index=[1, 1], columns=["x", "y"]),
+            ),
+            ("records", DataFrame([["a", "b"], ["c", "d"]], columns=["x", "y"])),
+            ("values", DataFrame([["a", "b"], ["c", "d"]])),
+        ],
+    )
     def test_frame_non_unique_index(self, orient, expected):
         df = DataFrame([["a", "b"], ["c", "d"]], index=[1, 1], columns=["x", "y"])
 
@@ -117,16 +123,21 @@ class TestPandasContainer:
             df.to_json(orient=orient)
 
     @pytest.mark.parametrize("orient", ["split", "values"])
-    @pytest.mark.parametrize("data", [
-        [["a", "b"], ["c", "d"]],
-        [[1.5, 2.5], [3.5, 4.5]],
-        [[1, 2.5], [3, 4.5]],
-        [[Timestamp("20130101"), 3.5], [Timestamp("20130102"), 4.5]]
-    ])
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [["a", "b"], ["c", "d"]],
+            [[1.5, 2.5], [3.5, 4.5]],
+            [[1, 2.5], [3, 4.5]],
+            [[Timestamp("20130101"), 3.5], [Timestamp("20130102"), 4.5]],
+        ],
+    )
     def test_frame_non_unique_columns(self, orient, data):
         df = DataFrame(data, index=[1, 2], columns=["x", "x"])
 
-        result = read_json(df.to_json(orient=orient), orient=orient, convert_dates=["x"])
+        result = read_json(
+            df.to_json(orient=orient), orient=orient, convert_dates=["x"]
+        )
         if orient == "values":
             expected = pd.DataFrame(data)
             if expected.iloc[:, 0].dtype == "datetime64[ns]":
