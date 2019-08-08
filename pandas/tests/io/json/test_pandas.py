@@ -98,22 +98,23 @@ class TestPandasContainer:
         assert_index_equal(df.columns, df_unser.columns)
         tm.assert_numpy_array_equal(df.values, df_unser.values)
 
-    def test_frame_non_unique_index(self):
+    @pytest.mark.parametrize("orient,expected", [
+        ("split", DataFrame([["a", "b"], ["c", "d"]], index=[1, 1], columns=["x", "y"])),
+        ("records", DataFrame([["a", "b"], ["c", "d"]], columns=["x", "y"])),
+        ("values", DataFrame([["a", "b"], ["c", "d"]]))
+    ])
+    def test_frame_non_unique_index(self, orient, expected):
         df = DataFrame([["a", "b"], ["c", "d"]], index=[1, 1], columns=["x", "y"])
 
-        msg = "DataFrame index must be unique for orient='index'"
-        with pytest.raises(ValueError, match=msg):
-            df.to_json(orient="index")
-        msg = "DataFrame index must be unique for orient='columns'"
-        with pytest.raises(ValueError, match=msg):
-            df.to_json(orient="columns")
+        result = read_json(df.to_json(orient=orient), orient=orient)
+        assert_frame_equal(result, expected)
 
-        assert_frame_equal(df, read_json(df.to_json(orient="split"), orient="split"))
-        unser = read_json(df.to_json(orient="records"), orient="records")
-        tm.assert_index_equal(df.columns, unser.columns)
-        tm.assert_almost_equal(df.values, unser.values)
-        unser = read_json(df.to_json(orient="values"), orient="values")
-        tm.assert_numpy_array_equal(df.values, unser.values)
+    @pytest.mark.parametrize("orient", ["index", "columns"])
+    def test_frame_non_unique_index_raises(self, orient):
+        df = DataFrame([["a", "b"], ["c", "d"]], index=[1, 1], columns=["x", "y"])
+        msg = "DataFrame index must be unique for orient='{}'".format(orient)
+        with pytest.raises(ValueError, match=msg):
+            df.to_json(orient=orient)
 
     @pytest.mark.parametrize("orient", ["split", "values"])
     @pytest.mark.parametrize("data", [
