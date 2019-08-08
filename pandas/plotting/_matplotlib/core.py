@@ -549,17 +549,11 @@ class MPLPlot:
             self.legend_labels.append(label)
 
     def _make_legend(self):
-        from matplotlib.axes import SubplotBase
-
         ax, leg = self._get_ax_legend(self.axes[0])
 
         handles = []
         labels = []
         title = ""
-
-        # set subplots to True if plt.subplots() uses and assign to ax
-        if isinstance(self.ax, SubplotBase):
-            self.subplots = True
 
         if not self.subplots:
             if leg is not None:
@@ -578,7 +572,8 @@ class MPLPlot:
                     title = self.legend_title
 
             if len(handles) > 0:
-                ax.legend(handles, labels, loc="best", title=title)
+                ax.legend(loc='best', title=title)
+ #               ax.legend(handles, labels, loc="best", title=title)
 
         elif self.subplots and self.legend:
             for ax in self.axes:
