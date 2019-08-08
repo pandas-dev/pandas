@@ -82,21 +82,21 @@ class TestPandasContainer:
         del self.tsframe
         del self.mixed_frame
 
-    def test_frame_double_encoded_labels(self):
+    def test_frame_double_encoded_labels(self, df_orient):
         df = DataFrame(
             [["a", "b"], ["c", "d"]],
             index=['index " 1', "index / 2"],
             columns=["a \\ b", "y / z"],
         )
 
-        assert_frame_equal(df, read_json(df.to_json(orient="split"), orient="split"))
-        assert_frame_equal(
-            df, read_json(df.to_json(orient="columns"), orient="columns")
-        )
-        assert_frame_equal(df, read_json(df.to_json(orient="index"), orient="index"))
-        df_unser = read_json(df.to_json(orient="records"), orient="records")
-        assert_index_equal(df.columns, df_unser.columns)
-        tm.assert_numpy_array_equal(df.values, df_unser.values)
+        result = read_json(df.to_json(orient=df_orient), orient=df_orient)
+        expected = df.copy()
+        if df_orient == "records" or df_orient == "values":
+            expected = expected.reset_index(drop=True)
+        if df_orient == "values":
+            expected.columns = range(len(expected.columns))
+
+        assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "orient,expected",
