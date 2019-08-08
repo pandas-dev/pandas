@@ -1238,6 +1238,25 @@ def test_quantile(interpolation, a_vals, b_vals, q):
     tm.assert_frame_equal(result, expected)
 
 
+def test_quantile_multi():
+    # https://github.com/pandas-dev/pandas/issues/27526
+    df = pd.DataFrame({"A": [0, 1, 2, 3, 4]})
+    result = df.groupby([0, 0, 1, 1, 1]).quantile([0.25])
+
+    index = pd.MultiIndex.from_product([[0, 1], [0.25]])
+    expected = pd.DataFrame({"A": [0.25, 2.50]}, index=index)
+    tm.assert_frame_equal(result, expected)
+
+    df = pd.DataFrame({"A": [0, 1, 2, 3], "B": [4, 5, 6, 7]})
+    index = pd.MultiIndex.from_product([[0, 1], [0.25, 0.75]])
+
+    result = df.groupby([0, 0, 1, 1]).quantile([0.25, 0.75])
+    expected = pd.DataFrame(
+        {"A": [0.25, 0.75, 2.25, 2.75], "B": [4.25, 4.75, 6.25, 6.75]}, index=index
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_quantile_raises():
     df = pd.DataFrame(
         [["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"]

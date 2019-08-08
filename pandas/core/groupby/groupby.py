@@ -1870,6 +1870,7 @@ class GroupBy(_GroupBy):
         a    2.0
         b    3.0
         """
+        from pandas import concat
 
         def pre_processor(vals: np.ndarray) -> Tuple[np.ndarray, Optional[Type]]:
             if is_object_dtype(vals):
@@ -1897,18 +1898,39 @@ class GroupBy(_GroupBy):
 
             return vals
 
-        return self._get_cythonized_result(
-            "group_quantile",
-            self.grouper,
-            aggregate=True,
-            needs_values=True,
-            needs_mask=True,
-            cython_dtype=np.float64,
-            pre_processing=pre_processor,
-            post_processing=post_processor,
-            q=q,
-            interpolation=interpolation,
-        )
+        if is_scalar(q):
+            return self._get_cythonized_result(
+                "group_quantile",
+                self.grouper,
+                aggregate=True,
+                needs_values=True,
+                needs_mask=True,
+                cython_dtype=np.float64,
+                pre_processing=pre_processor,
+                post_processing=post_processor,
+                q=q,
+                interpolation=interpolation,
+            )
+        else:
+            results = [
+                self._get_cythonized_result(
+                    "group_quantile",
+                    self.grouper,
+                    aggregate=True,
+                    needs_values=True,
+                    needs_mask=True,
+                    cython_dtype=np.float64,
+                    pre_processing=pre_processor,
+                    post_processing=post_processor,
+                    q=qi,
+                    interpolation=interpolation,
+                )
+                for qi in q
+            ]
+            result = concat(results, axis=0, keys=q).swaplevel()
+            if self.sort:
+                result = result.sort_index(level=list(range(result.index.nlevels - 1)))
+            return result
 
     @Substitution(name="groupby")
     def ngroup(self, ascending=True):
