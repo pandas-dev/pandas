@@ -572,7 +572,7 @@ class MPLPlot:
                     title = self.legend_title
 
             if len(handles) > 0:
-                ax.legend(handles, labels, loc='best', title=title)
+                ax.legend(handles, labels, loc="best", title=title)
 
         elif self.subplots and self.legend:
             for ax in self.axes:
