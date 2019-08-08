@@ -3202,7 +3202,9 @@ class BlockManagerFixed(GenericFixed):
             values = self.read_array(
                 "block{idx}_values".format(idx=i), start=_start, stop=_stop
             )
-            blk = make_block(values, placement=items.get_indexer(blk_items))
+            blk = make_block(
+                values, placement=items.get_indexer(blk_items), ndim=len(axes)
+            )
             blocks.append(blk)
 
         return self.obj_type(BlockManager(blocks, axes))
@@ -4462,7 +4464,7 @@ class AppendableFrameTable(AppendableTable):
             if values.ndim == 1 and isinstance(values, np.ndarray):
                 values = values.reshape((1, values.shape[0]))
 
-            block = make_block(values, placement=np.arange(len(cols_)))
+            block = make_block(values, placement=np.arange(len(cols_)), ndim=2)
             mgr = BlockManager([block], [cols_, index_])
             frames.append(DataFrame(mgr))
 

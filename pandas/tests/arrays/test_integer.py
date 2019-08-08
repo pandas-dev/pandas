@@ -379,8 +379,6 @@ class TestComparisonOps(BaseOpsUtil):
 
 
 class TestCasting:
-    pass
-
     @pytest.mark.parametrize("dropna", [True, False])
     def test_construct_index(self, all_data, dropna):
         # ensure that we do not coerce to Float64Index, rather

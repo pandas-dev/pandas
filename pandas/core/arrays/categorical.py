@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
     ensure_platform_int,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetimelike,
@@ -2659,18 +2658,18 @@ def _get_codes_for_values(values, categories):
     return coerce_indexer_dtype(t.lookup(vals), cats)
 
 
-def _recode_for_categories(codes, old_categories, new_categories):
+def _recode_for_categories(codes: np.ndarray, old_categories, new_categories):
     """
     Convert a set of codes for to a new set of categories
 
     Parameters
     ----------
-    codes : array
+    codes : np.ndarray
     old_categories, new_categories : Index
 
     Returns
     -------
-    new_codes : array
+    new_codes : np.ndarray[np.int64]
 
     Examples
     --------
@@ -2725,17 +2724,15 @@ def _factorize_from_iterable(values):
         If `values` has a categorical dtype, then `categories` is
         a CategoricalIndex keeping the categories and order of `values`.
     """
-    from pandas.core.indexes.category import CategoricalIndex
-
     if not is_list_like(values):
         raise TypeError("Input must be list-like")
 
-    if is_categorical(values):
-        values = CategoricalIndex(values)
-        # The CategoricalIndex level we want to build has the same categories
+    if is_categorical_dtype(values):
+        values = extract_array(values)
+        # The Categorical we want to build has the same categories
         # as values but its codes are by def [0, ..., len(n_categories) - 1]
         cat_codes = np.arange(len(values.categories), dtype=values.codes.dtype)
-        categories = values._create_from_codes(cat_codes)
+        categories = Categorical.from_codes(cat_codes, dtype=values.dtype)
         codes = values.codes
     else:
         # The value of ordered is irrelevant since we don't use cat as such,
