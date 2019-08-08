@@ -1644,16 +1644,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 	// TODO: for any matches on type_num (date and timedeltas) should use a
 	// vectorized solution to convert to epoch or iso formats
 	if (enc->datetimeIso && (type_num == NPY_TIMEDELTA || PyDelta_Check(item))) {
-	  PyObject *argList = Py_BuildValue("(O)", item);
-	  if (argList == NULL) {
-	    Py_DECREF(item);
-            NpyArr_freeLabels(ret, num);
-            ret = 0;
-            break;
-	  }
-
-	  PyObject *td = PyObject_CallObject(cls_timedelta, argList);
-	  Py_DECREF(argList);
+	  PyObject *td = PyObject_CallFunction(cls_timedelta, "(O)", item);
 	  if (td == NULL) {
 	    Py_DECREF(item);
             NpyArr_freeLabels(ret, num);
@@ -1676,16 +1667,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 	}
 	else if (PyTypeNum_ISDATETIME(type_num) || 
 	    PyDateTime_Check(item) || PyDate_Check(item)) {
-	  PyObject *argList = Py_BuildValue("(O)", item);
-	  if (argList == NULL) {
-	    Py_DECREF(item);
-            NpyArr_freeLabels(ret, num);
-            ret = 0;
-            break;
-	  }
-
-	  PyObject *ts = PyObject_CallObject(cls_timestamp, argList);
-	  Py_DECREF(argList);
+	  PyObject *ts = PyObject_CallFunction(cls_timestamp, "(O)", item);
 	  if (ts == NULL) {
 	    Py_DECREF(item);
             NpyArr_freeLabels(ret, num);
