@@ -41,7 +41,6 @@ from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCIndexClass,
     ABCSeries,
-    ABCSparseArray,
     ABCSparseSeries,
 )
 from pandas.core.dtypes.missing import isna, notna
@@ -57,6 +56,10 @@ from pandas.core.ops.docstrings import (
     _op_descriptions,
 )
 from pandas.core.ops.invalid import invalid_comparison
+from pandas.core.ops.methods import (  # noqa:F401
+    add_flex_arithmetic_methods,
+    add_special_arithmetic_methods,
+)
 from pandas.core.ops.roperator import (  # noqa:F401
     radd,
     rand_,
@@ -614,224 +617,6 @@ def dispatch_to_extension_op(op, left, right):
 
 
 # -----------------------------------------------------------------------------
-# Functions that add arithmetic methods to objects, given arithmetic factory
-# methods
-
-
-def _get_method_wrappers(cls):
-    """
-    Find the appropriate operation-wrappers to use when defining flex/special
-    arithmetic, boolean, and comparison operations with the given class.
-
-    Parameters
-    ----------
-    cls : class
-
-    Returns
-    -------
-    arith_flex : function or None
-    comp_flex : function or None
-    arith_special : function
-    comp_special : function
-    bool_special : function
-
-    Notes
-    -----
-    None is only returned for SparseArray
-    """
-    if issubclass(cls, ABCSparseSeries):
-        # Be sure to catch this before ABCSeries and ABCSparseArray,
-        # as they will both come see SparseSeries as a subclass
-        arith_flex = _flex_method_SERIES
-        comp_flex = _flex_method_SERIES
-        arith_special = _arith_method_SPARSE_SERIES
-        comp_special = _arith_method_SPARSE_SERIES
-        bool_special = _bool_method_SERIES
-        # TODO: I don't think the functions defined by bool_method are tested
-    elif issubclass(cls, ABCSeries):
-        # Just Series; SparseSeries is caught above
-        arith_flex = _flex_method_SERIES
-        comp_flex = _flex_method_SERIES
-        arith_special = _arith_method_SERIES
-        comp_special = _comp_method_SERIES
-        bool_special = _bool_method_SERIES
-    elif issubclass(cls, ABCDataFrame):
-        # Same for DataFrame and SparseDataFrame
-        arith_flex = _arith_method_FRAME
-        comp_flex = _flex_comp_method_FRAME
-        arith_special = _arith_method_FRAME
-        comp_special = _comp_method_FRAME
-        bool_special = _arith_method_FRAME
-    return arith_flex, comp_flex, arith_special, comp_special, bool_special
-
-
-def _create_methods(cls, arith_method, comp_method, bool_method, special):
-    # creates actual methods based upon arithmetic, comp and bool method
-    # constructors.
-
-    have_divmod = issubclass(cls, ABCSeries)
-    # divmod is available for Series and SparseSeries
-
-    # yapf: disable
-    new_methods = dict(
-        add=arith_method(cls, operator.add, special),
-        radd=arith_method(cls, radd, special),
-        sub=arith_method(cls, operator.sub, special),
-        mul=arith_method(cls, operator.mul, special),
-        truediv=arith_method(cls, operator.truediv, special),
-        floordiv=arith_method(cls, operator.floordiv, special),
-        # Causes a floating point exception in the tests when numexpr enabled,
-        # so for now no speedup
-        mod=arith_method(cls, operator.mod, special),
-        pow=arith_method(cls, operator.pow, special),
-        # not entirely sure why this is necessary, but previously was included
-        # so it's here to maintain compatibility
-        rmul=arith_method(cls, rmul, special),
-        rsub=arith_method(cls, rsub, special),
-        rtruediv=arith_method(cls, rtruediv, special),
-        rfloordiv=arith_method(cls, rfloordiv, special),
-        rpow=arith_method(cls, rpow, special),
-        rmod=arith_method(cls, rmod, special))
-    # yapf: enable
-    new_methods["div"] = new_methods["truediv"]
-    new_methods["rdiv"] = new_methods["rtruediv"]
-    if have_divmod:
-        # divmod doesn't have an op that is supported by numexpr
-        new_methods["divmod"] = arith_method(cls, divmod, special)
-        new_methods["rdivmod"] = arith_method(cls, rdivmod, special)
-
-    new_methods.update(
-        dict(
-            eq=comp_method(cls, operator.eq, special),
-            ne=comp_method(cls, operator.ne, special),
-            lt=comp_method(cls, operator.lt, special),
-            gt=comp_method(cls, operator.gt, special),
-            le=comp_method(cls, operator.le, special),
-            ge=comp_method(cls, operator.ge, special),
-        )
-    )
-
-    if bool_method:
-        new_methods.update(
-            dict(
-                and_=bool_method(cls, operator.and_, special),
-                or_=bool_method(cls, operator.or_, special),
-                # For some reason ``^`` wasn't used in original.
-                xor=bool_method(cls, operator.xor, special),
-                rand_=bool_method(cls, rand_, special),
-                ror_=bool_method(cls, ror_, special),
-                rxor=bool_method(cls, rxor, special),
-            )
-        )
-
-    if special:
-        dunderize = lambda x: "__{name}__".format(name=x.strip("_"))
-    else:
-        dunderize = lambda x: x
-    new_methods = {dunderize(k): v for k, v in new_methods.items()}
-    return new_methods
-
-
-def add_methods(cls, new_methods):
-    for name, method in new_methods.items():
-        # For most methods, if we find that the class already has a method
-        # of the same name, it is OK to over-write it.  The exception is
-        # inplace methods (__iadd__, __isub__, ...) for SparseArray, which
-        # retain the np.ndarray versions.
-        force = not (issubclass(cls, ABCSparseArray) and name.startswith("__i"))
-        if force or name not in cls.__dict__:
-            setattr(cls, name, method)
-
-
-# ----------------------------------------------------------------------
-# Arithmetic
-def add_special_arithmetic_methods(cls):
-    """
-    Adds the full suite of special arithmetic methods (``__add__``,
-    ``__sub__``, etc.) to the class.
-
-    Parameters
-    ----------
-    cls : class
-        special methods will be defined and pinned to this class
-    """
-    _, _, arith_method, comp_method, bool_method = _get_method_wrappers(cls)
-    new_methods = _create_methods(
-        cls, arith_method, comp_method, bool_method, special=True
-    )
-    # inplace operators (I feel like these should get passed an `inplace=True`
-    # or just be removed
-
-    def _wrap_inplace_method(method):
-        """
-        return an inplace wrapper for this method
-        """
-
-        def f(self, other):
-            result = method(self, other)
-
-            # this makes sure that we are aligned like the input
-            # we are updating inplace so we want to ignore is_copy
-            self._update_inplace(
-                result.reindex_like(self, copy=False)._data, verify_is_copy=False
-            )
-
-            return self
-
-        f.__name__ = "__i{name}__".format(name=method.__name__.strip("__"))
-        return f
-
-    new_methods.update(
-        dict(
-            __iadd__=_wrap_inplace_method(new_methods["__add__"]),
-            __isub__=_wrap_inplace_method(new_methods["__sub__"]),
-            __imul__=_wrap_inplace_method(new_methods["__mul__"]),
-            __itruediv__=_wrap_inplace_method(new_methods["__truediv__"]),
-            __ifloordiv__=_wrap_inplace_method(new_methods["__floordiv__"]),
-            __imod__=_wrap_inplace_method(new_methods["__mod__"]),
-            __ipow__=_wrap_inplace_method(new_methods["__pow__"]),
-        )
-    )
-
-    new_methods.update(
-        dict(
-            __iand__=_wrap_inplace_method(new_methods["__and__"]),
-            __ior__=_wrap_inplace_method(new_methods["__or__"]),
-            __ixor__=_wrap_inplace_method(new_methods["__xor__"]),
-        )
-    )
-
-    add_methods(cls, new_methods=new_methods)
-
-
-def add_flex_arithmetic_methods(cls):
-    """
-    Adds the full suite of flex arithmetic methods (``pow``, ``mul``, ``add``)
-    to the class.
-
-    Parameters
-    ----------
-    cls : class
-        flex methods will be defined and pinned to this class
-    """
-    flex_arith_method, flex_comp_method, _, _, _ = _get_method_wrappers(cls)
-    new_methods = _create_methods(
-        cls, flex_arith_method, flex_comp_method, bool_method=None, special=False
-    )
-    new_methods.update(
-        dict(
-            multiply=new_methods["mul"],
-            subtract=new_methods["sub"],
-            divide=new_methods["div"],
-        )
-    )
-    # opt out of bool flex methods for now
-    assert not any(kname in new_methods for kname in ("ror_", "rxor", "rand_"))
-
-    add_methods(cls, new_methods=new_methods)
-
-
-# -----------------------------------------------------------------------------
 # Series
 
 
@@ -1026,6 +811,15 @@ def _comp_method_SERIES(cls, op, special):
             self._get_axis_number(axis)
 
         res_name = get_op_result_name(self, other)
+        other = lib.item_from_zerodim(other)
+
+        # TODO: shouldn't we be applying finalize whenever
+        #  not isinstance(other, ABCSeries)?
+        finalizer = (
+            lambda x: x.__finalize__(self)
+            if isinstance(other, (np.ndarray, ABCIndexClass))
+            else x
+        )
 
         if isinstance(other, list):
             # TODO: same for tuples?
@@ -1038,11 +832,18 @@ def _comp_method_SERIES(cls, op, special):
         elif isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
 
-        elif is_categorical_dtype(self):
+        elif (
+            is_list_like(other)
+            and len(other) != len(self)
+            and not isinstance(other, frozenset)
+        ):
+            # TODO: why are we treating len-1 frozenset differently?
+            raise ValueError("Lengths must match to compare")
+
+        if is_categorical_dtype(self):
             # Dispatch to Categorical implementation; CategoricalIndex
             # behavior is non-canonical GH#19513
             res_values = dispatch_to_extension_op(op, self, other)
-            return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
             # Dispatch to DatetimeIndex to ensure identical
@@ -1050,42 +851,18 @@ def _comp_method_SERIES(cls, op, special):
             from pandas.core.arrays import DatetimeArray
 
             res_values = dispatch_to_extension_op(op, DatetimeArray(self), other)
-            return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_timedelta64_dtype(self):
             from pandas.core.arrays import TimedeltaArray
 
             res_values = dispatch_to_extension_op(op, TimedeltaArray(self), other)
-            return self._constructor(res_values, index=self.index, name=res_name)
 
         elif is_extension_array_dtype(self) or (
             is_extension_array_dtype(other) and not is_scalar(other)
         ):
             # Note: the `not is_scalar(other)` condition rules out
-            # e.g. other == "category"
+            #  e.g. other == "category"
             res_values = dispatch_to_extension_op(op, self, other)
-            return self._constructor(res_values, index=self.index).rename(res_name)
-
-        elif isinstance(other, ABCSeries):
-            # By this point we have checked that self._indexed_same(other)
-            res_values = na_op(self.values, other.values)
-            # rename is needed in case res_name is None and res_values.name
-            # is not.
-            return self._constructor(
-                res_values, index=self.index, name=res_name
-            ).rename(res_name)
-
-        elif isinstance(other, (np.ndarray, ABCIndexClass)):
-            # do not check length of zerodim array
-            # as it will broadcast
-            if other.ndim != 0 and len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
-
-            res_values = na_op(self.values, np.asarray(other))
-            result = self._constructor(res_values, index=self.index)
-            # rename is needed in case res_name is None and self.name
-            # is not.
-            return result.__finalize__(self).rename(res_name)
 
         elif is_scalar(other) and isna(other):
             # numpy does not like comparisons vs None
@@ -1093,25 +870,22 @@ def _comp_method_SERIES(cls, op, special):
                 res_values = np.ones(len(self), dtype=bool)
             else:
                 res_values = np.zeros(len(self), dtype=bool)
-            return self._constructor(
-                res_values, index=self.index, name=res_name, dtype="bool"
-            )
 
         else:
-            values = self.to_numpy()
+            lvalues = extract_array(self, extract_numpy=True)
+            rvalues = extract_array(other, extract_numpy=True)
 
             with np.errstate(all="ignore"):
-                res = na_op(values, other)
-            if is_scalar(res):
+                res_values = na_op(lvalues, rvalues)
+            if is_scalar(res_values):
                 raise TypeError(
                     "Could not compare {typ} type with Series".format(typ=type(other))
                 )
 
-            # always return a full value series here
-            res_values = extract_array(res, extract_numpy=True)
-            return self._constructor(
-                res_values, index=self.index, name=res_name, dtype="bool"
-            )
+        result = self._constructor(res_values, index=self.index)
+        # rename is needed in case res_name is None and result.name
+        #  is not.
+        return finalizer(result).rename(res_name)
 
     wrapper.__name__ = op_name
     return wrapper
