@@ -8,7 +8,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Series
-import pandas.core.window as rwindow
+from pandas.core.window import Rolling
 from pandas.tests.window.common import Base
 import pandas.util.testing as tm
 
@@ -101,7 +101,7 @@ class TestRolling(Base):
     @pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
     def test_numpy_compat(self, method):
         # see gh-12811
-        r = rwindow.Rolling(Series([2, 4, 6]), window=2)
+        r = Rolling(Series([2, 4, 6]), window=2)
 
         msg = "numpy operations are not valid with window objects"
 
