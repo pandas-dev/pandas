@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
+import gc
 from io import StringIO
 import math
 import operator
@@ -2423,6 +2424,13 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
         for index in self.indices.values():
             with tm.assert_produces_warning(FutureWarning):
                 index.contains(1)
+
+    def test_engine_reference_cycle(self):
+        # https://github.com/pandas-dev/pandas/issues/27585
+        index = pd.Index([1, 2, 3])
+        nrefs_pre = len(gc.get_referrers(index))
+        index._engine
+        assert len(gc.get_referrers(index)) == nrefs_pre
 
 
 class TestMixedIntIndex(Base):

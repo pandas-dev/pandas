@@ -1,3 +1,4 @@
+import gc
 import numpy as np
 import pandas.util.testing as tm
 from pandas import (
@@ -223,6 +224,23 @@ class IntervalIndexMethod:
 
     def time_intersection_both_duplicate(self, N):
         self.intv.intersection(self.intv2)
+
+
+class GC:
+    params = [1, 2, 5]
+
+    def create_use_drop(self):
+        idx = Index(list(range(1000 * 1000)))
+        idx._engine
+
+    def peakmem_gc_instances(self, N):
+        try:
+            gc.disable()
+
+            for _ in range(N):
+                self.create_use_drop()
+        finally:
+            gc.enable()
 
 
 from .pandas_vb_common import setup  # noqa: F401
