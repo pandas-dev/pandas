@@ -269,8 +269,8 @@ class TestSeriesAlterAxes:
 
     def test_rename_custom_indexer(self):
         # GH 27814
-
-        class MyIndexer: pass
+        class MyIndexer:
+            pass
 
         ix1, ix2 = MyIndexer(), MyIndexer()
         s = Series([1, 2, 3])
