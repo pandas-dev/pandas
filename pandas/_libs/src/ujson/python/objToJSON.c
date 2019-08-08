@@ -1642,7 +1642,8 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 	  break;
 	}
 
-	// Using a date as a key we need to special case the formatting
+	// TODO: for any matches on type_num (date and timedeltas) should use a
+	// vectorized solution to convert to epoch or iso formats
 	if (enc->datetimeIso && (type_num == NPY_TIMEDELTA || PyDelta_Check(item))) {
 	  PyObject *argList = Py_BuildValue("(O)", item);
 	  if (argList == NULL) {
@@ -1740,6 +1741,13 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 	  }
 	} else {  // Fallack to string representation
 	  PyObject *str = PyObject_Str(item);
+	  if (str == NULL) {
+	    Py_DECREF(item);
+	    NpyArr_freeLabels(ret, num);
+	    ret = 0;
+	    break;
+	  }
+
 	  cLabel = PyUnicode_AsUTF8(str);
 	  Py_DECREF(str);	  
 	  len = strlen(cLabel);
