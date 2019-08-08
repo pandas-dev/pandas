@@ -1603,7 +1603,6 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
     npy_intp i, stride, len;
     char **ret;
     char *dataptr, *cLabel;
-    PyArray_GetItemFunc *getitem;
     int type_num;
     PRINTMARK();
 
@@ -1671,7 +1670,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 	    break;
 	  }
 
-	  cLabel = PyUnicode_AsUTF8(iso);
+	  cLabel = (char *)PyUnicode_AsUTF8(iso);
 	  Py_DECREF(iso);
 	  len = strlen(cLabel);
 	}
@@ -1704,7 +1703,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 	      break;
 	    }
 
-	    cLabel = PyUnicode_AsUTF8(iso);
+	    cLabel = (char *)PyUnicode_AsUTF8(iso);
 	    Py_DECREF(iso);
 	    len = strlen(cLabel);
 	  } else {
@@ -1732,11 +1731,16 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             case NPY_FR_s:
 	      value /= 1000000000LL;
 	      break;
+	    default:
+	      Py_DECREF(item);
+	      NpyArr_freeLabels(ret, num);
+	      ret = 0;
+	      break;	      
 	    }
 
 	    char buf[21] = {0};  // 21 chars for 2**63 as string
 	    cLabel = buf;
-	    sprintf(buf, "%lld", value);
+	    sprintf(buf, "%ld", value);
 	    len = strlen(cLabel);
 	  }
 	} else {  // Fallack to string representation
@@ -1748,7 +1752,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 	    break;
 	  }
 
-	  cLabel = PyUnicode_AsUTF8(str);
+	  cLabel = (char *)PyUnicode_AsUTF8(str);
 	  Py_DECREF(str);	  
 	  len = strlen(cLabel);
 	}
