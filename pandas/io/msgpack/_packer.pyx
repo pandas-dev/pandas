@@ -44,7 +44,7 @@ cdef extern from "../../src/msgpack/pack.h":
 cdef int DEFAULT_RECURSE_LIMIT=511
 
 
-cdef class Packer(object):
+cdef class Packer:
     """
     MessagePack Packer
 
@@ -194,7 +194,7 @@ cdef class Packer(object):
                     raise ValueError("dict is too large")
                 ret = msgpack_pack_map(&self.pk, L)
                 if ret == 0:
-                    for k, v in d.iteritems():
+                    for k, v in d.items():
                         ret = self._pack(k, nest_limit - 1)
                         if ret != 0: break
                         ret = self._pack(v, nest_limit - 1)

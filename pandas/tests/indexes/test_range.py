@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY3, range, u
+from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, RangeIndex, Series
@@ -13,14 +11,22 @@ import pandas.util.testing as tm
 
 from .test_numeric import Numeric
 
+# aliases to make some tests easier to read
+RI = RangeIndex
+I64 = Int64Index
+F64 = Float64Index
+OI = Index
+
 
 class TestRangeIndex(Numeric):
     _holder = RangeIndex
-    _compat_props = ['shape', 'ndim', 'size']
+    _compat_props = ["shape", "ndim", "size"]
 
     def setup_method(self, method):
-        self.indices = dict(index=RangeIndex(0, 20, 2, name='foo'),
-                            index_dec=RangeIndex(18, -1, -2, name='bar'))
+        self.indices = dict(
+            index=RangeIndex(0, 20, 2, name="foo"),
+            index_dec=RangeIndex(18, -1, -2, name="bar"),
+        )
         self.setup_indices()
 
     def create_index(self):
@@ -35,47 +41,26 @@ class TestRangeIndex(Numeric):
         with pytest.raises(ValueError, match="^Length"):
             self.index.names = ["roger", "harold"]
 
-    def test_constructor(self):
-        index = RangeIndex(5)
-        expected = np.arange(5, dtype=np.int64)
-        assert isinstance(index, RangeIndex)
-        assert index._start == 0
-        assert index._stop == 5
-        assert index._step == 1
-        assert index.name is None
-        tm.assert_index_equal(Index(expected), index)
-
-        index = RangeIndex(1, 5)
-        expected = np.arange(1, 5, dtype=np.int64)
-        assert isinstance(index, RangeIndex)
-        assert index._start == 1
-        tm.assert_index_equal(Index(expected), index)
-
-        index = RangeIndex(1, 5, 2)
-        expected = np.arange(1, 5, 2, dtype=np.int64)
-        assert isinstance(index, RangeIndex)
-        assert index._step == 2
-        tm.assert_index_equal(Index(expected), index)
-
-        for index in [RangeIndex(0), RangeIndex(start=0), RangeIndex(stop=0),
-                      RangeIndex(0, 0)]:
-            expected = np.empty(0, dtype=np.int64)
-            assert isinstance(index, RangeIndex)
-            assert index._start == 0
-            assert index._stop == 0
-            assert index._step == 1
-            tm.assert_index_equal(Index(expected), index)
-
-        for index in [RangeIndex(0, name='Foo'),
-                      RangeIndex(start=0, name='Foo'),
-                      RangeIndex(stop=0, name='Foo'),
-                      RangeIndex(0, 0, name='Foo')]:
-            assert isinstance(index, RangeIndex)
-            assert index.name == 'Foo'
-
-        # we don't allow on a bare Index
-        with pytest.raises(TypeError):
-            Index(0, 1000)
+    @pytest.mark.parametrize("name", [None, "foo"])
+    @pytest.mark.parametrize(
+        "args, kwargs, start, stop, step",
+        [
+            ((5,), dict(), 0, 5, 1),
+            ((1, 5), dict(), 1, 5, 1),
+            ((1, 5, 2), dict(), 1, 5, 2),
+            ((0,), dict(), 0, 0, 1),
+            ((0, 0), dict(), 0, 0, 1),
+            (tuple(), dict(start=0), 0, 0, 1),
+            (tuple(), dict(stop=0), 0, 0, 1),
+        ],
+    )
+    def test_constructor(self, args, kwargs, start, stop, step, name):
+        result = RangeIndex(*args, name=name, **kwargs)
+        expected = Index(np.arange(start, stop, step, dtype=np.int64), name=name)
+        assert isinstance(result, RangeIndex)
+        assert result.name is name
+        assert result._range == range(start, stop, step)
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_invalid_args(self):
         msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
@@ -83,14 +68,30 @@ class TestRangeIndex(Numeric):
             RangeIndex()
 
         with pytest.raises(TypeError, match=msg):
-            RangeIndex(name='Foo')
+            RangeIndex(name="Foo")
 
         # invalid args
-        for i in [Index(['a', 'b']), Series(['a', 'b']), np.array(['a', 'b']),
-                  [], 'foo', datetime(2000, 1, 1, 0, 0), np.arange(0, 10),
-                  np.array([1]), [1]]:
+        for i in [
+            Index(["a", "b"]),
+            Series(["a", "b"]),
+            np.array(["a", "b"]),
+            [],
+            "foo",
+            datetime(2000, 1, 1, 0, 0),
+            np.arange(0, 10),
+            np.array([1]),
+            [1],
+        ]:
             with pytest.raises(TypeError):
                 RangeIndex(i)
+
+        # we don't allow on a bare Index
+        msg = (
+            r"Index\(\.\.\.\) must be called with a collection of some "
+            r"kind, 0 was passed"
+        )
+        with pytest.raises(TypeError, match=msg):
+            Index(0, 1000)
 
     def test_constructor_same(self):
 
@@ -106,12 +107,13 @@ class TestRangeIndex(Numeric):
         tm.assert_index_equal(result, index, exact=True)
 
         with pytest.raises(TypeError):
-            RangeIndex(index, dtype='float64')
+            RangeIndex(index, dtype="float64")
 
     def test_constructor_range(self):
 
-        with pytest.raises(TypeError):
-            RangeIndex(range(1, 5, 2))
+        msg = "Value needs to be a scalar value, was type <class 'range'>"
+        with pytest.raises(TypeError, match=msg):
+            result = RangeIndex(range(1, 5, 2))
 
         result = RangeIndex.from_range(range(1, 5, 2))
         expected = RangeIndex(1, 5, 2)
@@ -135,26 +137,29 @@ class TestRangeIndex(Numeric):
         tm.assert_index_equal(result, expected, exact=True)
 
         with pytest.raises(TypeError):
-            Index(range(1, 5, 2), dtype='float64')
+            Index(range(1, 5, 2), dtype="float64")
+        msg = r"^from_range\(\) got an unexpected keyword argument"
+        with pytest.raises(TypeError, match=msg):
+            pd.RangeIndex.from_range(range(10), copy=True)
 
     def test_constructor_name(self):
         # GH12288
         orig = RangeIndex(10)
-        orig.name = 'original'
+        orig.name = "original"
 
         copy = RangeIndex(orig)
-        copy.name = 'copy'
+        copy.name = "copy"
 
-        assert orig.name == 'original'
-        assert copy.name == 'copy'
+        assert orig.name == "original"
+        assert copy.name == "copy"
 
         new = Index(copy)
-        assert new.name == 'copy'
+        assert new.name == "copy"
 
-        new.name = 'new'
-        assert orig.name == 'original'
-        assert copy.name == 'copy'
-        assert new.name == 'new'
+        new.name = "new"
+        assert orig.name == "original"
+        assert copy.name == "copy"
+        assert new.name == "new"
 
     def test_constructor_corner(self):
         arr = np.array([1, 2, 3, 4], dtype=object)
@@ -164,31 +169,48 @@ class TestRangeIndex(Numeric):
 
         # non-int raise Exception
         with pytest.raises(TypeError):
-            RangeIndex('1', '10', '1')
+            RangeIndex("1", "10", "1")
         with pytest.raises(TypeError):
             RangeIndex(1.1, 10.2, 1.3)
 
         # invalid passed type
         with pytest.raises(TypeError):
-            RangeIndex(1, 5, dtype='float64')
+            RangeIndex(1, 5, dtype="float64")
+
+    @pytest.mark.parametrize(
+        "index, start, stop, step",
+        [
+            (RangeIndex(5), 0, 5, 1),
+            (RangeIndex(0, 5), 0, 5, 1),
+            (RangeIndex(5, step=2), 0, 5, 2),
+            (RangeIndex(1, 5, 2), 1, 5, 2),
+        ],
+    )
+    def test_start_stop_step_attrs(self, index, start, stop, step):
+        # GH 25710
+        assert index.start == start
+        assert index.stop == stop
+        assert index.step == step
+
+    @pytest.mark.parametrize("attr_name", ["_start", "_stop", "_step"])
+    def test_deprecated_start_stop_step_attrs(self, attr_name):
+        # GH 26581
+        idx = self.create_index()
+        with tm.assert_produces_warning(DeprecationWarning):
+            getattr(idx, attr_name)
 
     def test_copy(self):
-        i = RangeIndex(5, name='Foo')
+        i = RangeIndex(5, name="Foo")
         i_copy = i.copy()
         assert i_copy is not i
         assert i_copy.identical(i)
-        assert i_copy._start == 0
-        assert i_copy._stop == 5
-        assert i_copy._step == 1
-        assert i_copy.name == 'Foo'
+        assert i_copy._range == range(0, 5, 1)
+        assert i_copy.name == "Foo"
 
     def test_repr(self):
-        i = RangeIndex(5, name='Foo')
+        i = RangeIndex(5, name="Foo")
         result = repr(i)
-        if PY3:
-            expected = "RangeIndex(start=0, stop=5, step=1, name='Foo')"
-        else:
-            expected = "RangeIndex(start=0, stop=5, step=1, name=u'Foo')"
+        expected = "RangeIndex(start=0, stop=5, step=1, name='Foo')"
         assert result == expected
 
         result = eval(result)
@@ -204,7 +226,7 @@ class TestRangeIndex(Numeric):
 
     def test_insert(self):
 
-        idx = RangeIndex(5, name='Foo')
+        idx = RangeIndex(5, name="Foo")
         result = idx[1:4]
 
         # test 0th element
@@ -218,7 +240,7 @@ class TestRangeIndex(Numeric):
 
     def test_delete(self):
 
-        idx = RangeIndex(5, name='Foo')
+        idx = RangeIndex(5, name="Foo")
         expected = idx[1:].astype(int)
         result = idx.delete(0)
         tm.assert_index_equal(result, expected)
@@ -234,11 +256,11 @@ class TestRangeIndex(Numeric):
             result = idx.delete(len(idx))
 
     def test_view(self):
-        i = RangeIndex(0, name='Foo')
+        i = RangeIndex(0, name="Foo")
         i_view = i.view()
-        assert i_view.name == 'Foo'
+        assert i_view.name == "Foo"
 
-        i_view = i.view('i8')
+        i_view = i.view("i8")
         tm.assert_numpy_array_equal(i.values, i_view)
 
         i_view = i.view(RangeIndex)
@@ -246,6 +268,62 @@ class TestRangeIndex(Numeric):
 
     def test_dtype(self):
         assert self.index.dtype == np.int64
+
+    def test_cached_data(self):
+        # GH 26565, GH26617
+        # Calling RangeIndex._data caches an int64 array of the same length at
+        # self._cached_data. This test checks whether _cached_data has been set
+        idx = RangeIndex(0, 100, 10)
+
+        assert idx._cached_data is None
+
+        repr(idx)
+        assert idx._cached_data is None
+
+        str(idx)
+        assert idx._cached_data is None
+
+        idx.get_loc(20)
+        assert idx._cached_data is None
+
+        90 in idx
+        assert idx._cached_data is None
+
+        91 in idx
+        assert idx._cached_data is None
+
+        with tm.assert_produces_warning(FutureWarning):
+            idx.contains(90)
+        assert idx._cached_data is None
+
+        with tm.assert_produces_warning(FutureWarning):
+            idx.contains(91)
+        assert idx._cached_data is None
+
+        idx.all()
+        assert idx._cached_data is None
+
+        idx.any()
+        assert idx._cached_data is None
+
+        df = pd.DataFrame({"a": range(10)}, index=idx)
+
+        df.loc[50]
+        assert idx._cached_data is None
+
+        with pytest.raises(KeyError, match="51"):
+            df.loc[51]
+        assert idx._cached_data is None
+
+        df.loc[10:50]
+        assert idx._cached_data is None
+
+        df.iloc[5:10]
+        assert idx._cached_data is None
+
+        # actually calling idx._data
+        assert isinstance(idx._data, np.ndarray)
+        assert isinstance(idx._cached_data, np.ndarray)
 
     def test_is_monotonic(self):
         assert self.index.is_monotonic is True
@@ -282,10 +360,12 @@ class TestRangeIndex(Numeric):
         assert index._is_strictly_monotonic_decreasing is True
 
     def test_equals_range(self):
-        equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
-                       (RangeIndex(0), RangeIndex(1, -1, 3)),
-                       (RangeIndex(1, 2, 3), RangeIndex(1, 3, 4)),
-                       (RangeIndex(0, -9, -2), RangeIndex(0, -10, -2))]
+        equiv_pairs = [
+            (RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
+            (RangeIndex(0), RangeIndex(1, -1, 3)),
+            (RangeIndex(1, 2, 3), RangeIndex(1, 3, 4)),
+            (RangeIndex(0, -9, -2), RangeIndex(0, -10, -2)),
+        ]
         for left, right in equiv_pairs:
             assert left.equals(right)
             assert right.equals(left)
@@ -307,15 +387,16 @@ class TestRangeIndex(Numeric):
         assert not i.identical(same_values_different_type)
 
         i = self.index.copy(dtype=object)
-        i = i.rename('foo')
+        i = i.rename("foo")
         same_values = Index(i, dtype=object)
         assert same_values.identical(self.index.copy(dtype=object))
 
         assert not i.identical(self.index)
-        assert Index(same_values, name='foo', dtype=object).identical(i)
+        assert Index(same_values, name="foo", dtype=object).identical(i)
 
         assert not self.index.copy(dtype=object).identical(
-            self.index.copy(dtype='int64'))
+            self.index.copy(dtype="int64")
+        )
 
     def test_get_indexer(self):
         target = RangeIndex(10)
@@ -325,13 +406,13 @@ class TestRangeIndex(Numeric):
 
     def test_get_indexer_pad(self):
         target = RangeIndex(10)
-        indexer = self.index.get_indexer(target, method='pad')
+        indexer = self.index.get_indexer(target, method="pad")
         expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_backfill(self):
         target = RangeIndex(10)
-        indexer = self.index.get_indexer(target, method='backfill')
+        indexer = self.index.get_indexer(target, method="backfill")
         expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
@@ -339,17 +420,21 @@ class TestRangeIndex(Numeric):
         # join with Int64Index
         other = Int64Index(np.arange(25, 14, -1))
 
-        res, lidx, ridx = self.index.join(other, how='outer',
-                                          return_indexers=True)
-        noidx_res = self.index.join(other, how='outer')
+        res, lidx, ridx = self.index.join(other, how="outer", return_indexers=True)
+        noidx_res = self.index.join(other, how="outer")
         tm.assert_index_equal(res, noidx_res)
 
-        eres = Int64Index([0, 2, 4, 6, 8, 10, 12, 14, 15, 16, 17, 18, 19, 20,
-                           21, 22, 23, 24, 25])
-        elidx = np.array([0, 1, 2, 3, 4, 5, 6, 7, -1, 8, -1, 9,
-                          -1, -1, -1, -1, -1, -1, -1], dtype=np.intp)
-        eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 8, 7, 6,
-                          5, 4, 3, 2, 1, 0], dtype=np.intp)
+        eres = Int64Index(
+            [0, 2, 4, 6, 8, 10, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+        )
+        elidx = np.array(
+            [0, 1, 2, 3, 4, 5, 6, 7, -1, 8, -1, 9, -1, -1, -1, -1, -1, -1, -1],
+            dtype=np.intp,
+        )
+        eridx = np.array(
+            [-1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
+            dtype=np.intp,
+        )
 
         assert isinstance(res, Int64Index)
         assert not isinstance(res, RangeIndex)
@@ -360,9 +445,8 @@ class TestRangeIndex(Numeric):
         # join with RangeIndex
         other = RangeIndex(25, 14, -1)
 
-        res, lidx, ridx = self.index.join(other, how='outer',
-                                          return_indexers=True)
-        noidx_res = self.index.join(other, how='outer')
+        res, lidx, ridx = self.index.join(other, how="outer", return_indexers=True)
+        noidx_res = self.index.join(other, how="outer")
         tm.assert_index_equal(res, noidx_res)
 
         assert isinstance(res, Int64Index)
@@ -375,8 +459,7 @@ class TestRangeIndex(Numeric):
         # Join with non-RangeIndex
         other = Int64Index(np.arange(25, 14, -1))
 
-        res, lidx, ridx = self.index.join(other, how='inner',
-                                          return_indexers=True)
+        res, lidx, ridx = self.index.join(other, how="inner", return_indexers=True)
 
         # no guarantee of sortedness, so sort for comparison purposes
         ind = res.argsort()
@@ -396,8 +479,7 @@ class TestRangeIndex(Numeric):
         # Join two RangeIndex
         other = RangeIndex(25, 14, -1)
 
-        res, lidx, ridx = self.index.join(other, how='inner',
-                                          return_indexers=True)
+        res, lidx, ridx = self.index.join(other, how="inner", return_indexers=True)
 
         assert isinstance(res, RangeIndex)
         tm.assert_index_equal(res, eres)
@@ -408,8 +490,7 @@ class TestRangeIndex(Numeric):
         # Join with Int64Index
         other = Int64Index(np.arange(25, 14, -1))
 
-        res, lidx, ridx = self.index.join(other, how='left',
-                                          return_indexers=True)
+        res, lidx, ridx = self.index.join(other, how="left", return_indexers=True)
         eres = self.index
         eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 9, 7], dtype=np.intp)
 
@@ -421,8 +502,7 @@ class TestRangeIndex(Numeric):
         # Join withRangeIndex
         other = Int64Index(np.arange(25, 14, -1))
 
-        res, lidx, ridx = self.index.join(other, how='left',
-                                          return_indexers=True)
+        res, lidx, ridx = self.index.join(other, how="left", return_indexers=True)
 
         assert isinstance(res, RangeIndex)
         tm.assert_index_equal(res, eres)
@@ -433,11 +513,9 @@ class TestRangeIndex(Numeric):
         # Join with Int64Index
         other = Int64Index(np.arange(25, 14, -1))
 
-        res, lidx, ridx = self.index.join(other, how='right',
-                                          return_indexers=True)
+        res, lidx, ridx = self.index.join(other, how="right", return_indexers=True)
         eres = other
-        elidx = np.array([-1, -1, -1, -1, -1, -1, -1, 9, -1, 8, -1],
-                         dtype=np.intp)
+        elidx = np.array([-1, -1, -1, -1, -1, -1, -1, 9, -1, 8, -1], dtype=np.intp)
 
         assert isinstance(other, Int64Index)
         tm.assert_index_equal(res, eres)
@@ -447,8 +525,7 @@ class TestRangeIndex(Numeric):
         # Join withRangeIndex
         other = RangeIndex(25, 14, -1)
 
-        res, lidx, ridx = self.index.join(other, how='right',
-                                          return_indexers=True)
+        res, lidx, ridx = self.index.join(other, how="right", return_indexers=True)
         eres = other
 
         assert isinstance(other, RangeIndex)
@@ -459,28 +536,28 @@ class TestRangeIndex(Numeric):
     def test_join_non_int_index(self):
         other = Index([3, 6, 7, 8, 10], dtype=object)
 
-        outer = self.index.join(other, how='outer')
-        outer2 = other.join(self.index, how='outer')
+        outer = self.index.join(other, how="outer")
+        outer2 = other.join(self.index, how="outer")
         expected = Index([0, 2, 3, 4, 6, 7, 8, 10, 12, 14, 16, 18])
         tm.assert_index_equal(outer, outer2)
         tm.assert_index_equal(outer, expected)
 
-        inner = self.index.join(other, how='inner')
-        inner2 = other.join(self.index, how='inner')
+        inner = self.index.join(other, how="inner")
+        inner2 = other.join(self.index, how="inner")
         expected = Index([6, 8, 10])
         tm.assert_index_equal(inner, inner2)
         tm.assert_index_equal(inner, expected)
 
-        left = self.index.join(other, how='left')
+        left = self.index.join(other, how="left")
         tm.assert_index_equal(left, self.index.astype(object))
 
-        left2 = other.join(self.index, how='left')
+        left2 = other.join(self.index, how="left")
         tm.assert_index_equal(left2, other)
 
-        right = self.index.join(other, how='right')
+        right = self.index.join(other, how="right")
         tm.assert_index_equal(right, other)
 
-        right2 = other.join(self.index, how='right')
+        right2 = other.join(self.index, how="right")
         tm.assert_index_equal(right2, self.index.astype(object))
 
     def test_join_non_unique(self):
@@ -490,15 +567,14 @@ class TestRangeIndex(Numeric):
 
         eres = Int64Index([0, 2, 4, 4, 6, 8, 10, 12, 14, 16, 18])
         elidx = np.array([0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.intp)
-        eridx = np.array([-1, -1, 0, 1, -1, -1, -1, -1, -1, -1, -1],
-                         dtype=np.intp)
+        eridx = np.array([-1, -1, 0, 1, -1, -1, -1, -1, -1, -1, -1], dtype=np.intp)
 
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
     def test_join_self(self):
-        kinds = 'outer', 'inner', 'left', 'right'
+        kinds = "outer", "inner", "left", "right"
         for kind in kinds:
             joined = self.index.join(self.index, how=kind)
             assert self.index is joined
@@ -508,27 +584,25 @@ class TestRangeIndex(Numeric):
         # intersect with Int64Index
         other = Index(np.arange(1, 6))
         result = self.index.intersection(other, sort=sort)
-        expected = Index(np.sort(np.intersect1d(self.index.values,
-                                                other.values)))
+        expected = Index(np.sort(np.intersect1d(self.index.values, other.values)))
         tm.assert_index_equal(result, expected)
 
         result = other.intersection(self.index, sort=sort)
-        expected = Index(np.sort(np.asarray(np.intersect1d(self.index.values,
-                                                           other.values))))
+        expected = Index(
+            np.sort(np.asarray(np.intersect1d(self.index.values, other.values)))
+        )
         tm.assert_index_equal(result, expected)
 
         # intersect with increasing RangeIndex
         other = RangeIndex(1, 6)
         result = self.index.intersection(other, sort=sort)
-        expected = Index(np.sort(np.intersect1d(self.index.values,
-                                                other.values)))
+        expected = Index(np.sort(np.intersect1d(self.index.values, other.values)))
         tm.assert_index_equal(result, expected)
 
         # intersect with decreasing RangeIndex
         other = RangeIndex(5, 0, -1)
         result = self.index.intersection(other, sort=sort)
-        expected = Index(np.sort(np.intersect1d(self.index.values,
-                                                other.values)))
+        expected = Index(np.sort(np.intersect1d(self.index.values, other.values)))
         tm.assert_index_equal(result, expected)
 
         # reversed (GH 17296)
@@ -575,51 +649,106 @@ class TestRangeIndex(Numeric):
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
 
-    def test_union_noncomparable(self):
+    @pytest.mark.parametrize("sort", [False, None])
+    def test_union_noncomparable(self, sort):
         from datetime import datetime, timedelta
+
         # corner case, non-Int64Index
         now = datetime.now()
         other = Index([now + timedelta(i) for i in range(4)], dtype=object)
-        result = self.index.union(other)
+        result = self.index.union(other, sort=sort)
         expected = Index(np.concatenate((self.index, other)))
         tm.assert_index_equal(result, expected)
 
-        result = other.union(self.index)
+        result = other.union(self.index, sort=sort)
         expected = Index(np.concatenate((other, self.index)))
         tm.assert_index_equal(result, expected)
 
-    def test_union(self):
-        RI = RangeIndex
-        I64 = Int64Index
-        cases = [(RI(0, 10, 1), RI(0, 10, 1), RI(0, 10, 1)),
-                 (RI(0, 10, 1), RI(5, 20, 1), RI(0, 20, 1)),
-                 (RI(0, 10, 1), RI(10, 20, 1), RI(0, 20, 1)),
-                 (RI(0, -10, -1), RI(0, -10, -1), RI(0, -10, -1)),
-                 (RI(0, -10, -1), RI(-10, -20, -1), RI(-19, 1, 1)),
-                 (RI(0, 10, 2), RI(1, 10, 2), RI(0, 10, 1)),
-                 (RI(0, 11, 2), RI(1, 12, 2), RI(0, 12, 1)),
-                 (RI(0, 21, 4), RI(-2, 24, 4), RI(-2, 24, 2)),
-                 (RI(0, -20, -2), RI(-1, -21, -2), RI(-19, 1, 1)),
-                 (RI(0, 100, 5), RI(0, 100, 20), RI(0, 100, 5)),
-                 (RI(0, -100, -5), RI(5, -100, -20), RI(-95, 10, 5)),
-                 (RI(0, -11, -1), RI(1, -12, -4), RI(-11, 2, 1)),
-                 (RI(0), RI(0), RI(0)),
-                 (RI(0, -10, -2), RI(0), RI(0, -10, -2)),
-                 (RI(0, 100, 2), RI(100, 150, 200), RI(0, 102, 2)),
-                 (RI(0, -100, -2), RI(-100, 50, 102), RI(-100, 4, 2)),
-                 (RI(0, -100, -1), RI(0, -50, -3), RI(-99, 1, 1)),
-                 (RI(0, 1, 1), RI(5, 6, 10), RI(0, 6, 5)),
-                 (RI(0, 10, 5), RI(-5, -6, -20), RI(-5, 10, 5)),
-                 (RI(0, 3, 1), RI(4, 5, 1), I64([0, 1, 2, 4])),
-                 (RI(0, 10, 1), I64([]), RI(0, 10, 1)),
-                 (RI(0), I64([1, 5, 6]), I64([1, 5, 6]))]
-        for idx1, idx2, expected in cases:
-            res1 = idx1.union(idx2)
-            res2 = idx2.union(idx1)
-            res3 = idx1._int64index.union(idx2)
-            tm.assert_index_equal(res1, expected, exact=True)
-            tm.assert_index_equal(res2, expected, exact=True)
-            tm.assert_index_equal(res3, expected)
+    @pytest.fixture(
+        params=[
+            (RI(0, 10, 1), RI(0, 10, 1), RI(0, 10, 1), RI(0, 10, 1)),
+            (RI(0, 10, 1), RI(5, 20, 1), RI(0, 20, 1), I64(range(20))),
+            (RI(0, 10, 1), RI(10, 20, 1), RI(0, 20, 1), I64(range(20))),
+            (RI(0, -10, -1), RI(0, -10, -1), RI(0, -10, -1), RI(0, -10, -1)),
+            (RI(0, -10, -1), RI(-10, -20, -1), RI(-19, 1, 1), I64(range(0, -20, -1))),
+            (
+                RI(0, 10, 2),
+                RI(1, 10, 2),
+                RI(0, 10, 1),
+                I64(list(range(0, 10, 2)) + list(range(1, 10, 2))),
+            ),
+            (
+                RI(0, 11, 2),
+                RI(1, 12, 2),
+                RI(0, 12, 1),
+                I64(list(range(0, 11, 2)) + list(range(1, 12, 2))),
+            ),
+            (
+                RI(0, 21, 4),
+                RI(-2, 24, 4),
+                RI(-2, 24, 2),
+                I64(list(range(0, 21, 4)) + list(range(-2, 24, 4))),
+            ),
+            (
+                RI(0, -20, -2),
+                RI(-1, -21, -2),
+                RI(-19, 1, 1),
+                I64(list(range(0, -20, -2)) + list(range(-1, -21, -2))),
+            ),
+            (RI(0, 100, 5), RI(0, 100, 20), RI(0, 100, 5), I64(range(0, 100, 5))),
+            (
+                RI(0, -100, -5),
+                RI(5, -100, -20),
+                RI(-95, 10, 5),
+                I64(list(range(0, -100, -5)) + [5]),
+            ),
+            (
+                RI(0, -11, -1),
+                RI(1, -12, -4),
+                RI(-11, 2, 1),
+                I64(list(range(0, -11, -1)) + [1, -11]),
+            ),
+            (RI(0), RI(0), RI(0), RI(0)),
+            (RI(0, -10, -2), RI(0), RI(0, -10, -2), RI(0, -10, -2)),
+            (RI(0, 100, 2), RI(100, 150, 200), RI(0, 102, 2), I64(range(0, 102, 2))),
+            (
+                RI(0, -100, -2),
+                RI(-100, 50, 102),
+                RI(-100, 4, 2),
+                I64(list(range(0, -100, -2)) + [-100, 2]),
+            ),
+            (
+                RI(0, -100, -1),
+                RI(0, -50, -3),
+                RI(-99, 1, 1),
+                I64(list(range(0, -100, -1))),
+            ),
+            (RI(0, 1, 1), RI(5, 6, 10), RI(0, 6, 5), I64([0, 5])),
+            (RI(0, 10, 5), RI(-5, -6, -20), RI(-5, 10, 5), I64([0, 5, -5])),
+            (RI(0, 3, 1), RI(4, 5, 1), I64([0, 1, 2, 4]), I64([0, 1, 2, 4])),
+            (RI(0, 10, 1), I64([]), RI(0, 10, 1), RI(0, 10, 1)),
+            (RI(0), I64([1, 5, 6]), I64([1, 5, 6]), I64([1, 5, 6])),
+        ]
+    )
+    def unions(self, request):
+        """Inputs and expected outputs for RangeIndex.union tests"""
+
+        return request.param
+
+    def test_union_sorted(self, unions):
+
+        idx1, idx2, expected_sorted, expected_notsorted = unions
+
+        res1 = idx1.union(idx2, sort=None)
+        tm.assert_index_equal(res1, expected_sorted, exact=True)
+
+        res1 = idx1.union(idx2, sort=False)
+        tm.assert_index_equal(res1, expected_notsorted, exact=True)
+
+        res2 = idx2.union(idx1, sort=None)
+        res3 = idx1._int64index.union(idx2, sort=None)
+        tm.assert_index_equal(res2, expected_sorted, exact=True)
+        tm.assert_index_equal(res3, expected_sorted)
 
     def test_nbytes(self):
 
@@ -634,29 +763,29 @@ class TestRangeIndex(Numeric):
     def test_cant_or_shouldnt_cast(self):
         # can't
         with pytest.raises(TypeError):
-            RangeIndex('foo', 'bar', 'baz')
+            RangeIndex("foo", "bar", "baz")
 
         # shouldn't
         with pytest.raises(TypeError):
-            RangeIndex('0', '1', '2')
+            RangeIndex("0", "1", "2")
 
     def test_view_Index(self):
         self.index.view(Index)
 
     def test_prevent_casting(self):
-        result = self.index.astype('O')
+        result = self.index.astype("O")
         assert result.dtype == np.object_
 
     def test_take_preserve_name(self):
-        index = RangeIndex(1, 5, name='foo')
+        index = RangeIndex(1, 5, name="foo")
         taken = index.take([3, 0, 1])
         assert index.name == taken.name
 
     def test_take_fill_value(self):
         # GH 12631
-        idx = pd.RangeIndex(1, 4, name='xxx')
+        idx = pd.RangeIndex(1, 4, name="xxx")
         result = idx.take(np.array([1, 0, -1]))
-        expected = pd.Int64Index([2, 1, 3], name='xxx')
+        expected = pd.Int64Index([2, 1, 3], name="xxx")
         tm.assert_index_equal(result, expected)
 
         # fill_value
@@ -665,9 +794,8 @@ class TestRangeIndex(Numeric):
             idx.take(np.array([1, 0, -1]), fill_value=True)
 
         # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False,
-                          fill_value=True)
-        expected = pd.Int64Index([2, 1, 3], name='xxx')
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        expected = pd.Int64Index([2, 1, 3], name="xxx")
         tm.assert_index_equal(result, expected)
 
         msg = "Unable to fill values because RangeIndex cannot contain NA"
@@ -680,16 +808,14 @@ class TestRangeIndex(Numeric):
             idx.take(np.array([1, -5]))
 
     def test_print_unicode_columns(self):
-        df = pd.DataFrame({u("\u05d0"): [1, 2, 3],
-                           "\u05d1": [4, 5, 6],
-                           "c": [7, 8, 9]})
+        df = pd.DataFrame({"\u05d0": [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
         repr(df.columns)  # should not raise UnicodeDecodeError
 
     def test_repr_roundtrip(self):
         tm.assert_index_equal(eval(repr(self.index)), self.index)
 
     def test_slice_keep_name(self):
-        idx = RangeIndex(1, 2, name='asdf')
+        idx = RangeIndex(1, 2, name="asdf")
         assert idx.name == idx[1:].name
 
     def test_explicit_conversions(self):
@@ -699,7 +825,7 @@ class TestRangeIndex(Numeric):
         idx = RangeIndex(5)
 
         # float conversions
-        arr = np.arange(5, dtype='int64') * 3.2
+        arr = np.arange(5, dtype="int64") * 3.2
         expected = Float64Index(arr)
         fidx = idx * 3.2
         tm.assert_index_equal(fidx, expected)
@@ -708,12 +834,12 @@ class TestRangeIndex(Numeric):
 
         # interops with numpy arrays
         expected = Float64Index(arr)
-        a = np.zeros(5, dtype='float64')
+        a = np.zeros(5, dtype="float64")
         result = fidx - a
         tm.assert_index_equal(result, expected)
 
         expected = Float64Index(-arr)
-        a = np.zeros(5, dtype='float64')
+        a = np.zeros(5, dtype="float64")
         result = a - fidx
         tm.assert_index_equal(result, expected)
 
@@ -793,38 +919,38 @@ class TestRangeIndex(Numeric):
 
         # positive slice values
         index = self.index[7:10:2]
-        expected = Index(np.array([14, 18]), name='foo')
+        expected = Index(np.array([14, 18]), name="foo")
         tm.assert_index_equal(index, expected)
 
         # negative slice values
         index = self.index[-1:-5:-2]
-        expected = Index(np.array([18, 14]), name='foo')
+        expected = Index(np.array([18, 14]), name="foo")
         tm.assert_index_equal(index, expected)
 
         # stop overshoot
         index = self.index[2:100:4]
-        expected = Index(np.array([4, 12]), name='foo')
+        expected = Index(np.array([4, 12]), name="foo")
         tm.assert_index_equal(index, expected)
 
         # reverse
         index = self.index[::-1]
-        expected = Index(self.index.values[::-1], name='foo')
+        expected = Index(self.index.values[::-1], name="foo")
         tm.assert_index_equal(index, expected)
 
         index = self.index[-8::-1]
-        expected = Index(np.array([4, 2, 0]), name='foo')
+        expected = Index(np.array([4, 2, 0]), name="foo")
         tm.assert_index_equal(index, expected)
 
         index = self.index[-40::-1]
-        expected = Index(np.array([], dtype=np.int64), name='foo')
+        expected = Index(np.array([], dtype=np.int64), name="foo")
         tm.assert_index_equal(index, expected)
 
         index = self.index[40::-1]
-        expected = Index(self.index.values[40::-1], name='foo')
+        expected = Index(self.index.values[40::-1], name="foo")
         tm.assert_index_equal(index, expected)
 
         index = self.index[10::-1]
-        expected = Index(self.index.values[::-1], name='foo')
+        expected = Index(self.index.values[::-1], name="foo")
         tm.assert_index_equal(index, expected)
 
     def test_len_specialised(self):
@@ -850,38 +976,64 @@ class TestRangeIndex(Numeric):
             i = RangeIndex(0, 5, step)
             assert len(i) == 0
 
-    def test_append(self):
+    @pytest.fixture(
+        params=[
+            ([RI(1, 12, 5)], RI(1, 12, 5)),
+            ([RI(0, 6, 4)], RI(0, 6, 4)),
+            ([RI(1, 3), RI(3, 7)], RI(1, 7)),
+            ([RI(1, 5, 2), RI(5, 6)], RI(1, 6, 2)),
+            ([RI(1, 3, 2), RI(4, 7, 3)], RI(1, 7, 3)),
+            ([RI(-4, 3, 2), RI(4, 7, 2)], RI(-4, 7, 2)),
+            ([RI(-4, -8), RI(-8, -12)], RI(0, 0)),
+            ([RI(-4, -8), RI(3, -4)], RI(0, 0)),
+            ([RI(-4, -8), RI(3, 5)], RI(3, 5)),
+            ([RI(-4, -2), RI(3, 5)], I64([-4, -3, 3, 4])),
+            ([RI(-2), RI(3, 5)], RI(3, 5)),
+            ([RI(2), RI(2)], I64([0, 1, 0, 1])),
+            ([RI(2), RI(2, 5), RI(5, 8, 4)], RI(0, 6)),
+            ([RI(2), RI(3, 5), RI(5, 8, 4)], I64([0, 1, 3, 4, 5])),
+            ([RI(-2, 2), RI(2, 5), RI(5, 8, 4)], RI(-2, 6)),
+            ([RI(3), I64([-1, 3, 15])], I64([0, 1, 2, -1, 3, 15])),
+            ([RI(3), F64([-1, 3.1, 15.0])], F64([0, 1, 2, -1, 3.1, 15.0])),
+            ([RI(3), OI(["a", None, 14])], OI([0, 1, 2, "a", None, 14])),
+            ([RI(3, 1), OI(["a", None, 14])], OI(["a", None, 14])),
+        ]
+    )
+    def appends(self, request):
+        """Inputs and expected outputs for RangeIndex.append test"""
+
+        return request.param
+
+    def test_append(self, appends):
         # GH16212
-        RI = RangeIndex
-        I64 = Int64Index
-        F64 = Float64Index
-        OI = Index
-        cases = [([RI(1, 12, 5)], RI(1, 12, 5)),
-                 ([RI(0, 6, 4)], RI(0, 6, 4)),
-                 ([RI(1, 3), RI(3, 7)], RI(1, 7)),
-                 ([RI(1, 5, 2), RI(5, 6)], RI(1, 6, 2)),
-                 ([RI(1, 3, 2), RI(4, 7, 3)], RI(1, 7, 3)),
-                 ([RI(-4, 3, 2), RI(4, 7, 2)], RI(-4, 7, 2)),
-                 ([RI(-4, -8), RI(-8, -12)], RI(0, 0)),
-                 ([RI(-4, -8), RI(3, -4)], RI(0, 0)),
-                 ([RI(-4, -8), RI(3, 5)], RI(3, 5)),
-                 ([RI(-4, -2), RI(3, 5)], I64([-4, -3, 3, 4])),
-                 ([RI(-2,), RI(3, 5)], RI(3, 5)),
-                 ([RI(2,), RI(2)], I64([0, 1, 0, 1])),
-                 ([RI(2,), RI(2, 5), RI(5, 8, 4)], RI(0, 6)),
-                 ([RI(2,), RI(3, 5), RI(5, 8, 4)], I64([0, 1, 3, 4, 5])),
-                 ([RI(-2, 2), RI(2, 5), RI(5, 8, 4)], RI(-2, 6)),
-                 ([RI(3,), I64([-1, 3, 15])], I64([0, 1, 2, -1, 3, 15])),
-                 ([RI(3,), F64([-1, 3.1, 15.])], F64([0, 1, 2, -1, 3.1, 15.])),
-                 ([RI(3,), OI(['a', None, 14])], OI([0, 1, 2, 'a', None, 14])),
-                 ([RI(3, 1), OI(['a', None, 14])], OI(['a', None, 14]))
-                 ]
 
-        for indices, expected in cases:
-            result = indices[0].append(indices[1:])
-            tm.assert_index_equal(result, expected, exact=True)
+        indices, expected = appends
 
-            if len(indices) == 2:
-                # Append single item rather than list
-                result2 = indices[0].append(indices[1])
-                tm.assert_index_equal(result2, expected, exact=True)
+        result = indices[0].append(indices[1:])
+        tm.assert_index_equal(result, expected, exact=True)
+
+        if len(indices) == 2:
+            # Append single item rather than list
+            result2 = indices[0].append(indices[1])
+            tm.assert_index_equal(result2, expected, exact=True)
+
+    def test_engineless_lookup(self):
+        # GH 16685
+        # Standard lookup on RangeIndex should not require the engine to be
+        # created
+        idx = RangeIndex(2, 10, 3)
+
+        assert idx.get_loc(5) == 1
+        tm.assert_numpy_array_equal(
+            idx.get_indexer([2, 8]), ensure_platform_int(np.array([0, 2]))
+        )
+        with pytest.raises(KeyError, match="3"):
+            idx.get_loc(3)
+
+        assert "_engine" not in idx._cache
+
+        # The engine is still required for lookup of a different dtype scalar:
+        with pytest.raises(KeyError, match="'a'"):
+            assert idx.get_loc("a") == -1
+
+        assert "_engine" in idx._cache

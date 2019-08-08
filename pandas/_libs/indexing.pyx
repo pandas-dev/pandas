@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 cdef class _NDFrameIndexerBase:
     """
     A base class for _NDFrameIndexer for fast instantiation and attribute
@@ -20,4 +17,8 @@ cdef class _NDFrameIndexerBase:
         ndim = self._ndim
         if ndim is None:
             ndim = self._ndim = self.obj.ndim
+            if ndim > 2:
+                msg = ("NDFrameIndexer does not support NDFrame objects with"
+                       " ndim > 2")
+                raise ValueError(msg)
         return ndim

@@ -3,7 +3,7 @@
 {{ header }}
 
 ************************
-Intro to Data Structures
+Intro to data structures
 ************************
 
 We'll start with a quick, non-comprehensive overview of the fundamental data
@@ -251,8 +251,6 @@ Series can also have a ``name`` attribute:
 The Series ``name`` will be assigned automatically in many cases, in particular
 when taking 1D slices of DataFrame as you will see below.
 
-.. versionadded:: 0.18.0
-
 You can rename a Series with the :meth:`pandas.Series.rename` method.
 
 .. ipython:: python
@@ -399,7 +397,7 @@ The result will be a DataFrame with the same index as the input Series, and
 with one column whose name is the original name of the Series (only if no other
 column name provided).
 
-**Missing Data**
+**Missing data**
 
 Much more will be said on this topic in the :ref:`Missing data <missing_data>`
 section. To construct a DataFrame with missing data, we use ``np.nan`` to
@@ -407,7 +405,7 @@ represent missing values. Alternatively, you may pass a ``numpy.MaskedArray``
 as the data argument to the DataFrame constructor, and its masked entries will
 be considered missing.
 
-Alternate Constructors
+Alternate constructors
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. _basics.dataframe.from_dict:
@@ -498,7 +496,7 @@ available to insert at a particular location in the columns:
 
 .. _dsintro.chained_assignment:
 
-Assigning New Columns in Method Chains
+Assigning new columns in method chains
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Inspired by `dplyr's
@@ -614,7 +612,7 @@ To write code compatible with all versions of Python, split the assignment in tw
 
 
 
-Indexing / Selection
+Indexing / selection
 ~~~~~~~~~~~~~~~~~~~~
 The basics of indexing are as follows:
 
@@ -731,28 +729,67 @@ DataFrame interoperability with NumPy functions
 .. _dsintro.numpy_interop:
 
 Elementwise NumPy ufuncs (log, exp, sqrt, ...) and various other NumPy functions
-can be used with no issues on DataFrame, assuming the data within are numeric:
+can be used with no issues on Series and DataFrame, assuming the data within
+are numeric:
 
 .. ipython:: python
 
    np.exp(df)
    np.asarray(df)
 
-The dot method on DataFrame implements matrix multiplication:
-
-.. ipython:: python
-
-   df.T.dot(df)
-
-Similarly, the dot method on Series implements dot product:
-
-.. ipython:: python
-
-   s1 = pd.Series(np.arange(5, 10))
-   s1.dot(s1)
-
 DataFrame is not intended to be a drop-in replacement for ndarray as its
-indexing semantics are quite different in places from a matrix.
+indexing semantics and data model are quite different in places from an n-dimensional
+array.
+
+:class:`Series` implements ``__array_ufunc__``, which allows it to work with NumPy's
+`universal functions <https://docs.scipy.org/doc/numpy/reference/ufuncs.html>`_.
+
+The ufunc is applied to the underlying array in a Series.
+
+.. ipython:: python
+
+   ser = pd.Series([1, 2, 3, 4])
+   np.exp(ser)
+
+.. versionchanged:: 0.25.0
+
+   When multiple ``Series`` are passed to a ufunc, they are aligned before
+   performing the operation.
+
+Like other parts of the library, pandas will automatically align labeled inputs
+as part of a ufunc with multiple inputs. For example, using :meth:`numpy.remainder`
+on two :class:`Series` with differently ordered labels will align before the operation.
+
+.. ipython:: python
+
+   ser1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+   ser2 = pd.Series([1, 3, 5], index=['b', 'a', 'c'])
+   ser1
+   ser2
+   np.remainder(ser1, ser2)
+
+As usual, the union of the two indices is taken, and non-overlapping values are filled
+with missing values.
+
+.. ipython:: python
+
+   ser3 = pd.Series([2, 4, 6], index=['b', 'c', 'd'])
+   ser3
+   np.remainder(ser1, ser3)
+
+When a binary ufunc is applied to a :class:`Series` and :class:`Index`, the Series
+implementation takes precedence and a Series is returned.
+
+.. ipython:: python
+
+   ser = pd.Series([1, 2, 3])
+   idx = pd.Index([4, 5, 6])
+
+   np.maximum(ser, idx)
+
+NumPy ufuncs are safe to apply to :class:`Series` backed by non-ndarray arrays,
+for example :class:`SparseArray` (see :ref:`sparse.calculation`). If possible,
+the ufunc is applied without converting the underlying data to an ndarray.
 
 Console display
 ~~~~~~~~~~~~~~~
@@ -847,186 +884,3 @@ completion mechanism so they can be tab-completed:
 
     In [5]: df.fo<TAB>  # noqa: E225, E999
     df.foo1  df.foo2
-
-.. _basics.panel:
-
-Panel
------
-
-.. warning::
-
-    In 0.20.0, ``Panel`` is deprecated and will be removed in
-    a future version. See the section :ref:`Deprecate Panel <dsintro.deprecate_panel>`.
-
-Panel is a somewhat less-used, but still important container for 3-dimensional
-data. The term `panel data <https://en.wikipedia.org/wiki/Panel_data>`__ is
-derived from econometrics and is partially responsible for the name pandas:
-pan(el)-da(ta)-s. The names for the 3 axes are intended to give some semantic
-meaning to describing operations involving panel data and, in particular,
-econometric analysis of panel data. However, for the strict purposes of slicing
-and dicing a collection of DataFrame objects, you may find the axis names
-slightly arbitrary:
-
-* **items**: axis 0, each item corresponds to a DataFrame contained inside
-* **major_axis**: axis 1, it is the **index** (rows) of each of the
-  DataFrames
-* **minor_axis**: axis 2, it is the **columns** of each of the DataFrames
-
-Construction of Panels works about like you would expect:
-
-From 3D ndarray with optional axis labels
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. ipython:: python
-   :okwarning:
-
-   wp = pd.Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
-                 major_axis=pd.date_range('1/1/2000', periods=5),
-                 minor_axis=['A', 'B', 'C', 'D'])
-   wp
-
-
-From dict of DataFrame objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. ipython:: python
-   :okwarning:
-
-   data = {'Item1': pd.DataFrame(np.random.randn(4, 3)),
-           'Item2': pd.DataFrame(np.random.randn(4, 2))}
-   pd.Panel(data)
-
-Note that the values in the dict need only be **convertible to
-DataFrame**. Thus, they can be any of the other valid inputs to DataFrame as
-per above.
-
-One helpful factory method is ``Panel.from_dict``, which takes a
-dictionary of DataFrames as above, and the following named parameters:
-
-.. csv-table::
-   :header: "Parameter", "Default", "Description"
-   :widths: 10, 10, 40
-
-   intersect, ``False``, drops elements whose indices do not align
-   orient, ``items``, use ``minor`` to use DataFrames' columns as panel items
-
-For example, compare to the construction above:
-
-.. ipython:: python
-   :okwarning:
-
-   pd.Panel.from_dict(data, orient='minor')
-
-Orient is especially useful for mixed-type DataFrames. If you pass a dict of
-DataFrame objects with mixed-type columns, all of the data will get upcasted to
-``dtype=object`` unless you pass ``orient='minor'``:
-
-.. ipython:: python
-   :okwarning:
-
-   df = pd.DataFrame({'a': ['foo', 'bar', 'baz'],
-                      'b': np.random.randn(3)})
-   df
-   data = {'item1': df, 'item2': df}
-   panel = pd.Panel.from_dict(data, orient='minor')
-   panel['a']
-   panel['b']
-   panel['b'].dtypes
-
-.. note::
-
-   Panel, being less commonly used than Series and DataFrame,
-   has been slightly neglected feature-wise. A number of methods and options
-   available in DataFrame are not available in Panel.
-
-.. _dsintro.to_panel:
-
-From DataFrame using ``to_panel`` method
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-``to_panel`` converts a DataFrame with a two-level index to a Panel.
-
-.. ipython:: python
-   :okwarning:
-
-   midx = pd.MultiIndex(levels=[['one', 'two'], ['x', 'y']],
-                        codes=[[1, 1, 0, 0], [1, 0, 1, 0]])
-   df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [5, 6, 7, 8]}, index=midx)
-   df.to_panel()
-
-.. _dsintro.panel_item_selection:
-
-Item selection / addition / deletion
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Similar to DataFrame functioning as a dict of Series, Panel is like a dict
-of DataFrames:
-
-.. ipython:: python
-
-   wp['Item1']
-   wp['Item3'] = wp['Item1'] / wp['Item2']
-
-The API for insertion and deletion is the same as for DataFrame. And as with
-DataFrame, if the item is a valid Python identifier, you can access it as an
-attribute and tab-complete it in IPython.
-
-Transposing
-~~~~~~~~~~~
-
-A Panel can be rearranged using its ``transpose`` method (which does not make a
-copy by default unless the data are heterogeneous):
-
-.. ipython:: python
-   :okwarning:
-
-   wp.transpose(2, 0, 1)
-
-Indexing / Selection
-~~~~~~~~~~~~~~~~~~~~
-
-.. csv-table::
-    :header: "Operation", "Syntax", "Result"
-    :widths: 30, 20, 10
-
-    Select item, ``wp[item]``, DataFrame
-    Get slice at major_axis label, ``wp.major_xs(val)``, DataFrame
-    Get slice at minor_axis label, ``wp.minor_xs(val)``, DataFrame
-
-For example, using the earlier example data, we could do:
-
-.. ipython:: python
-
-    wp['Item1']
-    wp.major_xs(wp.major_axis[2])
-    wp.minor_axis
-    wp.minor_xs('C')
-
-Squeezing
-~~~~~~~~~
-
-Another way to change the dimensionality of an object is to ``squeeze`` a 1-len
-object, similar to ``wp['Item1']``.
-
-.. ipython:: python
-   :okwarning:
-
-   wp.reindex(items=['Item1']).squeeze()
-   wp.reindex(items=['Item1'], minor=['B']).squeeze()
-
-
-Conversion to DataFrame
-~~~~~~~~~~~~~~~~~~~~~~~
-
-A Panel can be represented in 2D form as a hierarchically indexed
-DataFrame. See the section :ref:`hierarchical indexing <advanced.hierarchical>`
-for more on this. To convert a Panel to a DataFrame, use the ``to_frame``
-method:
-
-.. ipython:: python
-   :okwarning:
-
-   panel = pd.Panel(np.random.randn(3, 5, 4), items=['one', 'two', 'three'],
-                    major_axis=pd.date_range('1/1/2000', periods=5),
-                    minor_axis=['a', 'b', 'c', 'd'])
-   panel.to_frame()

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 from cython cimport floating
@@ -57,10 +55,10 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
         n -= na_count
 
     if n % 2:
-        result = kth_smallest_c( a, n / 2, n)
+        result = kth_smallest_c( a, n // 2, n)
     else:
-        result = (kth_smallest_c(a, n / 2, n) +
-                  kth_smallest_c(a, n / 2 - 1, n)) / 2
+        result = (kth_smallest_c(a, n // 2, n) +
+                  kth_smallest_c(a, n // 2 - 1, n)) / 2
 
     if na_count:
         free(a)
@@ -142,11 +140,31 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
 def group_cumprod_float64(float64_t[:, :] out,
                           const float64_t[:, :] values,
                           const int64_t[:] labels,
+                          int ngroups,
                           bint is_datetimelike,
                           bint skipna=True):
+    """Cumulative product of columns of `values`, in row groups `labels`.
+
+    Parameters
+    ----------
+    out : float64 array
+        Array to store cumprod in.
+    values : float64 array
+        Values to take cumprod of.
+    labels : int64 array
+        Labels to group by.
+    ngroups : int
+        Number of groups, larger than all entries of `labels`.
+    is_datetimelike : bool
+        Always false, `values` is never datetime-like.
+    skipna : bool
+        If true, ignore nans in `values`.
+
+    Notes
+    -----
+    This method modifies the `out` parameter, rather than returning an object.
     """
-    Only transforms on axis=0
-    """
+
     cdef:
         Py_ssize_t i, j, N, K, size
         float64_t val
@@ -154,7 +172,7 @@ def group_cumprod_float64(float64_t[:, :] out,
         int64_t lab
 
     N, K = (<object>values).shape
-    accum = np.ones_like(values)
+    accum = np.ones((ngroups, K), dtype=np.float64)
 
     with nogil:
         for i in range(N):
@@ -179,11 +197,31 @@ def group_cumprod_float64(float64_t[:, :] out,
 def group_cumsum(numeric[:, :] out,
                  numeric[:, :] values,
                  const int64_t[:] labels,
+                 int ngroups,
                  is_datetimelike,
                  bint skipna=True):
+    """Cumulative sum of columns of `values`, in row groups `labels`.
+
+    Parameters
+    ----------
+    out : array
+        Array to store cumsum in.
+    values : array
+        Values to take cumsum of.
+    labels : int64 array
+        Labels to group by.
+    ngroups : int
+        Number of groups, larger than all entries of `labels`.
+    is_datetimelike : bool
+        True if `values` contains datetime-like entries.
+    skipna : bool
+        If true, ignore nans in `values`.
+
+    Notes
+    -----
+    This method modifies the `out` parameter, rather than returning an object.
     """
-    Only transforms on axis=0
-    """
+
     cdef:
         Py_ssize_t i, j, N, K, size
         numeric val
@@ -191,7 +229,7 @@ def group_cumsum(numeric[:, :] out,
         int64_t lab
 
     N, K = (<object>values).shape
-    accum = np.zeros_like(values)
+    accum = np.zeros((ngroups, K), dtype=np.asarray(values).dtype)
 
     with nogil:
         for i in range(N):
@@ -222,7 +260,7 @@ def group_shift_indexer(int64_t[:] out, const int64_t[:] labels,
                         int ngroups, int periods):
     cdef:
         Py_ssize_t N, i, j, ii
-        int offset, sign
+        int offset = 0, sign
         int64_t lab, idxer, idxer_slot
         int64_t[:] label_seen = np.zeros(ngroups, dtype=np.int64)
         int64_t[:, :] label_indexer

@@ -1,0 +1,549 @@
+"""
+Constructor functions intended to be shared by pd.array, Series.__init__,
+and Index.__new__.
+
+These should not depend on core.internals.
+"""
+from typing import Optional, Sequence, Union, cast
+
+import numpy as np
+import numpy.ma as ma
+
+from pandas._libs import lib, tslibs
+from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
+
+from pandas.core.dtypes.cast import (
+    construct_1d_arraylike_from_scalar,
+    construct_1d_ndarray_preserving_na,
+    construct_1d_object_array_from_listlike,
+    infer_dtype_from_scalar,
+    maybe_cast_to_datetime,
+    maybe_cast_to_integer_array,
+    maybe_castable,
+    maybe_convert_platform,
+    maybe_upcast,
+)
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_datetime64_ns_dtype,
+    is_extension_array_dtype,
+    is_extension_type,
+    is_float_dtype,
+    is_integer_dtype,
+    is_iterator,
+    is_list_like,
+    is_object_dtype,
+    is_timedelta64_ns_dtype,
+    pandas_dtype,
+)
+from pandas.core.dtypes.dtypes import ExtensionDtype, registry
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndexClass,
+    ABCPandasArray,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import isna
+
+import pandas.core.common as com
+
+
+def array(
+    data: Sequence[object],
+    dtype: Optional[Union[str, np.dtype, ExtensionDtype]] = None,
+    copy: bool = True,
+) -> ABCExtensionArray:
+    """
+    Create an array.
+
+    .. versionadded:: 0.24.0
+
+    Parameters
+    ----------
+    data : Sequence of objects
+        The scalars inside `data` should be instances of the
+        scalar type for `dtype`. It's expected that `data`
+        represents a 1-dimensional array of data.
+
+        When `data` is an Index or Series, the underlying array
+        will be extracted from `data`.
+
+    dtype : str, np.dtype, or ExtensionDtype, optional
+        The dtype to use for the array. This may be a NumPy
+        dtype or an extension type registered with pandas using
+        :meth:`pandas.api.extensions.register_extension_dtype`.
+
+        If not specified, there are two possibilities:
+
+        1. When `data` is a :class:`Series`, :class:`Index`, or
+           :class:`ExtensionArray`, the `dtype` will be taken
+           from the data.
+        2. Otherwise, pandas will attempt to infer the `dtype`
+           from the data.
+
+        Note that when `data` is a NumPy array, ``data.dtype`` is
+        *not* used for inferring the array type. This is because
+        NumPy cannot represent all the types of data that can be
+        held in extension arrays.
+
+        Currently, pandas will infer an extension dtype for sequences of
+
+        ============================== =====================================
+        Scalar Type                    Array Type
+        ============================== =====================================
+        :class:`pandas.Interval`       :class:`pandas.arrays.IntervalArray`
+        :class:`pandas.Period`         :class:`pandas.arrays.PeriodArray`
+        :class:`datetime.datetime`     :class:`pandas.arrays.DatetimeArray`
+        :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
+        ============================== =====================================
+
+        For all other cases, NumPy's usual inference rules will be used.
+
+    copy : bool, default True
+        Whether to copy the data, even if not necessary. Depending
+        on the type of `data`, creating the new array may require
+        copying data, even if ``copy=False``.
+
+    Returns
+    -------
+    ExtensionArray
+        The newly created array.
+
+    Raises
+    ------
+    ValueError
+        When `data` is not 1-dimensional.
+
+    See Also
+    --------
+    numpy.array : Construct a NumPy array.
+    Series : Construct a pandas Series.
+    Index : Construct a pandas Index.
+    arrays.PandasArray : ExtensionArray wrapping a NumPy array.
+    Series.array : Extract the array stored within a Series.
+
+    Notes
+    -----
+    Omitting the `dtype` argument means pandas will attempt to infer the
+    best array type from the values in the data. As new array types are
+    added by pandas and 3rd party libraries, the "best" array type may
+    change. We recommend specifying `dtype` to ensure that
+
+    1. the correct array type for the data is returned
+    2. the returned array type doesn't change as new extension types
+       are added by pandas and third-party libraries
+
+    Additionally, if the underlying memory representation of the returned
+    array matters, we recommend specifying the `dtype` as a concrete object
+    rather than a string alias or allowing it to be inferred. For example,
+    a future version of pandas or a 3rd-party library may include a
+    dedicated ExtensionArray for string data. In this event, the following
+    would no longer return a :class:`arrays.PandasArray` backed by a NumPy
+    array.
+
+    >>> pd.array(['a', 'b'], dtype=str)
+    <PandasArray>
+    ['a', 'b']
+    Length: 2, dtype: str32
+
+    This would instead return the new ExtensionArray dedicated for string
+    data. If you really need the new array to be backed by a  NumPy array,
+    specify that in the dtype.
+
+    >>> pd.array(['a', 'b'], dtype=np.dtype("<U1"))
+    <PandasArray>
+    ['a', 'b']
+    Length: 2, dtype: str32
+
+    Or use the dedicated constructor for the array you're expecting, and
+    wrap that in a PandasArray
+
+    >>> pd.array(np.array(['a', 'b'], dtype='<U1'))
+    <PandasArray>
+    ['a', 'b']
+    Length: 2, dtype: str32
+
+    Finally, Pandas has arrays that mostly overlap with NumPy
+
+      * :class:`arrays.DatetimeArray`
+      * :class:`arrays.TimedeltaArray`
+
+    When data with a ``datetime64[ns]`` or ``timedelta64[ns]`` dtype is
+    passed, pandas will always return a ``DatetimeArray`` or ``TimedeltaArray``
+    rather than a ``PandasArray``. This is for symmetry with the case of
+    timezone-aware data, which NumPy does not natively support.
+
+    >>> pd.array(['2015', '2016'], dtype='datetime64[ns]')
+    <DatetimeArray>
+    ['2015-01-01 00:00:00', '2016-01-01 00:00:00']
+    Length: 2, dtype: datetime64[ns]
+
+    >>> pd.array(["1H", "2H"], dtype='timedelta64[ns]')
+    <TimedeltaArray>
+    ['01:00:00', '02:00:00']
+    Length: 2, dtype: timedelta64[ns]
+
+    Examples
+    --------
+    If a dtype is not specified, `data` is passed through to
+    :meth:`numpy.array`, and a :class:`arrays.PandasArray` is returned.
+
+    >>> pd.array([1, 2])
+    <PandasArray>
+    [1, 2]
+    Length: 2, dtype: int64
+
+    Or the NumPy dtype can be specified
+
+    >>> pd.array([1, 2], dtype=np.dtype("int32"))
+    <PandasArray>
+    [1, 2]
+    Length: 2, dtype: int32
+
+    You can use the string alias for `dtype`
+
+    >>> pd.array(['a', 'b', 'a'], dtype='category')
+    [a, b, a]
+    Categories (2, object): [a, b]
+
+    Or specify the actual dtype
+
+    >>> pd.array(['a', 'b', 'a'],
+    ...          dtype=pd.CategoricalDtype(['a', 'b', 'c'], ordered=True))
+    [a, b, a]
+    Categories (3, object): [a < b < c]
+
+    Because omitting the `dtype` passes the data through to NumPy,
+    a mixture of valid integers and NA will return a floating-point
+    NumPy array.
+
+    >>> pd.array([1, 2, np.nan])
+    <PandasArray>
+    [1.0,  2.0, nan]
+    Length: 3, dtype: float64
+
+    To use pandas' nullable :class:`pandas.arrays.IntegerArray`, specify
+    the dtype:
+
+    >>> pd.array([1, 2, np.nan], dtype='Int64')
+    <IntegerArray>
+    [1, 2, NaN]
+    Length: 3, dtype: Int64
+
+    Pandas will infer an ExtensionArray for some types of data:
+
+    >>> pd.array([pd.Period('2000', freq="D"), pd.Period("2000", freq="D")])
+    <PeriodArray>
+    ['2000-01-01', '2000-01-01']
+    Length: 2, dtype: period[D]
+
+    `data` must be 1-dimensional. A ValueError is raised when the input
+    has the wrong dimensionality.
+
+    >>> pd.array(1)
+    Traceback (most recent call last):
+      ...
+    ValueError: Cannot pass scalar '1' to 'pandas.array'.
+    """
+    from pandas.core.arrays import (
+        period_array,
+        IntervalArray,
+        PandasArray,
+        DatetimeArray,
+        TimedeltaArray,
+    )
+
+    if lib.is_scalar(data):
+        msg = "Cannot pass scalar '{}' to 'pandas.array'."
+        raise ValueError(msg.format(data))
+
+    data = extract_array(data, extract_numpy=True)
+
+    if dtype is None and isinstance(data, ABCExtensionArray):
+        dtype = data.dtype
+
+    # this returns None for not-found dtypes.
+    if isinstance(dtype, str):
+        dtype = registry.find(dtype) or dtype
+
+    if is_extension_array_dtype(dtype):
+        cls = cast(ExtensionDtype, dtype).construct_array_type()
+        return cls._from_sequence(data, dtype=dtype, copy=copy)
+
+    if dtype is None:
+        inferred_dtype = lib.infer_dtype(data, skipna=False)
+        if inferred_dtype == "period":
+            try:
+                return period_array(data, copy=copy)
+            except tslibs.IncompatibleFrequency:
+                # We may have a mixture of frequencies.
+                # We choose to return an ndarray, rather than raising.
+                pass
+        elif inferred_dtype == "interval":
+            try:
+                return IntervalArray(data, copy=copy)
+            except ValueError:
+                # We may have a mixture of `closed` here.
+                # We choose to return an ndarray, rather than raising.
+                pass
+
+        elif inferred_dtype.startswith("datetime"):
+            # datetime, datetime64
+            try:
+                return DatetimeArray._from_sequence(data, copy=copy)
+            except ValueError:
+                # Mixture of timezones, fall back to PandasArray
+                pass
+
+        elif inferred_dtype.startswith("timedelta"):
+            # timedelta, timedelta64
+            return TimedeltaArray._from_sequence(data, copy=copy)
+
+        # TODO(BooleanArray): handle this type
+
+    # Pandas overrides NumPy for
+    #   1. datetime64[ns]
+    #   2. timedelta64[ns]
+    # so that a DatetimeArray is returned.
+    if is_datetime64_ns_dtype(dtype):
+        return DatetimeArray._from_sequence(data, dtype=dtype, copy=copy)
+    elif is_timedelta64_ns_dtype(dtype):
+        return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
+
+    result = PandasArray._from_sequence(data, dtype=dtype, copy=copy)
+    return result
+
+
+def extract_array(obj, extract_numpy=False):
+    """
+    Extract the ndarray or ExtensionArray from a Series or Index.
+
+    For all other types, `obj` is just returned as is.
+
+    Parameters
+    ----------
+    obj : object
+        For Series / Index, the underlying ExtensionArray is unboxed.
+        For Numpy-backed ExtensionArrays, the ndarray is extracted.
+
+    extract_numpy : bool, default False
+        Whether to extract the ndarray from a PandasArray
+
+    Returns
+    -------
+    arr : object
+
+    Examples
+    --------
+    >>> extract_array(pd.Series(['a', 'b', 'c'], dtype='category'))
+    [a, b, c]
+    Categories (3, object): [a, b, c]
+
+    Other objects like lists, arrays, and DataFrames are just passed through.
+
+    >>> extract_array([1, 2, 3])
+    [1, 2, 3]
+
+    For an ndarray-backed Series / Index a PandasArray is returned.
+
+    >>> extract_array(pd.Series([1, 2, 3]))
+    <PandasArray>
+    [1, 2, 3]
+    Length: 3, dtype: int64
+
+    To extract all the way down to the ndarray, pass ``extract_numpy=True``.
+
+    >>> extract_array(pd.Series([1, 2, 3]), extract_numpy=True)
+    array([1, 2, 3])
+    """
+    if isinstance(obj, (ABCIndexClass, ABCSeries)):
+        obj = obj.array
+
+    if extract_numpy and isinstance(obj, ABCPandasArray):
+        obj = obj.to_numpy()
+
+    return obj
+
+
+def sanitize_array(data, index, dtype=None, copy=False, raise_cast_failure=False):
+    """
+    Sanitize input data to an ndarray, copy if specified, coerce to the
+    dtype if specified.
+    """
+    if dtype is not None:
+        dtype = pandas_dtype(dtype)
+
+    if isinstance(data, ma.MaskedArray):
+        mask = ma.getmaskarray(data)
+        if mask.any():
+            data, fill_value = maybe_upcast(data, copy=True)
+            data.soften_mask()  # set hardmask False if it was True
+            data[mask] = fill_value
+        else:
+            data = data.copy()
+
+    # extract ndarray or ExtensionArray, ensure we have no PandasArray
+    data = extract_array(data, extract_numpy=True)
+
+    # GH#846
+    if isinstance(data, np.ndarray):
+
+        if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
+            # possibility of nan -> garbage
+            try:
+                subarr = _try_cast(data, dtype, copy, True)
+            except ValueError:
+                if copy:
+                    subarr = data.copy()
+                else:
+                    subarr = np.array(data, copy=False)
+        else:
+            # we will try to copy be-definition here
+            subarr = _try_cast(data, dtype, copy, raise_cast_failure)
+
+    elif isinstance(data, ABCExtensionArray):
+        # it is already ensured above this is not a PandasArray
+        subarr = data
+
+        if dtype is not None:
+            subarr = subarr.astype(dtype, copy=copy)
+        elif copy:
+            subarr = subarr.copy()
+        return subarr
+
+    elif isinstance(data, (list, tuple)) and len(data) > 0:
+        if dtype is not None:
+            try:
+                subarr = _try_cast(data, dtype, copy, raise_cast_failure)
+            except Exception:
+                if raise_cast_failure:  # pragma: no cover
+                    raise
+                subarr = np.array(data, dtype=object, copy=copy)
+                subarr = lib.maybe_convert_objects(subarr)
+
+        else:
+            subarr = maybe_convert_platform(data)
+
+        subarr = maybe_cast_to_datetime(subarr, dtype)
+
+    elif isinstance(data, range):
+        # GH#16804
+        arr = np.arange(data.start, data.stop, data.step, dtype="int64")
+        subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
+    else:
+        subarr = _try_cast(data, dtype, copy, raise_cast_failure)
+
+    # scalar like, GH
+    if getattr(subarr, "ndim", 0) == 0:
+        if isinstance(data, list):  # pragma: no cover
+            subarr = np.array(data, dtype=object)
+        elif index is not None:
+            value = data
+
+            # figure out the dtype from the value (upcast if necessary)
+            if dtype is None:
+                dtype, value = infer_dtype_from_scalar(value)
+            else:
+                # need to possibly convert the value here
+                value = maybe_cast_to_datetime(value, dtype)
+
+            subarr = construct_1d_arraylike_from_scalar(value, len(index), dtype)
+
+        else:
+            return subarr.item()
+
+    # the result that we want
+    elif subarr.ndim == 1:
+        if index is not None:
+
+            # a 1-element ndarray
+            if len(subarr) != len(index) and len(subarr) == 1:
+                subarr = construct_1d_arraylike_from_scalar(
+                    subarr[0], len(index), subarr.dtype
+                )
+
+    elif subarr.ndim > 1:
+        if isinstance(data, np.ndarray):
+            raise Exception("Data must be 1-dimensional")
+        else:
+            subarr = com.asarray_tuplesafe(data, dtype=dtype)
+
+    if not (is_extension_array_dtype(subarr.dtype) or is_extension_array_dtype(dtype)):
+        # This is to prevent mixed-type Series getting all casted to
+        # NumPy string type, e.g. NaN --> '-1#IND'.
+        if issubclass(subarr.dtype.type, str):
+            # GH#16605
+            # If not empty convert the data to dtype
+            # GH#19853: If data is a scalar, subarr has already the result
+            if not lib.is_scalar(data):
+                if not np.all(isna(data)):
+                    data = np.array(data, dtype=dtype, copy=False)
+                subarr = np.array(data, dtype=object, copy=copy)
+
+        if is_object_dtype(subarr.dtype) and not is_object_dtype(dtype):
+            inferred = lib.infer_dtype(subarr, skipna=False)
+            if inferred == "period":
+                from pandas.core.arrays import period_array
+
+                try:
+                    subarr = period_array(subarr)
+                except IncompatibleFrequency:
+                    pass
+
+    return subarr
+
+
+def _try_cast(arr, dtype, copy, raise_cast_failure):
+    """
+    Convert input to numpy ndarray and optionally cast to a given dtype.
+
+    Parameters
+    ----------
+    arr : array-like
+    dtype : np.dtype, ExtensionDtype or None
+    copy : bool
+        If False, don't copy the data if not needed.
+    raise_cast_failure : bool
+        If True, and if a dtype is specified, raise errors during casting.
+        Otherwise an object array is returned.
+    """
+    # perf shortcut as this is the most common case
+    if isinstance(arr, np.ndarray):
+        if maybe_castable(arr) and not copy and dtype is None:
+            return arr
+
+    try:
+        # GH#15832: Check if we are requesting a numeric dype and
+        # that we can convert the data to the requested dtype.
+        if is_integer_dtype(dtype):
+            subarr = maybe_cast_to_integer_array(arr, dtype)
+
+        subarr = maybe_cast_to_datetime(arr, dtype)
+        # Take care in creating object arrays (but iterators are not
+        # supported):
+        if is_object_dtype(dtype) and (
+            is_list_like(subarr)
+            and not (is_iterator(subarr) or isinstance(subarr, np.ndarray))
+        ):
+            subarr = construct_1d_object_array_from_listlike(subarr)
+        elif not is_extension_type(subarr):
+            subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
+    except OutOfBoundsDatetime:
+        # in case of out of bound datetime64 -> always raise
+        raise
+    except (ValueError, TypeError):
+        if is_categorical_dtype(dtype):
+            # We *do* allow casting to categorical, since we know
+            # that Categorical is the only array type for 'category'.
+            subarr = dtype.construct_array_type()(
+                arr, dtype.categories, ordered=dtype._ordered
+            )
+        elif is_extension_array_dtype(dtype):
+            # create an extension array from its dtype
+            array_type = dtype.construct_array_type()._from_sequence
+            subarr = array_type(arr, dtype=dtype, copy=copy)
+        elif dtype is not None and raise_cast_failure:
+            raise
+        else:
+            subarr = np.array(arr, dtype=object, copy=copy)
+    return subarr

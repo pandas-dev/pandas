@@ -3,7 +3,7 @@
 {{ header }}
 
 ********************
-Options and Settings
+Options and settings
 ********************
 
 Overview
@@ -68,7 +68,7 @@ with no argument ``describe_option`` will print out the descriptions for all ava
 
    pd.reset_option("all")
 
-Getting and Setting Options
+Getting and setting options
 ---------------------------
 
 As described above, :func:`~pandas.get_option` and :func:`~pandas.set_option`
@@ -120,10 +120,10 @@ are restored automatically when you exit the `with` block:
    print(pd.get_option("display.max_columns"))
 
 
-Setting Startup Options in python/ipython Environment
+Setting startup options in Python/IPython environment
 -----------------------------------------------------
 
-Using startup scripts for the python/ipython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default ipython profile can be found at:
+Using startup scripts for the Python/IPython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default ipython profile can be found at:
 
 .. code-block:: none
 
@@ -156,6 +156,22 @@ lines are replaced by an ellipsis.
    pd.set_option('max_rows', 5)
    df
    pd.reset_option('max_rows')
+
+Once the ``display.max_rows`` is exceeded, the ``display.min_rows`` options
+determines how many rows are shown in the truncated repr.
+
+.. ipython:: python
+
+   pd.set_option('max_rows', 8)
+   pd.set_option('max_rows', 4)
+   # below max_rows -> all rows shown
+   df = pd.DataFrame(np.random.randn(7, 2))
+   df
+   # above max_rows -> only min_rows (4) rows shown
+   df = pd.DataFrame(np.random.randn(9, 2))
+   df
+   pd.reset_option('max_rows')
+   pd.reset_option('min_rows')
 
 ``display.expand_frame_repr`` allows for the representation of
 dataframes to stretch across pages, wrapped over the full column vs row-wise.
@@ -266,7 +282,7 @@ The options are 'right', and 'left'.
 
 .. _options.available:
 
-Available Options
+Available options
 -----------------
 
 ======================================= ============ ==================================
@@ -352,8 +368,12 @@ display.max_rows                        60           This sets the maximum numbe
                                                      out various output. For example,
                                                      this value determines whether the
                                                      repr() for a dataframe prints out
-                                                     fully or just a summary repr.
+                                                     fully or just a truncated or summary repr.
                                                      'None' value means unlimited.
+display.min_rows                        10           The numbers of rows to show in a truncated
+                                                     repr (when `max_rows` is exceeded). Ignored
+                                                     when `max_rows` is set to None or 0. When set
+                                                     to None, follows the value of `max_rows`.
 display.max_seq_items                   100          when pretty-printing a long sequence,
                                                      no more then `max_seq_items` will
                                                      be printed. If items are omitted,
@@ -431,6 +451,12 @@ compute.use_bottleneck                  True         Use the bottleneck library 
                                                      computation if it is installed.
 compute.use_numexpr                     True         Use the numexpr library to accelerate
                                                      computation if it is installed.
+plotting.backend                        matplotlib   Change the plotting backend to a different
+                                                     backend than the current matplotlib one.
+                                                     Backends can be implemented as third-party
+                                                     libraries implementing the pandas plotting
+                                                     API. They can use other plotting libraries
+                                                     like Bokeh, Altair, etc.
 plotting.matplotlib.register_converters True         Register custom converters with
                                                      matplotlib. Set to False to de-register.
 ======================================= ============ ==================================
@@ -438,7 +464,7 @@ plotting.matplotlib.register_converters True         Register custom converters 
 
 .. _basics.console_output:
 
-Number Formatting
+Number formatting
 ------------------
 
 pandas also allows you to set how numbers are displayed in the console.
@@ -469,7 +495,7 @@ To round floats on a case-by-case basis, you can also use :meth:`~pandas.Series.
 
 .. _options.east_asian_width:
 
-Unicode Formatting
+Unicode formatting
 ------------------
 
 .. warning::
@@ -484,7 +510,7 @@ If a DataFrame or Series contains these characters, the default output mode may 
 
 .. ipython:: python
 
-   df = pd.DataFrame({u'国籍': ['UK', u'日本'], u'名前': ['Alice', u'しのぶ']})
+   df = pd.DataFrame({'国籍': ['UK', '日本'], '名前': ['Alice', 'しのぶ']})
    df
 
 .. image:: ../_static/option_unicode01.png
@@ -507,7 +533,7 @@ By default, an "Ambiguous" character's width, such as "¡" (inverted exclamation
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a': ['xxx', u'¡¡'], 'b': ['yyy', u'¡¡']})
+   df = pd.DataFrame({'a': ['xxx', '¡¡'], 'b': ['yyy', '¡¡']})
    df
 
 .. image:: ../_static/option_unicode03.png
@@ -532,7 +558,7 @@ However, setting this option incorrectly for your terminal will cause these char
 
 .. _options.table_schema:
 
-Table Schema Display
+Table schema display
 --------------------
 
 .. versionadded:: 0.20.0

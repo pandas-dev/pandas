@@ -6,11 +6,9 @@ import warnings
 
 import numpy as np
 
-from pandas.compat import range, zip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import compat
 import pandas.core.common as com
 from pandas.core.computation.common import _result_type_many
 
@@ -20,25 +18,23 @@ def _align_core_single_unary_op(term):
         typ = partial(np.asanyarray, dtype=term.value.dtype)
     else:
         typ = type(term.value)
-    ret = typ,
+    ret = (typ,)
 
-    if not hasattr(term.value, 'axes'):
-        ret += None,
+    if not hasattr(term.value, "axes"):
+        ret += (None,)
     else:
-        ret += _zip_axes_from_type(typ, term.value.axes),
+        ret += (_zip_axes_from_type(typ, term.value.axes),)
     return ret
 
 
 def _zip_axes_from_type(typ, new_axes):
-    axes = {ax_name: new_axes[ax_ind]
-            for ax_ind, ax_name in compat.iteritems(typ._AXIS_NAMES)}
+    axes = {ax_name: new_axes[ax_ind] for ax_ind, ax_name in typ._AXIS_NAMES.items()}
     return axes
 
 
 def _any_pandas_objects(terms):
     """Check a sequence of terms for instances of PandasObject."""
-    return any(isinstance(term.value, pd.core.generic.PandasObject)
-               for term in terms)
+    return any(isinstance(term.value, pd.core.generic.PandasObject) for term in terms)
 
 
 def _filter_special_cases(f):
@@ -55,13 +51,13 @@ def _filter_special_cases(f):
             return _result_type_many(*term_values), None
 
         return f(terms)
+
     return wrapper
 
 
 @_filter_special_cases
 def _align_core(terms):
-    term_index = [i for i, term in enumerate(terms)
-                  if hasattr(term.value, 'axes')]
+    term_index = [i for i, term in enumerate(terms) if hasattr(term.value, "axes")]
     term_dims = [terms[i].value.ndim for i in term_index]
     ndims = pd.Series(dict(zip(term_index, term_dims)))
 
@@ -83,13 +79,13 @@ def _align_core(terms):
                 ax, itm = axis, items
 
             if not axes[ax].is_(itm):
-                axes[ax] = axes[ax].join(itm, how='outer')
+                axes[ax] = axes[ax].join(itm, how="outer")
 
-    for i, ndim in compat.iteritems(ndims):
+    for i, ndim in ndims.items():
         for axis, items in zip(range(ndim), axes):
             ti = terms[i].value
 
-            if hasattr(ti, 'reindex'):
+            if hasattr(ti, "reindex"):
                 transpose = isinstance(ti, pd.Series) and naxes > 1
                 reindexer = axes[naxes - 1] if transpose else items
 
@@ -98,10 +94,11 @@ def _align_core(terms):
 
                 ordm = np.log10(max(1, abs(reindexer_size - term_axis_size)))
                 if ordm >= 1 and reindexer_size >= 10000:
-                    w = ('Alignment difference on axis {axis} is larger '
-                         'than an order of magnitude on term {term!r}, by '
-                         'more than {ordm:.4g}; performance may suffer'
-                         ).format(axis=axis, term=terms[i].name, ordm=ordm)
+                    w = (
+                        "Alignment difference on axis {axis} is larger "
+                        "than an order of magnitude on term {term!r}, by "
+                        "more than {ordm:.4g}; performance may suffer"
+                    ).format(axis=axis, term=terms[i].name, ordm=ordm)
                     warnings.warn(w, category=PerformanceWarning, stacklevel=6)
 
                 f = partial(ti.reindex, reindexer, axis=axis, copy=False)
@@ -160,12 +157,11 @@ def _reconstruct_object(typ, obj, axes, dtype):
 
     res_t = np.result_type(obj.dtype, dtype)
 
-    if (not isinstance(typ, partial) and
-            issubclass(typ, pd.core.generic.PandasObject)):
+    if not isinstance(typ, partial) and issubclass(typ, pd.core.generic.PandasObject):
         return typ(obj, dtype=res_t, **axes)
 
     # special case for pathological things like ~True/~False
-    if hasattr(res_t, 'type') and typ == np.bool_ and res_t != np.bool_:
+    if hasattr(res_t, "type") and typ == np.bool_ and res_t != np.bool_:
         ret_value = res_t.type(obj)
     else:
         ret_value = typ(obj).astype(res_t)

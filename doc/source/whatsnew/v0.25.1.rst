@@ -1,0 +1,167 @@
+.. _whatsnew_0251:
+
+What's new in 0.25.1 (July XX, 2019)
+------------------------------------
+
+Enhancements
+~~~~~~~~~~~~
+
+
+.. _whatsnew_0251.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+.. _whatsnew_0251.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+
+Categorical
+^^^^^^^^^^^
+
+-
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+- Bug in :func:`to_datetime` where passing a timezone-naive :class:`DatetimeArray` or :class:`DatetimeIndex` and ``utc=True`` would incorrectly return a timezone-naive result (:issue:`27733`)
+-
+-
+-
+
+Timedelta
+^^^^^^^^^
+
+-
+-
+-
+
+Timezones
+^^^^^^^^^
+
+- Bug in :class:`Index` where a numpy object array with a timezone aware :class:`Timestamp` and ``np.nan`` would not return a :class:`DatetimeIndex` (:issue:`27011`)
+-
+-
+
+Numeric
+^^^^^^^
+- Bug in :meth:`Series.interpolate` when using a timezone aware :class:`DatetimeIndex` (:issue:`27548`)
+- Bug when printing negative floating point complex numbers would raise an ``IndexError`` (:issue:`27484`)
+-
+-
+
+Conversion
+^^^^^^^^^^
+
+- Improved the warnings for the deprecated methods :meth:`Series.real` and :meth:`Series.imag` (:issue:`27610`)
+-
+-
+
+Strings
+^^^^^^^
+
+-
+-
+-
+
+
+Interval
+^^^^^^^^
+- Bug in :class:`IntervalIndex` where `dir(obj)` would raise ``ValueError`` (:issue:`27571`)
+-
+-
+-
+
+Indexing
+^^^^^^^^
+
+- Bug in partial-string indexing returning a NumPy array rather than a ``Series`` when indexing with a scalar like ``.loc['2015']`` (:issue:`27516`)
+-
+-
+
+Missing
+^^^^^^^
+
+-
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+
+-
+-
+-
+
+I/O
+^^^
+
+-
+-
+-
+
+Plotting
+^^^^^^^^
+
+- Added a pandas_plotting_backends entrypoint group for registering plot backends. See :ref:`extending.plotting-backends` for more (:issue:`26747`).
+-
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
+- Bug in windowing over read-only arrays (:issue:`27766`)
+-
+-
+
+Reshaping
+^^^^^^^^^
+
+- A ``KeyError`` is now raised if ``.unstack()`` is called on a :class:`Series` or :class:`DataFrame` with a flat :class:`Index` passing a name which is not the correct one (:issue:`18303`)
+-  Bug in :meth:`DataFrame.crosstab` when ``margins`` set to ``True`` and ``normalize`` is not ``False``, an error is raised. (:issue:`27500`)
+- :meth:`DataFrame.join` now suppresses the ``FutureWarning`` when the sort parameter is specified (:issue:`21952`)
+-
+
+Sparse
+^^^^^^
+
+-
+-
+-
+
+
+Build Changes
+^^^^^^^^^^^^^
+
+-
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+
+-
+-
+-
+
+Other
+^^^^^
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when replacing timezone-aware timestamps using a dict-like replacer (:issue:`27720`)
+-
+-
+-
+
+.. _whatsnew_0.251.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.25.0..HEAD
