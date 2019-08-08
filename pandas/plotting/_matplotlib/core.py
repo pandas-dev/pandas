@@ -556,14 +556,14 @@ class MPLPlot:
         if not self.subplots:
             handles, labels = ax.get_legend_handles_labels()
 
-            if self.secondary_y:
-                handles = self.legend_handles
-                labels = self.legend_labels
-
             if leg is not None:
                 title = leg.get_title().get_text()
 
             if self.legend:
+                if self.secondary_y:
+                    handles = self.legend_handles
+                    labels = self.legend_labels
+
                 if self.legend == "reverse":
                     self.legend_handles = reversed(self.legend_handles)
                     self.legend_labels = reversed(self.legend_labels)
@@ -571,8 +571,8 @@ class MPLPlot:
                 if self.legend_title is not None:
                     title = self.legend_title
 
-            if len(handles) > 0:
-                ax.legend(handles, labels, loc="best", title=title)
+                if len(handles) > 0:
+                    ax.legend(handles, labels, loc="best", title=title)
 
         elif self.subplots and self.legend:
             for ax in self.axes:
