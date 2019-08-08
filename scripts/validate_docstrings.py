@@ -496,14 +496,12 @@ class Docstring:
 
         Each line of the parameter docstring is a string in the list.
         """
-        i = list(self.doc_parameters).index(param)
-        desc_list = [line
-                     # The 'Parameters' value of NumpyDocString._parsed_data is
-                     # a list of tuples. Each tuple represents a parameter
-                     # docstring parameter and has the description of
-                     # the parameter as last element.
-                     for line in self.doc._parsed_data['Parameters'][i][-1]
-                     if line]
+        # The 'Parameters' value of NumpyDocString._parsed_data is a list of
+        # NamedTuples.
+        parsed_param = [
+            p for p in self.doc._parsed_data["Parameters"] if p.name == param
+        ][0]
+        desc_list = [line for line in parsed_param.desc if line]
         # Find and strip out any sphinx directives
         directives_pattern = re.compile('.. ({})'.format('|'.join(DIRECTIVES)))
         for desc_item in desc_list:
