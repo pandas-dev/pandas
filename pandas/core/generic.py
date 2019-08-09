@@ -4786,7 +4786,7 @@ class NDFrame(PandasObject, SelectionMixin):
         frac : float, optional
             Fraction of axis items to return. Cannot be used with `n`.
         replace : bool, default False
-            Sample with or without replacement.
+            Allow or disallow sampling of the same row more than once.
         weights : str or ndarray-like, optional
             Default 'None' results in equal probability weighting.
             If passed a Series, will align with target object on index. Index
