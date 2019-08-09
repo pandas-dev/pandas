@@ -417,21 +417,15 @@ class TestPandasContainer:
         unser = read_json(df.to_json(), numpy=False, convert_axes=False, dtype=False)
         assert unser["2"]["0"] is None
 
-    def test_frame_infinity(self):
+    @pytest.mark.parametrize("inf", [np.inf, np.NINF])
+    @pytest.mark.parametrize("dtype", [True, False])
+    def test_frame_infinity(self, orient, inf, dtype):
         # infinities get mapped to nulls which get mapped to NaNs during
         # deserialisation
         df = DataFrame([[1, 2], [4, 5, 6]])
-        df.loc[0, 2] = np.inf
-        unser = read_json(df.to_json())
-        assert np.isnan(unser[2][0])
-        unser = read_json(df.to_json(), dtype=False)
-        assert np.isnan(unser[2][0])
-
-        df.loc[0, 2] = np.NINF
-        unser = read_json(df.to_json())
-        assert np.isnan(unser[2][0])
-        unser = read_json(df.to_json(), dtype=False)
-        assert np.isnan(unser[2][0])
+        df.loc[0, 2] = inf
+        result = read_json(df.to_json(), dtype=dtype)
+        assert np.isnan(result.iloc[0, 2])
 
     @pytest.mark.skipif(
         is_platform_32bit(), reason="not compliant on 32-bit, xref #15865"
