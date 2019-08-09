@@ -70,7 +70,8 @@ import pandas.core.common as com
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
-from pandas.core.ops import get_op_result_name, make_invalid_op
+from pandas.core.ops import get_op_result_name
+from pandas.core.ops.invalid import make_invalid_op
 import pandas.core.sorting as sorting
 from pandas.core.strings import StringMethods
 
@@ -690,7 +691,11 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _engine(self):
         # property, for now, slow to look up
-        return self._engine_type(lambda: self._ndarray_values, len(self))
+
+        # to avoid a refernce cycle, bind `_ndarray_values` to a local variable, so
+        # `self` is not passed into the lambda.
+        _ndarray_values = self._ndarray_values
+        return self._engine_type(lambda: _ndarray_values, len(self))
 
     # --------------------------------------------------------------------
     # Array-Like Methods
@@ -4713,7 +4718,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise
 
             try:
-                return libindex.get_value_box(s, key)
+                return libindex.get_value_at(s, key)
             except IndexError:
                 raise
             except TypeError:
@@ -5599,7 +5604,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a tuple of the shape of the underlying data.
         """
-        return (len(self),)
+        # not using "(len(self), )" to return "correct" shape if the values
+        # consists of a >1 D array (see GH-27775)
+        # overridden in MultiIndex.shape to avoid materializing the values
+        return self._values.shape
 
 
 Index._add_numeric_methods_disabled()

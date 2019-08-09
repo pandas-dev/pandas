@@ -361,50 +361,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     _interval_shared_docs[
-        "from_intervals"
-    ] = """
-    Construct an %(klass)s from a 1d array of Interval objects
-
-    .. deprecated:: 0.23.0
-
-    Parameters
-    ----------
-    data : array-like (1-dimensional)
-        Array of Interval objects. All intervals must be closed on the same
-        sides.
-    copy : boolean, default False
-        by-default copy the data, this is compat only and ignored
-    dtype : dtype or None, default None
-        If None, dtype will be inferred
-
-        ..versionadded:: 0.23.0
-
-    See Also
-    --------
-    interval_range : Function to create a fixed frequency IntervalIndex.
-    %(klass)s.from_arrays : Construct an %(klass)s from a left and
-                                right array.
-    %(klass)s.from_breaks : Construct an %(klass)s from an array of
-                                splits.
-    %(klass)s.from_tuples : Construct an %(klass)s from an
-                                array-like of tuples.
-
-    Examples
-    --------
-    >>> pd.%(qualname)s.from_intervals([pd.Interval(0, 1),
-    ...                                  pd.Interval(1, 2)])
-    %(klass)s([(0, 1], (1, 2]],
-                  closed='right', dtype='interval[int64]')
-
-    The generic Index constructor work identically when it infers an array
-    of all intervals:
-
-    >>> pd.Index([pd.Interval(0, 1), pd.Interval(1, 2)])
-    %(klass)s([(0, 1], (1, 2]],
-                  closed='right', dtype='interval[int64]')
-    """
-
-    _interval_shared_docs[
         "from_tuples"
     ] = """
     Construct an %(klass)s from an array-like of tuples
@@ -738,11 +694,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return isna(self.left)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self.left.nbytes + self.right.nbytes
 
     @property
-    def size(self):
+    def size(self) -> int:
         # Avoid materializing self.values
         return self.left.size
 

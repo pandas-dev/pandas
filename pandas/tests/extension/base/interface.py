@@ -94,3 +94,6 @@ class BaseInterfaceTests(BaseExtensionTests):
 
         result[1] = result[0]
         assert data[1] == data[0]
+
+        # check specifically that the `dtype` kwarg is accepted
+        data.view(dtype=None)

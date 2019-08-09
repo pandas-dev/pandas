@@ -127,7 +127,11 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
-            raise ValueError("'values' must be a NumPy array.")
+            raise ValueError(
+                "'values' must be a NumPy array, not {typ}".format(
+                    typ=type(values).__name__
+                )
+            )
 
         if values.ndim != 1:
             raise ValueError("PandasArray must be 1-dimensional.")
@@ -248,7 +252,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return self._ndarray.size
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self._ndarray.nbytes
 
     def isna(self):

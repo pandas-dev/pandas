@@ -82,7 +82,7 @@ class JSONArray(ExtensionArray):
             # fancy indexing
             return type(self)([self.data[i] for i in item])
         elif isinstance(item, slice) and item == slice(None):
-            # make sure we get a view
+            # Make sure we get a view
             return type(self)(self.data)
         else:
             # slice
@@ -112,7 +112,7 @@ class JSONArray(ExtensionArray):
         return len(self.data)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return sys.getsizeof(self.data)
 
     def isna(self):
