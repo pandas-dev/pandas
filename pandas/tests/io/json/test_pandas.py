@@ -161,7 +161,7 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_frame_from_json_to_json_simple(self, df_orient, convert_axes, numpy):
+    def test_roundtrip_simple(self, df_orient, convert_axes, numpy):
         data = self.frame.to_json(orient=df_orient)
         result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy)
 
@@ -181,7 +181,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
     @pytest.mark.parametrize("dtype", [None, np.float64, np.int, "U3"])
-    def test_frame_from_json_to_json_str_axes(self, df_orient, convert_axes, numpy, dtype):
+    def test_roundtrip_str_axes(self, df_orient, convert_axes, numpy, dtype):
         df = DataFrame(
             np.zeros((200, 4)),
             columns=[str(i) for i in range(4)],
