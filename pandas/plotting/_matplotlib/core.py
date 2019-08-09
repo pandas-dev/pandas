@@ -400,8 +400,10 @@ class MPLPlot:
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)
+
+        # GH22799, skip datetime type data for computation
         numeric_data = data.select_dtypes(
-            include=[np.number, "datetime", "datetimetz", "timedelta"]
+            include=[np.number, "datetimetz", "timedelta"]
         )
 
         try:
