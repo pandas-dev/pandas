@@ -919,7 +919,8 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             ts.to_json(date_format="iso", date_unit="foo")
 
-    def test_date_unit(self):
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_date_unit(self, unit):
         df = self.tsframe.copy()
         df["date"] = Timestamp("20130101 20:43:42")
         dl = df.columns.get_loc("date")
@@ -927,16 +928,15 @@ class TestPandasContainer:
         df.iloc[2, dl] = Timestamp("21460101 20:43:42")
         df.iloc[4, dl] = pd.NaT
 
-        for unit in ("s", "ms", "us", "ns"):
-            json = df.to_json(date_format="epoch", date_unit=unit)
+        json = df.to_json(date_format="epoch", date_unit=unit)
 
-            # force date unit
-            result = read_json(json, date_unit=unit)
-            assert_frame_equal(result, df)
+        # force date unit
+        result = read_json(json, date_unit=unit)
+        assert_frame_equal(result, df)
 
-            # detect date unit
-            result = read_json(json, date_unit=None)
-            assert_frame_equal(result, df)
+        # detect date unit
+        result = read_json(json, date_unit=None)
+        assert_frame_equal(result, df)
 
     def test_weird_nested_json(self):
         # this used to core dump the parser
