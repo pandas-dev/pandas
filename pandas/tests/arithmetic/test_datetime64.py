@@ -192,27 +192,6 @@ class TestDatetime64SeriesComparison:
 
         assert_invalid_comparison(ser, ser2, box_with_array)
 
-        # TODO: we can *almost* use assert_invalid_comparison, but that
-        #  doesn't check xbox yet
-        for (x, y) in [(ser, ser2), (ser2, ser)]:
-
-            result = x == y
-            expected = tm.box_expected([False] * 5, xbox)
-            tm.assert_equal(result, expected)
-
-            result = x != y
-            expected = tm.box_expected([True] * 5, xbox)
-            tm.assert_equal(result, expected)
-            msg = "Invalid comparison between"
-            with pytest.raises(TypeError, match=msg):
-                x >= y
-            with pytest.raises(TypeError, match=msg):
-                x > y
-            with pytest.raises(TypeError, match=msg):
-                x < y
-            with pytest.raises(TypeError, match=msg):
-                x <= y
-
     @pytest.mark.parametrize(
         "data",
         [
