@@ -1262,29 +1262,31 @@ class TestAsOfMerge:
         # GH 27642
 
         left = pd.DataFrame(
-            list(zip([0, 5, 10, 15, 20, 25],
-            [0, 1, 2, 3, 4, 5])),
-            columns=['time', 'left']
+            list(zip([0, 5, 10, 15, 20, 25], [0, 1, 2, 3, 4, 5])),
+            columns=["time", "left"],
         )
 
-        left['time'] = pd.to_timedelta(left['time'], "ms")
+        left["time"] = pd.to_timedelta(left["time"], "ms")
 
         right = pd.DataFrame(
-                list(zip([0, 3, 9, 12, 15, 18],
-                [0, 1, 2, 3, 4, 5])), 
-                columns=['time', 'right']
+            list(zip([0, 3, 9, 12, 15, 18], [0, 1, 2, 3, 4, 5])),
+            columns=["time", "right"],
         )
 
-        right['time'] = pd.to_timedelta(right['time'], "ms")
+        right["time"] = pd.to_timedelta(right["time"], "ms")
 
         expected = pd.DataFrame(
-            list(zip([0, 5, 10, 15, 20, 25],
-            [0, 1, 2, 3, 4, 5],
-            [0, np.nan, 2, 4, np.nan, np.nan])),
-            columns=['time', 'left', 'right']
+            list(
+                zip(
+                    [0, 5, 10, 15, 20, 25],
+                    [0, 1, 2, 3, 4, 5],
+                    [0, np.nan, 2, 4, np.nan, np.nan],
+                )
+            ),
+            columns=["time", "left", "right"],
         )
 
-        expected['time'] = pd.to_timedelta(expected['time'], "ms")
+        expected["time"] = pd.to_timedelta(expected["time"], "ms")
 
         result = pd.merge_asof(
             left, right, on="time", tolerance=Timedelta("1ms"), direction="nearest"
