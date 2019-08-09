@@ -171,7 +171,7 @@ class TestPandasContainer:
         expected = self.frame.copy()
 
         if orient == "index" and not numpy:
-            # Seems to be doing lexigraphic sorting here :-X
+            # TODO: debug why sort is required
             expected = expected.sort_index()
 
         if orient == "records" or orient == "values":
@@ -193,7 +193,6 @@ class TestPandasContainer:
         expected = self.intframe.copy()
 
         if orient == "index" and not numpy:
-            # Seems to be doing lexigraphic sorting here :-X
             expected = expected.sort_index()
 
         if orient == "records" or orient == "values":
@@ -227,7 +226,6 @@ class TestPandasContainer:
             expected = expected.astype(int)
 
         if orient == "index" and not numpy:
-            # Seems to be doing lexigraphic sorting here; definite bug
             expected = expected.sort_index()
 
         # index columns, and records orients cannot fully preserve the string
@@ -235,7 +233,7 @@ class TestPandasContainer:
         # JSON objects. JSON keys are by definition strings, so there's no way
         # to disambiguate whether those keys actually were strings or numeric
         # beforehand and numeric wins out.
-        # Split not being able to infer is probably a bug
+        # TODO: Split should be able to support this
         if convert_axes and (orient in ("split", "index", "columns")):
             expected.columns = expected.columns.astype(int)
             expected.index = expected.index.astype(int)
@@ -271,7 +269,6 @@ class TestPandasContainer:
         expected.index.name = None  # index names aren't preserved in JSON
 
         if orient == "index" and not numpy:
-            # Seems to be doing lexigraphic sorting here :-X
             expected = expected.sort_index()
 
         if orient == "records" or orient == "values":
@@ -347,7 +344,6 @@ class TestPandasContainer:
         expected = expected.assign(**expected.select_dtypes("number").astype(int))
 
         if orient == "index" and not numpy:
-            # Seems to be doing lexigraphic sorting here :-X
             expected = expected.sort_index()
 
         if orient == "records" or orient == "values":
