@@ -436,30 +436,13 @@ class TestPandasContainer:
     @pytest.mark.skipif(
         is_platform_32bit(), reason="not compliant on 32-bit, xref #15865"
     )
-    def test_frame_to_json_float_precision(self):
-        df = pd.DataFrame([dict(a_float=0.95)])
-        encoded = df.to_json(double_precision=1)
-        assert encoded == '{"a_float":{"0":1.0}}'
-
-        df = pd.DataFrame([dict(a_float=1.95)])
-        encoded = df.to_json(double_precision=1)
-        assert encoded == '{"a_float":{"0":2.0}}'
-
-        df = pd.DataFrame([dict(a_float=-1.95)])
-        encoded = df.to_json(double_precision=1)
-        assert encoded == '{"a_float":{"0":-2.0}}'
-
-        df = pd.DataFrame([dict(a_float=0.995)])
-        encoded = df.to_json(double_precision=2)
-        assert encoded == '{"a_float":{"0":1.0}}'
-
-        df = pd.DataFrame([dict(a_float=0.9995)])
-        encoded = df.to_json(double_precision=3)
-        assert encoded == '{"a_float":{"0":1.0}}'
-
-        df = pd.DataFrame([dict(a_float=0.99999999999999944)])
-        encoded = df.to_json(double_precision=15)
-        assert encoded == '{"a_float":{"0":1.0}}'
+    @pytest.mark.parametrize("value,precision,expected_val", [
+        (0.95, 1, 1.0), (1.95, 1, 2.0), (-1.95, 1, -2.0), (0.995, 2, 1.0),
+        (0.9995, 3, 1.0), (0.99999999999999944, 15, 1.0)])
+    def test_frame_to_json_float_precision(self, value, precision, expected_val):
+        df = pd.DataFrame([dict(a_float=value)])
+        encoded = df.to_json(double_precision=precision)
+        assert encoded == '{{"a_float":{{"0":{}}}}}'.format(expected_val)
 
     def test_frame_to_json_except(self):
         df = DataFrame([1, 2, 3])
