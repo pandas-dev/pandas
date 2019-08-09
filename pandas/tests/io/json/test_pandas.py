@@ -677,6 +677,9 @@ class TestPandasContainer:
         unser = read_json(s.to_json(orient="records"), orient="records", typ="series")
         tm.assert_numpy_array_equal(s.values, unser.values)
 
+    def test_series_default_orient(self):
+        assert self.series.to_json() == self.series.to_json(orient="index")
+
     @pytest.mark.parametrize("numpy", [True, False])        
     def test_series_roundtrip_simple(self, orient, numpy):
         data = self.series.to_json(orient=orient)
