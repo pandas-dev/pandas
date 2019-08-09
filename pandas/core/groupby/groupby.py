@@ -1927,10 +1927,26 @@ class GroupBy(_GroupBy):
                 )
                 for qi in q
             ]
-            result = concat(results, axis=0, keys=q).swaplevel()
-            if self.sort:
-                result = result.sort_index(level=list(range(result.index.nlevels - 1)))
+            result = concat(results, axis=0, keys=q)
+            order = np.roll(list(range(result.index.nlevels)), -1)
+            result = result.reorder_levels(order)
+            result = result.reindex(q, level=-1)
             return result
+            #
+            # ngroups = self.ngroups
+            # nquantiles = len(q)
+            # arrays = []
+            #
+            # for i in range(ngroups):
+            #     lo = i
+            #     hi = ngroups * nquantiles + i
+            #     print(lo, hi, ngroups)
+            #     arrays.append(np.arange(lo, hi, ngroups))
+            #
+            # idx = np.concatenate(arrays)
+            # import pdb; pdb.set_trace()
+            # result = result.iloc[idx]
+            # return result
 
     @Substitution(name="groupby")
     def ngroup(self, ascending=True):
