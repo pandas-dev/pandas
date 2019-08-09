@@ -155,6 +155,50 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient)
 
+    @pytest.mark.parametrize("convert_axes", [True, False])
+    @pytest.mark.parametrize("numpy", [True, False])
+    @pytest.mark.parametrize("dtype", [None, np.float64, np.int, "U3"])
+    def test_frame_from_json_to_json_str_axes(self, df_orient, convert_axes, numpy, dtype):
+        df = DataFrame(
+            np.zeros((200, 4)),
+            columns=[str(i) for i in range(4)],
+            index=[str(i) for i in range(200)],
+            dtype=dtype
+        )
+
+        if numpy and dtype == "U3" and df_orient != "split":
+            pytest.xfail("Can't decode directly to array")
+
+        data = df.to_json(orient=df_orient)
+        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype)
+
+        expected = df.copy()
+        if not dtype:
+            expected = expected.astype(int)
+
+        if df_orient == "index" and not numpy:
+            # Seems to be doing lexigraphic sorting here; definite bug
+            expected = expected.sort_index()
+
+        # index columns, and records orients cannot fully preserve the string
+        # dtype for axes as the index and column labels are used as keys in
+        # JSON objects. JSON keys are by definition strings, so there's no way
+        # to disambiguate whether those keys actually were strings or numeric
+        # beforehand and numeric wins out.
+        # Split not being able to infer is probably a bug
+        if convert_axes and (df_orient in ("split", "index", "columns")):
+            expected.columns = expected.columns.astype(int)
+            expected.index = expected.index.astype(int)
+        elif df_orient == "records" and convert_axes:
+            expected.columns = expected.columns.astype(int)
+
+        if df_orient == "records" or df_orient == "values":
+            expected = expected.reset_index(drop=True)
+        if df_orient == "values":
+            expected.columns = range(len(expected.columns))
+
+        tm.assert_frame_equal(result, expected)
+
     def test_frame_from_json_to_json(self):
         def _check_orient(
             df,
@@ -417,30 +461,6 @@ class TestPandasContainer:
 
         _check_all_orients(self.intframe, dtype=self.intframe.values.dtype)
         _check_all_orients(self.intframe, dtype=False)
-
-        # big one
-        # index and columns are strings as all unserialised JSON object keys
-        # are assumed to be strings
-        biggie = DataFrame(
-            np.zeros((200, 4)),
-            columns=[str(i) for i in range(4)],
-            index=[str(i) for i in range(200)],
-        )
-        _check_all_orients(biggie, dtype=False, convert_axes=False)
-
-        # dtypes
-        _check_all_orients(
-            DataFrame(biggie, dtype=np.float64), dtype=np.float64, convert_axes=False
-        )
-        _check_all_orients(
-            DataFrame(biggie, dtype=np.int), dtype=np.int, convert_axes=False
-        )
-        _check_all_orients(
-            DataFrame(biggie, dtype="U3"),
-            dtype="U3",
-            convert_axes=False,
-            raise_ok=ValueError,
-        )
 
         # categorical
         _check_all_orients(self.categorical, sort="sort", raise_ok=ValueError)
