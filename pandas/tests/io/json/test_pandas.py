@@ -269,6 +269,24 @@ class TestPandasContainer:
         if df_orient == "values":
             expected.columns = range(len(expected.columns))
 
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("convert_axes", [True, False])
+    @pytest.mark.parametrize("numpy", [True, False])
+    def test_roundtrip_empty(self, df_orient, convert_axes, numpy):
+        data = self.empty_frame.to_json(orient=df_orient)
+        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy)
+        expected = self.empty_frame.copy()
+
+        # TODO: both conditions below are probably bugs
+        if convert_axes:
+            # TODO: might be a bug
+            expected.index = expected.index.astype(float)
+            expected.columns = expected.columns.astype(float)
+        if numpy and df_orient == "values":
+            # TODO: another inconsistency
+            expected = expected.reindex([0], axis=1).reset_index(drop=True)
+        
         tm.assert_frame_equal(result, expected)        
 
     def test_frame_from_json_to_json(self):
@@ -526,11 +544,6 @@ class TestPandasContainer:
                 raise_ok=raise_ok,
                 sort=sort,
             )
-
-        # empty
-        _check_all_orients(
-            self.empty_frame, check_index_type=False, check_column_type=False
-        )
 
         # time series data
         _check_all_orients(self.tsframe)
