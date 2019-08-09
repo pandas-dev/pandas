@@ -436,9 +436,17 @@ class TestPandasContainer:
     @pytest.mark.skipif(
         is_platform_32bit(), reason="not compliant on 32-bit, xref #15865"
     )
-    @pytest.mark.parametrize("value,precision,expected_val", [
-        (0.95, 1, 1.0), (1.95, 1, 2.0), (-1.95, 1, -2.0), (0.995, 2, 1.0),
-        (0.9995, 3, 1.0), (0.99999999999999944, 15, 1.0)])
+    @pytest.mark.parametrize(
+        "value,precision,expected_val",
+        [
+            (0.95, 1, 1.0),
+            (1.95, 1, 2.0),
+            (-1.95, 1, -2.0),
+            (0.995, 2, 1.0),
+            (0.9995, 3, 1.0),
+            (0.99999999999999944, 15, 1.0),
+        ],
+    )
     def test_frame_to_json_float_precision(self, value, precision, expected_val):
         df = pd.DataFrame([dict(a_float=value)])
         encoded = df.to_json(double_precision=precision)
@@ -680,13 +688,13 @@ class TestPandasContainer:
     def test_series_default_orient(self):
         assert self.series.to_json() == self.series.to_json(orient="index")
 
-    @pytest.mark.parametrize("numpy", [True, False])        
+    @pytest.mark.parametrize("numpy", [True, False])
     def test_series_roundtrip_simple(self, orient, numpy):
         data = self.series.to_json(orient=orient)
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
         expected = self.series.copy()
 
-        if orient in ('values', 'records'):
+        if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
             expected.name = None
@@ -694,22 +702,24 @@ class TestPandasContainer:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [False, None])
-    @pytest.mark.parametrize("numpy", [True, False])        
+    @pytest.mark.parametrize("numpy", [True, False])
     def test_series_roundtrip_object(self, orient, numpy, dtype):
         # TODO: see why tm.makeObjectSeries provides back DTA
         dtSeries = Series(
             [str(d) for d in self.objSeries],
             index=self.objSeries.index,
             name=self.objSeries.name,
-        )        
+        )
         data = dtSeries.to_json(orient=orient)
-        result = pd.read_json(data, typ="series", orient=orient, numpy=numpy, dtype=dtype)
+        result = pd.read_json(
+            data, typ="series", orient=orient, numpy=numpy, dtype=dtype
+        )
         if dtype is False:
-            expected = dtSeries.copy()            
+            expected = dtSeries.copy()
         else:
             expected = self.objSeries.copy()
 
-        if orient in ('values', 'records'):
+        if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
             expected.name = None
@@ -723,7 +733,7 @@ class TestPandasContainer:
         expected = self.empty_series.copy()
 
         # TODO: see what causes inconsistency
-        if orient in ('values', 'records'):
+        if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         else:
             expected.index = expected.index.astype(float)
@@ -736,11 +746,11 @@ class TestPandasContainer:
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
         expected = self.ts.copy()
 
-        if orient in ('values', 'records'):
+        if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
             expected.name = None
-        
+
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [np.float64, np.int])
@@ -751,7 +761,7 @@ class TestPandasContainer:
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
 
         expected = s.copy()
-        if orient in ('values', 'records'):
+        if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
 
         tm.assert_series_equal(result, expected)
@@ -846,15 +856,18 @@ class TestPandasContainer:
         result = read_json(json, typ="series")
         assert_series_equal(result, ts)
 
-    @pytest.mark.parametrize("infer_word", [
-        "trade_time",
-        "date",
-        "datetime",
-        "sold_at",
-        "modified",
-        "timestamp",
-        "timestamps",
-    ])
+    @pytest.mark.parametrize(
+        "infer_word",
+        [
+            "trade_time",
+            "date",
+            "datetime",
+            "sold_at",
+            "modified",
+            "timestamp",
+            "timestamps",
+        ],
+    )
     def test_convert_dates_infer(self, infer_word):
         # GH10747
         from pandas.io.json import dumps
@@ -1160,11 +1173,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = s.to_json()
         assert expected == ss.to_json()
 
-    @pytest.mark.parametrize("ts", [
-        Timestamp("2013-01-10 05:00:00Z"),
-        Timestamp("2013-01-10 00:00:00", tz="US/Eastern"),
-        Timestamp("2013-01-10 00:00:00-0500")
-    ])
+    @pytest.mark.parametrize(
+        "ts",
+        [
+            Timestamp("2013-01-10 05:00:00Z"),
+            Timestamp("2013-01-10 00:00:00", tz="US/Eastern"),
+            Timestamp("2013-01-10 00:00:00-0500"),
+        ],
+    )
     def test_tz_is_utc(self, ts):
         from pandas.io.json import dumps
 
@@ -1174,11 +1190,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dt = ts.to_pydatetime()
         assert dumps(dt, iso_dates=True) == exp
 
-    @pytest.mark.parametrize("tz_range", [
-        pd.date_range("2013-01-01 05:00:00Z", periods=2),
-        pd.date_range("2013-01-01 00:00:00", periods=2, tz="US/Eastern"),
-        pd.date_range("2013-01-01 00:00:00-0500", periods=2)
-    ])
+    @pytest.mark.parametrize(
+        "tz_range",
+        [
+            pd.date_range("2013-01-01 05:00:00Z", periods=2),
+            pd.date_range("2013-01-01 00:00:00", periods=2, tz="US/Eastern"),
+            pd.date_range("2013-01-01 00:00:00-0500", periods=2),
+        ],
+    )
     def test_tz_range_is_utc(self, tz_range):
         from pandas.io.json import dumps
 
@@ -1287,7 +1306,10 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             [b"A\xf8\xfc", np.nan, b"", b"b", b"c"],
         ]
 
-        values = [[x.decode("latin-1") if isinstance(x, bytes) else x for x in y ] for y in values]
+        values = [
+            [x.decode("latin-1") if isinstance(x, bytes) else x for x in y]
+            for y in values
+        ]
 
         examples = []
         for dtype in ["category", object]:
