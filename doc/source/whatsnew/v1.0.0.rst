@@ -160,7 +160,7 @@ Plotting
 
 -
 -
-
+- Bug in :meth:`DataFrame.plot` when ``kind='box'`` and data contains datatime column (:issue:`22799`)
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
