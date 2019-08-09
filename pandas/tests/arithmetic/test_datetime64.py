@@ -38,6 +38,7 @@ def assert_invalid_comparison(left, right, box):
 
     result = left == right
     expected = xbox(np.zeros(result.shape, dtype=np.bool_))
+
     tm.assert_equal(result, expected)
 
     result = right == left
@@ -155,22 +156,17 @@ class TestDatetime64ArrayLikeComparisons:
 
 
 class TestDatetime64DataFrameComparison:
-    @pytest.mark.parametrize(
-        "timestamps",
-        [
-            [pd.Timestamp("2012-01-01 13:00:00+00:00")] * 2,
-            [pd.Timestamp("2012-01-01 13:00:00")] * 2,
-        ],
-    )
-    def test_tz_aware_scalar_comparison(self, timestamps, box_with_array):
+    def test_dt64arr_cmp_int(self, tz_naive_fixture, box_with_array):
         # GH#15966
+        tz = tz_naive_fixture
         box = box_with_array
         xbox = box if box is not pd.Index else np.ndarray
 
-        df = pd.Series(timestamps, name="test")
+        dti = pd.DatetimeIndex([pd.Timestamp("2012-01-01 13:00:00")] * 2, tz=tz)
+        ser = pd.Series(dti, name="test")
         expected = pd.Series([False, False], name="test")
 
-        obj = tm.box_expected(df, box)
+        obj = tm.box_expected(ser, box)
         expected = tm.box_expected(expected, xbox)
         result = obj == -1
         tm.assert_equal(result, expected)
