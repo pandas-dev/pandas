@@ -403,13 +403,11 @@ class MPLPlot:
 
         # exclude datatime type for boxplot
         include_type = [np.number, "datetime", "datetimetz", "timedelta"]
-        if self._kind == 'box':
-            include_type.remove('datetime')
+        if self._kind == "box":
+            include_type.remove("datetime")
 
         # GH22799, skip datetime type data for computation
-        numeric_data = data.select_dtypes(
-            include=include_type,
-        )
+        numeric_data = data.select_dtypes(include=include_type)
 
         try:
             is_empty = numeric_data.empty
