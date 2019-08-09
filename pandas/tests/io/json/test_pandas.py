@@ -307,6 +307,38 @@ class TestPandasContainer:
         if df_orient == "values":
             expected.columns = range(len(expected.columns))
 
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("convert_axes", [True, False])
+    @pytest.mark.parametrize("numpy", [True, False])
+    def test_roundtrip_mixed(self, df_orient, convert_axes, numpy):
+        if numpy and  df_orient != "split":
+            pytest.xfail("Can't decode directly to array")
+        
+        index = pd.Index(["a", "b", "c", "d", "e"])
+        values = {
+            "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+            "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+            "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
+            "D": [True, False, True, False, True],
+        }
+        df = DataFrame(data=values, index=index)
+        
+        data = df.to_json(orient=df_orient)
+        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy)
+
+        expected = df.copy()
+        expected = expected.assign(**expected.select_dtypes("number").astype(int))
+
+        if df_orient == "index" and not numpy:
+            # Seems to be doing lexigraphic sorting here :-X
+            expected = expected.sort_index()
+
+        if df_orient == "records" or df_orient == "values":
+            expected = expected.reset_index(drop=True)
+        if df_orient == "values":
+            expected.columns = range(len(expected.columns))
+
         tm.assert_frame_equal(result, expected)        
 
     def test_frame_from_json_to_json(self):
@@ -565,24 +597,6 @@ class TestPandasContainer:
                 sort=sort,
             )
 
-        # mixed data
-        index = pd.Index(["a", "b", "c", "d", "e"])
-        data = {
-            "A": [0.0, 1.0, 2.0, 3.0, 4.0],
-            "B": [0.0, 1.0, 0.0, 1.0, 0.0],
-            "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
-            "D": [True, False, True, False, True],
-        }
-        df = DataFrame(data=data, index=index)
-        _check_orient(df, "split", check_dtype=False)
-        _check_orient(df, "records", check_dtype=False)
-        _check_orient(df, "values", check_dtype=False)
-        _check_orient(df, "columns", check_dtype=False)
-        # index oriented is problematic as it is read back in in a transposed
-        # state, so the columns are interpreted as having mixed data and
-        # given object dtypes.
-        # force everything to have object dtype beforehand
-        _check_orient(df.transpose().transpose(), "index", dtype=False)
 
     def test_frame_from_json_bad_data(self):
         with pytest.raises(ValueError, match="Expected object or value"):
