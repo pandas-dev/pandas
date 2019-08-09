@@ -91,6 +91,7 @@ class TestPandasContainer:
 
         result = read_json(df.to_json(orient=df_orient), orient=df_orient)
         expected = df.copy()
+
         if df_orient == "records" or df_orient == "values":
             expected = expected.reset_index(drop=True)
         if df_orient == "values":
@@ -155,6 +156,28 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient)
 
+    def test_frame_default_orient(self):
+        assert self.frame.to_json() == self.frame.to_json(orient="columns")
+
+    @pytest.mark.parametrize("convert_axes", [True, False])
+    @pytest.mark.parametrize("numpy", [True, False])
+    def test_frame_from_json_to_json_simple(self, df_orient, convert_axes, numpy):
+        data = self.frame.to_json(orient=df_orient)
+        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy)
+
+        expected = self.frame.copy()
+
+        if df_orient == "index" and not numpy:
+            # Seems to be doing lexigraphic sorting here; definite bug
+            expected = expected.sort_index()
+
+        if df_orient == "records" or df_orient == "values":
+            expected = expected.reset_index(drop=True)
+        if df_orient == "values":
+            expected.columns = range(len(expected.columns))
+
+        tm.assert_frame_equal(result, expected)
+            
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
     @pytest.mark.parametrize("dtype", [None, np.float64, np.int, "U3"])
@@ -454,10 +477,6 @@ class TestPandasContainer:
                 raise_ok=raise_ok,
                 sort=sort,
             )
-
-        # basic
-        _check_all_orients(self.frame)
-        assert self.frame.to_json() == self.frame.to_json(orient="columns")
 
         _check_all_orients(self.intframe, dtype=self.intframe.values.dtype)
         _check_all_orients(self.intframe, dtype=False)
