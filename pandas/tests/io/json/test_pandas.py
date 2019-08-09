@@ -695,8 +695,8 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("dtype", [False, None])
     @pytest.mark.parametrize("numpy", [True, False])        
-    def test_series_roundtrip_datetime(self, orient, numpy, dtype):
-        # self.objSeries appears to be a misnomer, producing DTA by default
+    def test_series_roundtrip_object(self, orient, numpy, dtype):
+        # TODO: see why tm.makeObjectSeries provides back DTA
         dtSeries = Series(
             [str(d) for d in self.objSeries],
             index=self.objSeries.index,
@@ -728,6 +728,19 @@ class TestPandasContainer:
         else:
             expected.index = expected.index.astype(float)
 
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("numpy", [True, False])
+    def test_series_roundtrip_timeseries(self, orient, numpy):
+        data = self.ts.to_json(orient=orient)
+        result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
+        expected = self.ts.copy()
+
+        if orient in ('values', 'records'):
+            expected = expected.reset_index(drop=True)
+        if orient != "split":
+            expected.name = None
+        
         tm.assert_series_equal(result, expected)        
 
     def test_series_from_json_to_json(self):
@@ -808,8 +821,6 @@ class TestPandasContainer:
                 numpy=True,
                 check_index_type=check_index_type,
             )
-
-        _check_all_orients(self.ts)
 
         # dtype
         s = Series(range(6), index=["a", "b", "c", "d", "e", "f"])
