@@ -840,19 +840,10 @@ class TestTimedeltaArraylikeAddSubOps:
     # -------------------------------------------------------------
     # Invalid Operations
 
-    def test_td64arr_add_str_invalid(self, box_with_array):
-        # GH#13624
+    @pytest.mark.parametrize("other", ["a", 3.14, np.array([2.0, 3.0])])
+    def test_td64arr_add_sub_invalid(self, box_with_array, other):
+        # GH#13624 for str
         tdi = TimedeltaIndex(["1 day", "2 days"])
-        tdi = tm.box_expected(tdi, box_with_array)
-
-        with pytest.raises(TypeError):
-            tdi + "a"
-        with pytest.raises(TypeError):
-            "a" + tdi
-
-    @pytest.mark.parametrize("other", [3.14, np.array([2.0, 3.0])])
-    def test_td64arr_add_sub_float(self, box_with_array, other):
-        tdi = TimedeltaIndex(["-1 days", "-1 days"])
         tdarr = tm.box_expected(tdi, box_with_array)
 
         with pytest.raises(TypeError):

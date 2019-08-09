@@ -30,6 +30,44 @@ from pandas.core.indexes.datetimes import _to_M8
 import pandas.util.testing as tm
 
 
+def assert_invalid_comparison(left, right, box):
+    # Not for tznaive-tzaware comparison
+
+    # Note: not quite the same as how we do this for tm.box_expected
+    xbox = box if box is not pd.Index else np.array
+
+    result = left == right
+    expected = xbox(np.zeros(result.shape, dtype=np.bool_))
+    tm.assert_equal(result, expected)
+
+    result = right == left
+    tm.assert_equal(result, expected)
+
+    result = left != right
+    tm.assert_equal(result, ~expected)
+
+    result = right != left
+    tm.assert_equal(result, ~expected)
+
+    msg = "Invalid comparison between"
+    with pytest.raises(TypeError, match=msg):
+        left < right
+    with pytest.raises(TypeError, match=msg):
+        left <= right
+    with pytest.raises(TypeError, match=msg):
+        left > right
+    with pytest.raises(TypeError, match=msg):
+        left >= right
+    with pytest.raises(TypeError, match=msg):
+        right < left
+    with pytest.raises(TypeError, match=msg):
+        right <= left
+    with pytest.raises(TypeError, match=msg):
+        right > left
+    with pytest.raises(TypeError, match=msg):
+        right >= left
+
+
 def assert_all(obj):
     """
     Test helper to call call obj.all() the appropriate number of times on
@@ -47,7 +85,7 @@ def assert_all(obj):
 
 class TestDatetime64ArrayLikeComparisons:
     # Comparison tests for datetime64 vectors fully parametrized over
-    #  DataFrame/Series/DatetimeIndex/DateteimeArray.  Ideally all comparison
+    #  DataFrame/Series/DatetimeIndex/DatetimeArray.  Ideally all comparison
     #  tests will eventually end up here.
 
     def test_compare_zerodim(self, tz_naive_fixture, box_with_array):
@@ -152,6 +190,8 @@ class TestDatetime64SeriesComparison:
         ser = tm.box_expected(ser, box_with_array)
         ser2 = tm.box_expected(ser2, box_with_array)
 
+        # TODO: we can *almost* use assert_invalid_comparison, but that
+        #  doesn't check xbox yet
         for (x, y) in [(ser, ser2), (ser2, ser)]:
 
             result = x == y
@@ -235,16 +275,7 @@ class TestDatetime64SeriesComparison:
         date = ser[0].to_pydatetime().date()
 
         ser = tm.box_expected(ser, box_with_array)
-        assert_all(~(ser == date))
-        assert_all(ser != date)
-        with pytest.raises(TypeError):
-            ser > date
-        with pytest.raises(TypeError):
-            ser < date
-        with pytest.raises(TypeError):
-            ser >= date
-        with pytest.raises(TypeError):
-            ser <= date
+        assert_invalid_comparison(ser, date, box_with_array)
 
     @pytest.mark.parametrize(
         "left,right", [("lt", "gt"), ("le", "ge"), ("eq", "eq"), ("ne", "ne")]
@@ -395,16 +426,7 @@ class TestDatetimeIndexComparisons:
         dtarr = tm.box_expected(dti, box_with_array)
 
         other = datetime(2016, 1, 1).date()
-        assert not (dtarr == other).any()
-        assert (dtarr != other).all()
-        with pytest.raises(TypeError):
-            dtarr < other
-        with pytest.raises(TypeError):
-            dtarr <= other
-        with pytest.raises(TypeError):
-            dtarr > other
-        with pytest.raises(TypeError):
-            dtarr >= other
+        assert_invalid_comparison(dtarr, other, box_with_array)
 
     @pytest.mark.parametrize("other", [None, np.nan, pd.NaT])
     def test_dti_eq_null_scalar(self, other, tz_naive_fixture):
@@ -428,15 +450,7 @@ class TestDatetimeIndexComparisons:
         tz = tz_naive_fixture
         dti = pd.date_range("2016-01-01", periods=2, tz=tz)
         dtarr = tm.box_expected(dti, box_with_array)
-        msg = "Invalid comparison between"
-        with pytest.raises(TypeError, match=msg):
-            dtarr < other
-        with pytest.raises(TypeError, match=msg):
-            dtarr <= other
-        with pytest.raises(TypeError, match=msg):
-            dtarr > other
-        with pytest.raises(TypeError, match=msg):
-            dtarr >= other
+        assert_invalid_comparison(dtarr, other, box_with_array)
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_dti_cmp_nat(self, dtype, box_with_array):
