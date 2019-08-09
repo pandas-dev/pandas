@@ -164,7 +164,9 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [False, float])
     def test_roundtrip_simple(self, df_orient, convert_axes, numpy, dtype):
         data = self.frame.to_json(orient=df_orient)
-        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype)
+        result = pd.read_json(
+            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
+        )
 
         expected = self.frame.copy()
 
@@ -184,7 +186,9 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [False, np.int64])
     def test_roundtrip_intframe(self, df_orient, convert_axes, numpy, dtype):
         data = self.intframe.to_json(orient=df_orient)
-        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype)
+        result = pd.read_json(
+            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
+        )
 
         expected = self.intframe.copy()
 
@@ -198,7 +202,7 @@ class TestPandasContainer:
             expected.columns = range(len(expected.columns))
 
         tm.assert_frame_equal(result, expected)
-            
+
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
     @pytest.mark.parametrize("dtype", [None, np.float64, np.int, "U3"])
@@ -207,14 +211,16 @@ class TestPandasContainer:
             np.zeros((200, 4)),
             columns=[str(i) for i in range(4)],
             index=[str(i) for i in range(200)],
-            dtype=dtype
+            dtype=dtype,
         )
 
         if numpy and dtype == "U3" and df_orient != "split":
             pytest.xfail("Can't decode directly to array")
 
         data = df.to_json(orient=df_orient)
-        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype)
+        result = pd.read_json(
+            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
+        )
 
         expected = df.copy()
         if not dtype:
@@ -248,13 +254,17 @@ class TestPandasContainer:
     def test_roundtrip_categorical(self, df_orient, convert_axes, numpy):
         # TODO: create a better frame to test with and improve coverage
         if df_orient in ("index", "columns"):
-            pytest.xfail("Can't have duplicate index values for orient '{}')".format(df_orient))
-        
+            pytest.xfail(
+                "Can't have duplicate index values for orient '{}')".format(df_orient)
+            )
+
         data = self.categorical.to_json(orient=df_orient)
         if numpy and df_orient in ("records", "values"):
             pytest.xfail("Orient {} is broken with numpy=True".format(df_orient))
 
-        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy)
+        result = pd.read_json(
+            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy
+        )
 
         expected = self.categorical.copy()
         expected.index = expected.index.astype(str)  # Categorical not preserved
@@ -275,7 +285,9 @@ class TestPandasContainer:
     @pytest.mark.parametrize("numpy", [True, False])
     def test_roundtrip_empty(self, df_orient, convert_axes, numpy):
         data = self.empty_frame.to_json(orient=df_orient)
-        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy)
+        result = pd.read_json(
+            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy
+        )
         expected = self.empty_frame.copy()
 
         # TODO: both conditions below are probably bugs
@@ -284,7 +296,7 @@ class TestPandasContainer:
             expected.columns = expected.columns.astype(float)
         if numpy and df_orient == "values":
             expected = expected.reindex([0], axis=1).reset_index(drop=True)
-        
+
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
@@ -292,7 +304,9 @@ class TestPandasContainer:
     def test_roundtrip_timestamp(self, df_orient, convert_axes, numpy):
         # TODO: improve coverage with date_format parameter
         data = self.tsframe.to_json(orient=df_orient)
-        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy)
+        result = pd.read_json(
+            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy
+        )
         expected = self.tsframe.copy()
 
         if not convert_axes:  # one off for ts handling
@@ -312,9 +326,9 @@ class TestPandasContainer:
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
     def test_roundtrip_mixed(self, df_orient, convert_axes, numpy):
-        if numpy and  df_orient != "split":
+        if numpy and df_orient != "split":
             pytest.xfail("Can't decode directly to array")
-        
+
         index = pd.Index(["a", "b", "c", "d", "e"])
         values = {
             "A": [0.0, 1.0, 2.0, 3.0, 4.0],
@@ -323,9 +337,11 @@ class TestPandasContainer:
             "D": [True, False, True, False, True],
         }
         df = DataFrame(data=values, index=index)
-        
+
         data = df.to_json(orient=df_orient)
-        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy)
+        result = pd.read_json(
+            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy
+        )
 
         expected = df.copy()
         expected = expected.assign(**expected.select_dtypes("number").astype(int))
@@ -339,7 +355,7 @@ class TestPandasContainer:
         if df_orient == "values":
             expected.columns = range(len(expected.columns))
 
-        tm.assert_frame_equal(result, expected)        
+        tm.assert_frame_equal(result, expected)
 
     def test_frame_from_json_bad_data(self):
         with pytest.raises(ValueError, match="Expected object or value"):
