@@ -59,6 +59,7 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
+from pandas.core.ops.common import unpack_and_defer
 
 from pandas.io.formats import console
 
@@ -77,15 +78,17 @@ _take_msg = textwrap.dedent(
 )
 
 
-def _cat_compare_op(op):
+def _cat_compare_op(op):  # TODO: op-->opname
+
+    @unpack_and_defer(op)
     def f(self, other):
         # On python2, you can usually compare any type to any type, and
         # Categoricals can be seen as a custom type, but having different
         # results depending whether categories are the same or not is kind of
         # insane, so be a bit stricter here and use the python3 idea of
         # comparing only things of equal type.
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
+        #if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
+        #    return NotImplemented
 
         other = lib.item_from_zerodim(other)
 

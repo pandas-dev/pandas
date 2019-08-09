@@ -49,6 +49,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
+from pandas.core.ops.common import unpack_and_defer
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
@@ -157,9 +158,10 @@ def _dt_array_cmp(cls, op):
     opname = "__{name}__".format(name=op.__name__)
     nat_result = opname == "__ne__"
 
+    @unpack_and_defer(opname)
     def wrapper(self, other):
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
+        #if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
+        #    return NotImplemented
 
         other = lib.item_from_zerodim(other)
 

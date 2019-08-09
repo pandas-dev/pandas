@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCTimedeltaIndex
 
 from pandas.core import ops
+from pandas.core.ops.common import unpack_and_defer
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -730,9 +731,10 @@ class RangeIndex(Int64Index):
         # fall back to Int64Index
         return super().__getitem__(key)
 
+    @unpack_and_defer("__floordiv__")
     def __floordiv__(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame)):
-            return NotImplemented
+        #if isinstance(other, (ABCSeries, ABCDataFrame)):
+        #    return NotImplemented
 
         if is_integer(other) and other != 0:
             if len(self) == 0 or self.start % other == 0 and self.step % other == 0:
