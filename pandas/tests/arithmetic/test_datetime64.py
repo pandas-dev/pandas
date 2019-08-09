@@ -103,6 +103,27 @@ class TestDatetime64ArrayLikeComparisons:
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(result, expected)
 
+    def test_dt64arr_cmp_date_invalid(self, tz_naive_fixture, box_with_array):
+        # GH#19800, GH#19301 datetime.date comparison raises to
+        #  match DatetimeIndex/Timestamp.  This also matches the behavior
+        #  of stdlib datetime.datetime
+        tz = tz_naive_fixture
+
+        dti = pd.date_range("20010101", periods=10, tz=tz)
+        date = dti[0].to_pydatetime().date()
+
+        dtarr = tm.box_expected(dti, box_with_array)
+        assert_invalid_comparison(dtarr, date, box_with_array)
+
+    @pytest.mark.parametrize("other", ["foo", 99, 4.0, object(), timedelta(days=2)])
+    def test_dt64arr_cmp_scalar_invalid(self, other, tz_naive_fixture, box_with_array):
+        # GH#22074
+        tz = tz_naive_fixture
+
+        rng = date_range("1/1/2000", periods=10, tz=tz)
+        dtarr = tm.box_expected(rng, box_with_array)
+        assert_invalid_comparison(dtarr, other, box_with_array)
+
 
 class TestDatetime64DataFrameComparison:
     @pytest.mark.parametrize(
@@ -182,8 +203,6 @@ class TestDatetime64SeriesComparison:
     def test_comparison_invalid(self, box_with_array):
         # GH#4968
         # invalid date/int comparisons
-        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
-
         ser = Series(range(5))
         ser2 = Series(pd.date_range("20010101", periods=5))
 
@@ -246,17 +265,6 @@ class TestDatetime64SeriesComparison:
         result = series > val
         expected = Series([x > val for x in series])
         tm.assert_series_equal(result, expected)
-
-    def test_dt64ser_cmp_date_invalid(self, box_with_array):
-        # GH#19800 datetime.date comparison raises to
-        # match DatetimeIndex/Timestamp.  This also matches the behavior
-        # of stdlib datetime.datetime
-
-        ser = pd.date_range("20010101", periods=10)
-        date = ser[0].to_pydatetime().date()
-
-        ser = tm.box_expected(ser, box_with_array)
-        assert_invalid_comparison(ser, date, box_with_array)
 
     @pytest.mark.parametrize(
         "left,right", [("lt", "gt"), ("le", "ge"), ("eq", "eq"), ("ne", "ne")]
@@ -398,16 +406,6 @@ class TestDatetimeIndexComparisons:
         result = dti <= other
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
-
-    def dt64arr_cmp_non_datetime(self, tz_naive_fixture, box_with_array):
-        # GH#19301 by convention datetime.date is not considered comparable
-        # to Timestamp or DatetimeIndex.  This may change in the future.
-        tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01", periods=2, tz=tz)
-        dtarr = tm.box_expected(dti, box_with_array)
-
-        other = datetime(2016, 1, 1).date()
-        assert_invalid_comparison(dtarr, other, box_with_array)
 
     @pytest.mark.parametrize("other", [None, np.nan])
     def test_dti_cmp_null_scalar_inequality(
@@ -707,16 +705,6 @@ class TestDatetimeIndexComparisons:
         result = rng >= other
         expected = np.array([True] * 10)
         tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize("other", ["foo", 99, 4.0, object(), timedelta(days=2)])
-    def test_dt64arr_cmp_scalar_invalid(self, other, tz_naive_fixture, box_with_array):
-        # GH#22074
-        tz = tz_naive_fixture
-        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
-
-        rng = date_range("1/1/2000", periods=10, tz=tz)
-        rng = tm.box_expected(rng, box_with_array)
-        assert_invalid_comparison(rng, other, box_with_array)
 
     def test_dti_cmp_list(self):
         rng = date_range("1/1/2000", periods=10)
