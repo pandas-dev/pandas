@@ -26,8 +26,8 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest>=5.0.0
-  - pytest-xdist>=1.29.0
+  - pytest>=4.0.2
+  - pytest-xdist
   - pytest-mock
   - pytest-azurepipelines
   - pip
