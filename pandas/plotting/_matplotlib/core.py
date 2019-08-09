@@ -401,7 +401,7 @@ class MPLPlot:
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)
 
-        # exclude datatime type for boxplot
+        # GH22799, exclude datatime type for boxplot
         include_type = [np.number, "datetime", "datetimetz", "timedelta"]
         if self._kind == "box":
             include_type.remove("datetime")
