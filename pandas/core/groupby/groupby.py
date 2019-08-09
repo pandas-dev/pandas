@@ -2326,8 +2326,9 @@ class GroupBy(_GroupBy):
         """
         Return first n rows of each group.
 
-        Essentially equivalent to ``.apply(lambda x: x.head(n))``,
-        except ignores as_index flag.
+        Similar to ``.apply(lambda x: x.head(n))``, but it returns a subset of rows
+        from the original DataFrame with original index and order preserved
+        (``as_index`` flag is ignored).
 
         Returns
         -------
@@ -2338,10 +2339,6 @@ class GroupBy(_GroupBy):
 
         >>> df = pd.DataFrame([[1, 2], [1, 4], [5, 6]],
         ...                   columns=['A', 'B'])
-        >>> df.groupby('A', as_index=False).head(1)
-           A  B
-        0  1  2
-        2  5  6
         >>> df.groupby('A').head(1)
            A  B
         0  1  2
@@ -2357,8 +2354,9 @@ class GroupBy(_GroupBy):
         """
         Return last n rows of each group.
 
-        Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
-        except ignores as_index flag.
+        Similar to ``.apply(lambda x: x.tail(n))``, but it returns a subset of rows
+        from the original DataFrame with original index and order preserved
+        (``as_index`` flag is ignored).
 
         Returns
         -------
@@ -2373,10 +2371,6 @@ class GroupBy(_GroupBy):
            A  B
         1  a  2
         3  b  2
-        >>> df.groupby('A').head(1)
-           A  B
-        0  a  1
-        2  b  1
         """
         self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
