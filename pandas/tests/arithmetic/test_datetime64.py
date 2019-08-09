@@ -59,11 +59,10 @@ class TestDatetime64ArrayLikeComparisons:
 
         other = np.array(dti.to_numpy()[0])
 
-        # FIXME: ValueError with transpose on tzaware
-        dtarr = tm.box_expected(dti, box, transpose=False)
+        dtarr = tm.box_expected(dti, box)
         result = dtarr <= other
         expected = np.array([True, False, False])
-        expected = tm.box_expected(expected, xbox, transpose=False)
+        expected = tm.box_expected(expected, xbox)
         tm.assert_equal(result, expected)
 
 
