@@ -280,13 +280,33 @@ class TestPandasContainer:
 
         # TODO: both conditions below are probably bugs
         if convert_axes:
-            # TODO: might be a bug
             expected.index = expected.index.astype(float)
             expected.columns = expected.columns.astype(float)
         if numpy and df_orient == "values":
-            # TODO: another inconsistency
             expected = expected.reindex([0], axis=1).reset_index(drop=True)
         
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("convert_axes", [True, False])
+    @pytest.mark.parametrize("numpy", [True, False])
+    def test_roundtrip_timestamp(self, df_orient, convert_axes, numpy):
+        # TODO: improve coverage with date_format parameter
+        data = self.tsframe.to_json(orient=df_orient)
+        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy)
+        expected = self.tsframe.copy()
+
+        if not convert_axes:  # one off for ts handling
+            idx = expected.index.astype(int) // 1_000_000
+            if df_orient != "split":  # TODO: make this consistent
+                idx = idx.astype(str)
+
+            expected.index = idx
+
+        if df_orient == "records" or df_orient == "values":
+            expected = expected.reset_index(drop=True)
+        if df_orient == "values":
+            expected.columns = range(len(expected.columns))
+
         tm.assert_frame_equal(result, expected)        
 
     def test_frame_from_json_to_json(self):
@@ -544,9 +564,6 @@ class TestPandasContainer:
                 raise_ok=raise_ok,
                 sort=sort,
             )
-
-        # time series data
-        _check_all_orients(self.tsframe)
 
         # mixed data
         index = pd.Index(["a", "b", "c", "d", "e"])
