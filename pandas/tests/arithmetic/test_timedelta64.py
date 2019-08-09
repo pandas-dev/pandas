@@ -61,16 +61,50 @@ class TestTimedelta64ArrayLikeComparisons:
             # zero-dim of wrong dtype should still raise
             tdi >= np.array(4)
 
+    @pytest.mark.parametrize("td_scalar", [
+        timedelta(days=1),
+        Timedelta(days=1),
+        Timedelta(days=1).to_timedelta64()
+    ])
+    def test_compare_timedeltalike_scalar(self, box_with_array, td_scalar):
+        # regression test for GH#5963
+        box = box_with_array
+        xbox = box if box is not pd.Index else np.ndarray
+        ser = pd.Series([timedelta(days=1), timedelta(days=2)])
+        ser = tm.box_expected(ser, box)
+        actual = ser > td_scalar
+        expected = pd.Series([False, True])
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(actual, expected)
+
+    def test_td64_comparisons_invalid(self, box_with_array):
+        box = box_with_array
+        xbox = box if box is not pd.Index else np.ndarray
+        rng = timedelta_range("1 days", periods=10)
+        obj = tm.box_expected(rng, box)
+
+        ival = rng[3].value
+        with pytest.raises(TypeError):
+            obj < ival
+        with pytest.raises(TypeError):
+            obj > ival
+        with pytest.raises(TypeError):
+            obj <= ival
+        with pytest.raises(TypeError):
+            obj >= ival
+
+        expected = np.zeros(rng.shape, dtype=np.bool_)
+        expected = tm.box_expected(expected, xbox)
+
+        result = obj == ival
+        tm.assert_equal(result, expected)
+
+        result = obj != ival
+        tm.assert_equal(result, ~expected)
+
 
 class TestTimedelta64ArrayComparisons:
     # TODO: All of these need to be parametrized over box
-
-    def test_compare_timedelta_series(self):
-        # regression test for GH#5963
-        s = pd.Series([timedelta(days=1), timedelta(days=2)])
-        actual = s > timedelta(days=1)
-        expected = pd.Series([False, True])
-        tm.assert_series_equal(actual, expected)
 
     def test_tdi_cmp_str_invalid(self, box_with_array):
         # GH#13624
@@ -190,10 +224,6 @@ class TestTimedelta64ArrayComparisons:
         result = rng < rng[3]
         expected = np.array([True, True, True] + [False] * 7)
         tm.assert_numpy_array_equal(result, expected)
-
-        # raise TypeError for now
-        with pytest.raises(TypeError):
-            rng < rng[3].value
 
         result = rng == list(rng)
         exp = rng == rng
