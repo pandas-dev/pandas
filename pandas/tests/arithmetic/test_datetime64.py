@@ -134,6 +134,24 @@ class TestDatetime64ArrayLikeComparisons:
         dtarr = tm.box_expected(dti, box_with_array)
         assert_invalid_comparison(dtarr, other, box_with_array)
 
+    def test_dt64arr_nat_comparison(self, tz_naive_fixture, box_with_array):
+        # GH#22242, GH#22163 DataFrame considered NaT == ts incorrectly
+        tz = tz_naive_fixture
+        box = box_with_array
+        xbox = box if box is not pd.Index else np.ndarray
+
+        ts = pd.Timestamp.now(tz)
+        ser = pd.Series([ts, pd.NaT])
+
+        # Don't transpose because that loses the tz dtype on the NaT column
+        obj = tm.box_expected(ser, box, transpose=False)
+
+        expected = pd.Series([True, False], dtype=np.bool_)
+        expected = tm.box_expected(expected, xbox, transpose=False)
+
+        result = obj == ts
+        tm.assert_equal(result, expected)
+
 
 class TestDatetime64DataFrameComparison:
     @pytest.mark.parametrize(
@@ -148,15 +166,6 @@ class TestDatetime64DataFrameComparison:
         df = pd.DataFrame({"test": timestamps})
         expected = pd.DataFrame({"test": [False, False]})
         tm.assert_frame_equal(df == -1, expected)
-
-    def test_dt64_nat_comparison(self):
-        # GH#22242, GH#22163 DataFrame considered NaT == ts incorrectly
-        ts = pd.Timestamp.now()
-        df = pd.DataFrame([ts, pd.NaT])
-        expected = pd.DataFrame([True, False])
-
-        result = df == ts
-        tm.assert_frame_equal(result, expected)
 
 
 class TestDatetime64SeriesComparison:
