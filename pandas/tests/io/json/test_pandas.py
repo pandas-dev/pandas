@@ -142,7 +142,7 @@ class TestPandasContainer:
         if orient == "values":
             expected = pd.DataFrame(data)
             if expected.iloc[:, 0].dtype == "datetime64[ns]":
-                expected.iloc[:, 0] = expected.iloc[:, 0].astype(int) // 1_000_000
+                expected.iloc[:, 0] = expected.iloc[:, 0].astype(np.int64) // 1_000_000
         elif orient == "split":
             expected = df
 
@@ -223,7 +223,7 @@ class TestPandasContainer:
 
         expected = df.copy()
         if not dtype:
-            expected = expected.astype(int)
+            expected = expected.astype(np.int64)
 
         if orient == "index" and not numpy:
             expected = expected.sort_index()
@@ -235,10 +235,10 @@ class TestPandasContainer:
         # beforehand and numeric wins out.
         # TODO: Split should be able to support this
         if convert_axes and (orient in ("split", "index", "columns")):
-            expected.columns = expected.columns.astype(int)
-            expected.index = expected.index.astype(int)
+            expected.columns = expected.columns.astype(np.int64)
+            expected.index = expected.index.astype(np.int64)
         elif orient == "records" and convert_axes:
-            expected.columns = expected.columns.astype(int)
+            expected.columns = expected.columns.astype(np.int64)
 
         if orient == "records" or orient == "values":
             expected = expected.reset_index(drop=True)
@@ -307,7 +307,7 @@ class TestPandasContainer:
         expected = self.tsframe.copy()
 
         if not convert_axes:  # one off for ts handling
-            idx = expected.index.astype(int) // 1_000_000
+            idx = expected.index.astype(np.int64) // 1_000_000
             if orient != "split":  # TODO: make this consistent
                 idx = idx.astype(str)
 
@@ -341,7 +341,7 @@ class TestPandasContainer:
         )
 
         expected = df.copy()
-        expected = expected.assign(**expected.select_dtypes("number").astype(int))
+        expected = expected.assign(**expected.select_dtypes("number").astype(np.int64))
 
         if orient == "index" and not numpy:
             expected = expected.sort_index()
