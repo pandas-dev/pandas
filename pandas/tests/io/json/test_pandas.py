@@ -741,7 +741,20 @@ class TestPandasContainer:
         if orient != "split":
             expected.name = None
         
-        tm.assert_series_equal(result, expected)        
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", [np.float64, np.int])
+    @pytest.mark.parametrize("numpy", [True, False])
+    def test_series_roundtrip_numeric(self, orient, numpy, dtype):
+        s = Series(range(6), index=["a", "b", "c", "d", "e", "f"])
+        data = s.to_json(orient=orient)
+        result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
+
+        expected = s.copy()
+        if orient in ('values', 'records'):
+            expected = expected.reset_index(drop=True)
+
+        tm.assert_series_equal(result, expected)
 
     def test_series_from_json_to_json(self):
         def _check_orient(
@@ -822,10 +835,6 @@ class TestPandasContainer:
                 check_index_type=check_index_type,
             )
 
-        # dtype
-        s = Series(range(6), index=["a", "b", "c", "d", "e", "f"])
-        _check_all_orients(Series(s, dtype=np.float64), dtype=np.float64)
-        _check_all_orients(Series(s, dtype=np.int), dtype=np.int)
 
     def test_series_to_json_except(self):
         s = Series([1, 2, 3])
