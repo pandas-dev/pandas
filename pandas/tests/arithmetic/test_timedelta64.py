@@ -61,11 +61,10 @@ class TestTimedelta64ArrayLikeComparisons:
             # zero-dim of wrong dtype should still raise
             tdi >= np.array(4)
 
-    @pytest.mark.parametrize("td_scalar", [
-        timedelta(days=1),
-        Timedelta(days=1),
-        Timedelta(days=1).to_timedelta64()
-    ])
+    @pytest.mark.parametrize(
+        "td_scalar",
+        [timedelta(days=1), Timedelta(days=1), Timedelta(days=1).to_timedelta64()],
+    )
     def test_compare_timedeltalike_scalar(self, box_with_array, td_scalar):
         # regression test for GH#5963
         box = box_with_array
@@ -77,60 +76,36 @@ class TestTimedelta64ArrayLikeComparisons:
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(actual, expected)
 
-    def test_td64_comparisons_invalid(self, box_with_array):
+    @pytest.mark.parametrize("invalid", [345600000000000, "a"])
+    def test_td64_comparisons_invalid(self, box_with_array, invalid):
+        # GH#13624 for str
         box = box_with_array
         xbox = box if box is not pd.Index else np.ndarray
         rng = timedelta_range("1 days", periods=10)
         obj = tm.box_expected(rng, box)
 
-        ival = rng[3].value
-        with pytest.raises(TypeError):
-            obj < ival
-        with pytest.raises(TypeError):
-            obj > ival
-        with pytest.raises(TypeError):
-            obj <= ival
-        with pytest.raises(TypeError):
-            obj >= ival
-
         expected = np.zeros(rng.shape, dtype=np.bool_)
         expected = tm.box_expected(expected, xbox)
 
-        result = obj == ival
-        tm.assert_equal(result, expected)
+        for left, right in [(obj, invalid), (invalid, obj)]:
+            with pytest.raises(TypeError):
+                left < right
+            with pytest.raises(TypeError):
+                left > right
+            with pytest.raises(TypeError):
+                left <= right
+            with pytest.raises(TypeError):
+                left >= right
 
-        result = obj != ival
-        tm.assert_equal(result, ~expected)
+            result = left == right
+            tm.assert_equal(result, expected)
+
+            result = left != right
+            tm.assert_equal(result, ~expected)
 
 
 class TestTimedelta64ArrayComparisons:
     # TODO: All of these need to be parametrized over box
-
-    def test_tdi_cmp_str_invalid(self, box_with_array):
-        # GH#13624
-        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
-        tdi = TimedeltaIndex(["1 day", "2 days"])
-        tdarr = tm.box_expected(tdi, box_with_array)
-
-        for left, right in [(tdarr, "a"), ("a", tdarr)]:
-            with pytest.raises(TypeError):
-                left > right
-            with pytest.raises(TypeError):
-                left >= right
-            with pytest.raises(TypeError):
-                left < right
-            with pytest.raises(TypeError):
-                left <= right
-
-            result = left == right
-            expected = np.array([False, False], dtype=bool)
-            expected = tm.box_expected(expected, xbox)
-            tm.assert_equal(result, expected)
-
-            result = left != right
-            expected = np.array([True, True], dtype=bool)
-            expected = tm.box_expected(expected, xbox)
-            tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_comp_nat(self, dtype):
