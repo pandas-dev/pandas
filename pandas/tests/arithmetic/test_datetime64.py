@@ -143,7 +143,8 @@ class TestDatetime64ArrayLikeComparisons:
         ts = pd.Timestamp.now(tz)
         ser = pd.Series([ts, pd.NaT])
 
-        # Don't transpose because that loses the tz dtype on the NaT column
+        # FIXME: Can't transpose because that loses the tz dtype on
+        #  the NaT column
         obj = tm.box_expected(ser, box, transpose=False)
 
         expected = pd.Series([True, False], dtype=np.bool_)
@@ -161,11 +162,18 @@ class TestDatetime64DataFrameComparison:
             [pd.Timestamp("2012-01-01 13:00:00")] * 2,
         ],
     )
-    def test_tz_aware_scalar_comparison(self, timestamps):
+    def test_tz_aware_scalar_comparison(self, timestamps, box_with_array):
         # GH#15966
-        df = pd.DataFrame({"test": timestamps})
-        expected = pd.DataFrame({"test": [False, False]})
-        tm.assert_frame_equal(df == -1, expected)
+        box = box_with_array
+        xbox = box if box is not pd.Index else np.ndarray
+
+        df = pd.Series(timestamps, name="test")
+        expected = pd.Series([False, False], name="test")
+
+        obj = tm.box_expected(df, box)
+        expected = tm.box_expected(expected, xbox)
+        result = obj == -1
+        tm.assert_equal(result, expected)
 
 
 class TestDatetime64SeriesComparison:
