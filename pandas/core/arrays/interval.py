@@ -695,17 +695,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return isna(self.left)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self.left.nbytes + self.right.nbytes
 
     @property
-    def size(self):
+    def size(self) -> int:
         # Avoid materializing self.values
         return self.left.size
-
-    @property
-    def shape(self):
-        return self.left.shape
 
     def take(self, indices, allow_fill=False, fill_value=None, axis=None, **kwargs):
         """
