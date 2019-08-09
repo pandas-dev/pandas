@@ -159,7 +159,7 @@ class TestPandasContainer:
     def test_frame_default_orient(self):
         assert self.frame.to_json() == self.frame.to_json(orient="columns")
 
-    @pytest.mark.parametrize("dtype", [False, float])        
+    @pytest.mark.parametrize("dtype", [False, float])
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
     def test_roundtrip_simple(self, df_orient, convert_axes, numpy, dtype):
@@ -203,7 +203,7 @@ class TestPandasContainer:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [None, np.float64, np.int, "U3"])        
+    @pytest.mark.parametrize("dtype", [None, np.float64, np.int, "U3"])
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
     def test_roundtrip_str_axes(self, df_orient, convert_axes, numpy, dtype):
@@ -357,38 +357,45 @@ class TestPandasContainer:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_frame_from_json_bad_data(self):
-        with pytest.raises(ValueError, match="Expected object or value"):
-            read_json(StringIO('{"key":b:a:d}'))
-
-        # too few indices
-        json = StringIO(
-            '{"columns":["A","B"],'
-            '"index":["2","3"],'
-            '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}'
-        )
-        msg = r"Shape of passed values is \(3, 2\), indices imply \(2, 2\)"
+    @pytest.mark.parametrize(
+        "data,msg,orient",
+        [
+            (StringIO('{"key":b:a:d}'), "Expected object or value", "columns"),
+            # too few indices
+            (
+                StringIO(
+                    '{"columns":["A","B"],'
+                    '"index":["2","3"],'
+                    '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}'
+                ),
+                r"Shape of passed values is \(3, 2\), indices imply \(2, 2\)",
+                "split",
+            ),
+            # too many columns
+            (
+                StringIO(
+                    '{"columns":["A","B","C"],'
+                    '"index":["1","2","3"],'
+                    '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}'
+                ),
+                "3 columns passed, passed data had 2 columns",
+                "split",
+            ),
+            # bad key
+            (
+                StringIO(
+                    '{"badkey":["A","B"],'
+                    '"index":["2","3"],'
+                    '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}'
+                ),
+                r"unexpected key\(s\): badkey",
+                "split",
+            ),
+        ],
+    )
+    def test_frame_from_json_bad_data_raises(self, data, msg, orient):
         with pytest.raises(ValueError, match=msg):
-            read_json(json, orient="split")
-
-        # too many columns
-        json = StringIO(
-            '{"columns":["A","B","C"],'
-            '"index":["1","2","3"],'
-            '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}'
-        )
-        msg = "3 columns passed, passed data had 2 columns"
-        with pytest.raises(ValueError, match=msg):
-            read_json(json, orient="split")
-
-        # bad key
-        json = StringIO(
-            '{"badkey":["A","B"],'
-            '"index":["2","3"],'
-            '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}'
-        )
-        with pytest.raises(ValueError, match=r"unexpected key\(s\): badkey"):
-            read_json(json, orient="split")
+            read_json(data, orient=orient)
 
     def test_frame_from_json_nones(self):
         df = DataFrame([[1, 2], [4, 5, 6]])
