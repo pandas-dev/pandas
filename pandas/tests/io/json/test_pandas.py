@@ -243,6 +243,34 @@ class TestPandasContainer:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("convert_axes", [True, False])
+    @pytest.mark.parametrize("numpy", [True, False])
+    def test_roundtrip_categorical(self, df_orient, convert_axes, numpy):
+        # TODO: create a better frame to test with and improve coverage
+        if df_orient in ("index", "columns"):
+            pytest.xfail("Can't have duplicate index values for orient '{}')".format(df_orient))
+        
+        data = self.categorical.to_json(orient=df_orient)
+        if numpy and df_orient in ("records", "values"):
+            pytest.xfail("Orient {} is broken with numpy=True".format(df_orient))
+
+        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy)
+
+        expected = self.categorical.copy()
+        expected.index = expected.index.astype(str)  # Categorical not preserved
+        expected.index.name = None  # index names aren't preserved in JSON
+
+        if df_orient == "index" and not numpy:
+            # Seems to be doing lexigraphic sorting here :-X
+            expected = expected.sort_index()
+
+        if df_orient == "records" or df_orient == "values":
+            expected = expected.reset_index(drop=True)
+        if df_orient == "values":
+            expected.columns = range(len(expected.columns))
+
+        tm.assert_frame_equal(result, expected)        
+
     def test_frame_from_json_to_json(self):
         def _check_orient(
             df,
@@ -498,9 +526,6 @@ class TestPandasContainer:
                 raise_ok=raise_ok,
                 sort=sort,
             )
-
-        # categorical
-        _check_all_orients(self.categorical, sort="sort", raise_ok=ValueError)
 
         # empty
         _check_all_orients(
