@@ -142,7 +142,7 @@ class TestPandasContainer:
         if orient == "values":
             expected = pd.DataFrame(data)
             if expected.iloc[:, 0].dtype == "datetime64[ns]":
-                expected.iloc[:, 0] = expected.iloc[:, 0].astype(np.int64) // 1_000_000
+                expected.iloc[:, 0] = expected.iloc[:, 0].astype(np.int64) // 1000000
         elif orient == "split":
             expected = df
 
@@ -307,7 +307,7 @@ class TestPandasContainer:
         expected = self.tsframe.copy()
 
         if not convert_axes:  # one off for ts handling
-            idx = expected.index.astype(np.int64) // 1_000_000
+            idx = expected.index.astype(np.int64) // 1000000
             if orient != "split":  # TODO: make this consistent
                 idx = idx.astype(str)
 
