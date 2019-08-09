@@ -83,6 +83,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in partial-string indexing returning a NumPy array rather than a ``Series`` when indexing with a scalar like ``.loc['2015']`` (:issue:`27516`)
+- Break reference cycle involving :class:`Index` to allow garbage collection of :class:`Index` objects without running the GC. (:issue:`27585`)
 -
 -
 
@@ -111,7 +112,7 @@ Plotting
 ^^^^^^^^
 
 - Added a pandas_plotting_backends entrypoint group for registering plot backends. See :ref:`extending.plotting-backends` for more (:issue:`26747`).
--
+- Fix compatibility issue with matplotlib when passing a pandas ``Index`` to a plot call (:issue:`27775`).
 -
 
 Groupby/resample/rolling
