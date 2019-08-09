@@ -124,6 +124,16 @@ class TestDatetime64ArrayLikeComparisons:
         dtarr = tm.box_expected(rng, box_with_array)
         assert_invalid_comparison(dtarr, other, box_with_array)
 
+    @pytest.mark.parametrize("other", [None, np.nan])
+    def test_dt64arr_cmp_na_scalar_invalid(
+        self, other, tz_naive_fixture, box_with_array
+    ):
+        # GH#19301
+        tz = tz_naive_fixture
+        dti = pd.date_range("2016-01-01", periods=2, tz=tz)
+        dtarr = tm.box_expected(dti, box_with_array)
+        assert_invalid_comparison(dtarr, other, box_with_array)
+
 
 class TestDatetime64DataFrameComparison:
     @pytest.mark.parametrize(
@@ -406,16 +416,6 @@ class TestDatetimeIndexComparisons:
         result = dti <= other
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize("other", [None, np.nan])
-    def test_dti_cmp_null_scalar_inequality(
-        self, tz_naive_fixture, other, box_with_array
-    ):
-        # GH#19301
-        tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01", periods=2, tz=tz)
-        dtarr = tm.box_expected(dti, box_with_array)
-        assert_invalid_comparison(dtarr, other, box_with_array)
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_dti_cmp_nat(self, dtype, box_with_array):

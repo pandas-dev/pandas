@@ -87,6 +87,7 @@ class TestTimedelta64ArrayLikeComparisons:
         expected = np.zeros(rng.shape, dtype=np.bool_)
         expected = tm.box_expected(expected, xbox)
 
+        # TODO: use assert_invalid_comparison
         for left, right in [(obj, invalid), (invalid, obj)]:
             with pytest.raises(TypeError):
                 left < right
