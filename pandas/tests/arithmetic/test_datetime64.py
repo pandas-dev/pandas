@@ -190,6 +190,8 @@ class TestDatetime64SeriesComparison:
         ser = tm.box_expected(ser, box_with_array)
         ser2 = tm.box_expected(ser2, box_with_array)
 
+        assert_invalid_comparison(ser, ser2, box_with_array)
+
         # TODO: we can *almost* use assert_invalid_comparison, but that
         #  doesn't check xbox yet
         for (x, y) in [(ser, ser2), (ser2, ser)]:
@@ -427,20 +429,6 @@ class TestDatetimeIndexComparisons:
 
         other = datetime(2016, 1, 1).date()
         assert_invalid_comparison(dtarr, other, box_with_array)
-
-    @pytest.mark.parametrize("other", [None, np.nan, pd.NaT])
-    def test_dti_eq_null_scalar(self, other, tz_naive_fixture):
-        # GH#19301
-        tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01", periods=2, tz=tz)
-        assert not (dti == other).any()
-
-    @pytest.mark.parametrize("other", [None, np.nan, pd.NaT])
-    def test_dti_ne_null_scalar(self, other, tz_naive_fixture):
-        # GH#19301
-        tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01", periods=2, tz=tz)
-        assert (dti != other).all()
 
     @pytest.mark.parametrize("other", [None, np.nan])
     def test_dti_cmp_null_scalar_inequality(
@@ -749,25 +737,7 @@ class TestDatetimeIndexComparisons:
 
         rng = date_range("1/1/2000", periods=10, tz=tz)
         rng = tm.box_expected(rng, box_with_array)
-
-        result = rng == other
-        expected = np.array([False] * 10)
-        expected = tm.box_expected(expected, xbox)
-        tm.assert_equal(result, expected)
-
-        result = rng != other
-        expected = np.array([True] * 10)
-        expected = tm.box_expected(expected, xbox)
-        tm.assert_equal(result, expected)
-        msg = "Invalid comparison between"
-        with pytest.raises(TypeError, match=msg):
-            rng < other
-        with pytest.raises(TypeError, match=msg):
-            rng <= other
-        with pytest.raises(TypeError, match=msg):
-            rng > other
-        with pytest.raises(TypeError, match=msg):
-            rng >= other
+        assert_invalid_comparison(rng, other, box_with_array)
 
     def test_dti_cmp_list(self):
         rng = date_range("1/1/2000", periods=10)
