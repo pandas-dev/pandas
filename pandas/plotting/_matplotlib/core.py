@@ -401,9 +401,14 @@ class MPLPlot:
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)
 
+        # exclude datatime type for boxplot
+        include_type = [np.number, "datetime", "datetimetz", "timedelta"]
+        if self._kind == 'box':
+            include_type.remove('datetime')
+
         # GH22799, skip datetime type data for computation
         numeric_data = data.select_dtypes(
-            include=[np.number, "datetimetz", "timedelta"]
+            include=include_type,
         )
 
         try:
