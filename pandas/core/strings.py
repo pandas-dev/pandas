@@ -1442,11 +1442,11 @@ def str_slice(arr, start=None, stop=None, step=None):
     2    hameleon
     dtype: object
 
-	>>> s.str.slice(start=-1)
-	0           a
-	1           x
-	2           n
-	dtype: object
+    >>> s.str.slice(start=-1)
+    0           a
+    1           x
+    2           n
+    dtype: object
 
     >>> s.str.slice(stop=2)
     0    ko
