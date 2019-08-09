@@ -1454,6 +1454,36 @@ def str_slice(arr, start=None, stop=None, step=None):
     2    caeen
     dtype: object
 
+    Negative values can be used for any of the three parameters. For start or stop, a
+    value of -1 will be the last character of the string, -2 the second to last, and
+    so on. Examples:
+
+    >>> s.str.slice(start=-3)
+    0    ala
+    1    fox
+    2    eon
+    dtype: object
+
+    >>> s.str.slice(stop=-2)
+    0        koa
+    1          f
+    2    chamele
+    dtype: object
+
+    A negative value for step will simply step in the other direction.
+
+    >>> s.str.slice(step=-1)
+    0        alaok
+    1          xof
+    2    noelemahc
+    dtype: object
+
+    >>> s.str.slice(stop=1, step=-1)
+    0        ala
+    1          x
+    2    noelema
+    dtype: object
+
     >>> s.str.slice(start=0, stop=5, step=3)
     0    kl
     1     f
