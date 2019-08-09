@@ -549,7 +549,7 @@ class MPLPlot:
             self.legend_labels.append(label)
 
     def _make_legend(self):
-        ax, leg, handle = self._get_ax_legend(self.axes[0])
+        ax, leg, handle = self._get_ax_legend_handle(self.axes[0])
 
         handles = []
         labels = []
@@ -581,7 +581,10 @@ class MPLPlot:
                 if ax.get_visible():
                     ax.legend(loc="best")
 
-    def _get_ax_legend(self, ax):
+    def _get_ax_legend_handle(self, ax):
+        """
+        Take in axes and return ax, legend and handle under different scenarios
+        """
         leg = ax.get_legend()
 
         # Get handle from axes
