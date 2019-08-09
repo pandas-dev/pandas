@@ -869,26 +869,25 @@ class TestPandasContainer:
         result = read_json(json, typ="series")
         assert_series_equal(result, ts)
 
-    def test_convert_dates_infer(self):
+    @pytest.mark.parametrize("infer_word", [
+        "trade_time",
+        "date",
+        "datetime",
+        "sold_at",
+        "modified",
+        "timestamp",
+        "timestamps",
+    ])
+    def test_convert_dates_infer(self, infer_word):
         # GH10747
         from pandas.io.json import dumps
 
-        infer_words = [
-            "trade_time",
-            "date",
-            "datetime",
-            "sold_at",
-            "modified",
-            "timestamp",
-            "timestamps",
-        ]
-        for infer_word in infer_words:
-            data = [{"id": 1, infer_word: 1036713600000}, {"id": 2}]
-            expected = DataFrame(
-                [[1, Timestamp("2002-11-08")], [2, pd.NaT]], columns=["id", infer_word]
-            )
-            result = read_json(dumps(data))[["id", infer_word]]
-            assert_frame_equal(result, expected)
+        data = [{"id": 1, infer_word: 1036713600000}, {"id": 2}]
+        expected = DataFrame(
+            [[1, Timestamp("2002-11-08")], [2, pd.NaT]], columns=["id", infer_word]
+        )
+        result = read_json(dumps(data))[["id", infer_word]]
+        assert_frame_equal(result, expected)
 
     def test_date_format_frame(self):
         df = self.tsframe.copy()
