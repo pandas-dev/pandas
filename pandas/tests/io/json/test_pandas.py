@@ -417,6 +417,7 @@ class TestPandasContainer:
         unser = read_json(df.to_json(), numpy=False, convert_axes=False, dtype=False)
         assert unser["2"]["0"] is None
 
+    def test_frame_infinity(self):
         # infinities get mapped to nulls which get mapped to NaNs during
         # deserialisation
         df = DataFrame([[1, 2], [4, 5, 6]])
