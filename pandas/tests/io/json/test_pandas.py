@@ -693,6 +693,43 @@ class TestPandasContainer:
 
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", [False, None])
+    @pytest.mark.parametrize("numpy", [True, False])        
+    def test_series_roundtrip_datetime(self, orient, numpy, dtype):
+        # self.objSeries appears to be a misnomer, producing DTA by default
+        dtSeries = Series(
+            [str(d) for d in self.objSeries],
+            index=self.objSeries.index,
+            name=self.objSeries.name,
+        )        
+        data = dtSeries.to_json(orient=orient)
+        result = pd.read_json(data, typ="series", orient=orient, numpy=numpy, dtype=dtype)
+        if dtype is False:
+            expected = dtSeries.copy()            
+        else:
+            expected = self.objSeries.copy()
+
+        if orient in ('values', 'records'):
+            expected = expected.reset_index(drop=True)
+        if orient != "split":
+            expected.name = None
+
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("numpy", [True, False])
+    def test_series_roundtrip_empty(self, orient, numpy):
+        data = self.empty_series.to_json(orient=orient)
+        result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
+        expected = self.empty_series.copy()
+
+        # TODO: see what causes inconsistency
+        if orient in ('values', 'records'):
+            expected = expected.reset_index(drop=True)
+        else:
+            expected.index = expected.index.astype(float)
+
+        tm.assert_series_equal(result, expected)        
+
     def test_series_from_json_to_json(self):
         def _check_orient(
             series, orient, dtype=None, numpy=False, check_index_type=True
@@ -771,21 +808,6 @@ class TestPandasContainer:
                 numpy=True,
                 check_index_type=check_index_type,
             )
-
-        # basic
-        assert self.series.to_json() == self.series.to_json(orient="index")
-
-        objSeries = Series(
-            [str(d) for d in self.objSeries],
-            index=self.objSeries.index,
-            name=self.objSeries.name,
-        )
-        _check_all_orients(objSeries, dtype=False)
-
-        # empty_series has empty index with object dtype
-        # which cannot be revert
-        assert self.empty_series.index.dtype == np.object_
-        _check_all_orients(self.empty_series, check_index_type=False)
 
         _check_all_orients(self.ts)
 
