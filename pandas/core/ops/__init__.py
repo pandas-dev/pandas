@@ -74,6 +74,8 @@ from pandas.core.ops.roperator import (  # noqa:F401
     rtruediv,
     rxor,
 )
+from pandas.core.ops.common import unpack_and_defer
+
 
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities
@@ -676,12 +678,14 @@ def _arith_method_SERIES(cls, op, special):
 
         return missing.dispatch_fill_zeros(op, x, y, result)
 
+    @unpack_and_defer(op_name)
     def wrapper(left, right):
-        if isinstance(right, ABCDataFrame):
-            return NotImplemented
+        #if isinstance(right, ABCDataFrame):
+        #    return NotImplemented
 
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
+        right = lib.item_from_zerodim(right)
         right = maybe_upcast_for_op(right, left.shape)
 
         if is_categorical_dtype(left):
@@ -808,6 +812,7 @@ def _comp_method_SERIES(cls, op, special):
 
         return result
 
+    @unpack_and_defer(op_name)
     def wrapper(self, other, axis=None):
         # Validate the axis parameter
         if axis is not None:
@@ -828,11 +833,11 @@ def _comp_method_SERIES(cls, op, special):
             # TODO: same for tuples?
             other = np.asarray(other)
 
-        if isinstance(other, ABCDataFrame):  # pragma: no cover
-            # Defer to DataFrame implementation; fail early
-            return NotImplemented
+        #if isinstance(other, ABCDataFrame):  # pragma: no cover
+        #    # Defer to DataFrame implementation; fail early
+        #    return NotImplemented
 
-        elif isinstance(other, ABCSeries) and not self._indexed_same(other):
+        if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
 
         elif (
@@ -938,17 +943,19 @@ def _bool_method_SERIES(cls, op, special):
     fill_int = lambda x: x.fillna(0)
     fill_bool = lambda x: x.fillna(False).astype(bool)
 
+    @unpack_and_defer(op_name)
     def wrapper(self, other):
         is_self_int_dtype = is_integer_dtype(self.dtype)
 
         self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)
+        other = lib.item_from_zerodim(other)
 
-        if isinstance(other, ABCDataFrame):
-            # Defer to DataFrame implementation; fail early
-            return NotImplemented
+        #if isinstance(other, ABCDataFrame):
+        #    # Defer to DataFrame implementation; fail early
+        #    return NotImplemented
 
-        elif isinstance(other, (ABCSeries, ABCIndexClass)):
+        if isinstance(other, (ABCSeries, ABCIndexClass)):
             is_other_int_dtype = is_integer_dtype(other.dtype)
             other = fill_int(other) if is_other_int_dtype else fill_bool(other)
 
@@ -1278,10 +1285,11 @@ def _arith_method_SPARSE_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
 
+    @unpack_and_defer(op_name)
     def wrapper(self, other):
-        if isinstance(other, ABCDataFrame):
-            return NotImplemented
-        elif isinstance(other, ABCSeries):
+        #if isinstance(other, ABCDataFrame):
+        #    return NotImplemented
+        if isinstance(other, ABCSeries):
             if not isinstance(other, ABCSparseSeries):
                 other = other.to_sparse(fill_value=self.fill_value)
             return _sparse_series_op(self, other, op, op_name)

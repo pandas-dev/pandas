@@ -115,6 +115,7 @@ def _make_comparison_op(op, cls):
         # technically we could support bool dtyped Index
         # for now just return the indexing array directly
         if is_bool_dtype(result):
+            # TODO: This fails for exactly 1 test, with Int64Index and other="a" and ==
             return result
         try:
             return Index(result)
@@ -128,7 +129,7 @@ def _make_comparison_op(op, cls):
 
 def _make_arithmetic_op(op, cls):
     def index_arithmetic_method(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCTimedeltaIndex)):
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
             return NotImplemented
 
         from pandas import Series
@@ -139,7 +140,6 @@ def _make_arithmetic_op(op, cls):
         return Index(result)
 
     name = "__{name}__".format(name=op.__name__)
-    # TODO: docstring?
     return set_function_name(index_arithmetic_method, name, cls)
 
 
