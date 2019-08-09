@@ -161,14 +161,35 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_simple(self, df_orient, convert_axes, numpy):
+    @pytest.mark.parametrize("dtype", [False, float])
+    def test_roundtrip_simple(self, df_orient, convert_axes, numpy, dtype):
         data = self.frame.to_json(orient=df_orient)
-        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy)
+        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype)
 
         expected = self.frame.copy()
 
         if df_orient == "index" and not numpy:
-            # Seems to be doing lexigraphic sorting here; definite bug
+            # Seems to be doing lexigraphic sorting here :-X
+            expected = expected.sort_index()
+
+        if df_orient == "records" or df_orient == "values":
+            expected = expected.reset_index(drop=True)
+        if df_orient == "values":
+            expected.columns = range(len(expected.columns))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("convert_axes", [True, False])
+    @pytest.mark.parametrize("numpy", [True, False])
+    @pytest.mark.parametrize("dtype", [False, np.int64])
+    def test_roundtrip_intframe(self, df_orient, convert_axes, numpy, dtype):
+        data = self.intframe.to_json(orient=df_orient)
+        result = pd.read_json(data, orient=df_orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype)
+
+        expected = self.intframe.copy()
+
+        if df_orient == "index" and not numpy:
+            # Seems to be doing lexigraphic sorting here :-X
             expected = expected.sort_index()
 
         if df_orient == "records" or df_orient == "values":
@@ -477,9 +498,6 @@ class TestPandasContainer:
                 raise_ok=raise_ok,
                 sort=sort,
             )
-
-        _check_all_orients(self.intframe, dtype=self.intframe.values.dtype)
-        _check_all_orients(self.intframe, dtype=False)
 
         # categorical
         _check_all_orients(self.categorical, sort="sort", raise_ok=ValueError)
