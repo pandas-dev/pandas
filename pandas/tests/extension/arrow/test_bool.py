@@ -53,6 +53,16 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
 
 
 class TestReduce(base.BaseNoReduceTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
+        op_name = all_numeric_reductions
+        if op_name in ('max', 'min'):
+            pass
+        else:
+            ser = pd.Series(data)
+            with pytest.raises(TypeError):
+                getattr(ser, op_name)(skipna=skipna)
+
     def test_reduce_series_boolean(self):
         pass
 
