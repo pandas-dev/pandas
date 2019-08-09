@@ -1287,14 +1287,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             [b"A\xf8\xfc", np.nan, b"", b"b", b"c"],
         ]
 
-        def _try_decode(x, encoding="latin-1"):
-            try:
-                return x.decode(encoding)
-            except AttributeError:
-                return x
-
-        # not sure how to remove latin-1 from code in python 2 and 3
-        values = [[_try_decode(x) for x in y] for y in values]
+        values = [[x.decode("latin-1") if isinstance(x, bytes) else x for x in y ] for y in values]
 
         examples = []
         for dtype in ["category", object]:
