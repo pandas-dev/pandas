@@ -925,6 +925,7 @@ _TYPE_MAP = {
     'M': 'datetime64',
     'timedelta64[ns]': 'timedelta64',
     'm': 'timedelta64',
+    'interval': 'interval',
 }
 
 # types only exist on certain platform
@@ -1265,7 +1266,10 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         if is_integer_array(values):
             return 'integer'
         elif is_integer_float_array(values):
-            return 'mixed-integer-float'
+            if is_integer_na_array(values):
+                return 'integer-na'
+            else:
+                return 'mixed-integer-float'
         return 'mixed-integer'
 
     elif PyDateTime_Check(val):
@@ -1290,7 +1294,10 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         if is_float_array(values):
             return 'floating'
         elif is_integer_float_array(values):
-            return 'mixed-integer-float'
+            if is_integer_na_array(values):
+                return 'integer-na'
+            else:
+                return 'mixed-integer-float'
 
     elif util.is_bool_object(val):
         if is_bool_array(values, skipna=skipna):
@@ -1523,6 +1530,19 @@ cpdef bint is_integer_array(ndarray values):
     cdef:
         IntegerValidator validator = IntegerValidator(len(values),
                                                       values.dtype)
+    return validator.validate(values)
+
+
+cdef class IntegerNaValidator(Validator):
+    cdef inline bint is_value_typed(self, object value) except -1:
+        return (util.is_integer_object(value)
+                or (util.is_nan(value) and util.is_float_object(value)))
+
+
+cdef bint is_integer_na_array(ndarray values):
+    cdef:
+        IntegerNaValidator validator = IntegerNaValidator(len(values),
+                                                          values.dtype)
     return validator.validate(values)
 
 

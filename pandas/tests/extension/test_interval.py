@@ -95,7 +95,10 @@ class TestGrouping(BaseInterval, base.BaseGroupbyTests):
 
 
 class TestInterface(BaseInterval, base.BaseInterfaceTests):
-    pass
+    def test_view(self, data):
+        # __setitem__ incorrectly makes a copy (GH#27147), so we only
+        #  have a smoke-test
+        data.view()
 
 
 class TestReduce(base.BaseNoReduceTests):
