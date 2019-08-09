@@ -1,8 +1,8 @@
 import pytest
 
 @pytest.fixture(params=["split", "records", "index", "columns", "values"])
-def df_orient(request):
+def orient(request):
     """
-     Fixture for orients applicable to a DataFrame, excluding the table format.
+     Fixture for orients excluding the table format.
      """
     return request.param

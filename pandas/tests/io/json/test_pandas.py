@@ -82,19 +82,19 @@ class TestPandasContainer:
         del self.tsframe
         del self.mixed_frame
 
-    def test_frame_double_encoded_labels(self, df_orient):
+    def test_frame_double_encoded_labels(self, orient):
         df = DataFrame(
             [["a", "b"], ["c", "d"]],
             index=['index " 1', "index / 2"],
             columns=["a \\ b", "y / z"],
         )
 
-        result = read_json(df.to_json(orient=df_orient), orient=df_orient)
+        result = read_json(df.to_json(orient=orient), orient=orient)
         expected = df.copy()
 
-        if df_orient == "records" or df_orient == "values":
+        if orient == "records" or orient == "values":
             expected = expected.reset_index(drop=True)
-        if df_orient == "values":
+        if orient == "values":
             expected.columns = range(len(expected.columns))
 
         assert_frame_equal(result, expected)
@@ -162,21 +162,21 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [False, float])
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_simple(self, df_orient, convert_axes, numpy, dtype):
-        data = self.frame.to_json(orient=df_orient)
+    def test_roundtrip_simple(self, orient, convert_axes, numpy, dtype):
+        data = self.frame.to_json(orient=orient)
         result = pd.read_json(
-            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
+            data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
         )
 
         expected = self.frame.copy()
 
-        if df_orient == "index" and not numpy:
+        if orient == "index" and not numpy:
             # Seems to be doing lexigraphic sorting here :-X
             expected = expected.sort_index()
 
-        if df_orient == "records" or df_orient == "values":
+        if orient == "records" or orient == "values":
             expected = expected.reset_index(drop=True)
-        if df_orient == "values":
+        if orient == "values":
             expected.columns = range(len(expected.columns))
 
         tm.assert_frame_equal(result, expected)
@@ -184,21 +184,21 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [False, np.int64])
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_intframe(self, df_orient, convert_axes, numpy, dtype):
-        data = self.intframe.to_json(orient=df_orient)
+    def test_roundtrip_intframe(self, orient, convert_axes, numpy, dtype):
+        data = self.intframe.to_json(orient=orient)
         result = pd.read_json(
-            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
+            data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
         )
 
         expected = self.intframe.copy()
 
-        if df_orient == "index" and not numpy:
+        if orient == "index" and not numpy:
             # Seems to be doing lexigraphic sorting here :-X
             expected = expected.sort_index()
 
-        if df_orient == "records" or df_orient == "values":
+        if orient == "records" or orient == "values":
             expected = expected.reset_index(drop=True)
-        if df_orient == "values":
+        if orient == "values":
             expected.columns = range(len(expected.columns))
 
         tm.assert_frame_equal(result, expected)
@@ -206,7 +206,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [None, np.float64, np.int, "U3"])
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_str_axes(self, df_orient, convert_axes, numpy, dtype):
+    def test_roundtrip_str_axes(self, orient, convert_axes, numpy, dtype):
         df = DataFrame(
             np.zeros((200, 4)),
             columns=[str(i) for i in range(4)],
@@ -214,19 +214,19 @@ class TestPandasContainer:
             dtype=dtype,
         )
 
-        if numpy and dtype == "U3" and df_orient != "split":
+        if numpy and dtype == "U3" and orient != "split":
             pytest.xfail("Can't decode directly to array")
 
-        data = df.to_json(orient=df_orient)
+        data = df.to_json(orient=orient)
         result = pd.read_json(
-            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
+            data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
         )
 
         expected = df.copy()
         if not dtype:
             expected = expected.astype(int)
 
-        if df_orient == "index" and not numpy:
+        if orient == "index" and not numpy:
             # Seems to be doing lexigraphic sorting here; definite bug
             expected = expected.sort_index()
 
@@ -236,57 +236,57 @@ class TestPandasContainer:
         # to disambiguate whether those keys actually were strings or numeric
         # beforehand and numeric wins out.
         # Split not being able to infer is probably a bug
-        if convert_axes and (df_orient in ("split", "index", "columns")):
+        if convert_axes and (orient in ("split", "index", "columns")):
             expected.columns = expected.columns.astype(int)
             expected.index = expected.index.astype(int)
-        elif df_orient == "records" and convert_axes:
+        elif orient == "records" and convert_axes:
             expected.columns = expected.columns.astype(int)
 
-        if df_orient == "records" or df_orient == "values":
+        if orient == "records" or orient == "values":
             expected = expected.reset_index(drop=True)
-        if df_orient == "values":
+        if orient == "values":
             expected.columns = range(len(expected.columns))
 
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_categorical(self, df_orient, convert_axes, numpy):
+    def test_roundtrip_categorical(self, orient, convert_axes, numpy):
         # TODO: create a better frame to test with and improve coverage
-        if df_orient in ("index", "columns"):
+        if orient in ("index", "columns"):
             pytest.xfail(
-                "Can't have duplicate index values for orient '{}')".format(df_orient)
+                "Can't have duplicate index values for orient '{}')".format(orient)
             )
 
-        data = self.categorical.to_json(orient=df_orient)
-        if numpy and df_orient in ("records", "values"):
-            pytest.xfail("Orient {} is broken with numpy=True".format(df_orient))
+        data = self.categorical.to_json(orient=orient)
+        if numpy and orient in ("records", "values"):
+            pytest.xfail("Orient {} is broken with numpy=True".format(orient))
 
         result = pd.read_json(
-            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy
+            data, orient=orient, convert_axes=convert_axes, numpy=numpy
         )
 
         expected = self.categorical.copy()
         expected.index = expected.index.astype(str)  # Categorical not preserved
         expected.index.name = None  # index names aren't preserved in JSON
 
-        if df_orient == "index" and not numpy:
+        if orient == "index" and not numpy:
             # Seems to be doing lexigraphic sorting here :-X
             expected = expected.sort_index()
 
-        if df_orient == "records" or df_orient == "values":
+        if orient == "records" or orient == "values":
             expected = expected.reset_index(drop=True)
-        if df_orient == "values":
+        if orient == "values":
             expected.columns = range(len(expected.columns))
 
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_empty(self, df_orient, convert_axes, numpy):
-        data = self.empty_frame.to_json(orient=df_orient)
+    def test_roundtrip_empty(self, orient, convert_axes, numpy):
+        data = self.empty_frame.to_json(orient=orient)
         result = pd.read_json(
-            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy
+            data, orient=orient, convert_axes=convert_axes, numpy=numpy
         )
         expected = self.empty_frame.copy()
 
@@ -294,39 +294,39 @@ class TestPandasContainer:
         if convert_axes:
             expected.index = expected.index.astype(float)
             expected.columns = expected.columns.astype(float)
-        if numpy and df_orient == "values":
+        if numpy and orient == "values":
             expected = expected.reindex([0], axis=1).reset_index(drop=True)
 
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_timestamp(self, df_orient, convert_axes, numpy):
+    def test_roundtrip_timestamp(self, orient, convert_axes, numpy):
         # TODO: improve coverage with date_format parameter
-        data = self.tsframe.to_json(orient=df_orient)
+        data = self.tsframe.to_json(orient=orient)
         result = pd.read_json(
-            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy
+            data, orient=orient, convert_axes=convert_axes, numpy=numpy
         )
         expected = self.tsframe.copy()
 
         if not convert_axes:  # one off for ts handling
             idx = expected.index.astype(int) // 1_000_000
-            if df_orient != "split":  # TODO: make this consistent
+            if orient != "split":  # TODO: make this consistent
                 idx = idx.astype(str)
 
             expected.index = idx
 
-        if df_orient == "records" or df_orient == "values":
+        if orient == "records" or orient == "values":
             expected = expected.reset_index(drop=True)
-        if df_orient == "values":
+        if orient == "values":
             expected.columns = range(len(expected.columns))
 
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_mixed(self, df_orient, convert_axes, numpy):
-        if numpy and df_orient != "split":
+    def test_roundtrip_mixed(self, orient, convert_axes, numpy):
+        if numpy and orient != "split":
             pytest.xfail("Can't decode directly to array")
 
         index = pd.Index(["a", "b", "c", "d", "e"])
@@ -338,21 +338,21 @@ class TestPandasContainer:
         }
         df = DataFrame(data=values, index=index)
 
-        data = df.to_json(orient=df_orient)
+        data = df.to_json(orient=orient)
         result = pd.read_json(
-            data, orient=df_orient, convert_axes=convert_axes, numpy=numpy
+            data, orient=orient, convert_axes=convert_axes, numpy=numpy
         )
 
         expected = df.copy()
         expected = expected.assign(**expected.select_dtypes("number").astype(int))
 
-        if df_orient == "index" and not numpy:
+        if orient == "index" and not numpy:
             # Seems to be doing lexigraphic sorting here :-X
             expected = expected.sort_index()
 
-        if df_orient == "records" or df_orient == "values":
+        if orient == "records" or orient == "values":
             expected = expected.reset_index(drop=True)
-        if df_orient == "values":
+        if orient == "values":
             expected.columns = range(len(expected.columns))
 
         tm.assert_frame_equal(result, expected)
