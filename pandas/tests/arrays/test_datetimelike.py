@@ -462,6 +462,13 @@ class TestDatetimeArray(SharedTests):
 
         tm.assert_datetime_array_equal(result, expected)
 
+    def test_strftime(self, datetime_index):
+        arr = DatetimeArray(datetime_index)
+
+        result = arr.strftime("%Y %b")
+        expected = np.array(datetime_index.strftime("%Y %b"))
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestTimedeltaArray(SharedTests):
     index_cls = pd.TimedeltaIndex
@@ -650,6 +657,13 @@ class TestPeriodArray(SharedTests):
 
         result = np.asarray(arr, dtype="S20")
         expected = np.asarray(arr).astype("S20")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_strftime(self, period_index):
+        arr = PeriodArray(period_index)
+
+        result = arr.strftime("%Y")
+        expected = np.array(period_index.strftime("%Y"))
         tm.assert_numpy_array_equal(result, expected)
 
 
