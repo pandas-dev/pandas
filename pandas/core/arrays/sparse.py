@@ -839,7 +839,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         self._dtype = SparseDtype(self.dtype.subtype, value)
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         """
         The kind of sparse index for this array. One of {'integer', 'block'}.
         """
@@ -854,7 +854,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         mask = notna(sp_vals)
         return sp_vals[mask]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.sp_index.length
 
     @property
@@ -868,7 +868,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             return self.fill_value == fill_value
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self.sp_values.nbytes + self.sp_index.nbytes
 
     @property
@@ -886,7 +886,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return r
 
     @property
-    def npoints(self):
+    def npoints(self) -> int:
         """
         The number of non- ``fill_value`` points.
 

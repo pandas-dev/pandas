@@ -64,6 +64,7 @@ class ExtensionArray:
     shift
     take
     unique
+    view
     _concat_same_type
     _formatter
     _from_factorized
@@ -146,7 +147,7 @@ class ExtensionArray:
     If implementing NumPy's ``__array_ufunc__`` interface, pandas expects
     that
 
-    1. You defer by raising ``NotImplemented`` when any Series are present
+    1. You defer by returning ``NotImplemented`` when any Series are present
        in `inputs`. Pandas will extract the arrays and call the ufunc again.
     2. You define a ``_HANDLED_TYPES`` tuple as an attribute on the class.
        Pandas inspect this to determine whether the ufunc is valid for the
@@ -860,6 +861,27 @@ class ExtensionArray:
         ExtensionArray
         """
         raise AbstractMethodError(self)
+
+    def view(self, dtype=None) -> Union[ABCExtensionArray, np.ndarray]:
+        """
+        Return a view on the array.
+
+        Parameters
+        ----------
+        dtype : str, np.dtype, or ExtensionDtype, optional
+            Default None
+
+        Returns
+        -------
+        ExtensionArray
+        """
+        # NB:
+        # - This must return a *new* object referencing the same data, not self.
+        # - The only case that *must* be implemented is with dtype=None,
+        #   giving a view with the same dtype as self.
+        if dtype is not None:
+            raise NotImplementedError(dtype)
+        return self[:]
 
     # ------------------------------------------------------------------------
     # Printing

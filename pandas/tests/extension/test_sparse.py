@@ -103,6 +103,10 @@ class TestInterface(BaseSparseTests, base.BaseInterfaceTests):
         # __setitem__ does not work, so we only have a smoke-test
         data.copy()
 
+    def test_view(self, data):
+        # __setitem__ does not work, so we only have a smoke-test
+        data.view()
+
 
 class TestConstructors(BaseSparseTests, base.BaseConstructorsTests):
     pass
