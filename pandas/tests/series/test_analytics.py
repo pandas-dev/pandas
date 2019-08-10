@@ -240,7 +240,8 @@ class TestSeriesAnalytics:
 
     def test_diff(self):
         # Combined datetime diff, normal diff and boolean diff test
-        self.ts.diff()
+        ts = pd.Series([1, 2])
+        ts.diff()
 
         # int dtype
         a = 10000000000000000
@@ -251,13 +252,13 @@ class TestSeriesAnalytics:
         assert rs[1] == 1
 
         # neg n
-        rs = self.ts.diff(-1)
-        xp = self.ts - self.ts.shift(-1)
+        rs = ts.diff(-1)
+        xp = ts - ts.shift(-1)
         assert_series_equal(rs, xp)
 
         # 0
-        rs = self.ts.diff(0)
-        xp = self.ts - self.ts
+        rs = ts.diff(0)
+        xp = ts - ts
         assert_series_equal(rs, xp)
 
         # datetime diff (GH3100)
