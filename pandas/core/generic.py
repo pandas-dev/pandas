@@ -2184,6 +2184,12 @@ class NDFrame(PandasObject, SelectionMixin):
     automatically chosen depending on the file extension):
 
     >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
+
+    To append data to an existing excel file:
+
+    >>> with pd.ExcelWriter('the_existing_file.xlsx', engine='openpyxl',
+    ...                     mode='a') as writer:
+    ...     df.to_excel(writer)
     """
 
     @Appender(_shared_docs["to_excel"] % dict(klass="object"))
