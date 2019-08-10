@@ -4,7 +4,6 @@ from typing import Any, Callable, List, Optional, Sequence, Union
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
     NaTType,
@@ -35,7 +34,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
-    ABCDataFrame,
     ABCIndexClass,
     ABCPeriodArray,
     ABCPeriodIndex,
@@ -73,10 +71,6 @@ def _period_array_cmp(cls, op):
     @unpack_and_defer(opname)
     def wrapper(self, other):
         op = getattr(self.asi8, opname)
-
-        other = lib.item_from_zerodim(other)
-        #if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-        #    return NotImplemented
 
         if is_list_like(other) and len(other) != len(self):
             raise ValueError("Lengths must match")

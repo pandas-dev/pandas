@@ -83,9 +83,6 @@ def _td_array_cmp(cls, op):
 
     @unpack_and_defer(opname)
     def wrapper(self, other):
-        other = lib.item_from_zerodim(other)
-        #if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-        #    return NotImplemented
 
         if _is_convertible_to_td(other) or other is NaT:
             try:

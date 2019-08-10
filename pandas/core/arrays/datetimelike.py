@@ -35,7 +35,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.generic import (
-    ABCDataFrame,
     ABCIndexClass,
     ABCPeriodArray,
     ABCSeries,
@@ -1197,9 +1196,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
     @unpack_and_defer("__add__")
     def __add__(self, other):
-        other = lib.item_from_zerodim(other)
-        #if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-        #    return NotImplemented
 
         # scalar others
         if other is NaT:
@@ -1264,9 +1260,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
     @unpack_and_defer("__sub__")
     def __sub__(self, other):
-        other = lib.item_from_zerodim(other)
-        #if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-        #    return NotImplemented
 
         # scalar others
         if other is NaT:

@@ -21,7 +21,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
@@ -599,10 +598,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         def cmp_method(self, other):
             mask = None
 
-            #if isinstance(other, (ABCSeries, ABCIndexClass)):
-            #    # Rely on pandas to unbox and dispatch to us.
-            #    return NotImplemented
-
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
 
@@ -610,8 +605,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 other = np.asarray(other)
                 if other.ndim > 0 and len(self) != len(other):
                     raise ValueError("Lengths must match to compare")
-
-            #other = lib.item_from_zerodim(other)
 
             # numpy will show a DeprecationWarning on invalid elementwise
             # comparisons, this will raise in the future
@@ -692,18 +685,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             mask = None
 
-            #if isinstance(other, (ABCSeries, ABCIndexClass)):
-            #    # Rely on pandas to unbox and dispatch to us.
-            #    return NotImplemented
-
             if getattr(other, "ndim", 0) > 1:
                 raise NotImplementedError("can only perform ops with 1-d structures")
 
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
-
-            #elif getattr(other, "ndim", None) == 0:
-            #    other = other.item()
 
             elif is_list_like(other):
                 other = np.asarray(other)

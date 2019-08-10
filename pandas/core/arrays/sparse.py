@@ -39,7 +39,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import (
-    ABCDataFrame,
     ABCIndexClass,
     ABCSeries,
     ABCSparseArray,
@@ -1739,12 +1738,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         @unpack_and_defer(op_name)
         def sparse_arithmetic_method(self, other):
 
-            #if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            #    # Rely on pandas to dispatch to us.
-            #    return NotImplemented
-
-            #other = lib.item_from_zerodim(other)
-
             if isinstance(other, SparseArray):
                 return _sparse_array_op(self, other, op, op_name)
 
@@ -1791,13 +1784,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if op_name in {"and_", "or_"}:
             op_name = op_name[:-1]
 
+        @unpack_and_defer(op_name)
         def cmp_method(self, other):
-
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
-
-            other = lib.item_from_zerodim(other)
 
             if not is_scalar(other) and not isinstance(other, type(self)):
                 # convert list-like to ndarray

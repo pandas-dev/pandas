@@ -680,12 +680,9 @@ def _arith_method_SERIES(cls, op, special):
 
     @unpack_and_defer(op_name)
     def wrapper(left, right):
-        #if isinstance(right, ABCDataFrame):
-        #    return NotImplemented
 
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
-        right = lib.item_from_zerodim(right)
         right = maybe_upcast_for_op(right, left.shape)
 
         if is_categorical_dtype(left):
@@ -819,7 +816,6 @@ def _comp_method_SERIES(cls, op, special):
             self._get_axis_number(axis)
 
         res_name = get_op_result_name(self, other)
-        other = lib.item_from_zerodim(other)
 
         # TODO: shouldn't we be applying finalize whenever
         #  not isinstance(other, ABCSeries)?
@@ -832,10 +828,6 @@ def _comp_method_SERIES(cls, op, special):
         if isinstance(other, list):
             # TODO: same for tuples?
             other = np.asarray(other)
-
-        #if isinstance(other, ABCDataFrame):  # pragma: no cover
-        #    # Defer to DataFrame implementation; fail early
-        #    return NotImplemented
 
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
@@ -949,11 +941,6 @@ def _bool_method_SERIES(cls, op, special):
 
         self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)
-        other = lib.item_from_zerodim(other)
-
-        #if isinstance(other, ABCDataFrame):
-        #    # Defer to DataFrame implementation; fail early
-        #    return NotImplemented
 
         if isinstance(other, (ABCSeries, ABCIndexClass)):
             is_other_int_dtype = is_integer_dtype(other.dtype)
@@ -1287,8 +1274,6 @@ def _arith_method_SPARSE_SERIES(cls, op, special):
 
     @unpack_and_defer(op_name)
     def wrapper(self, other):
-        #if isinstance(other, ABCDataFrame):
-        #    return NotImplemented
         if isinstance(other, ABCSeries):
             if not isinstance(other, ABCSparseSeries):
                 other = other.to_sparse(fill_value=self.fill_value)

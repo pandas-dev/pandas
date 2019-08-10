@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCTimedeltaIndex
+from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
 from pandas.core import ops
 from pandas.core.ops.common import unpack_and_defer
@@ -733,8 +733,6 @@ class RangeIndex(Int64Index):
 
     @unpack_and_defer("__floordiv__")
     def __floordiv__(self, other):
-        #if isinstance(other, (ABCSeries, ABCDataFrame)):
-        #    return NotImplemented
 
         if is_integer(other) and other != 0:
             if len(self) == 0 or self.start % other == 0 and self.step % other == 0:
@@ -771,8 +769,6 @@ class RangeIndex(Int64Index):
             """
             @unpack_and_defer(op.__name__)
             def _evaluate_numeric_binop(self, other):
-                #if isinstance(other, (ABCSeries, ABCDataFrame)):
-                #    return NotImplemented
                 if isinstance(other, ABCTimedeltaIndex):
                     # Defer to TimedeltaIndex implementation
                     return NotImplemented

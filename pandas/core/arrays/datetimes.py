@@ -41,7 +41,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
-    ABCDataFrame,
     ABCIndexClass,
     ABCPandasArray,
     ABCSeries,
@@ -160,10 +159,6 @@ def _dt_array_cmp(cls, op):
 
     @unpack_and_defer(opname)
     def wrapper(self, other):
-        #if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-        #    return NotImplemented
-
-        #other = lib.item_from_zerodim(other)
 
         if isinstance(other, (datetime, np.datetime64, str)):
             if isinstance(other, (datetime, np.datetime64)):
