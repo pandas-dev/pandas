@@ -237,7 +237,7 @@ class TestSeriesAnalytics:
 
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
-        
+
     def test_diff(self):
         '''
         Combined datetime ranges, normal diff and boolean diff test.
@@ -292,7 +292,7 @@ class TestSeriesAnalytics:
         s = Series([False, True, nan, False, False])
         result = s.diff()
         assert_series_equal(result, Series([nan, 1, nan, nan, 0], dtype="object"))
-        
+
     def _check_accum_op(self, name, datetime_series_, check_dtype=True):
         func = getattr(np, name)
         tm.assert_numpy_array_equal(
