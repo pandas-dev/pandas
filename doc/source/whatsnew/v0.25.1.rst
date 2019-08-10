@@ -32,7 +32,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
-
+- Bug in :func:`to_datetime` where passing a timezone-naive :class:`DatetimeArray` or :class:`DatetimeIndex` and ``utc=True`` would incorrectly return a timezone-naive result (:issue:`27733`)
 -
 -
 -
@@ -83,7 +83,8 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- Bug in partial-string indexing returning a NumPy array rather than a ``Series`` when indexing with a scalar like ``.loc['2015']`` (:issue:`27516`)
+- Break reference cycle involving :class:`Index` to allow garbage collection of :class:`Index` objects without running the GC. (:issue:`27585`)
 -
 -
 
@@ -112,13 +113,14 @@ Plotting
 ^^^^^^^^
 
 - Added a pandas_plotting_backends entrypoint group for registering plot backends. See :ref:`extending.plotting-backends` for more (:issue:`26747`).
--
+- Fix compatibility issue with matplotlib when passing a pandas ``Index`` to a plot call (:issue:`27775`).
 -
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
+- Bug in windowing over read-only arrays (:issue:`27766`)
 -
 -
 
@@ -126,7 +128,8 @@ Reshaping
 ^^^^^^^^^
 
 - A ``KeyError`` is now raised if ``.unstack()`` is called on a :class:`Series` or :class:`DataFrame` with a flat :class:`Index` passing a name which is not the correct one (:issue:`18303`)
--
+-  Bug in :meth:`DataFrame.crosstab` when ``margins`` set to ``True`` and ``normalize`` is not ``False``, an error is raised. (:issue:`27500`)
+- :meth:`DataFrame.join` now suppresses the ``FutureWarning`` when the sort parameter is specified (:issue:`21952`)
 -
 
 Sparse
@@ -153,7 +156,7 @@ ExtensionArray
 
 Other
 ^^^^^
-
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when replacing timezone-aware timestamps using a dict-like replacer (:issue:`27720`)
 -
 -
 -

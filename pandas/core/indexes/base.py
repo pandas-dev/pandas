@@ -51,6 +51,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDateOffset,
     ABCDatetimeArray,
+    ABCDatetimeIndex,
     ABCIndexClass,
     ABCMultiIndex,
     ABCPandasArray,
@@ -69,7 +70,8 @@ import pandas.core.common as com
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
-from pandas.core.ops import get_op_result_name, make_invalid_op
+from pandas.core.ops import get_op_result_name
+from pandas.core.ops.invalid import make_invalid_op
 import pandas.core.sorting as sorting
 from pandas.core.strings import StringMethods
 
@@ -243,6 +245,9 @@ class Index(IndexOpsMixin, PandasObject):
     _infer_as_myclass = False
 
     _engine_type = libindex.ObjectEngine
+    # whether we support partial string indexing. Overridden
+    # in DatetimeIndex and PeriodIndex
+    _supports_partial_string_indexing = False
 
     _accessors = {"str"}
 
@@ -686,7 +691,11 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _engine(self):
         # property, for now, slow to look up
-        return self._engine_type(lambda: self._ndarray_values, len(self))
+
+        # to avoid a refernce cycle, bind `_ndarray_values` to a local variable, so
+        # `self` is not passed into the lambda.
+        _ndarray_values = self._ndarray_values
+        return self._engine_type(lambda: _ndarray_values, len(self))
 
     # --------------------------------------------------------------------
     # Array-Like Methods
@@ -3588,8 +3597,8 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.reshape.merge import _restore_dropped_levels_multijoin
 
         # figure out join names
-        self_names = set(com._not_none(*self.names))
-        other_names = set(com._not_none(*other.names))
+        self_names = set(com.not_none(*self.names))
+        other_names = set(com.not_none(*other.names))
         overlap = self_names & other_names
 
         # need at least 1 in common
@@ -4309,14 +4318,25 @@ class Index(IndexOpsMixin, PandasObject):
 
         if len(typs) == 1:
             return self._concat_same_dtype(to_concat, name=name)
-        return _concat._concat_index_asobject(to_concat, name=name)
+        return Index._concat_same_dtype(self, to_concat, name=name)
 
     def _concat_same_dtype(self, to_concat, name):
         """
         Concatenate to_concat which has the same class.
         """
         # must be overridden in specific classes
-        return _concat._concat_index_asobject(to_concat, name)
+        klasses = (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex, ExtensionArray)
+        to_concat = [
+            x.astype(object) if isinstance(x, klasses) else x for x in to_concat
+        ]
+
+        self = to_concat[0]
+        attribs = self._get_attributes_dict()
+        attribs["name"] = name
+
+        to_concat = [x._values if isinstance(x, Index) else x for x in to_concat]
+
+        return self._shallow_copy_with_infer(np.concatenate(to_concat), **attribs)
 
     def putmask(self, mask, value):
         """
@@ -4698,7 +4718,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise
 
             try:
-                return libindex.get_value_box(s, key)
+                return libindex.get_value_at(s, key)
             except IndexError:
                 raise
             except TypeError:
@@ -5584,7 +5604,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a tuple of the shape of the underlying data.
         """
-        return (len(self),)
+        # not using "(len(self), )" to return "correct" shape if the values
+        # consists of a >1 D array (see GH-27775)
+        # overridden in MultiIndex.shape to avoid materializing the values
+        return self._values.shape
 
 
 Index._add_numeric_methods_disabled()

@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
+import gc
 from io import StringIO
 import math
 import operator
@@ -2424,6 +2425,13 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             with tm.assert_produces_warning(FutureWarning):
                 index.contains(1)
 
+    def test_engine_reference_cycle(self):
+        # https://github.com/pandas-dev/pandas/issues/27585
+        index = pd.Index([1, 2, 3])
+        nrefs_pre = len(gc.get_referrers(index))
+        index._engine
+        assert len(gc.get_referrers(index)) == nrefs_pre
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
@@ -2805,3 +2813,17 @@ def test_deprecated_fastpath():
 
     expected = pd.CategoricalIndex(["a", "b", "c"], name="test")
     tm.assert_index_equal(idx, expected)
+
+
+def test_shape_of_invalid_index():
+    # Currently, it is possible to create "invalid" index objects backed by
+    # a multi-dimensional array (see https://github.com/pandas-dev/pandas/issues/27125
+    # about this). However, as long as this is not solved in general,this test ensures
+    # that the returned shape is consistent with this underlying array for
+    # compat with matplotlib (see https://github.com/pandas-dev/pandas/issues/27775)
+    a = np.arange(8).reshape(2, 2, 2)
+    idx = pd.Index(a)
+    assert idx.shape == a.shape
+
+    idx = pd.Index([0, 1, 2, 3])
+    assert idx[:, None].shape == (4, 1)
