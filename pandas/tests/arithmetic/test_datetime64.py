@@ -166,6 +166,9 @@ class TestDatetime64DataFrameComparison:
         ser = pd.Series(dti, name="test")
         expected = pd.Series([False, False], name="test")
 
+        obj = tm.box_expected(ser.rename(None), box)
+        assert_invalid_comparison(obj, -1, box)
+
         obj = tm.box_expected(ser, box)
         expected = tm.box_expected(expected, xbox)
         result = obj == -1
@@ -223,11 +226,12 @@ class TestDatetime64SeriesComparison:
         expected = Series([False, False, True])
         tm.assert_series_equal(left <= right, expected)
 
-    def test_comparison_invalid(self, box_with_array):
+    def test_comparison_invalid(self, tz_naive_fixture, box_with_array):
         # GH#4968
         # invalid date/int comparisons
+        tz = tz_naive_fixture
         ser = Series(range(5))
-        ser2 = Series(pd.date_range("20010101", periods=5))
+        ser2 = Series(pd.date_range("20010101", periods=5, tz=tz))
 
         ser = tm.box_expected(ser, box_with_array)
         ser2 = tm.box_expected(ser2, box_with_array)
