@@ -238,9 +238,9 @@ class TestSeriesAnalytics:
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
-    def test_diff(self):
+    def test_dt_nm_bool_diff(self):
         # Combined datetime diff, normal diff and boolean diff test
-        ts = pd.Series([1, 2])
+        ts = Series([1, 2, 3])
         ts.diff()
 
         # int dtype
