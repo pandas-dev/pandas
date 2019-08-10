@@ -20,6 +20,8 @@ from pandas import (
 )
 import pandas.util.testing as tm
 
+from pandas.tests.arithmetic.test_datetime64 import assert_invalid_comparison
+
 
 def get_upcast_box(box, vector):
     """
@@ -80,29 +82,10 @@ class TestTimedelta64ArrayLikeComparisons:
     def test_td64_comparisons_invalid(self, box_with_array, invalid):
         # GH#13624 for str
         box = box_with_array
-        xbox = box if box is not pd.Index else np.ndarray
         rng = timedelta_range("1 days", periods=10)
         obj = tm.box_expected(rng, box)
 
-        expected = np.zeros(rng.shape, dtype=np.bool_)
-        expected = tm.box_expected(expected, xbox)
-
-        # TODO: use assert_invalid_comparison
-        for left, right in [(obj, invalid), (invalid, obj)]:
-            with pytest.raises(TypeError):
-                left < right
-            with pytest.raises(TypeError):
-                left > right
-            with pytest.raises(TypeError):
-                left <= right
-            with pytest.raises(TypeError):
-                left >= right
-
-            result = left == right
-            tm.assert_equal(result, expected)
-
-            result = left != right
-            tm.assert_equal(result, ~expected)
+        assert_invalid_comparison(obj, invalid, box)
 
 
 class TestTimedelta64ArrayComparisons:
