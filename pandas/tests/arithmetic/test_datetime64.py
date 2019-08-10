@@ -116,9 +116,9 @@ class TestDatetime64ArrayLikeComparisons:
         dtarr = tm.box_expected(dti, box_with_array)
         assert_invalid_comparison(dtarr, date, box_with_array)
 
-    @pytest.mark.parametrize("other", ["foo", 99, 4.0, object(), timedelta(days=2)])
+    @pytest.mark.parametrize("other", ["foo", -1, 99, 4.0, object(), timedelta(days=2)])
     def test_dt64arr_cmp_scalar_invalid(self, other, tz_naive_fixture, box_with_array):
-        # GH#22074
+        # GH#22074, GH#15966
         tz = tz_naive_fixture
 
         rng = date_range("1/1/2000", periods=10, tz=tz)
@@ -152,26 +152,6 @@ class TestDatetime64ArrayLikeComparisons:
         expected = tm.box_expected(expected, xbox, transpose=False)
 
         result = obj == ts
-        tm.assert_equal(result, expected)
-
-
-class TestDatetime64DataFrameComparison:
-    def test_dt64arr_cmp_int(self, tz_naive_fixture, box_with_array):
-        # GH#15966
-        tz = tz_naive_fixture
-        box = box_with_array
-        xbox = box if box is not pd.Index else np.ndarray
-
-        dti = pd.DatetimeIndex([pd.Timestamp("2012-01-01 13:00:00")] * 2, tz=tz)
-        ser = pd.Series(dti, name="test")
-        expected = pd.Series([False, False], name="test")
-
-        obj = tm.box_expected(ser.rename(None), box)
-        assert_invalid_comparison(obj, -1, box)
-
-        obj = tm.box_expected(ser, box)
-        expected = tm.box_expected(expected, xbox)
-        result = obj == -1
         tm.assert_equal(result, expected)
 
 
