@@ -65,7 +65,8 @@ Removal of prior version deprecations/changes
 - Changed the the default value of `inplace` in :meth:`DataFrame.set_index` and :meth:`Series.set_axis`. It now defaults to False (:issue:`27600`)
 - :meth:`pandas.Series.str.cat` now defaults to aligning ``others``, using ``join='left'`` (:issue:`27611`)
 - :meth:`pandas.Series.str.cat` does not accept list-likes *within* list-likes anymore (:issue:`27611`)
--
+- Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
+- Removed the previously deprecated ``IntervalIndex.from_intervals`` in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 
 .. _whatsnew_1000.performance:
 
@@ -187,6 +188,7 @@ Sparse
 
 Build Changes
 ^^^^^^^^^^^^^
+- Fixed pyqt development dependency issue because of different pyqt package name in conda and PyPI (:issue:`26838`)
 
 
 ExtensionArray

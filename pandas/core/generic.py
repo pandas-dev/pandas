@@ -2993,10 +2993,15 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
         ...                    'mask': ['red', 'purple'],
         ...                    'weapon': ['sai', 'bo staff']})
-        >>> df.to_latex(index=False) # doctest: +NORMALIZE_WHITESPACE
-        '\\begin{tabular}{lll}\n\\toprule\n      name &    mask &    weapon
-        \\\\\n\\midrule\n   Raphael &     red &       sai \\\\\n Donatello &
-         purple &  bo staff \\\\\n\\bottomrule\n\\end{tabular}\n'
+        >>> print(df.to_latex(index=False)) # doctest: +NORMALIZE_WHITESPACE
+        \begin{tabular}{lll}
+         \toprule
+               name &    mask &    weapon \\
+         \midrule
+            Raphael &     red &       sai \\
+          Donatello &  purple &  bo staff \\
+        \bottomrule
+        \end{tabular}
         """
         # Get defaults from the pandas config
         if self.ndim == 1:
@@ -4781,7 +4786,7 @@ class NDFrame(PandasObject, SelectionMixin):
         frac : float, optional
             Fraction of axis items to return. Cannot be used with `n`.
         replace : bool, default False
-            Sample with or without replacement.
+            Allow or disallow sampling of the same row more than once.
         weights : str or ndarray-like, optional
             Default 'None' results in equal probability weighting.
             If passed a Series, will align with target object on index. Index
@@ -10683,9 +10688,9 @@ class NDFrame(PandasObject, SelectionMixin):
         the doc strings again.
         """
 
-        from pandas.core import window as rwindow
+        from pandas.core.window import EWM, Expanding, Rolling, Window
 
-        @Appender(rwindow.rolling.__doc__)
+        @Appender(Rolling.__doc__)
         def rolling(
             self,
             window,
@@ -10697,7 +10702,20 @@ class NDFrame(PandasObject, SelectionMixin):
             closed=None,
         ):
             axis = self._get_axis_number(axis)
-            return rwindow.rolling(
+
+            if win_type is not None:
+                return Window(
+                    self,
+                    window=window,
+                    min_periods=min_periods,
+                    center=center,
+                    win_type=win_type,
+                    on=on,
+                    axis=axis,
+                    closed=closed,
+                )
+
+            return Rolling(
                 self,
                 window=window,
                 min_periods=min_periods,
@@ -10710,16 +10728,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.rolling = rolling
 
-        @Appender(rwindow.expanding.__doc__)
+        @Appender(Expanding.__doc__)
         def expanding(self, min_periods=1, center=False, axis=0):
             axis = self._get_axis_number(axis)
-            return rwindow.expanding(
-                self, min_periods=min_periods, center=center, axis=axis
-            )
+            return Expanding(self, min_periods=min_periods, center=center, axis=axis)
 
         cls.expanding = expanding
 
-        @Appender(rwindow.ewm.__doc__)
+        @Appender(EWM.__doc__)
         def ewm(
             self,
             com=None,
@@ -10732,7 +10748,7 @@ class NDFrame(PandasObject, SelectionMixin):
             axis=0,
         ):
             axis = self._get_axis_number(axis)
-            return rwindow.ewm(
+            return EWM(
                 self,
                 com=com,
                 span=span,
