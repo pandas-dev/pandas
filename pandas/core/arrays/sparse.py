@@ -56,6 +56,7 @@ import pandas.core.common as com
 from pandas.core.construction import sanitize_array
 from pandas.core.missing import interpolate_2d
 import pandas.core.ops as ops
+from pandas.core.ops.common import unpack_and_defer
 
 import pandas.io.formats.printing as printing
 
@@ -1735,13 +1736,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def _create_arithmetic_method(cls, op):
         op_name = op.__name__
 
+        @unpack_and_defer(op_name)
         def sparse_arithmetic_method(self, other):
 
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to dispatch to us.
-                return NotImplemented
+            #if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
+            #    # Rely on pandas to dispatch to us.
+            #    return NotImplemented
 
-            other = lib.item_from_zerodim(other)
+            #other = lib.item_from_zerodim(other)
 
             if isinstance(other, SparseArray):
                 return _sparse_array_op(self, other, op, op_name)

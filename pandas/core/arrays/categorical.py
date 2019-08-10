@@ -90,7 +90,7 @@ def _cat_compare_op(op):  # TODO: op-->opname
         #if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
         #    return NotImplemented
 
-        other = lib.item_from_zerodim(other)
+        #other = lib.item_from_zerodim(other)
 
         if not self.ordered:
             if op in ["__lt__", "__gt__", "__le__", "__ge__"]:

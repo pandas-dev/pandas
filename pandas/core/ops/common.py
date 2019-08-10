@@ -49,6 +49,8 @@ def _unpack_and_defer(method, name):
 				else:
 					return NotImplemented
 
+		other = item_from_zerodim(other)
+
 		return method(self, other)
 
 	return new_method

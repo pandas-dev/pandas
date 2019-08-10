@@ -769,11 +769,11 @@ class RangeIndex(Int64Index):
                 op to apply to the step parm if not None
                 if False, use the existing step
             """
-
+            @unpack_and_defer(op.__name__)
             def _evaluate_numeric_binop(self, other):
-                if isinstance(other, (ABCSeries, ABCDataFrame)):
-                    return NotImplemented
-                elif isinstance(other, ABCTimedeltaIndex):
+                #if isinstance(other, (ABCSeries, ABCDataFrame)):
+                #    return NotImplemented
+                if isinstance(other, ABCTimedeltaIndex):
                     # Defer to TimedeltaIndex implementation
                     return NotImplemented
                 elif isinstance(other, (timedelta, np.timedelta64)):

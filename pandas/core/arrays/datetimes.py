@@ -163,7 +163,7 @@ def _dt_array_cmp(cls, op):
         #if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
         #    return NotImplemented
 
-        other = lib.item_from_zerodim(other)
+        #other = lib.item_from_zerodim(other)
 
         if isinstance(other, (datetime, np.datetime64, str)):
             if isinstance(other, (datetime, np.datetime64)):
