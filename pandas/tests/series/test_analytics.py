@@ -240,7 +240,6 @@ class TestSeriesAnalytics:
 
     def test_diff(self):
         # Combined datetime diff, normal diff and boolean diff test
-        # Just run the function
         self.ts.diff()
 
         # int dtype
