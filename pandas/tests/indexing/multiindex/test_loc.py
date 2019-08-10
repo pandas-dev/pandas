@@ -390,3 +390,15 @@ def test_loc_getitem_lowerdim_corner(multiindex_dataframe_random_data):
     expected = 0
     result = df.sort_index().loc[("bar", "three"), "B"]
     assert result == expected
+
+
+def test_loc_setitem_object_array():
+    # case from https://github.com/pandas-dev/pandas/issues/27841
+    df = DataFrame(
+        "string",
+        index=list("abcd"),
+        columns=MultiIndex.from_product([["Main"], ("another", "one")]),
+    )
+    df["labels"] = "a"
+    df.loc[:, "labels"] = df.index
+    tm.assert_numpy_array_equal(np.asarray(df["labels"]), np.asarray(df.index))
