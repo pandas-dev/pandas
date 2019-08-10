@@ -239,9 +239,7 @@ class TestSeriesAnalytics:
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
     def test_diff(self):
-        """
-        Combined datetime ranges, normal diff and boolean diff test.
-        """
+        # Combined datetime diff, normal diff and boolean diff test
         # Just run the function
         self.ts.diff()
 
