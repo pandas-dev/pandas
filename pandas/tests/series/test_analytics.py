@@ -240,7 +240,7 @@ class TestSeriesAnalytics:
 
     def test_dt_nm_bool_diff(self):
         # Combined datetime diff, normal diff and boolean diff test
-        ts = Series([1, 2, 3])
+        ts = tm.makeTimeSeries(name='ts')
         ts.diff()
 
         # int dtype
