@@ -1074,3 +1074,13 @@ def test_transform_lambda_with_datetimetz():
         name="time",
     )
     assert_series_equal(result, expected)
+
+
+def test_transform_cumcount():
+    # GH 27472
+    df = DataFrame(dict(a=[0, 0, 0, 1, 1, 1], b=range(6)))
+    g = df.groupby(np.repeat([0, 1], 3))
+
+    result = g.transform("cumcount")
+    expected = Series([0, 1, 2, 0, 1, 2], dtype="int64")
+    assert_series_equal(result, expected)

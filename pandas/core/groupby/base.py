@@ -100,7 +100,9 @@ dataframe_apply_whitelist = common_apply_whitelist | frozenset(["dtypes", "corrw
 
 # cythonized transformations or canned "agg+broadcast", which do not
 # require postprocessing of the result by transform.
-cythonized_kernels = frozenset(["cumprod", "cumsum", "shift", "cummin", "cummax"])
+cythonized_kernels = frozenset(
+    ["cumprod", "cumsum", "shift", "cummin", "cummax", "cumcount"]
+)
 
 cython_cast_blacklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 

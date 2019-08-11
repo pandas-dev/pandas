@@ -123,7 +123,7 @@ Groupby/resample/rolling
 
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
 -
--
+- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where ``cumcount`` fails (:issue:`27472`)
 
 Reshaping
 ^^^^^^^^^
