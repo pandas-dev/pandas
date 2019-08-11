@@ -1082,5 +1082,5 @@ def test_transform_cumcount():
     g = df.groupby(np.repeat([0, 1], 3))
 
     result = g.transform("cumcount")
-    expected = Series([0, 1, 2, 0, 1, 2], dtype="int64")
+    expected = g.cumcount()
     assert_series_equal(result, expected)
