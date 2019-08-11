@@ -63,7 +63,10 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
 
     _delegate_class = PeriodArray
     _delegated_properties = PeriodArray._datetimelike_ops
-    _delegated_methods = set(PeriodArray._datetimelike_methods) | {"_addsub_int_array"}
+    _delegated_methods = set(PeriodArray._datetimelike_methods) | {
+        "_addsub_int_array",
+        "strftime",
+    }
     _raw_properties = {"is_leap_year"}
 
 
@@ -173,6 +176,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     _data = None
 
     _engine_type = libindex.PeriodEngine
+    _supports_partial_string_indexing = True
 
     # ------------------------------------------------------------------------
     # Index Constructors
