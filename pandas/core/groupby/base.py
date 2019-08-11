@@ -122,7 +122,6 @@ reduction_kernels = frozenset(
         "mean",
         "median",
         "min",
-        "ngroup",
         "nth",
         "nunique",
         "prod",
@@ -160,6 +159,7 @@ transformation_kernels = frozenset(
         "rank",
         "shift",
         "tshift",
+        "ngroup"
     ]
 )
 

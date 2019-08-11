@@ -1034,8 +1034,6 @@ def test_transform_agg_by_name(reduction_func, obj):
     func = reduction_func
     g = obj.groupby(np.repeat([0, 1], 3))
 
-    if func == "ngroup":  # GH#27468
-        pytest.xfail("TODO: g.transform('ngroup') doesn't work")
     if func == "size":  # GH#27469
         pytest.xfail("TODO: g.transform('size') doesn't work")
 
@@ -1076,11 +1074,46 @@ def test_transform_lambda_with_datetimetz():
     assert_series_equal(result, expected)
 
 
-def test_transform_cumcount():
-    # GH 27472
+def test_transform_cumcount_ngroup():
     df = DataFrame(dict(a=[0, 0, 0, 1, 1, 1], b=range(6)))
     g = df.groupby(np.repeat([0, 1], 3))
 
+    # GH 27472
     result = g.transform("cumcount")
     expected = g.cumcount()
     assert_series_equal(result, expected)
+
+    # GH 27468
+    result = g.transform("ngroup")
+    expected = g.ngroup()
+    assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        "backfill",
+        "bfill",
+        "cumcount",
+        "cummax",
+        "cummin",
+        "cumprod",
+        "cumsum",
+        "diff",
+        "ffill",
+        "pad",
+        "pct_change",
+        "rank",
+        "shift",
+        "ngroup",
+    ],
+)
+def test_transformation_kernels_length(func):
+    # This test is to evaluate if after transformation, the index
+    # of transformed data is still the same with original DataFrame
+    # TODO: exceptions are fillna, tshfit and corrwith
+    df = DataFrame(dict(a=[0, 0, 0, 1, 1, 1], b=range(6)))
+    g = df.groupby(np.repeat([0, 1], 3))
+
+    result = g.transform(func)
+    assert (result.index == df.index).all()
