@@ -255,7 +255,7 @@ class GoodDocStrings:
         else:
             return None
 
-    def parameters_with_bullet_points(self, method='min'):
+    def parameters_with_bullet_points(self, method="min"):
         """
         Allow bullet points to end without a period.
 
@@ -269,7 +269,7 @@ class GoodDocStrings:
         """
         pass
 
-    def parameters_with_bullet_points1(self, method='min'):
+    def parameters_with_bullet_points1(self, method="min"):
         """
         Allow long description in bullet points to end without a period.
 
@@ -284,8 +284,8 @@ class GoodDocStrings:
         """
         pass
 
-    def parameters_bullet_points_and_directives(self, axis='index',
-                                                method='min'):
+    def parameters_bullet_points_and_directives(self, axis="index",
+                                                method="min"):
         """
         Test bullets points and directories.
 
@@ -873,10 +873,9 @@ class TestValidator:
             "empty_returns",
             "parameters_with_bullet_points",
             "parameters_with_bullet_points1",
-            "parameters_bullet_points_and_directives"
+            "parameters_bullet_points_and_directives",
         ],
     )
-
     def test_good_functions(self, capsys, func):
         errors = validate_one(self._import_path(klass="GoodDocStrings", func=func))[
             "errors"

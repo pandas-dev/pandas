@@ -503,11 +503,11 @@ class Docstring:
         ][0]
         desc_list = [line for line in parsed_param.desc if line]
         # Find and strip out any sphinx directives
-        directives_pattern = re.compile('.. ({})'.format('|'.join(DIRECTIVES)))
+        directives_pattern = re.compile(".. ({})".format("|".join(DIRECTIVES)))
         for desc_item in desc_list:
             if re.match(directives_pattern, desc_item):
                 # Only retain any description before the directive
-                desc_list = desc_list[:desc_list.index(desc_item)]
+                desc_list = desc_list[: desc_list.index(desc_item)]
                 break
         return desc_list
 
@@ -517,15 +517,15 @@ class Docstring:
         A parameter description should always be terminated with a period, a
         part from when it ends with a bullet point.
         """
-        if self.parameter_desc(param)[-1] == '.':
+        if self.parameter_desc(param)[-1] == ".":
             return True
         else:
             # Return True if a parameter description ends
             # with a bullet point
             for desc_line in self.parameter_desc_list(param)[::-1]:
-                if desc_line[0] in ['*', '-', '+', '•', '‣', '⁃']:
+                if desc_line[0] in ["*", "-", "+", "•", "‣", "⁃"]:
                     return True
-                elif desc_line[0:2] != '  ':
+                elif desc_line[0:2] != "  ":
                     return False
             return False
 
