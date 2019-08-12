@@ -26,8 +26,8 @@ dependencies:
   - xlwt
   # universal
   - cython>=0.28.2
-  - pytest>=4.0.2
-  - pytest-xdist
+  - pytest>=5.0.0
+  - pytest-xdist>=1.29.0
   - pytest-mock
   - pytest-azurepipelines
   - hypothesis>=3.58.0
