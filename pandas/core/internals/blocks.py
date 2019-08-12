@@ -715,8 +715,11 @@ class Block(PandasObject):
         # If we cannot replace with own dtype, convert to ObjectBlock and
         # retry
         if not self._can_hold_element(to_replace):
-            # TODO: we should be able to infer at this point that there is
-            #  nothing to replace
+            if not isinstance(to_replace, list):
+                if inplace:
+                    return [self]
+                return [self.copy()]
+
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
             if is_object_dtype(self):
@@ -745,13 +748,26 @@ class Block(PandasObject):
             filtered_out = ~self.mgr_locs.isin(filter)
             mask[filtered_out.nonzero()[0]] = False
 
+        if not mask.any():
+            if inplace:
+                return [self]
+            return [self.copy()]
+
         try:
             blocks = self.putmask(mask, value, inplace=inplace)
+            # Note: it is _not_ the case that self._can_hold_element(value)
+            #  is always true at this point.  In particular, that can fail
+            #  for:
+            #   "2u" with bool-dtype, float-dtype
+            #   0.5 with int64-dtype
+            #   np.nan with int64-dtype
         except (TypeError, ValueError):
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
             if is_object_dtype(self):
                 raise
+
+            assert not self._can_hold_element(value), value
 
             # try again with a compatible block
             block = self.astype(object)
@@ -908,6 +924,7 @@ class Block(PandasObject):
 
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isna(new) and not self.is_object:
+            # FIXME: make sure we have compatible NA
             new = self.fill_value
 
         if self._can_hold_element(new):
