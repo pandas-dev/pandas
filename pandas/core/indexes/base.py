@@ -104,12 +104,14 @@ def _make_comparison_op(op, cls):
             if other.ndim > 0 and len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
-        if is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
+        if is_object_dtype(self):# and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
+            assert not isinstance(self, ABCMultiIndex)
             with np.errstate(all="ignore"):
                 result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
 
         else:
+            # TODO: define this on NumericIndex?
             with np.errstate(all="ignore"):
                 result = op(self.values, np.asarray(other))
 
@@ -124,15 +126,14 @@ def _make_comparison_op(op, cls):
             return result
 
     name = "__{name}__".format(name=op.__name__)
-    # TODO: docstring?
     return set_function_name(cmp_method, name, cls)
 
 
 def _make_arithmetic_op(op, cls):
+    op_name = "__{name}__".format(name=op.__name__)
+
     @unpack_and_defer(op.__name__)
     def index_arithmetic_method(self, other):
-        #if isinstance(other, (ABCSeries, ABCDataFrame)):
-        #    return NotImplemented
 
         from pandas import Series
 
@@ -141,8 +142,7 @@ def _make_arithmetic_op(op, cls):
             return (Index(result[0]), Index(result[1]))
         return Index(result)
 
-    name = "__{name}__".format(name=op.__name__)
-    return set_function_name(index_arithmetic_method, name, cls)
+    return set_function_name(index_arithmetic_method, op_name, cls)
 
 
 class InvalidIndexError(Exception):
@@ -5411,6 +5411,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "{opstr} with type: {typ}".format(opstr=opstr, typ=type(other))
                 )
         elif isinstance(other, np.ndarray) and not other.ndim:
+            assert False, other  # this should already have been done.  besides other.item() gets timedelta64 objects wrong IIRC
             other = other.item()
 
         if isinstance(other, (Index, ABCSeries, np.ndarray)):

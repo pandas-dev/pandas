@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import datetime
+import operator
 from sys import getsizeof
 import warnings
 
@@ -26,7 +27,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
@@ -42,6 +43,7 @@ from pandas.core.indexes.base import (
 )
 from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
 import pandas.core.missing as missing
+from pandas.core.ops.common import unpack_and_defer
 from pandas.core.sorting import (
     get_group_index,
     indexer_from_factorized,
@@ -59,6 +61,24 @@ _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(klass="MultiIndex", target_klass="MultiIndex or list of tuples")
 )
+
+
+def _make_mi_comparison_op(op):
+    op_name = "__{name}__".format(name=op.__name__)
+
+    @unpack_and_defer(op_name)
+    def cmp_method(self, other):
+
+        if isinstance(other, (np.ndarray, Index, ABCSeries)):
+            if len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
+
+        with np.errstate(all="ignore"):
+            result = op(self.values, np.asarray(other))
+        return result
+
+    cmp_method.__name__ = op_name
+    return cmp_method
 
 
 class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.UInt64Engine):
@@ -3424,6 +3444,13 @@ class MultiIndex(Index):
                 return np.zeros(len(level_codes), dtype=np.bool_)
             else:
                 return np.lib.arraysetops.in1d(level_codes, sought_labels)
+
+    __eq__ = _make_mi_comparison_op(operator.eq)
+    __ne__ = _make_mi_comparison_op(operator.ne)
+    __lt__ = _make_mi_comparison_op(operator.lt)
+    __le__ = _make_mi_comparison_op(operator.le)
+    __gt__ = _make_mi_comparison_op(operator.gt)
+    __ge__ = _make_mi_comparison_op(operator.ge)
 
 
 MultiIndex._add_numeric_methods_disabled()
