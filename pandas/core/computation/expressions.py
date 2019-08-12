@@ -80,11 +80,15 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
             # check for dtype compatibility
             dtypes = set()
             for o in [a, b]:
-                if hasattr(o, "dtypes") and o.ndim > 1:
-                    s = o.dtypes.value_counts()
-                    if len(s) > 1:
-                        return False
-                    dtypes |= set(s.index.astype(str))
+                if hasattr(o, "dtypes"):
+                    # Series implements dtypes, check for dimension count
+                    if o.ndim > 1:
+                        s = o.dtypes.value_counts()
+                        if len(s) > 1:
+                            return False
+                        dtypes |= set(s.index.astype(str))
+                    else:
+                        dtypes |= {o.dtypes.name}
                 elif isinstance(o, np.ndarray):
                     dtypes |= {o.dtype.name}
 
