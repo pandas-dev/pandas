@@ -18,9 +18,8 @@ from pandas import (
     Timestamp,
     timedelta_range,
 )
-import pandas.util.testing as tm
-
 from pandas.tests.arithmetic.test_datetime64 import assert_invalid_comparison
+import pandas.util.testing as tm
 
 
 def get_upcast_box(box, vector):
