@@ -69,8 +69,10 @@ def is_platform_32bit():
 
 def import_lzma():
     import warnings
+
     try:
         import lzma
+
         return lzma
     except ImportError:
         msg = (
