@@ -782,7 +782,6 @@ class RangeIndex(Int64Index):
                     return op(self._int64index, other)
 
                 other = extract_array(other, extract_numpy=True)
-                #other = self._validate_for_numeric_binop(other, op)
                 attrs = self._get_attributes_dict()
                 attrs = self._maybe_update_attributes(attrs)
 
