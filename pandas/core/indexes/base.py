@@ -112,17 +112,11 @@ def _make_comparison_op(op, cls):
             with np.errstate(all="ignore"):
                 result = op(self.values, np.asarray(other))
 
-        # technically we could support bool dtyped Index
-        # for now just return the indexing array directly
         if is_bool_dtype(result):
             return result
-        try:
-            return Index(result)
-        except TypeError:
-            return result
+        return ops.invalid_comparison(self, other, op)
 
     name = "__{name}__".format(name=op.__name__)
-    # TODO: docstring?
     return set_function_name(cmp_method, name, cls)
 
 
