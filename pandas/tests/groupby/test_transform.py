@@ -1106,14 +1106,15 @@ def test_transform_cumcount_ngroup():
         "rank",
         "shift",
         "ngroup",
-        "fillna",
-        "tshift",
-        "corrwith",
+        pytest.param("fillna", marks=pytest.mark.xfail(reason="TODO: potential bug")),
+        pytest.param(
+            "tshift", marks=pytest.mark.xfail(reason="should apply to ts data")
+        ),
+        pytest.param(
+            "corrwith", marks=pytest.mark.xfail(reason="Inapplicable to the data")
+        ),
     ],
 )
-@pytest.param("fillna", marks=pytest.mark.xfail("TODO: potential bug"))
-@pytest.param("tshift", marks=pytest.mark.xfail("should apply to ts data"))
-@pytest.param("corrwith", marks=pytest.mark.xfail("Inapplicable to the data"))
 def test_transformation_kernels_length(func):
     # This test is to evaluate if after transformation, the index
     # of transformed data is still the same with original DataFrame
