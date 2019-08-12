@@ -105,6 +105,8 @@ I/O
 ^^^
 - Bug: importing `lzma` can fail when Python is not properly installed. For example, on MacOS, installing Python with `pyenv` when `xz` is not available does not raise any issues during installation. However, trying to `import pandas` afterwards will fail, since the module `lzma` will not be available. Usually, this can be solved by installing the appropriate Python dependencies, and then resintalling Python. This fix warns the user that Python was not properly installed during a `import pandas`. In this case, Pandas can still be used (not possible before this fix), but any call to the `lzma` module will raise a `RuntimeError`. The solution was to check for an `ImportError` when importing `lzma`. If we get an `ImportError`, then we set `lzma` to `None`. When we actually need to call some method of `lzma`, we first check `lzma is None` and raise a `RuntimeError` if true, otherwise `lzma` was imported and the code can run. (:issue: `27575`)
 -
+- Avoid calling ``S3File.s3`` when reading parquet, as this was removed in s3fs version 0.3.0 (:issue:`27756`)
+>>>>>>> 35821a5794e434117b14797f010602c8e412b36c
 -
 -
 
@@ -120,7 +122,7 @@ Groupby/resample/rolling
 
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
 - Bug in windowing over read-only arrays (:issue:`27766`)
--
+- Fixed segfault in `pandas.core.groupby.DataFrameGroupBy.quantile` when an invalid quantile was passed (:issue:`27470`)
 -
 
 Reshaping
