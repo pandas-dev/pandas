@@ -541,16 +541,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Must be careful not to recurse.
         """
-        if not hasattr(values, "dtype"):
-            if (values is None or not len(values)) and dtype is not None:
-                values = np.empty(0, dtype=dtype)
-            else:
-                values = np.array(values, copy=False)
-                if is_object_dtype(values):
-                    values = cls(
-                        values, name=name, dtype=dtype, **kwargs
-                    )._ndarray_values
-
         if isinstance(values, (ABCSeries, ABCIndexClass)):
             # Index._data must always be an ndarray.
             # This is no-copy for when _values is an ndarray,
@@ -1848,8 +1838,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def is_all_dates(self):
-        if self._data is None:
-            return False
         return is_datetime_array(ensure_object(self.values))
 
     # --------------------------------------------------------------------
@@ -3120,12 +3108,8 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     @Appender(_index_shared_docs["_convert_slice_indexer"])
-    def _convert_slice_indexer(self, key, kind=None):
+    def _convert_slice_indexer(self, key: slice, kind=None):
         assert kind in ["ix", "loc", "getitem", "iloc", None]
-
-        # if we are not a slice, then we are done
-        if not isinstance(key, slice):
-            return key
 
         # validate iloc
         if kind == "iloc":
