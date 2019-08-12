@@ -5,7 +5,7 @@ channels:
 dependencies:
   # required
   - numpy>=1.15
-  - python=3
+  - python=3.7.3
   - python-dateutil>=2.6.1
   - pytz
 
@@ -71,7 +71,7 @@ dependencies:
   - lxml  # pandas.read_html
   - openpyxl  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - pyarrow>=0.9.0  # pandas.read_paquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
-  - pyqt  # pandas.read_clipbobard
+  - pyqt>=5.9.2  # pandas.read_clipboard
   - pytables>=3.4.2  # pandas.read_hdf, DataFrame.to_hdf
   - python-snappy  # required by pyarrow
   - s3fs  # pandas.read_csv... when using 's3://...' path

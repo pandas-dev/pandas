@@ -263,6 +263,8 @@ class Block(PandasObject):
             )
         if placement is None:
             placement = self.mgr_locs
+        if ndim is None:
+            ndim = self.ndim
         return make_block(
             values, placement=placement, ndim=ndim, klass=self.__class__, dtype=dtype
         )
@@ -1364,20 +1366,8 @@ class Block(PandasObject):
                 # np.where will cast integer array to floats in this case
                 other = self._try_coerce_args(other)
 
-            try:
-                fastres = expressions.where(cond, values, other)
-                return fastres
-            except Exception as detail:
-                if errors == "raise":
-                    raise TypeError(
-                        "Could not operate [{other!r}] with block values "
-                        "[{detail!s}]".format(other=other, detail=detail)
-                    )
-                else:
-                    # return the values
-                    result = np.empty(values.shape, dtype="float64")
-                    result.fill(np.nan)
-                    return result
+            fastres = expressions.where(cond, values, other)
+            return fastres
 
         if cond.ravel().all():
             result = values
