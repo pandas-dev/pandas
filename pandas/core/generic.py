@@ -2993,10 +2993,15 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
         ...                    'mask': ['red', 'purple'],
         ...                    'weapon': ['sai', 'bo staff']})
-        >>> df.to_latex(index=False) # doctest: +NORMALIZE_WHITESPACE
-        '\\begin{tabular}{lll}\n\\toprule\n      name &    mask &    weapon
-        \\\\\n\\midrule\n   Raphael &     red &       sai \\\\\n Donatello &
-         purple &  bo staff \\\\\n\\bottomrule\n\\end{tabular}\n'
+        >>> print(df.to_latex(index=False)) # doctest: +NORMALIZE_WHITESPACE
+        \begin{tabular}{lll}
+         \toprule
+               name &    mask &    weapon \\
+         \midrule
+            Raphael &     red &       sai \\
+          Donatello &  purple &  bo staff \\
+        \bottomrule
+        \end{tabular}
         """
         # Get defaults from the pandas config
         if self.ndim == 1:
@@ -4781,7 +4786,7 @@ class NDFrame(PandasObject, SelectionMixin):
         frac : float, optional
             Fraction of axis items to return. Cannot be used with `n`.
         replace : bool, default False
-            Sample with or without replacement.
+            Allow or disallow sampling of the same row more than once.
         weights : str or ndarray-like, optional
             Default 'None' results in equal probability weighting.
             If passed a Series, will align with target object on index. Index

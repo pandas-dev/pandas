@@ -17,7 +17,7 @@ dependencies:
   - openpyxl
   - pytables
   - python-dateutil
-  - python=3.7.*
+  - python=3.7.3
   - pytz
   - s3fs
   - scipy
@@ -26,8 +26,8 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest>=4.0.2
-  - pytest-xdist
+  - pytest>=5.0.1
+  - pytest-xdist>=1.29.0
   - pytest-mock
   - pytest-azurepipelines
   - pip
