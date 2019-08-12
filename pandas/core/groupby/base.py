@@ -159,7 +159,7 @@ transformation_kernels = frozenset(
         "rank",
         "shift",
         "tshift",
-        "ngroup"
+        "ngroup",
     ]
 )
 
