@@ -77,7 +77,7 @@ _take_msg = textwrap.dedent(
 )
 
 
-def _cat_compare_op(op):
+def _cat_compare_op(opname):
     def f(self, other):
         # On python2, you can usually compare any type to any type, and
         # Categoricals can be seen as a custom type, but having different
@@ -90,7 +90,7 @@ def _cat_compare_op(op):
         other = lib.item_from_zerodim(other)
 
         if not self.ordered:
-            if op in ["__lt__", "__gt__", "__le__", "__ge__"]:
+            if opname in ["__lt__", "__gt__", "__le__", "__ge__"]:
                 raise TypeError(
                     "Unordered Categoricals can only compare equality or not"
                 )
@@ -117,7 +117,7 @@ def _cat_compare_op(op):
                 other_codes = other._codes
 
             mask = (self._codes == -1) | (other_codes == -1)
-            f = getattr(self._codes, op)
+            f = getattr(self._codes, opname)
             ret = f(other_codes)
             if mask.any():
                 # In other series, the leads to False, so do that here too
@@ -127,38 +127,38 @@ def _cat_compare_op(op):
         if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
-                ret = getattr(self._codes, op)(i)
+                ret = getattr(self._codes, opname)(i)
 
                 # check for NaN in self
                 mask = self._codes == -1
                 ret[mask] = False
                 return ret
             else:
-                if op == "__eq__":
+                if opname == "__eq__":
                     return np.repeat(False, len(self))
-                elif op == "__ne__":
+                elif opname == "__ne__":
                     return np.repeat(True, len(self))
                 else:
                     msg = (
                         "Cannot compare a Categorical for op {op} with a "
                         "scalar, which is not a category."
                     )
-                    raise TypeError(msg.format(op=op))
+                    raise TypeError(msg.format(op=opname))
         else:
 
             # allow categorical vs object dtype array comparisons for equality
             # these are only positional comparisons
-            if op in ["__eq__", "__ne__"]:
-                return getattr(np.array(self), op)(np.array(other))
+            if opname in ["__eq__", "__ne__"]:
+                return getattr(np.array(self), opname)(np.array(other))
 
             msg = (
                 "Cannot compare a Categorical for op {op} with type {typ}."
                 "\nIf you want to compare values, use 'np.asarray(cat) "
                 "<op> other'."
             )
-            raise TypeError(msg.format(op=op, typ=type(other)))
+            raise TypeError(msg.format(op=opname, typ=type(other)))
 
-    f.__name__ = op
+    f.__name__ = opname
 
     return f
 
