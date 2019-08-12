@@ -9,7 +9,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, MultiIndex, Series, date_range
+from pandas import DataFrame, MultiIndex, Series, date_range, timedelta_range
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 import pandas.util.testing as tm
 
@@ -168,7 +168,8 @@ class TestDataFramePlots(TestPlotBase):
                 "b": np.random.randn(100),
                 "c": np.random.randn(100) + 2,
                 "d": date_range("2012-01-01", periods=100).astype(str),
-                'e': date_range("2012-01-01", periods=100, tz='UTC')
+                "e": date_range("2012-01-01", periods=100, tz="UTC"),
+                "f": timedelta_range("1 days", periods=100),
             }
         )
         ax = df.plot(kind="box")

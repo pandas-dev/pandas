@@ -409,11 +409,13 @@ class MPLPlot:
             include_type.append(np.bool_)
 
         # GH22799, exclude datatime-like type for boxplot
+        exclude_type = None
         if self._kind == "box":
-            # TODO: might be buggy: timedelta will be counted as number?
+            # TODO: change after solving issue 27881
             include_type = [np.number]
+            exclude_type = ["timedelta"]
 
-        numeric_data = data.select_dtypes(include=include_type)
+        numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
 
         try:
             is_empty = numeric_data.empty
