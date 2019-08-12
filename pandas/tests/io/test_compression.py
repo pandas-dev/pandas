@@ -1,5 +1,7 @@
 import contextlib
 import os
+import subprocess
+import textwrap
 import warnings
 
 import pytest
@@ -125,3 +127,15 @@ def test_compression_warning(compression_only):
         with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
             with f:
                 df.to_csv(f, compression=compression_only)
+
+
+def test_with_missing_lzma():
+    # https://github.com/pandas-dev/pandas/issues/27575
+    code = textwrap.dedent(
+        """\
+        import sys
+        sys.modules['lzma'] = None
+        import pandas
+        """
+    )
+    subprocess.check_output(["python", "-c", code])
