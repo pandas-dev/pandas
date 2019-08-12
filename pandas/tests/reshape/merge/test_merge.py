@@ -2156,6 +2156,7 @@ def test_merge_multiindex_columns():
 
 
 def test_right_merge_preserves_row_order():
+    # GH 27453
     population = [
         ("Jenn", "Jamaica", 3),
         ("Beth", "Bulgaria", 7),
@@ -2182,6 +2183,7 @@ def test_right_merge_preserves_row_order():
 
 
 def test_left_merge_preserves_row_order():
+    # GH 27453
     population = [
         ("Jenn", "Jamaica", 3),
         ("Beth", "Bulgaria", 7),
