@@ -2122,6 +2122,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index without duplicates
+        For numeric input, the dtype of the result will be promoted to 64-bit.
 
         See Also
         --------

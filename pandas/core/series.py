@@ -1910,8 +1910,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Notes
         -----
-        Returns the unique values as a NumPy array. In case of an
-        extension-array backed Series, a new
+        Returns the unique values as a NumPy array.
+        For numeric input, the dtype of the result will be promoted to 64-bit.
+        In case of an extension-array backed Series, a new
         :class:`~api.extensions.ExtensionArray` of that type with just
         the unique values is returned. This includes
 
