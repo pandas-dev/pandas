@@ -122,6 +122,7 @@ Groupby/resample/rolling
 - Bug in windowing over read-only arrays (:issue:`27766`)
 -
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where ``cumcount`` and ``ngroup`` fail (:issue:`27472` and :issue:`27468`)
+- Fixed segfault in `pandas.core.groupby.DataFrameGroupBy.quantile` when an invalid quantile was passed (:issue:`27470`)
 
 Reshaping
 ^^^^^^^^^
