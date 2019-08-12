@@ -162,6 +162,7 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.ObjectE
         return np.bitwise_or.reduce(codes, axis=1)
 
 
+@com.pin_method_names
 class MultiIndex(Index):
     """
     A multi-level, or hierarchical, index object for pandas objects.

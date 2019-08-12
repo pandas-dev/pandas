@@ -67,6 +67,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
@@ -5410,14 +5411,11 @@ class Index(IndexOpsMixin, PandasObject):
                     "cannot evaluate a numeric op "
                     "{opstr} with type: {typ}".format(opstr=opstr, typ=type(other))
                 )
-        elif isinstance(other, np.ndarray) and not other.ndim:
-            assert False, other  # this should already have been done.  besides other.item() gets timedelta64 objects wrong IIRC
-            other = other.item()
 
         if isinstance(other, (Index, ABCSeries, np.ndarray)):
             if len(self) != len(other):
                 raise ValueError("cannot evaluate a numeric op with unequal lengths")
-            other = com.values_from_object(other)
+            other = extract_array(other, extract_numpy=True)
             if other.dtype.kind not in ["f", "i", "u"]:
                 raise TypeError("cannot evaluate a numeric op with a non-numeric dtype")
         elif isinstance(other, (ABCDateOffset, np.timedelta64, timedelta)):
