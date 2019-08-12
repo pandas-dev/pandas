@@ -577,13 +577,11 @@ class TestPeriodIndexArithmetic:
             pd.Timestamp.now(),
             pd.Timestamp.now().to_pydatetime(),
             pd.Timestamp.now().to_datetime64(),
-
             # datetime-like arrays
             pd.date_range("2016-01-01", periods=3, freq="H"),
             pd.date_range("2016-01-01", periods=3, tz="Europe/Brussels"),
             pd.date_range("2016-01-01", periods=3, freq="S")._data,
             pd.date_range("2016-01-01", periods=3, tz="Asia/Tokyo")._data,
-
             # Miscellaneous invalid types
         ],
     )
