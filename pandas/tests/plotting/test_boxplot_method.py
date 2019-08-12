@@ -168,6 +168,7 @@ class TestDataFramePlots(TestPlotBase):
                 "b": np.random.randn(100),
                 "c": np.random.randn(100) + 2,
                 "d": date_range("2012-01-01", periods=100).astype(str),
+                'e': date_range("2012-01-01", periods=100, tz='UTC')
             }
         )
         ax = df.plot(kind="box")
