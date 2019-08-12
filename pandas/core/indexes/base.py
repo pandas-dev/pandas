@@ -309,12 +309,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif (
             is_datetime64_any_dtype(data)
-            or (dtype is not None and is_datetime64_any_dtype(dtype))
+            or is_datetime64_any_dtype(dtype)
             or "tz" in kwargs
         ):
             from pandas import DatetimeIndex
 
-            if dtype is not None and is_dtype_equal(_o_dtype, dtype):
+            if is_dtype_equal(_o_dtype, dtype):
                 # GH#23524 passing `dtype=object` to DatetimeIndex is invalid,
                 #  will raise in the where `data` is already tz-aware.  So
                 #  we leave it out of this step and cast to object-dtype after
@@ -329,12 +329,10 @@ class Index(IndexOpsMixin, PandasObject):
                 )
                 return result
 
-        elif is_timedelta64_dtype(data) or (
-            dtype is not None and is_timedelta64_dtype(dtype)
-        ):
+        elif is_timedelta64_dtype(data) or is_timedelta64_dtype(dtype):
             from pandas import TimedeltaIndex
 
-            if dtype is not None and is_dtype_equal(_o_dtype, dtype):
+            if is_dtype_equal(_o_dtype, dtype):
                 # Note we can pass copy=False because the .astype below
                 #  will always make a copy
                 result = TimedeltaIndex(data, copy=False, name=name, **kwargs)
@@ -355,11 +353,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
             data = np.asarray(data)
             if not (dtype is None or is_object_dtype(dtype)):
-
                 # coerce to the provided dtype
-                data = dtype.construct_array_type()._from_sequence(
-                    data, dtype=dtype, copy=False
-                )
+                ea_cls = dtype.construct_array_type()
+                data = ea_cls._from_sequence(data, dtype=dtype, copy=False)
 
             # coerce to the object dtype
             data = data.astype(object)
@@ -368,58 +364,48 @@ class Index(IndexOpsMixin, PandasObject):
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
             if dtype is not None:
-                try:
+                # we need to avoid having numpy coerce
+                # things that look like ints/floats to ints unless
+                # they are actually ints, e.g. '0' and 0.0
+                # should not be coerced
+                # GH 11836
+                if is_integer_dtype(dtype):
+                    inferred = lib.infer_dtype(data, skipna=False)
+                    if inferred == "integer":
+                        data = maybe_cast_to_integer_array(data, dtype, copy=copy)
+                    elif inferred in ["floating", "mixed-integer-float"]:
+                        if isna(data).any():
+                            raise ValueError("cannot convert float NaN to integer")
 
-                    # we need to avoid having numpy coerce
-                    # things that look like ints/floats to ints unless
-                    # they are actually ints, e.g. '0' and 0.0
-                    # should not be coerced
-                    # GH 11836
-                    if is_integer_dtype(dtype):
-                        inferred = lib.infer_dtype(data, skipna=False)
-                        if inferred == "integer":
-                            data = maybe_cast_to_integer_array(data, dtype, copy=copy)
-                        elif inferred in ["floating", "mixed-integer-float"]:
-                            if isna(data).any():
-                                raise ValueError("cannot convert float NaN to integer")
+                        if inferred == "mixed-integer-float":
+                            data = maybe_cast_to_integer_array(data, dtype)
 
-                            if inferred == "mixed-integer-float":
-                                data = maybe_cast_to_integer_array(data, dtype)
-
-                            # If we are actually all equal to integers,
-                            # then coerce to integer.
-                            try:
-                                return cls._try_convert_to_int_index(
-                                    data, copy, name, dtype
-                                )
-                            except ValueError:
-                                pass
-
-                            # Return an actual float index.
-                            from .numeric import Float64Index
-
-                            return Float64Index(data, copy=copy, dtype=dtype, name=name)
-
-                        elif inferred == "string":
+                        # If we are actually all equal to integers,
+                        # then coerce to integer.
+                        try:
+                            return cls._try_convert_to_int_index(
+                                data, copy, name, dtype
+                            )
+                        except ValueError:
                             pass
-                        else:
-                            data = data.astype(dtype)
-                    elif is_float_dtype(dtype):
-                        inferred = lib.infer_dtype(data, skipna=False)
-                        if inferred == "string":
-                            pass
-                        else:
-                            data = data.astype(dtype)
+
+                        # Return an actual float index.
+                        from .numeric import Float64Index
+
+                        return Float64Index(data, copy=copy, dtype=dtype, name=name)
+
+                    elif inferred == "string":
+                        pass
                     else:
-                        data = np.array(data, dtype=dtype, copy=copy)
-
-                except (TypeError, ValueError) as e:
-                    msg = str(e)
-                    if (
-                        "cannot convert float" in msg
-                        or "Trying to coerce float values to integer" in msg
-                    ):
-                        raise
+                        data = data.astype(dtype)
+                elif is_float_dtype(dtype):
+                    inferred = lib.infer_dtype(data, skipna=False)
+                    if inferred == "string":
+                        pass
+                    else:
+                        data = data.astype(dtype)
+                else:
+                    data = np.array(data, dtype=dtype, copy=copy)
 
             # maybe coerce to a sub-class
             from pandas.core.indexes.period import PeriodIndex, IncompatibleFrequency
