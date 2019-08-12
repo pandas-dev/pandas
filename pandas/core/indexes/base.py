@@ -104,7 +104,7 @@ def _make_comparison_op(op, cls):
             if other.ndim > 0 and len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
-        if is_object_dtype(self):# and not isinstance(self, ABCMultiIndex):
+        if is_object_dtype(self):  # and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             assert not isinstance(self, ABCMultiIndex)
             with np.errstate(all="ignore"):
@@ -5418,7 +5418,7 @@ class Index(IndexOpsMixin, PandasObject):
         def _make_evaluate_unary(op, opstr):
             def _evaluate_numeric_unary(self):
 
-                self._validate_for_numeric_unaryop(op, opstr)
+                # self._validate_for_numeric_unaryop(op, opstr)
                 attrs = self._get_attributes_dict()
                 attrs = self._maybe_update_attributes(attrs)
                 return Index(op(self.values), **attrs)
