@@ -646,6 +646,7 @@ cdef class TextReader:
                     raise ValueError('Multiple files found in compressed '
                                      'zip file %s', str(zip_names))
             elif self.compression == 'xz':
+                if lzma is None: raise RuntimeError("lzma module not available.")
                 if isinstance(source, str):
                     source = lzma.LZMAFile(source, 'rb')
                 else:
