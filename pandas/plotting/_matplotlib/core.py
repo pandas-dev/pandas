@@ -106,6 +106,7 @@ class MPLPlot:
         colormap=None,
         table=False,
         layout=None,
+        include_bool=False,
         **kwds
     ):
 
@@ -191,6 +192,7 @@ class MPLPlot:
             self.colormap = colormap
 
         self.table = table
+        self.include_bool = include_bool
 
         self.kwds = kwds
 
@@ -400,13 +402,17 @@ class MPLPlot:
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)
-        # GH22799, exclude datatime-like type for boxplot
         include_type = [np.number, "datetime", "datetimetz", "timedelta"]
+
+        # GH23719, allow plotting boolean
+        if self.include_bool is True:
+            include_type.append(np.bool_)
+
+        # GH22799, exclude datatime-like type for boxplot
         if self._kind == "box":
             # TODO: might be buggy: timedelta will be counted as number?
             include_type = [np.number]
 
-        # GH22799, skip datetime type data for computation
         numeric_data = data.select_dtypes(include=include_type)
 
         try:
