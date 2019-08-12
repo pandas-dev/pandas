@@ -112,18 +112,12 @@ def _make_comparison_op(op, cls):
         else:
             # TODO: define this on NumericIndex?
             with np.errstate(all="ignore"):
-                result = op(self.values, np.asarray(other))
+                result = op(self._values, np.asarray(other))
 
-        # technically we could support bool dtyped Index
-        # for now just return the indexing array directly
+
         if is_bool_dtype(result):
-            # TODO: This fails for exactly 1 test, with Int64Index and other="a" and ==
             return result
-        #raise RuntimeError(other, op, self.dtype)
-        try:
-            return Index(result)
-        except TypeError:
-            return result
+        return ops.invalid_comparison(self, other, op)
 
     name = "__{name}__".format(name=op.__name__)
     return set_function_name(cmp_method, name, cls)
