@@ -212,7 +212,10 @@ def decompress_file(path, compression):
     elif compression == "bz2":
         f = bz2.BZ2File(path, "rb")
     elif compression == "xz":
-        f = lzma.LZMAFile(path, "rb")
+        if lzma is None:
+            raise RuntimeError("lzma module not available.")
+        else:
+            f = lzma.LZMAFile(path, "rb")
     elif compression == "zip":
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
@@ -266,8 +269,10 @@ def write_to_compressed(compression, path, data, dest="test"):
         compress_method = bz2.BZ2File
     elif compression == "xz":
         lzma = import_lzma()
-
-        compress_method = lzma.LZMAFile
+        if lzma is None:
+            raise RuntimeError("lmza module not available.")
+        else:
+            compress_method = lzma.LZMAFile
     else:
         msg = "Unrecognized compression type: {}".format(compression)
         raise ValueError(msg)

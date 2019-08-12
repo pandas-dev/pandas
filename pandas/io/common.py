@@ -397,7 +397,10 @@ def _get_handle(
 
         # XZ Compression
         elif compression == "xz":
-            f = lzma.LZMAFile(path_or_buf, mode)
+            if lzma is None:
+                raise RuntimeError("lzma module not available.")
+            else:
+                f = lzma.LZMAFile(path_or_buf, mode)
 
         # Unrecognized Compression
         else:

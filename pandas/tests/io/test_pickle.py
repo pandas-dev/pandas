@@ -271,7 +271,10 @@ class TestCompression:
             with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == "xz":
-            f = lzma.LZMAFile(dest_path, "w")
+            if lzma is None:
+                raise RuntimeError("lzma module not available.")
+            else:
+                f = lzma.LZMAFile(dest_path, "w")
         else:
             msg = "Unrecognized compression type: {}".format(compression)
             raise ValueError(msg)
