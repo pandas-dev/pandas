@@ -103,7 +103,7 @@ MultiIndex
 
 I/O
 ^^^
-
+- Bug: importing `lzma` can fail when Python is not properly installed. For example, on MacOS, installing Python with `pyenv` when `xz` is not available does not raise any issues during installation. However, trying to `import pandas` afterwards will fail, since the module `lzma` will not be available. Usually, this can be solved by installing the appropriate Python dependencies, and then resintalling Python. This fix warns the user that Python was not properly installed during a `import pandas`. In this case, Pandas can still be used (not possible before this fix), but any call to the `lzma` module will raise a `RuntimeError`. (:issue: `27575`)
 -
 -
 -
