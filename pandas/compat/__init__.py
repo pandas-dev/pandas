@@ -65,3 +65,16 @@ def is_platform_mac():
 
 def is_platform_32bit():
     return struct.calcsize("P") * 8 < 64
+
+
+def import_lzma():
+    import warnings
+    try:
+        import lzma
+        return lzma
+    except ImportError:
+        msg = (
+            "Could not import the lzma module. Your installed Python is incomplete. "
+            "Attempting to use `lzma` compression will result in a RuntimeError."
+        )
+        warnings.warn(msg)

@@ -6,7 +6,6 @@ import csv
 import gzip
 from http.client import HTTPException  # noqa
 from io import BytesIO
-import lzma
 import mmap
 import os
 import pathlib
@@ -31,9 +30,12 @@ from pandas.errors import (  # noqa
     ParserWarning,
 )
 
+from pandas.compat import import_lzma
 from pandas.core.dtypes.common import is_file_like
 
 from pandas._typing import FilePathOrBuffer
+
+lzma = import_lzma()
 
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError

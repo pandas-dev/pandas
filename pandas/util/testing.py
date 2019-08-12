@@ -5,7 +5,6 @@ from datetime import datetime
 from functools import wraps
 import gzip
 import http.client
-import lzma
 import os
 import re
 from shutil import rmtree
@@ -26,7 +25,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
-from pandas.compat import raise_with_traceback
+from pandas.compat import raise_with_traceback, import_lzma
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -69,6 +68,8 @@ from pandas.core.arrays import (
 
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
+
+lzma = import_lzma()
 
 N = 30
 K = 4
@@ -264,7 +265,7 @@ def write_to_compressed(compression, path, data, dest="test"):
 
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        import lzma
+        lzma = import_lzma()
 
         compress_method = lzma.LZMAFile
     else:
