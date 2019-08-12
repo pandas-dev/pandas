@@ -396,7 +396,7 @@ def unique(values):
 
     table = htable(len(values))
     uniques = table.unique(values)
-    uniques = _reconstruct_data(uniques, dtype, original)
+    uniques = _reconstruct_data(uniques, original.dtype, original)
     return uniques
 
 
