@@ -1224,13 +1224,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             if not is_period_dtype(self):
                 maybe_integer_op_deprecated(self)
             result = self._addsub_int_array(other, operator.add)
-        # elif is_float_dtype(other):
-        #    # Explicitly catch invalid dtypes
-        #    raise TypeError(
-        #        "cannot add {dtype}-dtype to {cls}".format(
-        #            dtype=other.dtype, cls=type(self).__name__
-        #        )
-        #    )
         else:
             # Includes Categorical, other ExtensionArrays
             # For PeriodDtype, if self is a TimedeltaArray and other is a
@@ -1289,19 +1282,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             if not is_period_dtype(self):
                 maybe_integer_op_deprecated(self)
             result = self._addsub_int_array(other, operator.sub)
-        # elif isinstance(other, ABCIndexClass):
-        #    raise TypeError(
-        #        "cannot subtract {cls} and {typ}".format(
-        #            cls=type(self).__name__, typ=type(other).__name__
-        #        )
-        #    )
-        # elif is_float_dtype(other):
-        #    # Explicitly catch invalid dtypes
-        #    raise TypeError(
-        #        "cannot subtract {dtype}-dtype from {cls}".format(
-        #            dtype=other.dtype, cls=type(self).__name__
-        #        )
-        #   )
         else:
             # Includes ExtensionArrays, float_dtype
             return NotImplemented
