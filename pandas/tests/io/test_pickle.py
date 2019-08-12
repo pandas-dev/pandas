@@ -13,7 +13,6 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 import bz2
 import glob
 import gzip
-import lzma
 import os
 import pickle
 import shutil
@@ -22,13 +21,15 @@ import zipfile
 
 import pytest
 
-from pandas.compat import is_platform_little_endian
+from pandas.compat import is_platform_little_endian, import_lzma
 
 import pandas as pd
 from pandas import Index
 import pandas.util.testing as tm
 
 from pandas.tseries.offsets import Day, MonthEnd
+
+lzma = import_lzma()
 
 
 @pytest.fixture(scope="module")
