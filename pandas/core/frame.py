@@ -825,7 +825,7 @@ class DataFrame(NDFrame):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
-    @Appender(_shared_docs["items"] % "Returns\n        -------")
+    @Appender(_shared_docs["items"] % "Yields\n        -------")
     def iteritems(self):
         return self.items()
 
