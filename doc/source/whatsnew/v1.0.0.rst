@@ -163,8 +163,9 @@ I/O
 Plotting
 ^^^^^^^^
 
+- Bug in :meth:`Series.plot` not able to plot boolean values (:issue:`23719`)
 -
--
+- Bug in :meth:`DataFrame.plot` when ``kind='box'`` and data contains datetime or timedelta data. These types are now automatically dropped (:issue:`22799`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
