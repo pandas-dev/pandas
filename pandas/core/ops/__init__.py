@@ -460,7 +460,7 @@ def masked_arith_op(x, y, op):
 # Dispatch logic
 
 
-def should_extension_dispatch(left, right) -> bool:
+def should_extension_dispatch(left: ABCSeries, right: Any) -> bool:
     """
     Identify cases where Series operation should use dispatch_to_extension_op.
 
