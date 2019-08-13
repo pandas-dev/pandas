@@ -1303,6 +1303,7 @@ def _get_join_indexers(
 
     # bind `sort` arg. of _factorize_keys
     fkeys = partial(_factorize_keys, sort=sort)
+
     # get left & right join labels and num. of levels at each location
     mapped = (
         _factorize_keys(left_keys[n], right_keys[n], sort=sort)
