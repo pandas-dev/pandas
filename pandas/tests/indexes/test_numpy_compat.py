@@ -118,4 +118,7 @@ def test_elementwise_comparison_warning():
     # this test.
     idx = Index([1, 2])
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        idx == "a"
+        result = idx == "a"
+
+    expected = np.array([False, False])
+    tm.assert_numpy_array_equal(result, expected)
