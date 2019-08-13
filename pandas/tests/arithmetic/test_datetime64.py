@@ -1044,7 +1044,13 @@ class TestDatetime64Arithmetic:
     def test_dt64arr_add_sub_float(self, other, box_with_array):
         dti = DatetimeIndex(["2011-01-01", "2011-01-02"], freq="D")
         dtarr = tm.box_expected(dti, box_with_array)
-        msg = "|".join(["unsupported operand type", "cannot (add|subtract)"])
+        msg = "|".join(
+            [
+                "unsupported operand type",
+                "cannot (add|subtract)",
+                "ufunc '?(add|subtract)'? cannot use operands with types",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             dtarr + other
         with pytest.raises(TypeError, match=msg):
