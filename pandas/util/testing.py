@@ -213,7 +213,12 @@ def decompress_file(path, compression):
         f = bz2.BZ2File(path, "rb")
     elif compression == "xz":
         if lzma is None:
-            raise RuntimeError("lzma module not available.")
+            raise RuntimeError(
+                "lzma module not available. "
+                "A Python re-install with the proper "
+                "dependencies might be required to "
+                "solve this issue."
+            )
         else:
             f = lzma.LZMAFile(path, "rb")
     elif compression == "zip":
@@ -269,7 +274,12 @@ def write_to_compressed(compression, path, data, dest="test"):
         compress_method = bz2.BZ2File
     elif compression == "xz":
         if lzma is None:
-            raise RuntimeError("lmza module not available.")
+            raise RuntimeError(
+                "lzma module not available. "
+                "A Python re-install with the proper "
+                "dependencies might be required to "
+                "solve this issue."
+            )
         else:
             compress_method = lzma.LZMAFile
     else:

@@ -272,7 +272,12 @@ class TestCompression:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == "xz":
             if lzma is None:
-                raise RuntimeError("lzma module not available.")
+                raise RuntimeError(
+                    "lzma module not available. "
+                    "A Python re-install with the proper "
+                    "dependencies might be required to "
+                    "solve this issue."
+                )
             else:
                 f = lzma.LZMAFile(dest_path, "w")
         else:
