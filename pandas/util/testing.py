@@ -268,7 +268,6 @@ def write_to_compressed(compression, path, data, dest="test"):
 
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        lzma = import_lzma()
         if lzma is None:
             raise RuntimeError("lmza module not available.")
         else:
