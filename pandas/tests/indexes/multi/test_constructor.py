@@ -473,6 +473,44 @@ def test_from_product_datetimeindex():
     tm.assert_numpy_array_equal(mi.values, etalon)
 
 
+def test_from_product_infer_names():
+    a = pd.Series([1, 2, 3], name="foo")
+    b = pd.Series(["a", "b"], name="bar")
+    result = MultiIndex.from_product([a, b])
+    expected = MultiIndex(
+        levels=[[1, 2, 3], ["a", "b"]],
+        codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+        names=["foo", "bar"],
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_from_product_infers_partial_names():
+    a = pd.Series([1, 2, 3], name="foo")
+    b = ["a", "b"]
+    result = MultiIndex.from_product([a, b])
+    expected = MultiIndex(
+        levels=[[1, 2, 3], ["a", "b"]],
+        codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+        names=["foo", None],
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_from_product_infers_all_none_passed():
+    # This ensures that if no names can be inferred, names
+    # is set to None, instead of a list of None
+    a = [1, 2, 3]
+    b = ["a", "b"]
+    result = MultiIndex.from_product([a, b])
+    expected = MultiIndex(
+        levels=[[1, 2, 3], ["a", "b"]],
+        codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+        names=None,
+    )
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize("ordered", [False, True])
 @pytest.mark.parametrize("f", [lambda x: x, lambda x: pd.Series(x), lambda x: x.values])
 def test_from_product_index_series_categorical(ordered, f):

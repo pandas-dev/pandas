@@ -508,7 +508,9 @@ class MultiIndex(Index):
             Level of sortedness (must be lexicographically sorted by that
             level).
         names : list / sequence of str, optional
-            Names for the levels in the index.
+            Names for the levels in the index. If not provided, these
+            will be inferred from iterables if the iterable has a
+            name attribute.
 
         Returns
         -------
@@ -533,6 +535,18 @@ class MultiIndex(Index):
                     (2,  'green'),
                     (2, 'purple')],
                    names=['number', 'color'])
+
+        >>> numbers = pd.Series([0, 1, 2], name='number')
+        >>> colors = pd.Series(['green', 'purple'], name='color')
+        >>> pd.MultiIndex.from_product([numbers, colors])
+        ...
+        MultiIndex([(0,  'green'),
+                    (0, 'purple'),
+                    (1,  'green'),
+                    (1, 'purple'),
+                    (2,  'green'),
+                    (2, 'purple')],
+                   names=['number', 'color'])
         """
         from pandas.core.reshape.util import cartesian_product
 
@@ -540,6 +554,13 @@ class MultiIndex(Index):
             raise TypeError("Input must be a list / sequence of iterables.")
         elif is_iterator(iterables):
             iterables = list(iterables)
+
+        # Infer names from iterable if attribute is available
+        if names is None:
+            names = [idx.name if hasattr(idx, "name") else None for idx in iterables]
+
+            if all(name is None for name in names):
+                names = None
 
         codes, levels = _factorize_from_iterables(iterables)
         codes = cartesian_product(codes)
