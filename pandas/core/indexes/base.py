@@ -48,6 +48,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
+    ABCCategorical,
     ABCDataFrame,
     ABCDateOffset,
     ABCDatetimeArray,
@@ -99,11 +100,14 @@ _index_shared_docs = dict()
 
 def _make_comparison_op(op, cls):
     def cmp_method(self, other):
-        if isinstance(other, (np.ndarray, Index, ABCSeries)):
+        if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)):
             if other.ndim > 0 and len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
-        if is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
+        if is_object_dtype(self) and isinstance(other, ABCCategorical):
+            left = type(other)(self._values, dtype=other.dtype)
+            return op(left, other)
+        elif is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all="ignore"):
                 result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)

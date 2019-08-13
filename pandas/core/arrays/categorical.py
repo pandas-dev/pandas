@@ -88,6 +88,9 @@ def _cat_compare_op(opname):
             return NotImplemented
 
         other = lib.item_from_zerodim(other)
+        if is_list_like(other) and len(other) != len(self):
+            # TODO: Could this fail if the categories are listlike objects?
+            raise ValueError("Lengths must match.")
 
         if not self.ordered:
             if opname in ["__lt__", "__gt__", "__le__", "__ge__"]:
