@@ -69,7 +69,7 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     # Some are "raw" methods, the result is not not re-boxed in an Index
     # We also have a few "extra" attrs, which may or may not be raw,
     # which we we dont' want to expose in the .dt accessor.
-    _extra_methods = ["to_period", "to_perioddelta", "to_julian_date"]
+    _extra_methods = ["to_period", "to_perioddelta", "to_julian_date", "strftime"]
     _extra_raw_methods = ["to_pydatetime", "_local_timestamps", "_has_same_tz"]
     _extra_raw_properties = ["_box_func", "tz", "tzinfo"]
     _delegated_properties = DatetimeArray._datetimelike_ops + _extra_raw_properties
@@ -238,6 +238,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     )
 
     _engine_type = libindex.DatetimeEngine
+    _supports_partial_string_indexing = True
 
     _tz = None
     _freq = None
@@ -778,6 +779,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             not in (
                 "floating",
                 "integer",
+                "integer-na",
                 "mixed-integer",
                 "mixed-integer-float",
                 "mixed",
@@ -803,11 +805,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if isinstance(other, DatetimeIndex):
             if self.tz is not None:
                 if other.tz is None:
-                    raise TypeError(
-                        "Cannot join tz-naive with tz-aware " "DatetimeIndex"
-                    )
+                    raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
             elif other.tz is not None:
-                raise TypeError("Cannot join tz-naive with tz-aware " "DatetimeIndex")
+                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
 
             if not timezones.tz_compare(self.tz, other.tz):
                 this = self.tz_convert("UTC")
@@ -1048,7 +1048,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if isinstance(key, time):
             if method is not None:
                 raise NotImplementedError(
-                    "cannot yet lookup inexact labels " "when key is a time object"
+                    "cannot yet lookup inexact labels when key is a time object"
                 )
             return self.indexer_at_time(key)
 
@@ -1184,7 +1184,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)  # type: ignore
     _resolution = cache_readonly(DatetimeArray._resolution.fget)  # type: ignore
 
-    strftime = ea_passthrough(DatetimeArray.strftime)
     _has_same_tz = ea_passthrough(DatetimeArray._has_same_tz)
 
     @property
@@ -1570,7 +1569,7 @@ def date_range(
                   dtype='datetime64[ns]', freq='D')
     """
 
-    if freq is None and com._any_none(periods, start, end):
+    if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
     dtarr = DatetimeArray._generate_range(

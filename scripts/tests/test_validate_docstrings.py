@@ -200,7 +200,7 @@ class GoodDocStrings:
 
     def mode(self, axis, numeric_only):
         """
-        Ensure sphinx directives don't affect checks for trailing periods.
+        Ensure reST directives don't affect checks for leading periods.
 
         Parameters
         ----------
@@ -501,6 +501,27 @@ class BadGenericDocStrings:
         """
 
     def method_wo_docstrings(self):
+        pass
+
+    def directives_without_two_colons(self, first, second):
+        """
+        Ensure reST directives have trailing colons.
+
+        Parameters
+        ----------
+        first : str
+            Sentence ending in period, followed by single directive w/o colons.
+
+            .. versionchanged 0.1.2
+
+        second : bool
+            Sentence ending in period, followed by multiple directives w/o
+            colons.
+
+            .. versionadded 0.1.2
+            .. deprecated 0.00.0
+
+        """
         pass
 
 
@@ -899,6 +920,7 @@ class TestValidator:
             "plot",
             "method",
             "private_classes",
+            "directives_without_two_colons",
         ],
     )
     def test_bad_generic_functions(self, capsys, func):
@@ -937,6 +959,14 @@ class TestValidator:
                 "BadGenericDocStrings",
                 "deprecation_in_wrong_order",
                 ("Deprecation warning should precede extended summary",),
+            ),
+            (
+                "BadGenericDocStrings",
+                "directives_without_two_colons",
+                (
+                    "reST directives ['versionchanged', 'versionadded', "
+                    "'deprecated'] must be followed by two colons",
+                ),
             ),
             (
                 "BadSeeAlso",
