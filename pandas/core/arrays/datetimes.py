@@ -223,8 +223,6 @@ def _dt_array_cmp(cls, op):
                 result = op(self.view("i8"), other.view("i8"))
                 o_mask = other._isnan
 
-            result = com.values_from_object(result)
-
             if o_mask.any():
                 result[o_mask] = nat_result
 
