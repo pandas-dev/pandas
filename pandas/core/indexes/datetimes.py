@@ -465,14 +465,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             return _to_M8(value)
         raise ValueError("Passed item and index have different timezone")
 
-    def _maybe_update_attributes(self, attrs):
-        """ Update Index attributes (e.g. freq) depending on op """
-        freq = attrs.get("freq", None)
-        if freq is not None:
-            # no need to infer if freq is None
-            attrs["freq"] = "infer"
-        return attrs
-
     # --------------------------------------------------------------------
     # Rendering Methods
 

@@ -74,7 +74,7 @@ class RangeIndex(Int64Index):
     _engine_type = libindex.Int64Engine
     _range = None  # type: range
 
-    # check whether self._data has benn called
+    # check whether self._data has been called
     _cached_data = None  # type: np.ndarray
     # --------------------------------------------------------------------
     # Constructors
@@ -784,7 +784,6 @@ class RangeIndex(Int64Index):
 
                 other = self._validate_for_numeric_binop(other, op)
                 attrs = self._get_attributes_dict()
-                attrs = self._maybe_update_attributes(attrs)
 
                 left, right = self, other
 

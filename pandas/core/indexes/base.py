@@ -722,7 +722,6 @@ class Index(IndexOpsMixin, PandasObject):
             return result
 
         attrs = self._get_attributes_dict()
-        attrs = self._maybe_update_attributes(attrs)
         return Index(result, **attrs)
 
     @cache_readonly
@@ -5368,12 +5367,6 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__abs__ = make_invalid_op("__abs__")
         cls.__inv__ = make_invalid_op("__inv__")
 
-    def _maybe_update_attributes(self, attrs):
-        """
-        Update Index attributes (e.g. freq) depending on op.
-        """
-        return attrs
-
     def _validate_for_numeric_unaryop(self, op, opstr):
         """
         Validate if we can perform a numeric unary operation.
@@ -5463,7 +5456,6 @@ class Index(IndexOpsMixin, PandasObject):
 
                 self._validate_for_numeric_unaryop(op, opstr)
                 attrs = self._get_attributes_dict()
-                attrs = self._maybe_update_attributes(attrs)
                 return Index(op(self.values), **attrs)
 
             _evaluate_numeric_unary.__name__ = opstr
