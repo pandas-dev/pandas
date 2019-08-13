@@ -1694,6 +1694,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     for sp_value, fv in zip(sp_values, fill_value)
                 )
                 return arrays
+            elif is_scalar(sp_values):
+                # e.g. reductions
+                return sp_values
 
             return self._simple_new(
                 sp_values, self.sp_index, SparseDtype(sp_values.dtype, fill_value)
