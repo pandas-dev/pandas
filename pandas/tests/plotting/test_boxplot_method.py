@@ -9,7 +9,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, MultiIndex, Series, date_range, timedelta_range
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 import pandas.util.testing as tm
 
@@ -159,6 +159,21 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(
             df.boxplot("a", fontsize=16), xlabelsize=16, ylabelsize=16
         )
+
+    def test_boxplot_numeric_data(self):
+        # GH 22799
+        df = DataFrame(
+            {
+                "a": date_range("2012-01-01", periods=100),
+                "b": np.random.randn(100),
+                "c": np.random.randn(100) + 2,
+                "d": date_range("2012-01-01", periods=100).astype(str),
+                "e": date_range("2012-01-01", periods=100, tz="UTC"),
+                "f": timedelta_range("1 days", periods=100),
+            }
+        )
+        ax = df.plot(kind="box")
+        assert [x.get_text() for x in ax.get_xticklabels()] == ["b", "c"]
 
 
 @td.skip_if_no_mpl
