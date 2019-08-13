@@ -284,8 +284,7 @@ class GoodDocStrings:
         """
         pass
 
-    def parameters_bullet_points_and_directives(self, axis="index",
-                                                method="min"):
+    def parameters_bullet_points_and_directives(self, axis="index", method="min"):
         """
         Test bullets points and directories.
 
