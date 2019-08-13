@@ -5374,16 +5374,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return attrs
 
-    def _validate_for_numeric_unaryop(self, op, opstr):
-        """
-        Validate if we can perform a numeric unary operation.
-        """
-        if not self._is_numeric_dtype:
-            raise TypeError(
-                "cannot evaluate a numeric op "
-                "{opstr} for type: {typ}".format(opstr=opstr, typ=type(self).__name__)
-            )
-
     def _validate_for_numeric_binop(self, other, op):
         """
         Return valid other; evaluate or raise TypeError if we are not of
@@ -5461,7 +5451,6 @@ class Index(IndexOpsMixin, PandasObject):
         def _make_evaluate_unary(op, opstr):
             def _evaluate_numeric_unary(self):
 
-                self._validate_for_numeric_unaryop(op, opstr)
                 attrs = self._get_attributes_dict()
                 attrs = self._maybe_update_attributes(attrs)
                 return Index(op(self.values), **attrs)
