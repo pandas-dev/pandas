@@ -68,14 +68,25 @@ def is_platform_32bit():
     return struct.calcsize("P") * 8 < 64
 
 
-def import_lzma():
+def _import_lzma():
     try:
         import lzma
 
         return lzma
     except ImportError:
         msg = (
-            "Could not import the lzma module. Your installed Python is incomplete. "
-            "Attempting to use `lzma` compression will result in a RuntimeError."
+            "Could not import the lzma module. "
+            "Your installed Python is incomplete. "
+            "Attempting to use lzma compression will result in a RuntimeError."
         )
         warnings.warn(msg)
+
+
+def _get_lzma_file(lzma):
+    if lzma is None:
+        raise RuntimeError(
+            "lzma module not available. "
+            "A Python re-install with the proper "
+            "dependencies might be required to solve this issue."
+        )
+    return lzma.LZMAFile

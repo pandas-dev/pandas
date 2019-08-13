@@ -21,7 +21,7 @@ import zipfile
 
 import pytest
 
-from pandas.compat import import_lzma, is_platform_little_endian
+from pandas.compat import _get_lzma_file, _import_lzma, is_platform_little_endian
 
 import pandas as pd
 from pandas import Index
@@ -29,7 +29,7 @@ import pandas.util.testing as tm
 
 from pandas.tseries.offsets import Day, MonthEnd
 
-lzma = import_lzma()
+lzma = _import_lzma()
 
 
 @pytest.fixture(scope="module")
@@ -271,15 +271,7 @@ class TestCompression:
             with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == "xz":
-            if lzma is None:
-                raise RuntimeError(
-                    "lzma module not available. "
-                    "A Python re-install with the proper "
-                    "dependencies might be required to "
-                    "solve this issue."
-                )
-            else:
-                f = lzma.LZMAFile(dest_path, "w")
+            f = _get_lzma_file(lzma)(dest_path, "w")
         else:
             msg = "Unrecognized compression type: {}".format(compression)
             raise ValueError(msg)

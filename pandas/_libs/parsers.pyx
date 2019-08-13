@@ -58,11 +58,11 @@ from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as icom
 
-from pandas.compat import import_lzma
+from pandas.compat import _import_lzma, _get_lzma_file
 from pandas.errors import (ParserError, DtypeWarning,
                            EmptyDataError, ParserWarning)
 
-lzma = import_lzma()
+lzma = _import_lzma()
 
 # Import CParserError as alias of ParserError for backwards compatibility.
 # Ultimately, we want to remove this import. See gh-12665 and gh-14479.
@@ -646,15 +646,10 @@ cdef class TextReader:
                     raise ValueError('Multiple files found in compressed '
                                      'zip file %s', str(zip_names))
             elif self.compression == 'xz':
-                if lzma is None:
-                    raise RuntimeError("lzma module not available. "
-                                       "A Python re-install with the proper "
-                                       "dependencies might be required to "
-                                       "solve this issue.")
                 if isinstance(source, str):
-                    source = lzma.LZMAFile(source, 'rb')
+                    source = _get_lzma_file(lzma)(source, 'rb')
                 else:
-                    source = lzma.LZMAFile(filename=source)
+                    source = _get_lzma_file(lzma)(filename=source)
             else:
                 raise ValueError('Unrecognized compression type: %s' %
                                  self.compression)

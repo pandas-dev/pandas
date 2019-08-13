@@ -22,7 +22,7 @@ from urllib.parse import (  # noqa
 from urllib.request import pathname2url, urlopen
 import zipfile
 
-from pandas.compat import import_lzma
+from pandas.compat import _get_lzma_file, _import_lzma
 from pandas.errors import (  # noqa
     AbstractMethodError,
     DtypeWarning,
@@ -35,7 +35,7 @@ from pandas.core.dtypes.common import is_file_like
 
 from pandas._typing import FilePathOrBuffer
 
-lzma = import_lzma()
+lzma = _import_lzma()
 
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
@@ -397,15 +397,7 @@ def _get_handle(
 
         # XZ Compression
         elif compression == "xz":
-            if lzma is None:
-                raise RuntimeError(
-                    "lzma module not available. "
-                    "A Python re-install with the proper "
-                    "dependencies might be required to "
-                    "solve this issue."
-                )
-            else:
-                f = lzma.LZMAFile(path_or_buf, mode)
+            f = _get_lzma_file(lzma)(path_or_buf, mode)
 
         # Unrecognized Compression
         else:
