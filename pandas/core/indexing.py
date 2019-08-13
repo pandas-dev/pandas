@@ -321,6 +321,17 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 val = list(value.values()) if isinstance(value, dict) else value
                 take_split_path = not blk._can_hold_element(val)
 
+        # if we have any multi-indexes that have non-trivial slices
+        # (not null slices) then we must take the split path, xref
+        # GH 10360, GH 27841
+        if isinstance(indexer, tuple) and len(indexer) == len(self.obj.axes):
+            for i, ax in zip(indexer, self.obj.axes):
+                if isinstance(ax, MultiIndex) and not (
+                    is_integer(i) or com.is_null_slice(i)
+                ):
+                    take_split_path = True
+                    break
+
         if isinstance(indexer, tuple):
             nindexer = []
             for i, idx in enumerate(indexer):
