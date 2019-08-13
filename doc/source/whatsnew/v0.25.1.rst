@@ -103,8 +103,6 @@ MultiIndex
 
 I/O
 ^^^
-- Bug: importing `lzma` can fail when Python is not properly installed. For example, on MacOS, installing Python with `pyenv` when `xz` is not available does not raise any issues during installation. However, trying to `import pandas` afterwards will fail, since the module `lzma` will not be available. Usually, this can be solved by installing the appropriate Python dependencies, and then resintalling Python. This fix warns the user that Python was not properly installed during a `import pandas`. In this case, Pandas can still be used (not possible before this fix), but any call to the `lzma` module will raise a `RuntimeError`. The solution was to check for an `ImportError` when importing `lzma`. If we get an `ImportError`, then we set `lzma` to `None`. When we actually need to call some method of `lzma`, we first check `lzma is None` and raise a `RuntimeError` if true, otherwise `lzma` was imported and the code can run. (:issue: `27575`)
--
 - Avoid calling ``S3File.s3`` when reading parquet, as this was removed in s3fs version 0.3.0 (:issue:`27756`)
 -
 -
@@ -160,6 +158,15 @@ Other
 -
 -
 -
+
+I/O and LZMA
+~~~~~~~~~~~~
+
+- Issue: Some users may unknowingly have an incomplete Python installation, which lacks the `lzma` module from the standard library. In this case, `import pandas` fails due to an `ImportError`; (:issue: `27575`)
+- Change: Pandas will now warn, rather than raising an `ImportError` if the `lzma` module is not present. Any subsequent attempt to use `lzma` methods will raise a `RuntimeError`;
+- Possible Fix: Ensure you have the necessary libraries and reinstall Python;
+- Example: On MacOS, installing Python with `pyenv` may lead to an incomplete Python installation due to unmet system dependencies at compilation time (like `xz`). Compilation will succeed, but Python might fail at run time.
+
 
 .. _whatsnew_0.251.contributors:
 
