@@ -252,10 +252,7 @@ def test_object_series_ok():
     "values",
     [
         pd.array([1, 3, 2]),
-        pytest.param(
-            pd.array([1, 10, 0], dtype="Sparse[int]"),
-            marks=pytest.mark.xfail(resason="GH-27080. Bug in SparseArray"),
-        ),
+        pd.array([1, 10, 0], dtype="Sparse[int]"),
         pd.to_datetime(["2000", "2010", "2001"]),
         pd.to_datetime(["2000", "2010", "2001"]).tz_localize("CET"),
         pd.to_datetime(["2000", "2010", "2001"]).to_period(freq="D"),

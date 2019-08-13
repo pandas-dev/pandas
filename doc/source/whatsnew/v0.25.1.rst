@@ -133,7 +133,7 @@ Reshaping
 
 Sparse
 ^^^^^^
-
+- Bug in reductions for :class:`Series` with Sparse dtypes (:issue:`27080`)
 -
 -
 -
