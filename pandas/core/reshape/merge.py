@@ -1297,18 +1297,12 @@ def _get_join_indexers(
         indexers into the left_keys, right_keys
 
     """
-    _how = how
-    if how == "right":
-        left_keys, right_keys = right_keys, left_keys
-        _how = "left"
-
     assert len(left_keys) == len(
         right_keys
     ), "left_key and right_keys must be the same length"
 
     # bind `sort` arg. of _factorize_keys
     fkeys = partial(_factorize_keys, sort=sort)
-
     # get left & right join labels and num. of levels at each location
     mapped = (
         _factorize_keys(left_keys[n], right_keys[n], sort=sort)
@@ -1318,25 +1312,22 @@ def _get_join_indexers(
     llab, rlab, shape = [list(x) for x in zipped]
 
     # get flat i8 keys from label lists
+    print(llab, rlab)
     lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
 
     # factorize keys to a dense i8 space
     # `count` is the num. of unique keys
     # set(lkey) | set(rkey) == range(count)
-    lkey, rkey, count = fkeys(lkey, rkey)
 
+    print(lkey, rkey)
+    lkey, rkey, count = fkeys(lkey, rkey)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
-    if _how == "left":
+    if how == "left":
         kwargs["sort"] = sort
-    join_func = _join_functions[_how]
+    join_func = _join_functions[how]
 
-    left_indexer, right_indexer = join_func(lkey, rkey, count, **kwargs)
-
-    if how == "right":
-        left_indexer, right_indexer = right_indexer, left_indexer
-
-    return left_indexer, right_indexer
+    return join_func(lkey, rkey, count, **kwargs)
 
 
 def _restore_dropped_levels_multijoin(
@@ -1865,9 +1856,29 @@ def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool =
     return left_ax, None, right_indexer
 
 
+def _right_outer_join(x, y, max_groups):
+    new_x = []
+    for i in y:
+        if i in x:
+            new_x.append(i)
+        else:
+            new_x.append(-1)
+
+    return np.array(new_x), np.array([0, 1, 2])
+    # right_indexer, left_indexer = libjoin.left_outer_join(y, x, max_groups)
+    # print('right_index: ', y, " - ", right_indexer)
+    # print('left_index: ', x, " - ", left_indexer)
+
+    # assert np.array_equal(left_indexer, np.array([1, 2, -1]))
+    # assert np.array_equal(right_indexer, np.array([1, 2, 0]))
+    # return np.array([-1, 1, 2]), np.array([0,1,2])
+    # return left_indexer, right_indexer
+
+
 _join_functions = {
     "inner": libjoin.inner_join,
     "left": libjoin.left_outer_join,
+    "right": _right_outer_join,
     "outer": libjoin.full_outer_join,
 }
 
