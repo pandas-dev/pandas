@@ -130,6 +130,7 @@ def test_compression_warning(compression_only):
 
 
 def test_with_missing_lzma():
+    """Tests if import pandas fails when lzma is not present."""
     # https://github.com/pandas-dev/pandas/issues/27575
     code = textwrap.dedent(
         """\
@@ -137,5 +138,18 @@ def test_with_missing_lzma():
         sys.modules['lzma'] = None
         import pandas
         """
+    )
+    subprocess.check_output(["python", "-c", code])
+
+
+def test_with_missing_lzma_runtime():
+    """Tests if RuntimeError is hit when calling lzma without
+    having the module available."""
+    code = textwrap.dedent(
+        """
+        import sys
+        from pandas.compat import _import_lzma, _get_lzma_file
+        lzma = _import_lzma()
+        _get_lzma_file(lzma)"""
     )
     subprocess.check_output(["python", "-c", code])
