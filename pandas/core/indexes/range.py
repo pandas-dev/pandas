@@ -25,6 +25,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCTimedeltaInde
 
 from pandas.core import ops
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
@@ -782,7 +783,7 @@ class RangeIndex(Int64Index):
                     # Must be an np.ndarray; GH#22390
                     return op(self._int64index, other)
 
-                other = self._validate_for_numeric_binop(other, op)
+                other = extract_array(other, extract_numpy=True)
                 attrs = self._get_attributes_dict()
                 attrs = self._maybe_update_attributes(attrs)
 
