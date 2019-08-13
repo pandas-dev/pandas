@@ -3447,15 +3447,14 @@ class DataFrame(NDFrame):
         if not is_list_like(exclude):
             exclude = (exclude,) if exclude is not None else ()
 
-        selection = tuple(map(frozenset, (include, exclude)))
+        selection = (frozenset(include), frozenset(exclude))
 
         if not any(selection):
             raise ValueError("at least one of include or exclude must be nonempty")
 
         # convert the myriad valid dtypes object to a single representation
-        include, exclude = map(
-            lambda x: frozenset(map(infer_dtype_from_object, x)), selection
-        )
+        include = frozenset(infer_dtype_from_object(x) for x in include)
+        exclude = frozenset(infer_dtype_from_object(x) for x in exclude)
         for dtypes in (include, exclude):
             invalidate_string_dtypes(dtypes)
 
