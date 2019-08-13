@@ -1108,7 +1108,7 @@ def test_transform_cumcount_ngroup():
         "ngroup",
         pytest.param("fillna", marks=pytest.mark.xfail(reason="TODO: potential bug")),
         pytest.param(
-            "tshift", marks=pytest.mark.xfail(reason="Untested, should apply to ts data")
+            "tshift", marks=pytest.mark.xfail(reason="Should apply to ts data")
         ),
         pytest.param(
             "corrwith", marks=pytest.mark.xfail(reason="Inapplicable to the data")
