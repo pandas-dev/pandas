@@ -1898,7 +1898,6 @@ class GroupBy(_GroupBy):
 
             return vals
 
-        self.exclusions |= set(self.obj.select_dtypes(include="object").columns)
         if is_scalar(q):
             return self._get_cythonized_result(
                 "group_quantile",
