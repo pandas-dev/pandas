@@ -1,3 +1,4 @@
+import operator
 from shutil import get_terminal_size
 import textwrap
 from typing import Type, Union, cast
@@ -78,7 +79,8 @@ _take_msg = textwrap.dedent(
 )
 
 
-def _cat_compare_op(opname):  # TODO: pass op instead of opname
+def _cat_compare_op(op):
+    opname = "__{op}__".format(op=op.__name__)
 
     @unpack_and_defer(opname)
     def f(self, other):
@@ -87,6 +89,10 @@ def _cat_compare_op(opname):  # TODO: pass op instead of opname
         # results depending whether categories are the same or not is kind of
         # insane, so be a bit stricter here and use the python3 idea of
         # comparing only things of equal type.
+
+        if is_list_like(other) and len(other) != len(self):
+            # TODO: Could this fail if the categories are listlike objects?
+            raise ValueError("Lengths must match.")
 
         if not self.ordered:
             if opname in ["__lt__", "__gt__", "__le__", "__ge__"]:
@@ -1239,12 +1245,12 @@ class Categorical(ExtensionArray, PandasObject):
                 new_categories = new_categories.insert(len(new_categories), np.nan)
             return np.take(new_categories, self._codes)
 
-    __eq__ = _cat_compare_op("__eq__")
-    __ne__ = _cat_compare_op("__ne__")
-    __lt__ = _cat_compare_op("__lt__")
-    __gt__ = _cat_compare_op("__gt__")
-    __le__ = _cat_compare_op("__le__")
-    __ge__ = _cat_compare_op("__ge__")
+    __eq__ = _cat_compare_op(operator.eq)
+    __ne__ = _cat_compare_op(operator.ne)
+    __lt__ = _cat_compare_op(operator.lt)
+    __gt__ = _cat_compare_op(operator.gt)
+    __le__ = _cat_compare_op(operator.le)
+    __ge__ = _cat_compare_op(operator.ge)
 
     # for Series/ndarray like compat
     @property

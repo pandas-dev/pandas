@@ -280,7 +280,7 @@ class TestArithmeticOps(BaseOpsUtil):
         other = 0.01
         self._check_op(s, op, other)
 
-    @pytest.mark.parametrize("other", [1.0, 1.0, np.array(1.0), np.array([1.0])])
+    @pytest.mark.parametrize("other", [1.0, np.array(1.0)])
     def test_arithmetic_conversion(self, all_arithmetic_operators, other):
         # if we have a float operand we should have a float result
         # if that is equal to an integer
@@ -289,6 +289,15 @@ class TestArithmeticOps(BaseOpsUtil):
         s = pd.Series([1, 2, 3], dtype="Int64")
         result = op(s, other)
         assert result.dtype is np.dtype("float")
+
+    def test_arith_len_mismatch(self, all_arithmetic_operators):
+        # operating with a list-like with non-matching length raises
+        op = self.get_op_from_name(all_arithmetic_operators)
+        other = np.array([1.0])
+
+        s = pd.Series([1, 2, 3], dtype="Int64")
+        with pytest.raises(ValueError, match="Lengths must match"):
+            op(s, other)
 
     @pytest.mark.parametrize("other", [0, 0.5])
     def test_arith_zero_dim_ndarray(self, other):

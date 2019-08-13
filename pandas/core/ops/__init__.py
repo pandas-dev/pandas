@@ -831,14 +831,19 @@ def _comp_method_SERIES(cls, op, special):
 
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
-
         elif (
             is_list_like(other)
             and len(other) != len(self)
-            and not isinstance(other, frozenset)
+            and not isinstance(other, (set, frozenset))
         ):
-            # TODO: why are we treating len-1 frozenset differently?
-            raise ValueError("Lengths must match to compare")
+            raise ValueError("Lengths must match")
+
+        elif isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
+            # TODO: make this treatment consistent across ops and classes.
+            #  We are not catching all listlikes here (e.g. frozenset, tuple)
+            #  The ambiguous case is object-dtype.  See GH#27803
+            if len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
 
         if is_categorical_dtype(self):
             # Dispatch to Categorical implementation; CategoricalIndex

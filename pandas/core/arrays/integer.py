@@ -603,7 +603,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             elif is_list_like(other):
                 other = np.asarray(other)
-                if other.ndim > 0 and len(self) != len(other):
+                if other.ndim > 1:
+                    raise NotImplementedError(
+                        "can only perform ops with 1-d structures"
+                    )
+                if len(self) != len(other):
                     raise ValueError("Lengths must match to compare")
 
             # numpy will show a DeprecationWarning on invalid elementwise
@@ -693,11 +697,15 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             elif is_list_like(other):
                 other = np.asarray(other)
-                if not other.ndim:
-                    other = other.item()
-                elif other.ndim == 1:
-                    if not (is_float_dtype(other) or is_integer_dtype(other)):
-                        raise TypeError("can only perform ops with numeric values")
+                if other.ndim > 1:
+                    raise NotImplementedError(
+                        "can only perform ops with 1-d structures"
+                    )
+                if len(self) != len(other):
+                    raise ValueError("Lengths must match")
+                if not (is_float_dtype(other) or is_integer_dtype(other)):
+                    raise TypeError("can only perform ops with numeric values")
+
             else:
                 if not (is_float(other) or is_integer(other)):
                     raise TypeError("can only perform ops with numeric values")
