@@ -1312,15 +1312,16 @@ def _get_join_indexers(
     llab, rlab, shape = [list(x) for x in zipped]
 
     # get flat i8 keys from label lists
-    print(llab, rlab)
     lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
 
     # factorize keys to a dense i8 space
     # `count` is the num. of unique keys
     # set(lkey) | set(rkey) == range(count)
 
-    print(lkey, rkey)
-    lkey, rkey, count = fkeys(lkey, rkey)
+    if how == "right":
+        rkey, lkey, count = fkeys(rkey, lkey)
+    else:
+        lkey, rkey, count = fkeys(lkey, rkey)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
     if how == "left":
@@ -1857,22 +1858,8 @@ def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool =
 
 
 def _right_outer_join(x, y, max_groups):
-    new_x = []
-    for i in y:
-        if i in x:
-            new_x.append(i)
-        else:
-            new_x.append(-1)
-
-    return np.array(new_x), np.array([0, 1, 2])
-    # right_indexer, left_indexer = libjoin.left_outer_join(y, x, max_groups)
-    # print('right_index: ', y, " - ", right_indexer)
-    # print('left_index: ', x, " - ", left_indexer)
-
-    # assert np.array_equal(left_indexer, np.array([1, 2, -1]))
-    # assert np.array_equal(right_indexer, np.array([1, 2, 0]))
-    # return np.array([-1, 1, 2]), np.array([0,1,2])
-    # return left_indexer, right_indexer
+    right_indexer, left_indexer = libjoin.left_outer_join(y, x, max_groups)
+    return left_indexer, right_indexer
 
 
 _join_functions = {
