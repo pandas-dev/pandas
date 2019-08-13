@@ -1,6 +1,5 @@
 name: pandas-dev
 channels:
-  - jjhelmus/label/py374
   - defaults
   - conda-forge
   - c3i_test
