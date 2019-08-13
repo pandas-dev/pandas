@@ -586,6 +586,8 @@ class PlotAccessor(PandasObject):
     mark_right : bool, default True
         When using a secondary_y axis, automatically mark the column
         labels with "(right)" in the legend
+    include_bool : bool, default is False
+        If True, boolean values can be plotted
     `**kwds` : keywords
         Options to pass to matplotlib plotting method
 

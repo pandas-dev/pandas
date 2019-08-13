@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -1230,29 +1229,17 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             if not is_period_dtype(self):
                 maybe_integer_op_deprecated(self)
             result = self._addsub_int_array(other, operator.add)
-        elif is_float_dtype(other):
-            # Explicitly catch invalid dtypes
-            raise TypeError(
-                "cannot add {dtype}-dtype to {cls}".format(
-                    dtype=other.dtype, cls=type(self).__name__
-                )
-            )
-        elif is_period_dtype(other):
-            # if self is a TimedeltaArray and other is a PeriodArray with
-            #  a timedelta-like (i.e. Tick) freq, this operation is valid.
-            #  Defer to the PeriodArray implementation.
-            # In remaining cases, this will end up raising TypeError.
-            return NotImplemented
-        elif is_extension_array_dtype(other):
-            # Categorical op will raise; defer explicitly
-            return NotImplemented
-        else:  # pragma: no cover
+        else:
+            # Includes Categorical, other ExtensionArrays
+            # For PeriodDtype, if self is a TimedeltaArray and other is a
+            #  PeriodArray with  a timedelta-like (i.e. Tick) freq, this
+            #  operation is valid.  Defer to the PeriodArray implementation.
+            #  In remaining cases, this will end up raising TypeError.
             return NotImplemented
 
         if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
             from pandas.core.arrays import TimedeltaArray
 
-            # TODO: infer freq?
             return TimedeltaArray(result)
         return result
 
@@ -1302,29 +1289,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             if not is_period_dtype(self):
                 maybe_integer_op_deprecated(self)
             result = self._addsub_int_array(other, operator.sub)
-        elif isinstance(other, ABCIndexClass):
-            raise TypeError(
-                "cannot subtract {cls} and {typ}".format(
-                    cls=type(self).__name__, typ=type(other).__name__
-                )
-            )
-        elif is_float_dtype(other):
-            # Explicitly catch invalid dtypes
-            raise TypeError(
-                "cannot subtract {dtype}-dtype from {cls}".format(
-                    dtype=other.dtype, cls=type(self).__name__
-                )
-            )
-        elif is_extension_array_dtype(other):
-            # Categorical op will raise; defer explicitly
-            return NotImplemented
-        else:  # pragma: no cover
+        else:
+            # Includes ExtensionArrays, float_dtype
             return NotImplemented
 
         if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
             from pandas.core.arrays import TimedeltaArray
 
-            # TODO: infer freq?
             return TimedeltaArray(result)
         return result
 
