@@ -1681,7 +1681,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.items : Equivalent to Series.items for DataFrame.
+        DataFrame.items : Iterate over (column name, Series) pairs.
+        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series) pairs.
 
         Examples
         --------
