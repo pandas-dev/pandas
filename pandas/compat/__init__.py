@@ -12,7 +12,6 @@ import struct
 import sys
 import warnings
 
-
 PY35 = sys.version_info[:2] == (3, 5)
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)

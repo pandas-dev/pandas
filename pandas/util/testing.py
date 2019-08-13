@@ -25,7 +25,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
-from pandas.compat import raise_with_traceback, import_lzma
+from pandas.compat import import_lzma, raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool,

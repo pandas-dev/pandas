@@ -22,6 +22,7 @@ from urllib.parse import (  # noqa
 from urllib.request import pathname2url, urlopen
 import zipfile
 
+from pandas.compat import import_lzma
 from pandas.errors import (  # noqa
     AbstractMethodError,
     DtypeWarning,
@@ -30,7 +31,6 @@ from pandas.errors import (  # noqa
     ParserWarning,
 )
 
-from pandas.compat import import_lzma
 from pandas.core.dtypes.common import is_file_like
 
 from pandas._typing import FilePathOrBuffer

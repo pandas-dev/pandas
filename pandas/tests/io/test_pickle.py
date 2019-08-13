@@ -21,7 +21,7 @@ import zipfile
 
 import pytest
 
-from pandas.compat import is_platform_little_endian, import_lzma
+from pandas.compat import import_lzma, is_platform_little_endian
 
 import pandas as pd
 from pandas import Index
