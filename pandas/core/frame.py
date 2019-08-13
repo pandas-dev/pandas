@@ -827,7 +827,7 @@ class DataFrame(NDFrame):
 
     @Appender(_shared_docs["items"] % "Yields\n        -------")
     def iteritems(self):
-        return self.items()
+        yield from self.items()
 
     def iterrows(self):
         """
