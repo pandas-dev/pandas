@@ -1284,7 +1284,7 @@ def test_quantile_array_multiple_levels():
         names=["c", "d", None],
     )
     expected = pd.DataFrame(
-        {"A": [0.5, 1.5, 2.0, 2.0], "B": [3.25, 3.75, 5.0, 5.0]}, index=index
+        {"A": [0.25, 0.75, 2.0, 2.0], "B": [3.25, 3.75, 5.0, 5.0]}, index=index
     )
     tm.assert_frame_equal(result, expected)
 

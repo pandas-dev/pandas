@@ -1898,6 +1898,7 @@ class GroupBy(_GroupBy):
 
             return vals
 
+        self.exclusions |= set(self.obj.select_dtypes(include="object").columns)
         if is_scalar(q):
             return self._get_cythonized_result(
                 "group_quantile",
@@ -1927,26 +1928,24 @@ class GroupBy(_GroupBy):
                 )
                 for qi in q
             ]
+            # fix levels to place quantiles on the inside
             result = concat(results, axis=0, keys=q)
             order = np.roll(list(range(result.index.nlevels)), -1)
             result = result.reorder_levels(order)
             result = result.reindex(q, level=-1)
-            return result
-            #
-            # ngroups = self.ngroups
-            # nquantiles = len(q)
-            # arrays = []
-            #
-            # for i in range(ngroups):
-            #     lo = i
-            #     hi = ngroups * nquantiles + i
-            #     print(lo, hi, ngroups)
-            #     arrays.append(np.arange(lo, hi, ngroups))
-            #
-            # idx = np.concatenate(arrays)
-            # import pdb; pdb.set_trace()
-            # result = result.iloc[idx]
-            # return result
+
+            # fix order.
+            hi = len(q) * self.ngroups
+            arr = np.arange(0, hi, self.ngroups)
+            arrays = []
+
+            for i in range(self.ngroups):
+                arr = arr + i
+                arrays.append(arr)
+
+            indices = np.concatenate(arrays)
+            assert len(indices) == len(result)
+            return result.take(indices)
 
     @Substitution(name="groupby")
     def ngroup(self, ascending=True):
