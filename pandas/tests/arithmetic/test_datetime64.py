@@ -31,6 +31,15 @@ import pandas.util.testing as tm
 
 
 def assert_invalid_comparison(left, right, box):
+    """
+    Assert that comparison operations with mismatched types behave correctly.
+
+    Parameters
+    ----------
+    left : np.ndarray, ExtensionArray, Index, or Series
+    right : object
+    box : {pd.DataFrame, pd.Series, pd.Index, tm.to_array}
+    """
     # Not for tznaive-tzaware comparison
 
     # Note: not quite the same as how we do this for tm.box_expected
