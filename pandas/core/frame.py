@@ -770,7 +770,7 @@ class DataFrame(NDFrame):
     _shared_docs[
         "items"
     ] = r"""
-        Iterator over (column name, Series) pairs.
+        Iterate over (column name, Series) pairs.
 
         Iterates over the DataFrame columns, returning a tuple with
         the column name and the content as a Series.
