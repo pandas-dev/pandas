@@ -141,7 +141,7 @@ copyright = "2008-2014, the pandas development team"
 # built documents.
 #
 # The short X.Y version.
-import pandas
+import pandas  # noqa: E402 isort:skip
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
 version = str(pandas.__version__)

@@ -3206,7 +3206,7 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
    writer = pd.ExcelWriter('path_to_file.xlsx', engine='xlsxwriter')
 
    # Or via pandas configuration.
-   from pandas import options. # noqa: E402
+   from pandas import options  # noqa: E402
    options.io.excel.xlsx.writer = 'xlsxwriter'
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
