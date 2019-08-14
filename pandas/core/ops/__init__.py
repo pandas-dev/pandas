@@ -603,7 +603,8 @@ def dispatch_to_extension_op(op, left, right):
     new_right = extract_array(right, extract_numpy=True)
 
     try:
-        res_values = op(new_left, new_right)
+        with np.errstate(all="ignore"):
+            res_values = op(new_left, new_right)
     except NullFrequencyError:
         # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
         # on add/sub of integers (or int-like).  We re-raise as a TypeError.
@@ -611,6 +612,10 @@ def dispatch_to_extension_op(op, left, right):
             "incompatible type for a datetime/timedelta "
             "operation [{name}]".format(name=op.__name__)
         )
+    if is_scalar(res_values):
+        # numpy returned False instead of operating pointwise
+        assert op.__name__ in ["eq", "ne", "ge", "gt", "le", "lt"], op
+        return invalid_comparison(new_left, new_right, op)
     return res_values
 
 
