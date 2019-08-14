@@ -1,15 +1,17 @@
 import gc
+
 import numpy as np
-import pandas.util.testing as tm
+
 from pandas import (
+    DatetimeIndex,
+    Float64Index,
+    Index,
+    IntervalIndex,
+    RangeIndex,
     Series,
     date_range,
-    DatetimeIndex,
-    Index,
-    RangeIndex,
-    Float64Index,
-    IntervalIndex,
 )
+import pandas.util.testing as tm
 
 
 class SetOperations:

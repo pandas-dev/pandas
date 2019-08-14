@@ -1,8 +1,9 @@
 import string
 
 import numpy as np
+
+from pandas import DataFrame, MultiIndex, Series, concat, date_range, merge, merge_asof
 import pandas.util.testing as tm
-from pandas import DataFrame, Series, MultiIndex, date_range, concat, merge, merge_asof
 
 try:
     from pandas import merge_ordered

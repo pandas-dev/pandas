@@ -2,7 +2,9 @@ from datetime import timedelta
 
 import dateutil
 import numpy as np
-from pandas import to_datetime, date_range, Series, DataFrame, period_range
+
+from pandas import DataFrame, Series, date_range, period_range, to_datetime
+
 from pandas.tseries.frequencies import infer_freq
 
 try:

@@ -1,6 +1,7 @@
 import numpy as np
+
+from pandas import DatetimeIndex, Index, MultiIndex, Series, Timestamp
 import pandas.util.testing as tm
-from pandas import Series, Index, DatetimeIndex, Timestamp, MultiIndex
 
 
 def no_change(arr):

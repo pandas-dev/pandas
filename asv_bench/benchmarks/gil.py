@@ -1,7 +1,8 @@
 import numpy as np
-import pandas.util.testing as tm
-from pandas import DataFrame, Series, read_csv, factorize, date_range
+
+from pandas import DataFrame, Series, date_range, factorize, read_csv
 from pandas.core.algorithms import take_1d
+import pandas.util.testing as tm
 
 try:
     from pandas import (

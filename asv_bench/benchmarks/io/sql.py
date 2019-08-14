@@ -1,9 +1,10 @@
 import sqlite3
 
 import numpy as np
-import pandas.util.testing as tm
-from pandas import DataFrame, date_range, read_sql_query, read_sql_table
 from sqlalchemy import create_engine
+
+from pandas import DataFrame, date_range, read_sql_query, read_sql_table
+import pandas.util.testing as tm
 
 
 class SQL:

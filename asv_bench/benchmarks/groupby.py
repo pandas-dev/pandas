@@ -15,7 +15,6 @@ from pandas import (
 )
 import pandas.util.testing as tm
 
-
 method_blacklist = {
     "object": {
         "median",

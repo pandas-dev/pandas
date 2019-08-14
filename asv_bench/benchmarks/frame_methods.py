@@ -1,5 +1,5 @@
-import warnings
 import string
+import warnings
 
 import numpy as np
 

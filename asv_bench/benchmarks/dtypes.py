@@ -1,13 +1,13 @@
+import numpy as np
+
 from pandas.api.types import pandas_dtype
 
-import numpy as np
 from .pandas_vb_common import (
-    numeric_dtypes,
     datetime_dtypes,
-    string_dtypes,
     extension_dtypes,
+    numeric_dtypes,
+    string_dtypes,
 )
-
 
 _numpy_dtypes = [
     np.dtype(dtype) for dtype in (numeric_dtypes + datetime_dtypes + string_dtypes)
