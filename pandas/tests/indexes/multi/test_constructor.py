@@ -474,7 +474,7 @@ def test_from_product_datetimeindex():
 
 
 @pytest.mark.parametrize(
-    "a, b, expected_name",
+    "a, b, expected_names",
     [
         (
             pd.Series([1, 2, 3], name="foo"),
