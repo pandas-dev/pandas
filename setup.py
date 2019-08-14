@@ -6,16 +6,16 @@ Parts of this file were taken from the pyzmq project
 BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
+from distutils.sysconfig import get_config_vars
+from distutils.version import LooseVersion
 import os
 from os.path import join as pjoin
+import platform
+import shutil
+import sys
 
 import pkg_resources
-import platform
-from distutils.sysconfig import get_config_vars
-import sys
-import shutil
-from distutils.version import LooseVersion
-from setuptools import setup, Command, find_packages
+from setuptools import Command, find_packages, setup
 
 # versioning
 import versioneer

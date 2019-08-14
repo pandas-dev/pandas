@@ -37,7 +37,6 @@ from pandas import (
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal, set_timezone
 
-from pandas.io import pytables as pytables  # noqa: E402 isort:skip
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.pytables import (
     ClosedFileError,
@@ -46,6 +45,8 @@ from pandas.io.pytables import (
     Term,
     read_hdf,
 )
+
+from pandas.io import pytables as pytables  # noqa: E402 isort:skip
 from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
 
 tables = pytest.importorskip("tables")

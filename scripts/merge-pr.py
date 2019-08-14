@@ -22,13 +22,14 @@
 #   usage: ./apache-pr-merge.py    (see config env vars below)
 #
 # Lightly modified from version of this script in incubator-parquet-format
-from subprocess import check_output
-from requests.auth import HTTPBasicAuth
-import requests
 
 import os
+from subprocess import check_output
 import sys
 import textwrap
+
+import requests
+from requests.auth import HTTPBasicAuth
 
 PANDAS_HOME = "."
 PROJECT_NAME = "pandas"

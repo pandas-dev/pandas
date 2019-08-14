@@ -13,20 +13,20 @@ Usage::
     $ ./validate_docstrings.py
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
-import os
-import sys
-import json
-import re
-import glob
-import functools
-import collections
 import argparse
-import pydoc
-import inspect
-import importlib
-import doctest
-import tempfile
 import ast
+import collections
+import doctest
+import functools
+import glob
+import importlib
+import inspect
+import json
+import os
+import pydoc
+import re
+import sys
+import tempfile
 import textwrap
 
 import flake8.main.application
