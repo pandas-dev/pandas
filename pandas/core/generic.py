@@ -2179,6 +2179,12 @@ class NDFrame(PandasObject, SelectionMixin):
     ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
     ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
 
+    ExcelWriter can also be used to append to an existing Excel file:
+
+    >>> with pd.ExcelWriter('output.xlsx',
+    ...                     mode='a') as writer:  # doctest: +SKIP
+    ...     df.to_excel(writer, sheet_name='Sheet_name_3')
+
     To set the library that is used to write the Excel file,
     you can pass the `engine` keyword (the default engine is
     automatically chosen depending on the file extension):
@@ -4786,7 +4792,7 @@ class NDFrame(PandasObject, SelectionMixin):
         frac : float, optional
             Fraction of axis items to return. Cannot be used with `n`.
         replace : bool, default False
-            Sample with or without replacement.
+            Allow or disallow sampling of the same row more than once.
         weights : str or ndarray-like, optional
             Default 'None' results in equal probability weighting.
             If passed a Series, will align with target object on index. Index
