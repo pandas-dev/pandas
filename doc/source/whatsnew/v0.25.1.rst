@@ -105,7 +105,7 @@ I/O
 ^^^
 
 - Avoid calling ``S3File.s3`` when reading parquet, as this was removed in s3fs version 0.3.0 (:issue:`27756`)
--
+- Advise user to use ``header=None`` rather than ``header=-1`` for no header in ``pandas.read_csv`` (:issue:`27779`)
 -
 
 Plotting
