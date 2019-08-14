@@ -58,8 +58,8 @@ except ImportError:
 # The import of Extension must be after the import of Cython, otherwise
 # we do not get the appropriately patched class.
 # See https://cython.readthedocs.io/en/latest/src/reference/compilation.html
-from distutils.extension import Extension  # noqa:E402
-from distutils.command.build import build  # noqa:E402
+from distutils.extension import Extension  # noqa: E402 isort:skip
+from distutils.command.build import build  # noqa: E402 isort:skip
 
 try:
     if not _CYTHON_INSTALLED:
