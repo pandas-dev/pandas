@@ -113,4 +113,4 @@ class MultiIndexConstructor:
         MultiIndex.from_product(self.iterables)
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -127,4 +127,4 @@ class HDF(BaseIO):
         self.df.to_hdf(self.fname, "df", format=format)
 
 
-from ..pandas_vb_common import setup  # noqa: F401
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip

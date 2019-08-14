@@ -159,4 +159,4 @@ class LibFastZip:
         lib.fast_zip(self.col_array_list)
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -56,4 +56,4 @@ class Convert:
         self.data.replace(self.to_replace)
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

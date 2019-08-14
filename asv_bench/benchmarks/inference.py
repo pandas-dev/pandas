@@ -120,4 +120,4 @@ class MaybeConvertNumeric:
         lib.maybe_convert_numeric(data, set(), coerce_numeric=False)
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

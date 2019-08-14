@@ -141,4 +141,4 @@ class ReadSQLTableDtypes:
         read_sql_table(self.table_name, self.con, columns=[dtype])
 
 
-from ..pandas_vb_common import setup  # noqa: F401
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip

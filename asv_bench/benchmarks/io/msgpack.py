@@ -27,4 +27,4 @@ class MSGPack(BaseIO):
         self.df.to_msgpack(self.fname)
 
 
-from ..pandas_vb_common import setup  # noqa: F401
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip
