@@ -10,15 +10,15 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
-import os
-import inspect
 import importlib
+import inspect
 import logging
-import jinja2
-from sphinx.ext.autosummary import _import_by_name
-from numpydoc.docscrape import NumpyDocString
+import os
+import sys
 
+import jinja2
+from numpydoc.docscrape import NumpyDocString
+from sphinx.ext.autosummary import _import_by_name
 
 logger = logging.getLogger(__name__)
 
@@ -433,10 +433,14 @@ ipython_exec_lines = [
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
 
-import sphinx
-from sphinx.util import rpartition
-from sphinx.ext.autodoc import Documenter, MethodDocumenter, AttributeDocumenter
-from sphinx.ext.autosummary import Autosummary
+import sphinx  # noqa: E402 isort:skip
+from sphinx.util import rpartition  # noqa: E402 isort:skip
+from sphinx.ext.autodoc import (  # noqa: E402 isort:skip
+    AttributeDocumenter,
+    Documenter,
+    MethodDocumenter,
+)
+from sphinx.ext.autosummary import Autosummary  # noqa: E402 isort:skip
 
 
 class AccessorDocumenter(MethodDocumenter):
