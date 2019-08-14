@@ -1403,13 +1403,9 @@ def maybe_casted_values(index, codes=None):
         If codes is passed, an array obtained by taking from `index` the indices
         contained in `codes`.
     """
-    from pandas.core.indexes.period import PeriodIndex
-    from pandas import DatetimeIndex
-
     values = index._values
-    if not isinstance(index, (PeriodIndex, DatetimeIndex)):
-        if values.dtype == np.object_:
-            values = lib.maybe_convert_objects(values)
+    if values.dtype == np.object_:
+        values = lib.maybe_convert_objects(values)
 
     # if we have the labels, extract the values with a mask
     if codes is not None:
